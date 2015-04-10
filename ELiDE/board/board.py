@@ -40,6 +40,9 @@ class Board(RelativeLayout):
     def __init__(self, **kwargs):
         """Make a trigger for my ``update`` method."""
         self._trigger_update = Clock.create_trigger(self.update)
+        self._trigger_update_and_rebind = Clock.create_trigger(
+            self.update_and_rebind
+        )
         super().__init__(**kwargs)
 
     def make_pawn(self, thing):
@@ -105,6 +108,7 @@ class Board(RelativeLayout):
         if self.character is None:
             Clock.schedule_once(self.on_character, 0)
             return
+        self._old_character = self.character
 
         for prop in '_scroll_x', '_scroll_y':
             if (
@@ -120,8 +124,45 @@ class Board(RelativeLayout):
         self.track_yvel = False
         self.parent.effect_x.bind(velocity=self.track_x_vel)
         self.parent.effect_y.bind(velocity=self.track_y_vel)
+        self._trigger_update_and_rebind()
 
-        self._trigger_update()
+    def update_and_rebind(self, *args):
+        self.update()
+        self.rebind()
+
+    def rebind(self, *args):
+        if hasattr(self, '_old_character'):
+            self._old_character.thing.unlisten(
+                self.char_thing_listener
+            )
+            self._old_character.place.unlisten(
+                self.char_place_listener
+            )
+            self._old_character.portal.unlisten(
+                self.char_portal_listener
+            )
+            del self._old_character
+        self.character.thing.listener(self.char_thing_listener)
+        self.character.place.listener(self.char_place_listener)
+        self.character.portal.listener(self.char_portal_listener)
+
+    def char_place_listener(self, branch, tick, mapping, place, extant):
+        if extant:
+            self._trigger_add_spot(place)
+        else:
+            self._trigger_discard_spot(place)
+
+    def char_thing_listener(self, branch, tick, mapping, thing, extant):
+        if extant:
+            self._trigger_add_pawn(thing)
+        else:
+            self._trigger_discard_pawn(thing)
+
+    def char_portal_listener(self, branch, tick, mapping, orig, dest, extant):
+        if extant:
+            self._trigger_add_arrow(orig, dest)
+        else:
+            self._trigger_discard_arrow(orig, dest)
 
     def upd_x_when_scrolling_stops(self, *args):
         """Wait for the scroll to stop, then store where it ended."""
@@ -230,7 +271,7 @@ class Board(RelativeLayout):
         from networkx import spectral_layout
         return spectral_layout(graph)
 
-    def discard_pawn(self, thingn):
+    def discard_pawn(self, thingn, *args):
         if (
                 thingn in self.pawn and
                 thingn not in self.character.thing
@@ -250,7 +291,7 @@ class Board(RelativeLayout):
             if pawn_name not in self.character.thing:
                 self.rm_pawn(pawn_name)
 
-    def discard_spot(self, placen):
+    def discard_spot(self, placen, *args):
         if (
                 placen in self.spot and
                 placen not in self.character.place
@@ -270,7 +311,7 @@ class Board(RelativeLayout):
             if spot_name not in self.character.place:
                 self.rm_spot(spot_name)
 
-    def discard_arrow(self, orign, destn):
+    def discard_arrow(self, orign, destn, *args):
         if (
             orign in self.arrow and
             destn in self.arrow[orign] and not (
@@ -298,7 +339,7 @@ class Board(RelativeLayout):
                 ):
                     self.rm_arrow(arrow_origin, arrow_destination)
 
-    def add_spot(self, placen):
+    def add_spot(self, placen, *args):
         if (
             placen in self.character.place and
             placen not in self.spot
@@ -316,16 +357,15 @@ class Board(RelativeLayout):
                 self.character.name
             )
         )
-        self.spots_unposd = []
         spots_added = []
         for place_name in self.character.place:
             if place_name not in self.spot:
                 spot = self.make_spot(self.character.place[place_name])
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
-        self.spots_added = spots_added
+        self.new_spots = spots_added
 
-    def add_arrow(self, orign, destn):
+    def add_arrow(self, orign, destn, *args):
         if (
             orign in self.character.portal and
             destn in self.character.portal[orign] and not (
@@ -360,7 +400,7 @@ class Board(RelativeLayout):
                         )
                     )
 
-    def add_pawn(self, thingn):
+    def add_pawn(self, thingn, *args):
         if (
             thingn in self.character.thing and
             thingn not in self.pawn
@@ -418,6 +458,10 @@ class Board(RelativeLayout):
         self.add_new_spots()
         self.add_new_arrows()
         self.add_new_pawns()
+        self.spots_unposd = [
+            spot for spot in self.spot.values()
+            if spot.pos == spot._default_pos()
+        ]
 
     def on_spots_unposd(self, *args):
         if len(self.spots_unposd) != len(self.new_spots):

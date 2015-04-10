@@ -1841,6 +1841,12 @@ class CharSuccessorsMappingProxy(MutableMapping):
             silent=True
         )
 
+    def listener(self, fun):
+        self._engine.portal_map_listener(self._charname, fun)
+
+    def unlisten(self, fun):
+        self._engine.portal_map_unlisten(self._charname, fun)
+
 
 class PredecessorsProxy(MutableMapping):
     @property

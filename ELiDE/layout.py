@@ -134,7 +134,6 @@ class ELiDELayout(FloatLayout):
             Clock.schedule_once(self.on_engine, 0)
             Logger.debug('ELiDELayout.on_engine: no board')
             return
-        self.engine.time_listener(self.ids.board._trigger_update)
         self._strings_ed_window = StringsEdWindow(layout=self)
         self._funcs_ed_window = FuncsEdWindow(layout=self)
         self._rulesbox = BoxLayout(orientation='vertical')
@@ -209,10 +208,6 @@ class ELiDELayout(FloatLayout):
                 on_press=self.toggle_char_list
             )
         )
-
-        @self.engine.time_listener
-        def board_upd(*args):
-            Clock.schedule_once(self.ids.board.update, 0)
 
     def on_character(self, *args):
         stats = (
