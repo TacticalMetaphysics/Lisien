@@ -5,6 +5,7 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 :class:`kivy.uix.stacklayout.StackLayout`. The user selects graphics
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
+from kivy.clock import Clock
 from kivy.properties import (
     DictProperty,
     NumericProperty,
@@ -18,7 +19,7 @@ from kivy.resources import resource_find
 from kivy.atlas import Atlas
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.uix.widget import Widget
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
 
@@ -85,7 +86,10 @@ class Pallet(StackLayout):
     def on_filename(self, *args):
         if not self.filename:
             return
-        self.atlas = Atlas(resource_find(self.filename))
+        resource = resource_find(self.filename)
+        if not resource:
+            raise ValueError("Couldn't find atlas: {}".format(self.filename))
+        self.atlas = Atlas(resource)
 
     def on_atlas(self, *args):
         if self.atlas is None:
@@ -94,6 +98,9 @@ class Pallet(StackLayout):
         self.atlas.bind(textures=self.upd_textures)
 
     def upd_textures(self, *args):
+        if self.canvas is None:
+            Clock.schedule_once(self.upd_textures, 0)
+            return
         for name in list(self.swatches.keys()):
             if name not in self.atlas.textures:
                 self.remove_widget(self.swatches[name])
@@ -121,5 +128,5 @@ kv = """
 Builder.load_string(kv)
 
 
-class PalletBox(Widget):
+class PalletBox(BoxLayout):
     pallets = ListProperty()

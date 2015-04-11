@@ -22,7 +22,7 @@ from kivy.clock import Clock
 from kivy.logger import Logger
 
 from .dummy import Dummy
-from .configurator import PawnConfigDialog, SpotConfigDialog
+from .spritebuilder import PawnConfigDialog, SpotConfigDialog
 from .board.arrow import Arrow, ArrowWidget
 from .board.spot import Spot
 from .board.pawn import Pawn

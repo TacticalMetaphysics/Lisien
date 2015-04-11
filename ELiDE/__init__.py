@@ -4,8 +4,22 @@ from .board import Board
 from .statgrid import StatListView
 from .menu import MenuTextInput, MenuIntInput
 from .pallet import Pallet
-from .configurator import SpotConfigDialog, PawnConfigDialog
+from .spritebuilder import (
+    SpriteBuilder,
+    SpotConfigDialog,
+    PawnConfigDialog
+)
 from .app import ELiDEApp
 
 
-__all__ = [Board, StatListView, MenuTextInput, MenuIntInput, Pallet, SpotConfigDialog, PawnConfigDialog, ELiDEApp]
+__all__ = [
+    Board,
+    StatListView,
+    MenuTextInput,
+    MenuIntInput,
+    Pallet,
+    SpriteBuilder,
+    SpotConfigDialog,
+    PawnConfigDialog,
+    ELiDEApp
+]
