@@ -322,16 +322,12 @@ class RuleMapping(MutableMapping):
     appending them onto the underlying :class:`RuleBook`; replace one
     rule with another, where the new one will have the same index in
     the :class:`RuleBook` as the old one; and activate or deactivate
-    rules. In all these cases, the name of a rule may be used in place
-    of the actual rule, so long as the rule already exists.
+    rules. The name of a rule may be used in place of the actual rule,
+    so long as the rule already exists.
 
-    If you delete a rule from this with the ``del`` keyword, it will
-    actually still be in the :class:`RuleBook`, but deactivated: the
-    rule will not be evaluated unless and until you reactivate it. You
-    can also set a rule active or inactive by setting it to ``True``
-    or ``False``, respectively, and this is the easiest way to
-    reactivate a rule, though you can also reactivate it by calling
-    this with it.
+    You can also set a rule active or inactive by setting it to
+    ``True`` or ``False``, respectively. Inactive rules are still in
+    the rulebook but won't be followed until activated again.
 
     """
     def __init__(self, engine, rulebook):
@@ -454,17 +450,9 @@ class RuleMapping(MutableMapping):
         return self[name]
 
     def __delitem__(self, k):
-        """Deactivate the rule"""
-        (branch, tick) = self.engine.time
-        rule = self[k]
-        self.engine.db.rule_set(
-            self.rulebook.name,
-            k,
-            branch,
-            tick,
-            False
-        )
-        self._dispatch(rule, False)
+        i = self.rulebook.index(k)
+        del self.rulebook[i]
+        self._dispatch(rule, None)
 
 
 class RuleFollower(object):
