@@ -52,8 +52,8 @@ Programming Interface
 =====================
 
 The only LiSE class that you should ever instantiate yourself is
-:class:`LiSE.Engine`. All the other simulation objects should be
-created and accessed through it. :class:`LiSE.Engine` is instantiated
+Engine. All the other simulation objects should be
+created and accessed through it. Engine is instantiated
 with two arguments, which are file names of SQLite databases that will
 be created if needed; the first will hold the state of the simulation,
 including history, while the second will hold rules, including copies
@@ -62,7 +62,7 @@ of the functions used in the rules.
 Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
 provided. Now draw a map by calling the method ``add_place`` with many
-different string ``name``s, then linking them together with the method
+different string ``name`` s, then linking them together with the method
 ``add_portal(origin, destination)``.  To store data pertaining to some
 particular place, retrieve the place from the ``place`` mapping of the
 character: if the character is ``world`` and the place name is
