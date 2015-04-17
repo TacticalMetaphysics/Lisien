@@ -48,8 +48,89 @@ tick. LiSE can keep track of multiple timelines, called "branches,"
 which can split off from one another. Otherwise, events in one branch
 don't effect one another, unless you write code to make them do it.
 
-Interface
-=========
+Programming Interface
+=====================
+
+The only LiSE class that you should ever instantiate yourself is
+:class:`LiSE.Engine`. All the other simulation objects should be
+created and accessed through it. :class:`LiSE.Engine` is instantiated
+with two arguments, which are file names of SQLite databases that will
+be created if needed; the first will hold the state of the simulation,
+including history, while the second will hold rules, including copies
+of the functions used in the rules.
+
+Start by calling the engine's ``new_character`` method with a string
+``name``.  This will return a character object with the name you
+provided. Now draw a map by calling the method ``add_place`` with many
+different string ``name``s, then linking them together with the method
+``add_portal(origin, destination)``.  To store data pertaining to some
+particular place, retrieve the place from the ``place`` mapping of the
+character: if the character is ``world`` and the place name is
+``'home'``, you might do it like ``home =
+world.place['home']``. Portals are retrieved from the ``portal``
+mapping, where you'll need the origin and the destination: if there's
+a portal from ``'home'`` to ``'narnia'``, you can get it like
+``wardrobe = world.portal['home']['narnia']``, but if you haven't also
+made another portal going the other way,
+``world.portal['narnia']['home']`` will raise ``KeyError``. Things are
+created with the method ``add_thing(name, location)``, where
+``location`` must be the name of a place you've already
+created. Retrieve things from the ``thing`` mapping, which works much
+like the ``place`` mapping.
+
+You can store data in things, places, and portals by treating them
+like dictionaries.  If you want to store data in a character, use its
+``stat`` property as a dictionary instead. Data stored in these
+objects, and in the ``universal`` property of the engine, can vary
+over time. The engine's ``eternal`` property is not time-sensitive,
+and is mainly for storing settings, not simulation data.
+
+The current time is always accessible from the engine's ``branch`` and
+``tick`` properties. In the common case where time is advancing
+forward one tick at a time, it should be done with the engine's
+``next_tick`` method, which polls all the game rules before going to
+the next tick; but you can also change the time whenever you want, as
+long as ``branch`` is a string and ``tick`` is an integer. The rules
+will never be followed in response to your changing the time "by
+hand".
+
+To create a rule, first decide what objects the rule should apply
+to. You can put a rule on a character, thing, place, or portal; and
+you can put a rule on a character's ``thing``, ``place``, and
+``portal`` mappings, meaning the rule will be applied to *every* such
+entity within the character, even if it didn't exist when the rule was
+declared.
+
+All these items have a property ``rule`` that can be used as a
+decorator. Use this to decorate a function that performs the rule's
+action by making some change to the world state.  Functions decorated
+this way always get passed the engine as the first argument and the
+character as the second; if the function is more specific than that, a
+particular thing, place, or portal will be the third argument. This
+will get you a rule object of the same name as your action function.
+
+At first, the rule object will not have any triggers, meaning the action
+will never happen. If you want it to run on *every* tick, call its
+``always`` method and think no more of it. But if you want to be
+more selective, use the rule's ``trigger`` decorator on another
+function with the same signature, and have it return ``True`` if the
+world is in such a state that the rule ought to run. There is nothing
+really stopping you from modifying the rule from inside a trigger, but
+it's not recommended.
+
+If you like, you can also add prerequisites. These are like triggers,
+but use the ``prereq`` decorator, and should return ``True`` *unless*
+the action should *not* happen; if a single prerequisite returns
+``False``, the action is cancelled.
+
+If you need to access a character that you created previously, get it
+from the engine's ``character`` mapping, eg. ``world =
+engine.character['world']``.
+
+
+
+IDE
+===
 
 The graphical interface, ELiDE, lets the developer change whatever
 they want about the world. A game made with ELiDE will be more
