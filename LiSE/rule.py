@@ -161,7 +161,7 @@ class Rule(object):
             list(self.actions)
         )
 
-    def always_run(self):
+    def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
         def truth(*args):
             return True
