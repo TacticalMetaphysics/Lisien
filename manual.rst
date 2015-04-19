@@ -60,14 +60,17 @@ be created if needed; the first will hold the state of the simulation,
 including history, while the second will hold rules, including copies
 of the functions used in the rules.
 
+World Modelling
+---------------
+
 Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
 provided. Now draw a map by calling the method ``add_place`` with many
-different string ``name`` s, then linking them together with the method
-``add_portal(origin, destination)``.  To store data pertaining to some
-particular place, retrieve the place from the ``place`` mapping of the
-character: if the character is ``world`` and the place name is
-``'home'``, you might do it like ``home =
+different string ``name`` s, then linking them together with the
+method ``add_portal(origin, destination)``.  To store data pertaining
+to some particular place, retrieve the place from the ``place``
+mapping of the character: if the character is ``world`` and the place
+name is ``'home'``, you might do it like ``home =
 world.place['home']``. Portals are retrieved from the ``portal``
 mapping, where you'll need the origin and the destination: if there's
 a portal from ``'home'`` to ``'narnia'``, you can get it like
@@ -86,14 +89,8 @@ objects, and in the ``universal`` property of the engine, can vary
 over time. The engine's ``eternal`` property is not time-sensitive,
 and is mainly for storing settings, not simulation data.
 
-The current time is always accessible from the engine's ``branch`` and
-``tick`` properties. In the common case where time is advancing
-forward one tick at a time, it should be done with the engine's
-``next_tick`` method, which polls all the game rules before going to
-the next tick; but you can also change the time whenever you want, as
-long as ``branch`` is a string and ``tick`` is an integer. The rules
-will never be followed in response to your changing the time "by
-hand".
+Rule Creation
+-------------
 
 To create a rule, first decide what objects the rule should apply
 to. You can put a rule on a character, thing, place, or portal; and
@@ -124,11 +121,35 @@ but use the ``prereq`` decorator, and should return ``True`` *unless*
 the action should *not* happen; if a single prerequisite returns
 ``False``, the action is cancelled.
 
-If you need to access a character that you created previously, get it
-from the engine's ``character`` mapping, eg. ``world =
-engine.character['world']``.
+Time Control
+------------
 
+The current time is always accessible from the engine's ``branch`` and
+``tick`` properties. In the common case where time is advancing
+forward one tick at a time, it should be done with the engine's
+``next_tick`` method, which polls all the game rules before going to
+the next tick; but you can also change the time whenever you want, as
+long as ``branch`` is a string and ``tick`` is an integer. The rules
+will never be followed in response to your changing the time "by
+hand".
 
+It is possible--indeed, expected--to change the time as part of the
+action of a rule. This is how you would make something happen after a
+delay. Say you want a rule that puts the character ``alice`` to sleep,
+then wakes her up after eight ticks (presumably hour-long).
+
+```
+alice = engine.character['alice']
+
+@alice.rule
+def sleep(engine, character):
+    character.stat['awake'] = False
+    engine.tick += 8
+    character.stat['awake'] = True
+```
+
+After any function that is part of a rule is called, the branch and
+tick will be reset to their prior values.
 
 IDE
 ===
