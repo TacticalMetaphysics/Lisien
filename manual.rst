@@ -168,4 +168,24 @@ Stat editor
 -----------
 
 This two-column table displays the keys and values in the selected
-entity. By default, they are all rendered as plain text.
+entity. By default, they are all shown as Readouts, which is to say,
+plain text.
+
+The "cfg" button at the bottom of the stat editor opens a window in
+which you can add new stats and customize the appearance of the
+existing ones. If you pick an appearance other than "Readout," you
+will be able to edit the stat when you're not in this
+window.
+
+"TextInput" is the most flexible appearance: you just type the
+value that the stat should have. It will try to interpret your value
+as a number, list, or dictionary if it can; by default, it will be
+taken as a string.
+
+"Toggle" is a button that, when pressed, changes the value from True to False
+or vice versa. You can enter text to display instead of True or False, but
+the actual value will still be True or False.
+
+"Slider" is for numeric values that vary within a range. It needs a
+minimum, a maximum, and a step size determining the smallest possible
+change you can make with it.
