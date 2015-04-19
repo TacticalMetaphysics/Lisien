@@ -270,14 +270,35 @@ class EngineHandle(object):
             olds = dict(character.stat)
             self._real.time = (newb, newt)
             del self._real.locktime
+            seen = set()
             for (k, v) in olds.items():
-                if character.stat[k] != v:
+                if k not in character.stat:
+                    self._q.put(
+                        (
+                            'character',
+                            newb, newt,
+                            charn,
+                            k, None
+                        )
+                    )
+                elif character.stat[k] != v:
                     self._q.put(
                         (
                             'character',
                             newb, newt,
                             charn,
                             k, self.get_character_stat(charn, k)
+                        )
+                    )
+                seen.add(k)
+            for (k, v) in character.stat.items():
+                if k not in seen and k not in olds:
+                    self._q.put(
+                        (
+                            'character',
+                            newb, newt,
+                            charn,
+                            k, v
                         )
                     )
 
@@ -382,14 +403,35 @@ class EngineHandle(object):
             olds = dict(node)
             self._real.time = (newb, newt)
             del self._real.locktime
+            seen = set()
             for (k, v) in olds.items():
-                if node[k] != v:
+                if k not in node:
+                    self._q.put(
+                        (
+                            'node',
+                            newb, newt,
+                            char, noden,
+                            k, None
+                        )
+                    )
+                elif node[k] != v:
                     self._q.put(
                         (
                             'node',
                             newb, newt,
                             char, noden,
                             k, self.get_node_stat(char, noden, k)
+                        )
+                    )
+                seen.add(k)
+            for (k, v) in node.items():
+                if k not in seen and k not in olds:
+                    self._q.put(
+                        (
+                            'node',
+                            newb, newt,
+                            char, noden,
+                            k, v
                         )
                     )
 
@@ -418,6 +460,7 @@ class EngineHandle(object):
                 return
             if (b, t) != (self.branch, self.tick):
                 return
+            print('thing_extant {}'.format(thingn))
             self._q.put(('thing_extant', b, t, charn, thingn, v is not None))
 
         @self._real.time_listener
@@ -461,6 +504,7 @@ class EngineHandle(object):
                 return
             if (b, t) != (self.branch, self.tick):
                 return
+            print('place_extant {}'.format(placen))
             self._q.put(('place_extant', b, t, charn, placen, v is not None))
 
         @self._real.time_listener
@@ -587,14 +631,35 @@ class EngineHandle(object):
             olds = dict(port)
             self._real.time = (newb, newt)
             del self._real.locktime
+            seen = set()
             for (k, v) in olds.items():
-                if port[k] != v:
+                if k not in port:
+                    self._q.put(
+                        (
+                            'portal',
+                            newb, newt,
+                            char, a, b,
+                            k, None
+                        )
+                    )
+                elif port[k] != v:
                     self._q.put(
                         (
                             'portal',
                             newb, newt,
                             char, a, b,
                             k, self.get_portal_stat(char, a, b, k)
+                        )
+                    )
+                seen.add(k)
+            for (k, v) in port.items():
+                if k not in seen and k not in olds:
+                    self._q.put(
+                        (
+                            'portal',
+                            newb, newt,
+                            char, a, b,
+                            k, v
                         )
                     )
 
@@ -3077,7 +3142,7 @@ def subprocess(
             return 0
         (silent, cmd, args) = inst
         if silent:
-            r = getattr(engine_handle, cmd)(*args)
+            getattr(engine_handle, cmd)(*args)
         else:
             r = getattr(engine_handle, cmd)(*args)
             handle_in_pipe.send(r)
