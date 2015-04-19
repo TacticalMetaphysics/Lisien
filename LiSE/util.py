@@ -4,6 +4,7 @@
 
 """
 from collections import Mapping
+from copy import deepcopy
 
 
 def dispatch(d, key, *args):
@@ -268,6 +269,19 @@ class JSONListReWrapper(MutableSequence):
 
     def __repr__(self):
         return repr(self._v)
+
+
+def json_deepcopy(obj):
+    r = {}
+    for (k, v) in obj.items():
+        if (
+            isinstance(v, JSONReWrapper) or
+            isinstance(v, JSONListReWrapper)
+        ):
+            r[k] = deepcopy(v._v)
+        else:
+            r[k] = deepcopy(v)
+    return r
 
 
 def _keycache(self, keycache, k, meth):

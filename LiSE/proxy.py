@@ -12,7 +12,7 @@ from queue import Empty
 
 from .core import Engine
 from .character import Facade
-from .util import JSONReWrapper, JSONListReWrapper
+from .util import JSONReWrapper, JSONListReWrapper, json_deepcopy
 
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
@@ -160,7 +160,7 @@ class EngineHandle(object):
         def dispatch_vars(oldb, oldt, newb, newt):
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            old_universals = dict(self._real.universal)
+            old_universals = json_deepcopy(self._real.universal)
             self._real.time = (newb, newt)
             del self._real.locktime
             for (k, oldv) in old_universals.items():
@@ -267,7 +267,7 @@ class EngineHandle(object):
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            olds = dict(character.stat)
+            olds = json_deepcopy(character.stat)
             self._real.time = (newb, newt)
             del self._real.locktime
             seen = set()
@@ -400,7 +400,7 @@ class EngineHandle(object):
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            olds = dict(node)
+            olds = json_deepcopy(node)
             self._real.time = (newb, newt)
             del self._real.locktime
             seen = set()
@@ -628,7 +628,7 @@ class EngineHandle(object):
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            olds = dict(port)
+            olds = json_deepcopy(port)
             self._real.time = (newb, newt)
             del self._real.locktime
             seen = set()
