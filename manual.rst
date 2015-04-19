@@ -46,7 +46,11 @@ them to change the state of the world. Then, LiSE sets its clock to
 the next tick, and is ready for time to move forward another
 tick. LiSE can keep track of multiple timelines, called "branches,"
 which can split off from one another. Otherwise, events in one branch
-don't effect one another, unless you write code to make them do it.
+don't affect those in another, unless you write a rule that sets the
+branch (and perhaps, the tick) before making a change to the world
+state, or merely looking up some information to use. Either way, this
+is safe--when the rule has been evaluated, the branch and tick will be
+put back where they were.
 
 Programming Interface
 =====================
