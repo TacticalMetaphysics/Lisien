@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import ObjectProperty
+from kivy.properties import AliasProperty, ObjectProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -13,6 +13,11 @@ from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
+
+
+# TODO:
+# 1. Make it more obvious whose rules you are editing
+# 2. Allow re-ordering of the rules
 
 
 dbg = Logger.debug
@@ -66,6 +71,31 @@ class RulesView(FloatLayout):
     rulebook = ObjectProperty()
     rule = ObjectProperty()
 
+    def _get_headline_text(self):
+        # This shows the entity whose rules you're editing if you
+        # haven't assigned a different rulebook from usual. Otherwise
+        # it shows the name of the rulebook. I'd like it to show
+        # *both*.
+        if self.rulebook is None:
+            return ''
+        rn = self.rulebook.name
+        if not isinstance(rn, tuple):
+            return str(rn)
+        if len(rn) == 2:
+            if self.engine._is_thing(*rn):
+                return "Character: {}, Thing: {}".format(*rn)
+            else:
+                return "Character: {}, Place: {}".format(*rn)
+        elif len(rn) == 3:
+            return "Character: {}, Portal: {}->{}".format(*rn)
+        else:
+            return str(rn)
+    headline_text = AliasProperty(
+        _get_headline_text,
+        lambda self, v: None,
+        bind=('rulebook',)
+    )
+
     def __init__(self, **kwargs):
         self._trigger_upd_rule_triggers = Clock.create_trigger(
             self.upd_rule_triggers
@@ -100,7 +130,20 @@ class RulesView(FloatLayout):
             'card_hint_step': (0, -0.1),
             'deck_x_hint_step': 0.4
         }
-        self._box = BoxLayout()
+        self._headline = Label(
+            size_hint_y=0.05,
+            pos_hint={
+                'top': 1,
+                'center_x': 0.5
+            },
+            text=self.headline_text
+        )
+        self.bind(headline_text=self._headline.setter('text'))
+        self.add_widget(self._headline)
+        self._box = BoxLayout(
+            size_hint_y=0.95,
+            pos_hint={'top': 0.95}
+        )
         self.add_widget(self._box)
         self._list = RulesList(
             rulebook=self.rulebook,
