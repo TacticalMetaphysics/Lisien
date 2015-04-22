@@ -121,6 +121,30 @@ class ELiDELayout(FloatLayout):
         Clock.unschedule(self.play)
         Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
+    def new_rule(self, *args):
+        if not self.engine.rule.db.haverule(self._new_rule_name.text):
+            new = self.engine.rule.new_empty(self._new_rule_name.text)
+            self._rulesview.rulebook.append(new)
+            view = self._rulesview._list.adapter.get_view(
+                self._rulesview._list.adapter.data.index(new)
+            )
+            self._rulesview._list.adapter.select_list([view])
+            self._rulesview.rule = new
+        self._new_rule_name.text = ''
+
+    def select_character(self, char):
+        if char == self.character:
+            return
+        Clock.schedule_once(self.toggle_char_list, 0.01)
+        self.character = char
+        self.character_name = char.name
+
+    def new_character(self, but):
+        Clock.schedule_once(self.toggle_char_list, 0.01)
+        charn = self._new_char_name.text
+        self.character = self.engine.new_character(charn)
+        self.character_name = charn
+
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
         when you change my branch or tick, you also change my
@@ -148,20 +172,9 @@ class ELiDELayout(FloatLayout):
         )
         below_rulesbox.add_widget(self._new_rule_name)
 
-        def new_rule(*args):
-            if not self.engine.rule.db.haverule(self._new_rule_name.text):
-                new = self.engine.rule.new_empty(self._new_rule_name.text)
-                self._rulesview.rulebook.append(new)
-                view = self._rulesview._list.adapter.get_view(
-                    self._rulesview._list.adapter.data.index(new)
-                )
-                self._rulesview._list.adapter.select_list([view])
-                self._rulesview.rule = new
-            self._new_rule_name.text = ''
-
         self._new_rule_but = Button(
             text='+',
-            on_press=new_rule
+            on_press=self.new_rule
         )
         below_rulesbox.add_widget(self._new_rule_but)
         below_rulesbox.add_widget(
@@ -171,22 +184,9 @@ class ELiDELayout(FloatLayout):
             )
         )
 
-        def select_character(char):
-            if char == self.character:
-                return
-            Clock.schedule_once(self.toggle_char_list, 0.01)
-            self.character = char
-            self.character_name = char.name
-
-        def new_character(but):
-            Clock.schedule_once(self.toggle_char_list, 0.01)
-            charn = self._new_char_name.text
-            self.character = self.engine.new_character(charn)
-            self.character_name = charn
-
         self._charlist = CharListView(
             layout=self,
-            set_char=select_character
+            set_char=self.select_character
         )
         Logger.debug('ELiDELayout: got _charlist')
         self._charbox = BoxLayout(orientation='vertical')
@@ -200,7 +200,7 @@ class ELiDELayout(FloatLayout):
         below_charbox.add_widget(self._new_char_name)
         self._new_char_but = Button(
             text='+',
-            on_press=new_character
+            on_press=self.new_character
         )
         below_charbox.add_widget(self._new_char_but)
         below_charbox.add_widget(
@@ -831,11 +831,11 @@ class ELiDELayout(FloatLayout):
         )
 
     def set_branch(self, b):
-        """``self.branch = b``"""
+        """Set my branch to the given value."""
         self.branch = b
 
     def set_tick(self, t):
-        """``self.tick = int(t)``"""
+        """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
 
     def play(self, *args):
