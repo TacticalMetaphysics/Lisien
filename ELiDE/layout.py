@@ -134,6 +134,7 @@ class ELiDELayout(FloatLayout):
             Clock.schedule_once(self.on_engine, 0)
             Logger.debug('ELiDELayout.on_engine: no board')
             return
+        self.engine.time_listener(self._dispatch_time)
         self._strings_ed_window = StringsEdWindow(layout=self)
         self._funcs_ed_window = FuncsEdWindow(layout=self)
         self._rulesbox = BoxLayout(orientation='vertical')
@@ -844,6 +845,8 @@ class ELiDELayout(FloatLayout):
             return
         else:
             del self._old_time
-            self.property('branch').dispatch(self)
-            self.property('tick').dispatch(self)
-            self.property('time').dispatch(self)
+
+    def _dispatch_time(self, *args):
+        self.property('branch').dispatch(self)
+        self.property('tick').dispatch(self)
+        self.property('time').dispatch(self)
