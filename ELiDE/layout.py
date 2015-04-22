@@ -213,7 +213,7 @@ class ELiDELayout(FloatLayout):
     def on_character(self, *args):
         stats = (
             'kv',
-            'text',
+            'message',
             'font_name',
             'font_size',
             'halign',
@@ -239,9 +239,13 @@ class ELiDELayout(FloatLayout):
                 stat='_'+stat, fun=fun
             )
 
-    def _set_stat(self, stat):
+    def _set_stat(self, stat, *args):
         if '_' + stat in self.character.stat:
             setattr(self, stat, self.character.stat['_'+stat])
+        elif stat == 'kv':
+            self.kv = ''
+        elif stat == 'message':
+            self.message = ''
 
     def remake_display(self, *args):
         Builder.load_string(self.kv)
