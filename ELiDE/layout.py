@@ -140,6 +140,10 @@ class ELiDELayout(FloatLayout):
         self.character_name = char.name
 
     def new_character(self, but):
+        """Create a new character with the name given by the user, and switch
+        to it.
+
+        """
         Clock.schedule_once(self.toggle_char_list, 0.01)
         charn = self._new_char_name.text
         self.character = self.engine.new_character(charn)
@@ -211,6 +215,13 @@ class ELiDELayout(FloatLayout):
         )
 
     def on_character(self, *args):
+        """Arrange to remake the customizable widgets when the character's
+        stats change.
+
+        Make them the first time, too, based on the current value of
+        the relevant stat.
+
+        """
         stats = (
             'kv',
             'message',
