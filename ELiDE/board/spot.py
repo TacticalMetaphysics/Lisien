@@ -79,9 +79,13 @@ class Spot(PawnSpot):
         if self._touchpos:
             return
         if not ('_x' in self.mirror and '_y' in self.mirror):
-            (x, y) = self._default_pos()
-            self.remote['_x'] = x
-            self.remote['_y'] = y
+            Logger.debug(
+                "Spot: {}'s pos not loaded".format(
+                    self.remote.name
+                )
+            )
+            Clock.schedule_once(self.upd_from_mirror_pos, 0)
+            return
         else:
             x = self.mirror['_x']
             y = self.mirror['_y']
@@ -106,18 +110,6 @@ class Spot(PawnSpot):
         """
         self.remote['_x'] = self.x / self.board.width
         self.remote['_y'] = self.y / self.board.height
-
-    def _default_pos(self):
-        """Return the position on the board to use when I don't have
-        one. Given as a pair of floats between 0 and 1.
-
-        """
-        # If one spot is without a position, maybe the rest of them
-        # are too, and so maybe the board should do a full layout.
-        if not hasattr(self, '_unposd'):
-            self.board.spots_unposd.append(self)
-            self._unposd = True
-        return (0.5, 0.5)
 
     def _default_image_paths(self):
         """Return a list of paths to use for my graphics by default."""

@@ -460,7 +460,7 @@ class Board(RelativeLayout):
         self.add_new_pawns()
         self.spots_unposd = [
             spot for spot in self.spot.values()
-            if spot.pos == spot._default_pos()
+            if not ('_x' in spot and '_y' in spot)
         ]
 
     def on_spots_unposd(self, *args):
