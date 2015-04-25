@@ -392,7 +392,10 @@ class ELiDELayout(FloatLayout):
         if self.character is None or 'charsheet' not in self.ids:
             Clock.schedule_once(self.reremote, 0)
             return
-        self.selected_remote = self._get_selected_remote()
+        try:
+            self.selected_remote = self._get_selected_remote()
+        except ValueError:
+            return
 
     def _get_selected_remote(self):
         """Return the currently selected entity, or ``self.character.stat`` if
