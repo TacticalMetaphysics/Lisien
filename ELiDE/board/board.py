@@ -460,10 +460,13 @@ class Board(RelativeLayout):
         self.add_new_pawns()
         self.spots_unposd = [
             spot for spot in self.spot.values()
-            if not ('_x' in spot and '_y' in spot)
+            if not ('_x' in spot.mirror and '_y' in spot.mirror)
         ]
 
     def on_spots_unposd(self, *args):
+        # TODO: If only some spots are unpositioned, and they remain
+        # that way for several frames, put them somewhere that the
+        # user will be able to find.
         if len(self.spots_unposd) != len(self.new_spots):
             return
         for spot in self.new_spots:
