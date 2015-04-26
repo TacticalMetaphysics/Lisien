@@ -209,7 +209,6 @@ class StatListView(ListView, MirrorMapping):
         self.canvas.after.clear()
 
     def set_config(self, key, option, value):
-        print(':cfg: statgrid setting {}[{}] = {}'.format(key, option, value))
         if '_config' not in self.mirror:
             self.remote['_config'] = {key: {option: value}}
         elif key in self.config:
