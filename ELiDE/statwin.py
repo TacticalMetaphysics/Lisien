@@ -12,7 +12,7 @@ from kivy.uix.listview import (
     ListItemLabel,
     SelectableView
 )
-from .statgrid import StatListView, default_cfg
+from .statlist import StatListView, default_cfg
 from .util import set_remote_value
 
 
