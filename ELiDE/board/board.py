@@ -9,6 +9,7 @@ from kivy.properties import (
     NumericProperty,
     ListProperty
 )
+from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.relativelayout import RelativeLayout
@@ -528,3 +529,29 @@ class Board(RelativeLayout):
         for arrow in self.arrows():
             if arrow.collide_point(x, y):
                 yield arrow
+
+
+Builder.load_string(
+    """
+<Board>:
+    size_hint: (None, None)
+    size: wallpaper.size
+    arrowlayout: arrowlayout
+    spotlayout: spotlayout
+    pawnlayout: pawnlayout
+    Image:
+        id: wallpaper
+        source: resource_find(root.character.stat['_wallpaper']) \
+        if root.character is not None and \
+        '_wallpaper' in root.character.stat else \
+        resource_find('wallpape.jpg')
+        size_hint: (None, None)
+        size: self.texture_size
+    FloatLayout:
+        id: arrowlayout
+    FloatLayout:
+        id: spotlayout
+    Widget:
+        id: pawnlayout
+"""
+)

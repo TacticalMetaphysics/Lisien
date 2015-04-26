@@ -18,23 +18,6 @@
             branch: root.branch
             tick: root.tick
             character: root.character
-            arrowlayout: arrowlayout
-            spotlayout: spotlayout
-            pawnlayout: pawnlayout
-            size_hint: (None, None)
-            size: wallpaper.size
-            arrowhead_size: 10
-            Image:
-                id: wallpaper
-                source: resource_find(root.character.stat['_wallpaper']) if '_wallpaper' in root.character.stat else resource_find('wallpape.jpg')
-                size_hint: (None, None)
-                size: self.texture_size
-            FloatLayout:
-                id: arrowlayout
-            FloatLayout:
-                id: spotlayout
-            Widget:
-                id: pawnlayout
     BoxLayout:
         orientation: 'vertical'
         pos_hint: {'left': 0, 'top': 1}
