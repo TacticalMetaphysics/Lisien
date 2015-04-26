@@ -10,7 +10,7 @@ from .util import (
     enkeycache,
     dekeycache
 )
-import rule
+from . import rule
 
 
 class RuleMapping(rule.RuleMapping):
