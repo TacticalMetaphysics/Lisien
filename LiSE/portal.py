@@ -210,6 +210,14 @@ class Portal(Edge, RuleFollower):
             self._keycache[branch][tick].remove(key)
         self._dispatch_stat(key, None)
 
+    def __repr__(self):
+        """Describe character, origin, and destination"""
+        return "{}.portal[{}][{}]".format(
+            self['character'],
+            self['origin'],
+            self['destination']
+        )
+
     @property
     def origin(self):
         """Return the Place object that is where I begin"""

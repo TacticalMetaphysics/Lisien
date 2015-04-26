@@ -66,6 +66,13 @@ class Place(Node):
         dekeycache(self, self._cache, key)
         encache(self, self._cache, key, None)
 
+    def __repr__(self):
+        """Return my character and name"""
+        return "{}.place[{}]".format(
+            self['character'],
+            self['name']
+        )
+
     def _get_json_dict(self):
         (branch, tick) = self.engine.time
         return {

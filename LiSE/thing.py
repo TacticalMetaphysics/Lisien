@@ -200,6 +200,21 @@ class Thing(Node):
             encache(self, self._cache, key, None)
             dekeycache(self, self._keycache, key)
 
+    def __repr__(self):
+        """Return my character, name, and location"""
+        if self['next_location'] is not None:
+            return "{}.thing[{}]@{}->{}".format(
+                self['character'],
+                self['name'],
+                self['location'],
+                self['next_location']
+            )
+        return "{}.thing[{}]@{}".format(
+            self['character'],
+            self['name'],
+            self['location']
+        )
+
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
         self._loccache[branch] = {}

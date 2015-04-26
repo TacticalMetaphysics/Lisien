@@ -1412,7 +1412,11 @@ class NodeProxy(MutableMapping):
 
 
 class PlaceProxy(NodeProxy):
-    pass
+    def __repr__(self):
+        return "proxy to {}.place[{}]".format(
+            self._charname,
+            self.name
+        )
 
 
 class ThingProxy(NodeProxy):
@@ -1454,6 +1458,21 @@ class ThingProxy(NodeProxy):
             'set_thing_next_location',
             (self._charname, self.name, v._name),
             silent=True
+        )
+
+    def __repr__(self):
+        if self['next_location'] is not None:
+            return "proxy to {}.thing[{}]@{}->{}".format(
+                self._charname,
+                self.name,
+                self['location'],
+                self['next_location']
+            )
+        return "proxy to {}.thing[{}]@{}".format(
+            self._charname,
+            self.name,
+            self['location'],
+            self['next_location']
         )
 
     def follow_path(self, path, weight=None):
@@ -1552,6 +1571,13 @@ class PortalProxy(MutableMapping):
             'del_portal_stat',
             (self._charname, self._nodeA, self._nodeB, k),
             silent=True
+        )
+
+    def __repr__(self):
+        return "proxy to {}.portal[{}][{}]".format(
+            self._charname,
+            self._nodeA,
+            self._nodeB
         )
 
     def listener(self, fun=None, stat=None):
