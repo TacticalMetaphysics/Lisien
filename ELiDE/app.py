@@ -19,6 +19,21 @@ resource_add_path(ELiDE.__path__[0] + "/assets")
 resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
 
 
+def proxylog(typ, data):
+    if typ == 'command':
+        (cmd, args) = data[1:]
+        Logger.debug(
+            "LiSE.proxy: calling {}{}".format(
+                cmd,
+                tuple(args)
+            )
+        )
+    else:
+        Logger.debug(
+            "LiSE.proxy: returning {}".format(data)
+        )
+
+
 class ELiDEApp(App):
     """Extensible LiSE Development Environment.
 
@@ -63,13 +78,15 @@ class ELiDEApp(App):
                 LiSE.__path__[-1]
             )
         )
+
         if config['ELiDE']['debugger'] == 'yes':
             import pdb
             pdb.set_trace()
         self.manager = EngineProcessManager()
         self.engine = self.manager.start(
             config['LiSE']['world'],
-            config['LiSE']['code']
+            config['LiSE']['code'],
+            logger=proxylog
         )
 
         Clock.schedule_interval(self._check_stats, 0.01)

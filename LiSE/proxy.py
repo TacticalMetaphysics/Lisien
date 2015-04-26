@@ -3156,7 +3156,8 @@ class EngineProxy(object):
 
 
 def subprocess(
-        args, kwargs, handle_out_pipe, handle_in_pipe, callbacq
+        args, kwargs, handle_out_pipe, handle_in_pipe, callbacq,
+        logger
 ):
     engine_handle = EngineHandle(args, kwargs, callbacq)
     while True:
@@ -3166,11 +3167,13 @@ def subprocess(
             handle_in_pipe.close()
             callbacq.close()
             return 0
+        logger('command', inst)
         (silent, cmd, args) = inst
         if silent:
             getattr(engine_handle, cmd)(*args)
         else:
             r = getattr(engine_handle, cmd)(*args)
+            logger('result', r)
             handle_in_pipe.send(r)
 
 
@@ -3179,6 +3182,11 @@ class EngineProcessManager(object):
         (handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
         (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
         callbacq = Queue()
+        if 'logger' in kwargs:
+            logger = kwargs['logger']
+            del kwargs['logger']
+        else:
+            logger = lambda foo, bar: None
         self._p = Process(
             name='LiSE Life Simulator Engine (core)',
             target=subprocess,
@@ -3187,7 +3195,8 @@ class EngineProcessManager(object):
                 kwargs,
                 handle_out_pipe_recv,
                 handle_in_pipe_send,
-                callbacq
+                callbacq,
+                logger
             )
         )
         self._p.daemon = True
