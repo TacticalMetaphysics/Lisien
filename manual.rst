@@ -80,7 +80,11 @@ made another portal going the other way,
 created with the method ``add_thing(name, location)``, where
 ``location`` must be the name of a place you've already
 created. Retrieve things from the ``thing`` mapping, which works much
-like the ``place`` mapping.
+like the ``place`` mapping. If you need to access a character that you
+created previously, get it from the engine's ``character`` mapping,
+eg. ``world = engine.character['world']``.
+
+Characters are called that because, if you have 
 
 You can store data in things, places, and portals by treating them
 like dictionaries.  If you want to store data in a character, use its
@@ -136,17 +140,15 @@ hand".
 It is possible--indeed, expected--to change the time as part of the
 action of a rule. This is how you would make something happen after a
 delay. Say you want a rule that puts the character ``alice`` to sleep,
-then wakes her up after eight ticks (presumably hour-long).
+then wakes her up after eight ticks (presumably hour-long).::
 
-```
-alice = engine.character['alice']
+    alice = engine.character['alice']
 
-@alice.rule
-def sleep(engine, character):
-    character.stat['awake'] = False
-    engine.tick += 8
-    character.stat['awake'] = True
-```
+    @alice.rule
+    def sleep(engine, character):
+        character.stat['awake'] = False
+        engine.tick += 8
+        character.stat['awake'] = True
 
 After any function that is part of a rule is called, the branch and
 tick will be reset to their prior values.
