@@ -10,11 +10,10 @@ from .util import (
     enkeycache,
     dekeycache
 )
-from .rule import RuleBook, RuleFollower
-from .rule import RuleMapping as BaseRuleMapping
+import rule
 
 
-class RuleMapping(BaseRuleMapping):
+class RuleMapping(rule.RuleMapping):
     def __init__(self, node):
         super().__init__(node.engine, node.rulebook)
         self.character = node.character
@@ -28,7 +27,7 @@ class RuleMapping(BaseRuleMapping):
         )
 
 
-class Node(gorm.graph.Node, RuleFollower):
+class Node(gorm.graph.Node, rule.RuleFollower):
     """Superclass for both Thing and Place"""
     def _rule_names_activeness(self):
         return self.engine.db.current_rules_node(
@@ -55,7 +54,7 @@ class Node(gorm.graph.Node, RuleFollower):
             return (self.character.name, self.name)
 
     def _get_rulebook(self):
-        return RuleBook(
+        return rule.RuleBook(
             self.engine,
             self._get_rulebook_name()
         )
