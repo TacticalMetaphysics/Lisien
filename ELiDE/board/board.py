@@ -507,8 +507,8 @@ class Board(RelativeLayout):
 
     def arrows(self):
         """Iterate over all my arrows."""
-        for o in self.arrow:
-            for arro in self.arrow[o].values():
+        for o in self.arrow.values():
+            for arro in o.values():
                 yield arro
 
     def pawns_at(self, x, y):
