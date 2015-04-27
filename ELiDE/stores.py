@@ -267,7 +267,9 @@ class StringsEditor(StoreEditor):
             return
         self._editor = StringInput(
             font_name=self.font_name,
-            font_size=self.font_size
+            font_size=self.font_size,
+            name=self.name,
+            source=self.source
         )
         self.bind(
             font_name=self._editor.setter('font_name'),
@@ -287,24 +289,19 @@ class StringsEditor(StoreEditor):
 
 class FuncsEditor(StoreEditor):
     params = ListProperty(['engine', 'character'])
+    subject_type_params = {
+        'character': ['engine', 'character'],
+        'thing': ['engine', 'character', 'thing'],
+        'place': ['engine', 'character', 'place'],
+        'portal': ['engine', 'character', 'origin', 'destination']
+    }
     subject_type = OptionProperty(
-        'character', options=['character', 'thing', 'place', 'portal']
+        'character', options=list(subject_type_params.keys())
     )
     list_cls = FuncStoreList
 
-    def on_params(self, *args):
-        if self.params == ['engine', 'character']:
-            self.subject_type = 'character'
-        elif self.params == ['engine', 'character', 'thing']:
-            self.subject_type = 'thing'
-        elif self.params == ['engine', 'character', 'place']:
-            self.subject_type = 'place'
-        elif self.params == ['engine', 'character', 'origin', 'destination']:
-            self.subject_type = 'portal'
-        else:
-            raise ValueError(
-                "Unsupported function signature: {}".format(self.params)
-            )
+    def on_subject_type(self, *args):
+        self.params = self.subject_type_params[self.subject_type]
 
     def add_editor(self, *args):
         if None in (self.selection, self.params):

@@ -11,12 +11,11 @@ from kivy.properties import (
     OptionProperty,
     StringProperty
 )
+from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.modalview import ModalView
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -26,12 +25,11 @@ from .spritebuilder import PawnConfigDialog, SpotConfigDialog
 from .board.arrow import Arrow, ArrowWidget
 from .board.spot import Spot
 from .board.pawn import Pawn
-from .rulesview import RulesView
-from .funcwin import FuncsEdWindow
-from .statwin import StatWindow
-from .stringwin import StringsEdWindow
-from .charsel import CharListView
-from .util import try_json_load, set_remote_value
+from .charmenu import CharMenu
+from .util import try_json_load, dummynum
+
+
+Factory.register('CharMenu', cls=CharMenu)
 
 
 """The base layout in which all of ELiDE lives. Handles touch in its
@@ -52,9 +50,45 @@ class Message(Label):
     pass
 
 
+class BoardView(ScrollView):
+    selection = ObjectProperty(None, allownone=True)
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    character = ObjectProperty()
+    board = ObjectProperty()
+
+
+class StatListPanel(BoxLayout):
+    time = ListProperty()
+    selected_remote = ObjectProperty()
+    selection_name = StringProperty()
+    button_text = StringProperty('cfg')
+    set_value = ObjectProperty()
+    cfgstatbut = ObjectProperty()
+    toggle_stat_cfg = ObjectProperty()
+
+
+class TimePanel(BoxLayout):
+    next_tick = ObjectProperty()
+    branch = StringProperty()
+    branch_setter = ObjectProperty()
+    tick = NumericProperty()
+    tick_setter = ObjectProperty()
+    playbut = ObjectProperty()
+
+    def set_branch(self, *args):
+        branch = self.ids.branchfield.text
+        self.ids.branchfield.text = ''
+        self.branch_setter(branch)
+
+    def set_tick(self, *args):
+        tick = int(self.ids.tickfield.text)
+        self.ids.tickfield.text = ''
+        self.tick_setter(tick)
+
+
 class ELiDELayout(FloatLayout):
-    """A master layout that contains one board and some menus
-    and charsheets.
+    """A master layout that contains one board and some menus.
 
     This contains three elements: a scrollview (containing the board),
     a menu, and the time control panel. This class has some support methods
@@ -65,11 +99,16 @@ class ELiDELayout(FloatLayout):
     """
     character = ObjectProperty()
     character_name = StringProperty()
+    board = ObjectProperty()
     kv = StringProperty()
     use_kv = BooleanProperty()
     message = StringProperty('')
     use_message = BooleanProperty()
     play_speed = NumericProperty()
+    playbut = ObjectProperty()
+    portaladdbut = ObjectProperty()
+    dummyplace = ObjectProperty()
+    dummything = ObjectProperty()
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty('15sp')
     halign = OptionProperty(
@@ -80,7 +119,6 @@ class ELiDELayout(FloatLayout):
     )
     line_height = NumericProperty(1.0)
     engine = ObjectProperty()
-    dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
     grabbing = BooleanProperty(True)
@@ -112,7 +150,6 @@ class ELiDELayout(FloatLayout):
             self.remake_display
         )
         super().__init__(**kwargs)
-        self._stat_cfg_layout = StatWindow(layout=self)
         self._trigger_reremote = Clock.create_trigger(self.reremote)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
@@ -121,98 +158,10 @@ class ELiDELayout(FloatLayout):
         Clock.unschedule(self.play)
         Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
-    def new_rule(self, *args):
-        if not self.engine.rule.db.haverule(self._new_rule_name.text):
-            new = self.engine.rule.new_empty(self._new_rule_name.text)
-            self._rulesview.rulebook.append(new)
-            view = self._rulesview._list.adapter.get_view(
-                self._rulesview._list.adapter.data.index(new)
-            )
-            self._rulesview._list.adapter.select_list([view])
-            self._rulesview.rule = new
-        self._new_rule_name.text = ''
-
-    def select_character(self, char):
-        if char == self.character:
-            return
-        Clock.schedule_once(self.toggle_char_list, 0.01)
-        self.character = char
-        self.character_name = char.name
-
-    def new_character(self, but):
-        """Create a new character with the name given by the user, and switch
-        to it.
-
-        """
-        Clock.schedule_once(self.toggle_char_list, 0.01)
-        charn = self._new_char_name.text
-        self.character = self.engine.new_character(charn)
-        self.character_name = charn
-
-    def on_engine(self, *args):
-        """Set my branch and tick to that of my engine, and bind them so that
-        when you change my branch or tick, you also change my
-        engine's.
-
-        """
-        if self.engine is None:
-            Logger.debug('ELiDELayout.on_engine: no engine')
-            return
-        if 'board' not in self.ids:
-            Clock.schedule_once(self.on_engine, 0)
-            Logger.debug('ELiDELayout.on_engine: no board')
+    def on_board(self, *args):
+        if self.engine is None or self.board is None:
             return
         self.engine.time_listener(self._dispatch_time)
-        self._strings_ed_window = StringsEdWindow(layout=self)
-        self._funcs_ed_window = FuncsEdWindow(layout=self)
-        self._rulesbox = BoxLayout(orientation='vertical')
-        self._rulesview = RulesView(engine=self.engine)
-        self._rulesbox.add_widget(self._rulesview)
-        below_rulesbox = BoxLayout(size_hint_y=0.05)
-        self._rulesbox.add_widget(below_rulesbox)
-        self._new_rule_name = TextInput(
-            hint_text='New rule name',
-            write_tab=False
-        )
-        below_rulesbox.add_widget(self._new_rule_name)
-
-        self._new_rule_but = Button(
-            text='+',
-            on_press=self.new_rule
-        )
-        below_rulesbox.add_widget(self._new_rule_but)
-        below_rulesbox.add_widget(
-            Button(
-                text='Close',
-                on_press=self.toggle_rules_view
-            )
-        )
-
-        self._charlist = CharListView(
-            layout=self,
-            set_char=self.select_character
-        )
-        Logger.debug('ELiDELayout: got _charlist')
-        self._charbox = BoxLayout(orientation='vertical')
-        self._charbox.add_widget(self._charlist)
-        below_charbox = BoxLayout(size_hint_y=0.05)
-        self._charbox.add_widget(below_charbox)
-        self._new_char_name = TextInput(
-            hint_text='New character name',
-            write_tab=False
-        )
-        below_charbox.add_widget(self._new_char_name)
-        self._new_char_but = Button(
-            text='+',
-            on_press=self.new_character
-        )
-        below_charbox.add_widget(self._new_char_but)
-        below_charbox.add_widget(
-            Button(
-                text='Cancel',
-                on_press=self.toggle_char_list
-            )
-        )
 
     def on_character(self, *args):
         """Arrange to remake the customizable widgets when the character's
@@ -233,7 +182,7 @@ class ELiDELayout(FloatLayout):
         )
         if hasattr(self, '_old_character'):
             for stat in stats:
-                self._old_character.unlisten(
+                self._old_character.stat.unlisten(
                     stat='_'+stat, fun=getattr(self, '_set_'+stat)
                 )
             if self.character is None:
@@ -244,7 +193,9 @@ class ELiDELayout(FloatLayout):
             self.bind(kv=self._trigger_remake_display)
         self._old_character = self.character
         for stat in stats:
-            fun = partial(self._set_stat, stat)
+            funn = '_set_' + stat
+            setattr(self, funn, partial(self._set_stat, stat))
+            fun = getattr(self, funn)
             fun()
             self.character.stat.listener(
                 stat='_'+stat, fun=fun
@@ -299,97 +250,12 @@ class ELiDELayout(FloatLayout):
         self.add_widget(self._message)
         self.add_widget(self._kv_layout_front)
 
-    def toggle_char_list(self, *args):
-        """Display or hide the list you use to switch between characters."""
-        if hasattr(self, '_popover'):
-            self._popover.remove_widget(self._charbox)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            self._charlist.adapter.data = list(self.engine.character)
-            self._charlist.adapter.select_list(
-                [self._charlist.adapter.get_view(
-                    self._charlist.adapter.data.index(self.character_name)
-                )]
-            )
-            self._popover = ModalView()
-            self._popover.add_widget(self._charbox)
-            self._popover.open()
-
-    def toggle_rules_view(self, *args):
-        """Display or hide the view for constructing rules out of cards."""
-        if hasattr(self, '_popover'):
-            self._popover.remove_widget(self._rulesbox)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            if not hasattr(self.selected_remote, 'rulebook'):
-                self._rulesview.rulebook = self.character.rulebook
-            else:
-                self._rulesview.rulebook = self.selected_remote.rulebook
-            self._popover = ModalView()
-            self._popover.add_widget(self._rulesbox)
-            self._popover.open()
-
-    def toggle_funcs_editor(self, functyp):
-        """Display or hide the text editing window for functions."""
-        if hasattr(self, '_popover'):
-            self._popover.remove_widget(self._funcs_ed_window)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            self._funcs_ed.store = getattr(self.engine, functyp)
-            self._funcs_ed.table = functyp
-            self._popover = ModalView()
-            self._popover.add_widget(self._funcs_ed_window)
-            self._popover.open()
-
-    def toggle_strings_editor(self):
-        """Display or hide the text editing window for strings."""
-        if hasattr(self, '_popover'):
-            self._popover.remove_widget(self._strings_ed_window)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            self._popover = ModalView()
-            self._popover.add_widget(self._strings_ed_window)
-            self._popover.bind(
-                on_size=self._strings_ed_window._trigger_layout
-            )
-            self._popover.open()
-
-    def remote_setter(self, remote):
-        """Return a function taking two arguments, ``k`` and ``v``, which sets
-        ``remote[k] = v``, interpreting ``v`` as JSON if possible, or
-        deleting ``remote[k]`` if ``v is None``.
-
-        """
-        return lambda k, v: set_remote_value(remote, k, v)
-
-    def toggle_stat_cfg(self, *args):
-        """Display or hide the configurator where you decide how to display an
-        entity's stats, or add or delete stats.
-
-        """
-        if hasattr(self, '_popover'):
-            self._popover.remove_widget(self._stat_cfg_layout)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            self._stat_cfg.remote = self.selected_remote
-            self._stat_cfg.set_value = self.remote_setter(
-                self.ids.charsheet.remote
-            )
-            self._popover = ModalView()
-            self._popover.add_widget(self._stat_cfg_layout)
-            self._popover.open()
-
     def reremote(self, *args):
         """Arrange to update my ``selected_remote`` with the currently
         selected entity when I can.
 
         """
-        if self.character is None or 'charsheet' not in self.ids:
+        if self.character is None or 'statpanel' not in self.ids:
             Clock.schedule_once(self.reremote, 0)
             return
         try:
@@ -417,125 +283,11 @@ class ELiDELayout(FloatLayout):
                 "Invalid selection: {}".format(repr(self.selection))
             )
 
-    def set_stat(self):
-        """Look at the key and value that the user has entered into the stat
-        configurator, and set them on the currently selected
-        entity.
-
-        """
-        key = self._newstatkey.text
-        value = self._newstatval.text
-        if not (key and value):
-            # TODO implement some feedback to the effect that
-            # you need to enter things
+    def select_character(self, char):
+        if char == self.character:
             return
-        self.ids.charsheet.remote[key] = try_json_load(value)
-        self._newstatkey.text = ''
-        self._newstatval.text = ''
-
-    def delete_selection(self):
-        """Delete both the selected widget and whatever it represents."""
-        if self.selection is None:
-            return
-        if isinstance(self.selection, Arrow):
-            arr = self.selection
-            self.selection = None
-            o = arr.origin.name
-            d = arr.destination.name
-            self.ids.board.remove_widget(arr)
-            del self.ids.board.arrow[o][d]
-            arr.portal.delete()
-        elif isinstance(self.selection, Spot):
-            spot = self.selection
-            spot.canvas.clear()
-            self.selection = None
-            self.ids.board.remove_widget(spot)
-            del self.ids.board.spot[spot.name]
-            spot.remote.delete()
-        else:
-            assert(isinstance(self.selection, Pawn))
-            pawn = self.selection
-            for canvas in (
-                    self.ids.board.pawnlayout.canvas.after,
-                    self.ids.board.pawnlayout.canvas.before,
-                    self.ids.board.pawnlayout.canvas
-            ):
-                if pawn.group in canvas.children:
-                    canvas.remove(pawn.group)
-            self.selection = None
-            self.ids.board.remove_widget(pawn)
-            del self.ids.board.character.thing[pawn.name]
-            pawn.remote.delete()
-
-    def toggle_spot_config(self):
-        """Show the dialog where you select graphics and a name for a place,
-        or hide it if already showing.
-
-        """
-        if not hasattr(self, '_spot_config'):
-            return
-        if hasattr(self, '_popover'):
-            dummyplace = self.ids.dummyplace
-            self.ids.placetab.remove_widget(dummyplace)
-            dummyplace.clear()
-            if self._spot_config.prefix:
-                dummyplace.prefix = self._spot_config.prefix
-                dummyplace.num = self._dummynum(dummyplace.prefix) + 1
-            dummyplace.paths = self._spot_config.imgpaths
-            self.ids.placetab.add_widget(dummyplace)
-            self._popover.remove_widget(self._spot_config)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            self._spot_config.prefix = self.ids.dummyplace.prefix
-            self._popover = ModalView()
-            self._popover.add_widget(self._spot_config)
-            self._popover.open()
-
-    def toggle_pawn_config(self):
-        """Show or hide the pop-over where you can configure the dummy pawn"""
-        if not hasattr(self, '_pawn_config'):
-            return
-        if hasattr(self, '_popover'):
-            dummything = self.ids.dummything
-            self.ids.thingtab.remove_widget(dummything)
-            dummything.clear()
-            if self._pawn_config.prefix:
-                dummything.prefix = self._pawn_config.prefix
-                dummything.num = self._dummynum(dummything.prefix) + 1
-            if self._pawn_config.imgpaths:
-                dummything.paths = self._pawn_config.imgpaths
-            else:
-                dummything.paths = ['atlas://rltiles/base/unseen']
-            self.ids.thingtab.add_widget(dummything)
-            self._popover.remove_widget(self._pawn_config)
-            self._popover.dismiss()
-            del self._popover
-        else:
-            self._pawn_config.prefix = self.ids.dummything.prefix
-            self._popover = ModalView()
-            self._popover.add_widget(self._pawn_config)
-            self._popover.open()
-
-    def toggle_reciprocal(self):
-        """Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)
-        an extra arrow on the appropriate button to indicate the
-        fact.
-
-        """
-        self.reciprocal_portal = not self.reciprocal_portal
-        if self.reciprocal_portal:
-            assert(not hasattr(self, 'revarrow'))
-            self.revarrow = ArrowWidget(
-                board=self.ids.board,
-                origin=self.ids.emptyright,
-                destination=self.ids.emptyleft
-            )
-            self.ids.portaladdbut.add_widget(self.revarrow)
-        else:
-            if hasattr(self, 'revarrow'):
-                self.ids.portaladdbut.remove_widget(self.revarrow)
-                del self.revarrow
+        self.character = char
+        self.character_name = str(char.name)
 
     def on_touch_down(self, touch):
         """Dispatch the touch to the board, then its :class:`ScrollView`, then
@@ -543,29 +295,18 @@ class ELiDELayout(FloatLayout):
 
         """
         # the menu widgets can handle things themselves
-        if self.ids.timemenu.collide_point(*touch.pos):
-            self.ids.timemenu.dispatch('on_touch_down', touch)
+        if self.ids.timepanel.collide_point(*touch.pos):
+            self.ids.timepanel.dispatch('on_touch_down', touch)
         if self.ids.charmenu.collide_point(*touch.pos):
             self.ids.charmenu.dispatch('on_touch_down', touch)
-        if self.ids.charsheet.collide_point(*touch.pos):
-            self.ids.charsheet.dispatch('on_touch_down', touch)
-        if self._newstatkey.collide_point(*touch.pos):
-            self._newstatkey.dispatch('on_touch_down', touch)
+        if self.ids.statpanel.collide_point(*touch.pos):
+            self.ids.statpanel.dispatch('on_touch_down', touch)
             self.keep_selection = True
-        if self._newstatval.collide_point(*touch.pos):
-            self._newstatval.dispatch('on_touch_down', touch)
-            self.keep_selection = True
-        if self._newstatbut.collide_point(*touch.pos):
-            self._newstatbut.dispatch('on_touch_down', touch)
-            self.keep_selection = True
-        if self.ids.cfgstatbut.collide_point(*touch.pos):
-            self.ids.cfgstatbut.dispatch('on_touch_down', touch)
-            self.keep_selection = True
-        if self.ids.dummyplace.collide_point(*touch.pos):
-            self.ids.dummyplace.dispatch('on_touch_down', touch)
+        if self.dummyplace.collide_point(*touch.pos):
+            self.dummyplace.dispatch('on_touch_down', touch)
             return
-        if self.ids.dummything.collide_point(*touch.pos):
-            self.ids.dummything.dispatch('on_touch_down', touch)
+        if self.dummything.collide_point(*touch.pos):
+            self.dummything.dispatch('on_touch_down', touch)
             return
         if (
                 self.ids.boardview.collide_point(*touch.pos) and
@@ -575,20 +316,20 @@ class ELiDELayout(FloatLayout):
             # if the board itself handles the touch, let it be
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
-            pawns = list(self.ids.board.pawns_at(*touch.pos))
+            pawns = list(self.board.pawns_at(*touch.pos))
             if pawns:
                 self.selection_candidates = pawns
                 return True
-            spots = list(self.ids.board.spots_at(*touch.pos))
+            spots = list(self.board.spots_at(*touch.pos))
             if spots:
                 self.selection_candidates = spots
-                if self.ids.portaladdbut.state == 'down':
+                if self.portaladdbut.state == 'down':
                     self.origspot = self.selection_candidates.pop(0)
                     self.protodest = Dummy(
                         pos=touch.pos,
                         size=(0, 0)
                     )
-                    self.ids.board.add_widget(self.protodest)
+                    self.board.add_widget(self.protodest)
                     self.selection = self.protodest
                     # why do I need this next?
                     self.protodest.on_touch_down(touch)
@@ -596,15 +337,15 @@ class ELiDELayout(FloatLayout):
                         origin=self.origspot,
                         destination=self.protodest
                     )
-                    self.ids.board.add_widget(self.protoportal)
+                    self.board.add_widget(self.protoportal)
                     if self.reciprocal_portal:
                         self.protoportal2 = ArrowWidget(
                             destination=self.origspot,
                             origin=self.protodest
                         )
-                        self.ids.board.add_widget(self.protoportal2)
+                        self.board.add_widget(self.protoportal2)
                 return True
-            arrows = list(self.ids.board.arrows_at(*touch.pos))
+            arrows = list(self.board.arrows_at(*touch.pos))
             if arrows:
                 self.selection_candidates = arrows
                 return True
@@ -643,14 +384,14 @@ class ELiDELayout(FloatLayout):
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             try:
-                destspot = next(self.ids.board.spots_at(*touch.pos))
+                destspot = next(self.board.spots_at(*touch.pos))
                 orig = self.origspot.remote
                 dest = destspot.remote
                 if not (
-                    orig.name in self.ids.board.character.portal and
-                    dest.name in self.ids.board.character.portal[orig.name]
+                    orig.name in self.board.character.portal and
+                    dest.name in self.board.character.portal[orig.name]
                 ):
-                    port = self.ids.board.character.new_portal(
+                    port = self.board.character.new_portal(
                         orig.name,
                         dest.name
                     )
@@ -660,15 +401,17 @@ class ELiDELayout(FloatLayout):
                             dest.name
                         )
                     )
-                    self.ids.board.add_widget(self.ids.board.make_arrow(port))
+                    self.board.arrowlayout.add_widget(
+                        self.board.make_arrow(port)
+                    )
                 if (
                     hasattr(self, 'protoportal2') and not (
-                        orig.name in self.ids.board.character.preportal and
+                        orig.name in self.board.character.preportal and
                         dest.name in
-                        self.ids.board.character.preportal[orig.name]
+                        self.board.character.preportal[orig.name]
                     )
                 ):
-                    deport = self.ids.board.character.new_portal(
+                    deport = self.board.character.new_portal(
                         dest.name,
                         orig.name
                     )
@@ -678,29 +421,29 @@ class ELiDELayout(FloatLayout):
                             dest.name
                         )
                     )
-                    self.ids.board.add_widget(
-                        self.ids.board.make_arrow(deport)
+                    self.board.arrowlayout.add_widget(
+                        self.board.make_arrow(deport)
                     )
             except StopIteration:
                 pass
-            self.ids.board.remove_widget(self.protoportal)
+            self.board.remove_widget(self.protoportal)
             if hasattr(self, 'protoportal2'):
-                self.ids.board.remove_widget(self.protoportal2)
+                self.board.remove_widget(self.protoportal2)
                 del self.protoportal2
-            self.ids.board.remove_widget(self.protodest)
+            self.board.remove_widget(self.protodest)
             del self.protoportal
             del self.protodest
             touch.pop()
         if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
-        if self.ids.timemenu.collide_point(*touch.pos):
-            self.ids.timemenu.dispatch('on_touch_up', touch)
+        if self.ids.timepanel.collide_point(*touch.pos):
+            self.ids.timepanel.dispatch('on_touch_up', touch)
             return True
         if self.ids.charmenu.collide_point(*touch.pos):
             self.ids.charmenu.dispatch('on_touch_up', touch)
             return True
-        if self.ids.charsheet.collide_point(*touch.pos):
-            self.ids.charsheet.dispatch('on_touch_up', touch)
+        if self.ids.statpanel.collide_point(*touch.pos):
+            self.ids.statpanel.dispatch('on_touch_up', touch)
             return True
         if not self.keep_selection and self.selection_candidates:
             touch.push()
@@ -724,31 +467,14 @@ class ELiDELayout(FloatLayout):
                     break
             touch.pop()
         if not self.keep_selection and not (
-                self.ids.timemenu.collide_point(*touch.pos) or
+                self.ids.timepanel.collide_point(*touch.pos) or
                 self.ids.charmenu.collide_point(*touch.pos) or
-                self.ids.charsheet.collide_point(*touch.pos)
+                self.ids.statpanel.collide_point(*touch.pos)
         ):
             if hasattr(self.selection, 'selected'):
                 self.selection.selected = False
             self.selection = None
         self.keep_selection = False
-
-    def _dummynum(self, name):
-        """Given some name, count how many nodes there already are whose name
-        starts the same.
-
-        """
-        num = 0
-        for nodename in self.character.node:
-            nodename = str(nodename)
-            if not nodename.startswith(name):
-                continue
-            try:
-                nodenum = int(nodename.lstrip(name))
-            except ValueError:
-                continue
-            num = max((nodenum, num))
-        return num
 
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
@@ -757,9 +483,9 @@ class ELiDELayout(FloatLayout):
 
         """
         def renum_dummy(dummy, *args):
-            dummy.num = self._dummynum(dummy.prefix) + 1
+            dummy.num = dummynum(self.character, dummy.prefix) + 1
 
-        if 'board' not in self.ids or self.character is None:
+        if self.board is None or self.character is None:
             Clock.schedule_once(self.on_dummies, 0)
             return
         for dummy in self.dummies:
@@ -767,11 +493,11 @@ class ELiDELayout(FloatLayout):
                 continue
             if dummy == self.ids.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
-                self._pawn_config = PawnConfigDialog(layout=self)
+                self.ids.charmenu._pawn_config = PawnConfigDialog(layout=self)
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
-                self._spot_config = SpotConfigDialog(layout=self)
-            dummy.num = self._dummynum(dummy.prefix) + 1
+                self.ids.charmenu._spot_config = SpotConfigDialog(layout=self)
+            dummy.num = dummynum(self.character, dummy.prefix) + 1
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
 
@@ -789,11 +515,11 @@ class ELiDELayout(FloatLayout):
             )
         )
         (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
-        x /= self.ids.board.width
-        y /= self.ids.board.height
-        self.ids.board.spotlayout.add_widget(
-            self.ids.board.make_spot(
-                self.ids.board.character.new_place(
+        x /= self.board.width
+        y /= self.board.height
+        self.board.spotlayout.add_widget(
+            self.board.make_spot(
+                self.board.character.new_place(
                     dummy.name,
                     _x=x,
                     _y=y,
@@ -810,15 +536,15 @@ class ELiDELayout(FloatLayout):
 
         """
         dummy.pos = self.ids.boardview.to_local(*dummy.pos)
-        for spot in self.ids.board.spotlayout.children:
+        for spot in self.board.spotlayout.children:
             if spot.collide_widget(dummy):
                 whereat = spot
                 break
         else:
             return
         whereat.add_widget(
-            self.ids.board.make_pawn(
-                self.ids.board.character.new_thing(
+            self.board.make_pawn(
+                self.board.character.new_thing(
                     dummy.name,
                     whereat.place.name,
                     _image_paths=dummy.paths
@@ -828,15 +554,15 @@ class ELiDELayout(FloatLayout):
         dummy.num += 1
 
     def arrow_from_wid(self, wid):
-        for spot in self.ids.board.spotlayout.children:
+        for spot in self.board.spotlayout.children:
             if spot.collide_widget(wid):
                 whereto = spot
                 break
         else:
             return
-        self.ids.board.arrowlayout.add_widget(
-            self.ids.board.make_arrow(
-                self.ids.board.character.new_portal(
+        self.board.arrowlayout.add_widget(
+            self.board.make_arrow(
+                self.board.character.new_portal(
                     self.grabbed.place.name,
                     whereto.place.name,
                     reciprocal=self.reciprocal_portal
@@ -854,7 +580,7 @@ class ELiDELayout(FloatLayout):
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
-        if self.ids.playbut.state == 'normal':
+        if self.playbut.state == 'normal':
             return
         if not hasattr(self, '_old_time'):
             self._old_time = self.time
@@ -868,3 +594,113 @@ class ELiDELayout(FloatLayout):
         self.property('branch').dispatch(self)
         self.property('tick').dispatch(self)
         self.property('time').dispatch(self)
+
+
+Builder.load_string(
+    """
+#: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
+#: import resource_find kivy.resources.resource_find
+#: import remote_setter ELiDE.util.remote_setter
+<BoardView>:
+    effect_cls: StiffScrollEffect
+    board: board
+    Board:
+        id: board
+        selection: root.selection
+        branch: root.branch
+        tick: root.tick
+        character: root.character
+<StatListPanel>:
+    orientation: 'vertical'
+    cfgstatbut: cfgstatbut
+    id: statpanel
+    Label:
+        size_hint_y: 0.05
+        text: root.selection_name
+    StatListView:
+        size_hint_y: 0.95
+        remote: root.selected_remote
+        time: root.time
+        set_value: root.set_value
+    Button:
+        id: cfgstatbut
+        size_hint_y: 0.05
+        text: root.button_text
+        on_press: root.toggle_stat_cfg()
+<TimePanel>:
+    playbut: playbut
+    BoxLayout:
+        orientation: 'vertical'
+        ToggleButton:
+            id: playbut
+            font_size: 40
+            text: '>'
+        Button:
+            text: 'Next tick'
+            size_hint_y: 0.3
+            on_press: root.next_tick()
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Branch'
+        MenuTextInput:
+            setter: root.set_branch
+            hint_text: root.branch
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Tick'
+        MenuIntInput:
+            setter: root.set_tick
+            hint_text: str(root.tick)
+<ELiDELayout>:
+    character: self.engine.character[self.character_name] \
+    if self.engine and self.character_name else None
+    dummies: charmenu.dummies
+    dummyplace: charmenu.dummyplace
+    dummything: charmenu.dummything
+    grabbing: self.grabbed is None
+    board: boardview.board
+    playbut: timepanel.playbut
+    portaladdbut: charmenu.portaladdbut
+    BoardView:
+        id: boardview
+        size_hint: (0.85, 0.9)
+        pos_hint: {'x': 0.2, 'top': 1}
+        selection: root.selection
+        branch: root.branch
+        tick: root.tick
+        character: root.character
+    StatListPanel:
+        id: statpanel
+        pos_hint: {'left': 0, 'top': 1}
+        size_hint: (0.2, 0.9)
+        time: root.time
+        selected_remote: root.selected_remote
+        selection_name: str(root.character_name) \
+        if root.selection is None else str(root.selection.name)
+        set_value: remote_setter(root.selected_remote)
+        toggle_stat_cfg: charmenu.toggle_stat_cfg
+    TimePanel:
+        id: timepanel
+        pos_hint: {'bot': 0}
+        size_hint: (0.85, 0.1)
+        branch: root.branch
+        tick: root.tick
+        branch_setter: root.set_branch
+        tick_setter: root.set_tick
+    CharMenu:
+        id: charmenu
+        pos_hint: {'right': 1, 'top': 1}
+        size_hint: (0.2, 0.9)
+        engine: root.engine
+        board: root.board
+        selection: root.selection
+        character: root.character
+        character_name: root.character_name
+        selected_remote: root.selected_remote
+        spot_from_dummy: root.spot_from_dummy
+        pawn_from_dummy: root.pawn_from_dummy
+        select_character: root.select_character
+"""
+)

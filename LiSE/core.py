@@ -55,7 +55,7 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    def __init__(self, qe, table='strings', lang='eng'):
+    def __init__(self, qe, table='string', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
@@ -138,9 +138,12 @@ class StringStore(MutableMapping):
     def __getitem__(self, k):
         """Get the string and format it with other strings here."""
         if k not in self.cache:
-            self.cache[k] = self.db.string_table_get(
+            v = self.db.string_table_get(
                 self.table, self.language, k
             )
+            if v is None:
+                raise KeyError("No string named {}".format(k))
+            self.cache[k] = v
         return self.cache[k].format_map(NotThatMap(self, k))
 
     def __setitem__(self, k, v):

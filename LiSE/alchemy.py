@@ -49,7 +49,7 @@ functyps = (
 )
 
 strtyps = (
-    'strings',
+    'string',
 )
 
 
@@ -733,13 +733,13 @@ def queries(table, view):
         r['func_{}_del'.format(functyp)] = func_table_del(table[functyp])
 
     for strtyp in strtyps:
-        r['string_{}_lang_items'.format(strtyp)] = string_table_lang_items(
+        r['{}_lang_items'.format(strtyp)] = string_table_lang_items(
             table[strtyp]
         )
-        r['string_{}_get'.format(strtyp)] = string_table_get(table[strtyp])
-        r['string_{}_ins'.format(strtyp)] = string_table_ins(table[strtyp])
-        r['string_{}_upd'.format(strtyp)] = string_table_upd(table[strtyp])
-        r['string_{}_del'.format(strtyp)] = string_table_del(table[strtyp])
+        r['{}_get'.format(strtyp)] = string_table_get(table[strtyp])
+        r['{}_ins'.format(strtyp)] = string_table_ins(table[strtyp])
+        r['{}_upd'.format(strtyp)] = string_table_upd(table[strtyp])
+        r['{}_del'.format(strtyp)] = string_table_del(table[strtyp])
 
     def universal_hitick(*columns):
         whereclause = [

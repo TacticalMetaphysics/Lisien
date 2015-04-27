@@ -16,6 +16,11 @@ import gorm.query
 import LiSE
 
 
+string_defaults = {
+    'string': {'eng': [('README', 'Write release notes for your game here.')]}
+}
+
+
 class QueryEngine(gorm.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
@@ -35,6 +40,13 @@ class QueryEngine(gorm.query.QueryEngine):
             return self.sql('index_{}'.format(tbl))
         except OperationalError:
             pass
+
+    def init_string_table(self, tbl):
+        self.init_table(tbl)
+        if tbl in string_defaults:
+            for (lang, defaults) in string_defaults[tbl].items():
+                for (k, v) in defaults:
+                    self.string_table_set(tbl, lang, k, v)
 
     def init_func_table(self, tbl):
         self.init_table(tbl)
@@ -166,27 +178,21 @@ class QueryEngine(gorm.query.QueryEngine):
         except IntegrityError:
             return self.sql('upd_travel_reqs', reqs, char)
 
-    def init_string_table(self, tbl):
-        try:
-            return self.sql('create_{}'.format(tbl))
-        except OperationalError:
-            pass
-
     def string_table_lang_items(self, tbl, lang):
-        return self.sql('string_{}_lang_items'.format(tbl), lang)
+        return self.sql('{}_lang_items'.format(tbl), lang)
 
     def string_table_get(self, tbl, lang, key):
-        for row in self.sql('string_get', lang, key, tbl=tbl):
+        for row in self.sql('{}_get'.format(tbl), lang, key):
             return row[0]
 
     def string_table_set(self, tbl, lang, key, value):
         try:
-            self.sql('string_{}_ins'.format(tbl), key, lang, value)
+            self.sql('{}_ins'.format(tbl), key, lang, value)
         except IntegrityError:
-            self.sql('string_{}_upd'.format(tbl), value, lang, key)
+            self.sql('{}_upd'.format(tbl), value, lang, key)
 
     def string_table_del(self, tbl, lang, key):
-        self.sql('string_{}_del'.format(tbl), lang, key)
+        self.sql('{}_del'.format(tbl), lang, key)
 
     def universal_items(self, branch, tick):
         seen = set()

@@ -21,6 +21,33 @@ and a manager class to launch it thus.
 """
 
 
+def wrap_character_stat(char, k, v):
+    if isinstance(v, JSONReWrapper):
+        return ('JSONReWrapper', 'character', char, k, v._v)
+    elif isinstance(v, JSONListReWrapper):
+        return ('JSONListReWrapper', 'character', char, k, v._v)
+    else:
+        return v
+
+
+def wrap_node_stat(char, node, k, v):
+    if isinstance(v, JSONReWrapper):
+        return ('JSONReWrapper', 'node', char, node, k, v._v)
+    elif isinstance(v, JSONListReWrapper):
+        return ('JSONListReWrapper', 'node', char, node, k, v._v)
+    else:
+        return v
+
+
+def wrap_portal_stat(char, orig, dest, k, v):
+    if isinstance(v, JSONReWrapper):
+        return ('JSONReWrapper', 'portal', char, orig, dest, k, v._v)
+    elif isinstance(v, JSONListReWrapper):
+        return ('JSONListReWrapper', 'portal', char, orig, dest, k, v._v)
+    else:
+        return v
+
+
 class EngineHandle(object):
     """A wrapper for a :class:`LiSE.Engine` object that runs in the same
     process, but with an API built to be used in a command-processing
@@ -257,7 +284,7 @@ class EngineHandle(object):
                         'character',
                         b, t,
                         char.name,
-                        k, self.get_character_stat(char.name, k)
+                        k, wrap_character_stat(char.name, k, v)
                     )
                 )
 
@@ -287,7 +314,7 @@ class EngineHandle(object):
                             'character',
                             newb, newt,
                             charn,
-                            k, self.get_character_stat(charn, k)
+                            k, wrap_character_stat(charn, k, v)
                         )
                     )
                 seen.add(k)
@@ -334,7 +361,7 @@ class EngineHandle(object):
                         'character',
                         b, t,
                         char.name,
-                        k, self.get_character_stat(char.name, k)
+                        k, wrap_character_stat(char.name, k, v)
                     )
                 )
 
@@ -354,7 +381,7 @@ class EngineHandle(object):
                         'character',
                         newb, newt,
                         charn,
-                        statn, self.get_character_stat(charn, statn)
+                        statn, wrap_character_stat(charn, statn, newv)
                     )
                 )
 
@@ -390,7 +417,7 @@ class EngineHandle(object):
                         'node',
                         b, t,
                         char, noden,
-                        k, self.get_node_stat(char, noden, k)
+                        k, wrap_node_stat(char, noden, k, v)
                     )
                 )
 
@@ -420,7 +447,7 @@ class EngineHandle(object):
                             'node',
                             newb, newt,
                             char, noden,
-                            k, self.get_node_stat(char, noden, k)
+                            k, wrap_node_stat(char, noden, k, v)
                         )
                     )
                 seen.add(k)
@@ -460,7 +487,6 @@ class EngineHandle(object):
                 return
             if (b, t) != (self.branch, self.tick):
                 return
-            print('thing_extant {}'.format(thingn))
             self._q.put(('thing_extant', b, t, charn, thingn, v is not None))
 
         @self._real.time_listener
@@ -504,7 +530,6 @@ class EngineHandle(object):
                 return
             if (b, t) != (self.branch, self.tick):
                 return
-            print('place_extant {}'.format(placen))
             self._q.put(('place_extant', b, t, charn, placen, v is not None))
 
         @self._real.time_listener
@@ -556,7 +581,7 @@ class EngineHandle(object):
                         'node',
                         b, t,
                         charn, noden,
-                        k, self.get_node_stat(charn, noden, k)
+                        k, wrap_node_stat(charn, noden, k, v)
                     )
                 )
 
@@ -576,7 +601,7 @@ class EngineHandle(object):
                         'node',
                         newb, newt,
                         charn, noden,
-                        statn, self.get_node_stat(charn, noden, statn)
+                        statn, wrap_node_stat(charn, noden, statn, newv)
                     )
                 )
 
@@ -616,7 +641,7 @@ class EngineHandle(object):
                         'portal',
                         b, t,
                         char, a, b,
-                        k, self.get_portal_stat(char, a, b, k)
+                        k, wrap_portal_stat(char, a, b, k, v)
                     )
                 )
 
@@ -648,7 +673,7 @@ class EngineHandle(object):
                             'portal',
                             newb, newt,
                             char, a, b,
-                            k, self.get_portal_stat(char, a, b, k)
+                            k, wrap_portal_stat(char, a, b, k, v)
                         )
                     )
                 seen.add(k)
@@ -798,7 +823,7 @@ class EngineHandle(object):
                     'portal',
                     b, t,
                     charn, a, b,
-                    statn, self.get_portal_stat(charn, a, b, statn)
+                    statn, wrap_portal_stat(charn, a, b, statn, v)
                 )
             )
 
@@ -820,7 +845,7 @@ class EngineHandle(object):
                         'portal',
                         newv, newt,
                         charn, a, b,
-                        statn, self.get_portal_stat(charn, a, b, statn)
+                        statn, wrap_portal_stat(charn, a, b, statn, newv)
                     )
                 )
 
@@ -919,6 +944,9 @@ class EngineHandle(object):
     def get_string(self, k):
         return self._real.string[k]
 
+    def have_string(self, k):
+        return k in self._real.string
+
     def set_string(self, k, v):
         self._real.string[k] = v
 
@@ -972,15 +1000,12 @@ class EngineHandle(object):
 
     def get_character_stat(self, char, k):
         try:
-            r = self._real.character[char].stat[k]
+            return wrap_character_stat(
+                char, k,
+                self._real.character[char].stat[k]
+            )
         except KeyError:
             return None
-        if isinstance(r, JSONReWrapper):
-            return ('JSONReWrapper', 'character', char, k, r._v)
-        elif isinstance(r, JSONListReWrapper):
-            return ('JSONListReWrapper', 'character', char, k, r._v)
-        else:
-            return r
 
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
@@ -1008,15 +1033,12 @@ class EngineHandle(object):
 
     def get_node_stat(self, char, node, k):
         try:
-            r = self._real.character[char].node[node][k]
+            return wrap_node_stat(
+                char, node, k,
+                self._real.character[char].node[node][k]
+            )
         except KeyError:
             return None
-        if isinstance(r, JSONReWrapper):
-            return ('JSONReWrapper', 'node', char, node, k, r._v)
-        elif isinstance(r, JSONListReWrapper):
-            return ('JSONListReWrapper', 'node', char, node, k, r._v)
-        else:
-            return r
 
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
@@ -1181,6 +1203,9 @@ class EngineHandle(object):
     def add_places_from(self, char, seq):
         self._real.character[char].add_places_from(seq)
 
+    def del_node(self, char, node):
+        del self._real.character[char].node[node]
+
     def init_portal(self, char, o, d, statdict={}):
         if (
                 o in self._real.character[char].portal and
@@ -1210,15 +1235,12 @@ class EngineHandle(object):
 
     def get_portal_stat(self, char, o, d, k):
         try:
-            r = self._real.character[char].portal[o][d][k]
+            return wrap_portal_stat(
+                char, o, d, k,
+                self._real.character[char].portal[o][d][k]
+            )
         except KeyError:
             return None
-        if isinstance(r, JSONReWrapper):
-            return ('JSONReWrapper', 'portal', char, o, d, k, r._v)
-        elif isinstance(r, JSONListReWrapper):
-            return ('JSONListReWrapper', 'portal', char, o, d, k, r._v)
-        else:
-            return r
 
     def set_portal_stat(self, char, o, d, k, v):
         self._real.character[char].portal[o][d][k] = v
@@ -1262,6 +1284,18 @@ class EngineHandle(object):
     def set_rule_prereqs(self, rule, l):
         self._real.rule.db.set_rule_prereqs(rule, l)
 
+    def list_all_rules(self):
+        return list(self._real.rule.keys())
+
+    def count_all_rules(self):
+        return len(self._real.rule)
+
+    def have_rule(self, k):
+        return k in self._real.rule
+
+    def new_empty_rule(self, k):
+        self._real.rule.new_empty(k)
+
     def get_rulebook_rules(self, rulebook):
         return list(self._real.db.rulebook_rules(rulebook))
 
@@ -1282,7 +1316,15 @@ class EngineHandle(object):
         )
 
     def get_node_rulebook(self, character, node):
-        return self._real.db.node_rulebook(character, node)
+        try:
+            return self._real.db.node_rulebook(character, node)
+        except KeyError:
+            return None
+
+    def set_node_rulebook(self, character, node, rulebook):
+        self._real.db.set_node_rulebook(
+            character, node, rulebook
+        )
 
     def get_portal_rulebook(self, char, nodeA, nodeB):
         return self._real.db.portal_rulebook(
@@ -1329,16 +1371,40 @@ class NodeProxy(MutableMapping):
         return RuleBookProxy(self._engine, self._get_rulebook_name())
 
     def _get_rulebook_name(self):
-        return self._engine.handle(
+        r = self._engine.handle(
             'get_node_rulebook',
             (self._charname, self.name)
         )
+        if r is None:
+            self._engine.handle(
+                'set_node_rulebook',
+                (
+                    self._charname,
+                    self.name,
+                    (self._charname, self.name)
+                ),
+                silent=True
+            )
+            return (self._charname, self.name)
+        return r
 
     def __init__(self, engine_proxy, charname, nodename):
-        assert(nodename is not None)
         self._engine = engine_proxy
         self._charname = charname
         self.name = nodename
+
+    def __eq__(self, other):
+        if hasattr(other, '_engine'):
+            oe = other._engine
+        elif hasattr(other, 'engine'):
+            oe = other.engine
+        else:
+            return False
+        return (
+            self._engine is oe and
+            hasattr(other, 'name') and
+            self.name == other.name
+        )
 
     def __iter__(self):
         yield from self._engine.handle(
@@ -1409,6 +1475,9 @@ class NodeProxy(MutableMapping):
             )
         else:
             return lambda f: self.unlisten(fun=f, stat=stat)
+
+    def delete(self):
+        self._engine.del_node(self._charname, self.name)
 
 
 class PlaceProxy(NodeProxy):
@@ -1527,6 +1596,22 @@ class PortalProxy(MutableMapping):
         self._nodeB = nodeBname
         self._stat_listeners = defaultdict(list)
 
+    def __eq__(self, other):
+        if hasattr(other, '_engine'):
+            oe = other._engine
+        elif hasattr(other, 'engine'):
+            oe = other.engine
+        else:
+            return False
+        return (
+            hasattr(other, 'character') and
+            hasattr(other, 'origin') and
+            hasattr(other, 'destination') and
+            self.character == other.character and
+            self.origin == other.origin and
+            self.destination == other.destination
+        )
+
     def __iter__(self):
         yield from self._engine.handle(
             'portal_stats',
@@ -1606,6 +1691,13 @@ class PortalProxy(MutableMapping):
         else:
             return lambda f: self.unlisten(fun=f, stat=stat)
 
+    def delete(self):
+        self._engine.del_portal(
+            self._charname,
+            self._nodeA,
+            self._nodeB
+        )
+
 
 class NodeMapProxy(MutableMapping):
     def __init__(self, engine_proxy, charname):
@@ -1656,13 +1748,7 @@ class NodeMapProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
-        self._engine.handle(
-            'del_node',
-            (self._charname, k),
-            silent=True
-        )
-        if k in self._cache:
-            del self._cache[k]
+        self.engine.del_node(self._charname, k)
 
 
 class ThingMapProxy(MutableMapping):
@@ -1687,14 +1773,6 @@ class ThingMapProxy(MutableMapping):
         )
 
     def __contains__(self, k):
-        if (
-                k in self.character.node._cache and
-                isinstance(
-                    self.character.node._cache[k],
-                    ThingProxy
-                )
-        ):
-            return True
         return self._engine.handle(
             'character_has_thing',
             (self.name, k)
@@ -1768,14 +1846,6 @@ class PlaceMapProxy(MutableMapping):
         )
 
     def __contains__(self, k):
-        if (
-                k in self.character.node._cache and
-                isinstance(
-                    self.character.node._cache[k],
-                    PlaceProxy
-                )
-        ):
-            return True
         return self._engine.handle(
             'character_has_place',
             (self.name, k)
@@ -1872,12 +1942,8 @@ class SuccessorsProxy(MutableMapping):
         )
 
     def __delitem__(self, nodeB):
-        if nodeB in self._cache:
-            del self._cache[nodeB]
-        self._engine.handle(
-            'del_portal',
-            (self._character, self._nodeA, nodeB),
-            silent=True
+        self.engine.del_portal(
+            self._charname, self._nodeA, nodeB
         )
 
 
@@ -1924,13 +1990,10 @@ class CharSuccessorsMappingProxy(MutableMapping):
         )
 
     def __delitem__(self, nodeA):
-        if nodeA in self._cache:
-            del self._cache[nodeA]
-        self._engine.handle(
-            'character_del_node_successors',
-            (self._charname, nodeA),
-            silent=True
-        )
+        for nodeB in self[nodeA]:
+            self.engine.del_portal(
+                self._charname, nodeA, nodeB
+            )
 
     def listener(self, fun):
         self._engine.portal_map_listener(self._charname, fun)
@@ -1998,19 +2061,8 @@ class PredecessorsProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
-        if k not in self:
-            raise KeyError(
-                "{} does not precede {}".format(k, self.name)
-            )
-        if (
-            k in self.character.portal._cache and
-            self.name in self.character.portal._cache[k]
-        ):
-            del self.character.portal._cache[k][self.name]
-        self._engine.handle(
-            'del_portal',
-            (self._charname, k, self.name),
-            silent=True
+        self.engine.del_portal(
+            self._charname, k, self.name
         )
 
 
@@ -2057,17 +2109,10 @@ class CharPredecessorsMappingProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
-        if k not in self:
-            raise KeyError(
-                "No predecessors to {} (if it even exists)".format(k)
+        for v in self[k]:
+            self._engine.del_portal(
+                self.name, k, v
             )
-        if k in self._cache:
-            del self._cache[k]
-        self._engine.handle(
-            'character_del_node_predecessors',
-            (self.name, k),
-            silent=True
-        )
 
 
 class CharStatProxy(MutableMapping):
@@ -2185,7 +2230,13 @@ class RuleProxy(object):
 
     def __init__(self, engine_proxy, rulename):
         self._engine = engine_proxy
-        self.name = rulename
+        self.name = self._name = rulename
+
+    def __eq__(self, other):
+        return (
+            hasattr(other, 'name') and
+            self.name == other.name
+        )
 
 
 class RuleBookProxy(MutableSequence):
@@ -2282,6 +2333,19 @@ class CharacterProxy(MutableMapping):
         self.thing = ThingMapProxy(self._engine, self.name)
         self.place = PlaceMapProxy(self._engine, self.name)
         self.stat = CharStatProxy(self._engine, self.name)
+
+    def __eq__(self, other):
+        if hasattr(other, '_engine'):
+            oe = other._engine
+        elif hasattr(other, 'engine'):
+            oe = other.engine
+        else:
+            return False
+        return (
+            self._engine is oe and
+            hasattr(other, 'name') and
+            self.name == other.name
+        )
 
     def __iter__(self):
         yield from self._engine.handle(
@@ -2452,6 +2516,9 @@ class StringStoreProxy(MutableMapping):
     def __iter__(self):
         yield from self._proxy.handle('get_string_ids')
 
+    def __contains__(self, k):
+        return self._proxy.handle('have_string', (k,))
+
     def __len__(self):
         return self._proxy.handle('count_strings')
 
@@ -2589,6 +2656,33 @@ class AllRuleBooksProxy(Mapping):
         return self._cache[k]
 
 
+class AllRulesProxy(Mapping):
+    def __init__(self, engine_proxy):
+        self._engine = engine_proxy
+        self._cache = {}
+
+    def __iter__(self):
+        yield from self._engine.handle('list_all_rules')
+
+    def __len__(self):
+        return self._engine.handle('count_all_rules')
+
+    def __contains__(self, k):
+        return self._engine.handle('have_rule', (k,))
+
+    def __getitem__(self, k):
+        if k not in self:
+            raise KeyError("No rule: {}".format(k))
+        if k not in self._cache:
+            self._cache[k] = RuleProxy(self._engine, k)
+        return self._cache[k]
+
+    def new_empty(self, k):
+        self._engine.handle('new_empty_rule', (k,), silent=True)
+        self._cache[k] = RuleProxy(self._engine, k)
+        return self._cache[k]
+
+
 class FuncStoreProxy(object):
     def __init__(self, engine_proxy, store):
         self._engine = engine_proxy
@@ -2678,6 +2772,7 @@ class EngineProxy(object):
         self.character = CharacterMapProxy(self)
         self.string = StringStoreProxy(self)
         self.rulebook = AllRuleBooksProxy(self)
+        self.rule = AllRulesProxy(self)
         for funstore in ('action', 'prereq', 'trigger', 'sense', 'function'):
             setattr(self, funstore, FuncStoreProxy(self, funstore))
         self._rulebook_listeners = defaultdict(list)
@@ -2694,6 +2789,7 @@ class EngineProxy(object):
         self._node_stat_listeners = {}
         self._thing_map_listeners = {}
         self._place_map_listeners = {}
+        self._node_map_listeners = {}
         self._portal_listeners = {}
         self._portal_stat_listeners = {}
         self._portal_map_listeners = {}
@@ -2711,7 +2807,7 @@ class EngineProxy(object):
     def char_listener(self, char, fun):
         if char not in self._char_listeners:
             self._char_listeners[char] = []
-            self.handle('listen_to_character', (char,))
+            self.handle('listen_to_character', (char,), silent=True)
         if fun not in self._char_listeners[char]:
             self._char_listeners[char].append(fun)
 
@@ -2723,12 +2819,12 @@ class EngineProxy(object):
             return
         self._char_listeners[char].remove(fun)
         if not self._char_listeners[char]:
-            self.handle('unlisten_to_character', fun)
+            self.handle('unlisten_to_character', fun, silent=True)
             del self._char_listeners[char]
 
     def char_map_listener(self, fun):
         if not self._char_map_listeners:
-            self.handle('listen_to_character_map')
+            self.handle('listen_to_character_map', silent=True)
         if fun not in self._char_map_listeners:
             self._char_map_listeners.append(fun)
 
@@ -2736,14 +2832,14 @@ class EngineProxy(object):
         if fun in self._char_map_listeners:
             self._char_map_listeners.remove(fun)
         if not self._char_map_listeners:
-            self.handle('unlisten_to_character_map')
+            self.handle('unlisten_to_character_map', silent=True)
 
     def char_stat_listener(self, char, stat, fun):
         if char not in self._char_stat_listeners:
             self._char_stat_listeners[char] = {}
         if stat not in self._char_stat_listeners[char]:
             self._char_stat_listeners[char][stat] = []
-            self.handle('listen_to_character_stat', (char, stat))
+            self.handle('listen_to_character_stat', (char, stat), silent=True)
         if fun not in self._char_stat_listeners[char][stat]:
             self._char_stat_listeners[char][stat].append(fun)
 
@@ -2756,7 +2852,7 @@ class EngineProxy(object):
             return
         self._char_stat_listeners[char][stat].remove(fun)
         if not self._char_stat_listeners[char][stat]:
-            self.handle('unlisten_to_character_stat', (char, stat))
+            self.handle('unlisten_to_character_stat', (char, stat), silent=True)
             del self._char_stat_listeners[char][stat]
 
     def node_listener(self, char, node, fun):
@@ -2764,7 +2860,7 @@ class EngineProxy(object):
             self._node_listeners[char] = {}
         if node not in self._node_listeners[char]:
             self._node_listeners[char][node] = []
-            self.handle('listen_to_node', (char, node))
+            self.handle('listen_to_node', (char, node), silent=True)
         if fun not in self._node_listeners[char][node]:
             self._node_listeners[char][node].append(fun)
 
@@ -2777,7 +2873,7 @@ class EngineProxy(object):
             return
         self._node_listeners[char][node].remove(fun)
         if not self._node_listeners[char][node]:
-            self.handle('unlisten_to_node', (char, node))
+            self.handle('unlisten_to_node', (char, node), silent=True)
             del self._node_listeners[char][node]
 
     def node_stat_listener(self, char, node, stat, fun):
@@ -2787,7 +2883,7 @@ class EngineProxy(object):
             self._node_stat_listeners[char][node] = {}
         if stat not in self._node_stat_listeners[char][node]:
             self._node_stat_listeners[char][node][stat] = []
-            self.handle('listen_to_node_stat', (char, node, stat))
+            self.handle('listen_to_node_stat', (char, node, stat), silent=True)
         if fun not in self._node_stat_listeners[char][node][stat]:
             self._node_stat_listeners[char][node][stat].append(fun)
 
@@ -2801,12 +2897,12 @@ class EngineProxy(object):
             return
         self._node_stat_listeners[char][node][stat].remove(fun)
         if not self._node_stat_listeners[char][node][stat]:
-            self.handle('unlisten_to_node_stat', (char, node, stat))
+            self.handle('unlisten_to_node_stat', (char, node, stat), silent=True)
             del self._node_stat_listeners[char][node][stat]
 
     def thing_map_listener(self, char, fun):
         if char not in self._thing_map_listeners:
-            self.handle('listen_to_thing_map', (char,))
+            self.handle('listen_to_thing_map', (char,), silent=True)
             self._thing_map_listeners[char] = []
         if fun not in self._thing_map_listeners[char]:
             self._thing_map_listeners[char].append(fun)
@@ -2819,15 +2915,35 @@ class EngineProxy(object):
             return
         self._thing_map_listeners[char].remove(fun)
         if not self._thing_map_listeners[char]:
-            self.handle('unlisten_to_thing_map', (char,))
+            self.handle('unlisten_to_thing_map', (char,), silent=True)
             del self._thing_map_listeners[char]
 
     def place_map_listener(self, char, fun):
         if char not in self._place_map_listeners:
-            self.handle('listen_to_place_map', (char,))
+            self.handle('listen_to_place_map', (char,), silent=True)
             self._place_map_listeners[char] = []
         if fun not in self._place_map_listeners[char]:
             self._place_map_listeners[char].append(fun)
+
+    def node_map_listener(self, char, fun):
+        if char not in self._node_map_listeners:
+            self.handle('listen_to_place_map', (char,), silent=True)
+            self.handle('listen_to_thing_map', (char,), silent=True)
+            self._node_map_listeners[char] = []
+        if fun not in self._node_map_listeners[char]:
+            self._node_map_listeners[char].append(fun)
+
+    def node_map_unlisten(self, char, fun):
+        if not (
+                char in self._node_map_listeners and
+                fun in self._node_map_listeners[char]
+        ):
+            return
+        self._node_map_listeners[char].remove(fun)
+        if not self._thing_map_listeners[char]:
+            self.handle('unlisten_to_thing_map', (char,), silent=True)
+        if not self._place_map_listeners[char]:
+            self.handle('unlisten_to_place_map', (char,), silent=True)
 
     def place_map_unlisten(self, char, fun):
         if not (
@@ -2837,7 +2953,7 @@ class EngineProxy(object):
             return
         self._place_map_listeners[char].remove(fun)
         if not self._place_map_listeners[char]:
-            self.handle('unlisten_to_place_map', (char,))
+            self.handle('unlisten_to_place_map', (char,), silent=True)
             del self._place_map_listeners[char]
 
     def portal_listener(self, char, orig, dest, fun):
@@ -2847,7 +2963,7 @@ class EngineProxy(object):
             self._portal_listeners[char][orig] = {}
         if dest not in self._portal_listeners[char][orig]:
             self._portal_listeners[char][orig][dest] = []
-            self.handle('listen_to_portal', (char, orig, dest))
+            self.handle('listen_to_portal', (char, orig, dest), silent=True)
         if fun not in self._portal_listeners[char][orig][dest]:
             self._portal_listeners[char][orig][dest].append(fun)
 
@@ -2861,7 +2977,7 @@ class EngineProxy(object):
             return
         self._portal_listeners[char][orig][dest].remove(fun)
         if not self._portal_listeners[char][orig][dest]:
-            self.handle('unlisten_to_portal', (char, orig, dest))
+            self.handle('unlisten_to_portal', (char, orig, dest), silent=True)
             del self._portal_listeners[char][orig][dest]
 
     def portal_stat_listener(self, char, orig, dest, stat, fun):
@@ -2873,7 +2989,7 @@ class EngineProxy(object):
             self._portal_stat_listeners[char][orig][dest] = {}
         if stat not in self._portal_stat_listeners[char][orig][dest]:
             self._portal_stat_listeners[char][orig][dest][stat] = []
-            self.handle('listen_to_portal_stat', (char, orig, dest, stat))
+            self.handle('listen_to_portal_stat', (char, orig, dest, stat), silent=True)
         if fun not in self._portal_stat_listeners[char][orig][dest][stat]:
             self._portal_stat_listeners[char][orig][dest][stat].append(fun)
 
@@ -2888,13 +3004,13 @@ class EngineProxy(object):
             return
         self._portal_stat_listeners[char][orig][dest][stat].remove(fun)
         if not self._portal_stat_listeners[char][orig][dest][stat]:
-            self.handle('unlisten_to_portal_stat', (char, orig, dest, stat))
+            self.handle('unlisten_to_portal_stat', (char, orig, dest, stat), silent=True)
             del self._portal_stat_listeners[char][orig][dest][stat]
 
     def portal_map_listener(self, char, fun):
         if char not in self._portal_map_listeners:
             self._portal_map_listeners[char] = []
-            self.handle('listen_to_portal_map', (char,))
+            self.handle('listen_to_portal_map', (char,), silent=True)
         if fun not in self._portal_map_listeners[char]:
             self._portal_map_listeners[char].append(fun)
 
@@ -2906,11 +3022,11 @@ class EngineProxy(object):
             return
         self._portal_map_listeners[char].remove(fun)
         if not self._portal_map_listeners[char]:
-            self.handle('unlisten_to_portal_map', (char,))
+            self.handle('unlisten_to_portal_map', (char,), silent=True)
 
     def lang_listener(self, fun):
         if not self._lang_listeners:
-            self.handle('listen_to_lang')
+            self.handle('listen_to_lang', silent=True)
         if fun not in self._lang_listeners:
             self._lang_listeners.append(fun)
 
@@ -2919,11 +3035,11 @@ class EngineProxy(object):
             return
         self._lang_listeners.remove(fun)
         if not self._lang_listeners:
-            self.handle('unlisten_to_lang')
+            self.handle('unlisten_to_lang', silent=True)
 
     def strings_listener(self, fun):
         if not self._strings_listeners:
-            self.handle('listening_to_strings')
+            self.handle('listen_to_strings', silent=True)
         if fun not in self._strings_listeners:
             self._strings_listeners.append(fun)
 
@@ -2932,12 +3048,12 @@ class EngineProxy(object):
             return
         self._strings_listeners.remove(fun)
         if not self._strings_listeners:
-            self.handle('unlisten_to_strings')
+            self.handle('unlisten_to_strings', silent=True)
 
     def string_listener(self, string, fun):
         if string not in self._string_listeners:
             self._string_listeners[string] = []
-            self.handle('listen_to_string', (string,))
+            self.handle('listen_to_string', (string,), silent=True)
         if fun not in self._string_listeners[string]:
             self._string_listeners[string].append(fun)
 
@@ -2949,12 +3065,12 @@ class EngineProxy(object):
             return
         self._string_listeners[string].remove(fun)
         if not self._string_listeners[string]:
-            self.handle('unlisten_to_string', (string,))
+            self.handle('unlisten_to_string', (string,), silent=True)
             del self._string_listeners[string]
 
     def universals_listener(self, fun):
         if not self._universals_listeners:
-            self.handle('listen_to_universals')
+            self.handle('listen_to_universals', silent=True)
         if fun not in self._universals_listeners:
             self._universals_listeners.append(fun)
 
@@ -2963,12 +3079,12 @@ class EngineProxy(object):
             return
         self._universals_listeners.remove(fun)
         if not self._universals_listeners:
-            self.handle('unlisten_to_universals')
+            self.handle('unlisten_to_universals', silent=True)
 
     def universal_listener(self, k, fun):
         if k not in self._universal_listeners:
             self._universal_listeners[k] = []
-            self.handle('listen_to_universal', (k,))
+            self.handle('listen_to_universal', (k,), silent=True)
         if fun not in self._universal_listeners[k]:
             self._universal_listeners[k].append(fun)
 
@@ -2980,7 +3096,7 @@ class EngineProxy(object):
             return
         self._universal_listeners[k].remove(fun)
         if not self._universal_listeners[k]:
-            self.handle('unlisten_to_universal', (k,))
+            self.handle('unlisten_to_universal', (k,), silent=True)
             del self._universal_listeners[k]
 
     def json_rewrap(self, v):
@@ -3020,6 +3136,10 @@ class EngineProxy(object):
             return
 
     def _process_change(self, v):
+        def process_node_map_change(b, t, char, node, extant):
+            if char in self._node_map_listeners:
+                for fun in self._node_map_listeners[char]:
+                    fun(b, t, char, node, extant)
         assert(isinstance(v, tuple))
         typ = v[0]
         data = v[1:]
@@ -3083,11 +3203,13 @@ class EngineProxy(object):
             if charn in self._thing_map_listeners:
                 for fun in self._thing_map_listeners[charn]:
                     fun(branch, tick, charn, thingn, extant)
+            process_node_map_change(branch, tick, charn, thingn, extant)
         elif typ == 'place_extant':
             (branch, tick, charn, placen, extant) = data
             if charn in self._place_map_listeners:
                 for fun in self._place_map_listeners[charn]:
                     fun(branch, tick, charn, placen, extant)
+            process_node_map_change(branch, tick, charn, placen, extant)
         elif typ == 'portal':
             (branch, tick, charn, a, b, stat, val) = data
             portal = self.character[charn].portal[a][b]
@@ -3128,10 +3250,31 @@ class EngineProxy(object):
 
     def new_character(self, name, **kwargs):
         self.add_character(name, **kwargs)
-        return CharacterProxy(self._handle, name)
+        return CharacterProxy(self, name)
 
     def del_character(self, name):
         self.handle('del_character', (name,))
+
+    def del_node(self, charname, name):
+        self.handle(
+            'del_node', (charname, name), silent=True
+        )
+        if (
+                charname in self.character._cache and
+                name in self.character[charname].node._cache
+        ):
+            del self.character[charname].node._cache[name]
+
+    def del_portal(self, charname, orig, dest):
+        self.handle(
+            'del_portal', (charname, orig, dest), silent=True
+        )
+        if (
+                charname in self.character._cache and
+                orig in self.character[charname].portal._cache and
+                dest in self.character[charname].portal[orig]._cache
+        ):
+            del self.character[charname].portal[orig]._cache[dest]
 
     def mute_character(self, name):
         self.handle('mute_char', (name,), silent=True)

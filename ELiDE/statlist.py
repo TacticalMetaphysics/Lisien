@@ -10,6 +10,7 @@ from kivy.properties import (
     DictProperty,
     ObjectProperty
 )
+from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.slider import Slider
 from kivy.uix.behaviors import ToggleButtonBehavior
@@ -144,7 +145,6 @@ default_cfg = {
 
 
 class StatListView(ListView, MirrorMapping):
-    layout = ObjectProperty()
     control = DictProperty({})
     config = DictProperty({})
 
@@ -155,19 +155,17 @@ class StatListView(ListView, MirrorMapping):
         self._trigger_refresh_adapter = Clock.create_trigger(
             self.refresh_adapter
         )
-        self.bind(mirror=self._trigger_sortkeys)
-        self.bind(
-            mirror=self._trigger_upd_data,
-            time=self._trigger_upd_data
-        )
         self._listeners = {}
         super().__init__(**kwargs)
 
-    def on_layout(self, *args):
-        self.remote = self.layout.selected_remote
-        self.layout.bind(
-            selected_remote=self.setter('remote')
-        )
+    def on_time(self, *args):
+        Logger.debug("StatListView: on_time")
+        self._trigger_upd_data()
+
+    def on_mirror(self, *args):
+        Logger.debug("StatListView: on_mirror")
+        self._trigger_upd_data()
+        self._trigger_sortkeys()
 
     def init_control_config(self, key):
         if key not in self.control:
@@ -256,6 +254,7 @@ class StatListView(ListView, MirrorMapping):
         self.adapter = self.get_adapter()
 
     def upd_data(self, *args):
+        Logger.debug("StatListView: upd_data")
         if (
                 '_control' in self.mirror
         ):

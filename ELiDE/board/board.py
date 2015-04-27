@@ -41,9 +41,6 @@ class Board(RelativeLayout):
     def __init__(self, **kwargs):
         """Make a trigger for my ``update`` method."""
         self._trigger_update = Clock.create_trigger(self.update)
-        self._trigger_update_and_rebind = Clock.create_trigger(
-            self.update_and_rebind
-        )
         super().__init__(**kwargs)
 
     def make_pawn(self, thing):
@@ -109,6 +106,7 @@ class Board(RelativeLayout):
         if self.character is None:
             Clock.schedule_once(self.on_character, 0)
             return
+        self.rebind()
         self._old_character = self.character
 
         for prop in '_scroll_x', '_scroll_y':
@@ -125,13 +123,13 @@ class Board(RelativeLayout):
         self.track_yvel = False
         self.parent.effect_x.bind(velocity=self.track_x_vel)
         self.parent.effect_y.bind(velocity=self.track_y_vel)
-        self._trigger_update_and_rebind()
-
-    def update_and_rebind(self, *args):
-        self.update()
-        self.rebind()
+        self._trigger_update()
 
     def rebind(self, *args):
+        """Bind my listeners to the new character, unbinding from the old
+        character first if needed.
+
+        """
         if hasattr(self, '_old_character'):
             self._old_character.thing.unlisten(
                 self.char_thing_listener
@@ -257,6 +255,7 @@ class Board(RelativeLayout):
 
     def rm_arrow(self, orig, dest):
         """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
+        print('removing arrow {}->{}'.format(orig, dest))
         if (
                 orig not in self.arrow or
                 dest not in self.arrow[orig]
@@ -273,10 +272,7 @@ class Board(RelativeLayout):
         return spectral_layout(graph)
 
     def discard_pawn(self, thingn, *args):
-        if (
-                thingn in self.pawn and
-                thingn not in self.character.thing
-        ):
+        if thingn in self.pawn:
             self.rm_pawn(thingn)
 
     def _trigger_discard_pawn(self, thing):
@@ -293,10 +289,7 @@ class Board(RelativeLayout):
                 self.rm_pawn(pawn_name)
 
     def discard_spot(self, placen, *args):
-        if (
-                placen in self.spot and
-                placen not in self.character.place
-        ):
+        if placen in self.spot:
             self.rm_spot(placen)
 
     def _trigger_discard_spot(self, place):
@@ -315,10 +308,7 @@ class Board(RelativeLayout):
     def discard_arrow(self, orign, destn, *args):
         if (
             orign in self.arrow and
-            destn in self.arrow[orign] and not (
-                orign in self.character.portal and
-                destn in self.character.portal[orign]
-            )
+            destn in self.arrow[orign]
         ):
             self.rm_arrow(orign, destn)
 
@@ -367,12 +357,9 @@ class Board(RelativeLayout):
         self.new_spots = spots_added
 
     def add_arrow(self, orign, destn, *args):
-        if (
-            orign in self.character.portal and
-            destn in self.character.portal[orign] and not (
+        if not (
                 orign in self.arrow and
                 destn in self.arrow[orign]
-            )
         ):
             self.arrowlayout.add_widget(
                 self.make_arrow(

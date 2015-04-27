@@ -2,9 +2,10 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from collections import OrderedDict
 
+from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import AliasProperty, ObjectProperty
+from kivy.properties import AliasProperty, ObjectProperty, StringProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -82,7 +83,9 @@ class RulesView(FloatLayout):
         if not isinstance(rn, tuple):
             return str(rn)
         if len(rn) == 2:
-            if self.engine._is_thing(*rn):
+            (char, node) = rn
+            character = self.engine.character[char]
+            if node in character.thing:
                 return "Character: {}, Thing: {}".format(*rn)
             else:
                 return "Character: {}, Place: {}".format(*rn)
@@ -468,3 +471,35 @@ class RulesView(FloatLayout):
         unused.reverse()
         self._trigger_builder.decks[1] = unused
         self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
+
+
+class RulesBox(BoxLayout):
+    engine = ObjectProperty()
+    rulesview = ObjectProperty()
+    new_rule_name = StringProperty()
+    new_rule = ObjectProperty()
+    toggle_rules_view = ObjectProperty()
+
+
+Builder.load_string("""
+<RulesBox>:
+    orientation: 'vertical'
+    new_rule_name: rulename.text
+    rulesview: rulesview
+    RulesView:
+        id: rulesview
+        engine: root.engine
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.05
+        TextInput:
+            id: rulename
+            hint_text: 'New rule name'
+            write_tab: False
+        Button:
+            text: '+'
+            on_press: root.new_rule()
+        Button:
+            text: 'Close'
+            on_press: root.toggle_rules_view()
+""")

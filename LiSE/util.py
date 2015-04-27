@@ -188,7 +188,7 @@ class JSONReWrapper(MutableMapping):
         self._outer = outer
         self._key = key
         self._inner = JSONWrapper(outer, key)
-        self._v = initval if initval else dict(self._inner)
+        self._v = initval
         if not isinstance(self._v, dict):
             raise TypeError(
                 "JSONReWrapper only wraps dicts"
@@ -232,7 +232,7 @@ class JSONListReWrapper(MutableSequence):
     """Like JSONListWrapper with a cache."""
     def __init__(self, outer, key, initval=None):
         self._inner = JSONListWrapper(outer, key)
-        self._v = initval if initval else list(self._inner)
+        self._v = initval
         if not isinstance(self._v, list):
             raise TypeError(
                 "JSONListReWrapper only wraps lists"

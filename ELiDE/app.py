@@ -128,7 +128,8 @@ class ELiDEApp(App):
         l.bind(
             character_name=upd_boardchar,
             use_kv=upd_use_kv,
-            use_message=upd_use_message
+            use_message=upd_use_message,
+            play_speed=upd_play_speed
         )
         return l
 

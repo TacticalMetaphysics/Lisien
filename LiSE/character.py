@@ -448,6 +448,10 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                     place in self._keycache[branch][tick]
             ):
                 self._keycache[branch][tick].remove(place)
+        if place in self.character.adj:
+            del self.character.adj[place]
+        if place in self.character.pred:
+            del self.character.pred[place]
         self.engine.gorm.db.exist_node(
             self.character.name,
             place,
@@ -511,14 +515,23 @@ class CharacterThingPlaceMapping(MutableMapping):
 
     def __delitem__(self, k):
         """Delete place or thing"""
+        def unavatar(node):
+            for user in node.users():
+                user.del_avatar(self.name, node.name)
         if (
                 k not in self.character.thing and
                 k not in self.character.place
         ):
             raise KeyError("No such thing or place")
+        if k in self.character.portal:
+            del self.character.portal[k]
+        if k in self.character.pred:
+            del self.character.pred[k]
         if k in self.character.thing:
+            unavatar(self.character.thing[k])
             del self.character.thing[k]
         if k in self.character.place:
+            unavatar(self.character.place[k])
             del self.character.place[k]
 
 

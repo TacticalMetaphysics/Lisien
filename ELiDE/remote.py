@@ -21,7 +21,7 @@ class MirrorMapping(EventDispatcher):
 
     """
     time = ListProperty(['master', 0])
-    remote = ObjectProperty(None, allownone=True)
+    remote = ObjectProperty()
     mirror = DictProperty()
 
     def on_time(self, *args):
@@ -44,17 +44,14 @@ class MirrorMapping(EventDispatcher):
 
         self.mirror = data
 
-        if not hasattr(self.remote, 'listener'):
-            return
-
         @self.remote.listener
         def when_changed(branch, tick, what, k, v):
             if k not in self.mirror or self.mirror[k] != v:
-                if v is None:
+                if v is None and k in self.mirror:
                     if k in ('next_location', 'next_arrival_time'):
                         self.mirror[k] = None
                         return True
                     del self.mirror[k]
-                else:
+                elif v is not None:
                     self.mirror[k] = v
         return True

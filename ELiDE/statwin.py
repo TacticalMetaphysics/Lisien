@@ -1,5 +1,5 @@
 from kivy.clock import Clock
-from kivy.properties import DictProperty, ObjectProperty
+from kivy.properties import DictProperty, ListProperty, ObjectProperty
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -13,7 +13,7 @@ from kivy.uix.listview import (
     SelectableView
 )
 from .statlist import StatListView, default_cfg
-from .util import set_remote_value
+from .util import try_json_load
 
 
 control_txt = {
@@ -124,8 +124,6 @@ class StatListViewConfigurator(StatListView):
     def del_key(self, key):
         if key in self.mirror:
             del self.remote[key]
-        if key in self.adapter.sorted_keys:
-            self.adapter.sorted_keys.remove(key)
 
     def get_adapter(self):
         return DictAdapter(
@@ -274,62 +272,56 @@ class StatListViewConfigurator(StatListView):
 
 
 class StatWindow(BoxLayout):
-    layout = ObjectProperty()
+    remote = ObjectProperty()
+    toggle_stat_cfg = ObjectProperty()
+    time = ListProperty()
 
-    def __init__(self, **kwargs):
-        kwargs['orientation'] = 'vertical'
-        super().__init__(**kwargs)
+    def new_stat(self):
+        """Look at the key and value that the user has entered into the stat
+        configurator, and set them on the currently selected
+        entity.
 
-    def on_layout(self, *args):
-        if self.layout is None:
+        """
+        key = self.ids.newstatkey.text
+        value = self.ids.newstatval.text
+        if not (key and value):
+            # TODO implement some feedback to the effect that
+            # you need to enter things
             return
-        if self.canvas is None:
-            Clock.schedule_once(self.on_layout, 0)
-            return
-        cfg = StatListViewConfigurator(
-            time=self.layout.time,
-            size_hint_y=0.95
-        )
-        newstatkey = TextInput(
-            multiline=False,
-            write_tab=False,
-            hint_text='New stat'
-        )
-        newstatval = TextInput(
-            multiline=False,
-            write_tab=False,
-            hint_text='Value'
-        )
-        newstatbut = Button(
-            text='+',
-            on_press=lambda inst: set_remote_value(
-                cfg.remote,
-                newstatkey.text,
-                newstatval.text
-            )
-        )
-        close_cfg_but = Button(
-            text='Close',
-            on_press=lambda inst: self.layout.toggle_stat_cfg()
-        )
-        buttons = BoxLayout(size_hint_y=0.05)
-        buttons.add_widget(newstatkey)
-        buttons.add_widget(newstatval)
-        buttons.add_widget(newstatbut)
-        buttons.add_widget(close_cfg_but)
-        self.add_widget(buttons)
-        self.add_widget(cfg)
-
-        self.layout._stat_cfg = cfg
-        self.layout._newstatkey = newstatkey
-        self.layout._newstatval = newstatval
-        self.layout._newstatbut = newstatbut
-        self.layout._close_stat_cfg_but = close_cfg_but
+        self.remote[key] = try_json_load(value)
+        self.ids.newstatkey.text = ''
+        self.ids.newstatval.text = ''
 
 
-Builder.load_string(
-    """
+Builder.load_string("""
 <ConfigListItem>:
     height: 30
-"""
-)
+<StatWindow>:
+    orientation: 'vertical'
+    StatListViewConfigurator:
+        id: cfg
+        time: root.time
+        remote: root.remote
+        size_hint_y: 0.95
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.05
+        TextInput:
+            id: newstatkey
+            multiline: False
+            write_tab: False
+            hint_text: 'New stat'
+        TextInput:
+            id: newstatval
+            multiline: False
+            write_tab: False
+            hint_text: 'Value'
+        Button:
+            id: newstatbut
+            text: '+'
+            on_press: root.new_stat()
+        Button:
+            id: closer
+            text: 'Close'
+            on_press: root.toggle_stat_cfg()
+""")

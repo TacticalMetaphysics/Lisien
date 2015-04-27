@@ -92,6 +92,12 @@ class Rule(object):
         if actions:
             self.actions.extend(actions)
 
+    def __eq__(self, other):
+        return (
+            hasattr(other, 'name') and
+            self.name == other.name
+        )
+
     def __getattr__(self, attrn):
         if attrn == 'triggers':
             return self._triggers
@@ -197,6 +203,10 @@ class Rule(object):
         """Run all my actions and return a list of their results.
 
         """
+        print('running actions {} for rule {}'.format(
+            [action.__name__ for action in self.actions],
+            self.name
+        ))
         curtime = engine.time
         r = []
         for action in self.actions:
