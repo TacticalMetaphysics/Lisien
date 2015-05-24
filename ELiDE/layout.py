@@ -1,5 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+
+"""The big layout that you view all of ELiDE through.
+
+Handles touch, selection, and time control. Contains a board, a stat
+grid, the time control panel, and the menu.
+
+"""
 from functools import partial
 from kivy.properties import (
     AliasProperty,
@@ -27,12 +34,6 @@ from .util import dummynum
 
 
 Factory.register('CharMenu', cls=CharMenu)
-
-
-"""The base layout in which all of ELiDE lives. Handles touch in its
-special way and manages many :class:`ModalView`s.
-
-"""
 
 
 class KvLayoutBack(FloatLayout):
