@@ -22,11 +22,8 @@ from kivy.logger import Logger
 
 from .dummy import Dummy
 from .spritebuilder import PawnConfigDialog, SpotConfigDialog
-from .board.arrow import Arrow, ArrowWidget
-from .board.spot import Spot
-from .board.pawn import Pawn
 from .charmenu import CharMenu
-from .util import try_json_load, dummynum
+from .util import dummynum
 
 
 Factory.register('CharMenu', cls=CharMenu)
