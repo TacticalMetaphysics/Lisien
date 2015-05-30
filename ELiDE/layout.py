@@ -49,6 +49,10 @@ class Message(Label):
 
 
 class BoardView(ScrollView):
+    """A ScrollView that contains the Board for the character being
+    viewed.
+
+    """
     selection = ObjectProperty(None, allownone=True)
     branch = StringProperty('master')
     tick = NumericProperty(0)
@@ -57,6 +61,15 @@ class BoardView(ScrollView):
 
 
 class StatListPanel(BoxLayout):
+    """A panel that displays a simple two-column grid showing the stats of
+    the selected entity, defaulting to those of the character being
+    viewed.
+
+    Has a 'cfg' button on the bottom to open the StatWindow in which
+    to add and delete stats, or to change the way they are displayed
+    in the StatListPanel.
+
+    """
     time = ListProperty()
     selected_remote = ObjectProperty()
     selection_name = StringProperty()
@@ -67,6 +80,19 @@ class StatListPanel(BoxLayout):
 
 
 class TimePanel(BoxLayout):
+    """A panel that lets you to start and stop the game, or browse through
+    its history.
+
+    There's a "play" button, which is toggleable. When toggled on, the
+    simulation will continue to run until it's toggled off
+    again. Below this is a "Next tick" button, which will simulate
+    exactly one tick and stop. And there are two text fields in which
+    you can manually enter a Branch and Tick to go to. Moving through
+    time this way doesn't simulate anything--you'll only see what
+    happened as a result of "play," "next tick," or some other input
+    that's been made to call the ``advance`` method of the LiSE core.
+
+    """
     next_tick = ObjectProperty()
     branch = StringProperty()
     branch_setter = ObjectProperty()
@@ -153,10 +179,21 @@ class ELiDELayout(FloatLayout):
         self._trigger_reremote()
 
     def on_play_speed(self, *args):
+        """Change the interval at which ``self.play`` is called to match my
+        current ``play_speed``.
+
+        """
         Clock.unschedule(self.play)
         Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
     def on_board(self, *args):
+        """Bind ``self._dispatch_time`` to the engine's time.
+
+        This will make sure that my Kivy.properties ``branch``,
+        ``tick``, and ``time`` trigger any functions bound to them
+        when they change in response to the engine's time changing.
+
+        """
         if self.engine is None or self.board is None:
             return
         self.engine.time_listener(self._dispatch_time)
@@ -200,6 +237,10 @@ class ELiDELayout(FloatLayout):
             )
 
     def _set_stat(self, stat, *args):
+        """When one of the stats that controls my behavior changes on the
+        character, update it on me as well.
+
+        """
         if '_' + stat in self.character.stat:
             setattr(self, stat, self.character.stat['_'+stat])
         elif stat == 'kv':
@@ -208,6 +249,10 @@ class ELiDELayout(FloatLayout):
             self.message = ''
 
     def remake_display(self, *args):
+        """Remake any affected widgets after a change in my ``message`` or
+        ``kv``.
+
+        """
         Builder.load_string(self.kv)
         if hasattr(self, '_kv_layout_back'):
             self.remove_widget(self._kv_layout_back)
@@ -282,6 +327,10 @@ class ELiDELayout(FloatLayout):
             )
 
     def select_character(self, char):
+        """Change my ``character`` to the selected character object if they
+        aren't the same.
+
+        """
         if char == self.character:
             return
         self.character = char
@@ -552,6 +601,14 @@ class ELiDELayout(FloatLayout):
         dummy.num += 1
 
     def arrow_from_wid(self, wid):
+        """When the user has released touch after dragging to make an arrow,
+        check whether they've drawn a valid one, and if so, make it.
+
+        This doesn't handle touch events. It takes a widget as its
+        argument: the one the user has been dragging to indicate where
+        they want the arrow to go. Said widget ought to be invisible.
+
+        """
         for spot in self.board.spotlayout.children:
             if spot.collide_widget(wid):
                 whereto = spot
@@ -589,6 +646,7 @@ class ELiDELayout(FloatLayout):
             del self._old_time
 
     def _dispatch_time(self, *args):
+        """Dispatch my ``branch``, ``tick``, and ``time`` properties."""
         self.property('branch').dispatch(self)
         self.property('tick').dispatch(self)
         self.property('time').dispatch(self)
