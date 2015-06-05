@@ -342,35 +342,38 @@ class ELiDELayout(FloatLayout):
         the dummies, then the menus.
 
         """
-        # the menu widgets can handle things themselves
         if self.ids.timepanel.collide_point(*touch.pos):
             self.ids.timepanel.dispatch('on_touch_down', touch)
+            self.keep_selection = True
+            return True
         if self.ids.charmenu.collide_point(*touch.pos):
             self.ids.charmenu.dispatch('on_touch_down', touch)
+            self.keep_selection = True
+            return True
         if self.ids.statpanel.collide_point(*touch.pos):
             self.ids.statpanel.dispatch('on_touch_down', touch)
             self.keep_selection = True
+            return True
         if self.dummyplace.collide_point(*touch.pos):
             self.dummyplace.dispatch('on_touch_down', touch)
-            return
+            return True
         if self.dummything.collide_point(*touch.pos):
             self.dummything.dispatch('on_touch_down', touch)
-            return
-        if (
-                self.ids.boardview.collide_point(*touch.pos) and
-                not self.selection and
-                not self.selection_candidates
-        ):
-            # if the board itself handles the touch, let it be
+            return True
+        if self.ids.boardview.collide_point(*touch.pos):
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             pawns = list(self.board.pawns_at(*touch.pos))
             if pawns:
                 self.selection_candidates = pawns
+                if self.selection in self.selection_candidates:
+                    self.selection_candidates.remove(self.selection)
                 return True
             spots = list(self.board.spots_at(*touch.pos))
             if spots:
                 self.selection_candidates = spots
+                if self.selection in self.selection_candidates:
+                    self.selection_candidates.remove(self.selection)
                 if self.portaladdbut.state == 'down':
                     self.origspot = self.selection_candidates.pop(0)
                     self.protodest = Dummy(
@@ -393,10 +396,11 @@ class ELiDELayout(FloatLayout):
                         )
                         self.board.add_widget(self.protoportal2)
                 return True
-            arrows = list(self.board.arrows_at(*touch.pos))
-            if arrows:
-                self.selection_candidates = arrows
-                return True
+            if self.selection_candidates == []:
+                arrows = list(self.board.arrows_at(*touch.pos))
+                if arrows:
+                    self.selection_candidates = arrows
+                    return True
             # the board did not handle the touch, so let the view scroll
             touch.pop()
             return self.ids.boardview.dispatch('on_touch_down', touch)
