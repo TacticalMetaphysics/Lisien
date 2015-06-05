@@ -433,9 +433,14 @@ class ELiDELayout(FloatLayout):
 
         """
         if hasattr(self, 'protodest'):
+            # We're finishing the process of drawing an arrow to
+            # create a new portal.
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             try:
+                # If the touch ended upon a spot, and there isn't
+                # already a portal between the origin and this
+                # destination, create one.
                 destspot = next(self.board.spots_at(*touch.pos))
                 orig = self.origspot.remote
                 dest = destspot.remote
@@ -456,6 +461,8 @@ class ELiDELayout(FloatLayout):
                     self.board.arrowlayout.add_widget(
                         self.board.make_arrow(port)
                     )
+                # And another in the opposite direction, if the user
+                # asked for that.
                 if (
                     hasattr(self, 'protoportal2') and not (
                         orig.name in self.board.character.preportal and
@@ -497,6 +504,10 @@ class ELiDELayout(FloatLayout):
         if self.ids.statpanel.collide_point(*touch.pos):
             self.ids.statpanel.dispatch('on_touch_up', touch)
             return True
+        # If we're not making a portal, and the touch hasn't landed
+        # anywhere that would demand special treatment, but the
+        # touch_down hit some selectable items, select the first of
+        # those that also collides this touch_up.
         if not self.keep_selection and self.selection_candidates:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
