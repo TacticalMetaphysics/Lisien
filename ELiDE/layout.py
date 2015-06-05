@@ -30,6 +30,7 @@ from kivy.logger import Logger
 from .dummy import Dummy
 from .spritebuilder import PawnConfigDialog, SpotConfigDialog
 from .charmenu import CharMenu
+from .board.arrow import ArrowWidget
 from .util import dummynum
 
 
