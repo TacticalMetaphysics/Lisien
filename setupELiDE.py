@@ -40,7 +40,6 @@ setup(
     ],
     package_data={
         "ELiDE": [
-            "elide.kv",
             "assets/*.png",
             "assets/*.jpg",
             "assets/*.ttf",
