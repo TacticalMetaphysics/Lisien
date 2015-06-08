@@ -19,21 +19,6 @@ resource_add_path(ELiDE.__path__[0] + "/assets")
 resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
 
 
-def proxylog(typ, data):
-    if typ == 'command':
-        (cmd, args) = data[1:]
-        Logger.debug(
-            "LiSE.proxy: calling {}{}".format(
-                cmd,
-                tuple(args)
-            )
-        )
-    else:
-        Logger.debug(
-            "LiSE.proxy: returning {}".format(data)
-        )
-
-
 class ELiDEApp(App):
     """Extensible LiSE Development Environment.
 
@@ -49,7 +34,9 @@ class ELiDEApp(App):
             {
                 'world': 'sqlite:///LiSEworld.db',
                 'code': 'LiSEcode.db',
-                'language': 'en'
+                'language': 'en',
+                'logfile': '',
+                'loglevel': ''
             }
         )
         config.setdefaults(
@@ -83,13 +70,19 @@ class ELiDEApp(App):
             import pdb
             pdb.set_trace()
         self.manager = EngineProcessManager()
+        enkw = {}
+        if 'logfile' in config['LiSE']:
+            enkw['logfile'] = config['LiSE']['logfile']
+        if 'loglevel' in config['LiSE']:
+            enkw['loglevel'] = config['LiSE']['loglevel']
         self.engine = self.manager.start(
             config['LiSE']['world'],
             config['LiSE']['code'],
-            logger=proxylog
+            **enkw
         )
 
         Clock.schedule_interval(self._check_stats, 0.01)
+        Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             print("adding character: {}".format(char))

@@ -1,5 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+import sys
+import logging
 from collections import (
     Callable,
     defaultdict,
@@ -3299,9 +3301,23 @@ class EngineProxy(object):
 
 
 def subprocess(
-        args, kwargs, handle_out_pipe, handle_in_pipe, callbacq,
-        logger
+    args, kwargs, handle_out_pipe, handle_in_pipe, callbacq, logq
 ):
+    def log(typ, data):
+        if typ == 'command':
+            (cmd, args) = data[1:]
+            logq.put((
+                'debug',
+                "calling {}{}".format(
+                    cmd,
+                    tuple(args)
+                )
+            ))
+        else:
+            logq.put((
+                'debug',
+                "returning {}".format(data)
+            ))
     engine_handle = EngineHandle(args, kwargs, callbacq)
     while True:
         inst = handle_out_pipe.recv()
@@ -3309,14 +3325,15 @@ def subprocess(
             handle_out_pipe.close()
             handle_in_pipe.close()
             callbacq.close()
+            logq.close()
             return 0
-        logger('command', inst)
+        log('command', inst)
         (silent, cmd, args) = inst
         if silent:
             getattr(engine_handle, cmd)(*args)
         else:
             r = getattr(engine_handle, cmd)(*args)
-            logger('result', r)
+            log('result', r)
             handle_in_pipe.send(r)
 
 
@@ -3325,11 +3342,40 @@ class EngineProcessManager(object):
         (handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
         (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
         callbacq = Queue()
-        if 'logger' in kwargs:
-            logger = kwargs['logger']
-            del kwargs['logger']
+        self.logq = Queue()
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            fmt='[{levelname}] LiSE.proxy({process})\t{message}',
+            style='{'
+        )
+        handlers = []
+        logl = {
+            'debug': logging.DEBUG,
+            'info': logging.INFO,
+            'warning': logging.WARNING,
+            'error': logging.ERROR,
+            'critical': logging.CRITICAL
+        }
+        if 'loglevel' in kwargs and kwargs['loglevel'] in logl:
+            loglevel = logl[kwargs['loglevel']]
+            del kwargs['loglevel']
         else:
-            logger = lambda foo, bar: None
+            loglevel = None
+        handlers.append(logging.StreamHandler(sys.stdout))
+        handlers[0].setLevel(loglevel or logging.DEBUG)
+        if 'logfile' in kwargs:
+            try:
+                fh = logging.FileHandler(kwargs['logfile'])
+                handlers.append(fh)
+                handlers[-1].setLevel(loglevel or logging.INFO)
+            except OSError:
+                pass
+            del kwargs['logfile']
+
+        for handler in handlers:
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
         self._p = Process(
             name='LiSE Life Simulator Engine (core)',
             target=subprocess,
@@ -3339,7 +3385,7 @@ class EngineProcessManager(object):
                 handle_out_pipe_recv,
                 handle_in_pipe_send,
                 callbacq,
-                logger
+                self.logq
             )
         )
         self._p.daemon = True
@@ -3350,6 +3396,18 @@ class EngineProcessManager(object):
             callbacq
         )
         return self.engine_proxy
+
+    def sync_log(self, limit=None):
+        def log_once():
+            (level, message) = self.logq.get(block=False)
+            getattr(self.logger, level)(message)
+        n = 0
+        while limit is None or n < limit:
+            try:
+                log_once()
+                n += 1
+            except Empty:
+                return
 
     def shutdown(self):
         self.engine_proxy.close()
