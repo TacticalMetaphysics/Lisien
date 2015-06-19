@@ -829,7 +829,7 @@ class EngineHandle(object):
                 )
             )
 
-        @self._real.listener
+        @self._real.time_listener
         def check_stat(oldb, oldt, newb, newt):
             if charn not in self._real.character:
                 return
@@ -1429,6 +1429,10 @@ class NodeProxy(MutableMapping):
     def __getitem__(self, k):
         if k == 'name':
             return self.name
+        if k not in self:
+            raise KeyError(
+                "{} is not set now".format(k)
+            )
         return self._engine.handle(
             'get_node_stat',
             (self._charname, self.name, k)

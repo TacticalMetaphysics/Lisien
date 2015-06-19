@@ -34,6 +34,7 @@ class Spot(PawnSpot):
         lambda self, v: self.remote.setter()(v),
         bind=('remote',)
     )
+    default_image_paths = ['orb.png']
     _touchpos = ListProperty([])
 
     def __init__(self, **kwargs):
@@ -44,11 +45,8 @@ class Spot(PawnSpot):
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
         )
-        self._trigger_upd_from_mirror_pos = Clock.create_trigger(
-            self.upd_from_mirror_pos
-        )
-        self._trigger_upd_to_remote_pos = Clock.create_trigger(
-            self.upd_to_remote_pos
+        self._trigger_push_pos = Clock.create_trigger(
+            self.push_pos
         )
         kwargs['size_hint'] = (None, None)
         if 'place' in kwargs:
@@ -57,51 +55,26 @@ class Spot(PawnSpot):
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
 
-    def on_mirror(self, *args):
-        """When my mirror judges my position to have changed, change it."""
-        if not super().on_mirror(*args):
-            return
-        if (
-                '_x' not in self.mirror or '_y' not in self.mirror or
-                self.x != self.mirror['_x'] or self.y != self.mirror['_y']
-        ):
-            self._trigger_upd_from_mirror_pos()
-        return True
+    def _upd_pos(self, *args):
+        self.pos = self.remote['pos']
 
-    def upd_from_mirror_pos(self, *args):
-        """Set my position to that given by my ``mirror`` property, and update
-        my ``collider`` to match.
-
-        """
-        if not self.mirror:
-            Clock.schedule_once(self.upd_from_mirror_pos, 0)
-            return
-        if self._touchpos:
-            return
-        if not ('_x' in self.mirror and '_y' in self.mirror):
-            Logger.debug(
-                "Spot: {}'s pos not loaded".format(
-                    self.remote.name
-                )
-            )
-            Clock.schedule_once(self.upd_from_mirror_pos, 0)
-            return
-        else:
-            x = self.mirror['_x']
-            y = self.mirror['_y']
-        self.pos = (
-            int(x * self.board.width),
-            int(y * self.board.height)
-        )
-        (x, y) = self.center
-        (w, h) = self.size
-        rx = w / 2
-        ry = h / 2
-        self.collider = CollideEllipse(
-            x=x, y=y, rx=rx, ry=ry
+    def listen_pos(self, *args):
+        self.remote.listener(
+            fun=self._upd_pos,
+            stat='pos'
         )
 
-    def upd_to_remote_pos(self, *args):
+    def unlisten_pos(self, *args):
+        self.remote.unlisten(
+            fun=self._upd_pos,
+            stat='pos'
+        )
+
+    def on_remote(self, *args):
+        super().on_remote(*args)
+        self.listen_pos()
+
+    def push_pos(self, *args):
         """Set my current position, expressed as proportions of the board's
         width and height, into the ``_x`` and ``_y`` keys of the
         entity in my ``remote`` property, such that it will be
@@ -110,10 +83,6 @@ class Spot(PawnSpot):
         """
         self.remote['_x'] = self.x / self.board.width
         self.remote['_y'] = self.y / self.board.height
-
-    def _default_image_paths(self):
-        """Return a list of paths to use for my graphics by default."""
-        return ['orb.png']
 
     def add_widget(self, wid, i=0, canvas=None):
         """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather

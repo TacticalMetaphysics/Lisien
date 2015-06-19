@@ -32,10 +32,23 @@ class MirrorMapping(EventDispatcher):
         self.mirror = dict(self.remote)
 
     def on_remote(self, *args):
-        """Copy initial data to the mirror, and arrange for it to be updated
-        when the remote data is changed.
+        """Sync initial data, and listen to some stats that are likely to
+        matter even when the user isn't specifically looking at me.
 
         """
+        self.sync()
+        for s in (
+                '_image_paths',
+                '_offxs',
+                '_offys',
+                '_stackhs',
+                '_x',
+                '_y'
+        ):
+            self.listen(stat=s)
+
+    def sync(self, *args):
+        """Copy remote's data to the mirror."""
         data = {}
         for (k, v) in self.remote.items():
             if v is not None:
@@ -44,14 +57,27 @@ class MirrorMapping(EventDispatcher):
 
         self.mirror = data
 
-        @self.remote.listener
-        def when_changed(branch, tick, what, k, v):
-            if k not in self.mirror or self.mirror[k] != v:
-                if v is None and k in self.mirror:
-                    if k in ('next_location', 'next_arrival_time'):
-                        self.mirror[k] = None
-                        return True
-                    del self.mirror[k]
-                elif v is not None:
-                    self.mirror[k] = v
-        return True
+    def listen(self, *args, **kwargs):
+        """Make sure to stay in sync with all changes to remote."""
+        self.remote.listener(
+            fun=self._listen_func,
+            stat=kwargs.get('stat', None)
+        )
+
+    def unlisten(self, *args, **kwargs):
+        """Stop listening to remote."""
+        self.remote.unlisten(
+            fun=self._listen_func,
+            stat=kwargs.get('stat', None)
+        )
+
+    def _listen_func(self, branch, tick, what, k, v):
+        if k in self.mirror or self.mirror[k] == v:
+            return
+        if v is None and k in self.mirror:
+            if k in ('next_location', 'next_arrival_time'):
+                self.mirror[k] = None
+                return True
+            del self.mirror[k]
+        elif v is not None:
+            self.mirror[k] = v

@@ -41,26 +41,20 @@ class Pawn(PawnSpot):
         lambda self, v: self.remote.setter()(v),
         bind=('remote',)
     )
+    default_image_paths = ['atlas://rltiles/base.atlas/unseen']
 
     def __init__(self, **kwargs):
         self._trigger_move_to_loc = Clock.create_trigger(self.move_to_loc)
-        self._trigger_upd_from_mirror_location = Clock.create_trigger(
-            self.upd_from_mirror_location
+        self._trigger_push_location = Clock.create_trigger(
+            self.push_location
         )
-        self._trigger_upd_from_mirror_next_location = Clock.create_trigger(
-            self.upd_from_mirror_next_location
-        )
-        self._trigger_upd_to_remote_location = Clock.create_trigger(
-            self.upd_to_remote_location
-        )
-        self._trigger_upd_to_remote_next_location = Clock.create_trigger(
-            self.upd_to_remote_next_location
+        self._trigger_push_next_location = Clock.create_trigger(
+            self.push_next_location
         )
         if 'thing' in kwargs:
             kwargs['remote'] = kwargs['thing']
             del kwargs['thing']
         super().__init__(**kwargs)
-        self.bind(mirror=self.upd_from_mirror)
 
     def on_parent(self, *args):
         if self.parent:
@@ -77,75 +71,48 @@ class Pawn(PawnSpot):
                     canvas.remove(self.group)
             del self._board
 
+    def _upd_loc_name(self, *args):
+        self.loc_name = self.remote['location']
+
+    def _upd_next_loc_name(self, *args):
+        self.next_loc_name = self.remote['next_location']
+
+    def listen_loc(self, *args):
+        self.remote.listener(
+            fun=self._upd_loc_name,
+            stat='location'
+        )
+        self.remote.listener(
+            fun=self._upd_next_loc_name,
+            stat='next_location'
+        )
+
+    def unlisten_loc(self, *args):
+        self.remote.unlisten(
+            fun=self._upd_loc_name,
+            stat='location'
+        )
+        self.remote.unlisten(
+            fun=self._upd_next_loc_name,
+            stat='next_location'
+        )
+
     def on_remote(self, *args):
-        if not super().on_remote(*args):
-            return
-        self._trigger_upd_from_mirror_location()
-        self._trigger_upd_from_mirror_next_location()
-        self.bind(
-            loc_name=self._trigger_upd_to_remote_location,
-            next_loc_name=self._trigger_upd_to_remote_next_location,
-        )
-        self.bind(
-            loc_name=self._trigger_move_to_loc,
-            next_loc_name=self._trigger_move_to_loc
-        )
-        return True
+        """In addition to the usual behavior from
+        :class:`remote.MirrorMapping`, copy ``loc_name`` from remote's
+        'location', ``next_loc_name`` from remote's 'next_location',
+        and arrange to keep them both up to date.
 
-    def upd_from_mirror(self, *args):
-        if (
-                'location' not in self.mirror or
-                'next_location' not in self.mirror
-        ):
-            Clock.schedule_once(self.upd_from_mirror, 0)
-            return
-        if self.loc_name != self.mirror['location']:
-            self._trigger_upd_from_mirror_location()
-        if self.next_loc_name != self.mirror['next_location']:
-            self._trigger_upd_from_mirror_next_location()
-        return True
+        """
+        super().on_remote(*args)
+        self.loc_name = self.remote['location']
+        self.next_loc_name = self.remote['next_location']
+        self.listen_loc()
 
-    def upd_from_mirror_location(self, *args):
-        if not self.mirror or 'location' not in self.mirror:
-            Clock.schedule_once(self.upd_from_mirror_location, 0)
-            return
-        Logger.debug(
-            "Pawn: updating {}'s location from mirror's {}".format(
-                self.name,
-                self.mirror['location']
-            )
-        )
-        self.unbind(
-            loc_name=self._trigger_upd_to_remote_location
-        )
-        self.loc_name = self.mirror['location']
-        self.bind(
-            loc_name=self._trigger_upd_to_remote_location
-        )
-
-    def upd_from_mirror_next_location(self, *args):
-        """Set my ``next_loc_name`` to match my ``mirror``."""
-        if not self.mirror or 'next_location' not in self.mirror:
-            Clock.schedule_once(self.upd_from_mirror_next_location, 0)
-            return
-        self.unbind(
-            next_loc_name=self._trigger_upd_to_remote_next_location
-        )
-        self.next_loc_name = self.mirror['next_location']
-        self.bind(
-            next_loc_name=self._trigger_upd_to_remote_next_location
-        )
-
-    def upd_to_remote_location(self, *args):
-        Logger.debug(
-            "Pawn: updating {}'s remote location to {}".format(
-                self.name,
-                self.loc_name
-            )
-        )
+    def push_location(self, *args):
         self.remote['location'] = self.loc_name
 
-    def upd_to_remote_next_location(self, *args):
+    def push_next_location(self, *args):
         self.remote['next_location'] = self.next_loc_name
 
     def add_widget(self, pawn, index=0, canvas='after'):

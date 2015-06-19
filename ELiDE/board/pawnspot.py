@@ -37,153 +37,61 @@ class PawnSpot(ImageStack, MirrorMapping):
     use_boardspace = True
 
     def __init__(self, **kwargs):
-        self._trigger_upd_from_mirror_image_paths = Clock.create_trigger(
-            self.upd_from_mirror_image_paths
+        self._trigger_push_image_paths = Clock.create_trigger(
+            self.push_image_paths
         )
-        self._trigger_upd_to_remote_image_paths = Clock.create_trigger(
-            self.upd_to_remote_image_paths
+        self._trigger_push_offxs = Clock.create_trigger(
+            self.push_offxs
         )
-        self._trigger_upd_from_mirror_offxs = Clock.create_trigger(
-            self.upd_from_mirror_offxs
+        self._trigger_push_offys = Clock.create_trigger(
+            self.push_offys
         )
-        self._trigger_upd_to_remote_offxs = Clock.create_trigger(
-            self.upd_to_remote_offxs
-        )
-        self._trigger_upd_from_mirror_offys = Clock.create_trigger(
-            self.upd_from_mirror_offys
-        )
-        self._trigger_upd_to_remote_offys = Clock.create_trigger(
-            self.upd_to_remote_offys
-        )
-        self._trigger_upd_from_mirror_stackhs = Clock.create_trigger(
-            self.upd_from_mirror_stackhs
-        )
-        self._trigger_upd_to_remote_stackhs = Clock.create_trigger(
-            self.upd_to_remote_stackhs
+        self._trigger_push_stackhs = Clock.create_trigger(
+            self.push_stackhs
         )
         super().__init__(**kwargs)
 
     def on_remote(self, *args):
-        if not super().on_remote(*args):
-            return
+        super().on_remote(*args)
         if (
                 self.remote is None or
-                'name' not in self.remote
+                not hasattr(self.remote, 'name')
         ):
             Logger.debug('PawnSpot: bad remote {}'.format(self.remote))
             return
-        self._trigger_upd_from_mirror_image_paths()
-        self._trigger_upd_from_mirror_offxs()
-        self._trigger_upd_from_mirror_offys()
-        self._trigger_upd_from_mirror_stackhs()
-        self.bind(
-            paths=self._trigger_upd_to_remote_image_paths,
-            offxs=self._trigger_upd_to_remote_offxs,
-            offys=self._trigger_upd_to_remote_offys,
-            stackhs=self._trigger_upd_to_remote_stackhs
+        self.name = self.remote.name
+        self.paths = self.remote.get(
+            '_image_paths', self.default_image_paths
         )
-        self.name = self.remote['name']
+        zeroes = [0] * len(self.paths)
+        self.offxs = self.remote.get('_offxs', zeroes)
+        self.offys = self.remote.get('_offys', zeroes)
+        self.stackhs = self.remote.get('_stackhs', zeroes)
+        self.bind(
+            paths=self._trigger_push_image_paths,
+            offxs=self._trigger_push_offxs,
+            offys=self._trigger_push_offys,
+            stackhs=self._trigger_push_stackhs
+        )
         if '_image_paths' not in self.remote:
-            self.remote['_image_paths'] = self._default_image_paths()
+            self.remote['_image_paths'] = list(self.paths)
         if '_offxs' not in self.remote:
-            self.remote['_offxs'] = self._default_offxs()
+            self.remote['_offxs'] = zeroes
         if '_offys' not in self.remote:
-            self.remote['_offys'] = self._default_offys()
+            self.remote['_offys'] = zeroes
         if '_stackhs' not in self.remote:
-            self.remote['_stackhs'] = self._default_stackhs()
-        return True
+            self.remote['_stackhs'] = zeroes
 
-    def on_mirror(self, *args):
-        if not self.mirror:
-            return
-        for k in (
-                'name',
-                '_image_paths',
-                '_offxs',
-                '_offys',
-                '_stackhs'
-        ):
-            if k not in self.mirror:
-                return
-        if self.paths != self.mirror['_image_paths']:
-            self._trigger_upd_from_mirror_image_paths()
-        if self.offxs != self.mirror['_offxs']:
-            self._trigger_upd_from_mirror_offxs()
-        if self.offys != self.mirror['_offys']:
-            self._trigger_upd_from_mirror_offys()
-        if self.stackhs != self.mirror['_stackhs']:
-            self._trigger_upd_from_mirror_stackhs()
-        return True
-
-    def upd_from_mirror_image_paths(self, *args):
-        if not self.mirror:
-            if self.remote:
-                Logger.debug(
-                    'PawnSpot: no mirror of {}'.format(self.remote['name'])
-                )
-            Clock.schedule_once(self.upd_from_mirror_image_paths, 0)
-            return
-        if '_image_paths' not in self.mirror:
-            return
-        self.unbind(
-            paths=self._trigger_upd_to_remote_image_paths
-        )
-        self.paths = self.mirror['_image_paths']
-        self.bind(
-            paths=self._trigger_upd_to_remote_image_paths
-        )
-
-    def upd_to_remote_image_paths(self, *args):
+    def push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)
 
-    def upd_from_mirror_offxs(self, *args):
-        if not self.mirror:
-            Clock.schedule_once(self.upd_from_mirror_offxs, 0)
-            return
-        if '_offxs' not in self.mirror:
-            return
-        self.unbind(
-            offxs=self._trigger_upd_to_remote_offxs
-        )
-        self.offxs = self.mirror['_offxs']
-        self.bind(
-            offxs=self._trigger_upd_to_remote_offxs
-        )
-
-    def upd_to_remote_offxs(self, *args):
+    def push_offxs(self, *args):
         self.remote['_offxs'] = list(self.offxs)
 
-    def upd_from_mirror_offys(self, *args):
-        if not self.mirror:
-            Clock.schedule_once(self.upd_from_mirror_offys, 0)
-        if '_offys' not in self.mirror:
-            return
-        self.unbind(
-            offys=self._trigger_upd_to_remote_offys
-        )
-        self.offys = self.mirror['_offys']
-        self.bind(
-            offys=self._trigger_upd_to_remote_offys
-        )
-
-    def upd_to_remote_offys(self, *args):
+    def push_offys(self, *args):
         self.remote['_offys'] = list(self.offys)
 
-    def upd_from_mirror_stackhs(self, *args):
-        if not self.mirror:
-            Clock.schedule_once(self.upd_from_mirror_stackhs, 0)
-            return
-        if '_stackhs' not in self.mirror:
-            return
-        self.unbind(
-            stackhs=self._trigger_upd_to_remote_stackhs
-        )
-        self.stackhs = self.mirror['_stackhs']
-        self.bind(
-            stackhs=self._trigger_upd_to_remote_stackhs
-        )
-
-    def upd_to_remote_stackhs(self, *args):
+    def push_stackhs(self, *args):
         self.remote['_stackhs'] = list(self.stackhs)
 
     def on_linecolor(self, *args):
@@ -217,25 +125,6 @@ class PawnSpot(ImageStack, MirrorMapping):
         boxgrp.add(self.box)
         boxgrp.add(Color(1., 1., 1.))
         self.group.add(boxgrp)
-
-    def _default_image_paths(self):
-        """Return a list of paths to use for my graphics by default."""
-        return ['atlas://rltiles/base.atlas/unseen']
-
-    def _default_offxs(self):
-        """Return a list of integers to use for my x-offsets by default."""
-        return [0]
-
-    def _default_offys(self):
-        """Return a list of integers to use for my y-offsets by default."""
-        return [0]
-
-    def _default_stackhs(self):
-        """Return a list of integers to use for my stacking heights by
-        default.
-
-        """
-        return [0]
 
 
 kv = """
