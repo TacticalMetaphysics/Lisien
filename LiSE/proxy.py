@@ -1054,6 +1054,13 @@ class EngineHandle(object):
     def node_stat_keys(self, char, node):
         return list(self._real.character[char].node[node])
 
+    def node_stat_cache(self, char, node):
+        return {
+            k: wrap_node_stat(char, node, k, v)
+            for (k, v) in self._real.character[char].node[node].items()
+            if v is not None
+        }
+
     def node_stat_len(self, char, node):
         return len(self._real.character[char].node[node])
 
@@ -1393,7 +1400,19 @@ class NodeProxy(MutableMapping):
     def __init__(self, engine_proxy, charname, nodename):
         self._engine = engine_proxy
         self._charname = charname
+        self._cache = None
         self.name = nodename
+        self._engine.time_listener(self._invalidate)
+
+    def _invalidate(self, b, t, b2, t2):
+        self._cache = None
+
+    def _pull(self):
+        if self._cache is None:
+            self._cache = self._engine.handle(
+                'node_stat_cache',
+                (self._charname, self.name)
+            )
 
     def __eq__(self, other):
         if hasattr(other, '_engine'):
@@ -1409,38 +1428,33 @@ class NodeProxy(MutableMapping):
         )
 
     def __iter__(self):
-        yield from self._engine.handle(
-            'node_stat_keys',
-            (self._charname, self.name)
-        )
+        self._pull()
+        yield from self._cache
 
     def __len__(self):
-        return self._engine.handle(
-            'node_stat_len',
-            (self._charname, self.name)
-        )
+        self._pull()
+        return len(self._cache)
 
     def __contains__(self, k):
-        return self._engine.handle(
-            'node_has_stat',
-            (self._charname, self.name, k)
-        )
+        self._pull()
+        return k in self._cache
 
     def __getitem__(self, k):
         if k == 'name':
             return self.name
-        if k not in self:
+        if k not in self:  # calls self._pull()
             raise KeyError(
                 "{} is not set now".format(k)
             )
-        return self._engine.handle(
-            'get_node_stat',
-            (self._charname, self.name, k)
-        )
+        return self._engine.json_rewrap(self._cache[k])
 
     def __setitem__(self, k, v):
         if k == 'name':
             raise KeyError("Nodes can't be renamed")
+        self._pull()
+        self._cache[k] = wrap_node_stat(
+            self._charname, self.name, k, v
+        )
         self._engine.handle(
             'set_node_stat',
             (self._charname, self.name, k, v),
@@ -1450,6 +1464,13 @@ class NodeProxy(MutableMapping):
     def __delitem__(self, k):
         if k == 'name':
             raise KeyError("Nodes need names")
+        if k not in self:  # calls self._pull()
+            raise KeyError(
+                "{} has no stat {}".format(
+                    self.name, k
+                )
+            )
+        del self._cache[k]
         self._engine.handle(
             'del_node_stat',
             (self._charname, self.name, k),
