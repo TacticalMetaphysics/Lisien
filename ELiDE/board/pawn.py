@@ -75,7 +75,7 @@ class Pawn(PawnSpot):
         self.loc_name = self.remote['location']
 
     def _upd_next_loc_name(self, *args):
-        self.next_loc_name = self.remote['next_location']
+        self.next_loc_name = self.remote.get('next_location', None)
 
     def listen_loc(self, *args):
         self.remote.listener(
@@ -106,7 +106,7 @@ class Pawn(PawnSpot):
         """
         super().on_remote(*args)
         self.loc_name = self.remote['location']
-        self.next_loc_name = self.remote['next_location']
+        self.next_loc_name = self.remote.get('next_location', None)
         self.listen_loc()
 
     def push_location(self, *args):
