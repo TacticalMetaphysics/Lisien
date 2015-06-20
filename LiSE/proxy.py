@@ -3361,11 +3361,11 @@ class EngineProcessManager(object):
             'error': logging.ERROR,
             'critical': logging.CRITICAL
         }
-        if 'loglevel' in kwargs and kwargs['loglevel'] in logl:
-            loglevel = logl[kwargs['loglevel']]
+        loglevel = None
+        if 'loglevel' in kwargs:
+            if kwargs['loglevel'] in logl:
+                loglevel = logl[kwargs['loglevel']]
             del kwargs['loglevel']
-        else:
-            loglevel = None
         handlers.append(logging.StreamHandler(sys.stdout))
         handlers[0].setLevel(loglevel or logging.DEBUG)
         if 'logfile' in kwargs:
