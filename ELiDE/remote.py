@@ -42,14 +42,23 @@ class MirrorMapping(EventDispatcher):
         self.mirror = data
 
     def listen(self, *args, **kwargs):
-        """Make sure to stay in sync with all changes to remote."""
+        """Make sure to stay in sync with all changes to remote.
+
+        With keyword argument ``stat``, sync with only that stat.
+
+        """
         self.remote.listener(
             fun=self._listen_func,
             stat=kwargs.get('stat', None)
         )
 
     def unlisten(self, *args, **kwargs):
-        """Stop listening to remote."""
+        """Stop listening to remote.
+
+        With keyword argument ``stat``, stop listening to that stat,
+        but keep listening to the others.
+
+        """
         self.remote.unlisten(
             fun=self._listen_func,
             stat=kwargs.get('stat', None)
