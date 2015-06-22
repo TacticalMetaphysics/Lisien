@@ -165,7 +165,7 @@ class Spot(PawnSpot):
         if self._touchpos:
             self.center = self._touchpos
             self._touchpos = []
-            self._trigger_upd_to_remote_pos()
+            self._trigger_push_pos()
         (x, y) = self.center
         self.collider = CollideEllipse(
             x=x, y=y, rx=self.width/2, ry=self.height/2
