@@ -35,6 +35,7 @@ class Spot(PawnSpot):
         bind=('remote',)
     )
     default_image_paths = ['orb.png']
+    default_pos = (0.5, 0.5)
     _touchpos = ListProperty([])
 
     def __init__(self, **kwargs):
@@ -56,7 +57,10 @@ class Spot(PawnSpot):
         self.bind(pos=self._trigger_upd_pawns_here)
 
     def _upd_pos(self, *args):
-        self.pos = self.remote['pos']
+        self.pos = (
+            self.remote.get('_x', self.default_pos[0]) * self.board.width,
+            self.remote.get('_y', self.default_pos[1]) * self.board.height
+        )
 
     def listen_pos(self, *args):
         self.remote.listener(
@@ -73,6 +77,7 @@ class Spot(PawnSpot):
     def on_remote(self, *args):
         super().on_remote(*args)
         self.listen_pos()
+        self._upd_pos()
 
     def push_pos(self, *args):
         """Set my current position, expressed as proportions of the board's
