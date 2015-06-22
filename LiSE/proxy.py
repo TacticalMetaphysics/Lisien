@@ -23,7 +23,7 @@ and a manager class to launch it thus.
 """
 
 
-def wrap_character_stat(char, k, v):
+def unwrap_character_stat(char, k, v):
     if isinstance(v, JSONReWrapper):
         return ('JSONReWrapper', 'character', char, k, v._v)
     elif isinstance(v, JSONListReWrapper):
@@ -32,7 +32,7 @@ def wrap_character_stat(char, k, v):
         return v
 
 
-def wrap_node_stat(char, node, k, v):
+def unwrap_node_stat(char, node, k, v):
     if isinstance(v, JSONReWrapper):
         return ('JSONReWrapper', 'node', char, node, k, v._v)
     elif isinstance(v, JSONListReWrapper):
@@ -41,7 +41,7 @@ def wrap_node_stat(char, node, k, v):
         return v
 
 
-def wrap_portal_stat(char, orig, dest, k, v):
+def unwrap_portal_stat(char, orig, dest, k, v):
     if isinstance(v, JSONReWrapper):
         return ('JSONReWrapper', 'portal', char, orig, dest, k, v._v)
     elif isinstance(v, JSONListReWrapper):
@@ -286,7 +286,7 @@ class EngineHandle(object):
                         'character',
                         b, t,
                         char.name,
-                        k, wrap_character_stat(char.name, k, v)
+                        k, unwrap_character_stat(char.name, k, v)
                     )
                 )
 
@@ -316,7 +316,7 @@ class EngineHandle(object):
                             'character',
                             newb, newt,
                             charn,
-                            k, wrap_character_stat(charn, k, v)
+                            k, unwrap_character_stat(charn, k, v)
                         )
                     )
                 seen.add(k)
@@ -363,7 +363,7 @@ class EngineHandle(object):
                         'character',
                         b, t,
                         char.name,
-                        k, wrap_character_stat(char.name, k, v)
+                        k, unwrap_character_stat(char.name, k, v)
                     )
                 )
 
@@ -383,7 +383,7 @@ class EngineHandle(object):
                         'character',
                         newb, newt,
                         charn,
-                        statn, wrap_character_stat(charn, statn, newv)
+                        statn, unwrap_character_stat(charn, statn, newv)
                     )
                 )
 
@@ -419,7 +419,7 @@ class EngineHandle(object):
                         'node',
                         b, t,
                         char, noden,
-                        k, wrap_node_stat(char, noden, k, v)
+                        k, unwrap_node_stat(char, noden, k, v)
                     )
                 )
 
@@ -449,7 +449,7 @@ class EngineHandle(object):
                             'node',
                             newb, newt,
                             char, noden,
-                            k, wrap_node_stat(char, noden, k, v)
+                            k, unwrap_node_stat(char, noden, k, v)
                         )
                     )
                 seen.add(k)
@@ -583,7 +583,7 @@ class EngineHandle(object):
                         'node',
                         b, t,
                         charn, noden,
-                        k, wrap_node_stat(charn, noden, k, v)
+                        k, unwrap_node_stat(charn, noden, k, v)
                     )
                 )
 
@@ -603,7 +603,7 @@ class EngineHandle(object):
                         'node',
                         newb, newt,
                         charn, noden,
-                        statn, wrap_node_stat(charn, noden, statn, newv)
+                        statn, unwrap_node_stat(charn, noden, statn, newv)
                     )
                 )
 
@@ -643,7 +643,7 @@ class EngineHandle(object):
                         'portal',
                         b, t,
                         char, a, b,
-                        k, wrap_portal_stat(char, a, b, k, v)
+                        k, unwrap_portal_stat(char, a, b, k, v)
                     )
                 )
 
@@ -675,7 +675,7 @@ class EngineHandle(object):
                             'portal',
                             newb, newt,
                             char, a, b,
-                            k, wrap_portal_stat(char, a, b, k, v)
+                            k, unwrap_portal_stat(char, a, b, k, v)
                         )
                     )
                 seen.add(k)
@@ -825,7 +825,7 @@ class EngineHandle(object):
                     'portal',
                     b, t,
                     charn, a, b,
-                    statn, wrap_portal_stat(charn, a, b, statn, v)
+                    statn, unwrap_portal_stat(charn, a, b, statn, v)
                 )
             )
 
@@ -847,7 +847,7 @@ class EngineHandle(object):
                         'portal',
                         newv, newt,
                         charn, a, b,
-                        statn, wrap_portal_stat(charn, a, b, statn, newv)
+                        statn, unwrap_portal_stat(charn, a, b, statn, newv)
                     )
                 )
 
@@ -1035,7 +1035,7 @@ class EngineHandle(object):
 
     def get_node_stat(self, char, node, k):
         try:
-            return wrap_node_stat(
+            return unwrap_node_stat(
                 char, node, k,
                 self._real.character[char].node[node][k]
             )
@@ -1244,7 +1244,7 @@ class EngineHandle(object):
 
     def get_portal_stat(self, char, o, d, k):
         try:
-            return wrap_portal_stat(
+            return unwrap_portal_stat(
                 char, o, d, k,
                 self._real.character[char].portal[o][d][k]
             )
