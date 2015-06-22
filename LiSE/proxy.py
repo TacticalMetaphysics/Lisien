@@ -1000,7 +1000,7 @@ class EngineHandle(object):
 
     def get_character_stat(self, char, k):
         try:
-            return wrap_character_stat(
+            return unwrap_character_stat(
                 char, k,
                 self._real.character[char].stat[k]
             )
