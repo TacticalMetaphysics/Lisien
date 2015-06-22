@@ -17,6 +17,16 @@ from .util import (
 )
 
 
+extrakeys = {
+    'name',
+    'character',
+    'location',
+    'next_location',
+    'arrival_time',
+    'next_arrival_time'
+}
+
+
 class Thing(Node):
     """The sort of item that has a particular location at any given time.
 
@@ -32,6 +42,15 @@ class Thing(Node):
         super().__init__(*args, **kwargs)
         self._loccache = {}
 
+    def _cache_keys(self):
+        (branch, tick) = self.engine.time
+        if branch not in self._keycache:
+            self._keycache[branch] = {}
+        if tick not in self._keycache[branch]:
+            self._keycache[branch][tick] = extrakeys.union(set(
+                k for k in super().__iter__()
+            ))
+
     def __iter__(self):
         """Iterate over a cached set of keys if possible and caching's
         enabled.
@@ -39,39 +58,20 @@ class Thing(Node):
         Iterate over some special keys too.
 
         """
-        extrakeys = [
-            'name',
-            'character',
-            'location',
-            'next_location',
-            'arrival_time',
-            'next_arrival_time'
-        ]
         if not self.engine.caching:
             yield from extrakeys
             yield from super().__iter__()
             return
+        self._cache_keys()
         (branch, tick) = self.engine.time
-        if branch not in self._keycache:
-            self._keycache[branch] = {}
-        if tick not in self._keycache[branch]:
-            self._keycache[branch][tick] = set(
-                extrakeys + list(super().__iter__())
-            )
         yield from self._keycache[branch][tick]
 
     def __contains__(self, key):
-        if key in (
-                'name',
-                'character',
-                'location',
-                'next_location',
-                'arrival_time',
-                'next_arrival_time',
-                'locations'
-        ):
+        if key in extrakeys:
             return True
-        return super().__contains__(key)
+        self._cache_keys()
+        (branch, tick) = self.engine.time
+        return key in self._keycache[branch][tick]
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
