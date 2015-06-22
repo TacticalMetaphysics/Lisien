@@ -371,6 +371,35 @@ def fillcache(engine, real, cache):
             cache[k][branch][tick] = real[k]
 
 
+def dict_diff(old, new):
+    """Return a dictionary containing the items of ``new`` that are either
+    absent from ``old`` or whose values are different; as well as the
+    value ``None`` for those keys that are present in ``old``, but
+    absent from ``new``.
+
+    Useful for describing changes between two versions of a dict.
+
+    """
+    r = {}
+    for k in set(old.keys()).union(new.keys()):
+        if k in old:
+            if k not in new:
+                r[k] = None
+            elif old[k] != new[k]:
+                r[k] = new[k]
+        else:  # k in new
+            r[k] = new[k]
+    return r
+
+
+def list_diff(old, new):
+    r = {item: True for item in new}
+    for item in old:
+        if item not in new:
+            r[item] = False
+    return r
+
+
 def fire_time_travel_triggers(
         real,
         cache,
