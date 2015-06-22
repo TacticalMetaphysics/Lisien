@@ -31,22 +31,6 @@ class MirrorMapping(EventDispatcher):
             return
         self.mirror = dict(self.remote)
 
-    def on_remote(self, *args):
-        """Sync initial data, and listen to some stats that are likely to
-        matter even when the user isn't specifically looking at me.
-
-        """
-        self.sync()
-        for s in (
-                '_image_paths',
-                '_offxs',
-                '_offys',
-                '_stackhs',
-                '_x',
-                '_y'
-        ):
-            self.listen(stat=s)
-
     def sync(self, *args):
         """Copy remote's data to the mirror."""
         data = {}

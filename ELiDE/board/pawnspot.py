@@ -52,7 +52,6 @@ class PawnSpot(ImageStack, MirrorMapping):
         super().__init__(**kwargs)
 
     def on_remote(self, *args):
-        super().on_remote(*args)
         if (
                 self.remote is None or
                 not hasattr(self.remote, 'name')
@@ -81,6 +80,16 @@ class PawnSpot(ImageStack, MirrorMapping):
             self.remote['_offys'] = zeroes
         if '_stackhs' not in self.remote:
             self.remote['_stackhs'] = zeroes
+        for s in (
+                '_image_paths',
+                '_offxs',
+                '_offys',
+                '_stackhs',
+                '_x',
+                '_y'
+        ):
+            self.listen(stat=s)
+        self.sync()
 
     def push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)
