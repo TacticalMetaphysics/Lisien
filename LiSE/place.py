@@ -90,4 +90,5 @@ class Place(Node):
         return json_dump(self._get_json_dict())
 
     def delete(self):
+        super().delete()
         del self.character.place[self.name]

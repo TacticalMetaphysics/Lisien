@@ -252,8 +252,17 @@ class Thing(Node):
 
     def delete(self):
         """Delete every reference to me."""
-        del self.character.thing[self.name]
         super().delete()
+        (branch, tick) = self.engine.time
+        self.engine.db.thing_loc_and_next_set(
+            self.character.name,
+            self.name,
+            branch,
+            tick,
+            None,
+            None
+        )
+        del self.character.thing[self.name]
 
     def clear(self):
         """Unset everything."""

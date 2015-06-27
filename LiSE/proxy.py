@@ -1106,7 +1106,7 @@ class EngineHandle(object):
         return k in self._real.character[char].node[node]
 
     def del_node(self, char, node):
-        del self._real.character[char].node[node]
+        self._real.character[char].node[node].delete()
 
     def character_things(self, char):
         return list(self._real.character[char].thing)
@@ -1651,6 +1651,17 @@ class ThingProxy(NodeProxy):
             'set_thing_next_location',
             (self._charname, self.name, v._name),
             silent=True
+        )
+
+    def update_cache(self):
+        super().update_cache()
+        self._cache['location'] = self._engine.handle(
+            'get_thing_location',
+            (self._charname, self.name)
+        )
+        self._cache['next_location'] = self._engine.handle(
+            'get_thing_next_location',
+            (self._charname, self.name)
         )
 
     def __repr__(self):
@@ -3222,11 +3233,12 @@ class EngineProxy(object):
         self.handle(
             'del_node', (charname, name), silent=True
         )
-        if (
-                charname in self.character._cache and
-                name in self.character[charname].node._cache
-        ):
-            del self.character[charname].node._cache[name]
+        if charname in self.character._cache:
+            char = self.character[charname]
+            if name in char.thing._cache:
+                del char.thing._cache[name]
+            if name in char.place._cache:
+                del char.place._cache[name]
 
     def del_portal(self, charname, orig, dest):
         self.handle(

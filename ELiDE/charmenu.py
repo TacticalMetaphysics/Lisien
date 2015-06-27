@@ -73,32 +73,18 @@ class CharMenu(BoxLayout):
         if isinstance(self.selection, ArrowWidget):
             arr = self.selection
             self.selection = None
-            o = arr.origin.name
-            d = arr.destination.name
-            self.board.remove_widget(arr)
-            del self.board.arrow[o][d]
+            self.board.rm_arrow(arr.origin.name, arr.destination.name)
             arr.portal.delete()
         elif isinstance(self.selection, Spot):
             spot = self.selection
-            spot.canvas.clear()
             self.selection = None
-            self.board.remove_widget(spot)
-            del self.board.spot[spot.name]
-            self.board.rm_arrows_to_and_from(spot.name)
+            self.board.rm_spot(spot.name)
             spot.remote.delete()
         else:
             assert(isinstance(self.selection, Pawn))
             pawn = self.selection
-            for canvas in (
-                    self.board.pawnlayout.canvas.after,
-                    self.board.pawnlayout.canvas.before,
-                    self.board.pawnlayout.canvas
-            ):
-                if pawn.group in canvas.children:
-                    canvas.remove(pawn.group)
             self.selection = None
-            self.board.remove_widget(pawn)
-            del self.board.character.thing[pawn.name]
+            self.board.rm_pawn(pawn.name)
             pawn.remote.delete()
 
     def toggle_stat_cfg(self, *args):

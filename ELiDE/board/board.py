@@ -181,27 +181,14 @@ class Board(RelativeLayout):
         Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
     def rm_arrows_to_and_from(self, name):
-        if name in self.arrow:
-            l = list(self.arrow[name].keys())
-            Logger.debug(
-                "Board: removing arrows from {} to: {}".format(
-                    name,
-                    l
-                )
-            )
-            for dest in l:
+        origs = list(self.arrow.keys())
+        if name in origs:
+            origs.remove(name)
+            for dest in list(self.arrow[name].keys()):
                 self.rm_arrow(name, dest)
-        l = []
-        for orig in list(self.arrow.keys()):
+        for orig in origs:
             if name in self.arrow[orig]:
-                l.append(orig)
                 self.rm_arrow(orig, name)
-        Logger.debug(
-            "Board: removed arrows to {} from: {}".format(
-                name,
-                l
-            )
-        )
 
     def rm_pawn(self, name):
         """Remove the :class:`Pawn` by the given name."""
@@ -209,9 +196,17 @@ class Board(RelativeLayout):
             raise KeyError("No Pawn named {}".format(name))
         # Currently there's no way to connect Pawns with Arrows but I
         # think there will be, so, insurance
-        self._rm_arrows_to_and_from(name)
+        self.rm_arrows_to_and_from(name)
         pwn = self.pawn[name]
         pwn.parent.remove_widget(pwn)
+        for canvas in (
+                self.pawnlayout.canvas.after,
+                self.pawnlayout.canvas.before,
+                self.pawnlayout.canvas
+        ):
+            if pwn.group in canvas.children:
+                canvas.remove(pwn.group)
+        pwn.canvas.clear()
         del self.pawn[name]
 
     def _trigger_rm_pawn(self, name):
@@ -221,16 +216,20 @@ class Board(RelativeLayout):
         """Remove the :class:`Spot` by the given name."""
         if name not in self.spot:
             raise KeyError("No Spot named {}".format(name))
-        self._rm_arrows_to_and_from(name)
-        self.spotlayout.remove_widget(self.spot[name])
+        spot = self.spot[name]
+        pawns_here = list(spot.children)
+        self.rm_arrows_to_and_from(name)
+        self.spotlayout.remove_widget(spot)
+        spot.canvas.clear()
         del self.spot[name]
+        for pawn in pawns_here:
+            self.rm_pawn(pawn.name)
 
     def _trigger_rm_spot(self, name):
         Clock.schedule_once(partial(self.rm_spot, name), 0)
 
     def rm_arrow(self, orig, dest):
         """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
-        print('removing arrow {}->{}'.format(orig, dest))
         if (
                 orig not in self.arrow or
                 dest not in self.arrow[orig]

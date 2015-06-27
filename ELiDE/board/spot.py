@@ -57,6 +57,9 @@ class Spot(PawnSpot):
         self.bind(pos=self._trigger_upd_pawns_here)
 
     def _upd_pos(self, *args):
+        if self.board is None:
+            Clock.schedule_once(self._upd_pos, 0)
+            return
         self.pos = (
             self.remote.get('_x', self.default_pos[0]) * self.board.width,
             self.remote.get('_y', self.default_pos[1]) * self.board.height

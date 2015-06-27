@@ -658,10 +658,11 @@ class QueryEngine(gorm.query.QueryEngine):
     def thing_loc_and_next_set(
             self, character, thing, branch, tick, loc, nextloc
     ):
-        (character, thing, loc) = map(
+        (character, thing) = map(
             json_dump,
-            (character, thing, loc)
+            (character, thing)
         )
+        loc = json_dump(loc) if loc else None
         nextloc = json_dump(nextloc) if nextloc else None
         try:
             return self.sql(
