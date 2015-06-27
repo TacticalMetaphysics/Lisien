@@ -1129,7 +1129,7 @@ class EngineHandle(object):
     def character_places_diff(self, char):
         old = self._char_places_cache.get(char, [])
         new = self.character_places(char)
-        self._char_places_cache = new
+        self._char_places_cache[char] = new
         return list_diff(old, new)
 
     def character_places_len(self, char):
