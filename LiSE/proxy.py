@@ -1029,10 +1029,13 @@ class EngineHandle(object):
         }
 
     def character_stat_diff(self, char):
-        old = self._char_stat_cache.get(char, {})
-        new = self.character_stat_copy(char)
-        self._char_stat_cache[char] = new
-        return dict_diff(old, new)
+        try:
+            old = self._char_stat_cache.get(char, {})
+            new = self.character_stat_copy(char)
+            self._char_stat_cache[char] = new
+            return dict_diff(old, new)
+        except KeyError:
+            return None
 
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
@@ -1093,11 +1096,14 @@ class EngineHandle(object):
         Deleted keys have the value ``None``.
 
         """
-        old = self._node_stat_cache[char].get(node, {})
-        new = self.node_stat_copy(char, node)
-        self._node_stat_cache[char][node] = new
-        r = dict_diff(old, new)
-        return r
+        try:
+            old = self._node_stat_cache[char].get(node, {})
+            new = self.node_stat_copy(char, node)
+            self._node_stat_cache[char][node] = new
+            r = dict_diff(old, new)
+            return r
+        except KeyError:
+            return None
 
     def node_stat_len(self, char, node):
         return len(self._real.character[char].node[node])
@@ -1112,10 +1118,13 @@ class EngineHandle(object):
         return list(self._real.character[char].thing)
 
     def character_things_diff(self, char):
-        new = self.character_things(char)
-        old = self._char_things_cache.get(char, [])
-        self._char_things_cache[char] = new
-        return list_diff(old, new)
+        try:
+            new = self.character_things(char)
+            old = self._char_things_cache.get(char, [])
+            self._char_things_cache[char] = new
+            return list_diff(old, new)
+        except KeyError:
+            return None
 
     def character_things_len(self, char):
         return len(self._real.character[char].thing)
@@ -1127,10 +1136,13 @@ class EngineHandle(object):
         return list(self._real.character[char].place)
 
     def character_places_diff(self, char):
-        old = self._char_places_cache.get(char, [])
-        new = self.character_places(char)
-        self._char_places_cache[char] = new
-        return list_diff(old, new)
+        try:
+            old = self._char_places_cache.get(char, [])
+            new = self.character_places(char)
+            self._char_places_cache[char] = new
+            return list_diff(old, new)
+        except KeyError:
+            return None
 
     def character_places_len(self, char):
         return len(self._real.character[char].place)
@@ -1178,10 +1190,13 @@ class EngineHandle(object):
         return list(self._real.character[char].adj.keys())
 
     def character_nodes_with_successors_diff(self, char):
-        old = self._char_nodes_with_successors.get(char, [])
-        new = self.character_nodes_with_successors(char)
-        self._char_nodes_with_successors[char] = new
-        return list_diff(old, new)
+        try:
+            old = self._char_nodes_with_successors.get(char, [])
+            new = self.character_nodes_with_successors(char)
+            self._char_nodes_with_successors[char] = new
+            return list_diff(old, new)
+        except KeyError:
+            return None
 
     def node_successors(self, char, node):
         r = list(self._real.character[char].portal[node].keys())
@@ -1191,10 +1206,13 @@ class EngineHandle(object):
         return r
 
     def node_successors_diff(self, char, node):
-        old = self._node_successors_cache[char].get(node, [])
-        new = self.node_successors(char, node)
-        self._node_successors_cache[char][node] = new
-        return list_diff(old, new)
+        try:
+            old = self._node_successors_cache[char].get(node, [])
+            new = self.node_successors(char, node)
+            self._node_successors_cache[char][node] = new
+            return list_diff(old, new)
+        except KeyError:
+            return None
 
     def character_node_successors_len(self, char, node):
         return len(self._real.character[char].adj[node])
@@ -1238,13 +1256,19 @@ class EngineHandle(object):
         self._real.character[char].add_things_from(seq)
 
     def get_thing_location(self, char, th):
-        return self._real.character[char].thing[th]['location']
+        try:
+            return self._real.character[char].thing[th]['location']
+        except KeyError:
+            return None
 
     def set_thing_location(self, char, th, loc):
         self._real.character[char].thing[th]['location'] = loc
 
     def get_thing_next_location(self, char, th):
-        return self._real.character[char].thing[th]['next_location']
+        try:
+            return self._real.character[char].thing[th]['next_location']
+        except KeyError:
+            return None
 
     def set_thing_next_location(self, char, th, loc):
         self._real.character[char].thing[th]['next_location'] = loc
@@ -1327,10 +1351,13 @@ class EngineHandle(object):
         }
 
     def portal_stat_diff(self, char, o, d):
-        old = self._portal_stat_cache[char][o].get(d, {})
-        new = self.portal_stat_copy(char, o, d)
-        self._portal_stat_cache[char][o][d] = new
-        return dict_diff(old, new)
+        try:
+            old = self._portal_stat_cache[char][o].get(d, {})
+            new = self.portal_stat_copy(char, o, d)
+            self._portal_stat_cache[char][o][d] = new
+            return dict_diff(old, new)
+        except KeyError:
+            return None
 
     def portal_stats(self, char, o, d):
         return list(self._real.character[char][o][d].keys())
@@ -1446,6 +1473,7 @@ class CachingProxy(MutableMapping):
         self._cache_valid = False
         self._engine = engine_proxy
         self._engine.time_listener(self.invalidate)
+        self.exists = None
 
     def __iter__(self):
         self.validate_cache()
@@ -1486,6 +1514,10 @@ class CachingProxy(MutableMapping):
 
     def update_cache(self):
         diff = self._get_diff()
+        self.exists = diff is not None
+        if not self.exists:
+            self._cache = {}
+            return
         for (k, v) in diff.items():
             if v:  # False or None
                 self._cache[k] = self._cache_munge(k, v)
@@ -1653,17 +1685,6 @@ class ThingProxy(NodeProxy):
             silent=True
         )
 
-    def update_cache(self):
-        super().update_cache()
-        self._cache['location'] = self._engine.handle(
-            'get_thing_location',
-            (self._charname, self.name)
-        )
-        self._cache['next_location'] = self._engine.handle(
-            'get_thing_next_location',
-            (self._charname, self.name)
-        )
-
     def __repr__(self):
         if self['next_location'] is not None:
             return "proxy to {}.thing[{}]@{}->{}".format(
@@ -1678,6 +1699,22 @@ class ThingProxy(NodeProxy):
             self['location'],
             self['next_location']
         )
+
+    def update_cache(self):
+        loc = self._engine.handle(
+            'get_thing_location',
+            (self._charname, self.name)
+        )
+        if loc is None:
+            self.exists = False
+            self._cache = {}
+            return
+        self._cache['location'] = loc
+        self._cache['next_location'] = self._engine.handle(
+            'get_thing_next_location',
+            (self._charname, self.name)
+        )
+        super().update_cache()
 
     def follow_path(self, path, weight=None):
         self._engine.handle(
@@ -3142,7 +3179,10 @@ class EngineProxy(object):
                 fun(b, t, self._branch, self._tick)
         elif typ == 'character':
             (branch, tick, charn, stat, val) = data
-            character = self.character[charn]
+            try:
+                character = self.character[charn]
+            except KeyError:
+                return
             if charn in self._char_listeners:
                 for fun in self._char_listeners[charn]:
                     fun(branch, tick, charn, stat, self.json_rewrap(val))
@@ -3158,7 +3198,10 @@ class EngineProxy(object):
                 fun(charn, extant)
         elif typ == 'node':
             (branch, tick, charn, noden, stat, val) = data
-            node = self.character[charn].node[noden]
+            try:
+                node = self.character[charn].node[noden]
+            except KeyError:
+                return
             if (
                     charn in self._node_listeners and
                     noden in self._node_listeners[charn]
@@ -3186,7 +3229,10 @@ class EngineProxy(object):
             process_node_map_change(branch, tick, charn, placen, extant)
         elif typ == 'portal':
             (branch, tick, charn, a, b, stat, val) = data
-            portal = self.character[charn].portal[a][b]
+            try:
+                portal = self.character[charn].portal[a][b]
+            except KeyError:
+                return
             if (
                     charn in self._portal_listeners and
                     a in self._portal_listeners[charn] and
