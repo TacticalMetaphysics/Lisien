@@ -84,6 +84,7 @@ class CharMenu(BoxLayout):
             self.selection = None
             self.board.remove_widget(spot)
             del self.board.spot[spot.name]
+            self.board.rm_arrows_to_and_from(spot.name)
             spot.remote.delete()
         else:
             assert(isinstance(self.selection, Pawn))

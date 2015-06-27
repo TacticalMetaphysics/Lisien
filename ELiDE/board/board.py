@@ -180,7 +180,7 @@ class Board(RelativeLayout):
             return
         Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
-    def _rm_arrows_to_and_from(self, name):
+    def rm_arrows_to_and_from(self, name):
         if name in self.arrow:
             l = list(self.arrow[name].keys())
             Logger.debug(
