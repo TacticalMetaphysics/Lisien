@@ -685,29 +685,6 @@ class QueryEngine(gorm.query.QueryEngine):
                 tick
             )
 
-    def thing_loc_and_next_del(self, character, thing, branch, tick):
-        (character, thing) = map(json_dump, (character, thing))
-        try:
-            self.sql(
-                'thing_loc_and_next_ins',
-                character,
-                thing,
-                branch,
-                tick,
-                None,
-                None
-            )
-        except IntegrityError:
-            self.sql(
-                'thing_loc_and_next_upd',
-                None,
-                None,
-                character,
-                thing,
-                branch,
-                tick
-            )
-
     def thing_loc_items(self, character, branch, tick):
         character = json_dump(character)
         seen = set()
