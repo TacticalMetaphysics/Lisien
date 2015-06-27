@@ -190,7 +190,7 @@ class Board(RelativeLayout):
             if name in self.arrow[orig]:
                 self.rm_arrow(orig, name)
 
-    def rm_pawn(self, name):
+    def rm_pawn(self, name, *args):
         """Remove the :class:`Pawn` by the given name."""
         if name not in self.pawn:
             raise KeyError("No Pawn named {}".format(name))
@@ -212,7 +212,7 @@ class Board(RelativeLayout):
     def _trigger_rm_pawn(self, name):
         Clock.schedule_once(partial(self.rm_pawn, name), 0)
 
-    def rm_spot(self, name):
+    def rm_spot(self, name, *args):
         """Remove the :class:`Spot` by the given name."""
         if name not in self.spot:
             raise KeyError("No Spot named {}".format(name))
@@ -228,7 +228,7 @@ class Board(RelativeLayout):
     def _trigger_rm_spot(self, name):
         Clock.schedule_once(partial(self.rm_spot, name), 0)
 
-    def rm_arrow(self, orig, dest):
+    def rm_arrow(self, orig, dest, *args):
         """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
         if (
                 orig not in self.arrow or
