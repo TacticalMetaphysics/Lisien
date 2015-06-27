@@ -198,13 +198,13 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         anymore.
 
         """
-        for contained in list(self.contents()):
-            contained.delete()
         if self.name in self.character.portal:
             del self.character.portal[self.name]
         if self.name in self.character.preportal:
             del self.character.preportal[self.name]
-        for user in self.users():
+        for contained in list(self.contents()):
+            contained.delete()
+        for user in list(self.users()):
             user.del_avatar(self.character.name, self.name)
         (branch, tick) = self.engine.time
         self.engine.db.exist_node(
