@@ -89,6 +89,7 @@ class Place(Node):
         """Return a JSON representation of my present state"""
         return json_dump(self._get_json_dict())
 
-    def delete(self):
+    def delete(self, nochar=False):
         super().delete()
-        del self.character.place[self.name]
+        if not nochar:
+            del self.character.place[self.name]

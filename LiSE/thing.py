@@ -250,9 +250,11 @@ class Thing(Node):
             *self.engine.time
         )
 
-    def delete(self):
+    def delete(self, nochar=False):
         """Delete every reference to me."""
         super().delete()
+        if not nochar:
+            del self.character.thing[self.name]
         (branch, tick) = self.engine.time
         self.engine.db.thing_loc_and_next_set(
             self.character.name,
@@ -262,7 +264,6 @@ class Thing(Node):
             None,
             None
         )
-        del self.character.thing[self.name]
 
     def clear(self):
         """Unset everything."""

@@ -1106,7 +1106,7 @@ class EngineHandle(object):
         return k in self._real.character[char].node[node]
 
     def del_node(self, char, node):
-        self._real.character[char].node[node].delete()
+        del self._real.character[char].node[node]
 
     def character_things(self, char):
         return list(self._real.character[char].thing)

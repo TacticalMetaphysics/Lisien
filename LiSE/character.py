@@ -268,6 +268,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
     def __delitem__(self, thing):
         """Delete the thing from the cache and the database"""
         (branch, tick) = self.engine.time
+        self[thing].delete(nochar=True)
         if self.engine.caching:
             if thing in self._cache:
                 del self._cache[thing]
@@ -279,12 +280,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                     self._keycache[branch][tick].discard(thing)
                 else:
                     self._keycache[branch] = set(self._real.keys())
-        self.engine.db.thing_loc_and_next_del(
-            self.character.name,
-            self.name,
-            branch,
-            tick
-        )
         self._dispatch_thing(thing, None)
 
     def __repr__(self):
@@ -438,8 +433,9 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
 
     def __delitem__(self, place):
         """Delete place from both cache and database"""
-        (branch, tick) = self.engine.time
+        self[place].delete(nochar=True)
         if self.engine.caching:
+            (branch, tick) = self.engine.time
             if place in self._cache:
                 del self._cache[place]
             if (
@@ -448,17 +444,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                     place in self._keycache[branch][tick]
             ):
                 self._keycache[branch][tick].remove(place)
-        if place in self.character.adj:
-            del self.character.adj[place]
-        if place in self.character.pred:
-            del self.character.pred[place]
-        self.engine.gorm.db.exist_node(
-            self.character.name,
-            place,
-            branch,
-            tick,
-            False
-        )
         self._dispatch_place(place, None)
 
     def __repr__(self):
@@ -515,24 +500,12 @@ class CharacterThingPlaceMapping(MutableMapping):
 
     def __delitem__(self, k):
         """Delete place or thing"""
-        def unavatar(node):
-            for user in node.users():
-                user.del_avatar(self.name, node.name)
-        if (
-                k not in self.character.thing and
-                k not in self.character.place
-        ):
-            raise KeyError("No such thing or place")
-        if k in self.character.portal:
-            del self.character.portal[k]
-        if k in self.character.pred:
-            del self.character.pred[k]
         if k in self.character.thing:
-            unavatar(self.character.thing[k])
             del self.character.thing[k]
-        if k in self.character.place:
-            unavatar(self.character.place[k])
+        elif k in self.character.place:
             del self.character.place[k]
+        else:
+            raise KeyError("No such thing or place: {}".format(k))
 
 
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
