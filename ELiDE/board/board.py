@@ -2,6 +2,7 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from functools import partial
 from kivy.properties import (
+    BooleanProperty,
     StringProperty,
     ReferenceListProperty,
     DictProperty,
@@ -37,6 +38,7 @@ class Board(RelativeLayout):
     branch = StringProperty('master')
     tick = NumericProperty(0)
     time = ReferenceListProperty(branch, tick)
+    tracking_vel = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         """Make a trigger for my ``update`` method."""
@@ -109,20 +111,11 @@ class Board(RelativeLayout):
         self.rebind()
         self._old_character = self.character
 
-        for prop in '_scroll_x', '_scroll_y':
-            if (
-                    prop not in self.character.stat or
-                    self.character.stat[prop] is None
-            ):
-                self.character.stat[prop] = 0.0
+        self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
+        self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
+        self.parent.effect_x.bind(velocity=self.track_vel)
+        self.parent.effect_y.bind(velocity=self.track_vel)
 
-        self.parent.scroll_x = self.character.stat['_scroll_x']
-        self.parent.scroll_y = self.character.stat['_scroll_y']
-
-        self.track_xvel = False
-        self.track_yvel = False
-        self.parent.effect_x.bind(velocity=self.track_x_vel)
-        self.parent.effect_y.bind(velocity=self.track_y_vel)
         self._trigger_update()
 
     def rebind(self, *args):
@@ -163,47 +156,29 @@ class Board(RelativeLayout):
         else:
             self._trigger_discard_arrow(orig, dest)
 
-    def upd_x_when_scrolling_stops(self, *args):
+    def track_vel(self, *args):
+        """Track scrolling once it starts, so that we can tell when it
+        stops.
+
+        """
+        if (
+                not self.tracking_vel and (
+                    self.parent.effect_x.velocity > 0 or
+                    self.parent.effect_y.velocity > 0
+                )
+        ):
+            self.upd_pos_when_scrolling_stops()
+            self.tracking_vel = True
+
+    def upd_pos_when_scrolling_stops(self, *args):
         """Wait for the scroll to stop, then store where it ended."""
-        if self.parent.effect_x.velocity < self.parent.effect_x.min_velocity:
+        if self.parent.effect_x.velocity \
+           == self.parent.effect_y.velocity == 0:
             self.character.stat['_scroll_x'] = self.parent.scroll_x
-            self.track_xvel = False
-            return
-        Clock.schedule_once(self.upd_x_when_scrolling_stops, 0.001)
-
-    def track_x_vel(self, *args):
-        """Track scrolling once it starts, so that we can tell when it
-        stops.
-
-        """
-        if (
-                not self.track_xvel and
-                self.parent.effect_x.velocity >
-                self.parent.effect_x.min_velocity
-        ):
-            self.upd_x_when_scrolling_stops()
-            self.track_xvel = True
-
-    def upd_y_when_scrolling_stops(self, *args):
-        """Wait for the scroll to stop, then store where it ended."""
-        if self.parent.effect_y.velocity < self.parent.effect_y.min_velocity:
             self.character.stat['_scroll_y'] = self.parent.scroll_y
-            self.track_yvel = False
+            self.tracking_vel = False
             return
-        Clock.schedule_once(self.upd_y_when_scrolling_stops, 0.001)
-
-    def track_y_vel(self, *args):
-        """Track scrolling once it starts, so that we can tell when it
-        stops.
-
-        """
-        if (
-                not self.track_yvel and
-                self.parent.effect_y.velocity >
-                self.parent.effect_y.min_velocity
-        ):
-            self.upd_y_when_scrolling_stops()
-            self.track_yvel = True
+        Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
     def _rm_arrows_to_and_from(self, name):
         if name in self.arrow:
