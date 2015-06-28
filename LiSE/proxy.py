@@ -3211,7 +3211,7 @@ class EngineProxy(object):
             if (
                     charn in self._node_stat_listeners and
                     noden in self._node_stat_listeners[charn] and
-                    stat in self._node_stat_listeners
+                    stat in self._node_stat_listeners[charn][noden]
             ):
                 for fun in self._node_stat_listeners[charn][noden][stat]:
                     fun(branch, tick, node, stat, self.json_rewrap(val))
