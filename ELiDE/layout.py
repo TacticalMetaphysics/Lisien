@@ -761,6 +761,7 @@ Builder.load_string(
         tick: root.tick
         branch_setter: root.set_branch
         tick_setter: root.set_tick
+        next_tick: root.engine.next_tick
     CharMenu:
         id: charmenu
         pos_hint: {'right': 1, 'top': 1}
