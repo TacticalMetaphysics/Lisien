@@ -44,12 +44,20 @@ class Pawn(PawnSpot):
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
 
     def __init__(self, **kwargs):
-        self._trigger_move_to_loc = Clock.create_trigger(self.move_to_loc)
         self._trigger_push_location = Clock.create_trigger(
             self.push_location
         )
         self._trigger_push_next_location = Clock.create_trigger(
             self.push_next_location
+        )
+        self._trigger_relocate = Clock.create_trigger(
+            self.relocate
+        )
+        self._trigger_upd_loc_name = Clock.create_trigger(
+            self.upd_loc_name
+        )
+        self._trigger_upd_next_loc_name = Clock.create_trigger(
+            self.upd_next_loc_name
         )
         if 'thing' in kwargs:
             kwargs['remote'] = kwargs['thing']
@@ -71,29 +79,44 @@ class Pawn(PawnSpot):
                     canvas.remove(self.group)
             del self._board
 
-    def _upd_loc_name(self, *args):
-        self.loc_name = self.remote['location']
+    def relocate(self, *args):
+        try:
+            location = self._board.arrow[self.loc_name][self.next_loc_name]
+        except KeyError:
+            location = self._board.spot[self.loc_name]
+        if location != self.parent:
+            self.parent.remove_widget(self)
+            location.add_widget(self)
 
-    def _upd_next_loc_name(self, *args):
+    def upd_loc_name(self, *args):
+        print("updating {}'s loc_name to {}".format(
+            self.name, self.remote['location']
+        ))
+        self.loc_name = self.remote['location']
+        self._trigger_relocate()
+
+    def upd_next_loc_name(self, *args):
         self.next_loc_name = self.remote.get('next_location', None)
+        self._trigger_relocate()
 
     def listen_loc(self, *args):
+        print('listening to {}\'s loc'.format(self.name))
         self.remote.listener(
-            fun=self._upd_loc_name,
+            fun=self._trigger_upd_loc_name,
             stat='location'
         )
         self.remote.listener(
-            fun=self._upd_next_loc_name,
+            fun=self._trigger_upd_next_loc_name,
             stat='next_location'
         )
 
     def unlisten_loc(self, *args):
         self.remote.unlisten(
-            fun=self._upd_loc_name,
+            fun=self._trigger_upd_loc_name,
             stat='location'
         )
         self.remote.unlisten(
-            fun=self._upd_next_loc_name,
+            fun=self._trigger_upd_next_loc_name,
             stat='next_location'
         )
 
@@ -174,59 +197,6 @@ class Pawn(PawnSpot):
             else:
                 self.loc_name = new_spot.name
         return True
-
-    def move_to_loc(self, *args):
-        """Move myself to the widget representing my new location."""
-        self.unbind(
-            mirror=self.upd_from_mirror
-        )
-        if (
-                (
-                    hasattr(self.parent, 'place') and
-                    self.parent.name != self.loc_name
-                ) or (
-                    hasattr(self.parent, 'origin') and
-                    (
-                        self.parent.origin.name !=
-                        self.loc_name or
-                        self.parent.destination.name !=
-                        self.loc_name
-                    )
-                )
-        ):
-            if self.thing.next_location is not None:
-                whereat = self.board.arrow[
-                    self.thing.location.name
-                    ][
-                        self.thing.next_location.name
-                    ]
-            else:
-                whereat = self.board.spot[self.loc_name]
-            parent_name = self.parent.name
-            self.parent.remove_widget(self)
-            whereat.add_widget(self)
-            Logger.debug(
-                'Pawn: removed {} from {}, added to {}'.format(
-                    self.name,
-                    parent_name,
-                    whereat.name
-                )
-            )
-
-        def doublecheck(*args):
-            """Wait for my new location to propagate to the database and back
-            before listening to the database again.
-
-            """
-            if (
-                    'location' not in self.mirror or
-                    self.mirror['location'] != self.loc_name
-            ):
-                Clock.schedule_once(doublecheck, 0)
-                return
-            self.bind(mirror=self.upd_from_mirror)
-
-        Clock.schedule_once(doublecheck, 0)
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
