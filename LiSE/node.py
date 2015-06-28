@@ -5,6 +5,7 @@ import gorm.graph
 from .util import (
     dispatch,
     listener,
+    unlisten,
     fire_time_travel_triggers,
     encache,
     enkeycache,
@@ -129,6 +130,9 @@ class Node(gorm.graph.Node, rule.RuleFollower):
 
     def listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)
+
+    def unlisten(self, f=None, stat=None):
+        return unlisten(self._stat_listeners, f, stat)
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
