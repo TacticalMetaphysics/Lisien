@@ -37,6 +37,15 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             *self.engine.time
         )
 
+    def _cache_keys(self):
+        (branch, tick) = self.engine.time
+        if branch not in self._keycache:
+            self._keycache[branch] = {}
+        if tick not in self._keycache[branch]:
+            self._keycache[branch][tick] = self.extrakeys.union(set(
+                k for k in super().__iter__()
+            ))
+
     def _get_rule_mapping(self):
         return RuleMapping(self)
 
@@ -127,6 +136,27 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                     self._branches_cached.add(branch_now)
 
         super().__init__(character, name)
+
+    def __iter__(self):
+        """Iterate over a cached set of keys if possible and caching's
+        enabled.
+
+        Iterate over some special keys too.
+
+        """
+        if not self.engine.caching:
+            yield from super().__iter__()
+            yield from self.extrakeys
+            return
+        self._cache_keys()
+        (branch, tick) = self.engine.time
+        yield from self._keycache[branch][tick]
+        yield from self.extrakeys
+
+    def __contains__(self, k):
+        if k in self.extrakeys:
+            return True
+        return super().__contains__(k)
 
     def listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)

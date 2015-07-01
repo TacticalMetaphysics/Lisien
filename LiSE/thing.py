@@ -17,16 +17,6 @@ from .util import (
 )
 
 
-extrakeys = {
-    'name',
-    'character',
-    'location',
-    'next_location',
-    'arrival_time',
-    'next_arrival_time'
-}
-
-
 class Thing(Node):
     """The sort of item that has a particular location at any given time.
 
@@ -37,37 +27,22 @@ class Thing(Node):
     same.
 
     """
+    extrakeys = {
+        'name',
+        'character',
+        'location',
+        'next_location',
+        'arrival_time',
+        'next_arrival_time'
+    }
+
     def __init__(self, *args, **kwargs):
         """If caching, initialize the cache."""
         super().__init__(*args, **kwargs)
         self._loccache = {}
 
-    def _cache_keys(self):
-        (branch, tick) = self.engine.time
-        if branch not in self._keycache:
-            self._keycache[branch] = {}
-        if tick not in self._keycache[branch]:
-            self._keycache[branch][tick] = extrakeys.union(set(
-                k for k in super().__iter__()
-            ))
-
-    def __iter__(self):
-        """Iterate over a cached set of keys if possible and caching's
-        enabled.
-
-        Iterate over some special keys too.
-
-        """
-        if not self.engine.caching:
-            yield from extrakeys
-            yield from super().__iter__()
-            return
-        self._cache_keys()
-        (branch, tick) = self.engine.time
-        yield from self._keycache[branch][tick]
-
     def __contains__(self, key):
-        if key in extrakeys:
+        if key in self.extrakeys:
             return True
         self._cache_keys()
         (branch, tick) = self.engine.time
@@ -185,15 +160,7 @@ class Thing(Node):
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
-        if key in (
-                'name',
-                'character',
-                'location',
-                'arrival_time',
-                'next_location',
-                'next_arrival_time',
-                'locations'
-        ):
+        if key in self.extrakeys:
             raise ValueError("Can't delete {}".format(key))
         super().__delitem__(key)
         if self.engine.caching:

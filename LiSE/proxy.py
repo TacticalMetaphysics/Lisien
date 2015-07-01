@@ -1685,6 +1685,29 @@ class ThingProxy(NodeProxy):
             silent=True
         )
 
+    def __iter__(self):
+        already = set(k for k in super().__iter__())
+        for k in {
+                'name',
+                'character',
+                'location',
+                'next_location',
+                'arrival_time',
+                'next_arrival_time'
+        }:
+            if k not in already:
+                yield k
+
+    def __getitem__(self, k):
+        if k in {
+                'location',
+                'next_location',
+                'arrival_time',
+                'next_arrival_time'
+        } and not super().__contains__(k):
+            return None
+        return super().__getitem__(k)
+
     def __repr__(self):
         if self['next_location'] is not None:
             return "proxy to {}.thing[{}]@{}->{}".format(

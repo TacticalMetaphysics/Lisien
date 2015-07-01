@@ -14,16 +14,10 @@ from .util import (
 
 class Place(Node):
     """The kind of node where a Thing might ultimately be located."""
-
-    def __iter__(self):
-        yield 'name'
-        yield 'character'
-        yield from super().__iter__()
-
-    def __contains__(self, key):
-        if key in ('name', 'character'):
-            return True
-        return super().__contains__(key)
+    extrakeys = {
+        'name',
+        'character'
+    }
 
     def __getitem__(self, key):
         """Return my name if ``key=='name'``, my character's name if
