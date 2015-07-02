@@ -196,6 +196,8 @@ class Pawn(PawnSpot):
                 self.thing.travel_to(new_spot.name)
             else:
                 self.loc_name = new_spot.name
+        self.parent.remove_widget(self)
+        new_spot.add_widget(self)
         return True
 
     def __repr__(self):
