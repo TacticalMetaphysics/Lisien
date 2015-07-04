@@ -150,7 +150,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             return
         self._cache_keys()
         (branch, tick) = self.engine.time
-        yield from self._keycache[branch][tick]
+        yield from list(self._keycache[branch][tick])
         yield from self.extrakeys
 
     def __contains__(self, k):
