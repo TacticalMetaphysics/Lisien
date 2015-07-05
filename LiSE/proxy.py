@@ -2461,12 +2461,14 @@ class CharacterProxy(MutableMapping):
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
+        self.place.invalidate()
 
     def add_places_from(self, seq):
         self._engine.handle(
             'add_places_from',
             (self.name, list(seq))
         )
+        self.place.invalidate()
 
     def add_nodes_from(self, seq):
         self.add_places_from(seq)
@@ -2476,12 +2478,14 @@ class CharacterProxy(MutableMapping):
             'add_thing',
             (self.name, name, location, next_location, kwargs)
         )
+        self.thing.invalidate()
 
     def add_things_from(self, seq):
         self._engine.handle(
             'add_things_from',
             (self.name, seq)
         )
+        self.thing.invalidate()
 
     def new_place(self, name, **kwargs):
         self.add_place(name, **kwargs)
@@ -2496,18 +2500,22 @@ class CharacterProxy(MutableMapping):
             'place2thing',
             (self.name, name, location, next_location)
         )
+        self.place.invalidate()
+        self.thing.invalidate()
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         self._engine.handle(
             'add_portal',
             (self.name, origin, destination, symmetrical, kwargs)
         )
+        self.portal.invalidate()
 
     def add_portals_from(self, seq, symmetrical=False):
         self._engine.handle(
             'add_portals_from',
             (self.name, seq, symmetrical)
         )
+        self.portal.invalidate()
 
     def new_portal(self, origin, destination, symmetrical=False, **kwargs):
         self.add_portal(origin, destination, symmetrical, **kwargs)
@@ -2524,12 +2532,14 @@ class CharacterProxy(MutableMapping):
             'add_avatar',
             (self.name, a, b)
         )
+        self.avatar.invalidate()
 
     def del_avatar(self, a, b=None):
         self._engine.handle(
             'del_avatar',
             (self.name, a, b)
         )
+        self.avatar.invalidate()
 
     def avatars(self):
         yield from self._engine.handle(
