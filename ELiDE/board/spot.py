@@ -4,6 +4,7 @@
 top of these.
 
 """
+from functools import partial
 from kivy.properties import (
     AliasProperty,
     ListProperty,
@@ -49,12 +50,50 @@ class Spot(PawnSpot):
         self._trigger_push_pos = Clock.create_trigger(
             self.push_pos
         )
+        self._pospawn_partials = {}
+        self._pospawn_triggers = {}
         kwargs['size_hint'] = (None, None)
         if 'place' in kwargs:
             kwargs['remote'] = kwargs['place']
             del kwargs['place']
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
+
+    def _get_pospawn_partial(self, pawn):
+        if pawn not in self._pospawn_partials:
+            self._pospawn_partials[pawn] = partial(
+                self.pospawn, pawn
+            )
+        return self._pospawn_partials[pawn]
+
+    def _get_pospawn_trigger(self, pawn, *args):
+        if pawn not in self._pospawn_triggers:
+            self._pospawn_triggers[pawn] = Clock.create_trigger(
+                self._get_pospawn_partial(pawn)
+            )
+        return self._pospawn_triggers[pawn]
+
+    def _bind_trigger_pospawn(self, pawn):
+        trigger = self._get_pospawn_trigger(pawn)
+        pawn.bind(
+            pos=trigger,
+            size=trigger
+        )
+        self.bind(
+            pos=trigger,
+            size=trigger
+        )
+
+    def _unbind_trigger_pospawn(self, pawn):
+        trigger = self._get_pospawn_trigger(pawn)
+        pawn.unbind(
+            pos=trigger,
+            size=trigger
+        )
+        self.unbind(
+            pos=trigger,
+            size=trigger
+        )
 
     def _upd_pos(self, *args):
         if self.board is None:
@@ -103,6 +142,7 @@ class Spot(PawnSpot):
 
         """
         super().add_widget(wid, i, canvas)
+        self._bind_trigger_pospawn(wid)
         if not hasattr(wid, 'group'):
             return
         wid._no_use_canvas = True
@@ -126,7 +166,14 @@ class Spot(PawnSpot):
                 pawncanvas.add(child.canvas)
         self.pospawn(wid)
 
-    def pospawn(self, pawn):
+    def remove_widget(self, wid):
+        try:
+            self._unbind_trigger_pospawn(wid)
+        except KeyError:
+            pass
+        return super().remove_widget(wid)
+
+    def pospawn(self, pawn, *args):
         """Given some :class:`Pawn` instance that's to be on top of me, set
         its ``pos`` so that it looks like it's on top of me but
         doesn't cover me so much that you can't select me.
