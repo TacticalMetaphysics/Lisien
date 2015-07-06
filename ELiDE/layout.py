@@ -610,7 +610,7 @@ class ELiDELayout(FloatLayout):
                 self.board.character.new_thing(
                     dummy.name,
                     whereat.place.name,
-                    _image_paths=dummy.paths
+                    _image_paths=list(dummy.paths)
                 )
             )
         )
