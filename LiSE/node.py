@@ -15,12 +15,15 @@ from . import rule
 
 
 class RuleMapping(rule.RuleMapping):
+    """Version of :class:`LiSE.rule.RuleMapping` that works more easily with a node. """
     def __init__(self, node):
+        """Initialize with node's engine and rulebook. Store character and engine. """
         super().__init__(node.engine, node.rulebook)
         self.character = node.character
         self.engine = self.character.engine
 
     def __iter__(self):
+        """Iterate over the names of rules for this node."""
         return self.engine.db.node_rules(
             self.character.name,
             self.name,
@@ -154,17 +157,34 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         yield from self.extrakeys
 
     def __contains__(self, k):
+        """Handle extra keys, then delegate."""
         if k in self.extrakeys:
             return True
         return super().__contains__(k)
 
     def listener(self, f=None, stat=None):
+        """Arrange to call a function whenever a stat changes.
+
+        If no stat is provided, changes to any stat will result in a call.
+
+        """
         return listener(self._stat_listeners, f, stat)
 
     def unlisten(self, f=None, stat=None):
+        """Stop calling a function when a stat changes.
+
+        If the function wasn't passed to ``self.listener`` in the same way, this won't do anything.
+
+        """
         return unlisten(self._stat_listeners, f, stat)
 
     def __setitem__(self, k, v):
+        """Set a stat.
+
+        Stats are time-sensitive. Values set to stats will appear to change to their predecessors, or disappear
+        entirely, if the sim-time is set to a tick before the value was set.
+
+        """
         super().__setitem__(k, v)
         if self.engine.caching:
             encache(self, self._cache, k, v)
@@ -172,6 +192,12 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         self._dispatch_stat(k, v)
 
     def __delitem__(self, k):
+        """Delete a stat.
+
+        Stats are time-sensitive, so the stat may appear to pop back into existence if you set the tick to one before
+        when the stat was deleted.
+
+        """
         super().__delitem__(k)
         if self.engine.caching:
             (branch, tick) = self.engine.time
@@ -250,4 +276,5 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         )
 
     def __bool__(self):
+        """Return whether I really exist in the world model, ie. in my character."""
         return self.name in self.character.node
