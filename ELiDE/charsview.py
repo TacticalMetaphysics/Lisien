@@ -3,6 +3,7 @@ from kivy.properties import ObjectProperty, StringProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.screenmanager import Screen
 
 
 class CharListView(ListView):
@@ -39,35 +40,48 @@ class CharListView(ListView):
 
 class CharactersBox(BoxLayout):
     engine = ObjectProperty()
-    charsview = ObjectProperty()
-    toggle_charsbox = ObjectProperty()
+    toggle = ObjectProperty()
     character_name = StringProperty()
-    new_character = ObjectProperty()
     select_character = ObjectProperty()
 
     def set_char(self, char):
         self.select_character(self.engine.character[char])
-        self.toggle_charsbox()
+
+
+class CharactersScreen(Screen):
+    toggle = ObjectProperty()
+    select_character = ObjectProperty()
+    charsview = ObjectProperty()
+    engine = ObjectProperty()
+
+    def new_character(self, name, *args):
+        self.select_character(self.engine.new_character(name))
 
 
 Builder.load_string("""
-<CharactersBox>:
-    orientation: 'vertical'
+<CharactersScreen>:
+    name: 'chars'
     charsview: charsview
-    CharListView:
-        id: charsview
-        character_name: root.character_name
-        set_char: root.set_char
-    BoxLayout:
-        size_hint_y: 0.05
-        TextInput:
-            id: newname
-            hint_text: 'New character name'
-            write_tab: False
-        Button:
-            text: '+'
-            on_press: root.new_character(self.text)
-        Button:
-            text: 'Cancel'
-            on_press: root.toggle_charsbox()
+    CharactersBox:
+        id: chars
+        orientation: 'vertical'
+        toggle: root.toggle
+        select_character: root.select_character
+        engine: root.engine
+        CharListView:
+            id: charsview
+            character_name: chars.character_name
+            set_char: chars.set_char
+        BoxLayout:
+            size_hint_y: 0.05
+            TextInput:
+                id: newname
+                hint_text: 'New character name'
+                write_tab: False
+            Button:
+                text: '+'
+                on_press: root.new_character(self.text)
+            Button:
+                text: 'Close'
+                on_press: root.toggle()
 """)

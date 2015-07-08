@@ -12,6 +12,7 @@ from kivy.properties import (
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.screenmanager import Screen
 
 
 class SpriteSelector(BoxLayout):
@@ -65,7 +66,6 @@ class SpriteBuilder(ScrollView):
     prefix = StringProperty()
     imgpaths = ListProperty()
     default_imgpaths = ListProperty()
-    layout = ObjectProperty()
     data = ListProperty()
     labels = ListProperty()
     pallets = ListProperty()
@@ -130,41 +130,33 @@ class SpriteBuilder(ScrollView):
 
 
 class SpriteDialog(BoxLayout):
-    cb = ObjectProperty()
+    toggle = ObjectProperty()
     prefix = StringProperty()
     imgpaths = ListProperty()
     default_imgpaths = ListProperty()
-    layout = ObjectProperty()
     data = ListProperty()
     pallet_box_height = NumericProperty()
 
     def pressed(self):
         self.prefix = self.ids.selector.prefix
         self.imgpaths = self.ids.selector.imgpaths
-        self.cb()
+        self.toggle()
 
 
 class PawnConfigDialog(SpriteDialog):
-    def on_layout(self, *args):
-        self.cb = self.layout.toggle_pawn_config
-        self.data = [
-            ('Body', 'base.atlas'),
-            ('Basic clothes', 'body.atlas'),
-            ('Armwear', 'arm.atlas'),
-            ('Legwear', 'leg.atlas'),
-            ('Right hand', 'hand1.atlas'),
-            ('Left hand', 'hand2.atlas'),
-            ('Boots', 'boot.atlas'),
-            ('Hair', 'hair.atlas'),
-            ('Beard', 'beard.atlas'),
-            ('Headwear', 'head.atlas')
-        ]
+    pass
 
 
 class SpotConfigDialog(SpriteDialog):
-    def on_layout(self, *args):
-        self.cb = self.layout.toggle_spot_config
-        self.data = [('Dungeon', 'dungeon.atlas')]
+    pass
+
+
+class PawnConfigScreen(Screen):
+    toggle = ObjectProperty()
+
+
+class SpotConfigScreen(Screen):
+    toggle = ObjectProperty()
 
 
 Builder.load_string("""
@@ -174,7 +166,6 @@ Builder.load_string("""
         id: builder
         prefix: root.prefix
         default_imgpaths: root.default_imgpaths
-        layout: root.layout
         imgpaths: root.imgpaths
         data: root.data
     SpriteSelector:
@@ -196,8 +187,21 @@ Builder.load_string("""
         Button:
             text: 'OK'
             on_press: root.pressed()
-<PawnConfigDialog>:
-    default_imgpaths: ['atlas://base.atlas/unseen']
-<SpotConfigDialog>:
-    default_imgpaths: ['orb.png']
+<PawnConfigScreen>:
+    name: 'pawncfg'
+    PawnConfigDialog:
+        toggle: root.toggle
+        default_imgpaths: ['atlas://base.atlas/unseen']
+        data: [('Body', 'base.atlas'),\
+        ('Basic clothes', 'body.atlas'), ('Armwear', 'arm.atlas'),\
+        ('Legwear', 'leg.atlas'), ('Right hand', 'hand1.atlas'),\
+        ('Left hand', 'hand2.atlas'), ('Boots', 'boot.atlas'),\
+        ('Hair', 'hair.atlas'), ('Beard', 'beard.atlas'),\
+        ('Headwear', 'head.atlas')]
+<SpotConfigScreen>:
+    name: 'spotcfg'
+    SpotConfigDialog:
+        toggle: root.toggle
+        default_imgpaths: ['orb.png']
+        data: [('Dungeon', 'dungeon.atlas')]
 """)

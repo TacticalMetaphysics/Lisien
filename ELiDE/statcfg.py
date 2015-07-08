@@ -1,7 +1,7 @@
 from kivy.clock import Clock
 from kivy.properties import DictProperty, ListProperty, ObjectProperty
 from kivy.lang import Builder
-from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.screenmanager import Screen
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
@@ -271,9 +271,9 @@ class StatListViewConfigurator(StatListView):
         return cls_dicts
 
 
-class StatWindow(BoxLayout):
+class StatScreen(Screen):
     remote = ObjectProperty()
-    toggle_stat_cfg = ObjectProperty()
+    toggle = ObjectProperty()
     time = ListProperty()
 
     def new_stat(self):
@@ -296,32 +296,34 @@ class StatWindow(BoxLayout):
 Builder.load_string("""
 <ConfigListItem>:
     height: 30
-<StatWindow>:
-    orientation: 'vertical'
-    StatListViewConfigurator:
-        id: cfg
-        time: root.time
-        remote: root.remote
-        size_hint_y: 0.95
+<StatScreen>:
+    name: 'stat_cfg'
     BoxLayout:
-        orientation: 'horizontal'
-        size_hint_y: 0.05
-        TextInput:
-            id: newstatkey
-            multiline: False
-            write_tab: False
-            hint_text: 'New stat'
-        TextInput:
-            id: newstatval
-            multiline: False
-            write_tab: False
-            hint_text: 'Value'
-        Button:
-            id: newstatbut
-            text: '+'
-            on_press: root.new_stat()
-        Button:
-            id: closer
-            text: 'Close'
-            on_press: root.toggle_stat_cfg()
+        orientation: 'vertical'
+        StatListViewConfigurator:
+            id: cfg
+            time: root.time
+            remote: root.remote
+            size_hint_y: 0.95
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.05
+            TextInput:
+                id: newstatkey
+                multiline: False
+                write_tab: False
+                hint_text: 'New stat'
+            TextInput:
+                id: newstatval
+                multiline: False
+                write_tab: False
+                hint_text: 'Value'
+            Button:
+                id: newstatbut
+                text: '+'
+                on_press: root.new_stat()
+            Button:
+                id: closer
+                text: 'Close'
+                on_press: root.toggle()
 """)

@@ -24,11 +24,12 @@ from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from kivy.logger import Logger
 
 from .dummy import Dummy
-from .spritebuilder import PawnConfigDialog, SpotConfigDialog
+from .spritebuilder import PawnConfigScreen, SpotConfigScreen
 from .charmenu import CharMenu
 from .board.arrow import ArrowWidget
 from .util import dummynum
@@ -112,7 +113,7 @@ class TimePanel(BoxLayout):
         self.tick_setter(tick)
 
 
-class ELiDELayout(FloatLayout):
+class MainScreen(Screen):
     """A master layout that contains one board and some menus.
 
     This contains three elements: a scrollview (containing the board),
@@ -145,7 +146,6 @@ class ELiDELayout(FloatLayout):
     line_height = NumericProperty(1.0)
     engine = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
-    popover = ObjectProperty()
     grabbing = BooleanProperty(True)
     reciprocal_portal = BooleanProperty(False)
     grabbed = ObjectProperty(None, allownone=True)
@@ -153,22 +153,23 @@ class ELiDELayout(FloatLayout):
     selection_candidates = ListProperty([])
     selected_remote = ObjectProperty()
     keep_selection = BooleanProperty(False)
-    branch = AliasProperty(
-        lambda self: self.engine.branch,
-        lambda self, v: setattr(self.engine, 'branch', v),
-        bind=('engine',)
-    )
-    tick = AliasProperty(
-        lambda self: self.engine.tick,
-        lambda self, v: setattr(self.engine, 'tick', v),
-        bind=('engine',)
-    )
-    time = AliasProperty(
-        lambda self: self.engine.time,
-        lambda self, v: setattr(self.engine, 'time', v),
-        bind=('engine',)
-    )
     rules_per_frame = BoundedNumericProperty(10, min=1)
+    current = StringProperty()
+    branch = StringProperty()
+    tick = NumericProperty()
+    time = ListProperty()
+    set_branch = ObjectProperty()
+    set_tick = ObjectProperty()
+    set_time = ObjectProperty()
+
+    select_character = ObjectProperty()
+    pawn_cfg = ObjectProperty()
+    spot_cfg = ObjectProperty()
+    stat_cfg = ObjectProperty()
+    rules = ObjectProperty()
+    chars = ObjectProperty()
+    strings = ObjectProperty()
+    funcs = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._trigger_remake_display = Clock.create_trigger(
@@ -187,18 +188,6 @@ class ELiDELayout(FloatLayout):
         Clock.unschedule(self.play)
         Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
-    def on_board(self, *args):
-        """Bind ``self._dispatch_time`` to the engine's time.
-
-        This will make sure that my Kivy.properties ``branch``,
-        ``tick``, and ``time`` trigger any functions bound to them
-        when they change in response to the engine's time changing.
-
-        """
-        if self.engine is None or self.board is None:
-            return
-        self.engine.time_listener(self._dispatch_time)
-
     def on_character(self, *args):
         """Arrange to remake the customizable widgets when the character's
         stats change.
@@ -207,6 +196,9 @@ class ELiDELayout(FloatLayout):
         the relevant stat.
 
         """
+        if not self.canvas:
+            Clock.schedule_once(self.on_character, 0)
+            return
         stats = (
             'kv',
             'message',
@@ -303,7 +295,7 @@ class ELiDELayout(FloatLayout):
             Clock.schedule_once(self.reremote, 0)
             return
         try:
-            self.selected_remote = self._get_selected_remote()
+            self.selected_remote = self.stat_cfg.remote = self._get_selected_remote()
         except ValueError:
             return
 
@@ -326,16 +318,6 @@ class ELiDELayout(FloatLayout):
             raise ValueError(
                 "Invalid selection: {}".format(repr(self.selection))
             )
-
-    def select_character(self, char):
-        """Change my ``character`` to the selected character object if they
-        aren't the same.
-
-        """
-        if char == self.character:
-            return
-        self.character = char
-        self.character_name = str(char.name)
 
     def on_touch_down(self, touch):
         """Dispatch the touch to the board, then its :class:`ScrollView`, then
@@ -556,10 +538,10 @@ class ELiDELayout(FloatLayout):
                 continue
             if dummy == self.ids.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
-                self.ids.charmenu._pawn_config = PawnConfigDialog(layout=self)
+                self.ids.charmenu._pawn_config = self.pawn_cfg
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
-                self.ids.charmenu._spot_config = SpotConfigDialog(layout=self)
+                self.ids.charmenu._spot_config = self.spot_cfg
             dummy.num = dummynum(self.character, dummy.prefix) + 1
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
@@ -641,14 +623,6 @@ class ELiDELayout(FloatLayout):
             )
         )
 
-    def set_branch(self, b):
-        """Set my branch to the given value."""
-        self.branch = b
-
-    def set_tick(self, t):
-        """Set my tick to the given value, cast to an integer."""
-        self.tick = int(t)
-
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
         if self.playbut.state == 'normal':
@@ -660,12 +634,6 @@ class ELiDELayout(FloatLayout):
             return
         else:
             del self._old_time
-
-    def _dispatch_time(self, *args):
-        """Dispatch my ``branch``, ``tick``, and ``time`` properties."""
-        self.property('branch').dispatch(self)
-        self.property('tick').dispatch(self)
-        self.property('time').dispatch(self)
 
 
 Builder.load_string(
@@ -725,7 +693,8 @@ Builder.load_string(
         MenuIntInput:
             setter: root.set_tick
             hint_text: str(root.tick)
-<ELiDELayout>:
+<MainScreen>:
+    name: 'main'
     character: self.engine.character[self.character_name] \
     if self.engine and self.character_name else None
     dummies: charmenu.dummies
@@ -775,5 +744,12 @@ Builder.load_string(
         spot_from_dummy: root.spot_from_dummy
         pawn_from_dummy: root.pawn_from_dummy
         select_character: root.select_character
+        pawn_cfg: root.pawn_cfg
+        spot_cfg: root.spot_cfg
+        stat_cfg: root.stat_cfg
+        rules: root.rules
+        chars: root.chars
+        strings: root.strings
+        funcs: root.funcs
 """
 )
