@@ -8,7 +8,6 @@ from kivy.properties import (
     StringProperty
 )
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.modalview import ModalView
 
 from .stringwin import StringsEdWindow
 from .funcwin import FuncsEdWindow
@@ -49,22 +48,7 @@ class CharMenu(BoxLayout):
     spot_cfg = ObjectProperty()
     pawn_cfg = ObjectProperty()
     revarrow = ObjectProperty(None, allownone=True)
-    popover = ObjectProperty()
-    popover_shown = BooleanProperty(False)
-
-    def open_popover(self):
-        self.popover.open()
-        self.popover_shown = True
-
-    def dismiss_popover(self):
-        self.popover.dismiss()
-        self.popover_shown = False
-
-    def toggle_popover(self):
-        if self.popover_shown:
-            self.dismiss_popover()
-        else:
-            self.open_popover()
+    current = StringProperty('main')
 
     def delete_selection(self):
         """Delete both the selected widget and whatever it represents."""
@@ -92,21 +76,16 @@ class CharMenu(BoxLayout):
         entity's stats, or add or delete stats.
 
         """
-        if self.popover_shown:
-            self.popover.remove_widget(self.stat_cfg)
-        else:
+        if self.current != 'statcfg':
             self.stat_cfg.remote = self.selected_remote
             self.stat_cfg.set_value = remote_setter(
                 self.stat_cfg.remote
             )
-            self.popover.add_widget(self.stat_cfg)
-        self.toggle_popover()
+        self.stat_cfg.toggle()
 
     def toggle_charsbox(self, *args):
         """Display or hide the list you use to switch between characters."""
-        if self.popover_shown:
-            self.popover.remove_widget(self.charsbox)
-        else:
+        if self.current != 'chars':
             adapter = self.charsbox.charsview.adapter
             adapter.data = list(self.engine.character)
             adapter.select_list(
@@ -114,20 +93,16 @@ class CharMenu(BoxLayout):
                     adapter.data.index(self.character_name)
                 )]
             )
-            self.popover.add_widget(self.charsbox)
-        self.toggle_popover()
+        self.charsbox.toggle()
 
     def toggle_rules_view(self, *args):
         """Display or hide the view for constructing rules out of cards."""
-        if self.popover_shown:
-            self.popover.remove_widget(self.rulesbox)
-        else:
+        if self.current != 'rules':
             if not hasattr(self.selected_remote, 'rulebook'):
                 self.rulesview.rulebook = self.character.rulebook
             else:
                 self.rulesview.rulebook = self.selected_remote.rulebook
-            self.popover.add_widget(self.rulesbox)
-        self.toggle_popover()
+        self.rulesview.toggle()
 
     def toggle_funcs_editor(self, functyp):
         """Display or hide the text editing window for functions."""
@@ -172,11 +147,9 @@ class CharMenu(BoxLayout):
                 ) + 1
             dummyplace.paths = self._spot_config.imgpaths
             self.ids.placetab.add_widget(dummyplace)
-            self.popover.remove_widget(self.spot_cfg)
         else:
             self.spot_config.prefix = self.ids.dummyplace.prefix
-            self.popover.add_widget(self.spot_cfg)
-        self.toggle_popover()
+        self.spot_cfg.toggle()
 
     def toggle_pawn_cfg(self):
         """Show or hide the pop-over where you can configure the dummy pawn"""
@@ -263,7 +236,6 @@ class CharMenu(BoxLayout):
         ):
             Clock.schedule_once(self.on_board, 0)
             return
-        self.popover = ModalView()
         self.strings_ed_window = StringsEdWindow(
             engine=self.engine,
             popover=self.popover,

@@ -3,15 +3,23 @@
 from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.properties import ObjectProperty
+from kivy.properties import (
+    AliasProperty,
+    ObjectProperty,
+    StringProperty
+)
 from kivy.lang import Builder
 from kivy.resources import resource_add_path
+from kivy.uix.screenmanager import ScreenManager
 
 import LiSE
 from LiSE.proxy import EngineProcessManager
 
 import ELiDE
-import ELiDE.layout
+import ELiDE.screen
+import ELiDE.spritebuilder
+import ELiDE.rulesview
+import ELiDE.charsview
 
 """Object to configure, start, and stop ELiDE."""
 
@@ -24,6 +32,58 @@ class ELiDEApp(App):
 
     """
     engine = ObjectProperty()
+    branch = AliasProperty(
+        lambda self: self.engine.branch,
+        lambda self, v: setattr(self.engine, 'branch', v),
+        bind=('engine',)
+    )
+    tick = AliasProperty(
+        lambda self: self.engine.tick,
+        lambda self, v: setattr(self.engine, 'tick', v),
+        bind=('engine',)
+    )
+    time = AliasProperty(
+        lambda self: self.engine.time,
+        lambda self, v: setattr(self.engine, 'time', v),
+        bind=('engine',)
+    )
+    character = ObjectProperty()
+    character_name = StringProperty()
+
+    def _dispatch_time(self, *args):
+        """Dispatch my ``branch``, ``tick``, and ``time`` properties."""
+        self.property('branch').dispatch(self)
+        self.property('tick').dispatch(self)
+        self.property('time').dispatch(self)
+
+    def on_engine(self, *args):
+        if self.engine is None:
+            return
+        self.engine.time_listener(self._dispatch_time)
+
+    def set_branch(self, b):
+        """Set my branch to the given value."""
+        self.branch = b
+
+    def set_tick(self, t):
+        """Set my tick to the given value, cast to an integer."""
+        self.tick = int(t)
+
+    def set_time(self, b, t=None):
+        if t is None:
+            (b, t) = b
+        t = int(t)
+        self.time = (b, t)
+
+    def select_character(self, char):
+        """Change my ``character`` to the selected character object if they
+        aren't the same.
+
+        """
+        if char == self.character:
+            return
+        self.character = char
+        self.character_name = str(char.name)
 
     def build_config(self, config):
         """Set config defaults"""
@@ -87,48 +147,92 @@ class ELiDEApp(App):
         if char not in self.engine.character:
             print("adding character: {}".format(char))
             self.engine.add_character(char)
-        l = ELiDE.layout.ELiDELayout(
+        s = ScreenManager()
+
+        def togpawncfg(*args):
+            if s.current == 'pawncfg':
+                s.current = 'main'
+            else:
+                s.current = 'pawncfg'
+        pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
+            toggle=togpawncfg
+        )
+
+        def togspotcfg(*args):
+            if s.current == 'spotcfg':
+                s.current = 'main'
+            else:
+                s.current = 'spotcfg'
+        spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
+            toggle=togspotcfg
+        )
+
+        def togrules(*args):
+            if s.current == 'rules':
+                s.current = 'main'
+            else:
+                s.current = 'rules'
+        rules = ELiDE.rulesview.RulesScreen(
+            toggle=togrules
+        )
+
+        def togchars(*args):
+            if s.current == 'chars':
+                s.current = 'main'
+            else:
+                s.current = 'chars'
+        chars = ELiDE.charsview.CharsScreen(
+            toggle=togchars,
+            select_character=self.select_character,
+            new_character=self.engine.new_character
+        )
+
+        self.select_character(
+            self.engine.character[
+                config['ELiDE']['boardchar']
+            ]
+        )
+        self.mainscreen = ELiDE.screen.MainScreen(
             engine=self.engine,
-            character_name=config['ELiDE']['boardchar'],
+            character_name=self.character_name,
+            character=self.character,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             use_message=config['ELiDE']['user_message'] == 'yes',
-            play_speed=int(config['ELiDE']['play_speed'])
+            play_speed=int(config['ELiDE']['play_speed']),
+            pawn_config=pawncfg,
+            spot_config=spotcfg,
+            branch=self.branch,
+            tick=self.tick,
+            time=self.time,
+            set_branch=self.set_branch,
+            set_tick=self.set_tick,
+            set_time=self.set_time
+        )
+
+        for wid in (self.mainscreen, pawncfg, spotcfg, rules, chars):
+            s.add_widget(wid)
+        s.bind(current=self.mainscreen.setter('current'))
+        self.bind(
+            character=self.mainscreen.setter('character'),
+            character_name=self.mainscreen.setter('character_name'),
+            branch=self.mainscreen.setter('branch'),
+            tick=self.mainscreen.setter('tick'),
+            time=self.mainscreen.setter('time')
         )
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
-            inspector.create_inspector(Window, l)
+            inspector.create_inspector(Window, self.mainscreen)
 
-        def upd_boardchar(*args):
-            if config['ELiDE']['boardchar'] != l.character_name:
-                config['ELiDE']['boardchar'] = l.character_name
-
-        def upd_use_kv(*args):
-            v = 'yes' if l.use_kv else 'no'
-            if v != config['ELiDE']['user_kv']:
-                config['ELiDE']['user_kv'] = v
-
-        def upd_use_message(*args):
-            v = 'yes' if l.use_message else 'no'
-            if v != config['ELiDE']['use_message']:
-                config['ELiDE']['user_message'] = v
-
-        def upd_play_speed(*args):
-            v = str(l.play_speed)
-            if v != config['ELiDE']['play_speed']:
-                config['ELiDE']['play_speed'] = v
-
-        l.bind(
-            character_name=upd_boardchar,
-            use_kv=upd_use_kv,
-            use_message=upd_use_message,
-            play_speed=upd_play_speed
-        )
-        return l
+        return s
 
     def _check_stats(self, *args):
         """Ask the engine to poll changes."""
         self.engine.poll_changes()
+
+    def on_character_name(self, *args):
+        if self.config['ELiDE']['boardchar'] != self.character_name:
+            self.config['ELiDE']['boardchar'] = self.character_name
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
