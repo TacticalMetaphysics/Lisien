@@ -148,7 +148,6 @@ class ELiDEApp(App):
         Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
-            print("adding character: {}".format(char))
             self.engine.add_character(char)
         s = ScreenManager()
 

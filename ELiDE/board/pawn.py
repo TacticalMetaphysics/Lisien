@@ -89,9 +89,6 @@ class Pawn(PawnSpot):
             location.add_widget(self)
 
     def upd_loc_name(self, *args):
-        print("updating {}'s loc_name to {}".format(
-            self.name, self.remote['location']
-        ))
         self.loc_name = self.remote['location']
         self._trigger_relocate()
 
@@ -100,7 +97,6 @@ class Pawn(PawnSpot):
         self._trigger_relocate()
 
     def listen_loc(self, *args):
-        print('listening to {}\'s loc'.format(self.name))
         self.remote.listener(
             fun=self._trigger_upd_loc_name,
             stat='location'
