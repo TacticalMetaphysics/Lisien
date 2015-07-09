@@ -66,7 +66,6 @@ class SpriteBuilder(ScrollView):
     prefix = StringProperty()
     imgpaths = ListProperty()
     default_imgpaths = ListProperty()
-    layout = ObjectProperty()
     data = ListProperty()
     labels = ListProperty()
     pallets = ListProperty()
@@ -167,7 +166,6 @@ Builder.load_string("""
         id: builder
         prefix: root.prefix
         default_imgpaths: root.default_imgpaths
-        layout: root.layout
         imgpaths: root.imgpaths
         data: root.data
     SpriteSelector:
@@ -193,11 +191,11 @@ Builder.load_string("""
     name: 'pawncfg'
     PawnConfigDialog:
         default_imgpaths: ['atlas://base.atlas/unseen']
-        data: [('Body', 'base.atlas'),
-        ('Basic clothes', 'body.atlas'), ('Armwear', 'arm.atlas'),
-        ('Legwear', 'leg.atlas'), ('Right hand', 'hand1.atlas'),
-        ('Left hand', 'hand2.atlas'), ('Boots', 'boot.atlas'),
-        ('Hair', 'hair.atlas'), ('Beard', 'beard.atlas'),
+        data: [('Body', 'base.atlas'),\
+        ('Basic clothes', 'body.atlas'), ('Armwear', 'arm.atlas'),\
+        ('Legwear', 'leg.atlas'), ('Right hand', 'hand1.atlas'),\
+        ('Left hand', 'hand2.atlas'), ('Boots', 'boot.atlas'),\
+        ('Hair', 'hair.atlas'), ('Beard', 'beard.atlas'),\
         ('Headwear', 'head.atlas')]
 <SpotConfigScreen>:
     name: 'spotcfg'

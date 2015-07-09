@@ -154,8 +154,6 @@ class MainScreen(Screen):
     selected_remote = ObjectProperty()
     keep_selection = BooleanProperty(False)
     rules_per_frame = BoundedNumericProperty(10, min=1)
-    pawn_config = ObjectProperty()
-    spot_config = ObjectProperty()
     current = StringProperty()
     branch = StringProperty()
     tick = NumericProperty()
@@ -163,6 +161,15 @@ class MainScreen(Screen):
     set_branch = ObjectProperty()
     set_tick = ObjectProperty()
     set_time = ObjectProperty()
+
+    select_character = ObjectProperty()
+    pawn_cfg = ObjectProperty()
+    spot_cfg = ObjectProperty()
+    stat_cfg = ObjectProperty()
+    rules = ObjectProperty()
+    chars = ObjectProperty()
+    strings = ObjectProperty()
+    funcs = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._trigger_remake_display = Clock.create_trigger(
@@ -189,6 +196,9 @@ class MainScreen(Screen):
         the relevant stat.
 
         """
+        if not self.canvas:
+            Clock.schedule_once(self.on_character, 0)
+            return
         stats = (
             'kv',
             'message',
@@ -285,7 +295,7 @@ class MainScreen(Screen):
             Clock.schedule_once(self.reremote, 0)
             return
         try:
-            self.selected_remote = self._get_selected_remote()
+            self.selected_remote = self.stat_cfg.remote = self._get_selected_remote()
         except ValueError:
             return
 
@@ -528,10 +538,10 @@ class MainScreen(Screen):
                 continue
             if dummy == self.ids.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
-                self.ids.charmenu._pawn_config = self.pawn_config
+                self.ids.charmenu._pawn_config = self.pawn_cfg
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
-                self.ids.charmenu._spot_config = self.spot_config
+                self.ids.charmenu._spot_config = self.spot_cfg
             dummy.num = dummynum(self.character, dummy.prefix) + 1
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
@@ -734,5 +744,12 @@ Builder.load_string(
         spot_from_dummy: root.spot_from_dummy
         pawn_from_dummy: root.pawn_from_dummy
         select_character: root.select_character
+        pawn_cfg: root.pawn_cfg
+        spot_cfg: root.spot_cfg
+        stat_cfg: root.stat_cfg
+        rules: root.rules
+        chars: root.chars
+        strings: root.strings
+        funcs: root.funcs
 """
 )

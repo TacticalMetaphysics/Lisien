@@ -15,6 +15,7 @@ code.
 
 """
 from collections import defaultdict
+from functools import partial
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.event import EventDispatcher
@@ -32,7 +33,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.adapters.listadapter import ListAdapter
 from .codeinput import FunctionInput
-from .stringinput import StringInput
 
 
 class StoreDataItem(EventDispatcher, SelectableDataItem):
@@ -256,6 +256,42 @@ class StoreEditor(BoxLayout):
     def save(self, *args):
         """Write my editor's changes to disk."""
         raise NotImplementedError
+
+    pawn_cfg = ObjectProperty()
+    spot_cfg = ObjectProperty()
+
+
+class StringInput(BoxLayout):
+    font_name = StringProperty('DroidSans')
+    font_size = NumericProperty(12)
+    name = StringProperty()
+    source = StringProperty()
+
+    def _get_name(self):
+        if 'stringname' not in self.ids:
+            return ''
+        return self.ids.stringname.text
+
+    def _set_name(self, v, *args):
+        if 'stringname' not in self.ids:
+            Clock.schedule_once(partial(self._set_name, v), 0)
+            return
+        self.ids.stringname.text = v
+
+    name = AliasProperty(_get_name, _set_name)
+
+    def _get_source(self):
+        if 'string' not in self.ids:
+            return ''
+        return self.ids.string.text
+
+    def _set_source(self, v, *args):
+        if 'string' not in self.ids:
+            Clock.schedule_once(partial(self._set_source, v), 0)
+            return
+        self.ids.string.text = v
+
+    source = AliasProperty(_get_source, _set_source)
 
 
 class StringsEditor(StoreEditor):

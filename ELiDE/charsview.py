@@ -42,28 +42,32 @@ class CharactersBox(BoxLayout):
     engine = ObjectProperty()
     toggle = ObjectProperty()
     character_name = StringProperty()
-    new_character = ObjectProperty()
     select_character = ObjectProperty()
 
     def set_char(self, char):
         self.select_character(self.engine.character[char])
-        self.toggle()
 
 
 class CharactersScreen(Screen):
     toggle = ObjectProperty()
     select_character = ObjectProperty()
-    new_character = ObjectProperty()
+    charsview = ObjectProperty()
+    engine = ObjectProperty()
+
+    def new_character(self, name, *args):
+        self.select_character(self.engine.new_character(name))
 
 
 Builder.load_string("""
 <CharactersScreen>:
     name: 'chars'
+    charsview: charsview
     CharactersBox:
         id: chars
         orientation: 'vertical'
         toggle: root.toggle
         select_character: root.select_character
+        engine: root.engine
         CharListView:
             id: charsview
             character_name: chars.character_name
@@ -78,6 +82,6 @@ Builder.load_string("""
                 text: '+'
                 on_press: root.new_character(self.text)
             Button:
-                text: 'Cancel'
+                text: 'Close'
                 on_press: root.toggle()
 """)

@@ -12,6 +12,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 
@@ -473,33 +474,35 @@ class RulesView(FloatLayout):
         self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
 
 
-class RulesBox(BoxLayout):
+class RulesScreen(Screen):
     engine = ObjectProperty()
     rulesview = ObjectProperty()
     new_rule_name = StringProperty()
     new_rule = ObjectProperty()
-    toggle_rules_view = ObjectProperty()
+    toggle = ObjectProperty()
 
 
 Builder.load_string("""
-<RulesBox>:
-    orientation: 'vertical'
+<RulesScreen>:
+    name: 'rules'
     new_rule_name: rulename.text
     rulesview: rulesview
-    RulesView:
-        id: rulesview
-        engine: root.engine
     BoxLayout:
-        orientation: 'horizontal'
-        size_hint_y: 0.05
-        TextInput:
-            id: rulename
-            hint_text: 'New rule name'
-            write_tab: False
-        Button:
-            text: '+'
-            on_press: root.new_rule()
-        Button:
-            text: 'Close'
-            on_press: root.toggle_rules_view()
+        orientation: 'vertical'
+        RulesView:
+            id: rulesview
+            engine: root.engine
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.05
+            TextInput:
+                id: rulename
+                hint_text: 'New rule name'
+                write_tab: False
+            Button:
+                text: '+'
+                on_press: root.new_rule()
+            Button:
+                text: 'Close'
+                on_press: root.toggle()
 """)

@@ -17,6 +17,9 @@ from LiSE.proxy import EngineProcessManager
 
 import ELiDE
 import ELiDE.screen
+import ELiDE.stringsed
+import ELiDE.funcsed
+import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
@@ -149,42 +152,41 @@ class ELiDEApp(App):
             self.engine.add_character(char)
         s = ScreenManager()
 
-        def togpawncfg(*args):
-            if s.current == 'pawncfg':
-                s.current = 'main'
-            else:
-                s.current = 'pawncfg'
+        def toggler(screenname):
+            def tog(*args):
+                if s.current == screenname:
+                    s.current = 'main'
+                else:
+                    s.current = screenname
+            return tog
+
         pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
-            toggle=togpawncfg
+            toggle=toggler('pawncfg')
         )
 
-        def togspotcfg(*args):
-            if s.current == 'spotcfg':
-                s.current = 'main'
-            else:
-                s.current = 'spotcfg'
         spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
-            toggle=togspotcfg
+            toggle=toggler('spotcfg')
         )
 
-        def togrules(*args):
-            if s.current == 'rules':
-                s.current = 'main'
-            else:
-                s.current = 'rules'
         rules = ELiDE.rulesview.RulesScreen(
-            toggle=togrules
+            toggle=toggler('rules')
         )
 
-        def togchars(*args):
-            if s.current == 'chars':
-                s.current = 'main'
-            else:
-                s.current = 'chars'
-        chars = ELiDE.charsview.CharsScreen(
-            toggle=togchars,
+        chars = ELiDE.charsview.CharactersScreen(
+            toggle=toggler('chars'),
             select_character=self.select_character,
-            new_character=self.engine.new_character
+            engine=self.engine
+        )
+
+        strings = ELiDE.stringsed.StringsEdScreen(
+            engine=self.engine,
+            toggle=toggler('strings')
+        )
+
+        funcs = ELiDE.funcsed.FuncsEdScreen(
+            table='trigger',
+            store=self.engine.trigger,
+            toggle=toggler('funcs')
         )
 
         self.select_character(
@@ -192,6 +194,14 @@ class ELiDEApp(App):
                 config['ELiDE']['boardchar']
             ]
         )
+
+        stat_cfg = ELiDE.statcfg.StatScreen(
+            remote=self.character,
+            toggle=toggler('stat_cfg'),
+            time=self.time
+        )
+        self.bind(time=stat_cfg.setter('time'))
+
         self.mainscreen = ELiDE.screen.MainScreen(
             engine=self.engine,
             character_name=self.character_name,
@@ -199,17 +209,27 @@ class ELiDEApp(App):
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             use_message=config['ELiDE']['user_message'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
-            pawn_config=pawncfg,
-            spot_config=spotcfg,
             branch=self.branch,
             tick=self.tick,
             time=self.time,
             set_branch=self.set_branch,
             set_tick=self.set_tick,
-            set_time=self.set_time
+            set_time=self.set_time,
+            select_character=self.select_character,
+            pawn_cfg=pawncfg,
+            spot_cfg=spotcfg,
+            stat_cfg=stat_cfg,
+            rules=rules,
+            chars=chars,
+            strings=strings,
+            funcs=funcs
         )
-
-        for wid in (self.mainscreen, pawncfg, spotcfg, rules, chars):
+        self.bind(
+            branch=self.mainscreen.setter('branch'),
+            tick=self.mainscreen.setter('tick'),
+            time=self.mainscreen.setter('time')
+        )
+        for wid in (self.mainscreen, pawncfg, spotcfg, stat_cfg, rules, chars, strings, funcs):
             s.add_widget(wid)
         s.bind(current=self.mainscreen.setter('current'))
         self.bind(
