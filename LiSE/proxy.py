@@ -1199,11 +1199,7 @@ class EngineHandle(object):
             return None
 
     def node_successors(self, char, node):
-        r = list(self._real.character[char].portal[node].keys())
-        for b in r:
-            if not self.nodes_connected(char, node, b):
-                print('{} erroneously reported connected to {}'.format(node, b))
-        return r
+        return list(self._real.character[char].portal[node].keys())
 
     def node_successors_diff(self, char, node):
         try:
