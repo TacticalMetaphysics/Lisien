@@ -152,11 +152,11 @@ class SpotConfigDialog(SpriteDialog):
 
 
 class PawnConfigScreen(Screen):
-    pass
+    toggle = ObjectProperty()
 
 
 class SpotConfigScreen(Screen):
-    pass
+    toggle = ObjectProperty()
 
 
 Builder.load_string("""
@@ -190,6 +190,7 @@ Builder.load_string("""
 <PawnConfigScreen>:
     name: 'pawncfg'
     PawnConfigDialog:
+        toggle: root.toggle
         default_imgpaths: ['atlas://base.atlas/unseen']
         data: [('Body', 'base.atlas'),\
         ('Basic clothes', 'body.atlas'), ('Armwear', 'arm.atlas'),\
@@ -200,6 +201,7 @@ Builder.load_string("""
 <SpotConfigScreen>:
     name: 'spotcfg'
     SpotConfigDialog:
+        toggle: root.toggle
         default_imgpaths: ['orb.png']
         data: [('Dungeon', 'dungeon.atlas')]
 """)
