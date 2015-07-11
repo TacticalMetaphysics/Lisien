@@ -72,6 +72,7 @@ class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty()
+    toggle = ObjectProperty()
 
     def _get_headline_text(self):
         # This shows the entity whose rules you're editing if you
@@ -492,6 +493,7 @@ Builder.load_string("""
         RulesView:
             id: rulesview
             engine: root.engine
+            toggle: root.toggle
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: 0.05
