@@ -15,6 +15,7 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
+from LiSE.rule import Rule
 
 
 # TODO:
@@ -72,7 +73,6 @@ class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty()
-    toggle = ObjectProperty()
 
     def _get_headline_text(self):
         # This shows the entity whose rules you're editing if you
@@ -293,8 +293,7 @@ class RulesView(FloatLayout):
                 headline_text=name,
                 show_art=False,
                 midline_text='Trigger',
-                text=source,
-                show_footer=False
+                text=source
             )
             for (name, source) in
             self.engine.trigger.iterplain()
@@ -309,7 +308,6 @@ class RulesView(FloatLayout):
                 show_art=False,
                 midline_text='Trigger',
                 text=self.engine.trigger.plain(getname(trigger)),
-                show_footer=False
             )
             for trigger in self.rule.triggers
         ]
@@ -327,8 +325,7 @@ class RulesView(FloatLayout):
                 headline_text=name,
                 show_art=False,
                 midline_text='Prereq',
-                text=source,
-                show_footer=False
+                text=source
             )
             for (name, source) in
             self.engine.prereq.iterplain()
@@ -342,8 +339,7 @@ class RulesView(FloatLayout):
                 headline_text=getname(prereq),
                 show_art=False,
                 midline_text='Prereq',
-                text=self.engine.prereq.plain(getname(prereq)),
-                show_footer=False
+                text=self.engine.prereq.plain(getname(prereq))
             )
             for prereq in self.rule.prereqs
         ]
@@ -361,8 +357,7 @@ class RulesView(FloatLayout):
                 headline_text=name,
                 show_art=False,
                 midline_text='Action',
-                text=source,
-                show_footer=False
+                text=source
             )
             for (name, source) in
             self.engine.action.iterplain()
@@ -376,8 +371,7 @@ class RulesView(FloatLayout):
                 headline_text=getname(action),
                 show_art=False,
                 midline_text='Action',
-                text=self.engine.action.plain(getname(action)),
-                show_footer=False
+                text=self.engine.action.plain(getname(action))
             )
             for action in self.rule.actions
         ]
@@ -477,10 +471,17 @@ class RulesView(FloatLayout):
 
 class RulesScreen(Screen):
     engine = ObjectProperty()
+    rulebook = ObjectProperty()
     rulesview = ObjectProperty()
     new_rule_name = StringProperty()
-    new_rule = ObjectProperty()
     toggle = ObjectProperty()
+
+    def new_rule(self, *args):
+        if self.new_rule_name in self.engine.rule:
+            # TODO: feedback to say you already have such a rule
+            return
+        self.rulebook.append(self.engine.rule.new_empty(self.new_rule_name))
+        self.ids.rulename.text = ''
 
 
 Builder.load_string("""
@@ -493,7 +494,7 @@ Builder.load_string("""
         RulesView:
             id: rulesview
             engine: root.engine
-            toggle: root.toggle
+            rulebook: root.rulebook
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: 0.05

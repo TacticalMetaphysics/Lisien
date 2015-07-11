@@ -89,14 +89,14 @@ class CharMenu(BoxLayout):
             )
         self.chars.toggle()
 
-    def toggle_rules_view(self, *args):
+    def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
         if self.current != 'rules':
             if not hasattr(self.selected_remote, 'rulebook'):
-                self.rulesview.rulebook = self.character.rulebook
+                self.rules.rulebook = self.character.rulebook
             else:
-                self.rulesview.rulebook = self.selected_remote.rulebook
-        self.rulesview.toggle()
+                self.rules.rulebook = self.selected_remote.rulebook
+        self.rules.toggle()
 
     def toggle_funcs_editor(self, functyp):
         """Display or hide the text editing window for functions."""
@@ -263,7 +263,7 @@ Builder.load_string("""
         on_press: root.toggle_funcs_editor('action')
     Button:
         text: 'Rules'
-        on_press: root.toggle_rules_view()
+        on_press: root.toggle_rules()
     Button:
         text: 'Delete'
         on_press: root.delete_selection()
