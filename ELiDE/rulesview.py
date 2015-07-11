@@ -477,6 +477,7 @@ class RulesView(FloatLayout):
 
 class RulesScreen(Screen):
     engine = ObjectProperty()
+    rulebook = ObjectProperty()
     rulesview = ObjectProperty()
     new_rule_name = StringProperty()
     new_rule = ObjectProperty()
@@ -493,6 +494,7 @@ Builder.load_string("""
         RulesView:
             id: rulesview
             engine: root.engine
+            rulebook: root.rulebook
             toggle: root.toggle
         BoxLayout:
             orientation: 'horizontal'

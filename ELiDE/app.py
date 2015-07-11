@@ -168,6 +168,7 @@ class ELiDEApp(App):
         )
 
         rules = ELiDE.rulesview.RulesScreen(
+            engine=self.engine,
             toggle=toggler('rules')
         )
 
