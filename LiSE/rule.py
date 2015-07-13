@@ -80,7 +80,8 @@ class Rule(object):
         """
         self.engine = engine
         self.name = self.__name__ = name
-        if not self.engine.rule.db.haverule(name):
+        if name not in self.engine.rule:
+            # normally I'd use rule.new_empty but that causes a recursion error in this case
             self.engine.rule.db.create_blank_rule(name)
         self._actions = ActionList(self)
         self._prereqs = PrereqList(self)
