@@ -49,16 +49,12 @@ class ControlTypePicker(ListItemButton):
     mainbutton = ObjectProperty()
     dropdown = ObjectProperty()
     setter = ObjectProperty()
-    button_kwargs = DictProperty()
-    dropdown_kwargs = DictProperty()
-    control_texts = DictProperty()
-    control_callbacks = DictProperty()
+    button_kwargs = DictProperty({})
+    dropdown_kwargs = DictProperty({})
+    control_texts = DictProperty({})
+    control_callbacks = DictProperty({})
 
     def __init__(self, **kwargs):
-        if 'button_kwargs' not in kwargs:
-            kwargs['button_kwargs'] = {}
-        if 'dropdown_kwargs' not in kwargs:
-            kwargs['dropdown_kwargs'] = {}
         super().__init__(**kwargs)
         self.build()
 
@@ -69,54 +65,42 @@ class ControlTypePicker(ListItemButton):
     def build(self, *args):
         if None in (
                 self.key,
-                self.setter,
-                self.button_kwargs,
-                self.dropdown_kwargs,
-                self.control_texts,
-                self.control_callbacks
+                self.setter
         ):
             Clock.schedule_once(self.build, 0)
             return
         self.mainbutton = None
         self.dropdown = None
-        self.dropdown = DropDown(
-            text=self.text,
-            on_select=lambda instance, x: self.selected(x),
-            **self.dropdown_kwargs
+        self.dropdown = DropDown()
+        self.dropdown.bind(on_select=lambda instance, x: self.selected(x))
+        readoutbut = Button(
+            text='Readout',
+            size_hint_y=None,
+            height=self.height
         )
-        self.dropdown.add_widget(
-            Button(
-                text='Readout',
-                size_hint_y=None,
-                height=self.height,
-                on_press=lambda instance: self.dropdown.select('readout')
-            )
+        readoutbut.bind(on_press=lambda instance: self.dropdown.select('readout'))
+        self.dropdown.add_widget(readoutbut)
+        textinbut = Button(
+            text='Text input',
+            size_hint_y=None,
+            height=self.height
         )
-        self.dropdown.add_widget(
-            Button(
-                text='Text input',
-                size_hint_y=None,
-                height=self.height,
-                on_press=lambda instance: self.dropdown.select('textinput')
-            )
+        textinbut.bind(on_press=lambda instance: self.dropdown.select('textinput'))
+        self.dropdown.add_widget(textinbut)
+        togbut = Button(
+            text='Toggle button',
+            size_hint_y=None,
+            height=self.height
         )
-        self.dropdown.add_widget(
-            Button(
-                text='Toggle button',
-                size_hint_y=None,
-                height=self.height,
-                on_press=lambda instance: self.dropdown.select('togglebutton')
-            )
+        togbut.bind(on_press=lambda instance: self.dropdown.select('togglebutton'))
+        self.dropdown.add_widget(togbut)
+        sliderbut = Button(
+            text='Slider',
+            size_hint_y=None,
+            height=self.height
         )
-        self.dropdown.add_widget(
-            Button(
-                text='Slider',
-                size_hint_y=None,
-                height=self.height,
-                on_press=lambda instance: self.dropdown.select('slider')
-            )
-        )
-
+        sliderbut.bind(on_press=lambda instance: self.dropdown.select('slider'))
+        self.dropdown.add_widget(sliderbut)
         self.bind(on_press=self.dropdown.open)
 
 

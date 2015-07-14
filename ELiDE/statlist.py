@@ -155,12 +155,24 @@ class StatListView(ListView, MirrorMapping):
         self._trigger_refresh_adapter = Clock.create_trigger(
             self.refresh_adapter
         )
+        self._trigger_handle_remote = Clock.create_trigger(
+            self.handle_remote
+        )
         self._listeners = {}
+        self.bind(remote=self._trigger_handle_remote)
         super().__init__(**kwargs)
 
     def on_time(self, *args):
-        Logger.debug("StatListView: on_time")
+        super().on_time(*args)
         self._trigger_upd_data()
+
+    def handle_remote(self, *args):
+        if hasattr(self, '_old_remote'):
+            self.unlisten(remote=self._old_remote)
+        self._old_remote = self.remote
+        self.listen()
+        self.sync()
+        self.refresh_adapter()
 
     def on_mirror(self, *args):
         Logger.debug("StatListView: on_mirror")
@@ -226,11 +238,13 @@ class StatListView(ListView, MirrorMapping):
             'kwargs': {'text': str(key)}
         }
         valdict = control_cls[control_type](value)
-        valdict['kwargs'].update(cfg)
         if control_type == 'togglebutton':
             true_text = cfg.get('true_text', '1')
             false_text = cfg.get('false_text', '0')
             valdict['kwargs']['text'] = true_text if value else false_text
+        elif control_type == 'slider':
+            valdict['min'] = cfg.get('min', 0)
+            valdict['max'] = cfg.get('max', 100)
         return [keydict, valdict]
 
     def get_data(self):

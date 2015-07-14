@@ -47,7 +47,8 @@ class MirrorMapping(EventDispatcher):
         With keyword argument ``stat``, sync with only that stat.
 
         """
-        self.remote.listener(
+        remote = kwargs.get('remote', None) or self.remote
+        remote.listener(
             fun=self._listen_func,
             stat=kwargs.get('stat', None)
         )
@@ -59,7 +60,8 @@ class MirrorMapping(EventDispatcher):
         but keep listening to the others.
 
         """
-        self.remote.unlisten(
+        remote = kwargs.get('remote', None) or self.remote
+        remote.unlisten(
             fun=self._listen_func,
             stat=kwargs.get('stat', None)
         )

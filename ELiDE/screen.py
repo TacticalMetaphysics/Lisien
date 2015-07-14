@@ -295,9 +295,12 @@ class MainScreen(Screen):
             Clock.schedule_once(self.reremote, 0)
             return
         try:
-            self.selected_remote = self.stat_cfg.remote = self._get_selected_remote()
+            self.selected_remote = self._get_selected_remote()
         except ValueError:
             return
+
+    def on_selected_remote(self, *args):
+        print('remote type: {}'.format(type(self.selected_remote)))
 
     def _get_selected_remote(self):
         """Return the currently selected entity, or ``self.character.stat`` if
@@ -734,7 +737,7 @@ Builder.load_string(
     CharMenu:
         id: charmenu
         pos_hint: {'right': 1, 'top': 1}
-        size_hint: (0.2, 0.9)
+        size_hint: (0.1, 0.9)
         engine: root.engine
         board: root.board
         selection: root.selection

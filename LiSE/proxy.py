@@ -1683,6 +1683,7 @@ class ThingProxy(NodeProxy):
 
     def __iter__(self):
         already = set(k for k in super().__iter__())
+        yield from already
         for k in {
                 'name',
                 'character',
@@ -2923,7 +2924,7 @@ class EngineProxy(object):
             return
         self._char_listeners[char].remove(fun)
         if not self._char_listeners[char]:
-            self.handle('unlisten_to_character', fun, silent=True)
+            self.handle('unlisten_to_character', (char,), silent=True)
             del self._char_listeners[char]
 
     def char_map_listener(self, fun):
