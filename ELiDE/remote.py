@@ -12,6 +12,7 @@ from kivy.properties import (
 )
 from kivy.clock import Clock
 from kivy.logger import Logger
+from .util import trigger
 
 
 class MirrorMapping(EventDispatcher):
@@ -40,6 +41,7 @@ class MirrorMapping(EventDispatcher):
                 data[k] = v
 
         self.mirror = data
+    _trigger_sync = trigger(sync)
 
     def listen(self, *args, **kwargs):
         """Make sure to stay in sync with all changes to remote.

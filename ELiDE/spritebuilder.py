@@ -13,6 +13,7 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
+from .util import trigger
 
 
 class SpriteSelector(BoxLayout):
@@ -71,8 +72,6 @@ class SpriteBuilder(ScrollView):
     pallets = ListProperty()
 
     def __init__(self, **kwargs):
-        self._trigger_update = Clock.create_trigger(self.update)
-        self._trigger_reheight = Clock.create_trigger(self.reheight)
         super().__init__(**kwargs)
         self.bind(
             data=self._trigger_update
@@ -122,11 +121,13 @@ class SpriteBuilder(ScrollView):
         for i in range(0, n):
             self._palbox.add_widget(self.labels[i])
             self._palbox.add_widget(self.pallets[i])
+    _trigger_update = trigger(update)
 
     def reheight(self, *args):
         self._palbox.height = sum(
             wid.height for wid in self.labels + self.pallets
         )
+    _trigger_reheight = trigger(reheight)
 
 
 class SpriteDialog(BoxLayout):

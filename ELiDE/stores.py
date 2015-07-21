@@ -33,6 +33,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.adapters.listadapter import ListAdapter
 from .codeinput import FunctionInput
+from .util import trigger
 
 
 class StoreDataItem(EventDispatcher, SelectableDataItem):
@@ -208,16 +209,11 @@ class StoreEditor(BoxLayout):
     source = StringProperty()
 
     def __init__(self, **kwargs):
-        self._trigger_save = Clock.create_trigger(self.save)
-        self._trigger_remake = Clock.create_trigger(self.remake)
-        self._trigger_redata_reselect = Clock.create_trigger(
-            self.redata_reselect
-        )
+        super().__init__(**kwargs)
         self.bind(
             table=self._trigger_remake,
             store=self._trigger_remake
         )
-        super().__init__(**kwargs)
 
     def remake(self, *args):
         if None in (self.store, self.table):
@@ -236,6 +232,7 @@ class StoreEditor(BoxLayout):
         )
         self.add_widget(self._list)
         self.add_editor()
+    _trigger_remake = trigger(remake)
 
     def changed_selection(self, *args):
         if self._list.selection:
@@ -248,6 +245,7 @@ class StoreEditor(BoxLayout):
         StoreDataItem.selectedness = defaultdict(lambda: False)
         StoreDataItem.selectedness[self.name] = True
         self._list._trigger_redata()
+    _trigger_redata_reselect = trigger(redata_reselect)
 
     def add_editor(self, *args):
         """Construct whatever editor widget I use and add it to myself."""
@@ -256,6 +254,7 @@ class StoreEditor(BoxLayout):
     def save(self, *args):
         """Write my editor's changes to disk."""
         raise NotImplementedError
+    _trigger_save = trigger(save)
 
     pawn_cfg = ObjectProperty()
     spot_cfg = ObjectProperty()

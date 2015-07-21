@@ -16,6 +16,7 @@ from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 from LiSE.rule import Rule
+from .util import trigger
 
 
 # TODO:
@@ -102,24 +103,6 @@ class RulesView(FloatLayout):
     )
 
     def __init__(self, **kwargs):
-        self._trigger_upd_rule_triggers = Clock.create_trigger(
-            self.upd_rule_triggers
-        )
-        self._trigger_upd_unused_triggers = Clock.create_trigger(
-            self.upd_unused_triggers
-        )
-        self._trigger_upd_rule_prereqs = Clock.create_trigger(
-            self.upd_rule_prereqs
-        )
-        self._trigger_upd_unused_prereqs = Clock.create_trigger(
-            self.upd_unused_prereqs
-        )
-        self._trigger_upd_rule_actions = Clock.create_trigger(
-            self.upd_rule_actions
-        )
-        self._trigger_upd_unused_actions = Clock.create_trigger(
-            self.upd_unused_actions
-        )
         super().__init__(**kwargs)
         self.finalize()
 
@@ -388,6 +371,7 @@ class RulesView(FloatLayout):
         ]
         if self.rule.actions != actions:
             self.rule.actions = actions
+    _trigger_upd_rule_actions = trigger(upd_rule_actions)
 
     def upd_unused_actions(self, *args):
         """Make sure to have exactly one copy of every valid action in the
@@ -409,6 +393,7 @@ class RulesView(FloatLayout):
         unused.reverse()
         self._action_builder.decks[1] = unused
         self._action_builder.bind(decks=self._trigger_upd_unused_actions)
+    _trigger_upd_unused_actions = trigger(upd_unused_actions)
 
     def upd_rule_prereqs(self, *args):
         prereqs = [
@@ -417,6 +402,7 @@ class RulesView(FloatLayout):
         ]
         if self.rule.prereqs != prereqs:
             self.rule.prereqs = prereqs
+    _trigger_upd_rule_prereqs = trigger(upd_rule_prereqs)
 
     def upd_unused_prereqs(self, *args):
         """Make sure to have exactly one copy of every valid prereq in the
@@ -438,6 +424,7 @@ class RulesView(FloatLayout):
         unused.reverse()
         self._prereq_builder.decks[1] = unused
         self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
+    _trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
 
     def upd_rule_triggers(self, att, *args):
         triggers = [
@@ -446,6 +433,7 @@ class RulesView(FloatLayout):
         ]
         if self.rule.triggers != triggers:
             self.rule.triggers = triggers
+    _trigger_upd_rule_triggers = trigger(upd_rule_triggers)
 
     def upd_unused_triggers(self, *args):
         """Make sure to have exactly one copy of every valid prereq in the
@@ -467,6 +455,7 @@ class RulesView(FloatLayout):
         unused.reverse()
         self._trigger_builder.decks[1] = unused
         self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
+    _trigger_upd_unused_triggers = trigger(upd_unused_triggers)
 
 
 class RulesScreen(Screen):

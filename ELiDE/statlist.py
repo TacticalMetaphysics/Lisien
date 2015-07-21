@@ -25,12 +25,12 @@ from kivy.uix.listview import (
 from kivy.adapters.dictadapter import DictAdapter
 from kivy.lang import Builder
 from ELiDE.remote import MirrorMapping
+from .util import trigger
 
 
 class StatRowTextInput(TextInput, SelectableView):
     def __init__(self, **kwargs):
         kwargs['multiline'] = False
-        self._trigger_upd_value = Clock.create_trigger(self.upd_value)
         super().__init__(**kwargs)
 
         def lost_focus(self, *args):
@@ -50,14 +50,10 @@ class StatRowTextInput(TextInput, SelectableView):
             self.parent.value = self.text
         self.parent.set_value()
         self.text = ''
+    _trigger_upd_value = trigger(upd_value)
 
 
 class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
-    def __init__(self, **kwargs):
-        self._trigger_upd_value = Clock.create_trigger(self.upd_value)
-        self.bind(on_touch_up=self._trigger_upd_value)
-        super().__init__(**kwargs)
-
     def upd_value(self, *args):
         if self.parent is None:
             return
@@ -72,15 +68,14 @@ class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
         else:
             self.parent.value = 1
         self.parent.set_value()
+    _trigger_upd_value = trigger(upd_value)
+
+    def on_touch_up(self, touch):
+        self._trigger_upd_value()
 
 
 class StatRowSlider(Slider, SelectableView):
     need_set = BooleanProperty(False)
-
-    def __init__(self, **kwargs):
-        self._trigger_maybe_set = Clock.create_trigger(self.maybe_set)
-        super().__init__(**kwargs)
-        self.bind(on_touch_up=self._trigger_maybe_set)
 
     def on_value(self, *args):
         self.need_set = True
@@ -90,6 +85,10 @@ class StatRowSlider(Slider, SelectableView):
             self.parent.value = self.value
             self.parent.set_value()
             self.need_set = False
+    _trigger_maybe_set = trigger(maybe_set)
+
+    def on_touch_up(self, touch):
+        self._trigger_maybe_set()
 
 
 class StatRowListItem(CompositeListItem):
@@ -150,14 +149,6 @@ class StatListView(ListView, MirrorMapping):
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
-        self._trigger_sortkeys = Clock.create_trigger(self.sortkeys)
-        self._trigger_upd_data = Clock.create_trigger(self.upd_data)
-        self._trigger_refresh_adapter = Clock.create_trigger(
-            self.refresh_adapter
-        )
-        self._trigger_handle_remote = Clock.create_trigger(
-            self.handle_remote
-        )
         self._listeners = {}
         self.bind(remote=self._trigger_handle_remote)
         super().__init__(**kwargs)
@@ -173,6 +164,7 @@ class StatListView(ListView, MirrorMapping):
         self.listen()
         self.sync()
         self.refresh_adapter()
+    _trigger_handle_remote = trigger(handle_remote)
 
     def on_mirror(self, *args):
         Logger.debug("StatListView: on_mirror")
@@ -266,6 +258,7 @@ class StatListView(ListView, MirrorMapping):
 
     def refresh_adapter(self, *args):
         self.adapter = self.get_adapter()
+    _trigger_refresh_adapter = trigger(refresh_adapter)
 
     def upd_data(self, *args):
         Logger.debug("StatListView: upd_data")
@@ -278,6 +271,7 @@ class StatListView(ListView, MirrorMapping):
         ):
             self.config = dict(self.mirror['_config'])
         self.adapter.data = self.get_data()
+    _trigger_upd_data = trigger(upd_data)
 
     def sortkeys(self, *args):
         for key in self.mirror.keys():
@@ -289,6 +283,7 @@ class StatListView(ListView, MirrorMapping):
             if k not in seen and k not in self.mirror:
                 self.adapter.sorted_keys.remove(k)
             seen.add(k)
+    _trigger_sortkeys = trigger(sortkeys)
 
     def _reg_widget(self, w, *args):
         if not self.mirror:

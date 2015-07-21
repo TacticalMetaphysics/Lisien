@@ -16,6 +16,7 @@ from kivy.clock import Clock
 from kivy.logger import Logger
 from ELiDE.kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
+from ..util import trigger
 
 
 class Spot(PawnSpot):
@@ -44,12 +45,6 @@ class Spot(PawnSpot):
         changes in game-time.
 
         """
-        self._trigger_upd_pawns_here = Clock.create_trigger(
-            self._upd_pawns_here
-        )
-        self._trigger_push_pos = Clock.create_trigger(
-            self.push_pos
-        )
         self._pospawn_partials = {}
         self._pospawn_triggers = {}
         kwargs['size_hint'] = (None, None)
@@ -130,6 +125,7 @@ class Spot(PawnSpot):
         """
         self.remote['_x'] = self.x / self.board.width
         self.remote['_y'] = self.y / self.board.height
+    _trigger_push_pos = trigger(push_pos)
 
     def add_widget(self, wid, i=0, canvas=None):
         """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
@@ -195,6 +191,7 @@ class Spot(PawnSpot):
         """
         for pawn in self.children:
             self.pospawn(pawn)
+    _trigger_upd_pawns_here = trigger(_upd_pawns_here)
 
     def collide_point(self, x, y):
         """Check my collider."""

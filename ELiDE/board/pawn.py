@@ -8,9 +8,9 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty
 )
-from kivy.clock import Clock
 from kivy.logger import Logger
 from .pawnspot import PawnSpot
+from ..util import trigger
 
 
 class Pawn(PawnSpot):
@@ -44,21 +44,6 @@ class Pawn(PawnSpot):
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
 
     def __init__(self, **kwargs):
-        self._trigger_push_location = Clock.create_trigger(
-            self.push_location
-        )
-        self._trigger_push_next_location = Clock.create_trigger(
-            self.push_next_location
-        )
-        self._trigger_relocate = Clock.create_trigger(
-            self.relocate
-        )
-        self._trigger_upd_loc_name = Clock.create_trigger(
-            self.upd_loc_name
-        )
-        self._trigger_upd_next_loc_name = Clock.create_trigger(
-            self.upd_next_loc_name
-        )
         if 'thing' in kwargs:
             kwargs['remote'] = kwargs['thing']
             del kwargs['thing']
@@ -87,14 +72,17 @@ class Pawn(PawnSpot):
         if location != self.parent:
             self.parent.remove_widget(self)
             location.add_widget(self)
+    _trigger_relocate = trigger(relocate)
 
     def upd_loc_name(self, *args):
         self.loc_name = self.remote['location']
         self._trigger_relocate()
+    _trigger_upd_loc_name = trigger(upd_loc_name)
 
     def upd_next_loc_name(self, *args):
         self.next_loc_name = self.remote.get('next_location', None)
         self._trigger_relocate()
+    _trigger_upd_next_loc_name = trigger(upd_next_loc_name)
 
     def listen_loc(self, *args):
         self.remote.listener(
@@ -105,6 +93,7 @@ class Pawn(PawnSpot):
             fun=self._trigger_upd_next_loc_name,
             stat='next_location'
         )
+    _trigger_listen_loc = trigger(listen_loc)
 
     def unlisten_loc(self, *args):
         self.remote.unlisten(
@@ -115,6 +104,7 @@ class Pawn(PawnSpot):
             fun=self._trigger_upd_next_loc_name,
             stat='next_location'
         )
+    _trigger_unlisten_loc = trigger(unlisten_loc)
 
     def on_remote(self, *args):
         """In addition to the usual behavior from
@@ -126,13 +116,15 @@ class Pawn(PawnSpot):
         super().on_remote(*args)
         self.loc_name = self.remote['location']
         self.next_loc_name = self.remote.get('next_location', None)
-        self.listen_loc()
+        self._trigger_listen_loc()
 
     def push_location(self, *args):
         self.remote['location'] = self.loc_name
+    _trigger_push_location = trigger(push_location)
 
     def push_next_location(self, *args):
         self.remote['next_location'] = self.next_loc_name
+    _trigger_push_next_location = trigger(push_next_location)
 
     def add_widget(self, pawn, index=0, canvas='after'):
         """Apart from the normal behavior, bind my ``center`` so that the

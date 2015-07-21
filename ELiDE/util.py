@@ -1,6 +1,41 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from gorm.xjson import json_load
+from kivy.clock import Clock
+from functools import partial
+
+
+class trigger(object):
+    """Make a trigger from a method.
+
+    Decorate a method with this and it will become a trigger. Supply a numeric parameter to set a timeout.
+
+    Not suitable for methods that expect any arguments other than ``dt``. However you should make your method
+    accept ``*args`` for compatibility.
+
+    """
+    def __init__(self, func_or_timeout):
+        if callable(func_or_timeout):
+            self.func = func_or_timeout
+            self.timeout = 0
+        else:
+            self.func = None
+            self.timeout = func_or_timeout
+
+    def __call__(self, func):
+        self.func = func
+        return self
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            # EventDispatcher iterates over its attributes before it instantiates.
+            # Don't try making any trigger in that case.
+            return
+        retval = Clock.create_trigger(
+            partial(self.func, instance), self.timeout
+        )
+        setattr(instance, self.func.__name__, retval)
+        return retval
 
 
 def set_remote_value(remote, k, v):

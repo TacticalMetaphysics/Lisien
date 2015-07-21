@@ -19,6 +19,7 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
 from ..remote import MirrorMapping
+from ..util import trigger
 
 
 class PawnSpot(ImageStack, MirrorMapping):
@@ -35,21 +36,6 @@ class PawnSpot(ImageStack, MirrorMapping):
     listen_tick = NumericProperty(0)
     listen_time = ReferenceListProperty(listen_branch, listen_tick)
     use_boardspace = True
-
-    def __init__(self, **kwargs):
-        self._trigger_push_image_paths = Clock.create_trigger(
-            self.push_image_paths
-        )
-        self._trigger_push_offxs = Clock.create_trigger(
-            self.push_offxs
-        )
-        self._trigger_push_offys = Clock.create_trigger(
-            self.push_offys
-        )
-        self._trigger_push_stackhs = Clock.create_trigger(
-            self.push_stackhs
-        )
-        super().__init__(**kwargs)
 
     def on_remote(self, *args):
         if (
@@ -93,15 +79,19 @@ class PawnSpot(ImageStack, MirrorMapping):
 
     def push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)
+    _trigger_push_image_paths = trigger(push_image_paths)
 
     def push_offxs(self, *args):
         self.remote['_offxs'] = list(self.offxs)
+    _trigger_push_offxs = trigger(push_offxs)
 
     def push_offys(self, *args):
         self.remote['_offys'] = list(self.offys)
+    _trigger_push_offys = trigger(push_offys)
 
     def push_stackhs(self, *args):
         self.remote['_stackhs'] = list(self.stackhs)
+    _trigger_push_stackhs = trigger(push_stackhs)
 
     def on_linecolor(self, *args):
         """If I don't yet have the instructions for drawing the selection box

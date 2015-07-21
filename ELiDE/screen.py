@@ -32,7 +32,7 @@ from .dummy import Dummy
 from .spritebuilder import PawnConfigScreen, SpotConfigScreen
 from .charmenu import CharMenu
 from .board.arrow import ArrowWidget
-from .util import dummynum
+from .util import dummynum, trigger
 
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -172,11 +172,7 @@ class MainScreen(Screen):
     funcs = ObjectProperty()
 
     def __init__(self, **kwargs):
-        self._trigger_remake_display = Clock.create_trigger(
-            self.remake_display
-        )
         super().__init__(**kwargs)
-        self._trigger_reremote = Clock.create_trigger(self.reremote)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
 
@@ -285,6 +281,7 @@ class MainScreen(Screen):
         self.add_widget(self._kv_layout_back)
         self.add_widget(self._message)
         self.add_widget(self._kv_layout_front)
+    _trigger_remake_display = trigger(remake_display)
 
     def reremote(self, *args):
         """Arrange to update my ``selected_remote`` with the currently
@@ -298,6 +295,7 @@ class MainScreen(Screen):
             self.selected_remote = self._get_selected_remote()
         except ValueError:
             return
+    _trigger_reremote = trigger(reremote)
 
     def on_selected_remote(self, *args):
         print('remote type: {}'.format(type(self.selected_remote)))
