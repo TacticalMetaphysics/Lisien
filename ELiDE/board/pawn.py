@@ -44,6 +44,10 @@ class Pawn(PawnSpot):
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
 
     def __init__(self, **kwargs):
+        if 'thing' in kwargs:
+            kwargs['remote'] = kwargs['thing']
+            del kwargs['thing']
+        super().__init__(**kwargs)
         self._trigger_push_location = Clock.create_trigger(
             self.push_location
         )
@@ -53,16 +57,6 @@ class Pawn(PawnSpot):
         self._trigger_relocate = Clock.create_trigger(
             self.relocate
         )
-        self._trigger_upd_loc_name = Clock.create_trigger(
-            self.upd_loc_name
-        )
-        self._trigger_upd_next_loc_name = Clock.create_trigger(
-            self.upd_next_loc_name
-        )
-        if 'thing' in kwargs:
-            kwargs['remote'] = kwargs['thing']
-            del kwargs['thing']
-        super().__init__(**kwargs)
 
     def on_parent(self, *args):
         if self.parent:
@@ -97,10 +91,20 @@ class Pawn(PawnSpot):
         self._trigger_relocate()
 
     def listen_loc(self, *args):
+        if not hasattr(self, '_trigger_upd_loc_name'):
+            self._trigger_upd_loc_name = Clock.create_trigger(
+                self.upd_loc_name
+            )
+
         self.remote.listener(
             fun=self._trigger_upd_loc_name,
             stat='location'
         )
+
+        if not hasattr(self, '_trigger_upd_next_loc_name'):
+            self._trigger_upd_next_loc_name = Clock.create_trigger(
+                self.upd_next_loc_name
+            )
         self.remote.listener(
             fun=self._trigger_upd_next_loc_name,
             stat='next_location'

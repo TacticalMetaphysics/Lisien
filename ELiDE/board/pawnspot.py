@@ -37,26 +37,15 @@ class PawnSpot(ImageStack, MirrorMapping):
     use_boardspace = True
 
     def __init__(self, **kwargs):
-        self._trigger_push_image_paths = Clock.create_trigger(
-            self.push_image_paths
-        )
-        self._trigger_push_offxs = Clock.create_trigger(
-            self.push_offxs
-        )
-        self._trigger_push_offys = Clock.create_trigger(
-            self.push_offys
-        )
-        self._trigger_push_stackhs = Clock.create_trigger(
-            self.push_stackhs
-        )
         super().__init__(**kwargs)
+        self.bind(on_press=self._trigger_sync)
 
     def on_remote(self, *args):
         if (
                 self.remote is None or
                 not hasattr(self.remote, 'name')
         ):
-            Logger.debug('PawnSpot: bad remote {}'.format(self.remote))
+            Logger.warning('PawnSpot: bad remote {}'.format(self.remote))
             return
         self.name = self.remote.name
         self.paths = self.remote.get(
@@ -66,6 +55,22 @@ class PawnSpot(ImageStack, MirrorMapping):
         self.offxs = self.remote.get('_offxs', zeroes)
         self.offys = self.remote.get('_offys', zeroes)
         self.stackhs = self.remote.get('_stackhs', zeroes)
+        if not hasattr(self, '_trigger_push_image_paths'):
+            self._trigger_push_image_paths = Clock.create_trigger(
+                self.push_image_paths
+            )
+        if not hasattr(self, '_trigger_push_offxs'):
+            self._trigger_push_offxs = Clock.create_trigger(
+                self.push_offxs
+            )
+        if not hasattr(self, '_trigger_push_offys'):
+            self._trigger_push_offys = Clock.create_trigger(
+                self.push_offys
+            )
+        if not hasattr(self, '_trigger_push_stackhs'):
+            self._trigger_push_stackhs = Clock.create_trigger(
+                self.push_stackhs
+            )
         self.bind(
             paths=self._trigger_push_image_paths,
             offxs=self._trigger_push_offxs,
@@ -89,7 +94,7 @@ class PawnSpot(ImageStack, MirrorMapping):
                 '_y'
         ):
             self.listen(stat=s)
-        self.sync()
+        self._trigger_sync()
 
     def push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)
