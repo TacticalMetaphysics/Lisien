@@ -44,20 +44,20 @@ class Spot(PawnSpot):
         changes in game-time.
 
         """
-        kwargs['size_hint'] = (None, None)
-        if 'place' in kwargs:
-            kwargs['remote'] = kwargs['place']
-            del kwargs['place']
-        super().__init__(**kwargs)
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
         )
-        self.bind(pos=self._trigger_upd_pawns_here)
         self._trigger_push_pos = Clock.create_trigger(
             self.push_pos
         )
         self._pospawn_partials = {}
         self._pospawn_triggers = {}
+        kwargs['size_hint'] = (None, None)
+        if 'place' in kwargs:
+            kwargs['remote'] = kwargs['place']
+            del kwargs['place']
+        super().__init__(**kwargs)
+        self.bind(pos=self._trigger_upd_pawns_here)
 
     def _get_pospawn_partial(self, pawn):
         if pawn not in self._pospawn_partials:
