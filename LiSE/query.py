@@ -233,6 +233,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return self.sql('ct_characters').fetchone()[0]
 
     def have_character(self, name):
+        name = json_dump(name)
         return self.sql('ct_character', name).fetchone()[0] > 0
 
     def del_character(self, name):

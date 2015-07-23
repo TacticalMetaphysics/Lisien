@@ -31,7 +31,8 @@ from .util import (
     listen,
     listener,
     unlistener,
-    fire_time_travel_triggers
+    fire_time_travel_triggers,
+    reify
 )
 from .rule import Rule, RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
@@ -1641,18 +1642,6 @@ class Character(DiGraph, RuleFollower):
             d['place'],
             d['portal']
         )
-        self.thing = CharacterThingMapping(self)
-        self.place = CharacterPlaceMapping(self)
-        self.node = CharacterThingPlaceMapping(self)
-        self.portal = CharacterPortalSuccessorsMapping(self)
-        self.adj = self.portal
-        self.succ = self.adj
-        self.preportal = CharacterPortalPredecessorsMapping(self)
-        self.pred = self.preportal
-        self.avatar = CharacterAvatarGraphMapping(self)
-        self.sense = CharacterSenseMapping(self)
-        self.travel_reqs = TravelReqList(self)
-        self.stat = CharStatCache(self)
         if engine.caching:
             self._avatar_cache = ac = {}
             # I'll cache this ONE table in full, because iterating
@@ -1666,6 +1655,50 @@ class Character(DiGraph, RuleFollower):
                     ac[g][n][b] = {}
                 ac[g][n][b][t] = a
         self._portal_traits = set()
+
+    @reify
+    def thing(self):
+        return CharacterThingMapping(self)
+
+    @reify
+    def place(self):
+        return CharacterPlaceMapping(self)
+
+    @reify
+    def node(self):
+        return CharacterThingPlaceMapping(self)
+
+    @reify
+    def portal(self):
+        return CharacterPortalSuccessorsMapping(self)
+
+    @property
+    def adj(self):
+        return self.portal
+
+    @property
+    def succ(self):
+        return self.portal
+
+    @reify
+    def preportal(self):
+        return CharacterPortalPredecessorsMapping(self)
+
+    @property
+    def pred(self):
+        return self.preportal
+
+    @reify
+    def avatar(self):
+        return CharacterAvatarGraphMapping(self)
+
+    @reify
+    def travel_reqs(self):
+        return TravelReqList(self)
+
+    @reify
+    def stat(self):
+        return CharStatCache(self)
 
     def _get_rulebook(self):
         return RuleBook(

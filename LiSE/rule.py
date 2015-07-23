@@ -12,7 +12,8 @@ from .funlist import FunList
 from .util import (
     dispatch,
     listener,
-    listen
+    listen,
+    reify
 )
 
 
@@ -471,10 +472,12 @@ class RuleFollower(object):
     get a :class:`RuleMapping` into
 
     """
+    @reify
+    def _rule_mapping(self):
+        return self._get_rule_mapping()
+
     @property
     def rule(self, v=None, name=None):
-        if not hasattr(self, '_rule_mapping'):
-            self._rule_mapping = self._get_rule_mapping()
         if v is not None:
             return self._rule_mapping(v, name)
         return self._rule_mapping

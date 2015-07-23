@@ -193,6 +193,7 @@ def path_len(graph, path, weight=None):
 
 # ==Caching==
 from gorm.xjson import JSONWrapper, JSONListWrapper
+from gorm.reify import reify
 from collections import MutableMapping, MutableSequence
 
 

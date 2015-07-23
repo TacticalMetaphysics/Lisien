@@ -18,7 +18,7 @@ from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import dispatch, listen, listener, unlisten, unlistener
+from .util import dispatch, listen, listener, unlisten, unlistener, reify
 
 
 class NotThatMap(Mapping):
@@ -472,21 +472,11 @@ class Engine(object):
         )
         self._time_listeners = []
         self.db = self.gorm.db
-        code_qe = QueryEngine(
+        self._code_qe = QueryEngine(
             self.codedb, connect_args={}, alchemy=alchemy
         )
-        self.string = StringStore(code_qe)
-        self.rulebook = AllRuleBooks(self, code_qe)
-        self.rule = AllRules(self, code_qe)
         self.eternal = self.db.globl
-        self.universal = GlobalVarMapping(self)
-        self.character = CharacterMapping(self)
         # start the database
-        self.stores = ('action', 'prereq', 'trigger', 'sense', 'function')
-        for store in self.stores:
-            setattr(self, store, FunctionStoreDB(
-                self, code_qe, store)
-            )
         if hasattr(self.gorm.db, 'alchemist'):
             self.worlddb = self.gorm.db.alchemist.conn.connection
         else:
@@ -515,10 +505,6 @@ class Engine(object):
                     self._branch_start[branch] = parent_tick
                 else:
                     todo.append(working)
-        # This speeds up operations for small numbers of
-        # characters...it won't scale well, so perhaps take it out
-        for n in self.db.characters():
-            self.character[n] = Character(self, n)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -545,6 +531,46 @@ class Engine(object):
         self.uniform = self.rando.uniform
         self.vonmisesvariate = self.rando.vonmisesvariate
         self.weibullvariate = self.rando.weibullvariate
+
+    @reify
+    def action(self):
+        return FunctionStoreDB(self, self._code_qe, 'action')
+
+    @reify
+    def prereq(self):
+        return FunctionStoreDB(self, self._code_qe, 'prereq')
+
+    @reify
+    def trigger(self):
+        return FunctionStoreDB(self, self._code_qe, 'trigger')
+
+    @reify
+    def sense(self):
+        return FunctionStoreDB(self, self._code_qe, 'sense')
+
+    @reify
+    def function(self):
+        return FunctionStoreDB(self, self._code_qe, 'function')
+
+    @reify
+    def rule(self):
+        return AllRules(self, self._code_qe)
+
+    @reify
+    def rulebook(self):
+        return AllRuleBooks(self, self._code_qe)
+
+    @reify
+    def string(self):
+        return StringStore(self._code_qe)
+
+    @reify
+    def universal(self):
+        return GlobalVarMapping(self)
+
+    @reify
+    def character(self):
+        return CharacterMapping(self)
 
     def _node_exists(self, graph, node):
         """Version of gorm's ``_node_exists`` that caches stuff"""
