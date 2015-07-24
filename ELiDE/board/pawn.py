@@ -147,6 +147,9 @@ class Pawn(PawnSpot):
         """Move with the touch if I'm grabbed."""
         if not self.selected:
             return False
+        if not hasattr(self, '_unlistened'):
+            self.parent._unbind_trigger_pospawn(self)
+            self._unlistened = True
         self.center = touch.pos
         return True
 
@@ -158,6 +161,9 @@ class Pawn(PawnSpot):
         """
         if not self.selected:
             return False
+        if hasattr(self, '_unlistened'):
+            self.parent._bind_trigger_pospawn(self)
+            del self._unlistened
         for spot in self.board.spot.values():
             if self.collide_widget(spot) and spot.name != self.loc_name:
                 Logger.debug(
