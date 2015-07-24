@@ -325,71 +325,62 @@ class MainScreen(Screen):
         the dummies, then the menus.
 
         """
-        if self.ids.timepanel.collide_point(*touch.pos):
-            self.ids.timepanel.dispatch('on_touch_down', touch)
-            self.keep_selection = True
-            return True
-        if self.ids.charmenu.collide_point(*touch.pos):
-            self.ids.charmenu.dispatch('on_touch_down', touch)
-            self.keep_selection = True
-            return True
-        if self.ids.statpanel.collide_point(*touch.pos):
-            self.ids.statpanel.dispatch('on_touch_down', touch)
-            self.keep_selection = True
-            return True
-        if self.dummyplace.collide_point(*touch.pos):
-            self.dummyplace.dispatch('on_touch_down', touch)
-            return True
-        if self.dummything.collide_point(*touch.pos):
-            self.dummything.dispatch('on_touch_down', touch)
-            return True
-        if self.ids.boardview.collide_point(*touch.pos):
-            touch.push()
-            touch.apply_transform_2d(self.ids.boardview.to_local)
-            pawns = list(self.board.pawns_at(*touch.pos))
-            if pawns:
-                self.selection_candidates = pawns
-                if self.selection in self.selection_candidates:
-                    self.selection_candidates.remove(self.selection)
+        for interceptor in (
+            self.ids.timepanel,
+            self.ids.charmenu,
+            self.ids.statpanel,
+            self.dummyplace,
+            self.dummything
+        ):
+            if interceptor.collide_point(*touch.pos):
+                interceptor.dispatch('on_touch_down', touch)
+                self.keep_selection = True
                 return True
-            spots = list(self.board.spots_at(*touch.pos))
-            if spots:
-                self.selection_candidates = spots
-                if self.selection in self.selection_candidates:
-                    self.selection_candidates.remove(self.selection)
-                if self.portaladdbut.state == 'down':
-                    self.origspot = self.selection_candidates.pop(0)
-                    self.protodest = Dummy(
-                        pos=touch.pos,
-                        size=(0, 0)
+        if not self.ids.boardview.collide_point(*touch.pos):
+            return
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
+        pawns = list(self.board.pawns_at(*touch.pos))
+        if pawns:
+            self.selection_candidates = pawns
+            if self.selection in self.selection_candidates:
+                self.selection_candidates.remove(self.selection)
+            return True
+        spots = list(self.board.spots_at(*touch.pos))
+        if spots:
+            self.selection_candidates = spots
+            if self.selection in self.selection_candidates:
+                self.selection_candidates.remove(self.selection)
+            if self.portaladdbut.state == 'down':
+                self.origspot = self.selection_candidates.pop(0)
+                self.protodest = Dummy(
+                    pos=touch.pos,
+                    size=(0, 0)
+                )
+                self.board.add_widget(self.protodest)
+                self.selection = self.protodest
+                # why do I need this next?
+                self.protodest.on_touch_down(touch)
+                self.protoportal = ArrowWidget(
+                    origin=self.origspot,
+                    destination=self.protodest
+                )
+                self.board.add_widget(self.protoportal)
+                if self.reciprocal_portal:
+                    self.protoportal2 = ArrowWidget(
+                        destination=self.origspot,
+                        origin=self.protodest
                     )
-                    self.board.add_widget(self.protodest)
-                    self.selection = self.protodest
-                    # why do I need this next?
-                    self.protodest.on_touch_down(touch)
-                    self.protoportal = ArrowWidget(
-                        origin=self.origspot,
-                        destination=self.protodest
-                    )
-                    self.board.add_widget(self.protoportal)
-                    if self.reciprocal_portal:
-                        self.protoportal2 = ArrowWidget(
-                            destination=self.origspot,
-                            origin=self.protodest
-                        )
-                        self.board.add_widget(self.protoportal2)
+                    self.board.add_widget(self.protoportal2)
+            return True
+        if self.selection_candidates == []:
+            arrows = list(self.board.arrows_at(*touch.pos))
+            if arrows:
+                self.selection_candidates = arrows
                 return True
-            if self.selection_candidates == []:
-                arrows = list(self.board.arrows_at(*touch.pos))
-                if arrows:
-                    self.selection_candidates = arrows
-                    return True
-            # the board did not handle the touch, so let the view scroll
-            touch.pop()
-            return self.ids.boardview.dispatch('on_touch_down', touch)
-        for dummy in self.dummies:
-            if dummy.dispatch('on_touch_down', touch):
-                return True
+        # the board did not handle the touch, so let the view scroll
+        touch.pop()
+        return self.ids.boardview.dispatch('on_touch_down', touch)
 
     def on_touch_move(self, touch):
         """If something's selected, it's on the board, so transform the touch
@@ -408,16 +399,7 @@ class MainScreen(Screen):
                 return True
         return super().on_touch_move(touch)
 
-    def on_touch_up(self, touch):
-        """If there's a selection, dispatch the touch to it. Then, if there
-        are selection candidates, select the next one that collides
-        the touch. Otherwise, if something is selected, unselect
-        it.
-
-        """
-        if hasattr(self, 'protodest'):
-            # We're finishing the process of drawing an arrow to
-            # create a new portal.
+    def _portal_touch_up(self, touch):
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             try:
@@ -476,47 +458,60 @@ class MainScreen(Screen):
             del self.protoportal
             del self.protodest
             touch.pop()
-        if hasattr(self.selection, 'on_touch_up'):
-            self.selection.dispatch('on_touch_up', touch)
-        if self.ids.timepanel.collide_point(*touch.pos):
+
+    def _selection_touch_up(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
+        while self.selection_candidates:
+            candidate = self.selection_candidates.pop(0)
+            if candidate.collide_point(*touch.pos):
+                if hasattr(self.selection, 'selected'):
+                    self.selection.selected = False
+                if hasattr(self.selection, '_start'):
+                    self.selection.pos = self.selection._start
+                    del self.selection._start
+                self.selection = candidate
+                self.selection.selected = True
+                if (
+                        hasattr(self.selection, 'thing') and not
+                        hasattr(self.selection, '_start')
+                ):
+                    self.selection._start = tuple(self.selection.pos)
+                touch.pop()
+                self.keep_selection = True
+                return True
+        touch.pop()
+
+    def on_touch_up(self, touch):
+        """If there's a selection, dispatch the touch to it. Then, if there
+        are selection candidates, select the next one that collides
+        the touch. Otherwise, if something is selected, unselect
+        it.
+
+        """
+        if hasattr(self, 'protodest'):
+            # We're finishing the process of drawing an arrow to
+            # create a new portal.
+            self._portal_touch_up(touch)
+            return True
+        elif self.ids.timepanel.collide_point(*touch.pos):
             self.ids.timepanel.dispatch('on_touch_up', touch)
             return True
-        if self.ids.charmenu.collide_point(*touch.pos):
+        elif self.ids.charmenu.collide_point(*touch.pos):
             self.ids.charmenu.dispatch('on_touch_up', touch)
             return True
-        if self.ids.statpanel.collide_point(*touch.pos):
+        elif self.ids.statpanel.collide_point(*touch.pos):
             self.ids.statpanel.dispatch('on_touch_up', touch)
             return True
+        elif hasattr(self.selection, 'on_touch_up'):
+            self.selection.dispatch('on_touch_up', touch)
         # If we're not making a portal, and the touch hasn't landed
         # anywhere that would demand special treatment, but the
         # touch_down hit some selectable items, select the first of
         # those that also collides this touch_up.
-        if not self.keep_selection and self.selection_candidates:
-            touch.push()
-            touch.apply_transform_2d(self.ids.boardview.to_local)
-            while self.selection_candidates:
-                candidate = self.selection_candidates.pop(0)
-                if candidate.collide_point(*touch.pos):
-                    if hasattr(self.selection, 'selected'):
-                        self.selection.selected = False
-                    if hasattr(self.selection, '_start'):
-                        self.selection.pos = self.selection._start
-                        del self.selection._start
-                    self.selection = candidate
-                    self.selection.selected = True
-                    if (
-                            hasattr(self.selection, 'thing') and not
-                            hasattr(self.selection, '_start')
-                    ):
-                        self.selection._start = tuple(self.selection.pos)
-                    self.keep_selection = True
-                    break
-            touch.pop()
-        if not self.keep_selection and not (
-                self.ids.timepanel.collide_point(*touch.pos) or
-                self.ids.charmenu.collide_point(*touch.pos) or
-                self.ids.statpanel.collide_point(*touch.pos)
-        ):
+        if self.selection_candidates:
+            self._selection_touch_up(touch)
+        if not self.keep_selection:
             if hasattr(self.selection, 'selected'):
                 self.selection.selected = False
             self.selection = None
