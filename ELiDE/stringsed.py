@@ -13,9 +13,9 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from .stores import StringsEditor
+
+
 Factory.register('StringsEditor', cls=StringsEditor)
-
-
 
 
 class StringsEdScreen(Screen):

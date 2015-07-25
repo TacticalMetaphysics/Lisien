@@ -108,6 +108,9 @@ class StringStore(MutableMapping):
     def unlisten(self, fun=None, string=None):
         return unlistener(self._str_listeners, fun, string)
 
+    def commit(self):
+        self.db.commit()
+
     @property
     def language(self):
         """Get the current language."""
@@ -552,6 +555,17 @@ class Engine(object):
     def function(self):
         return FunctionStoreDB(self, self._code_qe, 'function')
 
+    @property
+    def stores(self):
+        return (
+            self.action,
+            self.prereq,
+            self.trigger,
+            self.sense,
+            self.function,
+            self.string
+        )
+
     @reify
     def rule(self):
         return AllRules(self, self._code_qe)
@@ -639,7 +653,7 @@ class Engine(object):
             self.gorm.branch = self.gorm._obranch
             self.gorm.rev = self.gorm._orev
         for store in self.stores:
-            getattr(self, store).commit()
+            store.commit()
         self.gorm.commit()
 
     def close(self):

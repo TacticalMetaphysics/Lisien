@@ -577,6 +577,10 @@ class EngineHandle(object):
         self._real.character[charn].place.unlisten(a)
         self._real.time_unlisten(b)
 
+    def listen_to_nodes_stats(self, triples):
+        for (charn, noden, statn) in triples:
+            self.listen_to_node_stat(charn, noden, statn)
+
     def listen_to_node_stat(self, charn, noden, statn):
         if (
                 charn in self._node_stat_listeners and
@@ -625,6 +629,10 @@ class EngineHandle(object):
         if noden not in self._node_stat_listeners[charn]:
             self._node_stat_listeners[charn][noden] = {}
         self._node_stat_listeners[charn][noden][statn] = (put_stat, check_stat)
+
+    def unlisten_to_nodes_stats(self, triples):
+        for (charn, noden, statn) in triples:
+            self.unlisten_to_node_stat(charn, noden, statn)
 
     def unlisten_to_node_stat(self, charn, noden, statn):
         if not (
@@ -1619,6 +1627,16 @@ class NodeProxy(CachingEntityProxy):
             return fun
         else:
             return lambda f: self.listener(fun=f, stat=stat)
+
+    def listeners(self, fun=None, stats=None):
+        if stats is None:
+            raise TypeError('Need some stats here')
+        if fun is None:
+            return lambda f: self.listeners(fun=f, stats=stats)
+        self._engine.node_stats_listener(
+            self._charname, self.name, stats, fun
+        )
+        return fun
 
     def unlisten(self, fun=None, stat=None):
         if None not in (fun, stat):
@@ -2979,6 +2997,21 @@ class EngineProxy(object):
             self.handle('listen_to_node_stat', (char, node, stat), silent=True)
         if fun not in self._node_stat_listeners[char][node][stat]:
             self._node_stat_listeners[char][node][stat].append(fun)
+
+    def nodes_stats_listeners(self, quads):
+        triples = []
+        for (char, node, stat, fun) in quads:
+            if stat not in self._node_stat_listeners[char][node]:
+                triples.append((char, node, stat))
+            if fun not in self._node_stat_listeners[char][node][stat]:
+                self._node_stat_listeners[char][node][stat].append(fun)
+        self.handle('listen_to_nodes_stats', (triples,), silent=True)
+
+    def nodes_stats_listener(self, triples, fun):
+        self.nodes_stats_listeners((char, node, stat, fun) for (char, node, stat) in triples)
+
+    def node_stats_listener(self, char, node, stats, fun):
+        self.nodes_stats_listeners((char, node, stat, fun) for stat in stats)
 
     def node_stat_unlisten(self, char, node, stat, fun):
         if fun not in self._node_stat_listeners[char][node][stat]:

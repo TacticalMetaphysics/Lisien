@@ -207,20 +207,22 @@ class StatListView(ListView, MirrorMapping):
         else:
             ctrld = dict(self.control)
             ctrld[key] = control
-        self.remote['_control'] = ctrld
+        self.remote['_control'] = self.control = ctrld
         self.canvas.after.clear()
+        self._trigger_sync()
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
-            self.remote['_config'] = {key: {option: value}}
+            self.remote['_config'] = self.config = {key: {option: value}}
         elif key in self.config:
             newcfg = dict(self.config)
             newcfg[key][option] = value
-            self.remote['_config'] = newcfg
+            self.remote['_config'] = self.config = newcfg
         else:
             newcfg = dict(default_cfg)
             newcfg[option] = value
-            self.remote['_config'][key] = newcfg
+            self.remote['_config'][key] = self.config = newcfg
+        self._trigger_sync()
 
     def get_cls_dicts(self, key, value):
         control_type = self.control.get(key, 'readout')

@@ -66,15 +66,17 @@ class PawnSpot(ImageStack, MirrorMapping):
             self.remote['_offys'] = zeroes
         if '_stackhs' not in self.remote:
             self.remote['_stackhs'] = zeroes
-        for s in (
+        self.remote.listeners(
+            fun=self._listen_func,
+            stats=(
                 '_image_paths',
                 '_offxs',
                 '_offys',
                 '_stackhs',
                 '_x',
                 '_y'
-        ):
-            self.listen(stat=s)
+            )
+        )
         self.sync()
 
     def push_image_paths(self, *args):

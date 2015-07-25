@@ -44,7 +44,6 @@ def set_remote_value(remote, k, v):
     else:
         remote[k] = try_json_load(v)
 
-
 def remote_setter(remote):
     """Return a function taking two arguments, ``k`` and ``v``, which sets
     ``remote[k] = v``, interpreting ``v`` as JSON if possible, or

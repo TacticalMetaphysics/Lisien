@@ -4,6 +4,7 @@
 as in the user interface.
 
 """
+from functools import partial
 from kivy.event import EventDispatcher
 from kivy.properties import (
     DictProperty,
@@ -23,7 +24,7 @@ class MirrorMapping(EventDispatcher):
     """
     time = ListProperty(['master', 0])
     remote = ObjectProperty()
-    mirror = DictProperty()
+    mirror = DictProperty({})
 
     def on_time(self, *args):
         """Update the mirror whenever the time changes."""
@@ -71,10 +72,10 @@ class MirrorMapping(EventDispatcher):
     def _listen_func(self, branch, tick, what, k, v):
         if k in self.mirror or self.mirror[k] == v:
             return
-        if v is None and k in self.mirror:
+        elif v is None and k in self.mirror:
             if k in ('next_location', 'next_arrival_time'):
                 self.mirror[k] = None
-                return True
+                return
             del self.mirror[k]
         elif v is not None:
             self.mirror[k] = v

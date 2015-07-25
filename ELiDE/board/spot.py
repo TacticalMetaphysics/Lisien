@@ -53,7 +53,7 @@ class Spot(PawnSpot):
             del kwargs['place']
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
-
+        
     def _get_pospawn_partial(self, pawn):
         if pawn not in self._pospawn_partials:
             self._pospawn_partials[pawn] = partial(
