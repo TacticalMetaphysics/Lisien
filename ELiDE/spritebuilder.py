@@ -14,7 +14,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from .util import trigger
-
+# TODO: let the user import their own sprite art
 
 class SpriteSelector(BoxLayout):
     prefix = StringProperty()
@@ -154,10 +154,12 @@ class SpotConfigDialog(SpriteDialog):
 
 class PawnConfigScreen(Screen):
     toggle = ObjectProperty()
+    data = ListProperty()
 
 
 class SpotConfigScreen(Screen):
     toggle = ObjectProperty()
+    data = ListProperty()
 
 
 Builder.load_string("""
@@ -193,16 +195,11 @@ Builder.load_string("""
     PawnConfigDialog:
         toggle: root.toggle
         default_imgpaths: ['atlas://base.atlas/unseen']
-        data: [('Body', 'base.atlas'),\
-        ('Basic clothes', 'body.atlas'), ('Armwear', 'arm.atlas'),\
-        ('Legwear', 'leg.atlas'), ('Right hand', 'hand1.atlas'),\
-        ('Left hand', 'hand2.atlas'), ('Boots', 'boot.atlas'),\
-        ('Hair', 'hair.atlas'), ('Beard', 'beard.atlas'),\
-        ('Headwear', 'head.atlas')]
+        data: root.data
 <SpotConfigScreen>:
     name: 'spotcfg'
     SpotConfigDialog:
         toggle: root.toggle
         default_imgpaths: ['orb.png']
-        data: [('Dungeon', 'dungeon.atlas')]
+        data: root.data
 """)

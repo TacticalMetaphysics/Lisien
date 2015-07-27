@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+import json
 from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
@@ -110,7 +111,20 @@ class ELiDEApp(App):
                 'inspector': 'no',
                 'user_kv': 'yes',
                 'user_message': 'yes',
-                'play_speed': '1'
+                'play_speed': '1',
+                'thing_graphics': json.dumps([
+                    ('Body', 'base.atlas'),
+                    ('Basic clothes', 'body.atlas'),
+                    ('Armwear', 'arm.atlas'),
+                    ('Legwear', 'leg.atlas'),
+                    ('Right hand', 'hand1.atlas'),
+                    ('Left hand', 'hand2.atlas'),
+                    ('Boots', 'boot.atlas'),
+                    ('Hair', 'hair.atlas'),
+                    ('Beard', 'beard.atlas'),
+                    ('Headwear', 'head.atlas')
+                ]),
+                'place_graphics': json.dumps([('Dungeon', 'dungeon.atlas')])
             }
         )
         config.write()
@@ -160,11 +174,13 @@ class ELiDEApp(App):
             return tog
 
         pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
-            toggle=toggler('pawncfg')
+            toggle=toggler('pawncfg'),
+            data=json.loads(config['ELiDE']['thing_graphics'])
         )
 
         spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
-            toggle=toggler('spotcfg')
+            toggle=toggler('spotcfg'),
+            data=json.loads(config['ELiDE']['place_graphics'])
         )
 
         rules = ELiDE.rulesview.RulesScreen(
