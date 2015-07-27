@@ -1523,7 +1523,7 @@ class CachingProxy(MutableMapping):
             self._cache = {}
             return
         for (k, v) in diff.items():
-            if v:
+            if v is not None:
                 self._cache[k] = self._cache_munge(k, v)
             elif k in self._cache:
                 del self._cache[k]
