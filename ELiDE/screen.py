@@ -389,14 +389,16 @@ class MainScreen(Screen):
 
         """
         if self.selection:
+            self.keep_selection = True
             touch.push()
             if hasattr(self.selection, 'use_boardspace'):
                 touch.apply_transform_2d(self.ids.boardview.to_local)
-            r = self.selection.dispatch('on_touch_move', touch)
+            if self.selection.collide_point(*touch.pos):
+                r = self.selection.dispatch('on_touch_move', touch)
+            else:
+                r = False
             touch.pop()
-            if r:
-                self.keep_selection = True
-                return True
+            return r
         return super().on_touch_move(touch)
 
     def _portal_touch_up(self, touch):
