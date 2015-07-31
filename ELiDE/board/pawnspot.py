@@ -30,6 +30,7 @@ class PawnSpot(ImageStack, MirrorMapping):
     board = ObjectProperty()
     engine = ObjectProperty()
     selected = BooleanProperty(False)
+    hit = BooleanProperty(False)
     linecolor = ListProperty()
     name = ObjectProperty()
     listen_branch = StringProperty('master')
