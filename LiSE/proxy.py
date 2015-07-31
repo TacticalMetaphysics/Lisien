@@ -3444,7 +3444,9 @@ class EngineProcessManager(object):
             if kwargs['loglevel'] in logl:
                 loglevel = logl[kwargs['loglevel']]
             del kwargs['loglevel']
-        handlers.append(logging.StreamHandler(sys.stdout))
+        stdout = logging.StreamHandler(sys.stdout)
+        stdout.set_name('stdout')
+        handlers.append(stdout)
         handlers[0].setLevel(loglevel or logging.DEBUG)
         if 'logfile' in kwargs:
             try:
