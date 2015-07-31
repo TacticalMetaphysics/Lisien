@@ -4,7 +4,8 @@ from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-
+# TODO: Visual preview
+# TODO: Background image chooser
 
 class CharListView(ListView):
     character_name = StringProperty()
