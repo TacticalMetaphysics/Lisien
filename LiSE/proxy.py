@@ -414,6 +414,10 @@ class EngineHandle(object):
         self._real.character[charn].stat.unlisten(a)
         self._real.time_unlisten(b)
 
+    def listen_to_nodes(self, pairs):
+        for (char, noden) in pairs:
+            self.listen_to_node(char, noden)
+
     def listen_to_node(self, char, noden):
         if (
                 char in self._node_listeners and
@@ -2983,6 +2987,18 @@ class EngineProxy(object):
             self.handle('listen_to_node', (char, node), silent=True)
         if fun not in self._node_listeners[char][node]:
             self._node_listeners[char][node].append(fun)
+
+    def nodes_listeners(self, triples):
+        pairs = []
+        for (char, node, fun) in triples:
+            if node not in self._node_listeners[char]:
+                pairs.append(char, node)
+            if fun not in self._node_listeners[char][node]:
+                self._node_listeners[char][node].append(fun)
+        self.handle('listen_to_nodes', (pairs,), silent=True)
+
+    def nodes_listener(self, pairs, fun):
+        self.nodes_listeners((char, node, fun) for (char, node) in pairs)
 
     def node_unlisten(self, char, node, fun):
         if fun not in self._node_listeners[char][node]:
