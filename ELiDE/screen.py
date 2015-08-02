@@ -135,7 +135,7 @@ class MainScreen(Screen):
     portaladdbut = ObjectProperty()
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty('15sp')
     halign = OptionProperty(
         'left', options=['left', 'center', 'right', 'justify']

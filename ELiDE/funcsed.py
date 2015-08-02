@@ -10,7 +10,7 @@ class FuncsEdScreen(Screen):
     funcs_ed = ObjectProperty()
     table = StringProperty()
     store = ObjectProperty()
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
     toggle = ObjectProperty()
 

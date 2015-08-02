@@ -201,7 +201,7 @@ class StoreEditor(BoxLayout):
     """StoreList on the left with its editor on the right."""
     table = StringProperty()
     store = ObjectProperty()
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
     selection = ListProperty([])
     oldsel = ListProperty([])
@@ -261,7 +261,7 @@ class StoreEditor(BoxLayout):
 
 
 class StringInput(BoxLayout):
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
     name = StringProperty()
     source = StringProperty()

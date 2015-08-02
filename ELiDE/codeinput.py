@@ -25,7 +25,7 @@ sig_ex = re.compile('^ *def .+?\((.+)\):$')
 
 
 class FunctionInput(BoxLayout):
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
     style_name = StringProperty('default')
     name = StringProperty()

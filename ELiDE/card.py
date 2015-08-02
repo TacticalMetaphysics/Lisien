@@ -160,28 +160,28 @@ class Card(FloatLayout):
     headline = ObjectProperty()
     headline_text = StringProperty('Headline')
     headline_markup = BooleanProperty(True)
-    headline_font_name = StringProperty('DroidSans')
+    headline_font_name = StringProperty('Roboto-Regular')
     headline_font_size = NumericProperty(18)
     headline_color = ListProperty([0, 0, 0, 1])
 
     midline = ObjectProperty()
     midline_text = StringProperty('')
     midline_markup = BooleanProperty(True)
-    midline_font_name = StringProperty('DroidSans')
+    midline_font_name = StringProperty('Roboto-Regular')
     midline_font_size = NumericProperty(14)
     midline_color = ListProperty([0, 0, 0, 1])
 
     footer = ObjectProperty()
     footer_text = StringProperty('')
     footer_markup = BooleanProperty(True)
-    footer_font_name = StringProperty('DroidSans')
+    footer_font_name = StringProperty('Roboto-Regular')
     footer_font_size = NumericProperty(10)
     footer_color = ListProperty([0, 0, 0, 1])
 
     text = StringProperty('')
     text_color = ListProperty([0, 0, 0, 1])
     markup = BooleanProperty(True)
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
 
     def on_background_source(self, *args):
