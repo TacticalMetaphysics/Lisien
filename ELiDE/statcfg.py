@@ -12,7 +12,7 @@ from kivy.uix.listview import (
     ListItemLabel,
     SelectableView
 )
-from .statlist import StatListView, default_cfg
+from .statlist import StatListView
 from .util import try_json_load
 
 
@@ -122,7 +122,7 @@ class StatListViewConfigurator(StatListView):
 
     def get_cls_dicts(self, key, value):
         control_type = self.control.get(key, 'readout')
-        cfg = self.config.get(key, default_cfg)
+        cfg = self.config.get(key, {})
         deldict = {
             'cls': ListItemButton,
             'kwargs': {
@@ -162,6 +162,10 @@ class StatListViewConfigurator(StatListView):
         ]
 
         if control_type == 'togglebutton':
+            if 'true_text' not in cfg:
+                cfg['true_text'] = '1'
+            if 'false_text' not in cfg:
+                cfg['false_text'] = '0'
             true_text_label_dict = {
                 'cls': ListItemLabel,
                 'kwargs': {'text': 'True:'}
@@ -210,6 +214,10 @@ class StatListViewConfigurator(StatListView):
             )
 
         if control_type == 'slider':
+            if 'min' not in cfg:
+                cfg['min'] = 0.0
+            if 'max' not in cfg:
+                cfg['max'] = 1.0
             min_label_dict = {
                 'cls': ListItemLabel,
                 'kwargs': {'text': 'Minimum:'}

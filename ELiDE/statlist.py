@@ -77,6 +77,11 @@ class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
 class StatRowSlider(Slider, SelectableView):
     need_set = BooleanProperty(False)
 
+    def __init__(self, **kwargs):
+        if 'text' in kwargs:
+            del kwargs['text']
+        super().__init__(**kwargs)
+
     def on_value(self, *args):
         self.need_set = True
 
@@ -130,7 +135,7 @@ control_cls = {
     },
     'slider': lambda v: {
         'cls': StatRowSlider,
-        'kwargs': {'value': v, 'text': str(v)}
+        'kwargs': {'value': v}
     }
 }
 
@@ -226,7 +231,7 @@ class StatListView(ListView, MirrorMapping):
 
     def get_cls_dicts(self, key, value):
         control_type = self.control.get(key, 'readout')
-        cfg = self.config.get(key, default_cfg)
+        cfg = self.config.get(key, {})
         keydict = {
             'cls': ListItemLabel,
             'kwargs': {'text': str(key)}
