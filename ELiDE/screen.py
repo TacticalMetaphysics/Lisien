@@ -79,6 +79,7 @@ class StatListPanel(BoxLayout):
     set_value = ObjectProperty()
     cfgstatbut = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
+    stat_list = ObjectProperty()
 
 
 class TimePanel(BoxLayout):
@@ -166,6 +167,7 @@ class MainScreen(Screen):
     pawn_cfg = ObjectProperty()
     spot_cfg = ObjectProperty()
     stat_cfg = ObjectProperty()
+    stat_list = ObjectProperty()
     rules = ObjectProperty()
     chars = ObjectProperty()
     strings = ObjectProperty()
@@ -175,6 +177,12 @@ class MainScreen(Screen):
         super().__init__(**kwargs)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
+
+    def on_stat_list(self, *args):
+        if not self.stat_cfg:
+            Clock.schedule_once(self.on_stat_list, 0)
+            return
+        self.stat_cfg.stat_list = self.stat_list
 
     def on_play_speed(self, *args):
         """Change the interval at which ``self.play`` is called to match my
@@ -651,11 +659,13 @@ Builder.load_string(
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
+    stat_list: stat_list
     id: statpanel
     Label:
         size_hint_y: 0.05
         text: root.selection_name
     StatListView:
+        id: stat_list
         size_hint_y: 0.95
         remote: root.selected_remote
         time: root.time
@@ -702,6 +712,7 @@ Builder.load_string(
     board: boardview.board
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
+    stat_list: statpanel.stat_list
     BoardView:
         id: boardview
         size_hint: (0.85, 0.9)

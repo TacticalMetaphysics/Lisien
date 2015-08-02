@@ -105,6 +105,16 @@ class ControlTypePicker(ListItemButton):
 
 
 class StatListViewConfigurator(StatListView):
+    stat_list = ObjectProperty()
+
+    def set_config(self, key, option, value):
+        super().set_config(key, option, value)
+        self.stat_list.set_config(key, option, value)
+
+    def set_control(self, key, control):
+        super().set_control(key, control)
+        self.stat_list.set_control(key, control)
+
     def del_key(self, key):
         if key in self.mirror:
             del self.remote[key]
@@ -265,6 +275,7 @@ class StatListViewConfigurator(StatListView):
 
 class StatScreen(Screen):
     remote = ObjectProperty()
+    stat_list = ObjectProperty()
     toggle = ObjectProperty()
     time = ListProperty()
 
@@ -294,6 +305,7 @@ Builder.load_string("""
         orientation: 'vertical'
         StatListViewConfigurator:
             id: cfg
+            stat_list: root.stat_list
             time: root.time
             remote: root.remote
             size_hint_y: 0.95

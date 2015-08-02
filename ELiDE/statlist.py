@@ -147,7 +147,7 @@ default_cfg = {
     'max': 1.0
 }
 
-# TODO: Move control and config into data
+
 class StatListView(ListView, MirrorMapping):
     control = DictProperty({})
     config = DictProperty({})
