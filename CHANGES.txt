@@ -1,0 +1,15 @@
+=== Alpha 3 | 2015-08-11 ===
+* Performance improvements.
+* Architectural changes in ELiDE.
+* Many crash bugs fixed.
+* Pop-over windows changed into Screens, making them tidier and enabling transition animations that aren't much to look at presently.
+* Thing and Place graphics can now be added in the elide.ini configuration file.
+
+
+=== Alpha 2 | 2015-03-29 ===
+* The core LiSE simulation process and the ELiDE graphical frontend are now running in separate processes.
+* Fixed some UI interactions.
+
+
+=== Alpha 1 | 2015-03-06 ===
+* Initial release.
