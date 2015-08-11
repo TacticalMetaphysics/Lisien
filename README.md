@@ -47,6 +47,23 @@ LiSE is a game engine in the latter sense. It assumes that there are
 certain problems any designer of life simulators will have, and
 provides powerful tools specialized to those problems.
 
+# Features
+
+## Core
+
+* *Object relational mapper* for graph based world models.
+* *Journaling* to allow world state changes to be rewound and replayed.
+* Integration with [NetworkX](http://networkx.github.io) for convenient access to various *graph algorithms*, particularly pathfinding.
+* *Rules engine*: define your game's behavior in terms of actions that are performed in response to triggers. Change the connection from trigger to action without effort. Copy triggers and actions between games easily.
+
+## IDE
+
+* View and edit state graphs in a *drag-and-drop interface*.
+* *Rewind time* and the interface will show you the state of the world back then.
+* Code editor with syntax highlighting.
+* *Rule constructor*: Build rules out of functions represented as cards. Looks like deckbuilding in a CCG.
+* *Autosave*. Actually, anything you do gets put in a transaction that gets committed when you quit. In any case you never need to save 
+
 # Programming interface
 
 LiSE itself is a Python library with few external dependencies. It
