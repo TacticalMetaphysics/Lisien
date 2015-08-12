@@ -29,19 +29,18 @@ build_exe_options = {
         "gorm.xjson"
     ],
     "include_files": [
-        ('LiSE/sqlite.json', '{}/LiSE/sqlite.json'.format(PY_STR)),
-        ('ELiDE/elide.kv', '{}/ELiDE/elide.kv'.format(PY_STR)),
-        ('ELiDE/assets', '{}/ELiDE/assets'.format(PY_STR)),
-        ('../kivy/kivy/data/style.kv', '{}/kivy/data/style.kv'.format(PY_STR)),
-        ('../kivy/kivy/data/images', '{}/kivy/data/images'.format(PY_STR)),
-        ('../kivy/kivy/data/glsl', '{}/kivy/data/glsl'.format(PY_STR)),
-        ('../kivy/kivy/data/fonts', '{}/kivy/data/fonts'.format(PY_STR))
+        ('LiSE/sqlite.json', 'LiSE/sqlite.json'.format(PY_STR)),
+        ('ELiDE/assets', 'ELiDE/assets'.format(PY_STR)),
+        ('../kivy/kivy/data/style.kv', 'kivy/data/style.kv'.format(PY_STR)),
+        ('../kivy/kivy/data/images', 'kivy/data/images'.format(PY_STR)),
+        ('../kivy/kivy/data/glsl', 'kivy/data/glsl'.format(PY_STR)),
+        ('../kivy/kivy/data/fonts', 'kivy/data/fonts'.format(PY_STR))
     ]
 }
 
 setup(
     name="LiSE DevKit",
-    version="a2",
+    version="0.0.0.3",
     description="Standalone package containing the core Life Simulator Engine and the Extensible LiSE Development Environment ELiDE.",
     options={"build_exe": build_exe_options},
     executables=[Executable("start.py", base=base)]
