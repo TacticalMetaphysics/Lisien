@@ -254,7 +254,10 @@ class StoreEditor(BoxLayout):
     def save(self, *args):
         """Write my editor's changes to disk."""
         raise NotImplementedError
-    _trigger_save = trigger(save)
+
+    def _trigger_save(self, *args):
+        Clock.unschedule(self.save)
+        Clock.schedule_once(self.save, 0)
 
     pawn_cfg = ObjectProperty()
     spot_cfg = ObjectProperty()
