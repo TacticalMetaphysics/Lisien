@@ -65,18 +65,26 @@ class Pawn(PawnSpot):
             del self._board
 
     def relocate(self, *args):
+        if not self.remote.exists:
+            return
         try:
-            location = self._board.arrow[self.loc_name][self.next_loc_name]
+            location = self.board.arrow[self.loc_name][self.next_loc_name]
         except KeyError:
-            location = self._board.spot[self.loc_name]
+            location = self.board.spot[self.loc_name]
         if location != self.parent:
             self.parent.remove_widget(self)
             location.add_widget(self)
     _trigger_relocate = trigger(relocate)
 
     def upd_loc_name(self, *args):
-        self.loc_name = self.remote['location']
-        self._trigger_relocate()
+        try:
+            self.loc_name = self.remote['location']
+            self._trigger_relocate()
+        except ValueError:
+            if self.name in self.board.pawn:
+                self.board.rm_pawn(self.name)
+            elif self.parent:
+                self.parent.remove_widget(self)
     _trigger_upd_loc_name = trigger(upd_loc_name)
 
     def upd_next_loc_name(self, *args):
