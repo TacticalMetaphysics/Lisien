@@ -5,8 +5,9 @@ from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
-    AliasProperty,
     ObjectProperty,
+    NumericProperty,
+    ReferenceListProperty,
     StringProperty
 )
 from kivy.lang import Builder
@@ -36,34 +37,24 @@ class ELiDEApp(App):
 
     """
     engine = ObjectProperty()
-    branch = AliasProperty(
-        lambda self: self.engine.branch,
-        lambda self, v: setattr(self.engine, 'branch', v),
-        bind=('engine',)
-    )
-    tick = AliasProperty(
-        lambda self: self.engine.tick,
-        lambda self, v: setattr(self.engine, 'tick', v),
-        bind=('engine',)
-    )
-    time = AliasProperty(
-        lambda self: self.engine.time,
-        lambda self, v: setattr(self.engine, 'time', v),
-        bind=('engine',)
-    )
+    branch = StringProperty()
+    tick = NumericProperty()
+    time = ReferenceListProperty(branch, tick)
     character = ObjectProperty()
     character_name = StringProperty()
 
-    def _dispatch_time(self, *args):
-        """Dispatch my ``branch``, ``tick``, and ``time`` properties."""
-        self.property('branch').dispatch(self)
-        self.property('tick').dispatch(self)
-        self.property('time').dispatch(self)
+    def _pull_time(self, *args):
+        self.time = self.engine.time
 
     def on_engine(self, *args):
         if self.engine is None:
             return
-        self.engine.time_listener(self._dispatch_time)
+        self.engine.time_listener(self._pull_time)
+
+    def on_time(self, *args):
+        local_time = list(self.time)
+        if local_time != self.engine.time:
+            self.engine.time = local_time
 
     def set_branch(self, b):
         """Set my branch to the given value."""
@@ -239,11 +230,6 @@ class ELiDEApp(App):
             chars=chars,
             strings=strings,
             funcs=funcs
-        )
-        self.bind(
-            branch=self.mainscreen.setter('branch'),
-            tick=self.mainscreen.setter('tick'),
-            time=self.mainscreen.setter('time')
         )
         for wid in (self.mainscreen, pawncfg, spotcfg, stat_cfg, rules, chars, strings, funcs):
             s.add_widget(wid)
