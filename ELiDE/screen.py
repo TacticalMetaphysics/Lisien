@@ -699,6 +699,7 @@ Builder.load_string(
         Label:
             text: 'Tick'
         MenuIntInput:
+            id: tickfield
             setter: root.set_tick
             hint_text: str(root.tick)
 <MainScreen>:
