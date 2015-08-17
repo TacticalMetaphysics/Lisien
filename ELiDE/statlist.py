@@ -172,7 +172,6 @@ class StatListView(ListView, MirrorMapping):
     _trigger_handle_remote = trigger(handle_remote)
 
     def on_mirror(self, *args):
-        Logger.debug("StatListView: on_mirror")
         self._trigger_upd_data()
         self._trigger_sortkeys()
 
@@ -268,7 +267,6 @@ class StatListView(ListView, MirrorMapping):
     _trigger_refresh_adapter = trigger(refresh_adapter)
 
     def upd_data(self, *args):
-        Logger.debug("StatListView: upd_data")
         if (
                 '_control' in self.mirror
         ):
