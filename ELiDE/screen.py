@@ -348,6 +348,8 @@ class MainScreen(Screen):
             return
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
+        if self.selection:
+            self.selection.hit = self.selection.collide_point(*touch.pos)
         pawns = list(self.board.pawns_at(*touch.pos))
         if pawns:
             self.selection_candidates = pawns
@@ -401,10 +403,7 @@ class MainScreen(Screen):
             touch.push()
             if hasattr(self.selection, 'use_boardspace'):
                 touch.apply_transform_2d(self.ids.boardview.to_local)
-            if self.selection.collide_point(*touch.pos):
-                r = self.selection.dispatch('on_touch_move', touch)
-            else:
-                r = False
+            r = self.selection.dispatch('on_touch_move', touch)
             touch.pop()
             return r
         return super().on_touch_move(touch)
