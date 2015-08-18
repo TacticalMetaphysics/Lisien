@@ -311,18 +311,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
     def unlisten(self, fun=None, place=None):
         return unlistener(self._place_listeners, fun, place)
 
-    def _things(self):
-        """Private method. Return a set of names of things in the character."""
-        return set(
-            thing for (thing, loc) in
-            self.engine.db.character_things_items(
-                self.character.name,
-                *self.engine.time
-            )
-        )
-
     def _iter_place_names(self):
-        things = self._things()
+        things = set(self.character.thing.keys())
         for node in self.engine.db.nodes_extant(
                 self.character.name,
                 *self.engine.time
@@ -372,22 +362,15 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             n += 1
         return n
 
-    def _getplace(self, place):
-        nodenames = set(self.character.node.keys())
-        thingnames = self._things()
-        if place in nodenames.difference(thingnames):
-            return Place(self.character, place)
-        raise KeyError("No such place: {}".format(place))
-
     def __getitem__(self, place):
         """Get the place from the cache if I can, otherwise check that it
         exists, and if it does, cache and return it
 
         """
-        if not self.engine.caching:
-            return self._getplace(place)
         if place not in self:
             raise KeyError("No such place: {}".format(place))
+        if not self.engine.caching:
+            return Place(self.character, place)
         # not using cache_get because creating Place objects is expensive
         if place not in self._cache:
             self._cache[place] = Place(self.character, place)
