@@ -91,7 +91,7 @@ class ELiDEApp(App):
                 'code': 'LiSEcode.db',
                 'language': 'en',
                 'logfile': '',
-                'loglevel': ''
+                'loglevel': 'info'
             }
         )
         config.setdefaults(
