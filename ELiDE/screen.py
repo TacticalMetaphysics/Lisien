@@ -144,6 +144,11 @@ class MainScreen(Screen):
     valign = OptionProperty(
         'bottom', options=['bottom', 'middle', 'top']
     )
+    visible = AliasProperty(
+        lambda self: self.current == self,
+        lambda self, v: None,
+        bind=('current',)
+    )
     line_height = NumericProperty(1.0)
     engine = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
@@ -333,6 +338,8 @@ class MainScreen(Screen):
         the dummies, then the menus.
 
         """
+        if self.visible:
+            touch.grab(self)
         for interceptor in (
             self.ids.timepanel,
             self.ids.charmenu,
@@ -398,14 +405,18 @@ class MainScreen(Screen):
         selection. Otherwise dispatch normally.
 
         """
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
         if self.selection:
             self.keep_selection = True
-            touch.push()
-            if hasattr(self.selection, 'use_boardspace'):
-                touch.apply_transform_2d(self.ids.boardview.to_local)
-            r = self.selection.dispatch('on_touch_move', touch)
-            touch.pop()
-            return r
+            self.selection.dispatch('on_touch_move', touch)
+        if self.selection_candidates:
+            for cand in self.selection_candidates:
+                if cand.collide_point(*touch.pos):
+                    cand.hit = True
+                    touch.grab(cand)
+                    cand.dispatch('on_touch_move', touch)
+        touch.pop()
         return super().on_touch_move(touch)
 
     def _portal_touch_up(self, touch):

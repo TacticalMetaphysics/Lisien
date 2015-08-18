@@ -201,13 +201,8 @@ class Spot(PawnSpot):
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
-        if not self.selected:
+        if not self.hit:
             return False
-        if not self.collided:
-            if self.collide_point(*touch.pos):
-                self.collided = True
-            if not self.collided:
-                return False
         self._touchpos = touch.pos
         self.center = self._touchpos
         return True
@@ -223,6 +218,7 @@ class Spot(PawnSpot):
             x=x, y=y, rx=self.width/2, ry=self.height/2
         )
         self.collided = False
+        self.hit = False
 
     def __repr__(self):
         """Give my name and position."""
