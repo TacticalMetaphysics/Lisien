@@ -38,17 +38,8 @@ from .util import dummynum, trigger
 Factory.register('CharMenu', cls=CharMenu)
 
 
-class KvLayoutBack(FloatLayout):
+class KvLayout(FloatLayout):
     pass
-
-
-class KvLayoutFront(FloatLayout):
-    pass
-
-
-class Message(Label):
-    pass
-
 
 class BoardView(ScrollView):
     """A ScrollView that contains the Board for the character being
@@ -129,27 +120,16 @@ class MainScreen(Screen):
     board = ObjectProperty()
     kv = StringProperty()
     use_kv = BooleanProperty()
-    message = StringProperty('')
-    use_message = BooleanProperty()
     play_speed = NumericProperty()
     playbut = ObjectProperty()
     portaladdbut = ObjectProperty()
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
-    font_name = StringProperty('Roboto-Regular')
-    font_size = NumericProperty('15sp')
-    halign = OptionProperty(
-        'left', options=['left', 'center', 'right', 'justify']
-    )
-    valign = OptionProperty(
-        'bottom', options=['bottom', 'middle', 'top']
-    )
     visible = AliasProperty(
         lambda self: self.current == self,
         lambda self, v: None,
         bind=('current',)
     )
-    line_height = NumericProperty(1.0)
     engine = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     grabbing = BooleanProperty(True)
@@ -210,7 +190,6 @@ class MainScreen(Screen):
             return
         stats = (
             'kv',
-            'message',
             'font_name',
             'font_size',
             'halign',
@@ -247,53 +226,17 @@ class MainScreen(Screen):
             setattr(self, stat, self.character.stat['_'+stat])
         elif stat == 'kv':
             self.kv = ''
-        elif stat == 'message':
-            self.message = ''
 
     def remake_display(self, *args):
-        """Remake any affected widgets after a change in my ``message`` or
-        ``kv``.
+        """Remake any affected widgets after a change in my ``kv``.
 
         """
         Builder.load_string(self.kv)
-        if hasattr(self, '_kv_layout_back'):
-            self.remove_widget(self._kv_layout_back)
-            del self._kv_layout_back
-        if hasattr(self, '_message'):
-            self.unbind(
-                message=self._message.setter('text'),
-                font_name=self._message.setter('font_name'),
-                font_size=self._message.setter('font_size'),
-                halign=self._message.setter('halign'),
-                valign=self._message.setter('valign'),
-                line_height=self._message.setter('line_height')
-            )
-            self.remove_widget(self._message)
-            del self._message
-        if hasattr(self, '_kv_layout_front'):
-            self.remove_widget(self._kv_layout_front)
-            del self._kv_layout_front
-        self._kv_layout_back = KvLayoutBack()
-        self._message = Message(
-            text=self.message,
-            font_name=self.font_name,
-            font_size=self.font_size,
-            halign=self.halign,
-            valign=self.valign,
-            line_height=self.line_height
-        )
-        self.bind(
-            message=self._message.setter('text'),
-            font_name=self._message.setter('font_name'),
-            font_size=self._message.setter('font_size'),
-            halign=self._message.setter('halign'),
-            valign=self._message.setter('valign'),
-            line_height=self._message.setter('line_height')
-        )
-        self._kv_layout_front = KvLayoutFront()
-        self.add_widget(self._kv_layout_back)
-        self.add_widget(self._message)
-        self.add_widget(self._kv_layout_front)
+        if hasattr(self, '_kv_layout'):
+            self.remove_widget(self._kv_layout)
+            del self._kv_layout
+        self._kv_layout = KvLayout()
+        self.add_widget(self._kv_layout)
     _trigger_remake_display = trigger(remake_display)
 
     def reremote(self, *args):

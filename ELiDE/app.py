@@ -101,7 +101,6 @@ class ELiDEApp(App):
                 'debugger': 'no',
                 'inspector': 'no',
                 'user_kv': 'yes',
-                'user_message': 'yes',
                 'play_speed': '1',
                 'thing_graphics': json.dumps([
                     ('Body', 'base.atlas'),
@@ -214,7 +213,6 @@ class ELiDEApp(App):
             character_name=self.character_name,
             character=self.character,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            use_message=config['ELiDE']['user_message'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
             branch=self.branch,
             tick=self.tick,
