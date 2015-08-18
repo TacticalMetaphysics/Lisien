@@ -111,6 +111,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             self.engine.time_listener(self._recache)
 
     def _recache(self, branch_then, tick_then, b, t):
+        """Internal use. Caches thing names for a new (branch, tick)."""
         if b not in self._keycache:
             self._keycache[b] = {}
         if branch_then == b and tick_then == t - 1:
@@ -121,6 +122,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             )
 
     def _dispatch_thing(self, k, v):
+        """Internal use. Calls listeners when a Thing has changed."""
         (b, t) = self.engine.time
         dispatch(self._thing_listeners, k, b, t, self, k, v)
         if not self.engine.caching:
@@ -155,9 +157,23 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 }
 
     def listener(self, fun=None, thing=None):
+        """Register a listener function to be called when a thing is created
+        or deleted.
+
+        Optional argument ``thing`` indicates that the function should
+        only be called when that particular thing is created or
+        deleted.
+
+        """
         return listener(self._thing_listeners, fun, thing)
 
     def unlisten(self, fun=None, thing=None):
+        """Stop calling the given function when things are created or deleted.
+
+        If you registered it to listen to some particular thing, you
+        need to supply its name here too.
+
+        """
         return unlistener(self._thing_listeners, fun, thing)
 
     def __contains__(self, k):
@@ -302,16 +318,35 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         self._keycache = {}
 
     def _dispatch_place(self, k, v):
+        """Internal use. Calls functions listening to places."""
         (branch, tick) = self.engine.time
         dispatch(self._place_listeners, k, branch, tick, self, k, v)
 
     def listener(self, fun=None, place=None):
+        """Register a listener function to be called when a place is created
+        or deleted.
+
+        Optional argument ``place`` indicates that the function should
+        only be called when that particular place is created or
+        deleted.
+
+        """
         return listener(self._place_listeners, fun, place)
 
     def unlisten(self, fun=None, place=None):
+        """Stop calling the given function when places are created or deleted.
+
+        If you registered it to listen to some particular place, you
+        need to supply its name here too.
+
+        """
         return unlistener(self._place_listeners, fun, place)
 
     def _iter_place_names(self):
+        """Private method. Iterate over names of nodes that are not things,
+        ie. places.
+
+        """
         things = set(self.character.thing.keys())
         for node in self.engine.db.nodes_extant(
                 self.character.name,
@@ -446,6 +481,10 @@ class CharacterThingPlaceMapping(MutableMapping):
             self._keycache = {}
 
     def __iter__(self):
+        """Iterate over cached node names, looking them up in the database if
+        I really need to.
+
+        """
         if not self.engine.caching:
             yield from self.engine.db.nodes_extant(
                 self.character.name,
@@ -711,7 +750,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         return listener(self._listeners, fun, graph)
 
     def unlisten(self, fun=None, graph=None):
-        return unlistener(self._listeners, fun, graph2)
+        return unlistener(self._listeners, fun, graph)
 
     def _dispatch(self, k, v, ex):
         dispatch(

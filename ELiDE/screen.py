@@ -629,11 +629,14 @@ class MainScreen(Screen):
             )
         )
 
+    def on_time(self, *args):
+        print("screen's time: {}".format(self.time))
+
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
         if self.playbut.state == 'normal':
             return
-        if not hasattr(self, '_old_time'):
+        elif not hasattr(self, '_old_time'):
             self._old_time = self.time
             self.engine.next_tick()
         elif self._old_time == self.time:

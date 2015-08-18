@@ -35,7 +35,7 @@ from sqlalchemy.sql.expression import union
 from json import dumps
 import gorm.alchemy
 
-
+### Constants
 length = 50
 
 TEXT = String(length)
