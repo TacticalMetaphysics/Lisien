@@ -27,11 +27,10 @@ To demonstrate the capabilities of the engine, I will develop the game
 
 # Why should I use LiSE for this purpose?
 
-Most game engines--the ones that are called "game engines"
-anyhow--provide graphics, networking, file system access, scripting,
-and perhaps physics, since most games need these things. For the
-actual game logic, they tend to provide little more than a scripting
-interface.
+Most programs billed as "game engines" provide graphics, networking,
+file system access, scripting, and perhaps physics, since most games
+need these things. For the actual game logic, they tend to provide
+little more than a scripting interface.
 
 There are exceptions. RPG Maker provides a battle framework, inventory
 management, and other things that designers of Japanese-style computer
