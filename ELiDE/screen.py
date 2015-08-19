@@ -253,9 +253,6 @@ class MainScreen(Screen):
             return
     _trigger_reremote = trigger(reremote)
 
-    def on_selected_remote(self, *args):
-        print('remote type: {}'.format(type(self.selected_remote)))
-
     def _get_selected_remote(self):
         """Return the currently selected entity, or ``self.character.stat`` if
         no entity is selected.
