@@ -64,7 +64,7 @@ class StatListPanel(BoxLayout):
 
     """
     branch = StringProperty()
-    tick = StringProperty()
+    tick = NumericProperty()
     time = ReferenceListProperty(branch, tick)
     selected_remote = ObjectProperty()
     selection_name = StringProperty()

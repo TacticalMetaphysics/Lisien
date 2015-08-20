@@ -279,7 +279,7 @@ class StatScreen(Screen):
     toggle = ObjectProperty()
     branch = StringProperty()
     tick = NumericProperty()
-    time = ReferenceListProperty()
+    time = ReferenceListProperty(branch, tick)
 
     def new_stat(self):
         """Look at the key and value that the user has entered into the stat
