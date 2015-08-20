@@ -197,7 +197,7 @@ class Spot(PawnSpot):
         """Check my collider."""
         if not self.collider:
             self.collider = CollideEllipse(
-                x=x, y=y, rx=self.width/2, ry=self.height/2
+                x=self.x, y=self.y, rx=self.width/2, ry=self.height/2
             )
         return (x, y) in self.collider
 
