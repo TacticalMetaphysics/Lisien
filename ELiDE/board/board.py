@@ -14,9 +14,19 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.floatlayout import FloatLayout
 from .spot import Spot
 from .arrow import Arrow
 from .pawn import Pawn
+from ..util import trigger
+
+
+class KvLayoutBack(FloatLayout):
+    character = ObjectProperty()
+
+
+class KvLayoutFront(FloatLayout):
+    pass
 
 
 class Board(RelativeLayout):
@@ -28,9 +38,12 @@ class Board(RelativeLayout):
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
+    kvlayoutback = ObjectProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
     pawnlayout = ObjectProperty()
+    kvlayoutfront = ObjectProperty()
+    wids = ReferenceListProperty(kvlayoutback, arrowlayout, spotlayout, pawnlayout, kvlayoutfront)
     spots_unposd = ListProperty([])
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
@@ -40,10 +53,42 @@ class Board(RelativeLayout):
     time = ReferenceListProperty(branch, tick)
     tracking_vel = BooleanProperty(False)
 
-    def __init__(self, **kwargs):
-        """Make a trigger for my ``update`` method."""
-        self._trigger_update = Clock.create_trigger(self.update)
-        super().__init__(**kwargs)
+    @property
+    def widkwargs(self):
+        return {
+            'size_hint': (None, None),
+            'size': self.size,
+            'pos': (0, 0)
+        }
+
+    def on_parent(self, *args):
+        if not self.parent or hasattr(self, '_parented'):
+            return
+        self._parented = True
+        self.kvlayoutback = KvLayoutBack(
+            pos=(0, 0)
+        )
+        self.size = self.kvlayoutback.size
+        self.kvlayoutback.bind(size=self.setter('size'))
+        self.arrowlayout = FloatLayout(**self.widkwargs)
+        self.spotlayout = FloatLayout(**self.widkwargs)
+        self.pawnlayout = FloatLayout(**self.widkwargs)
+        self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
+        for wid in self.wids:
+            if wid != self.kvlayoutback:
+                self.bind(size=wid.setter('size'))
+            self.add_widget(wid)
+
+    @trigger
+    def kv_updated(self, *args):
+        for wid in self.wids:
+            self.remove_widget(wid)
+        self.kvlayoutback = KvLayoutBack(pos=(0, 0))
+        self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
+        self.size = self.kvlayoutback.size
+        self.kvlayoutback.bind(size=self.setter('size'))
+        for wid in self.wids:
+            self.add_widget(wid)
 
     def make_pawn(self, thing):
         """Make a :class:`Pawn` to represent a :class:`Thing`, store it, and
@@ -402,7 +447,8 @@ class Board(RelativeLayout):
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
 
-    def update(self, *args):
+    @trigger
+    def _trigger_update(self, *args):
         """Force an update to match the current state of my character.
 
         This polls every element of the character, and therefore
@@ -494,25 +540,16 @@ class Board(RelativeLayout):
 
 Builder.load_string(
     """
-<Board>:
-    size_hint: (None, None)
+<KvLayoutBack>:
     size: wallpaper.size
-    arrowlayout: arrowlayout
-    spotlayout: spotlayout
-    pawnlayout: pawnlayout
+    size_hint: (None, None)
     Image:
         id: wallpaper
-        source: resource_find(root.character.stat['_wallpaper']) \
-        if root.character is not None and \
-        '_wallpaper' in root.character.stat else \
-        resource_find('wallpape.jpg')
+        source: resource_find('wallpape.jpg')
         size_hint: (None, None)
-        size: self.texture_size
-    FloatLayout:
-        id: arrowlayout
-    FloatLayout:
-        id: spotlayout
-    Widget:
-        id: pawnlayout
+        size: self.texture.size
+        pos: root.pos
+<Board>:
+    size_hint: (None, None)
 """
 )
