@@ -487,21 +487,15 @@ class MainScreen(Screen):
         def renum_dummy(dummy, *args):
             dummy.num = dummynum(self.character, dummy.prefix) + 1
 
-        if not (self.board and self.character):
-            if not self.board:
-                Logger.debug("MainScreen: no board")
-            if not self.character:
-                Logger.debug("MainScreen: no character")
+        if self.board is None or self.character is None:
             Clock.schedule_once(self.on_dummies, 0)
             return
         for dummy in self.dummies:
-            if hasattr(dummy, '_numbered'):
+            if dummy is None or hasattr(dummy, '_numbered'):
                 continue
             if dummy == self.dummything:
-                dummy.paths = ['atlas://rltiles/base/unseen']
                 self.ids.charmenu._pawn_config = self.pawn_cfg
             if dummy == self.dummyplace:
-                dummy.paths = ['orb.png']
                 self.ids.charmenu._spot_config = self.spot_cfg
             dummy.num = dummynum(self.character, dummy.prefix) + 1
             Logger.debug("MainScreen: dummy #{}".format(dummy.num))
