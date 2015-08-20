@@ -196,7 +196,9 @@ class Spot(PawnSpot):
     def collide_point(self, x, y):
         """Check my collider."""
         if not self.collider:
-            return False
+            self.collider = CollideEllipse(
+                x=x, y=y, rx=self.width/2, ry=self.height/2
+            )
         return (x, y) in self.collider
 
     def on_touch_move(self, touch):
