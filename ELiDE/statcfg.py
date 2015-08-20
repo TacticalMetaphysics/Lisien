@@ -1,5 +1,5 @@
 from kivy.clock import Clock
-from kivy.properties import DictProperty, ListProperty, ObjectProperty
+from kivy.properties import DictProperty, NumericProperty, StringProperty, ReferenceListProperty, ObjectProperty
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.button import Button
@@ -277,7 +277,9 @@ class StatScreen(Screen):
     remote = ObjectProperty()
     stat_list = ObjectProperty()
     toggle = ObjectProperty()
-    time = ListProperty()
+    branch = StringProperty()
+    tick = NumericProperty()
+    time = ReferenceListProperty()
 
     def new_stat(self):
         """Look at the key and value that the user has entered into the stat

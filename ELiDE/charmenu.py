@@ -3,8 +3,9 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
     BooleanProperty,
-    ListProperty,
     ObjectProperty,
+    NumericProperty,
+    ReferenceListProperty,
     StringProperty
 )
 from kivy.uix.boxlayout import BoxLayout
@@ -17,16 +18,18 @@ from .util import try_json_load, remote_setter, dummynum
 
 class CharMenu(BoxLayout):
     engine = ObjectProperty()
-    time = ListProperty()
+    branch = StringProperty()
+    tick = NumericProperty()
+    time = ReferenceListProperty(branch, tick)
     selection = ObjectProperty(None, allownone=True)
     board = ObjectProperty()
     character = ObjectProperty()
     character_name = StringProperty()
     select_character = ObjectProperty()
     selected_remote = ObjectProperty()
-    dummies = ListProperty()
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
+    dummies = ReferenceListProperty(dummyplace, dummything)
     portaladdbut = ObjectProperty()
     portaldirbut = ObjectProperty()
     spot_from_dummy = ObjectProperty()
@@ -243,7 +246,6 @@ Builder.load_string("""
     orientation: 'vertical'
     dummyplace: dummyplace
     dummything: dummything
-    dummies: [dummyplace, dummything]
     portaladdbut: portaladdbut
     portaldirbut: portaldirbut
     Button:

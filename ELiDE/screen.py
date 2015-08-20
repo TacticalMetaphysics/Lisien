@@ -63,7 +63,9 @@ class StatListPanel(BoxLayout):
     in the StatListPanel.
 
     """
-    time = ListProperty()
+    branch = StringProperty()
+    tick = StringProperty()
+    time = ReferenceListProperty(branch, tick)
     selected_remote = ObjectProperty()
     selection_name = StringProperty()
     button_text = StringProperty('cfg')
@@ -93,6 +95,7 @@ class TimePanel(BoxLayout):
     tick = NumericProperty()
     tick_setter = ObjectProperty()
     playbut = ObjectProperty()
+    time = ReferenceListProperty(branch, tick)
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -144,7 +147,7 @@ class MainScreen(Screen):
     current = StringProperty()
     branch = StringProperty()
     tick = NumericProperty()
-    time = ListProperty()
+    time = ReferenceListProperty(branch, tick)
     set_branch = ObjectProperty()
     set_tick = ObjectProperty()
     set_time = ObjectProperty()
@@ -656,7 +659,6 @@ Builder.load_string(
     name: 'main'
     character: self.engine.character[self.character_name] \
     if self.engine and self.character_name else None
-    dummies: charmenu.dummies
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     grabbing: self.grabbed is None
