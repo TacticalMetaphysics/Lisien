@@ -15,7 +15,7 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty,
-    OptionProperty,
+    ReferenceListProperty,
     StringProperty
 )
 from kivy.factory import Factory
@@ -125,6 +125,7 @@ class MainScreen(Screen):
     portaladdbut = ObjectProperty()
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
+    dummies = ReferenceListProperty(dummyplace, dummything)
     visible = AliasProperty(
         lambda self: self.current == self,
         lambda self, v: None,
@@ -486,19 +487,24 @@ class MainScreen(Screen):
         def renum_dummy(dummy, *args):
             dummy.num = dummynum(self.character, dummy.prefix) + 1
 
-        if self.board is None or self.character is None:
+        if not (self.board and self.character):
+            if not self.board:
+                Logger.debug("MainScreen: no board")
+            if not self.character:
+                Logger.debug("MainScreen: no character")
             Clock.schedule_once(self.on_dummies, 0)
             return
         for dummy in self.dummies:
             if hasattr(dummy, '_numbered'):
                 continue
-            if dummy == self.ids.dummything:
+            if dummy == self.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
                 self.ids.charmenu._pawn_config = self.pawn_cfg
-            if dummy == self.ids.dummyplace:
+            if dummy == self.dummyplace:
                 dummy.paths = ['orb.png']
                 self.ids.charmenu._spot_config = self.spot_cfg
             dummy.num = dummynum(self.character, dummy.prefix) + 1
+            Logger.debug("MainScreen: dummy #{}".format(dummy.num))
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
 

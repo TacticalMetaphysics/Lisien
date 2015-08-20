@@ -1492,10 +1492,14 @@ class CachingProxy(MutableMapping):
         return len(self._cache)
 
     def __contains__(self, k):
+        if k == 'name':
+            return True
         self.validate_cache()
         return k in self._cache
 
     def __getitem__(self, k):
+        if k == 'name':
+            return self.name
         if k not in self:
             raise KeyError("No such key: {}".format(k))
         return self._cache[k]
@@ -1593,6 +1597,16 @@ class NodeProxy(CachingEntityProxy):
             self._charname == other._charname and
             self.name == other.name
         )
+
+    def __contains__(self, k):
+        if k == 'character':
+            return True
+        return super().__contains__(k)
+
+    def __getitem__(self, k):
+        if k == 'character':
+            return self._charname
+        return super().__getitem__(k)
 
     def _get_diff(self):
         return self._engine.handle(
