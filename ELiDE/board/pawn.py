@@ -153,7 +153,7 @@ class Pawn(PawnSpot):
 
     def on_touch_move(self, touch):
         """Move with the touch if I'm grabbed."""
-        if not self.selected:
+        if not (self.selected and self.hit):
             return False
         if not hasattr(self, '_unlistened'):
             self.parent._unbind_trigger_pospawn(self)

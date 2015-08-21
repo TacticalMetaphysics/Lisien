@@ -91,7 +91,7 @@ class ELiDEApp(App):
                 'code': 'LiSEcode.db',
                 'language': 'en',
                 'logfile': '',
-                'loglevel': ''
+                'loglevel': 'info'
             }
         )
         config.setdefaults(
@@ -101,7 +101,6 @@ class ELiDEApp(App):
                 'debugger': 'no',
                 'inspector': 'no',
                 'user_kv': 'yes',
-                'user_message': 'yes',
                 'play_speed': '1',
                 'thing_graphics': json.dumps([
                     ('Body', 'base.atlas'),
@@ -148,12 +147,14 @@ class ELiDEApp(App):
             config['LiSE']['code'],
             **enkw
         )
+        self._pull_time()
 
         Clock.schedule_interval(self._check_stats, 0.01)
         Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             self.engine.add_character(char)
+
         s = ScreenManager()
 
         def toggler(screenname):
@@ -214,10 +215,7 @@ class ELiDEApp(App):
             character_name=self.character_name,
             character=self.character,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            use_message=config['ELiDE']['user_message'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
-            branch=self.branch,
-            tick=self.tick,
             time=self.time,
             set_branch=self.set_branch,
             set_tick=self.set_tick,
@@ -237,8 +235,6 @@ class ELiDEApp(App):
         self.bind(
             character=self.mainscreen.setter('character'),
             character_name=self.mainscreen.setter('character_name'),
-            branch=self.mainscreen.setter('branch'),
-            tick=self.mainscreen.setter('tick'),
             time=self.mainscreen.setter('time')
         )
         if config['ELiDE']['inspector'] == 'yes':

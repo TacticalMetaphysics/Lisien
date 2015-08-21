@@ -8,8 +8,10 @@ from functools import partial
 from kivy.event import EventDispatcher
 from kivy.properties import (
     DictProperty,
-    ListProperty,
-    ObjectProperty
+    ObjectProperty,
+    NumericProperty,
+    StringProperty,
+    ReferenceListProperty
 )
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -22,7 +24,9 @@ class MirrorMapping(EventDispatcher):
     the moment.
 
     """
-    time = ListProperty(['master', 0])
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    time = ReferenceListProperty(branch, tick)
     remote = ObjectProperty()
     mirror = DictProperty({})
 

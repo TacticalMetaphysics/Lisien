@@ -27,25 +27,17 @@ To demonstrate the capabilities of the engine, I will develop the game
 
 # Why should I use LiSE for this purpose?
 
-Most game engines--the ones that are called "game engines"
-anyhow--provide graphics, networking, file system access, scripting,
-and perhaps physics, since most games need these things. For the
-actual game logic, they tend to provide little more than a scripting
-interface.
-
-There are exceptions. RPG Maker provides a battle framework, inventory
-management, and other things that designers of Japanese-style computer
-roleplaying games are likely to use. Adventure Game Studio helps
-designers turn two-dimensional background art into something the
-player character can walk around in, just by painting in the parts
-that are walkable. RenPy assumes that the player will be reading a lot
-and picking options from menus a lot, and so automates the
-construction of menus and dialogs, with an enormous variety of
-options for stylizing them.
-
-LiSE is a game engine in the latter sense. It assumes that there are
-certain problems any designer of life simulators will have, and
-provides powerful tools specialized to those problems.
+LiSE is a game engine in the sense of RPG Maker or Ren'Py. It assumes
+that there are certain problems any designer of life simulators will
+have, and provides powerful tools specialized to those
+problems. Though you will still need to write some Python code for
+your game, it should only be the code that describes how your game's
+world works. If you don't want to worry about the data structure that
+represents the world, LiSE gives you one that will work. If you don't
+want to write a user interface, you can play the game with the same
+program you drew its map in. And then again, if your game is similar
+enough to one that's been freely released, you can import rules from
+that one, and not write that code yourself, after all.
 
 # Features
 

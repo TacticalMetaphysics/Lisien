@@ -15,7 +15,7 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty,
-    OptionProperty,
+    ReferenceListProperty,
     StringProperty
 )
 from kivy.factory import Factory
@@ -38,17 +38,8 @@ from .util import dummynum, trigger
 Factory.register('CharMenu', cls=CharMenu)
 
 
-class KvLayoutBack(FloatLayout):
+class KvLayout(FloatLayout):
     pass
-
-
-class KvLayoutFront(FloatLayout):
-    pass
-
-
-class Message(Label):
-    pass
-
 
 class BoardView(ScrollView):
     """A ScrollView that contains the Board for the character being
@@ -72,7 +63,9 @@ class StatListPanel(BoxLayout):
     in the StatListPanel.
 
     """
-    time = ListProperty()
+    branch = StringProperty()
+    tick = NumericProperty()
+    time = ReferenceListProperty(branch, tick)
     selected_remote = ObjectProperty()
     selection_name = StringProperty()
     button_text = StringProperty('cfg')
@@ -102,6 +95,7 @@ class TimePanel(BoxLayout):
     tick = NumericProperty()
     tick_setter = ObjectProperty()
     playbut = ObjectProperty()
+    time = ReferenceListProperty(branch, tick)
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -129,22 +123,17 @@ class MainScreen(Screen):
     board = ObjectProperty()
     kv = StringProperty()
     use_kv = BooleanProperty()
-    message = StringProperty('')
-    use_message = BooleanProperty()
     play_speed = NumericProperty()
     playbut = ObjectProperty()
     portaladdbut = ObjectProperty()
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
-    font_name = StringProperty('Roboto-Regular')
-    font_size = NumericProperty('15sp')
-    halign = OptionProperty(
-        'left', options=['left', 'center', 'right', 'justify']
+    dummies = ReferenceListProperty(dummyplace, dummything)
+    visible = AliasProperty(
+        lambda self: self.current == self,
+        lambda self, v: None,
+        bind=('current',)
     )
-    valign = OptionProperty(
-        'bottom', options=['bottom', 'middle', 'top']
-    )
-    line_height = NumericProperty(1.0)
     engine = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     grabbing = BooleanProperty(True)
@@ -158,7 +147,7 @@ class MainScreen(Screen):
     current = StringProperty()
     branch = StringProperty()
     tick = NumericProperty()
-    time = ListProperty()
+    time = ReferenceListProperty(branch, tick)
     set_branch = ObjectProperty()
     set_tick = ObjectProperty()
     set_time = ObjectProperty()
@@ -205,7 +194,6 @@ class MainScreen(Screen):
             return
         stats = (
             'kv',
-            'message',
             'font_name',
             'font_size',
             'halign',
@@ -242,53 +230,17 @@ class MainScreen(Screen):
             setattr(self, stat, self.character.stat['_'+stat])
         elif stat == 'kv':
             self.kv = ''
-        elif stat == 'message':
-            self.message = ''
 
     def remake_display(self, *args):
-        """Remake any affected widgets after a change in my ``message`` or
-        ``kv``.
+        """Remake any affected widgets after a change in my ``kv``.
 
         """
         Builder.load_string(self.kv)
-        if hasattr(self, '_kv_layout_back'):
-            self.remove_widget(self._kv_layout_back)
-            del self._kv_layout_back
-        if hasattr(self, '_message'):
-            self.unbind(
-                message=self._message.setter('text'),
-                font_name=self._message.setter('font_name'),
-                font_size=self._message.setter('font_size'),
-                halign=self._message.setter('halign'),
-                valign=self._message.setter('valign'),
-                line_height=self._message.setter('line_height')
-            )
-            self.remove_widget(self._message)
-            del self._message
-        if hasattr(self, '_kv_layout_front'):
-            self.remove_widget(self._kv_layout_front)
-            del self._kv_layout_front
-        self._kv_layout_back = KvLayoutBack()
-        self._message = Message(
-            text=self.message,
-            font_name=self.font_name,
-            font_size=self.font_size,
-            halign=self.halign,
-            valign=self.valign,
-            line_height=self.line_height
-        )
-        self.bind(
-            message=self._message.setter('text'),
-            font_name=self._message.setter('font_name'),
-            font_size=self._message.setter('font_size'),
-            halign=self._message.setter('halign'),
-            valign=self._message.setter('valign'),
-            line_height=self._message.setter('line_height')
-        )
-        self._kv_layout_front = KvLayoutFront()
-        self.add_widget(self._kv_layout_back)
-        self.add_widget(self._message)
-        self.add_widget(self._kv_layout_front)
+        if hasattr(self, '_kv_layout'):
+            self.remove_widget(self._kv_layout)
+            del self._kv_layout
+        self._kv_layout = KvLayout()
+        self.add_widget(self._kv_layout)
     _trigger_remake_display = trigger(remake_display)
 
     def reremote(self, *args):
@@ -304,9 +256,6 @@ class MainScreen(Screen):
         except ValueError:
             return
     _trigger_reremote = trigger(reremote)
-
-    def on_selected_remote(self, *args):
-        print('remote type: {}'.format(type(self.selected_remote)))
 
     def _get_selected_remote(self):
         """Return the currently selected entity, or ``self.character.stat`` if
@@ -333,6 +282,8 @@ class MainScreen(Screen):
         the dummies, then the menus.
 
         """
+        if self.visible:
+            touch.grab(self)
         for interceptor in (
             self.ids.timepanel,
             self.ids.charmenu,
@@ -348,6 +299,8 @@ class MainScreen(Screen):
             return
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
+        if self.selection:
+            self.selection.hit = self.selection.collide_point(*touch.pos)
         pawns = list(self.board.pawns_at(*touch.pos))
         if pawns:
             self.selection_candidates = pawns
@@ -396,17 +349,18 @@ class MainScreen(Screen):
         selection. Otherwise dispatch normally.
 
         """
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
         if self.selection:
             self.keep_selection = True
-            touch.push()
-            if hasattr(self.selection, 'use_boardspace'):
-                touch.apply_transform_2d(self.ids.boardview.to_local)
-            if self.selection.collide_point(*touch.pos):
-                r = self.selection.dispatch('on_touch_move', touch)
-            else:
-                r = False
-            touch.pop()
-            return r
+            self.selection.dispatch('on_touch_move', touch)
+        if self.selection_candidates:
+            for cand in self.selection_candidates:
+                if cand.collide_point(*touch.pos):
+                    cand.hit = True
+                    touch.grab(cand)
+                    cand.dispatch('on_touch_move', touch)
+        touch.pop()
         return super().on_touch_move(touch)
 
     def _portal_touch_up(self, touch):
@@ -540,15 +494,14 @@ class MainScreen(Screen):
             Clock.schedule_once(self.on_dummies, 0)
             return
         for dummy in self.dummies:
-            if hasattr(dummy, '_numbered'):
+            if dummy is None or hasattr(dummy, '_numbered'):
                 continue
-            if dummy == self.ids.dummything:
-                dummy.paths = ['atlas://rltiles/base/unseen']
+            if dummy == self.dummything:
                 self.ids.charmenu._pawn_config = self.pawn_cfg
-            if dummy == self.ids.dummyplace:
-                dummy.paths = ['orb.png']
+            if dummy == self.dummyplace:
                 self.ids.charmenu._spot_config = self.spot_cfg
             dummy.num = dummynum(self.character, dummy.prefix) + 1
+            Logger.debug("MainScreen: dummy #{}".format(dummy.num))
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
 
@@ -709,7 +662,6 @@ Builder.load_string(
     name: 'main'
     character: self.engine.character[self.character_name] \
     if self.engine and self.character_name else None
-    dummies: charmenu.dummies
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     grabbing: self.grabbed is None
