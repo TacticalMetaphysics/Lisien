@@ -54,7 +54,7 @@ class RulesList(ListView):
     def on_adapter(self, *args):
         self.adapter.bind(
             on_selection_change=lambda inst:
-            self.set_rule(self.adapter.selection[0].rule)
+            self.set_rule(self.adapter.selection[0].rule if self.adapter.selection else None)
         )
 
     def on_rulebook(self, *args):
@@ -73,7 +73,7 @@ class RulesList(ListView):
 class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
-    rule = ObjectProperty()
+    rule = ObjectProperty(allownone=True)
 
     def _get_headline_text(self):
         # This shows the entity whose rules you're editing if you
@@ -256,9 +256,6 @@ class RulesView(FloatLayout):
         def getname(o):
             return o if isinstance(o, str) else o.__name__
 
-        if self.rule is None:
-            dbg('RulesView: no rule')
-            return
         for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
             if not hasattr(self, attrn):
                 dbg('RulesView: no {}'.format(attrn))
@@ -267,6 +264,11 @@ class RulesView(FloatLayout):
         self._trigger_builder.clear_widgets()
         self._prereq_builder.clear_widgets()
         self._action_builder.clear_widgets()
+        if self.rule is None:
+            dbg('RulesView: no rule')
+            return
+        if hasattr(self, '_list'):
+            self._list.adapter.data = list(self._list.rulebook)
         unused_triggers = [
             Card(
                 ud={
@@ -294,11 +296,7 @@ class RulesView(FloatLayout):
             )
             for trigger in self.rule.triggers
         ]
-        self._trigger_builder.unbind(decks=self._trigger_upd_unused_triggers)
-        self._trigger_builder.unbind(decks=self._trigger_upd_rule_triggers)
         self._trigger_builder.decks = [used_triggers, unused_triggers]
-        self._trigger_builder.bind(decks=self._trigger_upd_rule_triggers)
-        self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
         unused_prereqs = [
             Card(
                 ud={
@@ -326,11 +324,7 @@ class RulesView(FloatLayout):
             )
             for prereq in self.rule.prereqs
         ]
-        self._prereq_builder.unbind(decks=self._trigger_upd_unused_prereqs)
-        self._prereq_builder.unbind(decks=self._trigger_upd_rule_prereqs)
         self._prereq_builder.decks = [used_prereqs, unused_prereqs]
-        self._prereq_builder.bind(decks=self._trigger_upd_rule_prereqs)
-        self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
         unused_actions = [
             Card(
                 ud={
@@ -358,11 +352,7 @@ class RulesView(FloatLayout):
             )
             for action in self.rule.actions
         ]
-        self._action_builder.unbind(decks=self._trigger_upd_rule_actions)
-        self._action_builder.unbind(decks=self._trigger_upd_unused_actions)
         self._action_builder.decks = [used_actions, unused_actions]
-        self._action_builder.bind(decks=self._trigger_upd_rule_actions)
-        self._action_builder.bind(decks=self._trigger_upd_unused_actions)
 
     def upd_rule_actions(self, *args):
         actions = [
@@ -469,7 +459,10 @@ class RulesScreen(Screen):
         if self.new_rule_name in self.engine.rule:
             # TODO: feedback to say you already have such a rule
             return
-        self.rulebook.append(self.engine.rule.new_empty(self.new_rule_name))
+        new_rule = self.engine.rule.new_empty(self.new_rule_name)
+        assert(new_rule is not None)
+        self.rulebook.append(new_rule)
+        self.ids.rulesview.rule = new_rule
         self.ids.rulename.text = ''
 
 
