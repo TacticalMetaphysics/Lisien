@@ -211,6 +211,8 @@ class Spot(PawnSpot):
 
     def on_touch_up(self, touch):
         """Unset ``touchpos``"""
+        if not self.hit:
+            return False
         if self._touchpos:
             self.center = self._touchpos
             self._touchpos = []
