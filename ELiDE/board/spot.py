@@ -113,8 +113,8 @@ class Spot(PawnSpot):
             Clock.schedule_once(self._upd_pos, 0)
             return
         self.pos = (
-            self.remote.get('_x', self.default_pos[0]) * self.board.width,
-            self.remote.get('_y', self.default_pos[1]) * self.board.height
+            int(self.remote.get('_x', self.default_pos[0]) * self.board.width),
+            int(self.remote.get('_y', self.default_pos[1]) * self.board.height)
         )
 
     def listen_pos(self, *args):
