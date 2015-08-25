@@ -262,7 +262,6 @@ class MainScreen(Screen):
         no entity is selected.
 
         """
-        Logger.debug('ELiDELayout: getting remote...')
         if self.selection is None:
             return self.character.stat
         elif hasattr(self.selection, 'remote'):
