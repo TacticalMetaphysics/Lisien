@@ -2,7 +2,8 @@ from kivy.lang import Builder
 from kivy.properties import (
     NumericProperty,
     ObjectProperty,
-    StringProperty
+    StringProperty,
+    ListProperty
 )
 from kivy.uix.screenmanager import Screen
 
@@ -10,6 +11,7 @@ class FuncsEdScreen(Screen):
     funcs_ed = ObjectProperty()
     table = StringProperty()
     store = ObjectProperty()
+    data = ListProperty()
     font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
     toggle = ObjectProperty()
@@ -64,6 +66,7 @@ Builder.load_string("""
 <FuncsEdScreen>:
     name: 'funcs'
     funcs_ed: funcs_ed
+    data: funcs_ed.data if funcs_ed else []
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:

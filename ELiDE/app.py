@@ -196,6 +196,7 @@ class ELiDEApp(App):
             store=self.engine.trigger,
             toggle=toggler('funcs')
         )
+        funcs.bind(data=rules.rulesview._trigger_update_builders)
 
         self.select_character(
             self.engine.character[
