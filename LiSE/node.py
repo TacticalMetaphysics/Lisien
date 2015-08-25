@@ -162,6 +162,10 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             return True
         return super().__contains__(k)
 
+    def __bool__(self):
+        """It means something that I exist, even if I have no data but my name."""
+        return True
+
     def listener(self, f=None, stat=None):
         """Arrange to call a function whenever a stat changes.
 

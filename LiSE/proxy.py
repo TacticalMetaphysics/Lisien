@@ -1608,6 +1608,10 @@ class NodeProxy(CachingEntityProxy):
             return self._charname
         return super().__getitem__(k)
 
+    def __bool__(self):
+        """It means something that I exist, even if I don't have any data yet."""
+        return True
+
     def _get_diff(self):
         return self._engine.handle(
             'node_stat_diff',
@@ -1876,6 +1880,10 @@ class PortalProxy(CachingEntityProxy):
             return self._charname
         else:
             return super().__getitem__(k)
+
+    def __bool__(self):
+        """It means something that I exist, even if I don't have any data yet."""
+        return True
 
     def listener(self, fun=None, stat=None):
         if None not in (fun, stat):
@@ -2454,6 +2462,10 @@ class CharacterProxy(MutableMapping):
         self.thing = ThingMapProxy(self._engine, self.name)
         self.place = PlaceMapProxy(self._engine, self.name)
         self.stat = CharStatProxy(self._engine, self.name)
+
+    def __bool__(self):
+        """It means something that I exist, even if I don't have any data yet."""
+        return True
 
     def __eq__(self, other):
         if hasattr(other, '_engine'):

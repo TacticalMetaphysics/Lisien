@@ -218,6 +218,10 @@ class Portal(Edge, RuleFollower):
             self['destination']
         )
 
+    def __bool__(self):
+        """It means something that I exist, even if I have no data but my name."""
+        return True
+
     @property
     def origin(self):
         """Return the Place object that is where I begin"""
