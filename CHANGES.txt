@@ -1,3 +1,10 @@
+=== Alpha 4 | 2015-08-26 ===
+* The rules editor is now usable under normal conditions. After you've made Actions and Triggers, check this out by selecting something and pressing the Rules button.
+* The big > button will cause time to pass for so long as it is toggled, as it was always meant to.
+* Improvements to input handling and collision detection.
+* Less cryptic README.
+* Crash fixes.
+
 === Alpha 3 | 2015-08-11 ===
 * Performance improvements.
 * Architectural changes in ELiDE.
