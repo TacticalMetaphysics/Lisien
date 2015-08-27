@@ -262,7 +262,6 @@ class MainScreen(Screen):
         no entity is selected.
 
         """
-        Logger.debug('ELiDELayout: getting remote...')
         if self.selection is None:
             return self.character.stat
         elif hasattr(self.selection, 'remote'):
@@ -310,11 +309,10 @@ class MainScreen(Screen):
         spots = list(self.board.spots_at(*touch.pos))
         if spots:
             self.selection_candidates = spots
-            if self.selection in self.selection_candidates:
-                self.selection_candidates.remove(self.selection)
             if self.portaladdbut.state == 'down':
                 self.origspot = self.selection_candidates.pop(0)
                 self.protodest = Dummy(
+                    name="protodest",
                     pos=touch.pos,
                     size=(0, 0)
                 )
@@ -351,13 +349,18 @@ class MainScreen(Screen):
         """
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
-        if self.selection:
+        if self.selection in self.selection_candidates:
+            self.selection_candidates.remove(self.selection)
+        if self.selection and not self.selection_candidates:
             self.keep_selection = True
             self.selection.dispatch('on_touch_move', touch)
-        if self.selection_candidates:
+        elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
-                    cand.hit = True
+                    if hasattr(self.selection, 'selected'):
+                        self.selection.selected = False
+                    self.selection = cand
+                    cand.hit = cand.selected = True
                     touch.grab(cand)
                     cand.dispatch('on_touch_move', touch)
         touch.pop()

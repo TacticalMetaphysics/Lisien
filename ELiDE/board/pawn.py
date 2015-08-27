@@ -174,13 +174,6 @@ class Pawn(PawnSpot):
             del self._unlistened
         for spot in self.board.spot.values():
             if self.collide_widget(spot) and spot.name != self.loc_name:
-                Logger.debug(
-                    "pawn: {} will go from {} to {}".format(
-                        self.name,
-                        self.loc_name,
-                        spot.name
-                    )
-                )
                 new_spot = spot
                 break
         else:

@@ -145,6 +145,7 @@ class StoreList(FloatLayout):
     store = ObjectProperty()
     selection = ListProperty([])
     saver = ObjectProperty()
+    adapter = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
@@ -167,26 +168,26 @@ class StoreList(FloatLayout):
         if None in (self.store, self.table):
             return
         self.clear_widgets()
-        self._adapter = self.adapter_cls(
+        self.adapter = self.adapter_cls(
             table=self.table,
             store=self.store,
             loader=self._trigger_redata
         )
-        self._adapter.bind(
+        self.adapter.bind(
             on_selection_change=self.changed_selection
         )
         self.bind(
-            table=self._adapter.setter('table'),
-            store=self._adapter.setter('store')
+            table=self.adapter.setter('table'),
+            store=self.adapter.setter('store')
         )
         self._listview = ListView(
-            adapter=self._adapter
+            adapter=self.adapter
         )
         self.add_widget(self._listview)
         self._trigger_redata()
 
     def redata(self, *args):
-        self._adapter.data = self._adapter.get_data()
+        self.adapter.data = self.adapter.get_data()
 
 
 class FuncStoreList(StoreList):
@@ -201,6 +202,9 @@ class StoreEditor(BoxLayout):
     """StoreList on the left with its editor on the right."""
     table = StringProperty()
     store = ObjectProperty()
+    storelist = ObjectProperty()
+    adapter = ObjectProperty()
+    data = ListProperty([])
     font_name = StringProperty('Roboto-Regular')
     font_size = NumericProperty(12)
     selection = ListProperty([])
@@ -215,28 +219,46 @@ class StoreEditor(BoxLayout):
             store=self._trigger_remake
         )
 
+    def readapter(self, storelist, adapter):
+        if not adapter:
+            if self.adapter:
+                self.adapter.unbind(data=setter('data'))
+                self.data = []
+            return
+        if self.adapter:
+            self.adapter.unbind(data=self.setter('data'))
+            self.adapter = adapter
+        adapter.bind(data=self.setter('data'))
+
     def remake(self, *args):
         if None in (self.store, self.table):
             return
         self.clear_widgets()
-        self._list = self.list_cls(
+        self.storelist = self.list_cls(
             size_hint_x=0.4,
             table=self.table,
             store=self.store,
             saver=self.save
         )
-        self._list.bind(selection=self.changed_selection)
-        self.bind(
-            table=self._list.setter('table'),
-            store=self._list.setter('store')
+        if self.storelist.adapter:
+            self.adapter = self.storelist.adapter
+            self.data = self.adapter.data
+        self.storelist.bind(
+            selection=self.changed_selection,
+            adapter=self.readapter
         )
-        self.add_widget(self._list)
+        self.readapter(self.storelist, self.storelist.adapter)
+        self.bind(
+            table=self.storelist.setter('table'),
+            store=self.storelist.setter('store')
+        )
+        self.add_widget(self.storelist)
         self.add_editor()
     _trigger_remake = trigger(remake)
 
     def changed_selection(self, *args):
-        if self._list.selection:
-            self.selection = self._list.selection
+        if self.storelist.selection:
+            self.selection = self.storelist.selection
             self.name = self.selection[0].name
             self.source = self.selection[0].source
 
@@ -244,7 +266,7 @@ class StoreEditor(BoxLayout):
         self.save()
         StoreDataItem.selectedness = defaultdict(lambda: False)
         StoreDataItem.selectedness[self.name] = True
-        self._list._trigger_redata()
+        self.storelist._trigger_redata()
     _trigger_redata_reselect = trigger(redata_reselect)
 
     def add_editor(self, *args):

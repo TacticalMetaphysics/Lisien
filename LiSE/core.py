@@ -847,7 +847,6 @@ class Engine(object):
         (branch, tick) = self.time
         for (typ, character, entity, rulebook, rule) in self._poll_rules():
             def follow(*args):
-                print('Following {}...'.format(rule))
                 return (rule(self, *args), rule.name, typ, rulebook)
 
             if typ in ('thing', 'place', 'portal'):

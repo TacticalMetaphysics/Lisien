@@ -205,10 +205,6 @@ class Rule(object):
         """Run all my actions and return a list of their results.
 
         """
-        print('running actions {} for rule {}'.format(
-            [action.__name__ for action in self.actions],
-            self.name
-        ))
         curtime = engine.time
         r = []
         for action in self.actions:

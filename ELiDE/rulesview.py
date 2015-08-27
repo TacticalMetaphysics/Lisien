@@ -27,6 +27,11 @@ from .util import trigger
 dbg = Logger.debug
 
 
+
+def getname(o):
+    return o if isinstance(o, str) else o.__name__
+
+
 class RuleButton(ListItemButton):
     rule = ObjectProperty()
 
@@ -54,7 +59,7 @@ class RulesList(ListView):
     def on_adapter(self, *args):
         self.adapter.bind(
             on_selection_change=lambda inst:
-            self.set_rule(self.adapter.selection[0].rule)
+            self.set_rule(self.adapter.selection[0].rule if self.adapter.selection else None)
         )
 
     def on_rulebook(self, *args):
@@ -73,7 +78,7 @@ class RulesList(ListView):
 class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
-    rule = ObjectProperty()
+    rule = ObjectProperty(allownone=True)
 
     def _get_headline_text(self):
         # This shows the entity whose rules you're editing if you
@@ -251,22 +256,9 @@ class RulesView(FloatLayout):
                 size_hint=(None, None)
             )
         )
+        self.bind(rule=self._trigger_update_builders)
 
-    def on_rule(self, *args):
-        def getname(o):
-            return o if isinstance(o, str) else o.__name__
-
-        if self.rule is None:
-            dbg('RulesView: no rule')
-            return
-        for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
-            if not hasattr(self, attrn):
-                dbg('RulesView: no {}'.format(attrn))
-                Clock.schedule_once(self.on_rule, 0)
-                return
-        self._trigger_builder.clear_widgets()
-        self._prereq_builder.clear_widgets()
-        self._action_builder.clear_widgets()
+    def update_triggers(self, *args):
         unused_triggers = [
             Card(
                 ud={
@@ -285,20 +277,19 @@ class RulesView(FloatLayout):
             Card(
                 ud={
                     'type': 'trigger',
-                    'funcname': getname(trigger),
+                    'funcname': getname(trig),
                 },
-                headline_text=getname(trigger),
+                headline_text=getname(trig),
                 show_art=False,
                 midline_text='Trigger',
-                text=self.engine.trigger.plain(getname(trigger)),
+                text=self.engine.trigger.plain(getname(trig)),
             )
-            for trigger in self.rule.triggers
+            for trig in self.rule.triggers
         ]
-        self._trigger_builder.unbind(decks=self._trigger_upd_unused_triggers)
-        self._trigger_builder.unbind(decks=self._trigger_upd_rule_triggers)
         self._trigger_builder.decks = [used_triggers, unused_triggers]
-        self._trigger_builder.bind(decks=self._trigger_upd_rule_triggers)
-        self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
+    _trigger_update_triggers = trigger(update_triggers)
+
+    def update_prereqs(self, *args):
         unused_prereqs = [
             Card(
                 ud={
@@ -326,11 +317,10 @@ class RulesView(FloatLayout):
             )
             for prereq in self.rule.prereqs
         ]
-        self._prereq_builder.unbind(decks=self._trigger_upd_unused_prereqs)
-        self._prereq_builder.unbind(decks=self._trigger_upd_rule_prereqs)
         self._prereq_builder.decks = [used_prereqs, unused_prereqs]
-        self._prereq_builder.bind(decks=self._trigger_upd_rule_prereqs)
-        self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
+    _trigger_update_prereqs = trigger(update_prereqs)
+
+    def update_actions(self, *args):
         unused_actions = [
             Card(
                 ud={
@@ -358,11 +348,27 @@ class RulesView(FloatLayout):
             )
             for action in self.rule.actions
         ]
-        self._action_builder.unbind(decks=self._trigger_upd_rule_actions)
-        self._action_builder.unbind(decks=self._trigger_upd_unused_actions)
         self._action_builder.decks = [used_actions, unused_actions]
-        self._action_builder.bind(decks=self._trigger_upd_rule_actions)
-        self._action_builder.bind(decks=self._trigger_upd_unused_actions)
+    _trigger_update_actions = trigger(update_actions)
+
+    def update_builders(self, *args):
+        for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
+            if not hasattr(self, attrn):
+                dbg('RulesView: no {}'.format(attrn))
+                Clock.schedule_once(self.on_rule, 0)
+                return
+        self._trigger_builder.clear_widgets()
+        self._prereq_builder.clear_widgets()
+        self._action_builder.clear_widgets()
+        if self.rule is None:
+            dbg('RulesView: no rule')
+            return
+        if hasattr(self, '_list'):
+            self._list.adapter.data = list(self._list.rulebook)
+        self.update_triggers()
+        self.update_prereqs()
+        self.update_actions()
+    _trigger_update_builders = trigger(update_builders)
 
     def upd_rule_actions(self, *args):
         actions = [
@@ -469,7 +475,10 @@ class RulesScreen(Screen):
         if self.new_rule_name in self.engine.rule:
             # TODO: feedback to say you already have such a rule
             return
-        self.rulebook.append(self.engine.rule.new_empty(self.new_rule_name))
+        new_rule = self.engine.rule.new_empty(self.new_rule_name)
+        assert(new_rule is not None)
+        self.rulebook.append(new_rule)
+        self.ids.rulesview.rule = new_rule
         self.ids.rulename.text = ''
 
 

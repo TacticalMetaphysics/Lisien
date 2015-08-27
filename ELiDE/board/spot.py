@@ -53,6 +53,24 @@ class Spot(PawnSpot):
             del kwargs['place']
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
+        self.bind(
+            size=self._trigger_upd_collider,
+            pos=self._trigger_upd_collider
+        )
+
+    def _upd_collider(self, *args):
+        rx = self.width / 2
+        ry = self.height / 2
+        if (
+            not hasattr(self.collider, 'pos') or
+            self.collider.pos != self.center or
+            self.collider.rx != rx or
+            self.collider.ry != ry
+        ):
+            self.collider = CollideEllipse(
+                x=self.center_x, y=self.center_y, rx=rx, ry=ry
+            )
+    _trigger_upd_collider = trigger(_upd_collider)
         
     def _get_pospawn_partial(self, pawn):
         if pawn not in self._pospawn_partials:
@@ -95,8 +113,8 @@ class Spot(PawnSpot):
             Clock.schedule_once(self._upd_pos, 0)
             return
         self.pos = (
-            self.remote.get('_x', self.default_pos[0]) * self.board.width,
-            self.remote.get('_y', self.default_pos[1]) * self.board.height
+            int(self.remote.get('_x', self.default_pos[0]) * self.board.width),
+            int(self.remote.get('_y', self.default_pos[1]) * self.board.height)
         )
 
     def listen_pos(self, *args):
@@ -195,10 +213,7 @@ class Spot(PawnSpot):
 
     def collide_point(self, x, y):
         """Check my collider."""
-        if not self.collider:
-            self.collider = CollideEllipse(
-                x=self.x, y=self.y, rx=self.width/2, ry=self.height/2
-            )
+        self._upd_collider()
         return (x, y) in self.collider
 
     def on_touch_move(self, touch):
@@ -211,14 +226,12 @@ class Spot(PawnSpot):
 
     def on_touch_up(self, touch):
         """Unset ``touchpos``"""
+        if not self.hit:
+            return False
         if self._touchpos:
             self.center = self._touchpos
             self._touchpos = []
             self._trigger_push_pos()
-        (x, y) = self.center
-        self.collider = CollideEllipse(
-            x=x, y=y, rx=self.width/2, ry=self.height/2
-        )
         self.collided = False
         self.hit = False
 
