@@ -103,18 +103,23 @@ class ELiDEApp(App):
                 'user_kv': 'yes',
                 'play_speed': '1',
                 'thing_graphics': json.dumps([
-                    ('Body', 'base.atlas'),
-                    ('Basic clothes', 'body.atlas'),
-                    ('Armwear', 'arm.atlas'),
-                    ('Legwear', 'leg.atlas'),
-                    ('Right hand', 'hand1.atlas'),
-                    ('Left hand', 'hand2.atlas'),
-                    ('Boots', 'boot.atlas'),
-                    ('Hair', 'hair.atlas'),
-                    ('Beard', 'beard.atlas'),
-                    ('Headwear', 'head.atlas')
+                    ("Marsh Davies' Island", 'marsh_davies_island_fg.atlas'),
+                    ('RLTiles: Body', 'base.atlas'),
+                    ('RLTiles: Basic clothes', 'body.atlas'),
+                    ('RLTiles: Armwear', 'arm.atlas'),
+                    ('RLTiles: Legwear', 'leg.atlas'),
+                    ('RLTiles: Right hand', 'hand1.atlas'),
+                    ('RLTiles: Left hand', 'hand2.atlas'),
+                    ('RLTiles: Boots', 'boot.atlas'),
+                    ('RLTiles: Hair', 'hair.atlas'),
+                    ('RLTiles: Beard', 'beard.atlas'),
+                    ('RLTiles: Headwear', 'head.atlas')
                 ]),
-                'place_graphics': json.dumps([('Dungeon', 'dungeon.atlas')])
+                'place_graphics': json.dumps([
+                    ("Marsh Davies' Island", 'marsh_davies_island_bg.atlas'),
+                    ("Marsh Davies' Crypt", 'marsh_davies_crypt.atlas'),
+                    ('RLTiles: Dungeon', 'dungeon.atlas')
+                ])
             }
         )
         config.write()

@@ -58,16 +58,12 @@ that one, and not write that code yourself, after all.
 
 # License Information
 
-wallpape.jpg is copyright [Fantastic
-Maps](http://www.fantasticmaps.com/free-stuff/), freely available
-under the terms of [Creative Commons
-BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
+ELiDE uses third-party graphics sets:
 
-ELiDE currently has two graphics sets, the
-[RLTiles](http://rltiles.sourceforge.net/) and [Pixel
-City](http://opengameart.org/content/pixel-city), both available under
-[CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the
-public domain where it exists.
+* The [RLTiles](http://rltiles.sourceforge.net/), available under [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the public domain where it exists.
+* "Crypt" and "Island" from the [PROCJAM 2015 Art Pack](http://www.procjam.com/2015/09/procjam-art-pack-now-available/), by Marsh Davies, available under the terms of [Creative Commons BY-NC](http://creativecommons.org/licenses/by-nc/4.0/)
+* The default wallpaper, wallpape.jpg, is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
+
 
 [networkx](http://networkx.github.io/), which forms the basis of
 LiSE's data model, is available under
