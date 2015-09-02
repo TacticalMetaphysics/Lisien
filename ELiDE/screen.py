@@ -501,12 +501,22 @@ class MainScreen(Screen):
                 continue
             if dummy == self.dummything:
                 self.ids.charmenu._pawn_config = self.pawn_cfg
+                self.pawn_cfg.bind(imgpaths=self._propagate_thing_paths)
             if dummy == self.dummyplace:
                 self.ids.charmenu._spot_config = self.spot_cfg
+                self.spot_cfg.bind(imgpaths=self._propagate_place_paths)
             dummy.num = dummynum(self.character, dummy.prefix) + 1
             Logger.debug("MainScreen: dummy #{}".format(dummy.num))
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
+
+    def _propagate_thing_paths(self, *args):
+        # horrible hack
+        self.dummything.paths = self.pawn_cfg.imgpaths
+
+    def _propagate_place_paths(self, *args):
+        # horrible hack
+        self.dummyplace.paths = self.spot_cfg.imgpaths
 
     def spot_from_dummy(self, dummy):
         """Create a new :class:`board.Spot` instance, along with the
