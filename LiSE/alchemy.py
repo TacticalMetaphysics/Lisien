@@ -15,6 +15,8 @@ from sqlalchemy import (
     Table,
     Index,
     Column,
+    CheckConstraint,
+    ForeignKey,
     ForeignKeyConstraint,
     Integer,
     Boolean,
@@ -93,22 +95,41 @@ def tables_for_meta(meta):
         """Table to store strings, possibly for display to the player."""
 
     def func_store_table(name):
-        return Table(
+        r = Table(
             name, meta,
             Column('name', TEXT, primary_key=True),
-            Column('bytecode', TEXT),
+            Column(
+                'base', TEXT,
+                ForeignKey('{}.name'.format(name)),
+                nullable=True,
+                default=None
+            ),
+            Column('keywords', TEXT, nullable=False, default='[]'),
+            Column('bytecode', TEXT, nullable=True),
             Column('date', DateTime, nullable=True),
             Column('creator', TEXT, nullable=True),
             Column('contributor', TEXT, nullable=True),
             Column('description', TEXT, nullable=True),
             Column('plaincode', TEXT, nullable=True),
-            Column('version', Integer, nullable=True),
+            Column('version', TEXT, nullable=True),
         )
         """Table to store functions, both source code and bytecode.
 
-        Might perform something like version control later.
+        If the 'base' field of a given record is filled in with the
+        name of another function, the function in this record is a
+        partial. These work a bit differently from
+        ``functools.partial``: only keyword arguments may be
+        prefilled, and these are kept in a JSON object in the
+        'plaincode' field.
 
         """
+        r.append_constraint(
+            CheckConstraint(or_(
+                r.c.bytecode != None,
+                r.c.plaincode != None
+            ))
+        )
+        return r
 
     r = gorm.alchemy.tables_for_meta(meta)
 
