@@ -26,21 +26,83 @@ import LiSE
 
 eng = LiSE.Engine('LiSEworld.db', 'LiSEcode.db')
 phys = eng.new_character('physical')
+phys.stat['hour'] = 0
+
+
+@phys.rule(always=True)
+def time_passes(engine, character):
+    character.stat['hour'] = (character.stat['hour'] + 1) % 24
+
+# There's a character with all of the students in it, to make it easy to apply rules to all students.
+student_body = phys.new_character('student_body')
+
+
+@student_body.avatar.rule
+def sober_up(engine, character, node):
+    node.stat['drunk'] -= 1
+
+
+@sober_up.trigger
+def drunken(engine, character, node):
+    return node.stat['drunk'] >= 1
+
+
+@student_body.avatar.rule
+def catch_up(engine, character, node):
+    node.stat['slow'] -= 1
+
+
+@catch_up.trigger
+def late(engine, character, node):
+    return node.stat['slow'] >= 1
+
+classroom = phys.new_node('classroom')
+
+
+@student_body.avatar.rule
+def go_to_class(engine, character, node):
+    # There's just one really long class every day.
+    node.travel_to(classroom)
+
+
+@go_to_class.trigger
+def class_time(engine, character, node):
+    return phys.stat['hour'] == 8
+
+
+@go_to_class.trigger
+def not_in_class(engine, character, node):
+    return (
+        9 <= phys.stat['hour'] < 15 and
+        node.location != classroom
+    )
+
+
+@go_to_class.prereq
+def be_timely(engine, character, node):
+    return not node['lazy'] or engine.coinflip()
+
+
+@student_body.avatar.rule
+def sloth(engine, character, node):
+    node['slow'] += 1
+
+
+sloth.trigger(not_in_class)
 
 # 3 dorms of 12 students each.
 # Each dorm has 6 rooms.
-# The dorms are characters -- this makes it easy to apply effects to an entire dorm
-student_body = phys.new_character('student_body')
+# Modeling the teachers would be a logical way to extend this.
 for n in range(0, 3):
     dorm = eng.new_character('dorm{}'.format(n))
-    # A common room for students to meet in
-    common = phys.new_node('common{}'.format(n))
+    common = phys.new_node('common{}'.format(n))  # A common room for students to meet in
     dorm.add_avatar(common)
-    # All rooms in a dorm are connected via the common room
+    common.two_way(classroom)
+    # All rooms in a dorm are connected via its common room
     for i in range(0, 6):
         room = phys.new_node('dorm{}room{}'.format(n, i))
         dorm.add_avatar(room)
-        room.two_way(common)  # Makes a new two-way portal. See also ``one_way``
+        room.two_way(common)
         student0 = eng.new_character('dorm{}room{}student0'.format(n, i))
         body0 = room.new_thing('dorm{}room{}student0'.format(n, i))
         student0.add_avatar(body0)
@@ -55,22 +117,23 @@ for n in range(0, 3):
         for student in (student0, student1):
             # Students' nodes are their brain cells.
             # Brain cells have stats that go down by one every hour, if above zero.
-            @student.node.rule
-            def sober_up(character, node):
-                node.stat['drunk'] -= 1
-
-            @sober_up.trigger
-            def drunken(character, node):
-                return node.stat['drunk'] > 0
             for k in range(0, 100):
                 cell = student.new_node('cell{}'.format(k), drunk=0, slow=0)
-
-                @cell.rule
-                def catch_up(character, node):
-                    if node.stat['slow'] > 0:
-                        node.stat['slow'] -= 1
-                catch_up.always()  # rule will run every tick
-
                 student.stat['xp'] = 0
+                student.stat['late'] = False
                 student.stat['drunkard'] = eng.coinflip()
                 student.stat['lazy'] = eng.coinflip()
+            @student.node.rule
+            def learn(engine, character, node):
+                student.stat['xp'] += 1
+
+            @learn.trigger
+            def be_in_class(engine, character, node):
+                return (
+                    character.avatar.physical.location == classroom and
+                    9 <= phys.stat['hour'] < 15
+                )
+
+            @learn.prereq
+            def pay_attention(engine, character, node):
+                return node['drunk'] == node['slow'] == 0
