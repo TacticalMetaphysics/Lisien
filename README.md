@@ -21,6 +21,7 @@ Existing games that LiSE seeks to imitate include:
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
+* The King of Dragon Pass
 
 To demonstrate the capabilities of the engine, I will develop the game
 [Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
