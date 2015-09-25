@@ -74,7 +74,7 @@ class MirrorMapping(EventDispatcher):
         )
 
     def _listen_func(self, branch, tick, what, k, v):
-        if k in self.mirror or self.mirror[k] == v:
+        if k in self.mirror and self.mirror[k] == v:
             return
         elif v is None and k in self.mirror:
             if k in ('next_location', 'next_arrival_time'):

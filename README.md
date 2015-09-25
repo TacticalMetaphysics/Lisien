@@ -21,6 +21,7 @@ Existing games that LiSE seeks to imitate include:
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
+* The King of Dragon Pass
 
 To demonstrate the capabilities of the engine, I will develop the game
 [Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
@@ -53,7 +54,7 @@ that one, and not write that code yourself, after all.
 * View and edit state graphs in a *drag-and-drop interface*.
 * *Rewind time* and the interface will show you the state of the world back then.
 * Code editor with syntax highlighting.
-* *Rule constructor*: Build rules out of functions represented as cards. Looks like deckbuilding in a CCG.
+* *Rule constructor*: Build rules out of functions represented as cards. Looks like deckbuilding in a card game like Magic.
 * *Autosave*. Actually, anything you do gets put in a transaction that gets committed when you quit. In any case you never need to save
 
 # License Information
