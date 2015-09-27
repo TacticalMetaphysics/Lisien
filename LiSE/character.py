@@ -1866,6 +1866,10 @@ class Character(DiGraph, RuleFollower):
             self.add_portal(destination, origin, is_mirror=True)
 
     def new_portal(self, origin, destination, symmetrical=False, **kwargs):
+        if isinstance(origin, Node):
+            origin = origin.name
+        if isinstance(destination, Node):
+            destination = destination.name
         self.add_portal(origin, destination, symmetrical, **kwargs)
         return self.portal[origin][destination]
 
