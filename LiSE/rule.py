@@ -522,7 +522,10 @@ class RuleFollower(object):
 
     def _get_rulebook(self):
         """Return my :class:`RuleBook` as of this moment."""
-        raise NotImplementedError
+        return RuleBook(
+            self.engine,
+            self._get_rulebook_name()
+        )
 
     def rules(self):
         if not hasattr(self, 'engine'):

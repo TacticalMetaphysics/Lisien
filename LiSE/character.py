@@ -1722,12 +1722,6 @@ class Character(DiGraph, RuleFollower):
     def stat(self):
         return CharStatCache(self)
 
-    def _get_rulebook(self):
-        return RuleBook(
-            self.engine,
-            self.engine.db.character_rulebook(self.name)
-        )
-
     def facade(self):
         return Facade(self)
 
