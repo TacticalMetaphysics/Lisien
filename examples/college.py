@@ -10,11 +10,7 @@ leveling-up. Otherwise it's wasted.
 Some students are slow and some are drunkards. These students will
 randomly show up late (brain cells become useless in proportion to
 how late, recovering immediately afterward) or drunk (some brain
-cells made useless per drink, recovering as time passes). Other
-students who happen to hang around with them have a chance of
-adopting their behavior for the following day. 5 days slow or
-drunk, and you become one of them. 5 days quick or sober, and
-you lose the trait.
+cells made useless per drink, recovering as time passes).
 
 This script will initialize LiSEworld.db and LiSEcode.db to run the
 simulation described. To view it, run ELiDE from the same directory
