@@ -30,7 +30,7 @@ def time_passes(engine, character):
     character.stat['hour'] = (character.stat['hour'] + 1) % 24
 
 # There's a character with all of the students in it, to make it easy to apply rules to all students.
-student_body = phys.new_character('student_body')
+student_body = eng.new_character('student_body')
 
 
 classroom = phys.new_node('classroom')
