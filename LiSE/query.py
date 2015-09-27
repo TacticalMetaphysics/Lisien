@@ -81,18 +81,21 @@ class QueryEngine(gorm.query.QueryEngine):
             raise KeyError("No such row")
         return row[5]
 
-    def func_table_set(self, tbl, key, fun):
+    def func_table_set(self, tbl, key, fun, keywords=[]):
         try:
             s = getsource(fun)
         except OSError:
             s = ''
         m = marshalled(fun.__code__)
+        kws = json_dump(keywords)
         try:
-            return self.sql('func_{}_ins'.format(tbl), key, m, s)
+            return self.sql('func_{}_ins'.format(tbl), key, kws, m, s)
         except IntegrityError:
-            return self.sql('func_{}_upd'.format(tbl), m, s, key)
+            return self.sql('func_{}_upd'.format(tbl), kws, m, s, key)
 
-    def func_table_set_source(self, tbl, key, source, use_globals=True):
+    def func_table_set_source(
+            self, tbl, key, source, keywords=[], use_globals=True
+    ):
         locd = {}
         globd = (
             globals() if use_globals is True else
@@ -118,10 +121,11 @@ class QueryEngine(gorm.query.QueryEngine):
             )
         fun = locd[key]
         m = marshalled(fun.__code__)
+        kws = json_dump(keywords)
         try:
-            return self.sql('func_{}_ins'.format(tbl), key, m, source)
+            return self.sql('func_{}_ins'.format(tbl), key, kws, m, source)
         except IntegrityError:
-            return self.sql('func_{}_upd'.format(tbl), m, source, key)
+            return self.sql('func_{}_upd'.format(tbl), kws, m, source, key)
 
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)
