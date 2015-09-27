@@ -275,6 +275,29 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             False
         )
 
+    def one_way_portal(self, other, **stats):
+        """Connect a portal from here to another node, and return it."""
+        return self.character.new_portal(
+            self, other, symmetrical=False, **stats
+        )
+
+    def one_way(self, other, **stats):
+        return self.one_way_portal(other, **stats)
+
+    def two_way_portal(self, other, **stats):
+        """Connect these nodes with a two-way portal and return it."""
+        return self.character.new_portal(
+            self, other, symmetrical=True, **stats
+        )
+
+    def two_way(self, other, **stats):
+        return self.two_way_portal(other, **stats)
+
+    @property
+    def portal(self):
+        """Return a mapping of portals to other nodes."""
+        return self.character.portal[self.name]
+
     def __bool__(self):
         """Return whether I really exist in the world model, ie. in my character."""
         return self.name in self.character.node
