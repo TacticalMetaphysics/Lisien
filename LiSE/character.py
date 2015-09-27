@@ -1792,6 +1792,10 @@ class Character(DiGraph, RuleFollower):
 
         """
         super().add_node(name, **kwargs)
+        if isinstance(location, Node):
+            location = location.name
+        if isinstance(next_location, Node):
+            next_location = next_location.name
         self.place2thing(name, location, next_location)
 
     def add_things_from(self, seq):
