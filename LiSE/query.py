@@ -367,25 +367,10 @@ class QueryEngine(gorm.query.QueryEngine):
                 return bool(active)
         return False
 
-    def _x_rulebook(self, character, x):
-        character = json_dump(character)
-        for (rb,) in self.sql(x + '_rulebook', character):
-            return rb
-
     def character_rulebook(self, character):
-        return self._x_rulebook(character, 'character')
-
-    def avatar_rulebook(self, character):
-        return self._x_rulebook(character, 'avatar')
-
-    def character_thing_rulebook(self, character):
-        return self._x_rulebook(character, 'character_thing')
-
-    def character_place_rulebook(self, character):
-        return self._x_rulebook(character, 'character_place')
-
-    def character_portal_rulebook(self, character):
-        return self._x_rulebook(character, 'character_portal')
+        character = json_dump(character)
+        for (rb,) in self.sql('character_rulebook', character):
+            return rb
 
     def rule_set(self, rulebook, rule, branch, tick, active):
         rulebook = json_dump(rulebook)
