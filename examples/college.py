@@ -33,7 +33,7 @@ def time_passes(engine, character):
 student_body = eng.new_character('student_body')
 
 
-classroom = phys.new_node('classroom')
+classroom = phys.new_place('classroom')
 
 
 @student_body.avatar.rule
@@ -83,7 +83,7 @@ def in_classroom_after_class(engine, character, node):
 # Modeling the teachers would be a logical way to extend this.
 for n in range(0, 3):
     dorm = eng.new_character('dorm{}'.format(n))
-    common = phys.new_node('common{}'.format(n))  # A common room for students to meet in
+    common = phys.new_place('common{}'.format(n))  # A common room for students to meet in
     dorm.add_avatar(common)
     common.two_way(classroom)
     # All rooms in a dorm are connected via its common room
@@ -107,6 +107,9 @@ for n in range(0, 3):
             # They are useless if drunk or slow, but recover from both conditions a bit every hour.
             for k in range(0, 100):
                 cell = student.new_node('cell{}'.format(k), drunk=0, slow=0)
+                #  ``new_node`` is just an alias for ``new_place``;
+                #  perhaps more logical when the places don't really
+                #  represent potential locations
                 student.stat['xp'] = 0
                 student.stat['late'] = False
                 student.stat['drunkard'] = eng.coinflip()
