@@ -1788,6 +1788,9 @@ class Character(DiGraph, RuleFollower):
         self.add_place(name, **kwargs)
         return self.place[name]
 
+    def new_node(self, name, **kwargs):
+        return self.new_place(name, **kwargs)
+
     def add_thing(self, name, location, next_location=None, **kwargs):
         """Create a Thing, set its location and next_location (if provided),
         and set its initial attributes from the keyword arguments (if
