@@ -8,6 +8,7 @@ from collections import (
     Callable,
     defaultdict
 )
+from functools import partial
 from .funlist import FunList
 from .util import (
     dispatch,
@@ -452,15 +453,22 @@ class RuleMapping(MutableMapping):
                 )
             )
 
-    def __call__(self, v, name=None):
-        name = name if name is not None else v.__name__
-        self[name] = v
-        return self[name]
+    def __call__(self, v=None, name=None, always=False):
+        def wrap(name, always, v):
+            name = name if name is not None else v.__name__
+            self[name] = v
+            r = self[name]
+            if always:
+                r.always()
+            return r
+        if v is None:
+            return partial(wrap, name, always)
+        return wrap(name, always, v)
 
     def __delitem__(self, k):
         i = self.rulebook.index(k)
         del self.rulebook[i]
-        self._dispatch(rule, None)
+        self._dispatch(k, None)
 
 
 class RuleFollower(object):
