@@ -25,11 +25,6 @@ class QueryEngine(gorm.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
-    def __init__(self, dbstring, connect_args, alchemy, dumps, loads):
-        super().__init__(dbstring, connect_args, alchemy)
-        self.dumps = dumps
-        self.loads = loads
-
     def count_all_table(self, tbl):
         return self.sql('count_all_{}'.format(tbl)).fetchone()[0]
 
@@ -91,7 +86,7 @@ class QueryEngine(gorm.query.QueryEngine):
         except OSError:
             s = ''
         m = marshalled(fun.__code__)
-        kws = self.dumps(keywords)
+        kws = self.json_dump(keywords)
         try:
             return self.sql('func_{}_ins'.format(tbl), key, kws, m, s)
         except IntegrityError:
@@ -125,7 +120,7 @@ class QueryEngine(gorm.query.QueryEngine):
             )
         fun = locd[key]
         m = marshalled(fun.__code__)
-        kws = self.dumps(keywords)
+        kws = self.json_dump(keywords)
         try:
             return self.sql('func_{}_ins'.format(tbl), key, kws, m, source)
         except IntegrityError:
@@ -136,11 +131,11 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def rule_triggers(self, rule):
         for row in self.sql('rule_triggers', rule):
-            return self.loads(row[0])
+            return self.json_load(row[0])
         return []
 
     def set_rule_triggers(self, rule, triggers):
-        triggers = self.dumps(triggers)
+        triggers = self.json_dump(triggers)
         try:
             return self.sql('ins_rule', rule, '["list"]', '["list"]', triggers)
         except IntegrityError:
@@ -148,11 +143,11 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def rule_prereqs(self, rule):
         for row in self.sql('rule_prereqs', rule):
-            return self.loads(row[0])
+            return self.json_load(row[0])
         return []
 
     def set_rule_prereqs(self, rule, prereqs):
-        prereqs = self.dumps(prereqs)
+        prereqs = self.json_dump(prereqs)
         try:
             return self.sql('ins_rule', rule, '["list"]', prereqs, '["list"]')
         except IntegrityError:
@@ -160,11 +155,11 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def rule_actions(self, rule):
         for row in self.sql('rule_actions', rule):
-            return self.loads(row[0])
+            return self.json_load(row[0])
         return []
 
     def set_rule_actions(self, rule, actions):
-        actions = self.dumps(actions)
+        actions = self.json_dump(actions)
         try:
             return self.sql('ins_rule', rule, actions, '["list"]', '["list"]')
         except IntegrityError:
@@ -174,13 +169,13 @@ class QueryEngine(gorm.query.QueryEngine):
         return self.sql('ins_rule', rule, '["list"]', '["list"]', '["list"]')
 
     def travel_reqs(self, character):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for row in self.sql('travel_reqs', character):
-            return self.loads(row[0])
+            return self.json_load(row[0])
         return []
 
     def set_travel_reqs(self, character, reqs):
-        (char, reqs) = map(self.dumps, (character, reqs))
+        (char, reqs) = map(self.json_dump, (character, reqs))
         try:
             return self.sql('ins_travel_reqs', char, reqs)
         except IntegrityError:
@@ -207,27 +202,27 @@ class QueryEngine(gorm.query.QueryEngine):
         for (b, t) in self.active_branches(branch, tick):
             for (k, v) in self.sql('universal_items', branch, tick):
                 if k not in seen and v is not None:
-                    yield (self.loads(k), self.loads(v))
+                    yield (self.json_load(k), self.json_load(v))
                 seen.add(k)
 
     def universal_get(self, key, branch, tick):
-        key = self.dumps(key)
+        key = self.json_dump(key)
         for (b, t) in self.active_branches(branch, tick):
             for (v,) in self.sql('universal_get', key, b, t):
                 if v is None:
                     raise KeyError("Key not set")
-                return self.loads(v)
+                return self.json_load(v)
         raise KeyError("Key never set")
 
     def universal_set(self, key, branch, tick, value):
-        (key, value) = map(self.dumps, (key, value))
+        (key, value) = map(self.json_dump, (key, value))
         try:
             return self.sql('universal_ins', key, branch, tick, value)
         except IntegrityError:
             return self.sql('universal_upd', value, key, branch, tick)
 
     def universal_del(self, key, branch, tick):
-        key = self.dumps(key)
+        key = self.json_dump(key)
         try:
             return self.sql('universal_ins', key, branch, tick, None)
         except IntegrityError:
@@ -235,17 +230,17 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def characters(self):
         for (ch,) in self.sql('characters'):
-            yield self.loads(ch)
+            yield self.json_load(ch)
 
     def ct_characters(self):
         return self.sql('ct_characters').fetchone()[0]
 
     def have_character(self, name):
-        name = self.dumps(name)
+        name = self.json_dump(name)
         return self.sql('ct_character', name).fetchone()[0] > 0
 
     def del_character(self, name):
-        name = self.dumps(name)
+        name = self.json_dump(name)
         self.sql('del_char_things', name)
         self.sql('del_char_avatars', name)
         for tbl in (
@@ -266,7 +261,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return self.sql('ct_rulebooks').fetchone()[0]
 
     def active_rules_rulebook(self, rulebook, branch, tick):
-        rulebook = self.dumps(rulebook)
+        rulebook = self.json_dump(rulebook)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (rule, active) in self.sql(
@@ -277,7 +272,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add(rule)
 
     def active_rule_rulebook(self, rulebook, rule, branch, tick):
-        rulebook = self.dumps(rulebook)
+        rulebook = self.json_dump(rulebook)
         for (b, t) in self.active_branches(branch, tick):
             for (active,) in self.sql(
                     'active_rule_rulebook', rulebook, rule, branch, tick
@@ -286,7 +281,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return False
 
     def node_rulebook(self, character, node):
-        (character, node) = map(self.dumps, (character, node))
+        (character, node) = map(self.json_dump, (character, node))
         r = self.sql('node_rulebook', character, node).fetchone()
         if r is None:
             raise KeyError(
@@ -294,11 +289,11 @@ class QueryEngine(gorm.query.QueryEngine):
                     node, character
                 )
             )
-        return self.loads(r[0])
+        return self.json_load(r[0])
 
     def set_node_rulebook(self, character, node, rulebook):
         (character, node, rulebook) = map(
-            self.dumps, (character, node, rulebook)
+            self.json_dump, (character, node, rulebook)
         )
         try:
             return self.sql('ins_node_rulebook', character, node, rulebook)
@@ -306,7 +301,7 @@ class QueryEngine(gorm.query.QueryEngine):
             return self.sql('upd_node_rulebook', rulebook, character, node)
 
     def portal_rulebook(self, character, nodeA, nodeB):
-        (character, nodeA, nodeB) = map(self.dumps, (character, nodeA, nodeB))
+        (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
         r = self.sql(
             'portal_rulebook',
             character,
@@ -320,11 +315,11 @@ class QueryEngine(gorm.query.QueryEngine):
                     nodeA, nodeB, character
                 )
             )
-        return self.loads(r[0])
+        return self.json_load(r[0])
 
     def set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
         (character, nodeA, nodeB, rulebook) = map(
-            self.dumps, (character, nodeA, nodeB, rulebook)
+            self.json_dump, (character, nodeA, nodeB, rulebook)
         )
         try:
             return self.sql(
@@ -346,7 +341,7 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def active_rules_char(self, tbl, character, rulebook, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (rule, active) in self.sql(
@@ -357,7 +352,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add(rule)
 
     def active_rule_char(self, tbl, character, rulebook, rule, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (b, t) in self.active_branches(branch, tick):
             for (active,) in self.sql(
                     'active_rule_char_fmt',
@@ -372,12 +367,12 @@ class QueryEngine(gorm.query.QueryEngine):
         return False
 
     def character_rulebook(self, character):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (rb,) in self.sql('character_rulebook', character):
             return rb
 
     def rule_set(self, rulebook, rule, branch, tick, active):
-        rulebook = self.dumps(rulebook)
+        rulebook = self.json_dump(rulebook)
         try:
             self.sql(
                 'rule_ins', rulebook, rule, branch, tick, active
@@ -405,7 +400,7 @@ class QueryEngine(gorm.query.QueryEngine):
                         continue
                     seen.add((c, rulebook, rule))
                     if active:
-                        yield (rulemap, self.loads(c), rulebook, rule)
+                        yield (rulemap, self.json_load(c), rulebook, rule)
 
     def poll_node_rules(self, branch, tick):
         """Poll rules assigned to particular Places or Things."""
@@ -419,14 +414,14 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add((char, n, rulebook, rule))
                 if active:
                     yield (
-                        self.loads(char),
-                        self.loads(n),
+                        self.json_load(char),
+                        self.json_load(n),
                         rulebook,
                         rule
                     )
 
     def node_rules(self, character, node, branch, tick):
-        (character, node) = map(self.dumps, (character, node))
+        (character, node) = map(self.json_dump, (character, node))
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (char, n, rulebook, rule, active) in self.sql(
@@ -437,8 +432,8 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add((char, n, rulebook, rule))
                 if active:
                     yield(
-                        self.loads(char),
-                        self.loads(n),
+                        self.json_load(char),
+                        self.json_load(n),
                         rulebook,
                         rule
                     )
@@ -455,16 +450,16 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add((char, a, b, i, rulebook, rule))
                 if active:
                     yield (
-                        self.loads(char),
-                        self.loads(a),
-                        self.loads(b),
+                        self.json_load(char),
+                        self.json_load(a),
+                        self.json_load(b),
                         i,
                         rulebook,
                         rule
                     )
 
     def portal_rules(self, character, nodeA, nodeB, branch, tick):
-        (character, nodeA, nodeB) = map(self.dumps, (character, nodeA, nodeB))
+        (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
@@ -475,9 +470,9 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add((char, a, b, i, rulebook, rule))
                 if active:
                     yield (
-                        self.loads(char),
-                        self.loads(a),
-                        self.loads(b),
+                        self.json_load(char),
+                        self.json_load(a),
+                        self.json_load(b),
                         i,
                         rulebook,
                         rule
@@ -486,7 +481,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def handled_character_rule(
             self, ruletyp, character, rulebook, rule, branch, tick
     ):
-        (character, rulebook) = map(self.dumps, (character, rulebook))
+        (character, rulebook) = map(self.json_dump, (character, rulebook))
         try:
             return self.sql(
                 'handled_character_rule_fmt',
@@ -513,7 +508,7 @@ class QueryEngine(gorm.query.QueryEngine):
             self, character, thing, rulebook, rule, branch, tick
     ):
         (character, thing, rulebook) = map(
-            self.dumps, (character, thing, rulebook)
+            self.json_dump, (character, thing, rulebook)
         )
         try:
             return self.sql(
@@ -541,7 +536,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def handled_place_rule(
             self, character, place, rulebook, rule, branch, tick
     ):
-        (character, place, rulebook) = map(self.dumps, (character, rulebook))
+        (character, place, rulebook) = map(self.json_dump, (character, rulebook))
         try:
             return self.sql(
                 'handled_place_rule',
@@ -568,7 +563,7 @@ class QueryEngine(gorm.query.QueryEngine):
             self, character, nodeA, nodeB, rulebook, rule, branch, tick
     ):
         (character, nodeA, nodeB, rulebook) = map(
-            self.dumps, (character, nodeA, nodeB, rulebook)
+            self.json_dump, (character, nodeA, nodeB, rulebook)
         )
         try:
             return self.sql(
@@ -597,7 +592,7 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def node_is_thing(self, character, node, branch, tick):
-        (character, node) = map(self.dumps, (character, node))
+        (character, node) = map(self.json_dump, (character, node))
         for (b, t) in self.active_branches(branch, tick):
             for (loc,) in self.sql(
                     'node_is_thing', character, node, branch, tick
@@ -606,7 +601,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return False
 
     def get_rulebook_char(self, rulemap, character):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (book,) in self.sql(
                 'rulebook_get_{}'.format(rulemap), character
         ):
@@ -617,16 +612,16 @@ class QueryEngine(gorm.query.QueryEngine):
         return self.sql('upd_rulebook_char_fmt', character, rulemap=rulemap)
 
     def avatar_users(self, graph, node, branch, tick):
-        (graph, node) = map(self.dumps, (graph, node))
+        (graph, node) = map(self.json_dump, (graph, node))
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (av_g,) in self.sql('avatar_users', graph, node, b, t):
                 if av_g not in seen:
-                    yield self.loads(av_g)
+                    yield self.json_load(av_g)
 
     def arrival_time_get(self, character, thing, location, branch, tick):
         (character, thing, location) = map(
-            self.dumps, (character, thing, location)
+            self.json_dump, (character, thing, location)
         )
         for (b, t) in self.active_branches(branch, tick):
             for hitick in self.sql(
@@ -642,7 +637,7 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def next_arrival_time_get(self, character, thing, location, branch, tick):
         (character, thing, location) = map(
-            self.dumps, (character, thing, location)
+            self.json_dump, (character, thing, location)
         )
         for (b, t) in self.active_branches(branch, tick):
             for (hitick,) in self.sql(
@@ -657,22 +652,22 @@ class QueryEngine(gorm.query.QueryEngine):
         return None
 
     def thing_loc_and_next_get(self, character, thing, branch, tick):
-        (character, thing) = map(self.dumps, (character, thing))
+        (character, thing) = map(self.json_dump, (character, thing))
         for (b, t) in self.active_branches(branch, tick):
             for (loc, nextloc) in self.sql(
                     'thing_loc_and_next_get', character, thing, b, t
             ):
-                return (self.loads(loc), self.loads(nextloc))
+                return (self.json_load(loc), self.json_load(nextloc))
 
     def thing_loc_and_next_set(
             self, character, thing, branch, tick, loc, nextloc
     ):
         (character, thing) = map(
-            self.dumps,
+            self.json_dump,
             (character, thing)
         )
-        loc = self.dumps(loc) if loc else None
-        nextloc = self.dumps(nextloc) if nextloc else None
+        loc = self.json_dump(loc) if loc else None
+        nextloc = self.json_dump(nextloc) if nextloc else None
         try:
             return self.sql(
                 'thing_loc_and_next_ins',
@@ -695,7 +690,7 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def thing_loc_items(self, character, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (n, l) in self.sql(
@@ -708,11 +703,11 @@ class QueryEngine(gorm.query.QueryEngine):
                     b
             ):
                 if l is not None and n not in seen:
-                    yield (self.loads(n), self.loads(l))
+                    yield (self.json_load(n), self.json_load(l))
                 seen.add(n)
 
     def thing_and_loc(self, character, thing, branch, tick):
-        (character, thing) = map(self.dumps, (character, thing))
+        (character, thing) = map(self.json_dump, (character, thing))
         for (b, t) in self.active_branches(branch, tick):
             for (th, l) in self.sql(
                     'thing_and_loc',
@@ -727,40 +722,40 @@ class QueryEngine(gorm.query.QueryEngine):
             ):
                 if l is None:
                     raise KeyError("Thing does not exist")
-                return (self.loads(th), self.loads(l))
+                return (self.json_load(th), self.json_load(l))
         raise KeyError("Thing never existed")
 
     def node_stats_branch(self, character, node, branch):
-        (character, node) = map(self.dumps, (character, node))
+        (character, node) = map(self.json_dump, (character, node))
         for (key, tick, value) in self.sql(
                 'node_var_data_branch', character, node, branch
         ):
             yield (
-                self.loads(key),
+                self.json_load(key),
                 tick,
-                self.loads(value)
+                self.json_load(value)
             )
 
     def character_things_items(self, character, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (th, l) in self.sql(
                     'character_things_items', character, b, t
             ):
                 if l is not None and th not in seen:
-                    yield (self.loads(th), self.loads(l))
+                    yield (self.json_load(th), self.json_load(l))
                 seen.add(th)
 
     def avatarness(self, character, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         d = {}
         for (b, t) in self.active_branches(branch, tick):
             for (graph, node, avatar) in self.sql(
                     'avatarness', character, b, t
             ):
-                g = self.loads(graph)
-                n = self.loads(node)
+                g = self.json_load(graph)
+                n = self.json_load(node)
                 is_av = bool(avatar)
                 if g not in d:
                     d[g] = {}
@@ -768,7 +763,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return d
 
     def is_avatar_of(self, character, graph, node, branch, tick):
-        (character, graph, node) = map(self.dumps, (character, graph, node))
+        (character, graph, node) = map(self.json_dump, (character, graph, node))
         for (avatarness,) in self.sql(
                 'is_avatar_of', character, graph, node, branch, tick
         ):
@@ -777,7 +772,7 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def sense_func_get(self, character, sense, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (b, t) in self.active_branches(branch, tick):
             for (func,) in self.sql(
                     'sense_func_get', character, sense, branch, tick
@@ -785,7 +780,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 return func
 
     def sense_active_items(self, character, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (sense, active) in self.sql(
@@ -796,7 +791,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add(sense)
 
     def sense_is_active(self, character, sense, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (b, t) in self.active_branches(branch, tick):
             for (act,) in self.sql(
                     'sense_is_active', character, sense, branch, tick
@@ -805,7 +800,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return False
 
     def sense_fun_set(self, character, sense, branch, tick, funn, active):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         try:
             self.sql(
                 'sense_fun_ins', character, sense, branch, tick, funn, active
@@ -816,7 +811,7 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def sense_set(self, character, sense, branch, tick, active):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         try:
             self.sql('sense_ins', character, sense, branch, tick, active)
         except IntegrityError:
@@ -825,7 +820,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def init_character(
             self, character, charrule, avrule, thingrule, placerule, portrule
     ):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         try:
             return self.sql(
                 'character_ins',
@@ -840,21 +835,21 @@ class QueryEngine(gorm.query.QueryEngine):
             pass
 
     def avatars_now(self, character, branch, tick):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (g, n, a) in self.sql('avatars_now', character, b, t, b, t):
                 if (g, n) not in seen:
-                    yield (self.loads(g), self.loads(n), a)
+                    yield (self.json_load(g), self.json_load(n), a)
                 seen.add((g, n))
 
     def avatars_ever(self, character):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (g, n, b, t, a) in self.sql('avatars_ever', character):
-            yield (self.loads(g), self.loads(n), b, t, a)
+            yield (self.json_load(g), self.json_load(n), b, t, a)
 
     def avatar_set(self, character, graph, node, branch, tick, isav):
-        (character, graph, node) = map(self.dumps, (character, graph, node))
+        (character, graph, node) = map(self.json_dump, (character, graph, node))
         try:
             return self.sql(
                 'avatar_ins', character, graph, node, branch, tick, isav
@@ -865,28 +860,28 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def rulebook_set(self, rulebook, idx, rule):
-        rulebook = self.dumps(rulebook)
+        rulebook = self.json_dump(rulebook)
         try:
             return self.sql('rulebook_ins', rulebook, idx, rule)
         except IntegrityError:
             return self.sql('rulebook_upd', rule, rulebook, idx)
 
     def rulebook_decr(self, rulebook, idx):
-        self.sql('rulebook_dec', self.dumps(rulebook), idx)
+        self.sql('rulebook_dec', self.json_dump(rulebook), idx)
 
     def rulebook_del(self, rulebook, idx):
-        rulebook = self.dumps(rulebook)
+        rulebook = self.json_dump(rulebook)
         self.sql('rulebook_del', rulebook, idx)
         self.sql('rulebook_dec', rulebook, idx)
 
     def rulebook_rules(self, rulebook):
-        for (rule,) in self.sql('rulebook_rules', self.dumps(rulebook)):
+        for (rule,) in self.sql('rulebook_rules', self.json_dump(rulebook)):
             yield rule
 
     def current_rules_character(self, character, branch, tick):
         return self.sql(
                 'current_rules_character',
-                self.dumps(character),
+                self.json_dump(character),
                 branch,
                 tick
         )
@@ -894,7 +889,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def current_rules_avatar(self, character, branch, tick):
         return self.sql(
             'current_rules_avatar',
-            self.dumps(character),
+            self.json_dump(character),
             branch,
             tick
         )
@@ -902,7 +897,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def current_rules_character_thing(self, character, branch, tick):
         return self.sql(
             'current_rules_character_thing',
-            self.dumps(character),
+            self.json_dump(character),
             branch,
             tick
         )
@@ -910,7 +905,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def current_rules_character_place(self, character, branch, tick):
         return self.sql(
             'current_rules_character_place',
-            self.dumps(character),
+            self.json_dump(character),
             branch,
             tick
         )
@@ -918,13 +913,13 @@ class QueryEngine(gorm.query.QueryEngine):
     def current_rules_character_portal(self, character, branch, tick):
         return self.sql(
             'current_rules_character_portal',
-            self.dumps(character),
+            self.json_dump(character),
             branch,
             tick
         )
 
     def current_rules_node(self, character, node, branch, tick):
-        (character, node) = map(self.dumps, (character, node))
+        (character, node) = map(self.json_dump, (character, node))
         return self.sql(
             'current_rules_node',
             character,
@@ -934,7 +929,7 @@ class QueryEngine(gorm.query.QueryEngine):
         )
 
     def current_rules_portal(self, character, nodeA, nodeB, branch, tick):
-        (character, nodeA, nodeB) = map(self.dumps, (character, nodeA, nodeB))
+        (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
         return self.sql(
             'current_rules_portal',
             character,
@@ -945,10 +940,10 @@ class QueryEngine(gorm.query.QueryEngine):
         )
 
     def ct_rulebook_rules(self, rulebook):
-        return self.sql('ct_rulebook_rules', self.dumps(rulebook)).fetchone()[0]
+        return self.sql('ct_rulebook_rules', self.json_dump(rulebook)).fetchone()[0]
 
     def rulebook_get(self, rulebook, idx):
-        return self.sql('rulebook_get', self.dumps(rulebook), idx).fetchone()[0]
+        return self.sql('rulebook_get', self.json_dump(rulebook), idx).fetchone()[0]
 
     def allrules(self):
         for (rule,) in self.sql('allrules'):
@@ -969,39 +964,39 @@ class QueryEngine(gorm.query.QueryEngine):
         self.sql('ruleins', rule, '[]', '[]', '[]')
 
     def avatar_branch_data(self, character, graph, branch, tick):
-        (character, graph) = map(self.dumps, (character, graph))
+        (character, graph) = map(self.json_dump, (character, graph))
         for (node, isav) in self.sql(
                 'avatar_branch_data', character, graph, branch, tick
         ):
-            yield (self.loads(node), bool(isav))
+            yield (self.json_load(node), bool(isav))
 
     def thing_locs_branch_data(self, character, thing, branch):
-        (character, thing) = map(self.dumps, (character, thing))
+        (character, thing) = map(self.json_dump, (character, thing))
         for (tick, loc, nextloc) in self.sql(
                 'thing_locs_branch_data', character, thing, branch
         ):
-            yield (tick, self.loads(loc), self.loads(nextloc))
+            yield (tick, self.json_load(loc), self.json_load(nextloc))
 
     def char_stat_branch_data(self, character, branch):
-        character = self.dumps(character)
+        character = self.json_dump(character)
         for (key, tick, value) in self.sql(
                 'char_stat_branch_data', character, branch
         ):
-            yield (self.loads(key), tick, self.loads(value))
+            yield (self.json_load(key), tick, self.json_load(value))
 
     def node_stat_branch_data(self, character, node, branch):
-        (character, node) = map(self.dumps, (character, node))
+        (character, node) = map(self.json_dump, (character, node))
         for (key, tick, value) in self.sql(
                 'node_stat_branch_data', character, node, branch
         ):
-            yield (self.loads(key), tick, self.loads(value))
+            yield (self.json_load(key), tick, self.json_load(value))
 
     def edge_stat_branch_data(self, character, orig, dest, branch):
-        (character, orig, dest) = map(self.dumps, (character, orig, dest))
+        (character, orig, dest) = map(self.json_dump, (character, orig, dest))
         for (key, tick, value) in self.sql(
                 'edge_stat_branch_data', character, orig, dest, branch
         ):
-            yield (self.loads(key), tick, self.loads(value))
+            yield (self.json_load(key), tick, self.json_load(value))
 
     def timestream_data(self):
         yield from self.sql('allbranch')

@@ -318,7 +318,7 @@ class GlobalVarMapping(MutableMapping):
         key changes.
 
         """
-        return listener(self._listeners, f, key)
+        return listener(self._listeners, fun, key)
 
     def __iter__(self):
         """Iterate over the global keys whose values aren't null at the moment.
@@ -475,13 +475,14 @@ class Engine(object):
             worlddb,
             connect_args=connect_args,
             alchemy=alchemy,
-            query_engine_class=QueryEngine
+            query_engine_class=QueryEngine,
+            json_dump=self.json_dump,
+            json_load=self.json_load
         )
         self._time_listeners = []
         self.db = self.gorm.db
         self._code_qe = QueryEngine(
-            self.codedb, connect_args={}, alchemy=alchemy,
-            self.json_dump, self.json_load
+            self.codedb, connect_args, alchemy, self.json_dump, self.json_load
         )
         self.eternal = self.db.globl
         # start the database
@@ -990,7 +991,7 @@ class Engine(object):
         if isinstance(obj, Character):
             return dumps(["character", obj.name])
         k = str(obj)
-        if k not in json_dump_hints:
+        if k not in self._json_dump_hints:
             self._json_dump_hints[k] = dumps(enc_tuple(obj))
         return self._json_dump_hints[k]
 
