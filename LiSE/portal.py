@@ -1,6 +1,5 @@
 from collections import defaultdict
 from gorm.graph import Edge
-from gorm.xjson import json_dump
 from .util import (
     dispatch,
     listener,
@@ -278,7 +277,7 @@ class Portal(Edge, RuleFollower):
 
     def dump(self):
         """Return a JSON representation of my present state"""
-        return json_dump(self._get_json_dict())
+        return self.engine.json_dump(self._get_json_dict())
 
     def delete(self):
         """Remove myself from my :class:`Character`.

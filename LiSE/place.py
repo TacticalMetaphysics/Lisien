@@ -1,6 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-from gorm.xjson import json_dump
 from .node import Node
 from .util import (
     dispatch,
@@ -81,7 +80,7 @@ class Place(Node):
 
     def dump(self):
         """Return a JSON representation of my present state"""
-        return json_dump(self._get_json_dict())
+        return self.engine.json_dump(self._get_json_dict())
 
     def delete(self, nochar=False):
         super().delete()

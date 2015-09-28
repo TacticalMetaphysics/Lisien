@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 import networkx as nx
-from gorm.xjson import json_dump
 from .node import Node
 from .util import (
     path_len,
@@ -491,4 +490,4 @@ class Thing(Node):
         my history.
 
         """
-        return json_dump(self._get_json_dict())
+        return self.engine.json_dump(self._get_json_dict())
