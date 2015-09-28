@@ -657,6 +657,7 @@ def queries(table, view):
         """
         return t.insert().values(
             name=bindparam('name'),
+            keywords=bindparam('keywords'),
             bytecode=bindparam('bytecode'),
             plaincode=bindparam('plaincode')
         )
@@ -667,6 +668,7 @@ def queries(table, view):
 
         """
         return t.update().values(
+            keywords=bindparam('keywords'),
             bytecode=bindparam('bytecode'),
             plaincode=bindparam('plaincode')
         ).where(
