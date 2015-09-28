@@ -201,3 +201,5 @@ for n in range(0, 3):
             # Apply these rules to each brain cell
             for rule in (drink, sober_up, sloth, catch_up):
                 student.node.rule(rule)
+
+eng.close()
