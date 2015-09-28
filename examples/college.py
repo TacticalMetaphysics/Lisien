@@ -78,6 +78,88 @@ def leave_class(engine, character, node):
 def in_classroom_after_class(engine, character, node):
     return node.location == classroom and character.stat['hour'] >= 15
 
+
+# Let's make some rules and not assign them to anything yet.
+# These will apply to every student, but not to the Thing that represents them within
+# the character 'physical' -- they're going to be Characters of their own.
+@eng.rule
+def drink(engine, character):
+    braincells = list(character.nodes())
+    engine.shuffle(braincells)
+    for i in range(0, engine.randrange(1, 20)):
+        braincells.pop()['drunk'] += 12
+
+
+@drink.trigger
+def party_time(engine, character):
+    return 23 >= engine.character['physical'].stat['hour'] > 15
+
+
+@drink.prereq
+def is_drunkard(engine, character):
+    return character.stat['drunkard']
+
+
+@eng.rule
+def sloth(engine, character):
+    braincells = list(character.nodes())
+    engine.shuffle(braincells)
+    for i in range(0, engine.randrange(1, 20)):
+        braincells.pop()['slow'] += 1
+
+
+@sloth.trigger
+def out_of_class(engine, character):
+    # Looking up the classroom this way is not really necessary, since we
+    # already have a reference to it. This way of doing things is more general,
+    # and might be necessary if you want to take advantage of some parallelization
+    # features that aren't implemented yet (2015-09-24)
+    return character.avatar['physical'].location != \
+        engine.character['physical'].place['classroom']
+
+sloth.prereq(class_in_session)
+
+
+@eng.rule
+def learn(engine, character, node):
+    character.stat['xp'] += 1
+
+
+@learn.trigger
+def in_class(engine, character, node):
+    return character.avatar['physical'].location == \
+        engine.character['physical'].place['classroom']
+
+learn.prereq(class_in_session)
+
+
+@learn.prereq
+def pay_attention(engine, character, node):
+    return node['drunk'] == node['slow'] == 0
+
+
+@eng.rule
+def sober_up(engine, character, node):
+    node['drunk'] -= 1
+
+
+@sober_up.trigger
+def somewhat_drunk(engine, character, node):
+    return node['drunk'] > 0
+
+
+@eng.rule
+def catch_up(engine, character, node):
+    node['late'] -= 1
+
+
+@catch_up.trigger
+def somewhat_late(engine, character, node):
+    node['late'] > 0
+
+catch_up.prereq(in_class)
+catch_up.prereq(class_in_session)
+
 # 3 dorms of 12 students each.
 # Each dorm has 6 rooms.
 # Modeling the teachers would be a logical way to extend this.
@@ -114,70 +196,8 @@ for n in range(0, 3):
                 student.stat['late'] = False
                 student.stat['drunkard'] = eng.coinflip()
                 student.stat['lazy'] = eng.coinflip()
-
-            @student.rule
-            def drink(engine, character):
-                braincells = list(character.nodes())
-                engine.shuffle(braincells)
-                for i in range(0, engine.randrange(1, 20)):
-                    braincells.pop()['drunk'] += 12
-
-            @drink.trigger
-            def party_time(engine, character):
-                return 23 >= engine.character['physical'].stat['hour'] > 15
-
-            @drink.prereq
-            def is_drunkard(engine, character):
-                return character.stat['drunkard']
-
-            @student.rule
-            def sloth(engine, character):
-                braincells = list(character.nodes())
-                engine.shuffle(braincells)
-                for i in range(0, engine.randrange(1, 20)):
-                    braincells.pop()['slow'] += 1
-
-            @sloth.trigger
-            def out_of_class(engine, character):
-                # Looking up the classroom this way is not really necessary, since we
-                # already have a reference to it. This way of doing things is more general,
-                # and might be necessary if you want to take advantage of some parallelization
-                # features that aren't implemented yet (2015-09-24)
-                return character.avatar['physical'].location != \
-                    engine.character['physical'].place['classroom']
-
-            sloth.prereq(class_in_session)
-
-            @student.node.rule  # applies to every node, every hour
-            def learn(engine, character, node):
-                character.stat['xp'] += 1
-
-            @learn.trigger
-            def in_class(engine, character, node):
-                return character.avatar['physical'].location == \
-                    engine.character['physical'].place['classroom']
-
-            learn.prereq(class_in_session)
-
-            @learn.prereq
-            def pay_attention(engine, character, node):
-                return node['drunk'] == node['slow'] == 0
-
-            @student.node.rule
-            def sober_up(engine, character, node):
-                node['drunk'] -= 1
-
-            @sober_up.trigger
-            def somewhat_drunk(engine, character, node):
-                return node['drunk'] > 0
-
-            @student.node.rule
-            def catch_up(engine, character, node):
-                node['late'] -= 1
-
-            @catch_up.trigger
-            def somewhat_late(engine, character, node):
-                node['late'] > 0
-
-            catch_up.prereq(in_class)
-            catch_up.prereq(class_in_session)
+            # Apply previously written rules
+            student.rule(learn)
+            # Apply these rules to each brain cell
+            for rule in (drink, sober_up, sloth, catch_up):
+                student.node.rule(rule)
