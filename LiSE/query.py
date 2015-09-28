@@ -389,6 +389,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 'avatar',
                 'character_thing',
                 'character_place',
+                'character_node',
                 'character_portal'
         ):
             seen = set()

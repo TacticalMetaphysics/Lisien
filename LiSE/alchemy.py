@@ -220,6 +220,7 @@ def tables_for_meta(meta):
         Column('avatar_rulebook', TEXT, nullable=True),
         Column('character_thing_rulebook', TEXT, nullable=True),
         Column('character_place_rulebook', TEXT, nullable=True),
+        Column('character_node_rulebook', TEXT, nullable=True),
         Column('character_portal_rulebook', TEXT, nullable=True),
         ForeignKeyConstraint(['character'], ['graphs.graph']),
         ForeignKeyConstraint(
@@ -1368,6 +1369,7 @@ def queries(table, view):
     r['rulebook_get_avatar'] = rulebook_get_char('avatar')
     r['rulebook_get_character_thing'] = rulebook_get_char('character_thing')
     r['rulebook_get_character_place'] = rulebook_get_char('character_place')
+    r['rulebook_get_character_node'] = rulebook_get_char('character_node')
     r['rulebook_get_character_portal'] = rulebook_get_char('character_portal')
 
     def upd_rulebook_char(rulemap):

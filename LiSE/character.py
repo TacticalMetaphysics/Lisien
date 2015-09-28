@@ -97,7 +97,7 @@ class RuleFollower(BaseRuleFollower):
 
 class CharacterThingMapping(MutableMapping, RuleFollower):
     """:class:`Thing` objects that are in a :class:`Character`"""
-    _book = "thing"
+    _book = "character_thing"
 
     def __init__(self, character):
         """Store the character and initialize cache"""
@@ -470,8 +470,10 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         return repr(dict(self))
 
 
-class CharacterThingPlaceMapping(MutableMapping):
+class CharacterThingPlaceMapping(MutableMapping, RuleFollower):
     """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
+    _book = "character_node"
+
     def __init__(self, character):
         """Store the character"""
         self.character = character
@@ -532,7 +534,7 @@ class CharacterThingPlaceMapping(MutableMapping):
 
 
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
-    _book = "portal"
+    _book = "character_portal"
 
     @property
     def _cache(self):
@@ -700,7 +702,7 @@ class CharacterPortalPredecessorsMapping(
         DiGraphPredecessorsMapping,
         RuleFollower
 ):
-    _book = "portal"
+    _book = "character_portal"
 
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         def _getsub(self, nodeA):
