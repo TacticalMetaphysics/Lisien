@@ -170,7 +170,7 @@ for n in range(0, 3):
     common.two_way(classroom)
     # All rooms in a dorm are connected via its common room
     for i in range(0, 6):
-        room = phys.new_node('dorm{}room{}'.format(n, i))
+        room = phys.new_place('dorm{}room{}'.format(n, i))
         dorm.add_avatar(room)
         room.two_way(common)
         student0 = eng.new_character('dorm{}room{}student0'.format(n, i))
