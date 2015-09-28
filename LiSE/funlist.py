@@ -44,7 +44,7 @@ class FunList(MutableSequence):
         funn = v.__name__ if isinstance(v, Callable) else v
         if funn not in self.funcstore:
             if not isinstance(v, Callable):
-                raise KeyError("No such function: " + v)
+                raise KeyError("No such function: {}".format(v))
             self.funcstore[funn] = v
         return funn
 
