@@ -293,6 +293,12 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def two_way(self, other, **stats):
         return self.two_way_portal(other, **stats)
 
+    def new_thing(self, name, **stats):
+        """Create a new thing, located here, and return it."""
+        return self.character.new_thing(
+            name, self.name, None, **stats
+        )
+
     @property
     def portal(self):
         """Return a mapping of portals to other nodes."""
