@@ -425,16 +425,21 @@ class RuleMapping(MutableMapping):
             if self.rulebook[i] != v:
                 self.rulebook[i] = v
         elif isinstance(v, Callable):
-            # create a new rule, named k, performing action v
+            # Sometimes the user might make the same rule multiple times, through a loop for instance.
+            # Try to catch this and assign the old rule here instead.
             if k in self.engine.rule:
-                raise KeyError(
-                    "Already have a rule named {k}. "
-                    "Set engine.rule[{k}] to a new value "
-                    "if you really mean to replace "
-                    "the old rule.".format(
-                        k=k
+                if self.engine.rule[k].actions[0].__code__ == v.__code__:
+                    self._activate_rule(self.engine.rule[k])
+                    return
+                else:
+                    raise KeyError(
+                        "Already have a rule named {name}. "
+                        "If you really mean to replace it, set "
+                        "engine.rule[{name}] to a new Rule object.".format(name=k)
                     )
-                )
+            # create a new rule, named k, performing action v
+            self.engine.rule[k] = v
+            rule = self.engine.rule[k]
             funn = k
             if funn in self.engine.action:
                 funn += "0"
@@ -442,12 +447,6 @@ class RuleMapping(MutableMapping):
             while funn in self.engine.action:
                 funn = funn[:-1] + str(i)
                 i += 1
-            if k not in self.engine.rule:
-                self.engine.rule[k] = v
-                rule = self.engine.rule[k]
-            else:
-                rule = self.engine.rule[k]
-                rule.actions.append(funn)
             self._activate_rule(rule)
         else:
             raise TypeError(
