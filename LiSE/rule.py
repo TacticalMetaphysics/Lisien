@@ -146,14 +146,17 @@ class Rule(object):
     def trigger(self, fun):
         """Decorator to append the function to my triggers list."""
         self._triggers.append(fun)
+        return fun
 
     def prereq(self, fun):
         """Decorator to append the function to my prereqs list."""
         self._prereqs.append(fun)
+        return fun
 
     def action(self, fun):
         """Decorator to append the function to my actions list."""
         self._actions.append(fun)
+        return fun
 
     def duplicate(self, newname):
         """Return a new rule that's just like this one, but under a new
