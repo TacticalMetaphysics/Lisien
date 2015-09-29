@@ -80,8 +80,6 @@ def in_classroom_after_class(engine, character, node):
 
 
 # Let's make some rules and not assign them to anything yet.
-# These will apply to every student, but not to the Thing that represents them within
-# the character 'physical' -- they're going to be Characters of their own.
 @eng.rule
 def drink(engine, character):
     braincells = list(character.nodes())
