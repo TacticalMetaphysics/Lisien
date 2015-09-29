@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+import numpy as np
 from functools import partial
 from kivy.properties import (
     BooleanProperty,
@@ -288,7 +289,22 @@ class Board(RelativeLayout):
 
     def grid_layout(self, graph):
         from networkx import spectral_layout
-        return spectral_layout(graph)
+        r = spectral_layout(graph)
+        # normalize all the coordinates to between 0 and 1
+        ks = list(r.keys())
+        xs = np.zeros(len(ks))
+        ys = np.zeros(len(ks))
+        for i in range(0, len(ks)):
+            k = ks[i]
+            xs[i] = r[k][0]
+            ys[i] = r[k][1]
+        minx = np.min(xs)
+        xs = (xs-minx) / (np.max(xs)-minx)
+        miny = np.min(ys)
+        ys = (ys-miny) / (np.max(ys)-miny)
+        for i in range(0, len(ks)):
+            r[ks[i]] = (xs[i], ys[i])
+        return r
 
     def discard_pawn(self, thingn, *args):
         if thingn in self.pawn:
