@@ -222,7 +222,7 @@ class StoreEditor(BoxLayout):
     def readapter(self, storelist, adapter):
         if not adapter:
             if self.adapter:
-                self.adapter.unbind(data=setter('data'))
+                self.adapter.unbind(data=self.setter('data'))
                 self.data = []
             return
         if self.adapter:
