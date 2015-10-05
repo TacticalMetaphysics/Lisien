@@ -8,6 +8,16 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
+
+from kivy.factory import Factory
+from kivy.lang import Builder
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.screenmanager import Screen
+from kivy.clock import Clock
+from kivy.logger import Logger
+
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
@@ -18,22 +28,10 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
-from kivy.factory import Factory
-from kivy.lang import Builder
-from kivy.uix.label import Label
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.screenmanager import Screen
-from kivy.clock import Clock
-from kivy.logger import Logger
-
 from .dummy import Dummy
-from .spritebuilder import PawnConfigScreen, SpotConfigScreen
 from .charmenu import CharMenu
 from .board.arrow import ArrowWidget
 from .util import dummynum, trigger
-
 
 Factory.register('CharMenu', cls=CharMenu)
 
@@ -118,8 +116,17 @@ class MainScreen(Screen):
     own.
 
     """
+
+    def _get_character_name(self, *args):
+        if self.character is None:
+            return
+        return self.character.name
+
+    def _set_character_name(self, name):
+        self.character = self.engine.character[name]
+
     character = ObjectProperty()
-    character_name = StringProperty()
+    character_name = AliasProperty(_get_character_name, _set_character_name, bind=('character',))
     board = ObjectProperty()
     kv = StringProperty()
     use_kv = BooleanProperty()
@@ -192,44 +199,21 @@ class MainScreen(Screen):
         if not self.canvas:
             Clock.schedule_once(self.on_character, 0)
             return
-        stats = (
-            'kv',
-            'font_name',
-            'font_size',
-            'halign',
-            'valign',
-            'line_height'
-        )
         if hasattr(self, '_old_character'):
-            for stat in stats:
-                self._old_character.stat.unlisten(
-                    stat='_'+stat, fun=getattr(self, '_set_'+stat)
-                )
-            if self.character is None:
-                del self._old_character
-                return
+            self._old_character.stat.unlisten(
+                stat='_kv', fun=self._pull_kv
+            )
         else:
-            self.remake_display()
             self.bind(kv=self._trigger_remake_display)
         self._old_character = self.character
-        for stat in stats:
-            funn = '_set_' + stat
-            setattr(self, funn, partial(self._set_stat, stat))
-            fun = getattr(self, funn)
-            fun()
-            self.character.stat.listener(
-                stat='_'+stat, fun=fun
-            )
+        if '_kv' in self.character.stat:
+            self.kv = self.character.stat['_kv']
+        self.character.stat.listener(
+            stat='_kv', fun=self._pull_kv
+        )
 
-    def _set_stat(self, stat, *args):
-        """When one of the stats that controls my behavior changes on the
-        character, update it on me as well.
-
-        """
-        if '_' + stat in self.character.stat:
-            setattr(self, stat, self.character.stat['_'+stat])
-        elif stat == 'kv':
-            self.kv = ''
+    def _pull_kv(self, *args):
+        self.kv = self.character.stat['_kv']
 
     def remake_display(self, *args):
         """Remake any affected widgets after a change in my ``kv``.
@@ -673,8 +657,6 @@ Builder.load_string(
             hint_text: str(root.tick)
 <MainScreen>:
     name: 'main'
-    character: self.engine.character[self.character_name] \
-    if self.engine and self.character_name else None
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     grabbing: self.grabbed is None

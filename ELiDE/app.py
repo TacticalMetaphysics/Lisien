@@ -1,22 +1,23 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 import json
+
 from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.lang import Builder
+from kivy.resources import resource_add_path
+
+from kivy.uix.screenmanager import ScreenManager
+
 from kivy.properties import (
     ObjectProperty,
     NumericProperty,
     ReferenceListProperty,
     StringProperty
 )
-from kivy.lang import Builder
-from kivy.resources import resource_add_path
-from kivy.uix.screenmanager import ScreenManager
-
 import LiSE
 from LiSE.proxy import EngineProcessManager
-
 import ELiDE
 import ELiDE.screen
 import ELiDE.stringsed
@@ -41,7 +42,6 @@ class ELiDEApp(App):
     tick = NumericProperty()
     time = ReferenceListProperty(branch, tick)
     character = ObjectProperty()
-    character_name = StringProperty()
 
     def _pull_time(self, *args):
         self.time = self.engine.time
@@ -78,7 +78,6 @@ class ELiDEApp(App):
         if char == self.character:
             return
         self.character = char
-        self.character_name = str(char.name)
 
     def build_config(self, config):
         """Set config defaults"""
@@ -218,7 +217,6 @@ class ELiDEApp(App):
 
         self.mainscreen = ELiDE.screen.MainScreen(
             engine=self.engine,
-            character_name=self.character_name,
             character=self.character,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
@@ -240,7 +238,6 @@ class ELiDEApp(App):
         s.bind(current=self.mainscreen.setter('current'))
         self.bind(
             character=self.mainscreen.setter('character'),
-            character_name=self.mainscreen.setter('character_name'),
             time=self.mainscreen.setter('time')
         )
         if config['ELiDE']['inspector'] == 'yes':

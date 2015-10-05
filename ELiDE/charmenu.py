@@ -1,6 +1,8 @@
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
+from kivy.uix.boxlayout import BoxLayout
+
 from kivy.properties import (
     BooleanProperty,
     ObjectProperty,
@@ -8,8 +10,6 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
-from kivy.uix.boxlayout import BoxLayout
-
 from .board.spot import Spot
 from .board.pawn import Pawn
 from .board.arrow import ArrowWidget
@@ -24,7 +24,6 @@ class CharMenu(BoxLayout):
     selection = ObjectProperty(None, allownone=True)
     board = ObjectProperty()
     character = ObjectProperty()
-    character_name = StringProperty()
     select_character = ObjectProperty()
     selected_remote = ObjectProperty()
     dummyplace = ObjectProperty()
@@ -87,7 +86,7 @@ class CharMenu(BoxLayout):
             adapter.data = list(self.engine.character)
             adapter.select_list(
                 [adapter.get_view(
-                    adapter.data.index(self.character_name)
+                    adapter.data.index(self.character.name)
                 )]
             )
         self.chars.toggle()
@@ -209,7 +208,6 @@ class CharMenu(BoxLayout):
         if None in (
                 self.board,
                 self.character,
-                self.character_name,
                 self.selected_remote,
                 self.spot_from_dummy,
                 self.pawn_from_dummy,
@@ -223,8 +221,8 @@ class CharMenu(BoxLayout):
             return
         self.rulesview = self.rules.rulesview
         self.rules.bind(rulesview=self.setter('rulesview'))
-        self.chars.character_name = self.character_name
-        self.bind(character_name=self.chars.setter('character_name'))
+        self.chars.character = self.character
+        self.bind(character=self.chars.setter('character'))
         self.stat_cfg.time = self.time
         self.stat_cfg.remote = self.selected_remote
         self.bind(

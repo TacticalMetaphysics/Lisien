@@ -498,3 +498,86 @@ def keycache_iter(keycache, branch, tick, get_iterator):
     if tick not in keycache[branch]:
         keycache[branch][tick] = set(get_iterator())
     yield from keycache[branch][tick]
+
+
+# ABCs
+from json import dumps, loads
+
+
+class AbstractEngine(object):
+    @reify
+    def json_dump_hints(self):
+        return {}
+
+    @reify
+    def json_load_hints(self):
+        return {}
+
+    @classmethod
+    def _enc_tuple(cls, obj):
+        if isinstance(obj, tuple):
+            return ['tuple'] + [cls._enc_tuple(v) for v in obj]
+        elif isinstance(obj, list):
+            return ['list'] + [cls._enc_tuple(v) for v in obj]
+        elif isinstance(obj, dict):
+            return {
+                cls._enc_tuple(k): cls._enc_tuple(v)
+                for (k, v) in obj.items()
+                }
+        elif isinstance(obj, cls.char_cls):
+            return ['character', obj.name]
+        elif isinstance(obj, cls.node_cls):
+            return ['node', obj.character.name, obj.name]
+        elif isinstance(obj, cls.portal_cls):
+            return ['portal', obj.character.name, obj.nodeA.name, obj.nodeB.name]
+        else:
+            return obj
+
+    def _dec_tuple(self, obj):
+        if isinstance(obj, dict):
+            r = {}
+            for (k, v) in obj.items():
+                r[self._dec_tuple(k)] = self._dec_tuple(v)
+            return r
+        elif isinstance(obj, list):
+            if obj == [] or obj == ["list"]:
+                return []
+            elif obj == ["tuple"]:
+                return tuple()
+            elif obj[0] == 'list':
+                return [self._dec_tuple(p) for p in obj[1:]]
+            elif obj[0] == 'tuple':
+                return tuple(self._dec_tuple(p) for p in obj[1:])
+            elif obj[0] == 'character':
+                return self.character[self._dec_tuple(obj[1])]
+            elif obj[0] == 'node':
+                return self.character[self._dec_tuple(obj[1])].node[self._dec_tuple(obj[2])]
+            elif obj[0] == 'portal':
+                return self.character[self._dec_tuple(obj[1])].portal[self._dec_tuple(obj[2])][self._dec_tuple(obj[3])]
+            else:
+                raise ValueError("Unknown sequence type: {}".format(obj[0]))
+        else:
+            return obj
+
+    def json_dump(self, obj):
+        """JSON dumper that distinguishes lists from tuples, and handles
+        pointers to Node, Portal, and Character.
+
+        """
+        if isinstance(obj, self.node_cls):
+            return dumps(["node", obj.character.name, obj.name])
+        if isinstance(obj, self.portal_cls):
+            return dumps(["portal", obj.character.name, obj.orign, obj.destn])
+        if isinstance(obj, self.char_cls):
+            return dumps(["character", obj.name])
+        k = str(obj)
+        if k not in self.json_dump_hints:
+            self.json_dump_hints[k] = dumps(self._enc_tuple(obj))
+        return self.json_dump_hints[k]
+
+    def json_load(self, s):
+        if s is None:
+            return None
+        if s not in self.json_load_hints:
+            self.json_load_hints[s] = self._dec_tuple(loads(s))
+        return self.json_load_hints[s]

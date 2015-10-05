@@ -14,15 +14,14 @@ from collections import (
     Callable
 )
 from sqlite3 import connect
-from json import dumps, loads
+
 from gorm import ORM as gORM
-from gorm.xjson import enc_tuple
 from .character import Character
 from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import dispatch, listen, listener, unlisten, unlistener, reify
+from .util import AbstractEngine, dispatch, listen, listener, unlisten, unlistener, reify
 
 
 class NotThatMap(Mapping):
@@ -430,7 +429,7 @@ class CharacterMapping(MutableMapping):
         self._dispatch(name, None)
 
 
-class Engine(object):
+class Engine(AbstractEngine):
     """LiSE, the Life Simulator Engine.
 
     Each instance of LiSE maintains a connection to a database
@@ -453,6 +452,10 @@ class Engine(object):
     what they were just before the change you want to undo.
 
     """
+    char_cls = Character
+    node_cls = Node
+    portal_cls = Portal
+
     def __init__(
             self,
             worlddb,
@@ -976,64 +979,3 @@ class Engine(object):
 
         """
         return self.db.node_is_thing(character, node, *self.time)
-
-    _json_dump_hints = {}
-
-    def json_dump(self, obj):
-        """JSON dumper that distinguishes lists from tuples, and handles
-        pointers to Node, Portal, and Character.
-
-        """
-        if isinstance(obj, Node):
-            return dumps(["node", obj.character.name, obj.name])
-        if isinstance(obj, Portal):
-            return dumps(["portal", obj.character.name, obj.orign, obj.destn])
-        if isinstance(obj, Character):
-            return dumps(["character", obj.name])
-        k = str(obj)
-        if k not in self._json_dump_hints:
-            self._json_dump_hints[k] = dumps(enc_tuple(obj))
-        return self._json_dump_hints[k]
-
-    def _dec_tuple(self, obj):
-        if isinstance(obj, dict):
-            r = {}
-            for (k, v) in obj.items():
-                r[self._dec_tuple(k)] = self._dec_tuple(v)
-            return r
-        elif isinstance(obj, list):
-            if obj == [] or obj == ["list"]:
-                return []
-            elif obj == ["tuple"]:
-                return tuple()
-            elif obj[0] == 'list':
-                return [self._dec_tuple(p) for p in obj[1:]]
-            elif obj[0] == 'tuple':
-                return tuple(self._dec_tuple(p) for p in obj[1:])
-            elif obj[0] == 'character':
-                return self.character[self._dec_tuple(obj[1])]
-            elif obj[0] == 'node':
-                return self.character[
-                    self._dec_tuple(obj[1])
-                ].node[self._dec_tuple(obj[2])]
-            elif obj[0] == 'portal':
-                return self.character[
-                    self._dec_tuple(obj[1])
-                ].portal[self._dec_tuple(obj[2])][self._dec_tuple(obj[3])]
-            else:
-                raise ValueError("Unknown sequence type: {}".format(obj[0]))
-        else:
-            return obj
-
-    _json_load_hints = {}
-
-    def json_load(self, s):
-        """JSON loader that distinguishes lists from tuples, and handles
-        pointers to Node, Portal, and Character.
-
-        """
-        if s is None:
-            return None
-        if s not in self._json_load_hints:
-            self._json_load_hints[s] = self._dec_tuple(loads(s))
-        return self._json_load_hints[s]

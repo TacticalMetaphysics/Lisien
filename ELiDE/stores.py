@@ -16,10 +16,17 @@ code.
 """
 from collections import defaultdict
 from functools import partial
+
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.event import EventDispatcher
 from kivy.adapters.models import SelectableDataItem
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.listview import ListView, ListItemButton
+
+from kivy.adapters.listadapter import ListAdapter
+
 from kivy.properties import (
     AliasProperty,
     ListProperty,
@@ -28,10 +35,6 @@ from kivy.properties import (
     OptionProperty,
     StringProperty
 )
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.listview import ListView, ListItemButton
-from kivy.adapters.listadapter import ListAdapter
 from .codeinput import FunctionInput
 from .util import trigger
 
@@ -58,7 +61,7 @@ class StoreButton(ListItemButton):
 
     """
     store = ObjectProperty()
-    table = StringProperty('function')
+    table = StringProperty('functions')
     name = ObjectProperty()
     source = StringProperty()
 
@@ -67,7 +70,7 @@ class StoreAdapter(ListAdapter):
     """:class:`ListAdapter` used to make lists of :class:`StoreButton`.
 
     """
-    table = StringProperty('function')
+    table = StringProperty('functions')
     store = ObjectProperty()
     loader = ObjectProperty()
 

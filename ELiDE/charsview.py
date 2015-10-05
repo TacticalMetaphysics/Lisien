@@ -1,9 +1,12 @@
 from kivy.lang import Builder
-from kivy.properties import ObjectProperty, StringProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
+
+from kivy.properties import AliasProperty, ObjectProperty, StringProperty
+
+
 # TODO: Visual preview
 # TODO: Background image chooser
 
@@ -29,7 +32,10 @@ class CharListView(ListView):
     def on_adapter(self, *args):
         def selchange(*args):
             if len(self.adapter.selection) == 0:
-                i = self.adapter.data.index(self.character_name)
+                try:
+                    i = self.adapter.data.index(self.character_name)
+                except ValueError:
+                    return
                 view = self.adapter.get_view(i)
                 self.adapter.select_list([view])
             elif self.character_name != self.adapter.selection[0].text:
@@ -42,8 +48,15 @@ class CharListView(ListView):
 class CharactersBox(BoxLayout):
     engine = ObjectProperty()
     toggle = ObjectProperty()
-    character_name = StringProperty()
+    character = ObjectProperty()
     select_character = ObjectProperty()
+
+    def _get_character_name(self):
+        if not self.character:
+            return ''
+        return self.character.name
+
+    character_name = AliasProperty(_get_character_name, lambda self, v: None, bind=('character',))
 
     def set_char(self, char):
         self.select_character(self.engine.character[char])
@@ -54,6 +67,10 @@ class CharactersScreen(Screen):
     select_character = ObjectProperty()
     charsview = ObjectProperty()
     engine = ObjectProperty()
+    character = ObjectProperty()
+
+    def on_character(self, *args):
+        pass
 
     def new_character(self, name, *args):
         self.select_character(self.engine.new_character(name))
