@@ -58,7 +58,8 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    def __init__(self, qe, table='string', lang='eng'):
+
+    def __init__(self, qe, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
@@ -546,23 +547,19 @@ class Engine(AbstractEngine):
 
     @reify
     def action(self):
-        return FunctionStoreDB(self, self._code_qe, 'action')
+        return FunctionStoreDB(self, self._code_qe, 'actions')
 
     @reify
     def prereq(self):
-        return FunctionStoreDB(self, self._code_qe, 'prereq')
+        return FunctionStoreDB(self, self._code_qe, 'prereqs')
 
     @reify
     def trigger(self):
-        return FunctionStoreDB(self, self._code_qe, 'trigger')
-
-    @reify
-    def sense(self):
-        return FunctionStoreDB(self, self._code_qe, 'sense')
+        return FunctionStoreDB(self, self._code_qe, 'triggers')
 
     @reify
     def function(self):
-        return FunctionStoreDB(self, self._code_qe, 'function')
+        return FunctionStoreDB(self, self._code_qe, 'functions')
 
     @property
     def stores(self):
@@ -570,7 +567,6 @@ class Engine(AbstractEngine):
             self.action,
             self.prereq,
             self.trigger,
-            self.sense,
             self.function,
             self.string
         )

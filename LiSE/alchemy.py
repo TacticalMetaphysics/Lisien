@@ -31,11 +31,13 @@ from sqlalchemy import (
     null
 )
 from sqlalchemy import create_engine
+from json import dumps
+
 from sqlalchemy.sql import bindparam, column
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 from sqlalchemy.sql.expression import union
-from json import dumps
 import gorm.alchemy
+
 
 ### Constants
 length = 50
@@ -43,15 +45,14 @@ length = 50
 TEXT = String(length)
 
 functyps = (
-    'action',
-    'prereq',
-    'trigger',
-    'sense',
-    'function'
+    'actions',
+    'prereqs',
+    'triggers',
+    'functions'
 )
 
 strtyps = (
-    'string',
+    'strings',
 )
 
 

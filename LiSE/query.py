@@ -4,19 +4,19 @@ from inspect import getsource
 from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
+
+import gorm.query
+
 from .util import (
     IntegrityError,
     OperationalError,
     RedundantRuleError,
     UserFunctionError
 )
-
-import gorm.query
 import LiSE
 
-
 string_defaults = {
-    'string': {'eng': [('README', 'Write release notes for your game here.')]}
+    'strings': {'eng': [('README', 'Write release notes for your game here.')]}
 }
 
 
