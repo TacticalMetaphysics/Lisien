@@ -5,6 +5,9 @@ top of these.
 
 """
 from functools import partial
+
+from kivy.clock import Clock
+
 from kivy.properties import (
     AliasProperty,
     ListProperty,
@@ -12,8 +15,6 @@ from kivy.properties import (
     NumericProperty,
     BooleanProperty
 )
-from kivy.clock import Clock
-from kivy.logger import Logger
 from ELiDE.kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
 from ..util import trigger
@@ -33,7 +34,7 @@ class Spot(PawnSpot):
     collided = BooleanProperty(False)
     place = AliasProperty(
         lambda self: self.remote,
-        lambda self, v: self.remote.setter()(v),
+        lambda self, v: self.setter('remote')(v),
         bind=('remote',)
     )
     default_image_paths = ['orb.png']
@@ -62,6 +63,7 @@ class Spot(PawnSpot):
         rx = self.width / 2
         ry = self.height / 2
         if (
+                                not self.collider or
             not hasattr(self.collider, 'pos') or
             self.collider.pos != self.center or
             self.collider.rx != rx or
@@ -214,6 +216,7 @@ class Spot(PawnSpot):
     def collide_point(self, x, y):
         """Check my collider."""
         self._upd_collider()
+        assert (self.collider is not None)
         return (x, y) in self.collider
 
     def on_touch_move(self, touch):
