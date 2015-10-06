@@ -39,6 +39,7 @@ from sqlalchemy.sql.expression import union
 import gorm.alchemy
 
 
+
 ### Constants
 length = 50
 
@@ -480,10 +481,24 @@ def views_for_table_dict(table):
             ]
         )
     )
-    """Query returning the rules handled for all nodes in a character,
-    whether they are things or places.
-
-    """
+    cprh = table['character_place_rules_handled']
+    ctrh = table['character_thing_rules_handled']
+    r['character_node_rules_handled'] = union(
+        select([
+            cprh.c.character,
+            cprh.c.rulebook,
+            cprh.c.rule,
+            cprh.c.branch,
+            cprh.c.tick
+        ]),
+        select([
+            ctrh.c.character,
+            ctrh.c.rulebook,
+            ctrh.c.rule,
+            ctrh.c.branch,
+            ctrh.c.tick
+        ])
+    )
     return r
 
 
@@ -1034,7 +1049,11 @@ def queries(table, view):
 
     def poll_char_rules(prefix):
         _rulebook = '{}_rulebook'.format(prefix)
-        rules_handled = table['{}_rules_handled'.format(prefix)]
+        tabn = '{}_rules_handled'.format(prefix)
+        try:
+            rules_handled = table[tabn]
+        except KeyError:
+            rules_handled = view[tabn]
         crhandle = select(
             [
                 rules_handled.c.character,
@@ -1087,6 +1106,7 @@ def queries(table, view):
 
     r['poll_character_rules'] = poll_char_rules('character')
     r['poll_avatar_rules'] = poll_char_rules('avatar')
+    r['poll_character_node_rules'] = poll_char_rules('character_node')
     r['poll_character_thing_rules'] = poll_char_rules('character_thing')
     r['poll_character_place_rules'] = poll_char_rules('character_place')
     r['poll_character_portal_rules'] = poll_char_rules('character_portal')
