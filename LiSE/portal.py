@@ -1,12 +1,14 @@
 from collections import defaultdict
+
 from gorm.graph import Edge
+
 from .util import (
     dispatch,
     listener,
+    unlisten,
     encache,
     needcache,
     enkeycache,
-    dekeycache,
     cache_forward
 )
 from .rule import RuleFollower
@@ -109,6 +111,9 @@ class Portal(Edge, RuleFollower):
 
     def listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)
+
+    def unlisten(self, f=None, stat=None):
+        return unlisten(self._stat_listeners, f, stat)
 
     def __getitem__(self, key):
         """Get the present value of the key.
