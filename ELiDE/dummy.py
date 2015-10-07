@@ -5,6 +5,7 @@ from kivy.properties import (
     StringProperty
 )
 from kivy.lang import Builder
+from kivy.logger import Logger
 
 from .kivygarden.texturestack import ImageStack
 
@@ -32,6 +33,10 @@ class Dummy(ImageStack):
     center_up = ReferenceListProperty(x_center_up, y_center_up)
     right_up = NumericProperty(0)
     top_up = NumericProperty(0)
+
+    def on_paths(self, *args, **kwargs):
+        super().on_paths(*args, **kwargs)
+        Logger.debug("Dummy: {} got paths {}".format(self.name, self.paths))
 
     def on_touch_down(self, touch):
         """If hit, record my starting position, that I may return to it in
