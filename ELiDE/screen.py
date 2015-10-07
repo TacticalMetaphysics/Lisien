@@ -171,14 +171,11 @@ class MainScreen(Screen):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.bind(selection=self._trigger_reremote)
+        self.bind(
+            selection=self._trigger_reremote,
+            stat_list=self.stat_cfg.setter('stat_list'),
+        )
         self._trigger_reremote()
-
-    def on_stat_list(self, *args):
-        if not self.stat_cfg:
-            Clock.schedule_once(self.on_stat_list, 0)
-            return
-        self.stat_cfg.stat_list = self.stat_list
 
     def on_play_speed(self, *args):
         """Change the interval at which ``self.play`` is called to match my
