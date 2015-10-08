@@ -22,88 +22,16 @@ from kivy.lang import Builder
 from kivy.clock import Clock
 
 from ELiDE.kivygarden.collider import Collide2DPoly
+from ELiDE.util import get_thin_rect_vertices, ninety, fortyfive
 from ELiDE.remote import MirrorMapping
 
-ninety = pi / 2
-"""pi / 2"""
 
-fortyfive = pi / 4
-"""pi / 4"""
+def get_points(ox, oy, ro, dx, dy, rd, taillen):
+    """Return a pair of lists of points for use making an arrow.
 
+    The first list is the beginning and end point of the trunk of the arrow.
 
-def get_collider(ox, oy, dx, dy, r):
-    """Given the starting and ending points, and the width, return a
-    :class:`Collide2DPoly` that detects touches that hit me.
-
-    """
-    if ox < dx:
-        leftx = ox
-        rightx = dx
-        xco = 1
-    elif ox > dx:
-        leftx = ox * -1
-        rightx = dx * -1
-        xco = -1
-    else:
-        return Collide2DPoly(
-            [
-                ox - r, oy,
-                ox + r, oy,
-                ox + r, dy,
-                ox - r, dy
-            ],
-            cache=False
-        )
-    if oy < dy:
-        boty = oy
-        topy = dy
-        yco = 1
-    elif oy > dy:
-        boty = oy * -1
-        topy = dy * -1
-        yco = -1
-    else:
-        return Collide2DPoly(
-            [
-                ox, oy - r,
-                dx, oy - r,
-                dx, oy + r,
-                ox, oy + r
-            ],
-            cache=False
-        )
-
-    rise = topy - boty
-    run = rightx - leftx
-    theta = atan(rise/run)
-    theta_prime = ninety - theta
-    xoff = sin(theta_prime) * r
-    yoff = cos(theta_prime) * r
-    x1 = leftx + xoff
-    y1 = boty - yoff
-    x2 = rightx + xoff
-    y2 = topy - yoff
-    x3 = rightx - xoff
-    y3 = topy + yoff
-    x4 = leftx - xoff
-    y4 = boty + yoff
-    return Collide2DPoly(
-        [
-            x1 * xco, y1 * yco,
-            x2 * xco, y2 * yco,
-            x3 * xco, y3 * yco,
-            x4 * xco, y4 * yco
-        ],
-        cache=False
-    )
-
-
-def get_points(ox, oy, ro, dx, dy, rd, taillen, r):
-    """Return points to use for an arrow from ``ox,oy`` to ``dx,dy`` where
-    the origin has dimensions ``2*orx,2*ory``, the destination has
-    dimensions ``2*drx,2*dry``, and the bits of the arrow not actually
-    connecting the ends of it--the edges of the arrowhead--have length
-    ``taillen``.
+    The second list is the arrowhead.
 
     """
     # handle special cases;
@@ -128,7 +56,6 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen, r):
         x2 = endx + off1
         y1 = y2 = endy - off2 if oy < dy else endy + off2
         return (
-            get_collider(x0, y0, endx, endy, r),
             [x0, y0, endx, endy],
             [x1, y1, endx, endy, x2, y2]
         )
@@ -151,7 +78,6 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen, r):
         y2 = endy + off1
         x1 = x2 = endx - off2 if ox < dx else endx + off2
         return (
-            get_collider(x0, y0, endx, endy, r),
             [x0, y0, endx, endy],
             [x1, y1, endx, endy, x2, y2]
         )
@@ -187,7 +113,6 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen, r):
     endx = rightx * xco
     endy = topy * yco
     return (
-        get_collider(startx, starty, endx, endy, r),
         [startx, starty, endx, endy],
         [x1, y1, endx, endy, x2, y2]
     )
@@ -208,20 +133,26 @@ class ArrowWidget(Widget):
     margin = NumericProperty(10)
     """When deciding whether a touch collides with me, how far away can
     the touch get before I should consider it a miss?"""
-    w = NumericProperty(1)
+    w = NumericProperty(2)
     """The width of the inner, brighter portion of the :class:`Arrow`. The
     whole :class:`Arrow` will end up thicker."""
     pawns_here = ListProperty([])
     trunk_points = ListProperty([])
     head_points = ListProperty([])
     points = ReferenceListProperty(trunk_points, head_points)
+    trunk_quad_vertices_bg = ListProperty([0] * 8)
+    trunk_quad_vertices_fg = ListProperty([0] * 8)
+    left_head_quad_vertices_bg = ListProperty([0] * 8)
+    right_head_quad_vertices_bg = ListProperty([0] * 8)
+    left_head_quad_vertices_fg = ListProperty([0] * 8)
+    right_head_quad_vertices_fg = ListProperty([0] * 8)
     slope = NumericProperty(0.0, allownone=True)
     y_intercept = NumericProperty(0)
     origin = ObjectProperty()
     destination = ObjectProperty()
     repointed = BooleanProperty(True)
-    bg_scale_unselected = NumericProperty(1.4)
-    bg_scale_selected = NumericProperty(2.0)
+    bg_scale_unselected = NumericProperty(4)
+    bg_scale_selected = NumericProperty(5)
     selected = BooleanProperty(False)
     hit = BooleanProperty(False)
     bg_color_unselected = ListProperty()
@@ -399,7 +330,7 @@ class ArrowWidget(Widget):
         (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
         dry = dh / 2
         return get_points(
-            ox, oy, ory, dx, dy, dry, taillen, self.collide_radius
+            ox, oy, ory, dx, dy, dry, taillen
         )
 
     def _get_slope(self):
@@ -441,15 +372,31 @@ class ArrowWidget(Widget):
         if None in (self.origin, self.destination):
             Clock.schedule_once(self._repoint, 0)
             return
-        (
-            self.collider,
-            self.trunk_points,
-            self.head_points
-        ) = self._get_points()
+        (self.trunk_points, self.head_points) = self._get_points()
+        (ox, oy, dx, dy) = self.trunk_points
+        r = self.w / 2
+        bgr = r * self.bg_scale_selected if self.selected \
+            else self.bg_scale_unselected
+        self.trunk_quad_vertices_bg = get_thin_rect_vertices(
+            ox, oy, dx, dy, bgr
+        )
+        self.collider = Collide2DPoly(self.trunk_quad_vertices_bg)
+        self.trunk_quad_vertices_fg = get_thin_rect_vertices(ox, oy, dx, dy, r)
+        (x1, y1, endx, endy, x2, y2) = self.head_points
+        self.left_head_quad_vertices_bg = get_thin_rect_vertices(
+            x1, y1, endx, endy, bgr
+        )
+        self.right_head_quad_vertices_bg = get_thin_rect_vertices(
+            x2, y2, endx, endy, bgr
+        )
+        self.left_head_quad_vertices_fg = get_thin_rect_vertices(
+            x1, y1, endx, endy, r
+        )
+        self.right_head_quad_vertices_fg = get_thin_rect_vertices(
+            x2, y2, endx, endy, r
+        )
         self.slope = self._get_slope()
         self.y_intercept = self._get_b()
-        (ox, oy) = self.origin.center
-        (dx, dy) = self.destination.center
         self.repointed = True
 
 
@@ -498,20 +445,20 @@ Builder.load_string(
     canvas:
         Color:
             rgba: root.bg_color_selected if root.selected else root.bg_color_unselected
-        Line:
-            width: root.w * root.bg_scale_selected if root.selected else root.w * root.bg_scale_unselected
-            points: root.trunk_points
-        Line:
-            width: root.w * root.bg_scale_selected if root.selected else root.w * root.bg_scale_unselected
-            points: root.head_points
+        Quad:
+            points: root.trunk_quad_vertices_bg
+        Quad:
+            points: root.left_head_quad_vertices_bg
+        Quad:
+            points: root.right_head_quad_vertices_bg
         Color:
             rgba: root.fg_color_selected if root.selected else root.fg_color_unselected
-        Line:
-            width: root.w
-            points: root.trunk_points
-        Line:
-            width: root.w
-            points: root.head_points
+        Quad:
+            points: root.trunk_quad_vertices_fg
+        Quad:
+            points: root.left_head_quad_vertices_fg
+        Quad:
+            points: root.right_head_quad_vertices_fg
 <Arrow>:
     origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
     destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
