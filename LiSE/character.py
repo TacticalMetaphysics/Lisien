@@ -185,7 +185,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             self._keycache[branch] = {}
         if tick not in self._keycache[branch]:
             if tick - 1 in self._keycache[branch]:
-                self._keycache[branch][tick] = self.keycache[branch][tick-1]
+                self._keycache[branch][tick] = self._keycache[branch][tick-1]
             else:
                 self._keycache[branch][tick] = set(self._iter_thing_names())
         return k in self._keycache[branch][tick]
