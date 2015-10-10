@@ -961,7 +961,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             return False
 
         def _contains_when_cache(self, av, branch, rev):
-            ac = self.character._avatar_cache
+            ac = self.character._avatar_cache[self.graph]
             if av not in ac:
                 return False
             for node in ac[av]:
