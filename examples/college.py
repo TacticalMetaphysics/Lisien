@@ -43,12 +43,6 @@ def go_to_class(engine, character, node):
 
 
 @go_to_class.trigger
-def class_time(engine, *args):
-    # Variable-length arguments let us reuse this trigger on rules that aren't for nodes.
-    engine.character['physical'].stat['hour'] == 8
-
-
-@go_to_class.trigger
 def absent(engine, character, node):
     return node.location != classroom
 
@@ -191,7 +185,6 @@ for n in range(0, 3):
                 #  perhaps more logical when the places don't really
                 #  represent potential locations
                 student.stat['xp'] = 0
-                student.stat['late'] = False
                 student.stat['drunkard'] = eng.coinflip()
                 student.stat['lazy'] = eng.coinflip()
             # Apply previously written rules
