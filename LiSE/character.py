@@ -1650,11 +1650,11 @@ class Character(DiGraph, RuleFollower):
         d = {}
         for mapp in ('character', 'avatar', 'thing', 'place', 'portal'):
             if mapp + '_rulebook' in attr:
-                rulebook = attr[mapp + 'rulebook']
+                rulebook = attr[mapp + '_rulebook']
                 bookname = rulebook.name if isinstance(
                     rulebook,
                     RuleBook
-                ) else str(rulebook)
+                ) else rulebook
                 d[mapp] = bookname
             else:
                 d[mapp] = mapp + ":" + self._name

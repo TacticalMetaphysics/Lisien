@@ -346,14 +346,8 @@ class RuleMapping(MutableMapping):
         self.engine = engine
         if isinstance(rulebook, RuleBook):
             self.rulebook = rulebook
-        elif isinstance(rulebook, str):
-            self.rulebook = RuleBook(engine, rulebook)
         else:
-            raise TypeError(
-                "Need a rulebook or the name of one, not {}".format(
-                    type(rulebook)
-                )
-            )
+            self.rulebook = RuleBook(engine, rulebook)
         self._listeners = defaultdict(list)
         self._rule_cache = {}
 
@@ -417,8 +411,10 @@ class RuleMapping(MutableMapping):
                 )
             self._activate_rule(k, v)
             return
-        if isinstance(v, str):
-            v = self.engine.rule[k]
+        elif v in self.engine.rule:
+            v = self.engine.rule[v]
+        elif v in self.engine.function:
+            v = self.engine.function[v]
         if isinstance(v, Rule):
             # may raise ValueError
             try:
@@ -445,12 +441,6 @@ class RuleMapping(MutableMapping):
                 funn = funn[:-1] + str(i)
                 i += 1
             self._activate_rule(rule)
-        else:
-            raise TypeError(
-                "{} is not a rule or the name of one".format(
-                    type(v)
-                )
-            )
 
     def __call__(self, v=None, name=None, always=False):
         def wrap(name, always, v):
@@ -503,8 +493,6 @@ class RuleFollower(object):
 
     @rulebook.setter
     def rulebook(self, v):
-        if not (isinstance(v, str) or isinstance(v, RuleBook)):
-            raise TypeError("Use a :class:`RuleBook` or the name of one")
         n = v.name if isinstance(v, RuleBook) else v
         self._set_rulebook_name(n)
         self._dispatch_rulebook(v)
@@ -598,6 +586,11 @@ class AllRuleBooks(Mapping):
             fun(rulebook)
 
 
+# TODO: fix null rulebooks
+#
+# It appears that when you create a rule here it gets assigned
+# to a null rulebook in the database. That's not very useful and might
+# cause bad effects later on.
 class AllRules(MutableMapping):
     def __init__(self, engine, db):
         self.engine = engine
@@ -630,8 +623,14 @@ class AllRules(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        if isinstance(v, str):
+        if v in self.action:
             v = self.action[v]
+        elif v in self.engine.action:
+            v = self.engine.action[v]
+        elif v in self.engine.function:
+            v = self.engine.function[v]
+        elif v in self.engine.rule:
+            v = self.engine.rule[v]
         if callable(v):
             if k not in self._cache:
                 self._cache[k] = Rule(self.engine, k)
