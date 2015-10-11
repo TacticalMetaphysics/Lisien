@@ -194,3 +194,44 @@ for n in range(0, 3):
                 student.node.rule(rule)
 
 eng.close()
+
+
+if __name__ == '__main__':
+    import re
+    engine = LiSE.Engine('LiSEworld.db', 'LiSEcode.db')
+
+
+    def students():
+        for char in engine.character.values():
+            if re.match("dorm\droom\dstudent\d", char.name):
+                yield char
+
+    print("Starting simulation with {} students.".format(sum(1 for stu in students())))
+
+    for h in range(1, 128):
+        engine.next_tick()
+        print(
+            "At hour {hour}, {inroom} students are in their rooms, and "
+            "{inclass} are in the classroom. "
+            "There are {drunks} drunk students and {lates} late ones. "
+            "They have gained {xp} XP in total.".format(
+                hour=h,
+                inroom=sum(
+                    1 for stu in students()
+                    if stu.avatar['physical'].location == stu.stat['room']
+                ),
+                inclass=sum(
+                    1 for stu in engine.character['student_body'].avatar['physical'].values()
+                    if stu.location == engine.character['physical'].place['classroom']
+                ),
+                drunks=sum(
+                    1 for stu in students()
+                    if any(cell['drunk'] > 0 for cell in stu.node.values())
+                ),
+                lates=sum(
+                    1 for stu in students()
+                    if any(cell['slow'] > 0 for cell in stu.node.values())
+                ),
+                xp=sum(stu.stat['xp'] for stu in students())
+            )
+        )
