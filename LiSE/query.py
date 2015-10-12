@@ -486,13 +486,12 @@ class QueryEngine(gorm.query.QueryEngine):
         (character, rulebook) = map(self.json_dump, (character, rulebook))
         try:
             return self.sql(
-                'handled_character_rule_fmt',
+                'handled_character_rule',
                 character,
                 rulebook,
                 rule,
                 branch,
                 tick,
-                ruletyp=ruletyp
             )
         except IntegrityError:
             raise RedundantRuleError(
