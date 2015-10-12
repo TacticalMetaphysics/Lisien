@@ -433,13 +433,6 @@ class RuleMapping(MutableMapping):
             # create a new rule, named k, performing action v
             self.engine.rule[k] = v
             rule = self.engine.rule[k]
-            funn = k
-            if funn in self.engine.action:
-                funn += "0"
-            i = 1
-            while funn in self.engine.action:
-                funn = funn[:-1] + str(i)
-                i += 1
             self._activate_rule(rule)
 
     def __call__(self, v=None, name=None, always=False):
