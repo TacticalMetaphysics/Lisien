@@ -276,7 +276,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add(rule)
 
     def active_rule_rulebook(self, rulebook, rule, branch, tick):
-        rulebook = self.json_dump(rulebook)
+        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
         for (b, t) in self.active_branches(branch, tick):
             for (active,) in self.sql(
                     'active_rule_rulebook', rulebook, rule, branch, tick
