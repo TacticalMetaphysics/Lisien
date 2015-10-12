@@ -883,7 +883,7 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def rulebook_rules(self, rulebook):
         for (rule,) in self.sql('rulebook_rules', self.json_dump(rulebook)):
-            yield rule
+            yield self.json_load(rule)
 
     def current_rules_character(self, character, branch, tick):
         for rule in self.sql(
