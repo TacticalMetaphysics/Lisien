@@ -626,9 +626,7 @@ class AllRules(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        if v in self.action:
-            v = self.action[v]
-        elif v in self.engine.action:
+        if v in self.engine.action:
             v = self.engine.action[v]
         elif v in self.engine.function:
             v = self.engine.function[v]
