@@ -187,10 +187,8 @@ for n in range(0, 3):
                 student.stat['xp'] = 0
                 student.stat['drunkard'] = eng.coinflip()
                 student.stat['lazy'] = eng.coinflip()
-            # Apply previously written rules
-            student.rule(learn)
-            # Apply these rules to each brain cell
-            for rule in (drink, sober_up, sloth, catch_up):
+            # Apply these previously written rules to each brain cell
+            for rule in (learn, drink, sober_up, sloth, catch_up):
                 student.node.rule(rule)
 
 eng.close()
