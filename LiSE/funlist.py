@@ -5,6 +5,7 @@ from collections import (
     MutableSequence,
     Callable
 )
+
 from .util import listen
 
 
@@ -27,7 +28,6 @@ class FunList(MutableSequence):
         self.engine = engine
         self.db = db
         self._listeners = []
-        self._cache = {}
 
     @property
     def funcstore(self):
@@ -52,10 +52,7 @@ class FunList(MutableSequence):
         """Update the rule's record with this new list of strings."""
         self._savelist(l)
         if self.engine.caching:
-            (branch, tick) = self.engine.time
-            if branch not in self._cache:
-                self._cache[branch] = {}
-            self._cache[branch][tick] = l
+            self._cache = l
 
     def _savelist(self, l):
         raise NotImplementedError
@@ -67,12 +64,9 @@ class FunList(MutableSequence):
         """
         if not self.engine.caching:
             return self._loadlist()
-        (branch, tick) = self.engine.time
-        if branch not in self._cache:
-            self._cache[branch] = {}
-        if tick not in self._cache[branch]:
-            self._cache[branch][tick] = self._loadlist()
-        return self._cache[branch][tick]
+        if not hasattr(self, '_cache'):
+            self._cache = self._loadlist()
+        return self._cache
 
     def _loadlist(self):
         raise NotImplementedError
