@@ -223,6 +223,8 @@ class FunctionStoreDB(MutableMapping):
         """Check if there's such a function in the database"""
         if name in self.cache:
             return True
+        elif not isinstance(name, str):
+            return False
         return self.db.func_table_contains(self._tab, name)
 
     def __getitem__(self, name):

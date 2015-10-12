@@ -613,7 +613,10 @@ class AllRules(MutableMapping):
         return self.db.ctrules()
 
     def __contains__(self, k):
-        return self.db.haverule(k)
+        try:
+            return self.db.haverule(k)
+        except TypeError:
+            return False
 
     def __getitem__(self, k):
         if k not in self:
