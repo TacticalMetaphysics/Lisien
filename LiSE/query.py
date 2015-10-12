@@ -609,7 +609,7 @@ class QueryEngine(gorm.query.QueryEngine):
         for (book,) in self.sql(
                 'rulebook_get_{}'.format(rulemap), character
         ):
-            return book
+            return self.json_load(book)
         raise KeyError("No rulebook")
 
     def upd_rulebook_char(self, rulemap, character):
