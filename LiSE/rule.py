@@ -9,6 +9,7 @@ from collections import (
     defaultdict
 )
 from functools import partial
+
 from .funlist import FunList
 from .util import (
     dispatch,
@@ -111,16 +112,47 @@ class Rule(object):
         else:
             raise AttributeError("No attribute: {}".format(attrn))
 
+    def _fun_names_iter(self, funcstore, val):
+        """Iterate over the names of the functions in ``val``,
+        adding them to ``funcstore`` if they are missing;
+        or if the items in ``val`` are already the names of functions
+        in ``funcstore``, iterate over those.
+
+        """
+        for v in val:
+            if callable(v):
+                if v.__name__ in funcstore:
+                    if funcstore[v.__name__] != v:
+                        raise KeyError(
+                            "Already have a trigger function named "
+                            "{k}. If you really mean to replace it, assign "
+                            "it to engine.trigger[{k}].".format(
+                                k=v.__name__
+                            )
+                        )
+                    else:
+                        funcstore[v.__name__] = v
+                yield v.__name__
+            elif v not in funcstore:
+                raise KeyError("Function {} not present in {}".format(
+                    v, funcstore._tab
+                ))
+            else:
+                yield v
+
     def __setattr__(self, attrn, val):
         if attrn == 'triggers':
-            self._triggers._setlist([])
-            self._triggers.extend(val)
+            self._triggers._setlist(
+                self._fun_names_iter(self.engine.trigger, val)
+            )
         elif attrn == 'prereqs':
-            self._prereqs._setlist([])
-            self._prereqs.extend(val)
+            self._prereqs._setlist(
+                self._fun_names_iter(self.engine.prereq, val)
+            )
         elif attrn == 'actions':
-            self._actions._setlist([])
-            self._actions.extend(val)
+            self._actions._setlist(
+                self._fun_names_iter(self.engine.action, val)
+            )
         else:
             super().__setattr__(attrn, val)
 

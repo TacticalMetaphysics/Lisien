@@ -53,6 +53,8 @@ class FunList(MutableSequence):
 
     def _setlist(self, l):
         """Update the rule's record with this new list of strings."""
+        if not isinstance(l, list):
+            l = list(l)
         self._savelist(l)
         if self.engine.caching:
             self._cache = l
