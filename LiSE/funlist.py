@@ -30,7 +30,7 @@ class FunList(MutableSequence):
         self._listeners = []
 
     def __repr__(self):
-        return "{}([{}])".format(self.__class__.__name__, self._getlist())
+        return "{}({})".format(self.__class__.__name__, self._getlist())
 
     @property
     def funcstore(self):
