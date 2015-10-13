@@ -2138,4 +2138,4 @@ if __name__ == '__main__':
     query = queries(table, viewquery)
     for (n, q) in query.items():
         r[n] = str(q.compile(dialect=e.dialect))
-    print(dumps(r))
+    print(dumps(r, sort_keys=True, indent=4))
