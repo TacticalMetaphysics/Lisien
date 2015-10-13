@@ -29,6 +29,9 @@ class FunList(MutableSequence):
         self.db = db
         self._listeners = []
 
+    def __repr__(self):
+        return "{}([{}])".format(self.__class__.__name__, self._getlist())
+
     @property
     def funcstore(self):
         raise NotImplementedError
