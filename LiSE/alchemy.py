@@ -43,6 +43,7 @@ import gorm.alchemy
 
 
 
+
 ### Constants
 length = 50
 
@@ -234,12 +235,12 @@ def tables_for_meta(meta):
         Column('date', DateTime, nullable=True),
         Column('creator', TEXT, nullable=True),
         Column('description', TEXT, nullable=True),
-        Column('character_rulebook', TEXT, nullable=True),
-        Column('avatar_rulebook', TEXT, nullable=True),
-        Column('character_thing_rulebook', TEXT, nullable=True),
-        Column('character_place_rulebook', TEXT, nullable=True),
-        Column('character_node_rulebook', TEXT, nullable=True),
-        Column('character_portal_rulebook', TEXT, nullable=True),
+        Column('character_rulebook', TEXT, nullable=False),
+        Column('avatar_rulebook', TEXT, nullable=False),
+        Column('character_thing_rulebook', TEXT, nullable=False),
+        Column('character_place_rulebook', TEXT, nullable=False),
+        Column('character_node_rulebook', TEXT, nullable=False),
+        Column('character_portal_rulebook', TEXT, nullable=False),
         ForeignKeyConstraint(['character'], ['graphs.graph']),
         ForeignKeyConstraint(
             ['character_rulebook'], ['rulebooks.rulebook']
