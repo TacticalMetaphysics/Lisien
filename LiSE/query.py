@@ -891,21 +891,32 @@ class QueryEngine(gorm.query.QueryEngine):
             self.sql('sense_upd', active, character, sense, branch, tick)
 
     def init_character(
-            self, character, charrule, avrule, thingrule, placerule, portrule
+            self, character, character_rulebook=None, avatar_rulebook=None,
+            thing_rulebook=None, place_rulebook=None, node_rulebook=None,
+            portal_rulebook=None
     ):
-        (character, charrule, avrule, thingrule, placerule, portrule) = map(
+        character_rulebook = character_rulebook or (character, 'character')
+        avatar_rulebook = avatar_rulebook or (character, 'avatar')
+        thing_rulebook = thing_rulebook or (character, 'character_thing')
+        place_rulebook = place_rulebook or (character, 'character_place')
+        node_rulebook = node_rulebook or (character, 'character_node')
+        portal_rulebook = portal_rulebook or (character, 'character_portal')
+        (character, character_rulebook, avatar_rulebook, thing_rulebook,
+         place_rulebook, node_rulebook, portal_rulebook) = map(
             self.json_dump,
-            (character, charrule, avrule, thingrule, placerule, portrule)
+            (character, character_rulebook, avatar_rulebook, thing_rulebook,
+             place_rulebook, node_rulebook, portal_rulebook)
         )
         try:
             return self.sql(
                 'character_ins',
                 character,
-                charrule,
-                avrule,
-                thingrule,
-                placerule,
-                portrule
+                character_rulebook,
+                avatar_rulebook,
+                thing_rulebook,
+                place_rulebook,
+                node_rulebook,
+                portal_rulebook
             )
         except IntegrityError:
             pass

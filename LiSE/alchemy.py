@@ -1936,6 +1936,7 @@ def queries(table, view):
         'avatar_rulebook',
         'character_thing_rulebook',
         'character_place_rulebook',
+        'character_node_rulebook',
         'character_portal_rulebook'
     )
 

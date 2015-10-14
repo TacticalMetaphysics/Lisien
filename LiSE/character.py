@@ -1631,23 +1631,16 @@ class Character(DiGraph, RuleFollower):
         self.character = self
         self.engine = engine
         d = {}
-        for mapp in ('character', 'avatar', 'thing', 'place', 'portal'):
+        for mapp in ('character', 'avatar', 'thing', 'place', 'portal', 'node'):
             if mapp + '_rulebook' in attr:
                 rulebook = attr[mapp + '_rulebook']
-                bookname = rulebook.name if isinstance(
+                d[mapp] = rulebook.name if isinstance(
                     rulebook,
                     RuleBook
                 ) else rulebook
-                d[mapp] = bookname
-            else:
-                d[mapp] = mapp + ":" + self._name
         self.engine.db.init_character(
             self.name,
-            d['character'],
-            d['avatar'],
-            d['thing'],
-            d['place'],
-            d['portal']
+            **d
         )
         if engine.caching:
             self._avatar_cache = ac = {}
