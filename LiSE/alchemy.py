@@ -42,6 +42,7 @@ import gorm.alchemy
 
 
 
+
 ### Constants
 length = 50
 
@@ -1266,6 +1267,8 @@ def queries(table, view):
         = character_rulebook_rules_activeness('character_place')
     r['current_rules_character_portal'] \
         = character_rulebook_rules_activeness('character_portal')
+    r['current_rules_character_node'] \
+        = character_rulebook_rules_activeness('character_node')
 
     r['current_rules_node'] \
         = current_rules_activeness(
@@ -1288,7 +1291,10 @@ def queries(table, view):
         )
 
     def rules_handled_hitick(prefix):
-        tbl = table['{}_rules_handled'.format(prefix)]
+        try:
+            tbl = table['{}_rules_handled'.format(prefix)]
+        except KeyError:
+            tbl = view['{}_rules_handled'.format(prefix)]
         return select(
             [
                 tbl.c.rulebook,
@@ -1333,6 +1339,7 @@ def queries(table, view):
     r['active_rule_character_thing'] = active_rule_char('character_thing')
     r['active_rule_character_place'] = active_rule_char('character_place')
     r['active_rule_character_portal'] = active_rule_char('character_portal')
+    r['active_rule_character_node'] = active_rule_char('character_node')
 
     r['active_rules_ins'] = insert_cols(
         active_rules,

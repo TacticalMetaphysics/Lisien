@@ -990,6 +990,15 @@ class QueryEngine(gorm.query.QueryEngine):
         ):
             yield self.json_load(rule)
 
+    def current_rules_character_node(self, character, branch, tick):
+        for rule in self.sql(
+            'current_rules_character_node',
+            self.json_dump(character),
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
     def current_rules_character_portal(self, character, branch, tick):
         for rule in self.sql(
             'current_rules_character_portal',
