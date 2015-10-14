@@ -333,16 +333,6 @@ class Thing(Node):
             placen = place.name
         else:
             placen = place
-        for fun in self.character.travel_reqs:
-            if not fun(self.name, placen):
-                (branch, tick) = self.engine.time
-                raise TravelException(
-                    "{} cannot travel through {}".format(self.name, placen),
-                    traveller=self,
-                    branch=branch,
-                    tick=tick,
-                    lastplace=self.location
-                )
         curloc = self["location"]
         orm = self.character.engine
         curtick = orm.tick
