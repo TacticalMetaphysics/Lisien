@@ -40,6 +40,7 @@ import gorm.alchemy
 
 
 
+
 ### Constants
 length = 50
 
@@ -1441,7 +1442,7 @@ def queries(table, view):
 
     r['avatar_users'] = select(
         [
-            avatars.c.avatar_graph
+            avatars.c.character_graph
         ]
     ).select_from(
         avatars.join(
