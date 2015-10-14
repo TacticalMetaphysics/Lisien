@@ -129,47 +129,117 @@ class QueryEngine(gorm.query.QueryEngine):
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)
 
+    def set_rule(self, rule, date=None, creator=None, description=None):
+        rule = self.json_dump(rule)
+        try:
+            self.sql('ins_rule', rule, date, creator, description)
+        except IntegrityError:
+            self.sql('upd_rule', date, creator, description, rule)
+
     def rule_triggers(self, rule):
         rule = self.json_dump(rule)
         for row in self.sql('rule_triggers', rule):
-            return self.json_load(row[0])
+            yield row[0]
         return []
 
-    def set_rule_triggers(self, rule, triggers):
-        (rule, triggers) = map(self.json_dump, (rule, triggers))
-        try:
-            return self.sql('ins_rule', rule, '["list"]', '["list"]', triggers)
-        except IntegrityError:
-            return self.sql('upd_rule_triggers', triggers, rule)
+    def insert_rule_trigger(self, rule, i, trigger):
+        rule = self.json_dump(rule)
+        self.sql('rule_triggers_inc', rule, i)
+        self.sql('rule_triggers_ins', rule, i, trigger)
+
+    def append_rule_trigger(self, rule, trigger):
+        rule = self.json_dump(rule)
+        ct = self.sql('rule_triggers_count', rule).fetchone()[0]
+        self.sql('rule_triggers_ins', rule, ct, trigger)
+
+    def delete_rule_trigger(self, rule, i):
+        rule = self.json_dump(rule)
+        self.sql('rule_triggers_del', rule, i)
+        self.sql('rule_triggers_dec', rule, i)
+
+    def replace_rule_trigger(self, rule, i, trigger):
+        rule = self.json_dump(rule)
+        self.sql('rule_triggers_del', rule, i)
+        self.sql('rule_triggers_ins', rule, i, trigger)
+
+    def clear_rule_triggers(self, rule):
+        self.sql('rule_triggers_del_all', self.json_dump(rule))
+
+    def replace_all_rule_triggers(self, rule, triggers):
+        rule = self.json_dump(rule)
+        self.sql('rule_triggers_del_all', rule)
+        for i in range(0, len(triggers)):
+            self.sql('rule_triggers_ins', rule, i, triggers[i])
 
     def rule_prereqs(self, rule):
         rule = self.json_dump(rule)
         for row in self.sql('rule_prereqs', rule):
-            return self.json_load(row[0])
+            yield row[0]
         return []
 
-    def set_rule_prereqs(self, rule, prereqs):
-        (rule, prereqs) = map(self.json_dump, (rule, prereqs))
-        try:
-            return self.sql('ins_rule', rule, '["list"]', prereqs, '["list"]')
-        except IntegrityError:
-            return self.sql('upd_rule_prereqs', prereqs, rule)
+    def insert_rule_prereq(self, rule, i, prereq):
+        rule = self.json_dump(rule)
+        self.sql('rule_prereqs_inc', rule, i)
+        self.sql('rule_prereqs_ins', rule, i, prereq)
+
+    def append_rule_prereq(self, rule, prereq):
+        rule = self.json_dump(rule)
+        ct = self.sql('rule_prereqs_count', rule).fetchone()[0]
+        self.sql('rule_prereqs_ins', rule, ct, prereq)
+
+    def delete_rule_prereq(self, rule, i):
+        rule = self.json_dump(rule)
+        self.sql('rule_prereqs_del', rule, i)
+        self.sql('rule_prereqs_dec', rule, i)
+
+    def replace_rule_prereq(self, rule, i, prereq):
+        rule = self.json_dump(rule)
+        self.sql('rule_prereqs_del', rule, i)
+        self.sql('rule_prereqs_ins', rule, i, prereq)
+
+    def clear_rule_prereqs(self, rule):
+        self.sql('rule_prereqs_del_all', self.json_dump(rule))
+
+    def replace_all_rule_prereqs(self, rule, prereqs):
+        rule = self.json_dump(rule)
+        self.sql('rule_prereqs_del_all', rule)
+        for i in range(0, len(prereqs)):
+            self.sql('rule_prereqs_ins', rule, i, prereqs[i])
 
     def rule_actions(self, rule):
         rule = self.json_dump(rule)
         for row in self.sql('rule_actions', rule):
-            return self.json_load(row[0])
+            yield row[0]
         return []
 
-    def set_rule_actions(self, rule, actions):
-        (rule, actions) = map(self.json_dump, (rule, actions))
-        try:
-            return self.sql('ins_rule', rule, actions, '["list"]', '["list"]')
-        except IntegrityError:
-            return self.sql('upd_rule_actions', actions, rule)
+    def insert_rule_action(self, rule, i, action):
+        rule = self.json_dump(rule)
+        self.sql('rule_actions_inc', rule, i)
+        self.sql('rule_actions_ins', rule, i, action)
 
-    def create_blank_rule(self, rule):
-        return self.sql('ins_rule', rule, '["list"]', '["list"]', '["list"]')
+    def delete_rule_action(self, rule, i):
+        rule = self.json_dump(rule)
+        self.sql('rule_actions_del', rule, i)
+        self.sql('rule_actions_dec', rule, i)
+
+    def append_rule_action(self, rule, action):
+        rule = self.json_dump(rule)
+        ct = self.sql('rule_actions_count', rule).fetchone()[0]
+        self.sql('rule_actions_ins', rule, ct, action)
+
+    def replace_rule_action(self, rule, i, action):
+        rule = self.json_dump(rule)
+        self.sql('rule_actions_del', rule, i)
+        self.sql('rule_actions_ins', rule, i, action)
+
+    def clear_rule_actions(self, rule):
+        self.sql('rule_actions_del_all', self.json_dump(rule))
+
+    def replace_all_rule_actions(self, rule, actions):
+        rule = self.json_dump(rule)
+        self.sql('rule_actions_del_all', rule)
+        for i in range(0, len(actions)):
+            self.sql('rule_actions_ins', rule, i, actions[i])
 
     def travel_reqs(self, character):
         character = self.json_dump(character)
@@ -375,15 +445,15 @@ class QueryEngine(gorm.query.QueryEngine):
         for (rb,) in self.sql('character_rulebook', character):
             return self.json_load(rb)
 
-    def rule_set(self, rulebook, rule, branch, tick, active):
+    def set_rule_activeness(self, rulebook, rule, branch, tick, active):
         (rulebook, rule) = map(self.json_dump, (rulebook, rule))
         try:
             self.sql(
-                'rule_ins', rulebook, rule, branch, tick, active
+                'active_rules_ins', rulebook, rule, branch, tick, active
             )
         except IntegrityError:
             self.sql(
-                'rule_upd', active, rulebook, rule, branch, tick
+                'active_rules_upd', active, rulebook, rule, branch, tick
             )
 
     def poll_char_rules(self, branch, tick):
@@ -1028,25 +1098,28 @@ class QueryEngine(gorm.query.QueryEngine):
         """
         super().initdb()
         for table in (
-                'lise_globals',
-                'rules',
-                'rulebooks',
-                'active_rules',
-                'characters',
-                'senses',
-                'travel_reqs',
-                'things',
-                'node_rulebook',
-                'portal_rulebook',
-                'avatars',
-                'character_rules_handled',
-                'avatar_rules_handled',
-                'character_thing_rules_handled',
-                'character_place_rules_handled',
-                'character_portal_rules_handled',
-                'thing_rules_handled',
-                'place_rules_handled',
-                'portal_rules_handled'
+            'lise_globals',
+            'rules',
+            'rulebooks',
+            'active_rules',
+            'characters',
+            'senses',
+            'travel_reqs',
+            'things',
+            'node_rulebook',
+            'portal_rulebook',
+            'avatars',
+            'character_rules_handled',
+            'avatar_rules_handled',
+            'character_thing_rules_handled',
+            'character_place_rules_handled',
+            'character_portal_rules_handled',
+            'thing_rules_handled',
+            'place_rules_handled',
+            'portal_rules_handled',
+            'rule_triggers',
+            'rule_prereqs',
+            'rule_actions'
         ):
             self.init_table(table)
         try:
@@ -1054,21 +1127,21 @@ class QueryEngine(gorm.query.QueryEngine):
         except OperationalError:
             pass
         for idx in (
-                'active_rules',
-                'senses',
-                'travel_reqs',
-                'things',
-                'avatars',
-                'character_rules_handled',
-                'avatar_rules_handled',
-                'character_thing_rules_handled',
-                'character_place_rules_handled',
-                'character_portal_rules_handled',
-                'character_thing_rules_handled',
-                'character_place_rules_handled',
-                'character_portal_rules_handled',
-                'thing_rules_handled',
-                'place_rules_handled',
-                'portal_rules_handled'
+            'active_rules',
+            'senses',
+            'travel_reqs',
+            'things',
+            'avatars',
+            'character_rules_handled',
+            'avatar_rules_handled',
+            'character_thing_rules_handled',
+            'character_place_rules_handled',
+            'character_portal_rules_handled',
+            'character_thing_rules_handled',
+            'character_place_rules_handled',
+            'character_portal_rules_handled',
+            'thing_rules_handled',
+            'place_rules_handled',
+            'portal_rules_handled'
         ):
             self.index_table(idx)

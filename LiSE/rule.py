@@ -10,55 +10,178 @@ from collections import (
 )
 from functools import partial
 
-from .funlist import FunList
 from .util import (
     dispatch,
     listener,
+    unlistener,
     listen,
     reify
 )
 
 
-class RuleFunList(FunList):
+class RuleFuncList(MutableSequence):
     def __init__(self, rule):
         self.rule = rule
-        super().__init__(rule.engine, rule.engine.rule.db)
+        self._listeners = []
+
+    def listener(self, f):
+        return listener(self._listeners, f)
+
+    def unlisten(self, f):
+        return unlistener(self._listeners, f)
+
+    @reify
+    def _cache(self):
+        self._cache_reified = True
+        return list(self._loader(self.rule.name))
+
+    def _nominate(self, v):
+        if callable(v):
+            if v.__name__ in self.funcstore:
+                if self.funcstore[v.__name__] != v:
+                    raise KeyError(
+                        "Already have a {typ} function named {n}. "
+                        "If you really mean to replace it, set "
+                        "engine.{typ}[{n}]".format(
+                            typ=self.typ,
+                            n=v.__name__
+                        )
+                    )
+            else:
+                self.funcstore[v.__name__] = v
+            v = v.__name__
+        if v not in self.funcstore:
+            raise KeyError("No {typ} function named {n}".format(
+                typ=self.typ, n=v
+            ))
+        return v
+
+    def __iter__(self):
+        if self.rule.engine.caching:
+            inner = self._cache
+        else:
+            inner = self._loader(self.rule.name)
+        for funcname in inner:
+            yield self.funcstore[funcname]
+
+    def __len__(self):
+        if self.rule.engine.caching:
+            return len(self._cache)
+        else:
+            return len(list(self._loader(self.rule.name)))
+
+    def __getitem__(self, i):
+        if self.rule.engine.caching:
+            return self._cache[i]
+        else:
+            return self._loader(self.rule.name)[i]
+
+    def __setitem__(self, i, v):
+        while i < 0:
+            i += len(self)
+        v = self._nominate(v)
+        self._replacer(self.rule.name, i, v)
+        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+            self._cache[i] = v
+
+    def __delitem__(self, i):
+        while i < 0:
+            i += len(self)
+        self._deleter(self.rule.name, i)
+        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+            del self._cache[i]
+
+    def insert(self, i, v):
+        while i < 0:
+            i += len(self)
+        v = self._nominate(v)
+        self._inserter(self.rule.name, i, v)
+        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+            self._cache.insert(i, v)
+
+    def append(self, v):
+        v = self._nominate(v)
+        self._appender(self.rule.name, v)
+        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+            self._cache.append(v)
 
 
-class TriggerList(RuleFunList):
-    @property
+class TriggerList(RuleFuncList):
+    @reify
     def funcstore(self):
-        return self.engine.trigger
+        return self.rule.engine.trigger
 
-    def _savelist(self, l):
-        self.db.set_rule_triggers(self.rule.name, l)
+    @reify
+    def _loader(self):
+        return self.funcstore.db.rule_triggers
 
-    def _loadlist(self):
-        return self.db.rule_triggers(self.rule.name)
+    @reify
+    def _replacer(self):
+        return self.funcstore.db.replace_rule_trigger
+
+    @reify
+    def _inserter(self):
+        return self.funcstore.db.insert_rule_trigger
+
+    @reify
+    def _deleter(self):
+        return self.funcstore.db.delete_rule_trigger
+
+    @reify
+    def _appender(self):
+        return self.funcstore.db.append_rule_trigger
 
 
-class PrereqList(RuleFunList):
-    @property
+class PrereqList(RuleFuncList):
+    @reify
     def funcstore(self):
-        return self.engine.prereq
+        return self.rule.engine.prereq
 
-    def _savelist(self, l):
-        self.db.set_rule_prereqs(self.rule.name, l)
+    @reify
+    def _loader(self):
+        return self.funcstore.db.rule_prereqs
 
-    def _loadlist(self):
-        return self.db.rule_prereqs(self.rule.name)
+    @reify
+    def _replacer(self):
+        return self.funcstore.db.replace_rule_prereq
+
+    @reify
+    def _inserter(self):
+        return self.funcstore.db.insert_rule_prereq
+
+    @reify
+    def _deleter(self):
+        return self.funcstore.db.delete_rule_prereq
+
+    @reify
+    def _appender(self):
+        return self.funcstore.db.append_rule_prereq
 
 
-class ActionList(RuleFunList):
-    @property
+class ActionList(RuleFuncList):
+    @reify
     def funcstore(self):
-        return self.engine.action
+        return self.rule.engine.action
 
-    def _savelist(self, l):
-        self.db.set_rule_actions(self.rule.name, l)
+    @reify
+    def _loader(self):
+        return self.funcstore.db.rule_actions
 
-    def _loadlist(self):
-        return self.db.rule_actions(self.rule.name)
+    @reify
+    def _replacer(self):
+        return self.funcstore.db.replace_rule_action
+
+    @reify
+    def _inserter(self):
+        return self.funcstore.db.insert_rule_action
+
+    @reify
+    def _deleter(self):
+        return self.funcstore.db.delete_rule_action
+
+    @reify
+    def _appender(self):
+        return self.funcstore.db.append_rule_action
 
 
 class Rule(object):
@@ -68,6 +191,18 @@ class Rule(object):
     change the world.
 
     """
+    @reify
+    def _triggers(self):
+        return TriggerList(self)
+
+    @reify
+    def _prereqs(self):
+        return PrereqList(self)
+
+    @reify
+    def _actions(self):
+        return ActionList(self)
+
     def __init__(
             self,
             engine,
@@ -84,11 +219,7 @@ class Rule(object):
         self.engine = engine
         self.name = self.__name__ = name
         if name not in self.engine.rule:
-            # normally I'd use rule.new_empty but that causes a recursion error in this case
-            self.engine.rule.db.create_blank_rule(name)
-        self._actions = ActionList(self)
-        self._prereqs = PrereqList(self)
-        self._triggers = TriggerList(self)
+            self.engine.rule.db.set_rule(name)
         if triggers:
             self.triggers.extend(triggers)
         if prereqs:
@@ -112,26 +243,30 @@ class Rule(object):
         else:
             raise AttributeError("No attribute: {}".format(attrn))
 
-    def _fun_names_iter(self, funcstore, val):
+    def _fun_names_iter(self, functyp, val):
         """Iterate over the names of the functions in ``val``,
         adding them to ``funcstore`` if they are missing;
         or if the items in ``val`` are already the names of functions
         in ``funcstore``, iterate over those.
 
         """
+        funcstore = getattr(self.engine, functyp)
         for v in val:
             if callable(v):
                 if v.__name__ in funcstore:
                     if funcstore[v.__name__] != v:
                         raise KeyError(
-                            "Already have a trigger function named "
+                            "Already have a {typ} function named "
                             "{k}. If you really mean to replace it, assign "
-                            "it to engine.trigger[{k}].".format(
+                            "it to engine.{typ}[{k}].".format(
+                                typ=functyp,
                                 k=v.__name__
                             )
                         )
                     else:
                         funcstore[v.__name__] = v
+                else:
+                    funcstore[v.__name__] = v
                 yield v.__name__
             elif v not in funcstore:
                 raise KeyError("Function {} not present in {}".format(
@@ -142,16 +277,16 @@ class Rule(object):
 
     def __setattr__(self, attrn, val):
         if attrn == 'triggers':
-            self._triggers._setlist(
-                self._fun_names_iter(self.engine.trigger, val)
+            self.engine.trigger.db.replace_all_rule_triggers(
+                self.name, list(self._fun_names_iter('trigger', val))
             )
         elif attrn == 'prereqs':
-            self._prereqs._setlist(
-                self._fun_names_iter(self.engine.prereq, val)
+            self.engine.prereq.db.replace_all_rule_prereqs(
+                self.name, list(self._fun_names_iter('prereq', val))
             )
         elif attrn == 'actions':
-            self._actions._setlist(
-                self._fun_names_iter(self.engine.action, val)
+            self.engine.action.db.replace_all_rule_actions(
+                self.name, list(self._fun_names_iter('action', val))
             )
         else:
             super().__setattr__(attrn, val)
@@ -298,7 +433,7 @@ class RuleBook(MutableSequence):
 
     def _activate_rule(self, rule, active=True):
         (branch, tick) = self.engine.time
-        self.engine.db.rule_set(
+        self.engine.db.set_rule_activeness(
             self.name,
             rule.name,
             branch,

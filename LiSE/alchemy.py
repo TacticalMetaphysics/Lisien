@@ -160,21 +160,34 @@ def tables_for_meta(meta):
     r['rules'] = Table(
         'rules', meta,
         Column('rule', TEXT, primary_key=True),
-        Column('date', DateTime, nullable=True),
-        Column('creator', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
-        Column('actions', TEXT, default='[]'),
-        Column('prereqs', TEXT, default='[]'),
-        Column('triggers', TEXT, default='[]'),
+        Column('date', DateTime, nullable=True, default=None),
+        Column('creator', TEXT, nullable=True, default=None),
+        Column('description', TEXT, nullable=True, default=None)
     )
-    """Table listing the actions, prereqs, and triggers that make up each
-    rule.
-
-    Lists are JSON encoded strings of function names. There's no
-    constraint on what to use for function names because there are
-    multiple possible methods for storing and retrieving functions.
-
-    """
+    r['rule_triggers'] = Table(
+        'rule_triggers', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('trigger', TEXT, nullable=False),
+        ForeignKeyConstraint(['rule'], ['rules.rule']),
+        ForeignKeyConstraint(['trigger'], ['triggers.name'])
+    )
+    r['rule_prereqs'] = Table(
+        'rule_prereqs', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('prereq', TEXT, nullable=False),
+        ForeignKeyConstraint(['rule'], ['rules.rule']),
+        ForeignKeyConstraint(['prereq'], ['prereqs.name'])
+    )
+    r['rule_actions'] = Table(
+        'rule_actions', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('action', TEXT, nullable=False),
+        ForeignKeyConstraint(['rule'], ['rules.rule']),
+        ForeignKeyConstraint(['action'], ['actions.name'])
+    )
 
     r['rulebooks'] = Table(
         'rulebooks', meta,
@@ -1319,7 +1332,7 @@ def queries(table, view):
     r['active_rule_character_place'] = active_rule_char('character_place')
     r['active_rule_character_portal'] = active_rule_char('character_portal')
 
-    r['rule_ins'] = insert_cols(
+    r['active_rules_ins'] = insert_cols(
         active_rules,
         'rulebook',
         'rule',
@@ -1328,7 +1341,7 @@ def queries(table, view):
         'active'
     )
 
-    r['rule_upd'] = update_where(
+    r['active_rules_upd'] = update_where(
         active_rules,
         ['active'],
         ['rulebook', 'rule', 'branch', 'tick']
@@ -1934,49 +1947,94 @@ def queries(table, view):
     )
 
     rules = table['rules']
+    rule_triggers = table['rule_triggers']
+    rule_prereqs = table['rule_prereqs']
+    rule_actions = table['rule_actions']
+    triggers = table['triggers']
+    prereqs = table['prereqs']
+    actions = table['actions']
 
-    r['rule_triggers'] = select(
-        [rules.c.triggers]
-    ).where(
-        rules.c.rule == bindparam('rule')
-    )
+    def rule_something(ruletab, tab, something):
+        return select([
+            ruletab.c[something],
+            tab.c.keywords,
+            tab.c.bytecode,
+            tab.c.plaincode
+        ]).where(and_(
+            ruletab.c.rule == bindparam('rule'),
+            ruletab.c[something] == tab.c.name
+        )).order_by(ruletab.c.idx)
 
-    r['upd_rule_triggers'] = rules.update().values(
-        triggers=bindparam('triggers')
-    ).where(
-        rules.c.rule == bindparam('rule')
-    )
+    def rule_something_count(tab):
+        return select([func.count(tab.c.idx)]).where(
+            tab.c.rule == bindparam('rule')
+        )
 
-    r['rule_prereqs'] = select(
-        [rules.c.prereqs]
-    ).where(
-        rules.c.rule == bindparam('rule')
-    )
+    def rule_something_ins(tab, something):
+        return tab.insert().values({
+            'rule': bindparam('rule'),
+            something: bindparam('something'),
+            'idx': bindparam('idx')
+        })
 
-    r['upd_rule_prereqs'] = rules.update().values(
-        prereqs=bindparam('prereqs')
-    ).where(
-        rules.c.rule == bindparam('rule')
-    )
+    def rule_something_inc(tab):
+        return tab.update().values(
+            idx=tab.c.idx+column('1', is_literal=True)
+        ).where(and_(
+            tab.c.rule == bindparam('rule'),
+            tab.c.idx >= bindparam('idx')
+        ))
 
-    r['rule_actions'] = select(
-        [rules.c.actions]
-    ).where(
-        rules.c.rule == bindparam('rule')
-    )
+    def rule_something_dec(tab):
+        return tab.update().values(
+            idx=tab.c.idx+column('1', is_literal=True)
+        ).where(and_(
+            tab.c.rule == bindparam('rule'),
+            tab.c.idx > bindparam('idx')
+        ))
+
+    def rule_something_del(tab):
+        return tab.delete().where(and_(
+            tab.c.rule == bindparam('rule'),
+            tab.c.idx == bindparam('idx')
+        ))
+
+    def rule_something_del_all(tab):
+        return tab.delete().where(tab.c.rule == bindparam('rule'))
 
     r['ins_rule'] = rules.insert().values(
         rule=bindparam('rule'),
-        triggers=bindparam('triggers'),
-        prereqs=bindparam('prereqs'),
-        actions=bindparam('actions'),
+        date=bindparam('date'),
+        creator=bindparam('creator'),
+        description=bindparam('description')
     )
-
-    r['upd_rule_actions'] = rules.update().values(
-        actions=bindparam('actions')
-    ).where(
-        rules.c.rule == bindparam('rule')
-    )
+    r['upd_rule'] = rules.update().values(
+        date=bindparam('date'),
+        creator=bindparam('creator'),
+        description=bindparam('description')
+    ).where(rules.c.rule == bindparam('rule'))
+    r['del_rule'] = rules.delete().where(rules.c.rule == bindparam('rule'))
+    r['rule_triggers'] = rule_something(rule_triggers, triggers, 'trigger')
+    r['rule_triggers_count'] = rule_something_count(rule_triggers)
+    r['rule_triggers_ins'] = rule_something_ins(rule_triggers, 'trigger')
+    r['rule_triggers_inc'] = rule_something_inc(rule_triggers)
+    r['rule_triggers_dec'] = rule_something_dec(rule_triggers)
+    r['rule_triggers_del'] = rule_something_del(rule_triggers)
+    r['rule_triggers_del_all'] = rule_something_del_all(rule_triggers)
+    r['rule_prereqs'] = rule_something(rule_prereqs, prereqs, 'prereq')
+    r['rule_prereqs_count'] = rule_something_count(rule_prereqs)
+    r['rule_prereqs_ins'] = rule_something_ins(rule_prereqs, 'prereq')
+    r['rule_prereqs_inc'] = rule_something_inc(rule_prereqs)
+    r['rule_prereqs_dec'] = rule_something_dec(rule_prereqs)
+    r['rule_prereqs_del'] = rule_something_del(rule_prereqs)
+    r['rule_prereqs_del_all'] = rule_something_del_all(rule_prereqs)
+    r['rule_actions'] = rule_something(rule_actions, actions, 'action')
+    r['rule_actions_count'] = rule_something_count(rule_actions)
+    r['rule_actions_ins'] = rule_something_ins(rule_actions, 'action')
+    r['rule_actions_inc'] = rule_something_inc(rule_actions)
+    r['rule_actions_dec'] = rule_something_dec(rule_actions)
+    r['rule_actions_del'] = rule_something_del(rule_actions)
+    r['rule_actions_del_all'] = rule_something_del_all(rule_actions)
 
     travreqs = table['travel_reqs']
 

@@ -36,7 +36,6 @@ from .util import (
 )
 from .rule import Rule, RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
-from .funlist import FunList
 from .node import Node
 from .thing import Thing
 from .place import Place
@@ -1609,22 +1608,6 @@ class CharStatCache(MutableMapping):
         dekeycache(self, self._keycache, k)
 
 
-class TravelReqList(FunList):
-    def __init__(self, character):
-        self.character = character
-        super().__init__(character.engine, character.engine.db)
-
-    @property
-    def funcstore(self):
-        return self.engine.function
-
-    def _loadlist(self):
-        return self.db.travel_reqs(self.character.name)
-
-    def _savelist(self, l):
-        self.db.set_travel_reqs(self.character.name, l)
-
-
 class Character(DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
@@ -1717,57 +1700,11 @@ class Character(DiGraph, RuleFollower):
         return CharacterAvatarGraphMapping(self)
 
     @reify
-    def travel_reqs(self):
-        return TravelReqList(self)
-
-    @reify
     def stat(self):
         return CharStatCache(self)
 
     def facade(self):
         return Facade(self)
-
-    def travel_req(self, fun):
-        """Decorator for tests that :class:`Thing`s have to pass before they
-        can go thru :class:`Portal's
-
-        """
-        self.travel_reqs.append(fun)
-
-    def _eval_travel_reqs(self, thing, loc, nextloc):
-        """Evaluate all the travel_reqs for the given thing to travel thru the
-        portal from ``loc`` to ``nextloc``.
-
-        """
-        if loc not in self.place:
-            raise ValueError(
-                "No place named {} in character {}".format(
-                    loc, self.name
-                )
-            )
-        if nextloc not in self.place:
-            raise ValueError(
-                "No place named {} in character {}".format(
-                    nextloc, self.name
-                )
-            )
-        if loc not in self.portal:
-            raise ValueError(
-                "No portals from {} in character {}".format(
-                    loc, self.name
-                )
-            )
-        if nextloc not in self.portal[loc]:
-            raise ValueError(
-                "No portal from {} to {} in character {}".format(
-                    loc, nextloc, self.name
-                )
-            )
-        port = self.portal[loc][nextloc]
-        for req in self.travel_reqs:
-            if not req(thing, port):
-                return False
-        return True
 
     def add_place(self, name, **kwargs):
         """Create a new Place by the given name, and set its initial
