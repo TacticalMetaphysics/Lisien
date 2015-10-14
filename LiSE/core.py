@@ -899,6 +899,9 @@ class Engine(AbstractEngine):
                 elif typ == 'character_place':
                     for place in character.place.values():
                         yield follow(character, place)
+                elif typ == 'character_node':
+                    for node in character.node.values():
+                        yield follow(character, node)
                 elif typ == 'character_portal':
                     for portal in character.portal.values():
                         yield follow(character, portal)
