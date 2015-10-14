@@ -41,6 +41,7 @@ import gorm.alchemy
 
 
 
+
 ### Constants
 length = 50
 
@@ -1436,7 +1437,12 @@ def queries(table, view):
                 avatars.c.branch,
                 func.MAX(avatars.c.tick).label('tick')
             ]
-        ).where(and_(*wheres)).alias('hitick')
+        ).where(and_(*wheres)).group_by(
+            avatars.c.character_graph,
+            avatars.c.avatar_graph,
+            avatars.c.avatar_node,
+            avatars.c.branch
+        ).alias('hitick')
 
     au_hitick = hitick_avatars('avatar_graph', 'avatar_node', 'branch')
 
