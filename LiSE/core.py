@@ -497,6 +497,7 @@ class Engine(AbstractEngine):
         else:
             self.worlddb = self.gorm.db.connection
         self.db.initdb()
+        self._code_qe.initdb()
         self._existence = {}
         self._timestream = {'master': {}}
         self._branch_start = {}
