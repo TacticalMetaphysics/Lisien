@@ -77,13 +77,19 @@ class RuleFollower(BaseRuleFollower):
         )
 
     def _get_rulebook_name(self):
-        return self.engine.db.get_rulebook_char(
-            self._book,
-            self.character.name
-        )
+        if not self.engine.caching:
+            return self.engine.db.get_rulebook_char(
+                self._book,
+                self.character.name
+            )
+        return self.engine._characters_rulebooks_cache\
+            [self.character.name][self._book]
 
     def _set_rulebook_name(self, n):
         self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
+        if self.engine.caching:
+            self.engine._characters_rulebooks_cache\
+            [self.character.name][self._book] = n
 
     def __contains__(self, k):
         return self.engine.db.active_rule_char(

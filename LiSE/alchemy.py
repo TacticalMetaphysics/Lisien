@@ -829,7 +829,19 @@ def queries(table, view):
         ['key', 'branch', 'tick']
     )
 
+    characters = table['characters']
+
     r['characters'] = select([table['characters'].c.character])
+
+    r['characters_rulebooks'] = select([
+        characters.c.character,
+        characters.c.character_rulebook,
+        characters.c.avatar_rulebook,
+        characters.c.character_thing_rulebook,
+        characters.c.character_place_rulebook,
+        characters.c.character_node_rulebook,
+        characters.c.character_portal_rulebook
+    ])
 
     r['ct_characters'] = select([func.COUNT(table['characters'].c.character)])
 
@@ -973,6 +985,12 @@ def queries(table, view):
         ['rulebook'],
         ['character', 'nodeA', 'nodeB', 'idx']
     )
+    r['portals_rulebooks'] = select([
+        portal_rulebook.c.character,
+        portal_rulebook.c.nodeA,
+        portal_rulebook.c.nodeB,
+        portal_rulebook.c.rulebook
+    ])
 
     r['ins_portal_rulebook'] = insert_cols(
         portal_rulebook,
@@ -1644,6 +1662,11 @@ def queries(table, view):
         ['rulebook'],
         ['character', 'node']
     )
+    r['nodes_rulebooks'] = select([
+        node_rulebook.c.character,
+        node_rulebook.c.node,
+        node_rulebook.c.rulebook
+    ])
 
     r['ins_node_rulebook'] = insert_cols(
         node_rulebook,
@@ -2108,6 +2131,11 @@ def queries(table, view):
     ).where(
         rulebooks.c.rulebook == bindparam('rulebook')
     ).order_by(rulebooks.c.idx)
+
+    r['rulebooks_rules'] = select([
+        rulebooks.c.rulebook,
+        rulebooks.c.rule
+    ]).order_by(rulebooks.c.idx)
 
     r['ct_rulebook_rules'] = select(
         [func.COUNT(rulebooks.c.rule)]
