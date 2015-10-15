@@ -13,12 +13,14 @@ from collections import (
     MutableMapping,
     Callable
 )
+
 import networkx as nx
 from gorm.graph import (
     DiGraph,
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
+
 from .util import (
     CompositeDict,
     keycache_iter,
@@ -28,13 +30,12 @@ from .util import (
     enkeycache,
     dekeycache,
     cache_forward,
-    listen,
     listener,
     unlistener,
     fire_time_travel_triggers,
     reify
 )
-from .rule import Rule, RuleBook, RuleMapping
+from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
 from .node import Node
 from .thing import Thing
@@ -1844,6 +1845,7 @@ class Character(DiGraph, RuleFollower):
                     'when called with one argument, '
                     'it must be a place or thing'
                 )
+            node = a
             g = a.character.name
             n = a.name
         else:
@@ -1858,6 +1860,7 @@ class Character(DiGraph, RuleFollower):
                 g = a
             if isinstance(b, Place) or isinstance(b, Thing):
                 n = b.name
+                node = b
             elif not isinstance(b, str):
                 raise TypeError(
                     'when called with two arguments, '
@@ -1865,6 +1868,7 @@ class Character(DiGraph, RuleFollower):
                 )
             else:
                 n = b
+                node = self.engine.character[g].node[n]
         (branch, tick) = self.engine.time
         if self.engine.caching:
             ac = self._avatar_cache
@@ -1893,6 +1897,9 @@ class Character(DiGraph, RuleFollower):
             tick,
             True
         )
+        # Keep the avatar's user cache up to date
+        if hasattr(node, '_user_cache') and self.name not in node._user_cache:
+            node._user_cache.append(self.name)
         self.avatar._dispatch(g, n, True)
 
     def del_avatar(self, a, b=None):
@@ -1910,6 +1917,7 @@ class Character(DiGraph, RuleFollower):
         else:
             g = a.name if isinstance(a, Character) else a
             n = b.name if isinstance(b, Node) else b
+            node = self.engine.character[g].node[n]
         (branch, tick) = self.engine.time
         if self.engine.caching:
             ac = self._avatar_cache
@@ -1928,6 +1936,8 @@ class Character(DiGraph, RuleFollower):
             tick,
             False
         )
+        if hasattr(node, '_user_cache') and self.name in node._user_cache:
+            node._user_cache.remove(self.name)
         self.avatar._dispatch(g, n, False)
 
     def portals(self):
