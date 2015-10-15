@@ -522,6 +522,152 @@ class Engine(AbstractEngine):
                     self._branch_start[branch] = parent_tick
                 else:
                     todo.append(working)
+            # caches for the rule poller
+            self._rulebooks_cache = defaultdict(list)
+            self._characters_rulebooks_cache = {}
+            self._nodes_rulebooks_cache = defaultdict(dict)
+            self._portals_rulebooks_cache = defaultdict(
+                lambda: defaultdict(dict)
+            )
+            self._active_rules_cache = defaultdict(  # rulebook:
+                                                     lambda: defaultdict(
+                                                         # rule:
+                                                         lambda: defaultdict(
+                                                             # branch:
+                                                             dict
+                                                             # tick: active
+                                                             )
+                                                         )
+                                                     )
+            crhandled_defaultdict = lambda: defaultdict(  # character:
+                                                          lambda: defaultdict(
+                                                              # rulebook:
+                                                              lambda: defaultdict(
+                                                                  # rule:
+                                                                  lambda: defaultdict(
+                                                                      # branch:
+                                                                      set
+                                                                      # ticks handled
+                                                                      )
+                                                                  )
+                                                              )
+                                                          )
+            self._node_rules_handled_cache = defaultdict(  # character:
+                                                           lambda: defaultdict(
+                                                               # node:
+                                                               lambda: defaultdict(
+                                                                   # rulebook:
+                                                                   lambda: defaultdict(
+                                                                       # rule:
+                                                                       lambda: defaultdict(
+                                                                           # branch:
+                                                                           set
+                                                                           # ticks handled
+                                                                           )
+                                                                       )
+                                                                   )
+                                                               )
+                                                           )
+            self._portal_rules_handled_cache = defaultdict(  # character:
+                                                             lambda: defaultdict(
+                                                                 # nodeA:
+                                                                 lambda: defaultdict(
+                                                                     # nodeB:
+                                                                     lambda: defaultdict(
+                                                                         # rulebook:
+                                                                         lambda: defaultdict(
+                                                                             # rule:
+                                                                             lambda: defaultdict(
+                                                                                 # branch:
+                                                                                 set
+                                                                                 # ticks handled
+                                                                                 )
+                                                                             )
+                                                                         )
+                                                                     )
+                                                                 )
+                                                             )
+            self._character_rules_handled_cache = crhandled_defaultdict()
+            self._avatar_rules_handled_cache = crhandled_defaultdict()
+            self._character_thing_rules_handled_cache = crhandled_defaultdict()
+            self._character_place_rules_handled_cache = crhandled_defaultdict()
+            self._character_node_rules_handled_cache = crhandled_defaultdict()
+            self._character_portal_rules_handled_cache = crhandled_defaultdict()
+            for (rulebook, rule) in self.rule.db.rulebooks_rules():
+                self._rulebooks_cache[rulebook].append(rule)
+            for (
+                    character,
+                    character_rulebook,
+                    avatar_rulebook,
+                    character_thing_rulebook,
+                    character_place_rulebook,
+                    character_node_rulebook,
+                    character_portal_rulebook
+            ) in self.db.characters_rulebooks():
+                self._characters_rulebooks_cache[character] = {
+                    'character': character_rulebook,
+                    'avatar': avatar_rulebook,
+                    'character_thing': character_thing_rulebook,
+                    'character_place': character_place_rulebook,
+                    'character_node': character_node_rulebook,
+                    'character_portal': character_portal_rulebook
+                }
+            for (character, node, rulebook) in self.db.nodes_rulebooks():
+                self._nodes_rulebooks_cache[character][node] = rulebook
+            for (
+                    character,
+                    nodeA,
+                    nodeB,
+                    rulebook
+            ) in self.db.portals_rulebooks():
+                self._portals_rulebooks_cache[character][nodeA][nodeB] \
+                    = rulebook
+            for (
+                    rulebook, rule, branch, tick, active
+            ) in self.db.dump_active_rules():
+                self._active_rules_cache[rulebook][rule][branch][tick] = active
+            for (
+                    character, node, rulebook, rule, branch, tick
+            ) in self.db.dump_node_rules_handled():
+                self._node_rules_handled_cache[
+                    character
+                ][node][rulebook][rule][branch].add(tick)
+            for (
+                    character, nodeA, nodeB, idx, rulebook, rule, branch, tick
+            ) in self.db.dump_portal_rules_handled():
+                self._portal_rules_handled_cache[
+                    character
+                ][nodeA][nodeB][rulebook][rule][branch].add(tick)
+            for (dumper, cache) in [
+                (
+                        self.db.handled_character_rules,
+                        self._character_rules_handled_cache
+                ),
+                (
+                        self.db.handled_avatar_rules,
+                        self._avatar_rules_handled_cache
+                ),
+                (
+                        self.db.handled_character_thing_rules,
+                        self._character_thing_rules_handled_cache
+                ),
+                (
+                        self.db.handled_character_place_rules,
+                        self._character_place_rules_handled_cache
+                ),
+                (
+                        self.db.handled_character_node_rules,
+                        self._character_node_rules_handled_cache
+                ),
+                (
+                        self.db.handled_character_portal_rules,
+                        self._character_portal_rules_handled_cache
+                )
+            ]:
+                for (
+                        character, rulebook, rule, branch, tick
+                ) in dumper():
+                    cache[character][rulebook][rule][branch].add(tick)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -799,6 +945,89 @@ class Engine(AbstractEngine):
         for child in self._branches[branch].keys():
             yield from self._branch_descendants(child)
 
+    def _rule_active(self, rulebook, rule):
+        cache = self._active_rules_cache[rulebook][rule]
+        for (branch, tick) in self._active_branches(*self.time):
+            if branch in cache:
+                return cache[branch][
+                    max(t for t in cache[branch].keys() if t <= tick)
+                ]
+        return False
+
+    def _poll_char_rules(self):
+        if not self.caching:
+            return self.db.poll_char_rules(*self.time)
+
+        def handled(rulebook, rule):
+            cache = self._character_rules_handled_cache
+            return (
+                rulebook in cache and
+                rule in cache[rulebook] and
+                self.branch in cache[rulebook][rule] and
+                self.tick in cache[rulebook][rule][self.branch]
+            )
+
+        for char in self._characters_rulebooks_cache:
+            for (rulemap, rulebook) in self._characters_rulebooks_cache[
+                char].items():
+                for rule in self._rulebooks_cache[rulebook]:
+                    if self._rule_active(rulebook, rule) and not \
+                            handled(rulebook, rule):
+                        yield (rulemap, char, rulebook, rule)
+
+    def _poll_node_rules(self):
+        if not self.caching:
+            return self.db.poll_node_rules(*self.time)
+        cache = self._node_rules_handled_cache
+
+        def handled(char, node, rulebook, rule):
+            return (
+                char in cache and
+                node in cache[char] and
+                rulebook in cache[char][node] and
+                rule in cache[char][rule][rulebook] and
+                self.branch in cache[char][rule][rulebook] and
+                self.tick in cache[char][rule][rulebook][self.branch]
+            )
+
+        for char in self._nodes_rulebooks_cache:
+            for (node, rulebook) in self._nodes_rulebooks_cache[char].items():
+                for rule in self._rulebooks_cache[rulebook]:
+                    if (
+                                self._rule_active(rulebook, rule) and not
+                            handled(char, node, rulebook, rule)
+                    ):
+                        yield ('node', char, node, rulebook, rule)
+
+    def _poll_portal_rules(self):
+        if not self.caching:
+            return self.db.poll_portal_rules(*self.time)
+
+        def handled(char, nodeA, nodeB, rulebook, rule):
+            cache = self._portal_rules_handled_cache
+            return (
+                char in cache and
+                nodeA in cache[char] and
+                nodeB in cache[char][nodeA] and
+                rulebook in cache[char][nodeA][nodeB] and
+                rule in cache[char][nodeA][nodeB][rulebook] and
+                self.branch in cache[char][nodeA][nodeB][rulebook][rule] and
+                self.tick in cache[char][nodeA][nodeB][rulebook][rule][
+                    self.branch
+                ]
+            )
+
+        cache = self._portals_rulebooks_cache
+        for char in cache:
+            for nodeA in cache[char]:
+                for (nodeB, rulebook) in cache[char][nodeA].items():
+                    for rule in self._rulebooks_cache[rulebook]:
+                        if (
+                                    self._rule_active(rulebook, rule) and not
+                                handled(char, nodeA, nodeB, rulebook, rule)
+                        ):
+                            yield ('portal', char, nodeA, nodeB, rulebook, rule)
+
     def _poll_rules(self):
         """Iterate over tuples containing rules yet unresolved in the current tick.
 
@@ -812,7 +1041,7 @@ class Engine(AbstractEngine):
         """
         for (
                 rulemap, character, rulebook, rule
-        ) in self.db.poll_char_rules(*self.time):
+        ) in self._poll_char_rules():
             try:
                 yield (
                     rulemap,
@@ -825,7 +1054,7 @@ class Engine(AbstractEngine):
                 continue
         for (
                 character, node, rulebook, rule
-        ) in self.db.poll_node_rules(*self.time):
+        ) in self._poll_node_rules():
             try:
                 c = self.character[character]
                 n = c.node[node]
@@ -835,12 +1064,55 @@ class Engine(AbstractEngine):
             yield typ, c, n, rulebook, self.rule[rule]
         for (
                 character, a, b, i, rulebook, rule
-        ) in self.db.poll_portal_rules(*self.time):
+        ) in self._poll_portal_rules():
             try:
                 c = self.character[character]
                 yield 'portal', c.portal[a][b], rulebook, self.rule[rule]
             except KeyError:
                 continue
+
+    def _handled_thing_rule(self, char, thing, rulebook, rule, branch, tick):
+        if self.caching:
+            cache = self._node_rules_handled_cache
+            cache[char][thing][rulebook][rule][branch].add(tick)
+        self.db.handled_thing_rule(
+            char, thing, rulebook, rule, branch, tick
+        )
+
+    def _handled_place_rule(self, char, place, rulebook, rule, branch, tick):
+        if self.caching:
+            cache = self._node_rules_handled_cache
+            cache[char][place][rulebook][rule][branch].add(tick)
+        self.db.handled_place_rule(
+            char, place, rulebook, rule, branch, tick
+        )
+
+    def _handled_portal_rule(
+            self, char, nodeA, nodeB, rulebook, rule, branch, tick
+    ):
+        if self.caching:
+            cache = self._portal_rules_handled_cache
+            cache[char][nodeA][nodeB][rulebook][rule][branch].add(tick)
+        self.db.handled_portal_rule(
+            char, nodeA, nodeB, rulebook, rule, branch, tick
+        )
+
+    def _handled_character_rule(
+            self, typ, char, rulebook, rule, branch, tick
+    ):
+        if self.caching:
+            cache = {
+                'character': self._character_rules_handled_cache,
+                'avatar': self._avatar_rules_handled_cache,
+                'character_thing': self._character_thing_rules_handled_cache,
+                'character_place': self._character_place_rules_handled_cache,
+                'character_node': self._character_node_rules_handled_cache,
+                'character_portal': self._character_portal_rules_handled_cache,
+            }[typ]
+            cache[char][rulebook][rule][branch].add(tick)
+        self.db.handled_character_rule(
+            typ, char, rulebook, rule, branch, tick
+        )
 
     def _follow_rules(self):
         """For each rule in play at the present tick, call it and yield a
@@ -860,7 +1132,7 @@ class Engine(AbstractEngine):
             if typ in ('thing', 'place', 'portal'):
                 yield follow(character, entity)
                 if typ == 'thing':
-                    self.db.handled_thing_rule(
+                    self._handled_thing_rule(
                         character.name,
                         entity.name,
                         rulebook,
@@ -869,7 +1141,7 @@ class Engine(AbstractEngine):
                         tick
                     )
                 elif typ == 'place':
-                    self.db.handled_place_rule(
+                    self._handled_place_rule(
                         character.name,
                         entity.name,
                         rulebook,
@@ -878,7 +1150,7 @@ class Engine(AbstractEngine):
                         tick
                     )
                 else:
-                    self.db.handled_portal_rule(
+                    self._handled_portal_rule(
                         character.name,
                         entity.origin.name,
                         entity.destination.name,
@@ -907,7 +1179,7 @@ class Engine(AbstractEngine):
                         yield follow(character, portal)
                 else:
                     raise ValueError('Unknown type of rule')
-                self.db.handled_character_rule(
+                self._handled_character_rule(
                     typ, character.name, rulebook, rule.name, branch, tick
                 )
 

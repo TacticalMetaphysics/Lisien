@@ -1658,6 +1658,17 @@ class Character(DiGraph, RuleFollower):
             **d
         )
         if engine.caching:
+            self.engine._characters_rulebooks_cache[self.name] = {
+                'character': d.get('character', (self.name, 'character')),
+                'avatar': d.get('avatar', (self.name, 'avatar')),
+                'character_thing': d.get('thing',
+                                         (self.name, 'character_thing')),
+                'character_place': d.get('place',
+                                         (self.name, 'character_place')),
+                'character_node': d.get('node', (self.name, 'character_node')),
+                'character_portal': d.get('portal',
+                                          (self.name, 'character_portal'))
+            }
             self._avatar_cache = ac = {}
             # I'll cache this ONE table in full, because iterating
             # over avatars seems to take a lot of time.
