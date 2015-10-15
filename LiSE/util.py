@@ -436,6 +436,9 @@ def fire_time_travel_triggers(
     the key is used for any purpose.
 
     """
+    # only fire anything if there is actual time travel going on
+    if branch_then == branch_now and tick_then == tick_now:
+        return
     for k in cache:
         if (
                 branch_then in cache[k] and
