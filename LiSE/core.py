@@ -849,8 +849,7 @@ class Engine(AbstractEngine):
         Tuples are of the form: ``(returned, rulename, ruletype,
         rulebook)`` where ``returned`` is whatever the rule itself
         returned upon being called, and ``ruletype`` is what sort of
-        entity the rule applies to (character', 'thing', 'place', or
-        'portal').
+        entity the rule applies to.
 
         """
         (branch, tick) = self.time
