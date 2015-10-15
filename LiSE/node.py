@@ -1,7 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-from collections import defaultdict
+from collections import defaultdict, Mapping
+
 import gorm.graph
+
 from .util import (
     dispatch,
     listener,
@@ -9,7 +11,8 @@ from .util import (
     fire_time_travel_triggers,
     encache,
     enkeycache,
-    dekeycache
+    dekeycache,
+    reify
 )
 from . import rule
 
@@ -29,6 +32,25 @@ class RuleMapping(rule.RuleMapping):
             self.name,
             *self.engine.time
         )
+
+
+class UserMapping(Mapping):
+    def __init__(self, node):
+        self.node = node
+        self.engine = node.engine
+
+    def __iter__(self):
+        yield from self.node._user_names()
+
+    def __len__(self):
+        return len(self.node._user_names())
+
+    def __getitem__(self, k):
+        if k not in self.node._user_names():
+            raise KeyError("{} not used by {}".format(
+                self.node.name, k
+            ))
+        return self.engine.character[k]
 
 
 class Node(gorm.graph.Node, rule.RuleFollower):
@@ -84,6 +106,25 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             return
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
+
+    def _get_user_names(self):
+        yield from self.engine.db.avatar_users(
+            self.character.name,
+            self.name,
+            *self.engine.time
+        )
+
+    @reify
+    def _user_mapping(self):
+        return UserMapping(self)
+
+    @property
+    def user(self):
+        usernames = list(self._get_user_names())
+        if len(usernames) == 1:
+            return self.engine.character[usernames[0]]
+        else:
+            return self._user_mapping
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
@@ -223,11 +264,13 @@ class Node(gorm.graph.Node, rule.RuleFollower):
 
     def _user_names(self):
         """Iterate over names of characters that have me as an avatar"""
-        return self.engine.db.avatar_users(
-            self.character.name,
-            self.name,
-            *self.engine.time
-        )
+        if not hasattr(self, '_user_cache'):
+            self._user_cache = list(self.engine.db.avatar_users(
+                self.character.name,
+                self.name,
+                *self.engine.time
+            ))
+        return self._user_cache
 
     def users(self):
         """Iterate over characters this is an avatar of."""
