@@ -123,7 +123,7 @@ def in_classroom_after_class(engine, character, node):
 # Let's make some rules and not assign them to anything yet.
 @eng.rule
 def drink(engine, character):
-    braincells = list(character.nodes())
+    braincells = list(character.node.values())
     engine.shuffle(braincells)
     for i in range(0, engine.randrange(1, 20)):
         braincells.pop()['drunk'] += 12
@@ -141,7 +141,7 @@ def is_drunkard(engine, character):
 
 @eng.rule
 def sloth(engine, character):
-    braincells = list(character.nodes())
+    braincells = list(character.node.values())
     engine.shuffle(braincells)
     for i in range(0, engine.randrange(1, 20)):
         braincells.pop()['slow'] += 1
