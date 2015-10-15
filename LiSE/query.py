@@ -305,6 +305,10 @@ class QueryEngine(gorm.query.QueryEngine):
         for (ch,) in self.sql('characters'):
             yield self.json_load(ch)
 
+    def characters_rulebooks(self):
+        for row in self.sql('characters_rulebooks'):
+            yield map(self.json_load, row)
+
     def ct_characters(self):
         return self.sql('ct_characters').fetchone()[0]
 
@@ -365,6 +369,10 @@ class QueryEngine(gorm.query.QueryEngine):
             )
         return self.json_load(r[0])
 
+    def nodes_rulebooks(self):
+        for row in self.sql('nodes_rulebooks'):
+            yield map(self.json_load, row)
+
     def set_node_rulebook(self, character, node, rulebook):
         (character, node, rulebook) = map(
             self.json_dump, (character, node, rulebook)
@@ -390,6 +398,10 @@ class QueryEngine(gorm.query.QueryEngine):
                 )
             )
         return self.json_load(r[0])
+
+    def portals_rulebooks(self):
+        for row in self.sql('portals_rulebooks'):
+            yield map(self.json_load, row)
 
     def set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
         (character, nodeA, nodeB, rulebook) = map(
@@ -1054,6 +1066,10 @@ class QueryEngine(gorm.query.QueryEngine):
     def rulebook_rules(self, rulebook):
         for (rule,) in self.sql('rulebook_rules', self.json_dump(rulebook)):
             yield self.json_load(rule)
+
+    def rulebooks_rules(self):
+        for (rulebook, rule) in self.sql('rulebooks_rules'):
+            yield map(self.json_load, (rulebook, rule))
 
     def current_rules_character(self, character, branch, tick):
         for rule in self.sql(
