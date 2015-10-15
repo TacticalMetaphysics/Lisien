@@ -389,18 +389,24 @@ class RuleBook(MutableSequence):
     anyway.
 
     """
+    @reify
+    def _cache(self):
+        if self.name not in self.engine._rulebooks_cache:
+            self.engine._rulebooks_cache[self.name] = list(
+                self.engine.rule.db.rulebook_rules(self.name)
+            )
+        return self.engine._rulebooks_cache[self.name]
+
     def __init__(self, engine, name):
         self.engine = engine
         self.name = name
         self._listeners = []
-        if self.engine.caching:
-            self._cache = list(self.engine.db.rulebook_rules(self.name))
 
     def __contains__(self, v):
         if self.engine.caching:
             cache = self._cache
         else:
-            cache = list(self.engine.db.rulebook_rules(self.name))
+            cache = list(self.engine.rule.db.rulebook_rules(self.name))
         if isinstance(v, Rule):
             v = v.name
         return v in cache
@@ -416,13 +422,13 @@ class RuleBook(MutableSequence):
     def __len__(self):
         if self.engine.caching:
             return len(self._cache)
-        return self.engine.db.ct_rulebook_rules(self.name)
+        return self.engine.rule.db.ct_rulebook_rules(self.name)
 
     def __getitem__(self, i):
         if self.engine.caching:
             return self.engine.rule[self._cache[i]]
         return self.engine.rule[
-            self.engine.db.rulebook_get(
+            self.engine.rule.db.rulebook_get(
                 self.name,
                 i
             )
@@ -433,7 +439,7 @@ class RuleBook(MutableSequence):
 
     def _activate_rule(self, rule, active=True):
         (branch, tick) = self.engine.time
-        self.engine.db.set_rule_activeness(
+        self.engine.db.set_rule_activeness(  # world DB, not code DB
             self.name,
             rule.name,
             branch,
@@ -448,7 +454,7 @@ class RuleBook(MutableSequence):
             rule = self.engine.rule[v]
         else:
             rule = Rule(self.engine, v)
-        self.engine.db.rulebook_set(self.name, i, rule.name)
+        self.engine.rule.db.rulebook_set(self.name, i, rule.name)
         self._activate_rule(rule)
         if self.engine.caching:
             while len(self._cache) <= i:
@@ -457,7 +463,7 @@ class RuleBook(MutableSequence):
         self._dispatch()
 
     def insert(self, i, v):
-        self.engine.db.rulebook_decr(self.name, i)
+        self.engine.rule.db.rulebook_decr(self.name, i)
         self[i] = v
 
     def index(self, v):
