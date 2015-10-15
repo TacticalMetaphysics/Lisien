@@ -312,7 +312,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
 
 class CharacterPlaceMapping(MutableMapping, RuleFollower):
     """:class:`Place` objects that are in a :class:`Character`"""
-    _book = "place"
+    _book = "character_place"
 
     def __init__(self, character):
         """Store the character and initialize the cache (if caching)"""
@@ -541,6 +541,14 @@ class CharacterThingPlaceMapping(MutableMapping, RuleFollower):
 
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
     _book = "character_portal"
+
+    @reify
+    def character(self):
+        return self.graph
+
+    @reify
+    def engine(self):
+        return self.graph.engine
 
     @property
     def _cache(self):
