@@ -1904,11 +1904,12 @@ class Character(DiGraph, RuleFollower):
                     "del_avatar requires a Node object "
                     "(Thing or Place)."
                 )
+            node = a
             g = a.character.name
             n = a.name
         else:
-            g = a if isinstance(a, Character) else self.engine.character[a]
-            n = b if isinstance(b, Node) else g.node[b]
+            g = a.name if isinstance(a, Character) else a
+            n = b.name if isinstance(b, Node) else b
         (branch, tick) = self.engine.time
         if self.engine.caching:
             ac = self._avatar_cache
