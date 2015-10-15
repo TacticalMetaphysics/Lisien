@@ -499,11 +499,12 @@ class Engine(AbstractEngine):
         self.db.initdb()
         self._code_qe.initdb()
         self._existence = {}
-        self._timestream = {'master': {}}
-        self._branch_start = {}
-        self._branches = {'master': self._timestream['master']}
-        self._branch_parents = {}
         if self.caching:
+            # cache the timestream
+            self._timestream = {'master': {}}
+            self._branch_start = {}
+            self._branches = {'master': self._timestream['master']}
+            self._branch_parents = {}
             self.gorm._obranch = self.gorm.branch
             self.gorm._orev = self.gorm.rev
             self._active_branches_cache = []
