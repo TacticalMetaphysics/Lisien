@@ -29,6 +29,15 @@ phys.stat['hour'] = 0
 def time_passes(engine, character):
     character.stat['hour'] = (character.stat['hour'] + 1) % 24
 
+
+def chktp():
+    assert (len(time_passes.triggers) == 1)
+    assert (len(time_passes.prereqs) == 0)
+    assert (len(time_passes.actions) == 1)
+
+
+chktp()
+
 # There's a character with all of the students in it, to make it easy to apply rules to all students.
 student_body = eng.new_character('student_body')
 
@@ -39,12 +48,23 @@ classroom = phys.new_place('classroom')
 @student_body.avatar.rule
 def go_to_class(engine, character, node):
     # There's just one really long class every day.
-    node.travel_to(classroom)
+    node.travel_to(engine.character['physical'].place['classroom'])
 
+
+chktp()
+assert (len(go_to_class.triggers) == 0)
+assert (len(go_to_class.prereqs) == 0)
+assert (len(go_to_class.actions) == 1)
 
 @go_to_class.trigger
 def absent(engine, character, node):
-    return node.location != classroom
+    return node.location != engine.character['physical'].place['classroom']
+
+
+chktp()
+assert (len(go_to_class.triggers) == 1)
+assert (len(go_to_class.prereqs) == 0)
+assert (len(go_to_class.actions) == 1)
 
 
 @go_to_class.prereq
@@ -52,25 +72,52 @@ def class_in_session(engine, *args):
     return 8 <= engine.character['physical'].stat['hour'] < 15
 
 
+chktp()
+assert (len(go_to_class.triggers) == 1)
+assert (len(go_to_class.prereqs) == 1)
+assert (len(go_to_class.actions) == 1)
+
+
 @go_to_class.prereq
 def be_timely(engine, character, node):
     # Even lazy students have a 50% chance of going to class every hour.
     #
-    # We need to access the character like this because the ``character`` passed into the function
-    # is ``student_body``, the character with this node as an avatar.
+    # We need to access the student character like this because the
+    # ``character`` passed into the function is ``student_body``, where the
+    # rule was assigned.
     #
-    # Or we could have given this rule to the student objects.
-    return not node.character.stat['lazy'] or engine.coinflip()
+    # Or we could have put the 'lazy' stat onto the node instead of the
+    # character... or kept the student character in a stat of the node...
+    # or assigned this rule to the student directly.
+    for user in node.users():
+        if user.name != character:
+            return not user.stat['lazy'] or engine.coinflip()
 
+
+chktp()
+
+
+def chk2cls():
+    assert (len(go_to_class.triggers) == 1)
+    assert (len(go_to_class.prereqs) == 2)
+    assert (len(go_to_class.actions) == 1)
+
+
+chk2cls()
 
 @student_body.avatar.rule
 def leave_class(engine, character, node):
-    node.travel_to(node.room)
+    for user in node.users():
+        if user != character:
+            node.travel_to(user.stat['room'])
+            return
 
 
 @leave_class.trigger
 def in_classroom_after_class(engine, character, node):
-    return node.location == classroom and character.stat['hour'] >= 15
+    phys = engine.character['physical']
+    return node.location == phys.place['classroom'] \
+           and phys.stat['hour'] >= 15
 
 
 # Let's make some rules and not assign them to anything yet.
@@ -102,10 +149,9 @@ def sloth(engine, character):
 
 @sloth.trigger
 def out_of_class(engine, character):
-    # Looking up the classroom this way is not really necessary, since we
-    # already have a reference to it. This way of doing things is more general,
-    # and might be necessary if you want to take advantage of some parallelization
-    # features that aren't implemented yet (2015-09-24)
+    # You don't want to use the global variable for the classroom
+    # because it won't be around (or at least, won't work) after
+    # the engine restarts.
     return character.avatar['physical'].location != \
         engine.character['physical'].place['classroom']
 
@@ -142,12 +188,12 @@ def somewhat_drunk(engine, character, node):
 
 @eng.rule
 def catch_up(engine, character, node):
-    node['late'] -= 1
+    node['slow'] -= 1
 
 
 @catch_up.trigger
 def somewhat_late(engine, character, node):
-    node['late'] > 0
+    return node['slow'] > 0
 
 catch_up.prereq(in_class)
 catch_up.prereq(class_in_session)
@@ -168,9 +214,12 @@ for n in range(0, 3):
         student0 = eng.new_character('dorm{}room{}student0'.format(n, i))
         body0 = room.new_thing('dorm{}room{}student0'.format(n, i))
         student0.add_avatar(body0)
+        assert (student0 in body0.users())
         student_body.add_avatar(body0)
+        assert (student_body in body0.users())
+        assert (student0 in body0.users())
         student1 = eng.new_character('dorm{}room{}student1'.format(n, i))
-        body1 = room.new_thing('dorm{}room{}student1')
+        body1 = room.new_thing('dorm{}room{}student1'.format(n, i))
         student1.add_avatar(body1)
         student_body.add_avatar(body1)
         student0.stat['room'] = student1.stat['room'] = room
@@ -187,8 +236,11 @@ for n in range(0, 3):
                 student.stat['xp'] = 0
                 student.stat['drunkard'] = eng.coinflip()
                 student.stat['lazy'] = eng.coinflip()
+            # Apply these previously written rules to each student
+            for rule in (drink, sloth):
+                student.rule(rule)
             # Apply these previously written rules to each brain cell
-            for rule in (learn, drink, sober_up, sloth, catch_up):
+            for rule in (learn, sober_up, catch_up):
                 student.node.rule(rule)
 
 eng.close()
@@ -205,6 +257,8 @@ if __name__ == '__main__':
                 yield char
 
     print("Starting simulation with {} students.".format(sum(1 for stu in students())))
+    for stu in students():
+        assert (stu.avatar['physical'].location == stu.stat['room'])
 
     for h in range(1, 128):
         engine.next_tick()
