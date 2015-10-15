@@ -414,6 +414,22 @@ class QueryEngine(gorm.query.QueryEngine):
                 0
             )
 
+    def dump_active_rules(self):
+        for (
+                rulebook,
+                rule,
+                branch,
+                tick,
+                active
+        ) in self.sql('dump_active_rules'):
+            yield (
+                self.json_load(rulebook),
+                self.json_load(rule),
+                branch,
+                tick,
+                bool(active)
+            )
+
     def active_rules_char(self, tbl, character, rulebook, branch, tick):
         (character, rulebook) = map(self.json_dump, (character, rulebook))
         seen = set()
@@ -479,6 +495,40 @@ class QueryEngine(gorm.query.QueryEngine):
                             self.json_load, (c, rulebook, rule)
                         ))
 
+    def handled_rules_on_characters(self, typ):
+        for (
+                character,
+                rulebook,
+                rule,
+                branch,
+                tick
+        ) in self.sql('handled_{}_rules'.format(typ)):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                branch,
+                tick
+            )
+
+    def handled_character_rules(self):
+        return self.handled_rules_on_characters('character')
+
+    def handled_avatar_rules(self):
+        return self.handled_rules_on_characters('avatar')
+
+    def handled_character_thing_rules(self):
+        return self.handled_rules_on_characters('character_thing')
+
+    def handled_character_place_rules(self):
+        return self.handled_rules_on_characters('character_place')
+
+    def handled_character_node_rules(self):
+        return self.handled_rules_on_characters('character_node')
+
+    def handled_character_portal_rules(self):
+        return self.handled_rules_on_characters('character_portal')
+
     def poll_node_rules(self, branch, tick):
         """Poll rules assigned to particular Places or Things."""
         seen = set()
@@ -510,6 +560,24 @@ class QueryEngine(gorm.query.QueryEngine):
                         map(self.json_load, (char, n, rulebook, rule))
                     )
 
+    def dump_node_rules_handled(self):
+        for (
+                character,
+                node,
+                rulebook,
+                rule,
+                branch,
+                tick
+        ) in self.sql("dump_node_rules_handled"):
+            yield (
+                self.json_load(character),
+                self.json_load(node),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                branch,
+                tick
+            )
+
     def poll_portal_rules(self, branch, tick):
         """Poll rules assigned to particular portals."""
         seen = set()
@@ -529,6 +597,28 @@ class QueryEngine(gorm.query.QueryEngine):
                         self.json_load(rulebook),
                         self.json_load(rule)
                     )
+
+    def dump_portal_rules_handled(self):
+        for (
+                character,
+                nodeA,
+                nodeB,
+                idx,
+                rulebook,
+                rule,
+                branch,
+                tick
+        ) in self.sql('dump_portal_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(nodeA),
+                self.json_load(nodeB),
+                idx,
+                self.json_load(rulebook),
+                self.json_load(rule),
+                branch,
+                tick
+            )
 
     def portal_rules(self, character, nodeA, nodeB, branch, tick):
         (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
@@ -1133,6 +1223,7 @@ class QueryEngine(gorm.query.QueryEngine):
             'avatar_rules_handled',
             'character_thing_rules_handled',
             'character_place_rules_handled',
+            'character_node_rules_handled',
             'character_portal_rules_handled',
             'thing_rules_handled',
             'place_rules_handled',
@@ -1156,9 +1247,7 @@ class QueryEngine(gorm.query.QueryEngine):
             'avatar_rules_handled',
             'character_thing_rules_handled',
             'character_place_rules_handled',
-            'character_portal_rules_handled',
-            'character_thing_rules_handled',
-            'character_place_rules_handled',
+            'character_node_rules_handled',
             'character_portal_rules_handled',
             'thing_rules_handled',
             'place_rules_handled',

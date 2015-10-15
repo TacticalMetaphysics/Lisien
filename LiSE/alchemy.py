@@ -44,6 +44,7 @@ import gorm.alchemy
 
 
 
+
 ### Constants
 length = 50
 
@@ -464,6 +465,7 @@ def tables_for_meta(meta):
         handled_table('avatar'),
         handled_table('character_thing'),
         handled_table('character_place'),
+        handled_table('character_node'),
         handled_table('character_portal'),
     ):
         r[tab.name] = tab
@@ -497,24 +499,6 @@ def views_for_table_dict(table):
                 trh.c.tick
             ]
         )
-    )
-    cprh = table['character_place_rules_handled']
-    ctrh = table['character_thing_rules_handled']
-    r['character_node_rules_handled'] = union(
-        select([
-            cprh.c.character,
-            cprh.c.rulebook,
-            cprh.c.rule,
-            cprh.c.branch,
-            cprh.c.tick
-        ]),
-        select([
-            ctrh.c.character,
-            ctrh.c.rulebook,
-            ctrh.c.rule,
-            ctrh.c.branch,
-            ctrh.c.tick
-        ])
     )
     return r
 
@@ -565,6 +549,7 @@ def indices_for_table_dict(table):
             handled_idx('avatar'),
             handled_idx('character_thing'),
             handled_idx('character_place'),
+            handled_idx('character_node'),
             handled_idx('character_portal'),
             Index(
                 'thing_rules_handled_idx',
@@ -854,27 +839,44 @@ def queries(table, view):
         table['characters'].c.character == bindparam('character')
     )
 
+    active_rules = table['active_rules']
+    r['dump_active_rules'] = select([
+        active_rules.c.rulebook,
+        active_rules.c.rule,
+        active_rules.c.branch,
+        active_rules.c.tick,
+        active_rules.c.active
+    ])
+
     def arhitick(*cols):
         wheres = [
-            getattr(table['active_rules'].c, col) == bindparam(col)
+                     getattr(active_rules.c, col) == bindparam(col)
             for col in cols
-        ] + [table['active_rules'].c.tick <= bindparam('tick')]
+                     ] + [active_rules.c.tick <= bindparam('tick')]
         return select(
             [
-                table['active_rules'].c.rulebook,
-                table['active_rules'].c.rule,
-                table['active_rules'].c.branch,
-                func.MAX(table['active_rules'].c.tick).label('tick')
+                active_rules.c.rulebook,
+                active_rules.c.rule,
+                active_rules.c.branch,
+                func.MAX(active_rules.c.tick).label('tick')
             ]
         ).group_by(
-            table['active_rules'].c.rulebook,
-            table['active_rules'].c.rule,
-            table['active_rules'].c.branch
+            active_rules.c.rulebook,
+            active_rules.c.rule,
+            active_rules.c.branch
         ).where(and_(*wheres)).alias('hitick')
 
     active_rules_hitick = arhitick('branch')
 
     node_rules_handled = view['node_rules_handled']
+    r['dump_node_rules_handled'] = select([
+        node_rules_handled.c.character,
+        node_rules_handled.c.node,
+        node_rules_handled.c.rulebook,
+        node_rules_handled.c.rule,
+        node_rules_handled.c.branch,
+        node_rules_handled.c.tick
+    ])
 
     node_rulebook = table['node_rulebook']
     active_rules = table['active_rules']
@@ -988,6 +990,16 @@ def queries(table, view):
     )
 
     portal_rules_handled = table['portal_rules_handled']
+    r['dump_portal_rules_handled'] = select([
+        portal_rules_handled.c.character,
+        portal_rules_handled.c.nodeA,
+        portal_rules_handled.c.nodeB,
+        portal_rules_handled.c.idx,
+        portal_rules_handled.c.rulebook,
+        portal_rules_handled.c.rule,
+        portal_rules_handled.c.branch,
+        portal_rules_handled.c.tick
+    ])
 
     prhandle = select(
         [
@@ -1064,13 +1076,21 @@ def queries(table, view):
 
     characters = table['characters']
 
+    def handled_char_rules(prefix):
+        tabn = '{}_rules_handled'.format(prefix)
+        rules_handled = table[tabn]
+        return select([
+            rules_handled.c.character,
+            rules_handled.c.rulebook,
+            rules_handled.c.rule,
+            rules_handled.c.branch,
+            rules_handled.c.tick
+        ])
+
     def poll_char_rules(prefix):
         _rulebook = '{}_rulebook'.format(prefix)
         tabn = '{}_rules_handled'.format(prefix)
-        try:
-            rules_handled = table[tabn]
-        except KeyError:
-            rules_handled = view[tabn]
+        rules_handled = table[tabn]
         crhandle = select(
             [
                 rules_handled.c.character,
@@ -1122,11 +1142,17 @@ def queries(table, view):
         )
 
     r['poll_character_rules'] = poll_char_rules('character')
+    r['handled_character_rules'] = handled_char_rules('character')
     r['poll_avatar_rules'] = poll_char_rules('avatar')
+    r['handled_avatar_rules'] = handled_char_rules('avatar')
     r['poll_character_node_rules'] = poll_char_rules('character_node')
+    r['handled_character_node_rules'] = handled_char_rules('character_node')
     r['poll_character_thing_rules'] = poll_char_rules('character_thing')
+    r['handled_character_thing_rules'] = handled_char_rules('character_thing')
     r['poll_character_place_rules'] = poll_char_rules('character_place')
+    r['handled_character_place_rules'] = handled_char_rules('character_place')
     r['poll_character_portal_rules'] = poll_char_rules('character_portal')
+    r['handled_character_portal_rules'] = handled_char_rules('character_portal')
 
     def handled_character_ruletyp(typ):
         tab = table['{}_rules_handled'.format(typ)]
@@ -1145,6 +1171,8 @@ def queries(table, view):
         = handled_character_ruletyp('character_thing')
     r['handled_character_place_rule'] \
         = handled_character_ruletyp('character_place')
+    r['handled_character_node_rule'] \
+        = handled_character_ruletyp('character_node')
     r['handled_character_portal_rule'] \
         = handled_character_ruletyp('character_portal')
 
