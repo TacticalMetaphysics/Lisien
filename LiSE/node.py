@@ -119,6 +119,11 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def _user_mapping(self):
         return UserMapping(self)
 
+    @reify
+    def portal(self):
+        """Return a mapping of portals to other nodes."""
+        return self.character.portal[self.name]
+
     @property
     def user(self):
         usernames = list(self._get_user_names())
@@ -359,11 +364,6 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         return self.character.new_thing(
             name, self.name, None, **stats
         )
-
-    @property
-    def portal(self):
-        """Return a mapping of portals to other nodes."""
-        return self.character.portal[self.name]
 
     def __bool__(self):
         """Return whether I really exist in the world model, ie. in my character."""
