@@ -112,20 +112,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         self.name = character.name
         self._thing_listeners = defaultdict(list)
         self._cache = {}
-        self._keycache = {}
-        if self.engine.caching:
-            self.engine.time_listener(self._recache)
-
-    def _recache(self, branch_then, tick_then, b, t):
-        """Internal use. Caches thing names for a new (branch, tick)."""
-        if b not in self._keycache:
-            self._keycache[b] = {}
-        if branch_then == b and tick_then == t - 1:
-            self._keycache[b][t] = self._keycache[b][t-1]
-        else:
-            self._keycache[b][t] = set(
-                self._iter_thing_names()
-            )
 
     def _dispatch_thing(self, k, v):
         """Internal use. Calls listeners when a Thing has changed."""
@@ -213,16 +199,12 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             yield from self._iter_thing_names()
             return
         (branch, tick) = self.engine.time
-        if branch not in self._keycache:
-            self._keycache[branch] = {}
-        if tick not in self._keycache[branch]:
-            if tick - 1 in self._keycache[branch]:
-                self._keycache[branch][tick] = set(
-                    self._keycache[branch][tick-1]
-                )
-            else:
-                self._keycache[branch][tick] = set(self._iter_thing_names())
-        yield from self._keycache[branch][tick]
+        cache = self.engine._things_cache[self.character.name]
+        for thing in cache:
+            if branch in cache[thing] and cache[thing][branch][
+                max(t for t in cache[thing][branch] if t <= tick)
+            ]:
+                yield thing
 
     def __len__(self):
         """Just iterate and count stuff"""
