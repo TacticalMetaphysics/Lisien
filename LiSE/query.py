@@ -834,6 +834,19 @@ class QueryEngine(gorm.query.QueryEngine):
             ):
                 return (self.json_load(loc), self.json_load(nextloc))
 
+    def things_dump(self):
+        for (
+                character, thing, branch, tick, loc, nextloc
+        ) in self.sql('things_dump'):
+            yield (
+                self.json_load(character),
+                self.json_load(thing),
+                branch,
+                tick,
+                self.json_load(loc),
+                self.json_load(nextloc)
+            )
+
     def thing_loc_and_next_set(
             self, character, thing, branch, tick, loc, nextloc
     ):

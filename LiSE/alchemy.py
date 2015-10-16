@@ -1558,6 +1558,15 @@ def queries(table, view):
         )
     )
 
+    r['things_dump'] = select([
+        things.c.character,
+        things.c.thing,
+        things.c.branch,
+        things.c.tick,
+        things.c.location,
+        things.c.next_location
+    ])
+
     r['thing_loc_and_next_ins'] = insert_cols(
         things,
         'character',

@@ -35,11 +35,6 @@ class Thing(Node):
         'next_arrival_time'
     }
 
-    def __init__(self, *args, **kwargs):
-        """If caching, initialize the cache."""
-        super().__init__(*args, **kwargs)
-        self._loccache = {}
-
     def __contains__(self, key):
         if key in self.extrakeys:
             return True
@@ -78,40 +73,30 @@ class Thing(Node):
         elif key == 'arrival_time':
             if not self.engine.caching:
                 return self._get_arrival_time()
+            cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
-                self._load_locs_branch(branch)
-                try:
-                    return max(
-                        t for t in self._loccache[branch]
-                        if t <= tick
-                    )
-                except ValueError:
-                    continue
+                if branch in cache:
+                    return max(t for t in cache[branch].keys() if t <= tick)
             raise CacheError("Locations not cached correctly")
         elif key == 'next_location':
             return self['locations'][1]
         elif key == 'next_arrival_time':
             if not self.engine.caching:
                 return self._get_next_arrival_time()
+            cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
-                self._load_locs_branch(branch)
-                try:
-                    return min(
-                        t for t in self._loccache[branch]
-                        if t > tick
-                    )
-                except ValueError:
-                    continue
+                if branch in cache:
+                    return min(t for t in cache[branch].keys() if t > tick)
             return None
         elif key == 'locations':
             if not self.engine.caching:
                 return self._loc_and_next()
+            cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
-                self._load_locs_branch(branch)
-                try:
-                    return self._loccache[branch][self['arrival_time']]
-                except ValueError:
-                    continue
+                if branch in cache:
+                    return cache[branch][
+                        max(t for t in cache[branch].keys() if t <= tick)
+                    ]
             raise CacheError("Locations not cached correctly")
         else:
             if not self.engine.caching:
@@ -148,8 +133,8 @@ class Thing(Node):
             if not self.engine.caching:
                 return
             (branch, tick) = self.engine.time
-            self._load_locs_branch(branch)
-            self._loccache[branch][tick] = value
+            self.engine._things_cache\
+                [self.character.name][self.name][branch][tick] = value
             self._dispatch_stat('locations', value)
         else:
             super().__setitem__(key, value)
@@ -180,16 +165,6 @@ class Thing(Node):
             self['name'],
             self['location']
         )
-
-    def _load_locs_branch(self, branch):
-        """Private method. Cache stored location data for this branch."""
-        self._loccache[branch] = {}
-        for (tick, loc, nloc) in self.engine.db.thing_locs_branch_data(
-                self.character.name,
-                self.name,
-                branch
-        ):
-            self._loccache[branch][tick] = (loc, nloc)
 
     def _get_arrival_time(self):
         """Query the database for when I arrive at my present location."""

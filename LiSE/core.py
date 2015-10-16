@@ -668,6 +668,19 @@ class Engine(AbstractEngine):
                         character, rulebook, rule, branch, tick
                 ) in dumper():
                     cache[character][rulebook][rule][branch].add(tick)
+            # world caches
+            self._things_cache = defaultdict(  # character:
+                lambda: defaultdict(  # thing:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: (location, next_location)
+                    )
+                )
+            )
+            for (
+                    character, thing, branch, tick, loc, nextloc
+            ) in self.db.things_dump():
+                self._things_cache[character][thing][branch][tick] \
+                    = (loc, nextloc)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
