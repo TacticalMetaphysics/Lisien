@@ -492,17 +492,13 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
     def engine(self):
         return self.graph.engine
 
-    @property
+    @reify
     def _cache(self):
-        if not hasattr(self, '_c'):
-            self._c = {}
-        return self._c
+        return {}
 
-    @property
+    @reify
     def _portal_listeners(self):
-        if not hasattr(self, '_pl'):
-            self._pl = defaultdict(list)
-        return self._pl
+        return defaultdict(list)
 
     def _dispatch_portal(self, o, d, p):
         dispatch(
@@ -1645,11 +1641,11 @@ class Character(DiGraph, RuleFollower):
     def portal(self):
         return CharacterPortalSuccessorsMapping(self)
 
-    @property
+    @reify
     def adj(self):
         return self.portal
 
-    @property
+    @reify
     def succ(self):
         return self.portal
 
@@ -1657,7 +1653,7 @@ class Character(DiGraph, RuleFollower):
     def preportal(self):
         return CharacterPortalPredecessorsMapping(self)
 
-    @property
+    @reify
     def pred(self):
         return self.preportal
 
