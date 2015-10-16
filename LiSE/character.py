@@ -32,7 +32,9 @@ from .util import (
     cache_forward,
     listener,
     unlistener,
-    reify
+    reify,
+    stat_validity,
+    fire_stat_listeners
 )
 from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
@@ -1469,29 +1471,6 @@ class CharStatCache(MutableMapping):
         self._keycache = {}
         self._listeners = defaultdict(list)
 
-        @self.engine.time_listener
-        def time_travel_triggers(
-                branch_then,
-                tick_then,
-                branch_now,
-                tick_now
-        ):
-            """Fire such triggers as needed for time travel from
-            the given time to the present moment.
-
-            """
-            if len(self._listeners) == 0:
-                return
-            fire_time_travel_triggers(
-                self._real,
-                self._cache,
-                self._dispatch,
-                branch_then,
-                tick_then,
-                branch_now,
-                tick_now
-            )
-
         if self.engine.caching:
             def cache_branch(branch):
                 for (key, tick, value) in self.engine.db.char_stat_branch_data(
@@ -1504,7 +1483,7 @@ class CharStatCache(MutableMapping):
                         self._cache[key][branch] = {}
                     self._cache[key][branch][tick] = value
 
-            branch = self.engine.branch
+            (branch, tick) = self.engine.time
             cache_branch(branch)
             self._branches_loaded = {branch, }
 
@@ -1518,6 +1497,32 @@ class CharStatCache(MutableMapping):
                 if branch_now not in self._branches_loaded:
                     cache_branch(branch_now)
                     self._branches_loaded.add(branch_now)
+
+            self._stats_validity = {}
+            for k in self._cache:
+                try:
+                    self._stats_validity[k] = stat_validity(k, self._cache, branch, tick)
+                except ValueError:
+                    continue
+
+            @self.engine.time_listener
+            def fire_my_stat_listeners(
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+            ):
+                fire_stat_listeners(
+                    self.__getitem__,
+                    lambda k, v: dispatch(self._listeners, k, branch_now, tick_now, self.character, k, v),
+                    self._cache,
+                    self._branches_loaded,
+                    self._stats_validity,
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+                )
 
     def listener(self, fun=None, stat=None):
         return listener(self._listeners, fun, stat)

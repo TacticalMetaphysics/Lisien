@@ -11,7 +11,9 @@ from .util import (
     encache,
     enkeycache,
     dekeycache,
-    reify
+    reify,
+    stat_validity,
+    fire_stat_listeners
 )
 from . import rule
 
@@ -132,21 +134,22 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         self.name = name
         self._rulebook_listeners = []
         self._stat_listeners = defaultdict(list)
-        self._keycache = {}
-        self._cache = {}
 
         if self.engine.caching:
+            self._keycache = {}
+            self._cache = defaultdict(  # key:
+                lambda: defaultdict(  # branch:
+                    dict  # tick: value
+                )
+            )
+
             def cache_branch(branch):
                 for (key, tick, value) in self.engine.db.node_stat_branch_data(
                         self.character.name, self.name, branch
                 ):
-                    if key not in self._cache:
-                        self._cache[key] = {}
-                    if branch not in self._cache:
-                        self._cache[key][branch] = {}
                     self._cache[key][branch][tick] = value
 
-            branch = self.engine.branch
+            (branch, tick) = self.engine.time
             cache_branch(branch)
             self._branches_cached = {branch, }
 
@@ -160,6 +163,33 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                 if branch_now not in self._branches_cached:
                     cache_branch(branch_now)
                     self._branches_cached.add(branch_now)
+
+
+            self._stats_validity = {}
+            for k in self._cache:
+                try:
+                    self._stats_validity[k] = stat_validity(k)
+                except ValueError:
+                    continue
+
+            @self.engine.time_listener
+            def fire_my_stat_listeners(
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+            ):
+                fire_stat_listeners(
+                    self.__getitem__,
+                    lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
+                    self._cache,
+                    self._branches_cached,
+                    self._stats_validity,
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+                )
 
         super().__init__(character, name)
 

@@ -9,7 +9,9 @@ from .util import (
     encache,
     needcache,
     enkeycache,
-    cache_forward
+    cache_forward,
+    stat_validity,
+    fire_stat_listeners
 )
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -86,7 +88,7 @@ class Portal(Edge, RuleFollower):
                         self._cache[key][branch] = {}
                     self._cache[key][branch][tick] = value
 
-            branch = self.engine.branch
+            (branch, tick) = self.engine.time
             cache_branch(branch)
             self._branches_cached = {branch, }
 
@@ -100,6 +102,33 @@ class Portal(Edge, RuleFollower):
                 if branch_now not in self._branches_cached:
                     cache_branch(branch_now)
                     self._branches_cached.add(branch_now)
+
+            self._stats_validity = {}
+            for k in self._cache:
+                try:
+                    self._stats_validity = stat_validity(k, self._cache, branch, tick)
+                except ValueError:
+                    continue
+
+            @self.engine.time_listener
+            def fire_my_stat_listeners(
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+            ):
+                fire_stat_listeners(
+                    self.__getitem__,
+                    lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
+                    self._cache,
+                    self._branches_cached,
+                    self._stats_validity,
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+                )
+
 
         super().__init__(character, self._origin, self._destination)
 

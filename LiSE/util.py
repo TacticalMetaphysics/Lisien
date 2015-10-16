@@ -584,3 +584,51 @@ class AbstractEngine(object):
         if s not in self.json_load_hints:
             self.json_load_hints[s] = self._dec_tuple(loads(s))
         return self.json_load_hints[s]
+
+
+def stat_validity(k, cache, branch, tick):
+    lo = max(t for t in cache[k][branch] if t <= tick)
+    try:
+        hi = min(t for t in cache[k][branch] if t > tick)
+    except ValueError:
+        hi = None
+    return (lo, hi)
+
+
+def fire_stat_listeners(
+        getter,
+        dispatcher,
+        cache,
+        branches_cached,
+        stats_validity,
+        branch_then,
+        tick_then,
+        branch_now,
+        tick_now
+):
+    for k in cache:
+        try:
+            (since, until) = stats_validity[k]
+            if (
+                branch_then == branch_now and
+                tick_now >= since and
+                until is None or tick_now < until
+            ):
+                continue
+        except KeyError:
+            pass
+        try:
+            stats_validity[k] = stat_validity(k, cache, branch_now, tick_now)
+        except ValueError:
+            del stats_validity[k]
+        if branch_then not in branches_cached:
+            dispatcher(k, getter(k))
+            continue
+        newv = getter(k)
+        oldv = branches_cached[branch_then][max(
+            t for t in branches_cached[branch_then]
+            if t <= tick_then
+        )]
+        if newv == oldv:
+            continue
+        dispatcher(k, newv)
