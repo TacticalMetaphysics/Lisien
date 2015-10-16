@@ -174,14 +174,16 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if not self.engine.caching:
             return k in self._iter_thing_names()
         (branch, tick) = self.engine.time
-        if branch not in self._keycache:
-            self._keycache[branch] = {}
-        if tick not in self._keycache[branch]:
-            if tick - 1 in self._keycache[branch]:
-                self._keycache[branch][tick] = self._keycache[branch][tick-1]
-            else:
-                self._keycache[branch][tick] = set(self._iter_thing_names())
-        return k in self._keycache[branch][tick]
+        cache = self.engine._things_cache[self.character.name][self.name]
+        if branch not in cache:
+            return False
+        try:
+            (location, next_location) = cache[branch][max(
+                t for t in cache[branch] if t <= tick
+            )]
+        except ValueError:
+            return False
+        return location is not None
 
     def _iter_thing_names(self):
         """Iterate over the names of things *in the database*."""
@@ -1770,22 +1772,8 @@ class Character(DiGraph, RuleFollower):
             location,
             next_location
         )
-        if not self.engine.caching:
-            return
-        if (
-                branch in self.place._keycache and
-                tick in self.place._keycache[branch]
-        ):
-            self.place._keycache[branch][tick].discard(name)
-        cache = self.thing._keycache
-        if branch in cache and tick in cache[branch]:
-            cache[branch][tick].add(name)
-        else:
-            if branch not in cache:
-                cache[branch] = {}
-            cache[branch][tick] = set(
-                self.thing._iter_thing_names()
-            )
+        if self.engine.caching:
+            self.engine._things_cache[self.name][name][branch][tick] = (location, next_location)
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
