@@ -1499,6 +1499,8 @@ class CharStatCache(MutableMapping):
             the given time to the present moment.
 
             """
+            if len(self.listeners) == 0:
+                return
             fire_time_travel_triggers(
                 self._real,
                 self._cache,
