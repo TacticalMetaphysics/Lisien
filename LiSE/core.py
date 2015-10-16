@@ -530,63 +530,63 @@ class Engine(AbstractEngine):
                 lambda: defaultdict(dict)
             )
             self._active_rules_cache = defaultdict(  # rulebook:
-                                                     lambda: defaultdict(
-                                                         # rule:
-                                                         lambda: defaultdict(
-                                                             # branch:
-                                                             dict
-                                                             # tick: active
-                                                             )
-                                                         )
-                                                     )
+                 lambda: defaultdict(
+                     # rule:
+                     lambda: defaultdict(
+                         # branch:
+                         dict
+                         # tick: active
+                         )
+                     )
+                 )
             crhandled_defaultdict = lambda: defaultdict(  # character:
-                                                          lambda: defaultdict(
-                                                              # rulebook:
-                                                              lambda: defaultdict(
-                                                                  # rule:
-                                                                  lambda: defaultdict(
-                                                                      # branch:
-                                                                      set
-                                                                      # ticks handled
-                                                                      )
-                                                                  )
-                                                              )
-                                                          )
+                  lambda: defaultdict(
+                      # rulebook:
+                      lambda: defaultdict(
+                          # rule:
+                          lambda: defaultdict(
+                              # branch:
+                              set
+                              # ticks handled
+                              )
+                          )
+                      )
+                  )
             self._node_rules_handled_cache = defaultdict(  # character:
-                                                           lambda: defaultdict(
-                                                               # node:
-                                                               lambda: defaultdict(
-                                                                   # rulebook:
-                                                                   lambda: defaultdict(
-                                                                       # rule:
-                                                                       lambda: defaultdict(
-                                                                           # branch:
-                                                                           set
-                                                                           # ticks handled
-                                                                           )
-                                                                       )
-                                                                   )
-                                                               )
-                                                           )
+                   lambda: defaultdict(
+                       # node:
+                       lambda: defaultdict(
+                           # rulebook:
+                           lambda: defaultdict(
+                               # rule:
+                               lambda: defaultdict(
+                                   # branch:
+                                   set
+                                   # ticks handled
+                                   )
+                               )
+                           )
+                       )
+                   )
             self._portal_rules_handled_cache = defaultdict(  # character:
-                                                             lambda: defaultdict(
-                                                                 # nodeA:
-                                                                 lambda: defaultdict(
-                                                                     # nodeB:
-                                                                     lambda: defaultdict(
-                                                                         # rulebook:
-                                                                         lambda: defaultdict(
-                                                                             # rule:
-                                                                             lambda: defaultdict(
-                                                                                 # branch:
-                                                                                 set
-                                                                                 # ticks handled
-                                                                                 )
-                                                                             )
-                                                                         )
-                                                                     )
-                                                                 )
-                                                             )
+                 lambda: defaultdict(
+                     # nodeA:
+                     lambda: defaultdict(
+                         # nodeB:
+                         lambda: defaultdict(
+                             # rulebook:
+                             lambda: defaultdict(
+                                 # rule:
+                                 lambda: defaultdict(
+                                     # branch:
+                                     set
+                                     # ticks handled
+                                     )
+                                 )
+                             )
+                         )
+                     )
+                 )
             self._character_rules_handled_cache = crhandled_defaultdict()
             self._avatar_rules_handled_cache = crhandled_defaultdict()
             self._character_thing_rules_handled_cache = crhandled_defaultdict()
