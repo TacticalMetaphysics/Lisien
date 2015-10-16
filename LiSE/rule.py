@@ -354,7 +354,8 @@ class Rule(object):
         curtime = engine.time
         for trigger in self.triggers:
             result = trigger(engine, *args)
-            engine.time = curtime
+            if engine.time != curtime:
+                engine.time = curtime
             if result:
                 return True
         return False
