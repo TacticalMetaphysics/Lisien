@@ -32,7 +32,6 @@ from .util import (
     cache_forward,
     listener,
     unlistener,
-    fire_time_travel_triggers,
     reify
 )
 from .rule import RuleBook, RuleMapping

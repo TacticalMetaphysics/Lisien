@@ -8,7 +8,6 @@ from .util import (
     dispatch,
     listener,
     unlisten,
-    fire_time_travel_triggers,
     encache,
     enkeycache,
     dekeycache,
@@ -135,23 +134,6 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         self._stat_listeners = defaultdict(list)
         self._keycache = {}
         self._cache = {}
-
-        @self.engine.time_listener
-        def time_travel_triggers(
-                branch_then,
-                tick_then,
-                branch_now,
-                tick_now
-        ):
-            fire_time_travel_triggers(
-                self,
-                self._cache,
-                self._dispatch_stat,
-                branch_then,
-                tick_then,
-                branch_now,
-                tick_now
-            )
 
         if self.engine.caching:
             def cache_branch(branch):
