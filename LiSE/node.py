@@ -264,6 +264,12 @@ class Node(gorm.graph.Node, rule.RuleFollower):
 
     def _user_names(self):
         """Iterate over names of characters that have me as an avatar"""
+        if not self.engine.caching:
+            return list(self.engine.db.avatar_users(
+                self.character.name,
+                self.name,
+                *self.engine.time
+            ))
         if not hasattr(self, '_user_cache'):
             self._user_cache = list(self.engine.db.avatar_users(
                 self.character.name,
