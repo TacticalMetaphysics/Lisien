@@ -118,36 +118,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         """Internal use. Calls listeners when a Thing has changed."""
         (b, t) = self.engine.time
         dispatch(self._thing_listeners, k, b, t, self, k, v)
-        if not self.engine.caching:
-            return
-        if v is None:
-            if b in self._keycache:
-                try:
-                    self._keycache[b][t].remove(k)
-                except KeyError:
-                    self._keycache[b][t] = set(
-                        self._iter_thing_names()
-                    )
-            else:
-                self._keycache[b] = {
-                    t: set(
-                        self._iter_thing_names()
-                    )
-                }
-        else:
-            if b in self._keycache:
-                try:
-                    self._keycache[b][t].add(k)
-                except KeyError:
-                    self._keycache[b][t] = set(
-                        self._iter_thing_names()
-                    )
-            else:
-                self._keycache[b] = {
-                    t: set(
-                        self._iter_thing_names()
-                    )
-                }
 
     def listener(self, fun=None, thing=None):
         """Register a listener function to be called when a thing is created
@@ -244,34 +214,21 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             raise TypeError('Things are made from Mappings')
         if 'location' not in val:
             raise ValueError('Thing needs location')
+        (branch, tick) = self.engine.time
         self.engine.gorm.db.exist_node(
             self.character.name,
             thing,
-            self.engine.branch,
-            self.engine.tick,
+            branch,
+            tick,
             True
         )
+        location = val['location']
+        next_location = val.get('next_location', None)
+        self.engine._things_cache[self.character.name][thing][branch][tick] = (location, next_location)
         th = Thing(self.character, thing)
         th.clear()
         th.update(val)
         self._dispatch_thing(thing, th)
-        if self.engine.caching:
-            self._cache[thing] = th
-            (branch, tick) = self.engine.time
-            if branch not in self._keycache:
-                return
-            for t in list(self._keycache[branch].keys()):
-                if t > tick:
-                    del self._keycache[branch][t]
-            if (
-                tick not in self._keycache[branch] and
-                tick - 1 in self._keycache[branch]
-            ):
-                self._keycache[branch][tick] = set(
-                    self._keycache[branch][tick-1]
-                )
-            if tick in self._keycache[branch]:
-                self._keycache[branch][tick].add(self.name)
 
     def __delitem__(self, thing):
         """Delete the thing from the cache and the database"""
