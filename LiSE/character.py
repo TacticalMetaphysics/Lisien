@@ -144,7 +144,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if not self.engine.caching:
             return k in self._iter_thing_names()
         (branch, tick) = self.engine.time
-        cache = self.engine._things_cache[self.character.name][self.name]
+        cache = self.engine._things_cache[self.name][k]
         if branch not in cache:
             return False
         try:
