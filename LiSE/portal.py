@@ -106,7 +106,7 @@ class Portal(Edge, RuleFollower):
             self._stats_validity = {}
             for k in self._cache:
                 try:
-                    self._stats_validity = stat_validity(k, self._cache, branch, tick)
+                    self._stats_validity[k] = stat_validity(k, self._cache, branch, tick)
                 except ValueError:
                     continue
 
