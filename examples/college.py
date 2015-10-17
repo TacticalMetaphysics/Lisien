@@ -260,14 +260,14 @@ if __name__ == '__main__':
     for stu in students():
         assert (stu.avatar['physical'].location == stu.stat['room'])
 
-    for h in range(1, 128):
+    for h in range(0, 48):
         engine.next_tick()
         print(
             "At hour {hour}, {inroom} students are in their rooms, and "
             "{inclass} are in the classroom. "
             "There are {drunks} drunk students and {lates} late ones. "
             "They have gained {xp} XP in total.".format(
-                hour=h,
+                hour=engine.tick,
                 inroom=sum(
                     1 for stu in students()
                     if stu.avatar['physical'].location == stu.stat['room']
