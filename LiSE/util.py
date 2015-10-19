@@ -199,7 +199,7 @@ from collections import MutableMapping, MutableSequence
 
 class JSONReWrapper(MutableMapping):
     """Like JSONWrapper with a cache."""
-    def __init__(self, outer, key, initval=None):
+    def __init__(self, outer, key, initval):
         self._outer = outer
         self._key = key
         self._inner = JSONWrapper(outer, key)
@@ -596,17 +596,21 @@ def stat_validity(k, cache, branch, tick):
 
 
 def fire_stat_listeners(
-        getter,
         dispatcher,
+        keys,
         cache,
-        branches_cached,
         stats_validity,
         branch_then,
         tick_then,
         branch_now,
         tick_now
 ):
-    for k in cache:
+    def getstat(k, branch, tick):
+        return cache[branch][max(
+            t for t in cache[branch] if t <= tick
+        )]
+
+    for k in keys:
         try:
             (since, until) = stats_validity[k]
             if (
@@ -621,14 +625,12 @@ def fire_stat_listeners(
             stats_validity[k] = stat_validity(k, cache, branch_now, tick_now)
         except ValueError:
             del stats_validity[k]
-        if branch_then not in branches_cached:
-            dispatcher(k, getter(k))
             continue
-        newv = getter(k)
-        oldv = branches_cached[branch_then][max(
-            t for t in branches_cached[branch_then]
-            if t <= tick_then
-        )]
-        if newv == oldv:
-            continue
+        try:
+            newv = getstat(k, branch_now, tick_now)
+            oldv = getstat(k, branch_then, tick_then)
+            if newv == oldv:
+                continue
+        except (KeyError, ValueError):
+            pass
         dispatcher(k, newv)
