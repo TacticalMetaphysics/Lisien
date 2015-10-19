@@ -432,6 +432,21 @@ class CharacterMapping(MutableMapping):
         self._dispatch(name, None)
 
 
+crhandled_defaultdict = lambda: defaultdict(  # character:
+    lambda: defaultdict(
+        # rulebook:
+        lambda: defaultdict(
+            # rule:
+            lambda: defaultdict(
+                # branch:
+                set
+                # ticks handled
+            )
+        )
+    )
+)
+
+
 class Engine(AbstractEngine):
     """LiSE, the Life Simulator Engine.
 
@@ -459,8 +474,143 @@ class Engine(AbstractEngine):
     node_cls = Node
     portal_cls = Portal
 
-    def __init__(
-            self,
+    @reify
+    def _rulebooks_cache(self):
+        assert(self.caching)
+        return defaultdict(list)
+
+    @reify
+    def _characters_rulebooks_cache(self):
+        assert(self.caching)
+        return {}
+
+    @reify
+    def _nodes_rulebooks_cache(self):
+        assert(self.caching)
+        return defaultdict(dict)
+
+    @reify
+    def _portals_rulebooks_cache(self):
+        assert(self.caching)
+        return defaultdict(
+            lambda: defaultdict(dict)
+        )
+
+    @reify
+    def _avatarness_cache(self):
+        assert(self.caching)
+        return defaultdict(  # character:
+            lambda: defaultdict(  # graph:
+                lambda: defaultdict(  # node:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+
+    @reify
+    def _active_rules_cache(self):
+        assert(self.caching)
+        return defaultdict(  # rulebook:
+            lambda: defaultdict(  # rule:
+                lambda: defaultdict(  # branch:
+                    dict  # tick: active
+                )
+            )
+        )
+
+    @reify
+    def _node_rules_handled_cache(self):
+        assert(self.caching)
+        return defaultdict(  # character:
+            lambda: defaultdict(  # node:
+                lambda: defaultdict(  # rulebook:
+                    lambda: defaultdict(  # rule:
+                        lambda: defaultdict(  # branch:
+                            set  # ticks handled
+                        )
+                    )
+                )
+            )
+        )
+
+    @reify
+    def _portal_rules_handled_cache(self):
+        assert(self.caching)
+        return defaultdict(  # character:
+            lambda: defaultdict(  # nodeA:
+                lambda: defaultdict(  # nodeB:
+                    lambda: defaultdict(  # rulebook:
+                        lambda: defaultdict(  # rule:
+                            lambda: defaultdict(  # branch:
+                                set  # ticks handled
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+    @reify
+    def _character_rules_handled_cache(self):
+        assert(self.caching)
+        return crhandled_defaultdict()
+
+    @reify
+    def _avatar_rules_handled_cache(self):
+        assert(self.caching)
+        return crhandled_defaultdict()
+
+    @reify
+    def _character_thing_rules_handled_cache(self):
+        assert(self.caching)
+        return crhandled_defaultdict()
+
+    @reify
+    def _character_place_rules_handled_cache(self):
+        assert(self.caching)
+        return crhandled_defaultdict()
+
+    @reify
+    def _character_node_rules_handled_cache(self):
+        assert(self.caching)
+        return crhandled_defaultdict()
+
+    @reify
+    def _character_portal_rules_handled_cache(self):
+        assert(self.caching)
+        return crhandled_defaultdict()
+
+    @reify
+    def _things_cache(self):
+        assert(self.caching)
+        return defaultdict(  # character:
+            lambda: defaultdict(  # thing:
+                lambda: defaultdict(  # branch:
+                    dict  # tick: (location, next_location)
+                )
+            )
+        )
+
+    @reify
+    def db(self):
+        return self.gorm.db
+
+    @reify
+    def gorm(self):
+        return gORM(
+            self._worlddb,
+            connect_args=self._connect_args,
+            alchemy=self._alchemy,
+            query_engine_class=QueryEngine,
+            json_dump=self.json_dump,
+            json_load=self.json_load,
+            caching=self.caching
+        )
+
+    def __new__(
+            cls,
             worlddb,
             codedb,
             connect_args={},
@@ -469,130 +619,42 @@ class Engine(AbstractEngine):
             commit_modulus=None,
             random_seed=None
     ):
+        r = super(cls, Engine).__new__(cls)
+        r._worlddb = worlddb
+        r._codedb = codedb
+        r._connect_args = connect_args
+        r._alchemy = alchemy
+        r.caching = caching
+        r.commit_modulus = commit_modulus
+        r.random_seed = random_seed
+        return r
+
+    @reify
+    def codedb(self):
+        return connect(self._codedb)
+
+    @reify
+    def worlddb(self):
+        if hasattr(self.gorm.db, 'alchemist'):
+            return self.gorm.db.alchemist.conn.connection
+        else:
+            return self.gorm.db.connection
+
+    def __init__(self, *args):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
-        self.caching = caching
-        self.commit_modulus = commit_modulus
-        self.random_seed = random_seed
-        self.codedb = connect(codedb)
-        self.gorm = gORM(
-            worlddb,
-            connect_args=connect_args,
-            alchemy=alchemy,
-            query_engine_class=QueryEngine,
-            json_dump=self.json_dump,
-            json_load=self.json_load
-        )
         self._time_listeners = []
-        self.db = self.gorm.db
         self._code_qe = QueryEngine(
-            self.codedb, connect_args, alchemy, self.json_dump, self.json_load
+            self.codedb, self._connect_args, self._alchemy, self.json_dump, self.json_load
         )
         self.eternal = self.db.globl
-        # start the database
-        if hasattr(self.gorm.db, 'alchemist'):
-            self.worlddb = self.gorm.db.alchemist.conn.connection
-        else:
-            self.worlddb = self.gorm.db.connection
         self.db.initdb()
         self._code_qe.initdb()
         self._existence = {}
         if self.caching:
-            # cache the timestream
-            self._timestream = {'master': {}}
-            self._branch_start = {}
-            self._branches = {'master': self._timestream['master']}
-            self._branch_parents = {}
-            self.gorm._obranch = self.gorm.branch
-            self.gorm._orev = self.gorm.rev
-            self._active_branches_cache = []
-            self.db.active_branches = self._active_branches
-            todo = deque(self.db.timestream_data())
-            while todo:
-                (branch, parent, parent_tick) = working = todo.popleft()
-                if branch == 'master':
-                    continue
-                if parent in self._branches:
-                    assert(branch not in self._branches)
-                    self._branches[parent][branch] = {}
-                    self._branches[branch] = self._branches[parent][branch]
-                    self._branch_parents['branch'] = parent
-                    self._branch_start[branch] = parent_tick
-                else:
-                    todo.append(working)
             # caches for the rule poller
-            self._rulebooks_cache = defaultdict(list)
-            self._characters_rulebooks_cache = {}
-            self._nodes_rulebooks_cache = defaultdict(dict)
-            self._portals_rulebooks_cache = defaultdict(
-                lambda: defaultdict(dict)
-            )
-            self._active_rules_cache = defaultdict(  # rulebook:
-                 lambda: defaultdict(
-                     # rule:
-                     lambda: defaultdict(
-                         # branch:
-                         dict
-                         # tick: active
-                         )
-                     )
-                 )
-            crhandled_defaultdict = lambda: defaultdict(  # character:
-                  lambda: defaultdict(
-                      # rulebook:
-                      lambda: defaultdict(
-                          # rule:
-                          lambda: defaultdict(
-                              # branch:
-                              set
-                              # ticks handled
-                              )
-                          )
-                      )
-                  )
-            self._node_rules_handled_cache = defaultdict(  # character:
-                   lambda: defaultdict(
-                       # node:
-                       lambda: defaultdict(
-                           # rulebook:
-                           lambda: defaultdict(
-                               # rule:
-                               lambda: defaultdict(
-                                   # branch:
-                                   set
-                                   # ticks handled
-                                   )
-                               )
-                           )
-                       )
-                   )
-            self._portal_rules_handled_cache = defaultdict(  # character:
-                 lambda: defaultdict(
-                     # nodeA:
-                     lambda: defaultdict(
-                         # nodeB:
-                         lambda: defaultdict(
-                             # rulebook:
-                             lambda: defaultdict(
-                                 # rule:
-                                 lambda: defaultdict(
-                                     # branch:
-                                     set
-                                     # ticks handled
-                                     )
-                                 )
-                             )
-                         )
-                     )
-                 )
-            self._character_rules_handled_cache = crhandled_defaultdict()
-            self._avatar_rules_handled_cache = crhandled_defaultdict()
-            self._character_thing_rules_handled_cache = crhandled_defaultdict()
-            self._character_place_rules_handled_cache = crhandled_defaultdict()
-            self._character_node_rules_handled_cache = crhandled_defaultdict()
-            self._character_portal_rules_handled_cache = crhandled_defaultdict()
             for (rulebook, rule) in self.rule.db.rulebooks_rules():
                 self._rulebooks_cache[rulebook].append(rule)
             for (
@@ -640,28 +702,28 @@ class Engine(AbstractEngine):
                 ][nodeA][nodeB][rulebook][rule][branch].add(tick)
             for (dumper, cache) in [
                 (
-                        self.db.handled_character_rules,
-                        self._character_rules_handled_cache
+                    self.db.handled_character_rules,
+                    self._character_rules_handled_cache
                 ),
                 (
-                        self.db.handled_avatar_rules,
-                        self._avatar_rules_handled_cache
+                    self.db.handled_avatar_rules,
+                    self._avatar_rules_handled_cache
                 ),
                 (
-                        self.db.handled_character_thing_rules,
-                        self._character_thing_rules_handled_cache
+                    self.db.handled_character_thing_rules,
+                    self._character_thing_rules_handled_cache
                 ),
                 (
-                        self.db.handled_character_place_rules,
-                        self._character_place_rules_handled_cache
+                    self.db.handled_character_place_rules,
+                    self._character_place_rules_handled_cache
                 ),
                 (
-                        self.db.handled_character_node_rules,
-                        self._character_node_rules_handled_cache
+                    self.db.handled_character_node_rules,
+                    self._character_node_rules_handled_cache
                 ),
                 (
-                        self.db.handled_character_portal_rules,
-                        self._character_portal_rules_handled_cache
+                    self.db.handled_character_portal_rules,
+                    self._character_portal_rules_handled_cache
                 )
             ]:
                 for (
@@ -669,18 +731,16 @@ class Engine(AbstractEngine):
                 ) in dumper():
                     cache[character][rulebook][rule][branch].add(tick)
             # world caches
-            self._things_cache = defaultdict(  # character:
-                lambda: defaultdict(  # thing:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: (location, next_location)
-                    )
-                )
-            )
             for (
                     character, thing, branch, tick, loc, nextloc
             ) in self.db.things_dump():
                 self._things_cache[character][thing][branch][tick] \
                     = (loc, nextloc)
+            for (
+                    character, graph, avatar, branch, tick, is_avatar
+            ) in self.db.avatarness_dump():
+                self._avatarness_cache[character][graph][avatar][branch][tick] \
+                    = is_avatar
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -929,34 +989,10 @@ class Engine(AbstractEngine):
                 )
 
     def _active_branches(self, branch=None, tick=None):
-        """Iterate first over the current branch and tick (or the given ones,
-        if available), then over each ancestor branch and the tick
-        when it 'gave birth' to the branch previous.
-
-        """
-        if not self.caching:
-            yield from self.gorm._active_branches()
-            return
-        b = branch if branch else self.branch
-        t = tick if tick else self.tick
-        yield b, t
-        while b in self._branch_parents:
-            t = self._branch_start[b]
-            b = self._branch_parents[b]
-            yield b, t
+        yield from self.gorm._active_branches(branch, tick)
 
     def _branch_descendants(self, branch=None):
-        """Iterate over all branches immediately descended from the current
-        one (or the given one, if available).
-
-        """
-        branch = branch if branch else self.branch
-        if not self.caching:
-            yield from self.db.branch_descendants(branch)
-            return
-        yield from self._branches[branch].keys()
-        for child in self._branches[branch].keys():
-            yield from self._branch_descendants(child)
+        yield from self.gorm._branch_descendants(branch)
 
     def _rule_active(self, rulebook, rule):
         cache = self._active_rules_cache[rulebook][rule]

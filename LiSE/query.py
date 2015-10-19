@@ -955,9 +955,7 @@ class QueryEngine(gorm.query.QueryEngine):
         for (avatarness,) in self.sql(
                 'is_avatar_of', character, graph, node, branch, tick
         ):
-            return avatarness and self.node_exists(
-                graph, node, branch, tick
-            )
+            return avatarness
 
     def sense_func_get(self, character, sense, branch, tick):
         character = self.json_dump(character)
@@ -1049,6 +1047,24 @@ class QueryEngine(gorm.query.QueryEngine):
         character = self.json_dump(character)
         for (g, n, b, t, a) in self.sql('avatars_ever', character):
             yield (self.json_load(g), self.json_load(n), b, t, a)
+
+    def avatarness_dump(self):
+        for (
+                character,
+                graph,
+                node,
+                branch,
+                tick,
+                is_avatar
+        ) in self.sql('avatarness_dump'):
+            yield (
+                self.json_load(character),
+                self.json_load(graph),
+                self.json_load(node),
+                branch,
+                tick,
+                bool(is_avatar)
+            )
 
     def avatar_set(self, character, graph, node, branch, tick, isav):
         (character, graph, node) = map(self.json_dump, (character, graph, node))
@@ -1221,9 +1237,6 @@ class QueryEngine(gorm.query.QueryEngine):
                 'edge_stat_branch_data', character, orig, dest, branch
         ):
             yield (self.json_load(key), tick, self.json_load(value))
-
-    def timestream_data(self):
-        yield from self.sql('allbranch')
 
     def branch_descendants(self, branch):
         for child in self.sql('branch_children', branch):
