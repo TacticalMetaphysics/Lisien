@@ -241,6 +241,17 @@ class Portal(Edge, RuleFollower):
         return self._origin in self.character.portal and \
             self._destination in self.character.portal[self._origin]
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, Portal) and
+            self.character == other.character and
+            self._origin == other._origin and
+            self._destination == other._destination
+        )
+
+    def __hash__(self):
+        return hash((self.character.name, self._origin, self._destination))
+
     @property
     def origin(self):
         """Return the Place object that is where I begin"""
