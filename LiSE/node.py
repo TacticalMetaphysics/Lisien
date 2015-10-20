@@ -393,3 +393,13 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def __bool__(self):
         """Return whether I really exist in the world model, ie. in my character."""
         return self.name in self.character.node
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Node) and
+            self.character == other.character and
+            self.name == other.name
+        )
+
+    def __hash__(self):
+        return hash((self.character.name, self.name))
