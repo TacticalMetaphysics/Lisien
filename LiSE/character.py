@@ -333,11 +333,14 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             except KeyError:
                 return False
             for (branch, tick) in self.engine._active_branches():
+                if branch not in cache:
+                    continue
                 try:
-                    return cache[branch][
+                    if cache[branch][
                         window_left(cache[branch].keys(), tick)
-                    ]
-                except (KeyError, ValueError):
+                    ]:
+                        return not self.engine._is_thing(self.character.name, place)
+                except ValueError:
                     continue
             return False
         (branch, tick) = self.engine.time
@@ -408,12 +411,10 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
 
     def __getitem__(self, k):
         """Return a :class:`Thing` or :class:`Place` as appropriate"""
-        if k in self.character.thing:
-            return self.character.thing[k]
-        elif k in self.character.place:
+        try:
             return self.character.place[k]
-        else:
-            raise KeyError("No such Thing or Place in this Character")
+        except KeyError:
+            return self.character.thing[k]
 
     def __setitem__(self, k, v):
         """Assume you're trying to create a :class:`Place`"""
