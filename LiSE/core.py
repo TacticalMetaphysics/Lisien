@@ -700,7 +700,8 @@ class Engine(AbstractEngine, gORM):
             alchemy=False,
             caching=True,
             commit_modulus=None,
-            random_seed=None
+            random_seed=None,
+            sql_rule_polling=False
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -715,6 +716,7 @@ class Engine(AbstractEngine, gORM):
             json_dump=self.json_dump,
             json_load=self.json_load
         )
+        self._sql_polling = sql_rule_polling
         self.commit_modulus = commit_modulus
         self.random_seed = random_seed
         self._code_qe = QueryEngine(
@@ -954,8 +956,9 @@ class Engine(AbstractEngine, gORM):
         return False
 
     def _poll_char_rules(self):
-        if not self.caching:
-            return self.db.poll_char_rules(*self.time)
+        if not self.caching or self._sql_polling:
+            yield from self.db.poll_char_rules(*self.time)
+            return
 
         def handled(rulebook, rule):
             cache = self._character_rules_handled_cache
@@ -975,8 +978,9 @@ class Engine(AbstractEngine, gORM):
                         yield (rulemap, char, rulebook, rule)
 
     def _poll_node_rules(self):
-        if not self.caching:
-            return self.db.poll_node_rules(*self.time)
+        if not self.caching or self._sql_polling:
+            yield from self.db.poll_node_rules(*self.time)
+            return
         cache = self._node_rules_handled_cache
 
         def handled(char, node, rulebook, rule):
@@ -999,8 +1003,9 @@ class Engine(AbstractEngine, gORM):
                         yield ('node', char, node, rulebook, rule)
 
     def _poll_portal_rules(self):
-        if not self.caching:
-            return self.db.poll_portal_rules(*self.time)
+        if not self.caching or self._sql_polling:
+            yield from self.db.poll_portal_rules(*self.time)
+            return
 
         def handled(char, nodeA, nodeB, rulebook, rule):
             cache = self._portal_rules_handled_cache
