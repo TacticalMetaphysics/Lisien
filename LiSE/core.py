@@ -444,6 +444,34 @@ crhandled_defaultdict = lambda: defaultdict(  # character:
 )
 
 
+class AvatarnessCache(object):
+    def __init__(self, db):
+        self.db_order = defaultdict(  # character:
+            lambda: defaultdict(  # graph:
+                lambda: defaultdict(  # node:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+        self.user_order = defaultdict(  # graph:
+            lambda: defaultdict(  # node:
+                lambda: defaultdict(  # character:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+        for row in db.avatarness_dump():
+            self.remember(*row)
+
+    def remember(self, character, graph, node, branch, tick, is_avatar):
+        self.db_order[character][graph][node][branch][tick] = is_avatar
+        self.user_order[graph][node][character][branch][tick] = is_avatar
+
+
 class Engine(AbstractEngine, gORM):
     """LiSE, the Life Simulator Engine.
 
@@ -523,19 +551,7 @@ class Engine(AbstractEngine, gORM):
     @reify
     def _avatarness_cache(self):
         assert(self.caching)
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
-                )
-            )
-        )
-        for (character, graph, avatar, branch, tick, is_avatar) \
-                in self.db.avatarness_dump():
-            r[character][graph][avatar][branch][tick] = is_avatar
-        return r
+        return AvatarnessCache(self.db)
 
     @reify
     def _active_rules_cache(self):
