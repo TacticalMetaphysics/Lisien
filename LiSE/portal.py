@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from gorm.graph import Edge
+from gorm.window import window_left
 
 from .util import (
     dispatch,
@@ -20,8 +21,14 @@ class RuleMapping(BaseRuleMapping):
         self.engine = portal.engine
         self.orign = portal._origin
         self.destn = portal._destn
+        self.portal = portal
 
     def __iter__(self):
+        if self.engine.caching:
+            for (rule, active) in self.portal._rule_names_activeness():
+                if active:
+                    yield rule
+            return
         return self.engine.db.portal_rules(
             self.character.name,
             self.orign,
@@ -39,6 +46,20 @@ class Portal(Edge, RuleFollower):
 
     """
     def _rule_name_activeness(self):
+        if self.engine.caching:
+            cache = self.engine._active_rules_cache[self._get_rulebook_name()]
+            for rule in cache:
+                for (branch, tick) in self.engine._active_branches():
+                    if branch not in cache[rule]:
+                        continue
+                    try:
+                        yield (rule, cache[rule][branch][
+                            window_left(cache[rule][branch].keys(), tick)
+                        ])
+                        break
+                    except ValueError:
+                        continue
+            raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
         return self.engine.db.current_rules_portal(
             self.character.name,
             self._origin,
@@ -73,7 +94,7 @@ class Portal(Edge, RuleFollower):
         if self.engine.caching:
             (branch, tick) = self.engine.time
             self._stats_validity = {}
-            cache = self.engine.gorm._edges_cache[
+            cache = self.engine._edges_cache[
                 self.character.name][self._origin][self._destination][0]
             for k in cache:
                 try:
@@ -83,7 +104,7 @@ class Portal(Edge, RuleFollower):
                         branch,
                         tick
                     )
-                except ValueError:
+                except (KeyError, ValueError):
                     pass
 
             @self.engine.time_listener
@@ -93,9 +114,11 @@ class Portal(Edge, RuleFollower):
                     branch_now,
                     tick_now
             ):
+                if len(self._stat_listeners) == 0:
+                    return
                 fire_stat_listeners(
                     lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
-                    self.keys(),
+                    (k for k in self.keys() if k in self._stat_listeners),
                     cache,
                     self._stats_validity,
                     branch_then,
@@ -192,7 +215,6 @@ class Portal(Edge, RuleFollower):
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
         super().__setitem__(key, value)
-        (branch, tick) = self.engine.time
         self._dispatch_stat(key, value)
 
     def __delitem__(self, key):
@@ -282,3 +304,6 @@ class Portal(Edge, RuleFollower):
 
         """
         del self.character.portal[self.origin.name][self.destination.name]
+        if self.engine.caching:
+            (branch, tick) = self.engine.time
+            self.engine._edges_cache[self.character.name][self.origin.name][self.destination.name][branch][tick] = False
