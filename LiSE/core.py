@@ -970,11 +970,12 @@ class Engine(AbstractEngine, gORM):
             )
 
         for char in self._characters_rulebooks_cache:
-            for (rulemap, rulebook) in self._characters_rulebooks_cache[
-                char].items():
+            for (rulemap, rulebook) in self._characters_rulebooks_cache[char].items():
                 for rule in self._rulebooks_cache[rulebook]:
-                    if self._rule_active(rulebook, rule) and not \
-                            handled(rulebook, rule):
+                    if (
+                        self._rule_active(rulebook, rule) and not
+                        handled(rulebook, rule)
+                    ):
                         yield (rulemap, char, rulebook, rule)
 
     def _poll_node_rules(self):
@@ -997,8 +998,8 @@ class Engine(AbstractEngine, gORM):
             for (node, rulebook) in self._nodes_rulebooks_cache[char].items():
                 for rule in self._rulebooks_cache[rulebook]:
                     if (
-                                self._rule_active(rulebook, rule) and not
-                            handled(char, node, rulebook, rule)
+                        self._rule_active(rulebook, rule) and not
+                        handled(char, node, rulebook, rule)
                     ):
                         yield ('node', char, node, rulebook, rule)
 
@@ -1027,8 +1028,8 @@ class Engine(AbstractEngine, gORM):
                 for (nodeB, rulebook) in cache[char][nodeA].items():
                     for rule in self._rulebooks_cache[rulebook]:
                         if (
-                                    self._rule_active(rulebook, rule) and not
-                                handled(char, nodeA, nodeB, rulebook, rule)
+                            self._rule_active(rulebook, rule) and not
+                            handled(char, nodeA, nodeB, rulebook, rule)
                         ):
                             yield ('portal', char, nodeA, nodeB, rulebook, rule)
 
