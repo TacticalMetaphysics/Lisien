@@ -190,46 +190,17 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         if self.engine.caching:
             (branch, tick) = self.engine.time
             self._stats_validity = {}
-            cache = self.engine._node_val_cache[self.character.name][self.name]
+            self._statcache = self.engine._node_val_cache[self.character.name][self.name]
             for k in self:
                 try:
                     self._stats_validity[k] = stat_validity(
                         k,
-                        cache,
+                        self._statcache,
                         branch,
                         tick
                     )
                 except ValueError:
                     self._stats_validity[k] = (0, None)
-
-            @self.engine.time_listener
-            def fire_my_stat_listeners(
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-            ):
-                if len(self._stat_listeners) == 0:
-                    return
-                fire_stat_listeners(
-                    lambda k, v: dispatch(
-                        self._stat_listeners,
-                        k,
-                        branch_now,
-                        tick_now,
-                        self,
-                        k,
-                        v
-                    ),
-                    (k for k in self.keys() if k in self._stat_listeners),
-                    cache,
-                    self._stats_validity,
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-                )
-
         super().__init__(character, name)
 
     def __iter__(self):
@@ -249,6 +220,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         If no stat is provided, changes to any stat will result in a call.
 
         """
+        self.engine.time_listener(self._fire_my_stat_listeners)
         return listener(self._stat_listeners, f, stat)
 
     def unlisten(self, f=None, stat=None):
@@ -257,7 +229,10 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         If the function wasn't passed to ``self.listener`` in the same way, this won't do anything.
 
         """
-        return unlisten(self._stat_listeners, f, stat)
+        r = unlisten(self._stat_listeners, f, stat)
+        if not self._stat_listeners:
+            self.engine.time_unlisten(self._fire_my_stat_listeners)
+        return r
 
     def __setitem__(self, k, v):
         """Set a stat.
@@ -278,6 +253,33 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         """
         super().__delitem__(k)
         self._dispatch_stat(k, None)
+
+
+    def _fire_my_stat_listeners(
+        self,
+        branch_then,
+        tick_then,
+        branch_now,
+        tick_now
+    ):
+        fire_stat_listeners(
+            lambda k, v: dispatch(
+                self._stat_listeners,
+                k,
+                branch_now,
+                tick_now,
+                self,
+                k,
+                v
+            ),
+            (k for k in self.keys() if k in self._stat_listeners),
+            self._statcache,
+            self._stats_validity,
+            branch_then,
+            tick_then,
+            branch_now,
+            tick_now
+        )
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
