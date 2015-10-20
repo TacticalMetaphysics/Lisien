@@ -657,7 +657,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         """
         if self.engine.caching:
             try:
-                cache = self.engine._avatarness_cache[self.character.name]
+                cache = self.engine._avatarness_cache.db_order[self.character.name]
             except KeyError:
                 return
             seen = set()
@@ -675,7 +675,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                                 yield avatar
                             seen.add(avatar)
                             break
-                        except (KeyError, ValueError):
+                        except KeyError:
                             continue
             return
         yield from self._avatarness_db()
@@ -699,7 +699,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
         """
         if self.engine.caching:
-            cache = self.engine._avatarness_cache[self.character.name][g]
+            cache = self.engine._avatarness_cache.db_order[self.character.name][g]
             for node in cache:
                 for (branch, tick) in self.engine._active_branches():
                     try:
@@ -707,7 +707,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                             window_left(cache[node][branch].keys(), tick)
                         ]:
                             return self.CharacterAvatarMapping(self, g)
-                    except (KeyError, ValueError):
+                    except KeyError:
                         continue
             if len(self) == 1:
                 return self.CharacterAvatarMapping(self, next(iter(self)))[g]
@@ -763,7 +763,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 )
 
         def _branchdata_cache(self, branch, rev):
-            ac = self.engine._avatarness_cache[self.character.name][self.graph]
+            ac = self.engine._avatarness_cache.db_order[self.character.name][self.graph]
             r = []
             for node in ac:
                 try:
@@ -831,7 +831,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             return False
 
         def _contains_when_cache(self, av, branch, rev):
-            ac = self.engine._avatarness_cache[self.character.name][self.graph]
+            ac = self.engine._avatarness_cache.db_order[self.character.name][self.graph]
             if av not in ac:
                 return False
             for node in ac[av]:
@@ -1686,8 +1686,9 @@ class Character(DiGraph, RuleFollower):
         )
         if self.engine.caching:
             self.engine._nodes_cache[g][n][branch][tick] = True
-            self.engine._avatarness_cache[self.name][g][n][branch][tick] = True
-        assert self.engine.db.is_avatar_of(self.name, g, n, branch, tick)
+            self.engine._avatarness_cache.remember(
+                self.name, g, n, branch, tick, True
+            )
         self.avatar._dispatch(g, n, True)
 
     def del_avatar(self, a, b=None):
@@ -1715,7 +1716,9 @@ class Character(DiGraph, RuleFollower):
         )
         assert not self.engine.db.is_avatar_of(self.name, g, n, branch, tick)
         if self.engine.caching:
-            self.engine._avatarness_cache[self.character.name][g][n][branch][tick] = False
+            self.engine._avatarness_cache.remember(
+                self.character.name, g, n, branch, tick, False
+            )
         self.avatar._dispatch(g, n, False)
 
     def portals(self):
@@ -1734,7 +1737,7 @@ class Character(DiGraph, RuleFollower):
                 if a:
                     yield self.engine.character[g].node[n]
             return
-        ac = self.engine._avatarness_cache[self.name]
+        ac = self.engine._avatarness_cache.db_order[self.name]
         seen = set()
         for (branch, tick) in self.engine._active_branches():
             for g in ac:

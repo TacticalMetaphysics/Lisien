@@ -148,27 +148,19 @@ class Node(gorm.graph.Node, rule.RuleFollower):
 
     def _user_names(self):
         if self.engine.caching:
-            cache = self.engine._avatarness_cache
-            seen = set()
-            for char in cache:
-                if (
-                    self.character.name not in cache[char] or
-                    self.name not in cache[char][self.character.name] or
-                    char in seen
-                ):
-                    continue
-                cache2 = cache[char][self.character.name][self.name]
+            try:
+                cache = self.engine._avatarness_cache.user_order[self.character.name][self.name]
+            except KeyError:
+                return
+            for user in cache:
                 for (branch, tick) in self.engine._active_branches():
-                    if branch not in cache2:
-                        continue
                     try:
-                        if cache2[branch][
-                            window_left(cache2[branch].keys(), tick)
+                        if cache[user][branch][
+                            window_left(cache[user][branch].keys(), tick)
                         ]:
-                            yield char
-                        seen.add(char)
+                            yield user
                         break
-                    except ValueError:
+                    except KeyError:
                         continue
             return
         yield from self.engine.db.avatar_users(
