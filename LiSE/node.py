@@ -3,14 +3,12 @@
 from collections import defaultdict, Mapping
 
 import gorm.graph
+from gorm.window import window_left
 
 from .util import (
     dispatch,
     listener,
     unlisten,
-    encache,
-    enkeycache,
-    dekeycache,
     reify,
     stat_validity,
     fire_stat_listeners
@@ -24,10 +22,16 @@ class RuleMapping(rule.RuleMapping):
         """Initialize with node's engine and rulebook. Store character and engine. """
         super().__init__(node.engine, node.rulebook)
         self.character = node.character
+        self.node = node
         self.engine = self.character.engine
 
     def __iter__(self):
         """Iterate over the names of rules for this node."""
+        if self.engine.caching:
+            for (rule, active) in self.node._rule_names_activeness():
+                if active:
+                    yield rule
+            return
         return self.engine.db.node_rules(
             self.character.name,
             self.name,
@@ -57,6 +61,27 @@ class UserMapping(Mapping):
 class Node(gorm.graph.Node, rule.RuleFollower):
     """Superclass for both Thing and Place"""
     def _rule_names_activeness(self):
+        if self.engine.caching:
+            cache = self.engine._active_rules_cache[self._get_rulebook_name()]
+            seen = set()
+            for rule in cache:
+                if rule in seen:
+                    continue
+                for (branch, tick) in self.engine._active_branches():
+                    if branch not in cache[rule]:
+                        continue
+                    try:
+                        yield (
+                            rule,
+                            cache[rule][branch][
+                                window_left(cache[rule][branch].keys(), tick)
+                            ]
+                        )
+                        seen.add(rule)
+                        break
+                    except ValueError:
+                        continue
+            return
         return self.engine.db.current_rules_node(
             self.character.name,
             self.name,
@@ -67,6 +92,28 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
+        if self.engine.caching:
+            try:
+                cache = self.engine._nodes_rulebooks_cache[self.character.name][self.name]
+            except KeyError:
+                (branch, tick) = self.engine.time
+                self.engine.db.set_node_rulebook(
+                    self.character.name,
+                    self.name,
+                    (self.character.name, self.name)
+                )
+                self.engine._nodes_rulebooks_cache[self.character.name][self.name][branch][tick] = (self.character.name, self.name)
+                return (self.character.name, self.name)
+            for (branch, tick) in self.engine._active_branches():
+                if branch not in cache:
+                    continue
+                try:
+                    return cache[branch][
+                        window_left(cache[branch].keys(), tick)
+                    ]
+                except ValueError:
+                    continue
+            raise KeyError("{} has no rulebook?".format(self.name))
         try:
             return self.engine.db.node_rulebook(
                 self.character.name,
@@ -99,7 +146,31 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 
-    def _get_user_names(self):
+    def _user_names(self):
+        if self.engine.caching:
+            cache = self.engine._avatarness_cache
+            seen = set()
+            for char in cache:
+                if (
+                    self.character.name not in cache[char] or
+                    self.name not in cache[char][self.character.name] or
+                    char in seen
+                ):
+                    continue
+                cache2 = cache[char][self.character.name][self.name]
+                for (branch, tick) in self.engine._active_branches():
+                    if branch not in cache2:
+                        continue
+                    try:
+                        if cache2[branch][
+                            window_left(cache2[branch].keys(), tick)
+                        ]:
+                            yield char
+                        seen.add(char)
+                        break
+                    except ValueError:
+                        continue
+            return
         yield from self.engine.db.avatar_users(
             self.character.name,
             self.name,
@@ -107,7 +178,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         )
 
     @reify
-    def _user_mapping(self):
+    def user(self):
         return UserMapping(self)
 
     @reify
@@ -115,19 +186,11 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         """Return a mapping of portals to other nodes."""
         return self.character.portal[self.name]
 
-    @property
-    def user(self):
-        usernames = list(self._get_user_names())
-        if len(usernames) == 1:
-            return self.engine.character[usernames[0]]
-        else:
-            return self._user_mapping
-
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
         self.character = character
         self.engine = character.engine
-        self.gorm = self.engine.gorm
+        self.gorm = self.engine
         self.graph = self.character
         self.name = self.node = name
         self._rulebook_listeners = []
@@ -135,7 +198,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         if self.engine.caching:
             (branch, tick) = self.engine.time
             self._stats_validity = {}
-            cache = self.engine.gorm._node_val_cache[self.character.name][self.name]
+            cache = self.engine._node_val_cache[self.character.name][self.name]
             for k in self:
                 try:
                     self._stats_validity[k] = stat_validity(
@@ -145,7 +208,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                         tick
                     )
                 except ValueError:
-                    continue
+                    self._stats_validity[k] = (0, None)
 
             @self.engine.time_listener
             def fire_my_stat_listeners(
@@ -154,6 +217,8 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                     branch_now,
                     tick_now
             ):
+                if len(self._stat_listeners) == 0:
+                    return
                 fire_stat_listeners(
                     lambda k, v: dispatch(
                         self._stat_listeners,
@@ -164,7 +229,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                         k,
                         v
                     ),
-                    self.keys(),
+                    (k for k in self.keys() if k in self._stat_listeners),
                     cache,
                     self._stats_validity,
                     branch_then,
@@ -225,14 +290,13 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
         if self.engine.caching:
-            cache = self.engine.gorm._edges_cache[self.character.name][self.name]
+            cache = self.engine._edges_cache[self.character.name][self.name]
             (branch, tick) = self.engine.time
             for nodeB in cache:
                 try:
-                    if cache[nodeB][0][branch][max(
-                        t for t in cache[nodeB][0][branch]
-                        if t <= tick
-                    )]:
+                    if cache[nodeB][0][branch][
+                        window_left(cache[nodeB][0][branch].keys(), tick)
+                    ]:
                         yield nodeB
                 except (KeyError, ValueError):
                     continue
@@ -246,16 +310,15 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
         if self.engine.caching:
-            cache = self.engine.gorm._edges_cache[self.character.name]
+            cache = self.engine._edges_cache[self.character.name]
             (branch, tick) = self.engine.time
             for nodeA in cache:
                 if self.name not in cache[nodeA]:
                     continue
                 try:
-                    if cache[nodeA][self.name][0][branch][max(
-                        t for t in cache[nodeA][self.name][0][branch]
-                        if t <= tick
-                    )]:
+                    if cache[nodeA][self.name][0][branch][
+                        window_left(cache[nodeA][self.name][0][branch].keys(), tick)
+                    ]:
                         yield nodeA
                 except (KeyError, ValueError):
                     continue
@@ -265,36 +328,6 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             self.name,
             *self.engine.time
         )
-
-    def _user_names(self):
-        """Iterate over names of characters that have me as an avatar"""
-        if not self.engine.caching:
-            yield from self.engine.db.avatar_users(
-                self.character.name,
-                self.name,
-                *self.engine.time
-            )
-            return
-        cache = self.engine._avatarness_cache
-        for char in cache:
-            if self.character.name not in cache[char] or \
-               self.name not in cache[char][self.character.name]:
-                continue
-            cache2 = cache[char][self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                try:
-                    if cache2[branch][max(
-                            t for t in cache2[branch]
-                            if t <= tick
-                    )]:
-                        yield char
-                except (KeyError, ValueError):
-                    continue
-
-    def users(self):
-        """Iterate over characters this is an avatar of."""
-        for charn in self._user_names():
-            yield self.engine.character[charn]
 
     def portals(self):
         """Iterate over :class:`Portal` objects that lead away from me"""
@@ -326,7 +359,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             del self.character.preportal[self.name]
         for contained in list(self.contents()):
             contained.delete()
-        for user in list(self.users()):
+        for user in list(self.user.values()):
             user.del_avatar(self.character.name, self.name)
         (branch, tick) = self.engine.time
         self.engine.db.exist_node(
@@ -336,6 +369,8 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             tick,
             False
         )
+        if self.engine.caching:
+            self.engine._nodes_cache[self.character.name][self.name][branch][tick] = False
 
     def one_way_portal(self, other, **stats):
         """Connect a portal from here to another node, and return it."""

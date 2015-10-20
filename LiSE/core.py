@@ -16,6 +16,7 @@ from collections import (
 from sqlite3 import connect
 
 from gorm import ORM as gORM
+from gorm.window import window_left
 from .character import Character
 from .node import Node
 from .portal import Portal
@@ -433,21 +434,17 @@ class CharacterMapping(MutableMapping):
 
 
 crhandled_defaultdict = lambda: defaultdict(  # character:
-    lambda: defaultdict(
-        # rulebook:
-        lambda: defaultdict(
-            # rule:
-            lambda: defaultdict(
-                # branch:
-                set
-                # ticks handled
+    lambda: defaultdict(  # rulebook:
+        lambda: defaultdict(  # rule:
+            lambda: defaultdict(  # branch:
+                set  # ticks handled
             )
         )
     )
 )
 
 
-class Engine(AbstractEngine):
+class Engine(AbstractEngine, gORM):
     """LiSE, the Life Simulator Engine.
 
     Each instance of LiSE maintains a connection to a database
@@ -477,29 +474,56 @@ class Engine(AbstractEngine):
     @reify
     def _rulebooks_cache(self):
         assert(self.caching)
-        return defaultdict(list)
+        r = defaultdict(list)
+        for (rulebook, rule) in self.rule.db.rulebooks_rules():
+            r[rulebook].append(rule)
+        return r
 
     @reify
     def _characters_rulebooks_cache(self):
         assert(self.caching)
-        return {}
+        r = {}
+        for (
+                    character,
+                    character_rulebook,
+                    avatar_rulebook,
+                    character_thing_rulebook,
+                    character_place_rulebook,
+                    character_node_rulebook,
+                    character_portal_rulebook
+        ) in self.db.characters_rulebooks():
+            r[character] = {
+                'character': character_rulebook,
+                'avatar': avatar_rulebook,
+                'character_thing': character_thing_rulebook,
+                'character_place': character_place_rulebook,
+                'character_node': character_node_rulebook,
+                'character_portal': character_portal_rulebook
+            }
+        return r
 
     @reify
     def _nodes_rulebooks_cache(self):
         assert(self.caching)
-        return defaultdict(dict)
+        r = defaultdict(dict)
+        for (character, node, rulebook) in self.db.nodes_rulebooks():
+            r[character][node] = rulebook
+        return r
 
     @reify
     def _portals_rulebooks_cache(self):
         assert(self.caching)
-        return defaultdict(
+        r = defaultdict(
             lambda: defaultdict(dict)
         )
+        for (character, nodeA, nodeB, rulebook) in self.db.portals_rulebooks():
+            r[character][nodeA][nodeB] = rulebook
+        return r
 
     @reify
     def _avatarness_cache(self):
         assert(self.caching)
-        return defaultdict(  # character:
+        r = defaultdict(  # character:
             lambda: defaultdict(  # graph:
                 lambda: defaultdict(  # node:
                     lambda: defaultdict(  # branch:
@@ -508,22 +532,30 @@ class Engine(AbstractEngine):
                 )
             )
         )
+        for (character, graph, avatar, branch, tick, is_avatar) \
+                in self.db.avatarness_dump():
+            r[character][graph][avatar][branch][tick] = is_avatar
+        return r
 
     @reify
     def _active_rules_cache(self):
         assert(self.caching)
-        return defaultdict(  # rulebook:
+        r = defaultdict(  # rulebook:
             lambda: defaultdict(  # rule:
                 lambda: defaultdict(  # branch:
                     dict  # tick: active
                 )
             )
         )
+        for (rulebook, rule, branch, tick, active) in \
+                self.db.dump_active_rules():
+            r[rulebook][rule][branch][tick] = active
+        return r
 
     @reify
     def _node_rules_handled_cache(self):
         assert(self.caching)
-        return defaultdict(  # character:
+        r = defaultdict(  # character:
             lambda: defaultdict(  # node:
                 lambda: defaultdict(  # rulebook:
                     lambda: defaultdict(  # rule:
@@ -534,11 +566,15 @@ class Engine(AbstractEngine):
                 )
             )
         )
+        for (character, node, rulebook, rule, branch, tick) \
+                in self.db.dump_node_rules_handled():
+            r[character][node][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _portal_rules_handled_cache(self):
         assert(self.caching)
-        return defaultdict(  # character:
+        r = defaultdict(  # character:
             lambda: defaultdict(  # nodeA:
                 lambda: defaultdict(  # nodeB:
                     lambda: defaultdict(  # rulebook:
@@ -551,66 +587,97 @@ class Engine(AbstractEngine):
                 )
             )
         )
+        for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
+                in self.db.dump_portal_rules_handled():
+            r[character][nodeA][nodeB][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _character_rules_handled_cache(self):
         assert(self.caching)
-        return crhandled_defaultdict()
+        r = crhandled_defaultdict()
+        for (character, rulebook, rule, branch, tick) in \
+                self.db.handled_character_rules():
+            r[character][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _avatar_rules_handled_cache(self):
         assert(self.caching)
-        return crhandled_defaultdict()
+        r = crhandled_defaultdict()
+        for (character, rulebook, rule, branch, tick) in \
+                self.db.handled_avatar_rules():
+            r[character][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _character_thing_rules_handled_cache(self):
         assert(self.caching)
-        return crhandled_defaultdict()
+        r = crhandled_defaultdict()
+        for (character, rulebook, rule, branch, tick) in \
+                self.db.handled_character_thing_rules():
+            r[character][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _character_place_rules_handled_cache(self):
         assert(self.caching)
-        return crhandled_defaultdict()
+        r = crhandled_defaultdict()
+        for (character, rulebook, rule, branch, tick) in \
+                self.db.handled_character_place_rules():
+            r[character][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _character_node_rules_handled_cache(self):
         assert(self.caching)
-        return crhandled_defaultdict()
+        r = crhandled_defaultdict()
+        for (character, rulebook, rule, branch, tick) in \
+                self.db.handled_character_node_rules():
+            r[character][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _character_portal_rules_handled_cache(self):
         assert(self.caching)
-        return crhandled_defaultdict()
+        r = crhandled_defaultdict()
+        for (character, rulebook, rule, branch, tick) in \
+                self.db.handled_character_portal_rules():
+            r[character][rulebook][rule][branch].add(tick)
+        return r
 
     @reify
     def _things_cache(self):
         assert(self.caching)
-        return defaultdict(  # character:
+        r = defaultdict(  # character:
             lambda: defaultdict(  # thing:
                 lambda: defaultdict(  # branch:
                     dict  # tick: (location, next_location)
                 )
             )
         )
+        for (character, thing, branch, tick, loc, nextloc) in \
+                self.db.things_dump():
+            r[character][thing][branch][tick] = (loc, nextloc)
+        return r
 
     @reify
-    def db(self):
-        return self.gorm.db
+    def _time_listeners(self):
+        return []
 
     @reify
-    def gorm(self):
-        return gORM(
-            self._worlddb,
-            connect_args=self._connect_args,
-            alchemy=self._alchemy,
-            query_engine_class=QueryEngine,
-            json_dump=self.json_dump,
-            json_load=self.json_load,
-            caching=self.caching
-        )
+    def codedb(self):
+        return connect(self._codedb)
 
-    def __new__(
-            cls,
+    @reify
+    def worlddb(self):
+        if hasattr(self.db, 'alchemist'):
+            return self.db.alchemist.conn.connection
+        else:
+            return self.db.connection
+
+    def __init__(
+            self,
             worlddb,
             codedb,
             connect_args={},
@@ -619,128 +686,25 @@ class Engine(AbstractEngine):
             commit_modulus=None,
             random_seed=None
     ):
-        r = super(cls, Engine).__new__(cls)
-        r._worlddb = worlddb
-        r._codedb = codedb
-        r._connect_args = connect_args
-        r._alchemy = alchemy
-        r.caching = caching
-        r.commit_modulus = commit_modulus
-        r.random_seed = random_seed
-        return r
-
-    @reify
-    def codedb(self):
-        return connect(self._codedb)
-
-    @reify
-    def worlddb(self):
-        if hasattr(self.gorm.db, 'alchemist'):
-            return self.gorm.db.alchemist.conn.connection
-        else:
-            return self.gorm.db.connection
-
-    def __init__(self, *args):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
-        self._time_listeners = []
-        self._code_qe = QueryEngine(
-            self.codedb, self._connect_args, self._alchemy, self.json_dump, self.json_load
+        super().__init__(
+            worlddb,
+            query_engine_class=QueryEngine,
+            connect_args=connect_args,
+            alchemy=alchemy,
+            caching=caching,
+            json_dump=self.json_dump,
+            json_load=self.json_load
         )
-        self.eternal = self.db.globl
-        self.db.initdb()
+        self.commit_modulus = commit_modulus
+        self.random_seed = random_seed
+        self._code_qe = QueryEngine(
+            codedb, connect_args, alchemy, self.json_dump, self.json_load
+        )
         self._code_qe.initdb()
-        self._existence = {}
-        if self.caching:
-            # caches for the rule poller
-            for (rulebook, rule) in self.rule.db.rulebooks_rules():
-                self._rulebooks_cache[rulebook].append(rule)
-            for (
-                    character,
-                    character_rulebook,
-                    avatar_rulebook,
-                    character_thing_rulebook,
-                    character_place_rulebook,
-                    character_node_rulebook,
-                    character_portal_rulebook
-            ) in self.db.characters_rulebooks():
-                self._characters_rulebooks_cache[character] = {
-                    'character': character_rulebook,
-                    'avatar': avatar_rulebook,
-                    'character_thing': character_thing_rulebook,
-                    'character_place': character_place_rulebook,
-                    'character_node': character_node_rulebook,
-                    'character_portal': character_portal_rulebook
-                }
-            for (character, node, rulebook) in self.db.nodes_rulebooks():
-                self._nodes_rulebooks_cache[character][node] = rulebook
-            for (
-                    character,
-                    nodeA,
-                    nodeB,
-                    rulebook
-            ) in self.db.portals_rulebooks():
-                self._portals_rulebooks_cache[character][nodeA][nodeB] \
-                    = rulebook
-            for (
-                    rulebook, rule, branch, tick, active
-            ) in self.db.dump_active_rules():
-                self._active_rules_cache[rulebook][rule][branch][tick] = active
-            for (
-                    character, node, rulebook, rule, branch, tick
-            ) in self.db.dump_node_rules_handled():
-                self._node_rules_handled_cache[
-                    character
-                ][node][rulebook][rule][branch].add(tick)
-            for (
-                    character, nodeA, nodeB, idx, rulebook, rule, branch, tick
-            ) in self.db.dump_portal_rules_handled():
-                self._portal_rules_handled_cache[
-                    character
-                ][nodeA][nodeB][rulebook][rule][branch].add(tick)
-            for (dumper, cache) in [
-                (
-                    self.db.handled_character_rules,
-                    self._character_rules_handled_cache
-                ),
-                (
-                    self.db.handled_avatar_rules,
-                    self._avatar_rules_handled_cache
-                ),
-                (
-                    self.db.handled_character_thing_rules,
-                    self._character_thing_rules_handled_cache
-                ),
-                (
-                    self.db.handled_character_place_rules,
-                    self._character_place_rules_handled_cache
-                ),
-                (
-                    self.db.handled_character_node_rules,
-                    self._character_node_rules_handled_cache
-                ),
-                (
-                    self.db.handled_character_portal_rules,
-                    self._character_portal_rules_handled_cache
-                )
-            ]:
-                for (
-                        character, rulebook, rule, branch, tick
-                ) in dumper():
-                    cache[character][rulebook][rule][branch].add(tick)
-            # world caches
-            for (
-                    character, thing, branch, tick, loc, nextloc
-            ) in self.db.things_dump():
-                self._things_cache[character][thing][branch][tick] \
-                    = (loc, nextloc)
-            for (
-                    character, graph, avatar, branch, tick, is_avatar
-            ) in self.db.avatarness_dump():
-                self._avatarness_cache[character][graph][avatar][branch][tick] \
-                    = is_avatar
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -814,25 +778,6 @@ class Engine(AbstractEngine):
     def character(self):
         return CharacterMapping(self)
 
-    def _node_exists(self, graph, node):
-        """Version of gorm's ``_node_exists`` that caches stuff"""
-        if not self.caching:
-            return node in self.gorm.get_graph(graph).node
-        (branch, rev) = self.time
-        if graph not in self._existence:
-            self._existence[graph] = {}
-        if node not in self._existence[graph]:
-            self._existence[graph][node] = {}
-        if branch not in self._existence[graph][node]:
-            self._existence[graph][node][branch] = {}
-        d = self._existence[graph][node][branch]
-        if rev not in d:
-            try:
-                d[rev] = d[max(k for k in d.keys() if k < rev)]
-            except ValueError:
-                d[rev] = self.db.node_exists(graph, node, branch, rev)
-        return self._existence[graph][node][branch][rev]
-
     def coinflip(self):
         """Return True or False with equal probability."""
         return self.choice((True, False))
@@ -877,17 +822,14 @@ class Engine(AbstractEngine):
         transaction for the world database
 
         """
-        if self.caching:
-            self.gorm.branch = self.gorm._obranch
-            self.gorm.rev = self.gorm._orev
         for store in self.stores:
             store.commit()
-        self.gorm.commit()
+        super().commit()
 
     def close(self):
         """Commit changes and close the database."""
         self.commit()
-        self.gorm.close()
+        super().close()
 
     def __enter__(self):
         """Return myself. For compatibility with ``with`` semantics."""
@@ -918,8 +860,9 @@ class Engine(AbstractEngine):
 
     @property
     def branch(self):
-        """Return my gorm's branch"""
-        return self.gorm.branch
+        if self._obranch is not None:
+            return self._obranch
+        return self.db.globl['branch']
 
     @branch.setter
     def branch(self, v):
@@ -936,17 +879,15 @@ class Engine(AbstractEngine):
                 self._branches[parent][child] = {}
                 self._branches[child] = self._branches[parent][child]
                 self._branches_start[child] = t
-            self.gorm._obranch = v
-        else:
-            self.gorm.branch = v
+            self._obranch = v
+        self.db.globl['branch'] = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
                 time_listener(b, t, v, t)
 
     @property
     def tick(self):
-        """Return my gorm's ``rev``"""
-        return self.gorm.rev
+        return self.rev
 
     @tick.setter
     def tick(self, v):
@@ -957,9 +898,8 @@ class Engine(AbstractEngine):
         if self.caching:
             if v == self.tick:
                 return
-            self.gorm._orev = v
-        else:
-            self.gorm.rev = v
+            self._orev = v
+        self.rev = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
                 time_listener(branch_then, tick_then, branch_then, v)
@@ -988,18 +928,12 @@ class Engine(AbstractEngine):
                     branch_then, tick_then, branch_now, tick_now
                 )
 
-    def _active_branches(self, branch=None, tick=None):
-        yield from self.gorm._active_branches(branch, tick)
-
-    def _branch_descendants(self, branch=None):
-        yield from self.gorm._branch_descendants(branch)
-
     def _rule_active(self, rulebook, rule):
         cache = self._active_rules_cache[rulebook][rule]
         for (branch, tick) in self._active_branches(*self.time):
             if branch in cache:
                 return cache[branch][
-                    max(t for t in cache[branch].keys() if t <= tick)
+                    window_left(cache[branch].keys(), tick)
                 ]
         return False
 
@@ -1244,7 +1178,7 @@ class Engine(AbstractEngine):
             self._rules_iter = self._follow_rules()
             self.universal['rando_state'] = self.rando.getstate()
             if self.commit_modulus and self.tick % self.commit_modulus == 0:
-                self.gorm.commit()
+                self.commit()
             r = None
         return r
 
@@ -1271,7 +1205,7 @@ class Engine(AbstractEngine):
         mapping.
 
         """
-        self.gorm.new_digraph(name, data, **kwargs)
+        self.new_digraph(name, data, **kwargs)
         ch = Character(self, name)
         if data is not None:
             for a in data.adj:
@@ -1290,7 +1224,7 @@ class Engine(AbstractEngine):
 
         """
         self.db.del_character(name)
-        self.gorm.del_graph(name)
+        self.del_graph(name)
         del self.character[name]
 
     def _is_thing(self, character, node):
@@ -1301,4 +1235,33 @@ class Engine(AbstractEngine):
         node's ID.
 
         """
+        if self.caching:
+            try:
+                cache = self._things_cache[character][node]
+            except KeyError:
+                return False
+            for (branch, tick) in self._active_branches():
+                try:
+                    return cache[branch][
+                        window_left(cache[branch].keys(), tick)
+                    ]
+                except (KeyError, ValueError):
+                    continue
+            return False
         return self.db.node_is_thing(character, node, *self.time)
+
+    def _node_exists(self, character, node):
+        if self.caching:
+            try:
+                cache = self._nodes_cache[character][node]
+            except KeyError:
+                return False
+            for (branch, tick) in self._active_branches():
+                try:
+                    return cache[branch][
+                        window_left(cache[branch].keys(), tick)
+                    ]
+                except (KeyError, ValueError):
+                    continue
+            return False
+        return self.db.node_exists(character, node, *self.time)

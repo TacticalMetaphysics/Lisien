@@ -89,8 +89,8 @@ def be_timely(engine, character, node):
     # Or we could have put the 'lazy' stat onto the node instead of the
     # character... or kept the student character in a stat of the node...
     # or assigned this rule to the student directly.
-    for user in node.users():
-        if user.name != character:
+    for user in node.user.values():
+        if user.name not in (character, 'student_body'):
             return not user.stat['lazy'] or engine.coinflip()
 
 
@@ -107,7 +107,7 @@ chk2cls()
 
 @student_body.avatar.rule
 def leave_class(engine, character, node):
-    for user in node.users():
+    for user in node.user.values():
         if user != character:
             node.travel_to(user.stat['room'])
             return
@@ -214,10 +214,10 @@ for n in range(0, 3):
         student0 = eng.new_character('dorm{}room{}student0'.format(n, i))
         body0 = room.new_thing('dorm{}room{}student0'.format(n, i))
         student0.add_avatar(body0)
-        assert (student0 in body0.users())
+        assert (student0 in body0.user.values())
         student_body.add_avatar(body0)
-        assert (student_body in body0.users())
-        assert (student0 in body0.users())
+        assert (student_body in body0.user.values())
+        assert (student0 in body0.user.values())
         student1 = eng.new_character('dorm{}room{}student1'.format(n, i))
         body1 = room.new_thing('dorm{}room{}student1'.format(n, i))
         student1.add_avatar(body1)
