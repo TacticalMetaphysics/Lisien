@@ -94,40 +94,38 @@ class Portal(Edge, RuleFollower):
         if self.engine.caching:
             (branch, tick) = self.engine.time
             self._stats_validity = {}
-            cache = self.engine._edges_cache[
+            self._statcache = self.engine._edges_cache[
                 self.character.name][self._origin][self._destination][0]
-            for k in cache:
+            for k in self._statcache:
                 try:
                     self._stats_validity[k] = stat_validity(
                         k,
-                        cache,
+                        self._statcache,
                         branch,
                         tick
                     )
                 except (KeyError, ValueError):
                     pass
 
-            @self.engine.time_listener
-            def fire_my_stat_listeners(
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-            ):
-                if len(self._stat_listeners) == 0:
-                    return
-                fire_stat_listeners(
-                    lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
-                    (k for k in self.keys() if k in self._stat_listeners),
-                    cache,
-                    self._stats_validity,
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-                )
-
         super().__init__(character, self._origin, self._destination)
+
+    def _fire_my_stat_listeners(
+        self,
+        branch_then,
+        tick_then,
+        branch_now,
+        tick_now
+    ):
+        fire_stat_listeners(
+            lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
+            (k for k in self.keys() if k in self._stat_listeners),
+            self._statcache,
+            self._stats_validity,
+            branch_then,
+            tick_then,
+            branch_now,
+            tick_now
+        )
 
     def _dispatch_stat(self, k, v):
         if k in self and self[k] == v:
@@ -136,10 +134,14 @@ class Portal(Edge, RuleFollower):
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 
     def listener(self, f=None, stat=None):
+        self.engine.time_listener(self._fire_my_stat_listeners)
         return listener(self._stat_listeners, f, stat)
 
     def unlisten(self, f=None, stat=None):
-        return unlisten(self._stat_listeners, f, stat)
+        r = unlisten(self._stat_listeners, f, stat)
+        if not self._stat_listeners:
+            self.engine.time_unlisten(self._fire_my_stat_listeners)
+        return r
 
     def __getitem__(self, key):
         """Get the present value of the key.

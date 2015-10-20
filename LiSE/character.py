@@ -1342,43 +1342,45 @@ class CharStatCache(MutableMapping):
         if self.engine.caching:
             (branch, tick) = self.engine.time
             self._stats_validity = {}
-            cache = self.engine._graph_val_cache[self.character.name]
-            for k in cache:
+            self._cache = self.engine._graph_val_cache[self.character.name]
+            for k in self._cache:
                 try:
                     self._stats_validity[k] = stat_validity(
                         k,
-                        cache,
+                        self._cache,
                         branch,
                         tick
                     )
                 except ValueError:
                     continue
 
-            @self.engine.time_listener
-            def fire_my_stat_listeners(
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-            ):
-                if len(self._listeners) == 0:
-                    return
-                fire_stat_listeners(
-                    lambda k, v: dispatch(self._listeners, k, branch_now, tick_now, self.character, k, v),
-                    (k for k in self.keys() if k in self._listeners),
-                    cache,
-                    self._stats_validity,
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-                )
+    def _fire_my_stat_listeners(
+        self,
+        branch_then,
+        tick_then,
+        branch_now,
+        tick_now
+    ):
+        fire_stat_listeners(
+            lambda k, v: dispatch(self._listeners, k, branch_now, tick_now, self.character, k, v),
+            (k for k in self.keys() if k in self._listeners),
+            self._cache,
+            self._stats_validity,
+            branch_then,
+            tick_then,
+            branch_now,
+            tick_now
+        )
 
     def listener(self, fun=None, stat=None):
+        self.engine.time_listener(self._fire_my_stat_listeners)
         return listener(self._listeners, fun, stat)
 
     def unlisten(self, fun=None, stat=None):
-        return unlistener(self._listeners, fun, stat)
+        r = unlistener(self._listeners, fun, stat)
+        if not self._listeners:
+            self.engine.time_unlisten(self._fire_my_stat_listeners)
+        return r
 
     def _dispatch(self, k, v):
         if k in self and self[k] == v:
