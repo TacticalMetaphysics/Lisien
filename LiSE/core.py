@@ -1,8 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-"""The core of LiSE is an object relational mapper with some special
-data stores, as well as properties for manipulating the flow of
-time.
+"""The core of LiSE is an object relational mapper with special
+stores for game data and entities, as well as properties for manipulating the
+flow of time.
 
 """
 from random import Random
@@ -178,7 +178,7 @@ class StringStore(MutableMapping):
         )
 
 
-class FunctionStoreDB(MutableMapping):
+class FunctionStore(MutableMapping):
     """Store functions in a SQL database"""
     def __init__(self, engine, db, table):
         """Use ``codedb`` as a connection object. Connect to it, and
@@ -752,19 +752,19 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def action(self):
-        return FunctionStoreDB(self, self._code_qe, 'actions')
+        return FunctionStore(self, self._code_qe, 'actions')
 
     @reify
     def prereq(self):
-        return FunctionStoreDB(self, self._code_qe, 'prereqs')
+        return FunctionStore(self, self._code_qe, 'prereqs')
 
     @reify
     def trigger(self):
-        return FunctionStoreDB(self, self._code_qe, 'triggers')
+        return FunctionStore(self, self._code_qe, 'triggers')
 
     @reify
     def function(self):
-        return FunctionStoreDB(self, self._code_qe, 'functions')
+        return FunctionStore(self, self._code_qe, 'functions')
 
     @property
     def stores(self):
