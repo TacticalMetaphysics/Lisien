@@ -1,6 +1,22 @@
 # coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+""" The fundamental unit of game logic, the Rule, and structures to
+store and organize them in.
+
+A Rule is three lists of functions: triggers, prereqs, and actions.
+The actions do something, anything that you need your game to do, but
+probably making a specific change to the world model. The triggers and
+prereqs between them specify when the action should occur: any of its
+triggers can tell it to happen, but then any of its prereqs may stop it
+from happening.
+
+Rules are assembled into RuleBooks, essentially just lists of Rules
+that can then be assigned to be followed by any game entity --
+but each game entity has its own RuleBook by default, and you never really
+need to change that.
+
+"""
 from collections import (
     Mapping,
     MutableMapping,
