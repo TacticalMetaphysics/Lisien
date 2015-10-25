@@ -5,6 +5,9 @@
 """
 from collections import Mapping
 from copy import deepcopy
+from gorm.xjson import JSONReWrapper, JSONListReWrapper, json_deepcopy
+from gorm.reify import reify
+from collections import MutableMapping, MutableSequence
 
 
 def dispatch(d, key, *args):
@@ -192,11 +195,6 @@ def path_len(graph, path, weight=None):
 
 
 # ==Caching==
-from gorm.xjson import JSONWrapper, JSONListWrapper
-from gorm.reify import reify
-from collections import MutableMapping, MutableSequence
-
-
 
 
 def _keycache(self, keycache, k, meth):
