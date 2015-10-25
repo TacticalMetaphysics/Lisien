@@ -68,7 +68,10 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
-                    return window_left(cache[branch].keys(), tick)
+                    try:
+                        return window_left(cache[branch].keys(), tick)
+                    except ValueError:
+                        continue
             raise CacheError("Locations not cached correctly")
         elif key == 'next_location':
             return self['locations'][1]
