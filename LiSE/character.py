@@ -198,10 +198,13 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         (branch, tick) = self.engine.time
         cache = self.engine._things_cache[self.character.name]
         for thing in cache:
-            if branch in cache[thing] and cache[thing][branch][
-                window_left(cache[thing][branch].keys(), tick)
-            ]:
-                yield thing
+            try:
+                if branch in cache[thing] and cache[thing][branch][
+                        window_left(cache[thing][branch].keys(), tick)
+                ]:
+                    yield thing
+            except ValueError:
+                continue
 
     def __contains__(self, thing):
         if not self.engine.caching:
