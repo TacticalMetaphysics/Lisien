@@ -98,29 +98,14 @@ class Portal(Edge, RuleFollower):
                 self.character.name][self._origin][self._destination][0]
             for k in self._statcache:
                 try:
-                    self._stats_validity[k] = stat_validity(k, self._cache, branch, tick)
-                except ValueError:
-                    continue
-
-            @self.engine.time_listener
-            def fire_my_stat_listeners(
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-            ):
-                fire_stat_listeners(
-                    self.__getitem__,
-                    lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
-                    self._cache,
-                    self._branches_cached,
-                    self._stats_validity,
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-                )
-
+                    self._stats_validity[k] = stat_validity(
+                        k,
+                        self._statcache,
+                        branch,
+                        tick
+                    )
+                except (KeyError, ValueError):
+                    pass
 
         super().__init__(character, self._origin, self._destination)
 
