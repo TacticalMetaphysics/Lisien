@@ -15,7 +15,7 @@ from kivy.properties import (
     NumericProperty,
     BooleanProperty
 )
-from ELiDE.kivygarden.collider import CollideEllipse
+from ..kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
 from ..util import trigger
 

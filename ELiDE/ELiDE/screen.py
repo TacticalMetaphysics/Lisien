@@ -677,7 +677,7 @@ Builder.load_string(
         selected_remote: root.selected_remote
         selection_name: str(root.character_name) \
         if root.selection is None else str(root.selection.name)
-        set_value: remote_setter(root.selected_remote)
+        set_value: remote_setter(root.engine.json_load, root.selected_remote)
         toggle_stat_cfg: charmenu.toggle_stat_cfg
     TimePanel:
         id: timepanel

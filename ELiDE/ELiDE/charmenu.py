@@ -13,7 +13,7 @@ from kivy.properties import (
 from .board.spot import Spot
 from .board.pawn import Pawn
 from .board.arrow import ArrowWidget
-from .util import try_json_load, remote_setter, dummynum
+from .util import try_load, remote_setter, dummynum
 
 
 class CharMenu(BoxLayout):
@@ -75,6 +75,7 @@ class CharMenu(BoxLayout):
         if self.current != 'statcfg':
             self.stat_cfg.remote = self.selected_remote
             self.stat_cfg.set_value = remote_setter(
+                self.engine.json_load,
                 self.stat_cfg.remote
             )
         self.stat_cfg.toggle()
@@ -178,7 +179,7 @@ class CharMenu(BoxLayout):
                 self.revarrow = None
 
     def new_character(self, but):
-        charn = try_json_load(self.chars.ids.newname.text)
+        charn = try_load(self.engine.json_load, self.chars.ids.newname.text)
         self.select_character(self.engine.new_character(charn))
         self.chars.ids.newname.text = ''
         self.chars.charsview.adapter.data = list(

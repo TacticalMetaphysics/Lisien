@@ -21,9 +21,9 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.clock import Clock
 
-from ELiDE.kivygarden.collider import Collide2DPoly
-from ELiDE.util import get_thin_rect_vertices, ninety, fortyfive
-from ELiDE.remote import MirrorMapping
+from ..kivygarden.collider import Collide2DPoly
+from ..util import get_thin_rect_vertices, ninety, fortyfive
+from ..remote import MirrorMapping
 
 
 def get_points(ox, oy, ro, dx, dy, rd, taillen):

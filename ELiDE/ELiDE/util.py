@@ -1,6 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
-from gorm.xjson import json_load
 from kivy.clock import Clock
 from functools import partial
 from math import sin, cos, atan, pi
@@ -45,28 +44,29 @@ class trigger(object):
         return retval
 
 
-def set_remote_value(remote, k, v):
+def set_remote_value(loader, remote, k, v):
     if v is None:
         del remote[k]
     else:
-        remote[k] = try_json_load(v)
+        remote[k] = loader(v)
 
-def remote_setter(remote):
+
+def remote_setter(loader, remote):
     """Return a function taking two arguments, ``k`` and ``v``, which sets
     ``remote[k] = v``, interpreting ``v`` as JSON if possible, or
     deleting ``remote[k]`` if ``v is None``.
 
     """
-    return lambda k, v: set_remote_value(remote, k, v)
+    return lambda k, v: set_remote_value(loader, remote, k, v)
 
 
-def try_json_load(obj):
+def try_load(loader, obj):
     """Return the JSON interpretation the object if possible, or just the
     object otherwise.
 
     """
     try:
-        return json_load(obj)
+        return loader(obj)
     except (TypeError, ValueError):
         return obj
 

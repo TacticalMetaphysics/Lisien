@@ -13,7 +13,7 @@ from kivy.uix.listview import (
     SelectableView
 )
 from .statlist import StatListView
-from .util import try_json_load
+from .util import try_load
 
 
 control_txt = {
@@ -274,6 +274,7 @@ class StatListViewConfigurator(StatListView):
 
 
 class StatScreen(Screen):
+    json_loader = ObjectProperty()
     remote = ObjectProperty()
     stat_list = ObjectProperty()
     toggle = ObjectProperty()
@@ -293,7 +294,7 @@ class StatScreen(Screen):
             # TODO implement some feedback to the effect that
             # you need to enter things
             return
-        self.remote[key] = try_json_load(value)
+        self.remote[key] = try_load(self.json_loader, value)
         self.ids.newstatkey.text = ''
         self.ids.newstatval.text = ''
 

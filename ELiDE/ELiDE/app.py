@@ -209,6 +209,7 @@ class ELiDEApp(App):
         )
 
         stat_cfg = ELiDE.statcfg.StatScreen(
+            json_loader=self.engine.json_load,
             remote=self.character.stat,
             toggle=toggler('stat_cfg'),
             time=self.time
