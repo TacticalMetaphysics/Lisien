@@ -1,18 +1,12 @@
-[submodule "igraph"]
-	path = igraph
-	url = https://github.com/igraph/igraph.git
-[submodule "stiffscroll"]
-	path = stiffscroll
-	url = https://github.com/kivy-garden/garden.stiffscroll.git
-[submodule "ELiDE/kivygarden/texturestack"]
-	path = ELiDE/kivygarden/texturestack
+[submodule "texturestack"]
+	path = ELiDE/ELiDE/kivygarden/texturestack
 	url = https://github.com/kivy-garden/garden.texturestack.git
-[submodule "ELiDE/kivygarden/collider"]
-	path = ELiDE/kivygarden/collider
+[submodule "collider"]
+	path = ELiDE/ELiDE/kivygarden/collider
 	url = https://github.com/kivy-garden/garden.collider.git
-[submodule "ELiDE/kivygarden/stiffscroll"]
-	path = ELiDE/kivygarden/stiffscroll
+[submodule "stiffscroll"]
+	path = ELiDE/ELiDE/kivygarden/stiffscroll
 	url = https://github.com/kivy-garden/garden.stiffscroll.git
 [submodule "gorm"]
-	path = gorm
+	path = LiSE/LiSE/gorm
 	url = https://github.com/LogicalDash/gorm.git
