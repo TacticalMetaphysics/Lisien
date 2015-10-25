@@ -7,6 +7,3 @@
 [submodule "stiffscroll"]
 	path = ELiDE/ELiDE/kivygarden/stiffscroll
 	url = https://github.com/kivy-garden/garden.stiffscroll.git
-[submodule "gorm"]
-	path = LiSE/LiSE/gorm
-	url = https://github.com/LogicalDash/gorm.git
