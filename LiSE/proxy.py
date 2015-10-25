@@ -3440,7 +3440,7 @@ def subprocess(
         else:
             logq.put((
                 'debug',
-                "returning {}".format(data)
+                "returning {} (of type {})".format(data, repr(type(data)))
             ))
     engine_handle = EngineHandle(args, kwargs, callbacq)
 
