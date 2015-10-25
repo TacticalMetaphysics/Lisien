@@ -197,106 +197,6 @@ from gorm.reify import reify
 from collections import MutableMapping, MutableSequence
 
 
-class JSONReWrapper(MutableMapping):
-    """Like JSONWrapper with a cache."""
-    def __init__(self, outer, key, initval=None):
-        self._outer = outer
-        self._key = key
-        self._inner = JSONWrapper(outer, key)
-        self._v = initval
-        if not isinstance(self._v, dict):
-            raise TypeError(
-                "JSONReWrapper only wraps dicts"
-            )
-
-    def _get(self, k=None):
-        if k is None:
-            return self._v
-        return self._v[k]
-
-    def __iter__(self):
-        return iter(self._v)
-
-    def __len__(self):
-        return len(self._v)
-
-    def __eq__(self, other):
-        return self._v == other
-
-    def __getitem__(self, k):
-        r = self._v[k]
-        if isinstance(r, dict):
-            return JSONReWrapper(self, k, r)
-        if isinstance(r, list):
-            return JSONListReWrapper(self, k, r)
-        return r
-
-    def __setitem__(self, k, v):
-        self._v[k] = v
-        self._outer[self._key] = self._v
-
-    def __delitem__(self, k):
-        del self._inner[k]
-        del self._v[k]
-
-    def __repr__(self):
-        return repr(self._v)
-
-
-class JSONListReWrapper(MutableSequence):
-    """Like JSONListWrapper with a cache."""
-    def __init__(self, outer, key, initval=None):
-        self._inner = JSONListWrapper(outer, key)
-        self._v = initval
-        if not isinstance(self._v, list):
-            raise TypeError(
-                "JSONListReWrapper only wraps lists"
-            )
-
-    def __iter__(self):
-        return iter(self._v)
-
-    def __len__(self):
-        return len(self._v)
-
-    def __eq__(self, other):
-        return self._v == other
-
-    def __getitem__(self, i):
-        r = self._v[i]
-        if isinstance(r, dict):
-            return JSONReWrapper(self, i, r)
-        if isinstance(r, list):
-            return JSONListReWrapper(self, i, r)
-        return r
-
-    def __setitem__(self, i, v):
-        self._inner[i] = v
-        self._v[i] = v
-
-    def __delitem__(self, i, v):
-        del self._inner[i]
-        del self._v[i]
-
-    def insert(self, i, v):
-        self._inner.insert(i, v)
-        self._v.insert(i, v)
-
-    def __repr__(self):
-        return repr(self._v)
-
-
-def json_deepcopy(obj):
-    r = {}
-    for (k, v) in obj.items():
-        if (
-            isinstance(v, JSONReWrapper) or
-            isinstance(v, JSONListReWrapper)
-        ):
-            r[k] = deepcopy(v._v)
-        else:
-            r[k] = deepcopy(v)
-    return r
 
 
 def _keycache(self, keycache, k, meth):
@@ -596,17 +496,21 @@ def stat_validity(k, cache, branch, tick):
 
 
 def fire_stat_listeners(
-        getter,
         dispatcher,
+        keys,
         cache,
-        branches_cached,
         stats_validity,
         branch_then,
         tick_then,
         branch_now,
         tick_now
 ):
-    for k in cache:
+    def getstat(k, branch, tick):
+        return cache[k][branch][max(
+            t for t in cache[branch] if t <= tick
+        )]
+
+    for k in keys:
         try:
             (since, until) = stats_validity[k]
             if (
@@ -620,15 +524,13 @@ def fire_stat_listeners(
         try:
             stats_validity[k] = stat_validity(k, cache, branch_now, tick_now)
         except ValueError:
-            del stats_validity[k]
-        if branch_then not in branches_cached:
-            dispatcher(k, getter(k))
-            continue
-        newv = getter(k)
-        oldv = branches_cached[branch_then][max(
-            t for t in branches_cached[branch_then]
-            if t <= tick_then
-        )]
-        if newv == oldv:
-            continue
+            if k in stats_validity:
+                del stats_validity[k]
+        try:
+            newv = getstat(k, branch_now, tick_now)
+            oldv = getstat(k, branch_then, tick_then)
+            if newv == oldv:
+                continue
+        except (KeyError, ValueError):
+            pass
         dispatcher(k, newv)

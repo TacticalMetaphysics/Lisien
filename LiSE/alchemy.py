@@ -1478,6 +1478,15 @@ def queries(table, view):
 
     avatars = table['avatars']
 
+    r['avatarness_dump'] = select([
+        avatars.c.character_graph,
+        avatars.c.avatar_graph,
+        avatars.c.avatar_node,
+        avatars.c.branch,
+        avatars.c.tick,
+        avatars.c.is_avatar
+    ])
+
     def hitick_avatars(*cols):
         wheres = [
             getattr(avatars.c, col) == bindparam(col)

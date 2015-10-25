@@ -1,14 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from .node import Node
-from .util import (
-    dispatch,
-    cache_forward,
-    needcache,
-    encache,
-    enkeycache,
-    dekeycache
-)
+from .util import dispatch
 
 
 class Place(Node):
@@ -30,34 +23,13 @@ class Place(Node):
         elif key == 'character':
             return self.character.name
         else:
-            if not self.engine.caching:
-                return super().__getitem__(key)
-            (branch, tick) = self.engine.time
-            cache_forward(self._cache, key, branch, tick)
-            if needcache(self._cache, key, branch, tick):
-                value = super().__getitem__(key)
-                encache(
-                    self, self._cache, key, value
-                )
-            r = self._cache[key][branch][tick]
-            if r is None:
-                raise KeyError("Key {} not set now".format(key))
-            return r
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
         if self.engine.caching:
-            encache(self, self._cache, key, value)
-            enkeycache(self, self._keycache, key)
             (branch, tick) = self.engine.time
             dispatch(self._stat_listeners, key, branch, tick, self, key, value)
-
-    def __delitem__(self, key):
-        super().__delitem__(key)
-        if not self.engine.caching:
-            return
-        dekeycache(self, self._cache, key)
-        encache(self, self._cache, key, None)
 
     def __repr__(self):
         """Return my character and name"""

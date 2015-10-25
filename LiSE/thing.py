@@ -5,15 +5,9 @@ from .node import Node
 from .util import (
     path_len,
     CacheError,
-    TravelException,
-    encache,
-    enkeycache,
-    dekeycache,
-    cache_forward,
-    needcache,
-    JSONReWrapper,
-    JSONListReWrapper
+    TravelException
 )
+from gorm.window import window_left
 
 
 class Thing(Node):
@@ -38,9 +32,7 @@ class Thing(Node):
     def __contains__(self, key):
         if key in self.extrakeys:
             return True
-        self._cache_keys()
-        (branch, tick) = self.engine.time
-        return key in self._keycache[branch][tick]
+        return super().__contains__(key)
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
@@ -76,7 +68,7 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
-                    return max(t for t in cache[branch].keys() if t <= tick)
+                    return window_left(cache[branch].keys(), tick)
             raise CacheError("Locations not cached correctly")
         elif key == 'next_location':
             return self['locations'][1]
@@ -95,24 +87,11 @@ class Thing(Node):
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
                     return cache[branch][
-                        max(t for t in cache[branch].keys() if t <= tick)
+                        window_left(cache[branch].keys(), tick)
                     ]
             raise CacheError("Locations not cached correctly")
         else:
-            if not self.engine.caching:
-                return super().__getitem__(key)
-            (branch, tick) = self.engine.time
-            cache_forward(self._cache, key, branch, tick)
-            if needcache(self._cache, key, branch, tick):
-                encache(self, self._cache, key, super().__getitem__(key))
-            r = self._cache[key][branch][tick]
-            if r is None:
-                raise KeyError("Key {} is not set now".format(key))
-            return (
-                JSONReWrapper(self, key, r) if isinstance(r, dict) else
-                JSONListReWrapper(self, key, r) if isinstance(r, list) else
-                r
-            )
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
@@ -138,18 +117,14 @@ class Thing(Node):
             self._dispatch_stat('locations', value)
         else:
             super().__setitem__(key, value)
-            if self.engine.caching:
-                encache(self, self._cache, key, value)
-                enkeycache(self, self._keycache, key)
+            self._dispatch_stat(key, value)
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
         if key in self.extrakeys:
             raise ValueError("Can't delete {}".format(key))
         super().__delitem__(key)
-        if self.engine.caching:
-            encache(self, self._cache, key, None)
-            dekeycache(self, self._keycache, key)
+        self._dispatch_stat(key, None)
 
     def __repr__(self):
         """Return my character, name, and location"""
@@ -168,6 +143,14 @@ class Thing(Node):
 
     def _get_arrival_time(self):
         """Query the database for when I arrive at my present location."""
+        if self.engine.caching:
+            cache = self.engine._things_cache[self.character.name][self.name]
+            for (branch, tick) in self.engine._active_branches():
+                try:
+                    return window_left(cache[branch].keys(), tick)
+                except (KeyError, ValueError):
+                    continue
+            raise CacheError("Thing seems never to have arrived where it is")
         loc = self['location']
         return self.engine.db.arrival_time_get(
             self.character.name,
@@ -181,6 +164,14 @@ class Thing(Node):
         ``None`` if I'm not traveling.
 
         """
+        if self.engine.caching:
+            cache = self.engine._things_cache[self.character.name][self.name]
+            for (branch, tick) in self.engine._active_branches():
+                try:
+                    return min(t for t in cache[branch] if t > tick)
+                except (KeyError, ValueError):
+                    continue
+            return None
         nextloc = self['next_location']
         if nextloc is None:
             return None
@@ -192,7 +183,6 @@ class Thing(Node):
         )
 
     def delete(self, nochar=False):
-        """Delete every reference to me."""
         super().delete()
         if not nochar:
             del self.character.thing[self.name]
@@ -205,6 +195,8 @@ class Thing(Node):
             None,
             None
         )
+        if self.engine.caching:
+            self.engine._things_cache[self.character.name][self.name][branch][tick] = (None, None)
 
     def clear(self):
         """Unset everything."""
@@ -265,6 +257,16 @@ class Thing(Node):
         to which I am presently travelling.
 
         """
+        if self.engine.caching:
+            cache = self.engine._things_cache[self.character.name][self.name]
+            for (branch, tick) in self.engine._active_branches():
+                try:
+                    return cache[branch][
+                        window_left(cache[branch].keys(), tick)
+                    ]
+                except (KeyError, ValueError):
+                    continue
+            raise CacheError("Thing loc and next weren't cached right")
         return self.engine.db.thing_loc_and_next_get(
             self.character.name,
             self.name,
@@ -276,14 +278,17 @@ class Thing(Node):
         ``next_location``
 
         """
+        (branch, tick) = self.engine.time
         self.engine.db.thing_loc_and_next_set(
             self.character.name,
             self.name,
-            self.engine.branch,
-            self.engine.tick,
+            branch,
+            tick,
             loc,
             nextloc
         )
+        if self.engine.caching:
+            self.engine._things_cache[self.character.name][self.name][branch][tick] = (loc, nextloc)
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct

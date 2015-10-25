@@ -1,6 +1,21 @@
-# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+""" The fundamental unit of game logic, the Rule, and structures to
+store and organize them in.
+
+A Rule is three lists of functions: triggers, prereqs, and actions.
+The actions do something, anything that you need your game to do, but
+probably making a specific change to the world model. The triggers and
+prereqs between them specify when the action should occur: any of its
+triggers can tell it to happen, but then any of its prereqs may stop it
+from happening.
+
+Rules are assembled into RuleBooks, essentially just lists of Rules
+that can then be assigned to be followed by any game entity --
+but each game entity has its own RuleBook by default, and you never really
+need to change that.
+
+"""
 from collections import (
     Mapping,
     MutableMapping,
@@ -226,6 +241,20 @@ class Rule(object):
             self.prereqs.extend(prereqs)
         if actions:
             self.actions.extend(actions)
+        self._trigger_results_cache = defaultdict(  # trigger
+            lambda: defaultdict(  # branch
+                lambda: defaultdict(  # tick
+                    dict  # args: result
+                )
+            )
+        )
+        self._prereq_results_cache = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(
+                    dict
+                )
+            )
+        )
 
     def __eq__(self, other):
         return (
@@ -351,9 +380,16 @@ class Rule(object):
         myself. If none do, return False.
 
         """
-        curtime = engine.time
+        curtime = (branch, tick) = engine.time
         for trigger in self.triggers:
-            result = trigger(engine, *args)
+            if not (
+                trigger.__name__ in self._trigger_results_cache and
+                branch in self._trigger_results_cache[trigger.__name__] and
+                tick in self._trigger_results_cache[trigger.__name__][branch] and
+                args in self._trigger_results_cache[trigger.__name__][branch][tick]
+            ):
+                self._trigger_results_cache[trigger.__name__][branch][tick][args] = trigger(engine, *args)
+            result = self._trigger_results_cache[trigger.__name__][branch][tick][args]
             if engine.time != curtime:
                 engine.time = curtime
             if result:
@@ -365,9 +401,16 @@ class Rule(object):
         one doesn't, return False.
 
         """
-        curtime = engine.time
+        curtime = (branch, tick) = engine.time
         for prereq in self.prereqs:
-            result = prereq(engine, *args)
+            if not(
+                prereq.__name__ in self._prereq_results_cache and
+                branch in self._prereq_results_cache[prereq.__name__] and
+                tick in self._prereq_results_cache[prereq.__name__][branch] and
+                args in self._prereq_results_cache[prereq.__name__][branch][tick]
+            ):
+                self._prereq_results_cache[prereq.__name__][branch][tick][args] = prereq(self.engine, args)
+            result = self._prereq_results_cache[prereq.__name__][branch][tick][args]
             engine.time = curtime
             if not result:
                 return False

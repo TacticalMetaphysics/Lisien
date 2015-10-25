@@ -1,15 +1,12 @@
 from collections import defaultdict
 
 from gorm.graph import Edge
+from gorm.window import window_left
 
 from .util import (
     dispatch,
     listener,
     unlisten,
-    encache,
-    needcache,
-    enkeycache,
-    cache_forward,
     stat_validity,
     fire_stat_listeners
 )
@@ -24,8 +21,14 @@ class RuleMapping(BaseRuleMapping):
         self.engine = portal.engine
         self.orign = portal._origin
         self.destn = portal._destn
+        self.portal = portal
 
     def __iter__(self):
+        if self.engine.caching:
+            for (rule, active) in self.portal._rule_names_activeness():
+                if active:
+                    yield rule
+            return
         return self.engine.db.portal_rules(
             self.character.name,
             self.orign,
@@ -43,6 +46,20 @@ class Portal(Edge, RuleFollower):
 
     """
     def _rule_name_activeness(self):
+        if self.engine.caching:
+            cache = self.engine._active_rules_cache[self._get_rulebook_name()]
+            for rule in cache:
+                for (branch, tick) in self.engine._active_branches():
+                    if branch not in cache[rule]:
+                        continue
+                    try:
+                        yield (rule, cache[rule][branch][
+                            window_left(cache[rule][branch].keys(), tick)
+                        ])
+                        break
+                    except ValueError:
+                        continue
+            raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
         return self.engine.db.current_rules_portal(
             self.character.name,
             self._origin,
@@ -75,36 +92,11 @@ class Portal(Edge, RuleFollower):
         self._existence = {}
 
         if self.engine.caching:
-            def cache_branch(branch):
-                for (key, tick, value) in self.engine.db.edge_stat_branch_data(
-                        self.character.name,
-                        self._origin,
-                        self._destination,
-                        branch
-                ):
-                    if key not in self._cache:
-                        self._cache[key] = {}
-                    if branch not in self._cache[key]:
-                        self._cache[key][branch] = {}
-                    self._cache[key][branch][tick] = value
-
             (branch, tick) = self.engine.time
-            cache_branch(branch)
-            self._branches_cached = {branch, }
-
-            @self.engine.time_listener
-            def cache_new_branch(
-                    branch_then,
-                    tick_then,
-                    branch_now,
-                    tick_now
-            ):
-                if branch_now not in self._branches_cached:
-                    cache_branch(branch_now)
-                    self._branches_cached.add(branch_now)
-
             self._stats_validity = {}
-            for k in self._cache:
+            self._statcache = self.engine._edges_cache[
+                self.character.name][self._origin][self._destination][0]
+            for k in self._statcache:
                 try:
                     self._stats_validity[k] = stat_validity(k, self._cache, branch, tick)
                 except ValueError:
@@ -132,6 +124,24 @@ class Portal(Edge, RuleFollower):
 
         super().__init__(character, self._origin, self._destination)
 
+    def _fire_my_stat_listeners(
+        self,
+        branch_then,
+        tick_then,
+        branch_now,
+        tick_now
+    ):
+        fire_stat_listeners(
+            lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
+            (k for k in self.keys() if k in self._stat_listeners),
+            self._statcache,
+            self._stats_validity,
+            branch_then,
+            tick_then,
+            branch_now,
+            tick_now
+        )
+
     def _dispatch_stat(self, k, v):
         if k in self and self[k] == v:
             return
@@ -139,10 +149,14 @@ class Portal(Edge, RuleFollower):
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 
     def listener(self, f=None, stat=None):
+        self.engine.time_listener(self._fire_my_stat_listeners)
         return listener(self._stat_listeners, f, stat)
 
     def unlisten(self, f=None, stat=None):
-        return unlisten(self._stat_listeners, f, stat)
+        r = unlisten(self._stat_listeners, f, stat)
+        if not self._stat_listeners:
+            self.engine.time_unlisten(self._fire_my_stat_listeners)
+        return r
 
     def __getitem__(self, key):
         """Get the present value of the key.
@@ -171,14 +185,7 @@ class Portal(Edge, RuleFollower):
                 key
             ]
         else:
-            if not self.engine.caching:
-                return super().__getitem__(key)
-            (branch, tick) = self.engine.time
-            cache_forward(self._cache, key, branch, tick)
-            if needcache(self._cache, key, branch, tick):
-                encache(self, self._cache, key, super().__getitem__(key))
-            enkeycache(self, self._keycache, key)
-            return self._cache[key][branch][tick]
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` at the present game-time.
@@ -225,9 +232,6 @@ class Portal(Edge, RuleFollower):
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
         super().__setitem__(key, value)
-        (branch, tick) = self.engine.time
-        encache(self, self._cache, key, value)
-        enkeycache(self, self._keycache, key)
         self._dispatch_stat(key, value)
 
     def __delitem__(self, key):
@@ -237,10 +241,6 @@ class Portal(Edge, RuleFollower):
             return
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
-        (branch, tick) = self.engine.time
-        encache(self._cache, key, None, branch, tick)
-        if branch in self._keycache and tick in self._keycache[branch]:
-            self._keycache[branch][tick].remove(key)
         self._dispatch_stat(key, None)
 
     def __repr__(self):
@@ -253,7 +253,19 @@ class Portal(Edge, RuleFollower):
 
     def __bool__(self):
         """It means something that I exist, even if I have no data but my name."""
-        return True
+        return self._origin in self.character.portal and \
+            self._destination in self.character.portal[self._origin]
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Portal) and
+            self.character == other.character and
+            self._origin == other._origin and
+            self._destination == other._destination
+        )
+
+    def __hash__(self):
+        return hash((self.character.name, self._origin, self._destination))
 
     @property
     def origin(self):
@@ -320,3 +332,6 @@ class Portal(Edge, RuleFollower):
 
         """
         del self.character.portal[self.origin.name][self.destination.name]
+        if self.engine.caching:
+            (branch, tick) = self.engine.time
+            self.engine._edges_cache[self.character.name][self.origin.name][self.destination.name][branch][tick] = False
