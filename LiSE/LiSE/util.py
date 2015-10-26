@@ -3,6 +3,7 @@
 """Common utility functions and data structures.
 
 """
+from json import dumps, loads
 from collections import Mapping
 from copy import deepcopy
 from gorm.xjson import JSONReWrapper, JSONListReWrapper, json_deepcopy
@@ -402,7 +403,6 @@ def keycache_iter(keycache, branch, tick, get_iterator):
 
 
 # ABCs
-from json import dumps, loads
 
 
 class AbstractEngine(object):
