@@ -288,22 +288,19 @@ class Board(RelativeLayout):
         Clock.schedule_once(partial(self.rm_arrow, orig, dest), 0)
 
     def grid_layout(self, graph):
-        from networkx import spectral_layout
-        r = spectral_layout(graph)
-        # normalize all the coordinates to between 0 and 1
-        ks = list(r.keys())
-        xs = np.zeros(len(ks))
-        ys = np.zeros(len(ks))
-        for i in range(0, len(ks)):
-            k = ks[i]
-            xs[i] = r[k][0]
-            ys[i] = r[k][1]
-        minx = np.min(xs)
-        xs = (xs-minx) / (np.max(xs)-minx)
-        miny = np.min(ys)
-        ys = (ys-miny) / (np.max(ys)-miny)
-        for i in range(0, len(ks)):
-            r[ks[i]] = (xs[i], ys[i])
+        from math import floor, ceil, sqrt
+        ns = list(graph.nodes())
+        side = sqrt(len(ns))
+        width = int(ceil(side))
+        height = int(floor(side))
+        xs = list(range(0, 1, 1/width))
+        ys = list(range(0, 1, 1/height))
+        r = {}
+        while ns:
+            for y in ys:
+                for x in xs:
+                    n = ns.pop()
+                    r[n] = (x, y)
         return r
 
     def discard_pawn(self, thingn, *args):
