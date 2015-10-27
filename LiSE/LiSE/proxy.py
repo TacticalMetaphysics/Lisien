@@ -12,7 +12,7 @@ from collections import (
 from multiprocessing import Process, Pipe, Queue
 from queue import Empty
 
-from .core import Engine
+from .engine import Engine
 from .character import Facade
 from .util import (
     AbstractEngine,
