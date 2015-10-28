@@ -5,10 +5,14 @@
 """
 from json import dumps, loads
 from collections import Mapping
-from copy import deepcopy
-from gorm.xjson import JSONReWrapper, JSONListReWrapper, json_deepcopy
+from gorm.xjson import (
+    JSONWrapper,
+    JSONReWrapper,
+    JSONListWrapper,
+    JSONListReWrapper,
+    json_deepcopy
+)
 from gorm.reify import reify
-from collections import MutableMapping, MutableSequence
 
 
 def dispatch(d, key, *args):
