@@ -336,9 +336,11 @@ class GlobalVarMapping(MutableMapping):
 class CharacterMapping(MutableMapping):
     """A mapping by which to access :class:`Character` objects.
 
-    If a character already exists, you can always get its name here to get the :class:`Character` object. Deleting an
-    item here will delete the character from the world, even if there are still :class:`Character` objects referring
-    to it; those won't do anything useful anymore.
+    If a character already exists, you can always get its name here to
+    get the :class:`Character` object. Deleting an item here will
+    delete the character from the world, even if there are still
+    :class:`Character` objects referring to it; those won't do
+    anything useful anymore.
 
     """
     def __init__(self, engine):
