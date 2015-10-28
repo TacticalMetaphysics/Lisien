@@ -5,6 +5,21 @@
 """The basic data model of LiSE, based on NetworkX DiGraph objects
 with various additions and conveniences.
 
+A Character is a graph that follows rules. Its rules may be assigned
+to run on only some portion of it: just edges (called Portals), just
+nodes, or just nodes of the kind that have a location in another node
+(called Things and Places, respectively). Each Character has a
+``stat`` property that acts very much like a dictionary, in which you
+can store game-relevant data for the rules to use.
+
+You can designate some nodes in one Character as avatars of another,
+and then assign a rule to run on all of a Character's avatars. This is
+useful for the common case where someone in your game has a location
+in the physical world (here, a Character, called 'physical') but also
+has a behavior flowchart, or a skill tree, that isn't part of the
+physical world. In that case the flowchart is the person's Character,
+and their node in the physical world is an avatar of it.
+
 """
 
 from collections import (
