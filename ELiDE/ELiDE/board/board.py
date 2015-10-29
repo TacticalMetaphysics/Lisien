@@ -293,14 +293,18 @@ class Board(RelativeLayout):
         side = sqrt(len(ns))
         width = int(ceil(side))
         height = int(floor(side))
-        xs = list(range(0, 1, 1/width))
-        ys = list(range(0, 1, 1/height))
+        xs = [0] + list(1 / x for x in range(1, width))
+        ys = [0] + list(1 / y for y in range(1, height))
         r = {}
         while ns:
             for y in ys:
                 for x in xs:
                     n = ns.pop()
                     r[n] = (x, y)
+                    if not ns:
+                        break
+                if not ns:
+                    break
         return r
 
     def discard_pawn(self, thingn, *args):
