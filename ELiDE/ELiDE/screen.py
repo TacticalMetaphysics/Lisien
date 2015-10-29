@@ -663,8 +663,11 @@ Builder.load_string(
     stat_list: statpanel.stat_list
     BoardView:
         id: boardview
-        size_hint: (0.85, 0.9)
-        pos_hint: {'x': 0.2, 'top': 1}
+        x: statpanel.right
+        y: timepanel.top
+        size_hint: (None, None)
+        width: charmenu.x - statpanel.right
+        height: root.height - timepanel.height
         selection: root.selection
         branch: root.branch
         tick: root.tick
