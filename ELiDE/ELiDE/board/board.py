@@ -300,7 +300,7 @@ class Board(RelativeLayout):
             for y in ys:
                 for x in xs:
                     n = ns.pop()
-                    r[n] = (x, y)
+                    r[n] = (x * 0.9 + 0.05, y * 0.9 + 0.05)
                     if not ns:
                         break
                 if not ns:
