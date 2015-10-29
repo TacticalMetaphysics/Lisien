@@ -3,7 +3,8 @@
 """Common utility functions and data structures.
 
 """
-from json import dumps, loads
+import numpy
+from json import dumps, loads, JSONEncoder
 from collections import Mapping
 from gorm.xjson import (
     JSONWrapper,
@@ -200,6 +201,17 @@ def path_len(graph, path, weight=None):
 
 
 # ==Caching==
+
+
+class LiSEncoder(JSONEncoder):
+    def default(self, o):
+        t = type(o)
+        if t in numpy.sctypes['int']:
+            return int(o)
+        elif t in numpy.sctypes['float']:
+            return float(o)
+        else:
+            return super().default(o)
 
 
 def _keycache(self, keycache, k, meth):
@@ -477,7 +489,7 @@ class AbstractEngine(object):
             return dumps(["character", obj.name])
         k = str(obj)
         if k not in self.json_dump_hints:
-            self.json_dump_hints[k] = dumps(self._enc_tuple(obj))
+            self.json_dump_hints[k] = dumps(self._enc_tuple(obj), cls=LiSEncoder)
         return self.json_dump_hints[k]
 
     def json_load(self, s):
