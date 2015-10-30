@@ -20,7 +20,6 @@ from collections import (
     Mapping,
     MutableMapping,
     MutableSequence,
-    Callable,
     defaultdict
 )
 from functools import partial
@@ -640,7 +639,7 @@ class RuleMapping(MutableMapping):
                     self.rulebook[i] = v
             except ValueError:
                 self._activate_rule(v)
-        elif isinstance(v, Callable):
+        elif callable(v):
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {name}. "
