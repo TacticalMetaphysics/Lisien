@@ -533,9 +533,7 @@ def fire_stat_listeners(
         tick_now
 ):
     def getstat(k, branch, tick):
-        return cache[k][branch][max(
-            t for t in cache[branch] if t <= tick
-        )]
+        return cache[k][branch][window_left(cache[k][branch].keys(), tick)]
 
     for k in keys:
         try:
