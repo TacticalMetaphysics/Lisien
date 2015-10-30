@@ -17,10 +17,12 @@ from gorm.reify import reify
 
 
 def dispatch(d, key, *args):
-    """Call functions in a dictionary to inform them that a value in another mapping has changed.
+    """Call functions in a dictionary to inform them that a value in
+    another mapping has changed.
 
-    Keys in the dictionary should be the same as those in the observed mapping, with the exception of ``None``,
-    which is for functions to call whenever any value of any key has changed.
+    Keys in the dictionary should be the same as those in the observed
+    mapping, with the exception of ``None``, which is for functions to
+    call whenever any value of any key has changed.
 
     """
     assert(isinstance(d, Mapping))
@@ -33,7 +35,10 @@ def dispatch(d, key, *args):
 
 
 def listen(l, f, k=None):
-    """Insert the function into the list or dict supplied, under the key given. """
+    """Insert the function into the list or dict supplied, under the key
+    given.
+
+    """
     if not callable(f):
         raise TypeError('listeners must be callable')
     if isinstance(l, Mapping):
@@ -45,7 +50,8 @@ def listen(l, f, k=None):
 def unlisten(l, f, k=None):
     """Remove the function from the list or dict.
 
-    If dict, the function will be removed from the list in the dict under the key ``k``.
+    If dict, the function will be removed from the list in the dict
+    under the key ``k``.
 
     """
     if not callable(f):
@@ -57,7 +63,10 @@ def unlisten(l, f, k=None):
 
 
 def listener(l, f=None, k=None):
-    """Put a function into a list or dict, for later use by :class:`LiSE.util.dispatch`."""
+    """Put a function into a list or dict, for later use by
+    :class:`LiSE.util.dispatch`.
+
+    """
     if f:
         listen(l, f, k)
         return f
@@ -65,7 +74,10 @@ def listener(l, f=None, k=None):
 
 
 def unlistener(l, f=None, k=None):
-    """Remove a function from the list or dict used by :class:`LiSE.util.dispatch`."""
+    """Remove a function from the list or dict used by
+    :class:`LiSE.util.dispatch`.
+
+    """
     if f:
         try:
             unlisten(l, f, k)
