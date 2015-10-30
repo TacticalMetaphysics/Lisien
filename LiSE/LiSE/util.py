@@ -6,13 +6,6 @@
 import numpy
 from json import dumps, loads, JSONEncoder
 from collections import Mapping
-from gorm.xjson import (
-    JSONWrapper,
-    JSONReWrapper,
-    JSONListWrapper,
-    JSONListReWrapper,
-    json_deepcopy
-)
 from gorm.reify import reify
 from gorm.window import window_left, window_right
 

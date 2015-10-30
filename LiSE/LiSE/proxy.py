@@ -14,11 +14,13 @@ from queue import Empty
 
 from .engine import Engine
 from .character import Facade
-from .util import (
-    AbstractEngine,
+from gorm.xjson import (
     JSONReWrapper,
     JSONListReWrapper,
-    json_deepcopy,
+    json_deepcopy
+)
+from .util import (
+    AbstractEngine,
     dict_diff,
     list_diff
 )
