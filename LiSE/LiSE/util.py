@@ -14,6 +14,7 @@ from gorm.xjson import (
     json_deepcopy
 )
 from gorm.reify import reify
+from gorm.window import window_left, window_right
 
 
 def dispatch(d, key, *args):
@@ -513,9 +514,9 @@ class AbstractEngine(object):
 
 
 def stat_validity(k, cache, branch, tick):
-    lo = max(t for t in cache[k][branch] if t <= tick)
+    lo = window_left(cache[k][branch].keys(), tick)
     try:
-        hi = min(t for t in cache[k][branch] if t > tick)
+        hi = window_right(cache[k][branch].keys(), tick)
     except ValueError:
         hi = None
     return (lo, hi)
