@@ -558,5 +558,5 @@ def fire_stat_listeners(
             if newv == oldv:
                 continue
         except (KeyError, ValueError):
-            pass
+            continue
         dispatcher(k, newv)
