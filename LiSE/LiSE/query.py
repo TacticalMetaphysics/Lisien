@@ -655,7 +655,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def handled_character_rule(
             self, ruletyp, character, rulebook, rule, branch, tick
     ):
-        (character, rulebook) = map(self.json_dump, (character, rulebook))
+        (character, rulebook, rule) = map(self.json_dump, (character, rulebook, rule))
         try:
             return self.sql(
                 'handled_character_rule',
@@ -680,8 +680,8 @@ class QueryEngine(gorm.query.QueryEngine):
     def handled_thing_rule(
             self, character, thing, rulebook, rule, branch, tick
     ):
-        (character, thing, rulebook) = map(
-            self.json_dump, (character, thing, rulebook)
+        (character, thing, rulebook, rule) = map(
+            self.json_dump, (character, thing, rulebook, rule)
         )
         try:
             return self.sql(
@@ -709,8 +709,8 @@ class QueryEngine(gorm.query.QueryEngine):
     def handled_place_rule(
             self, character, place, rulebook, rule, branch, tick
     ):
-        (character, place, rulebook) = map(
-            self.json_dump, (character, rulebook, rule)
+        (character, place, rulebook, rule) = map(
+            self.json_dump, (character, place, rulebook, rule)
         )
         try:
             return self.sql(
