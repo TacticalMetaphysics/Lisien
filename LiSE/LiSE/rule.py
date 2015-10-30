@@ -409,7 +409,7 @@ class Rule(object):
                 tick in self._prereq_results_cache[prereq.__name__][branch] and
                 args in self._prereq_results_cache[prereq.__name__][branch][tick]
             ):
-                self._prereq_results_cache[prereq.__name__][branch][tick][args] = prereq(self.engine, args)
+                self._prereq_results_cache[prereq.__name__][branch][tick][args] = prereq(self.engine, *args)
             result = self._prereq_results_cache[prereq.__name__][branch][tick][args]
             engine.time = curtime
             if not result:
