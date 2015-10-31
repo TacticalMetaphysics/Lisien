@@ -196,6 +196,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 yield n
             return
         (branch, tick) = self.engine.time
+        if self.character.name not in self.engine._things_cache:
+            return
         cache = self.engine._things_cache[self.character.name]
         for thing in cache:
             try:
@@ -675,10 +677,10 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
         """
         if self.engine.caching:
-            try:
-                cache = self.engine._avatarness_cache.db_order[self.character.name]
-            except KeyError:
+            cache = self.engine._avatarness_cache.db_order
+            if self.character.name not in cache:
                 return
+            cache = cache[self.character.name]
             seen = set()
             for avatar in cache:
                 if avatar in seen:
