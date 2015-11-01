@@ -576,9 +576,6 @@ class MainScreen(Screen):
             )
         )
 
-    def on_time(self, *args):
-        print("screen's time: {}".format(self.time))
-
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
         if self.playbut.state == 'normal':
