@@ -584,7 +584,7 @@ class MainScreen(Screen):
         if self.playbut.state == 'normal':
             return
         elif not hasattr(self, '_old_time'):
-            self._old_time = self.time
+            self._old_time = tuple(self.time)
             self.engine.next_tick()
         elif self._old_time == self.time:
             return
