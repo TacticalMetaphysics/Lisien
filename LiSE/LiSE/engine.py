@@ -296,7 +296,8 @@ class Engine(AbstractEngine, gORM):
             caching=True,
             commit_modulus=None,
             random_seed=None,
-            sql_rule_polling=False
+            sql_rule_polling=False,
+            logfun=None
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -309,8 +310,15 @@ class Engine(AbstractEngine, gORM):
             alchemy=alchemy,
             caching=caching,
             json_dump=self.json_dump,
-            json_load=self.json_load
+            json_load=self.json_load,
         )
+        if logfun is None:
+            from logging import getLogger
+            logger = getLogger(__name__)
+            
+            def logfun(level, msg):
+                getattr(logger, level)(msg)
+        self.log = logfun
         self._sql_polling = sql_rule_polling
         self.commit_modulus = commit_modulus
         self.random_seed = random_seed
@@ -390,6 +398,21 @@ class Engine(AbstractEngine, gORM):
     @reify
     def character(self):
         return CharacterMapping(self)
+
+    def debug(self, msg):
+        self.log('debug', msg)
+
+    def info(self, msg):
+        self.log('info', msg)
+
+    def warning(self, msg):
+        self.log('warning', msg)
+
+    def error(self, msg):
+        self.log('error', msg)
+
+    def critical(self, msg):
+        self.log('critical', msg)
 
     def coinflip(self):
         """Return True or False with equal probability."""

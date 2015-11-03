@@ -22,7 +22,8 @@ from gorm.xjson import (
 from .util import (
     AbstractEngine,
     dict_diff,
-    list_diff
+    list_diff,
+    reify
 )
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
@@ -40,7 +41,7 @@ class EngineHandle(object):
     developing your own API.
 
     """
-    def __init__(self, args, kwargs, callbacq):
+    def __init__(self, args, kwargs, callbacq, logq):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
 
@@ -52,9 +53,13 @@ class EngineHandle(object):
         another, and a watched entity's stats differ between those
         points.
 
+        ``logq`` is another :class:`Queue` into which I'll put tuples of
+        ``(loglevel, message)``.
+
         """
-        self._real = Engine(*args, **kwargs)
+        self._real = Engine(*args, logfun=self.log, **kwargs)
         self._q = callbacq
+        self._logq = logq
         self._muted_chars = set()
         self.branch = self._real.branch
         self.tick = self._real.tick
@@ -78,6 +83,24 @@ class EngineHandle(object):
         self._char_places_cache = {}
         self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
+
+    def log(self, level, message):
+        self._logq.put((level, message))
+
+    def debug(self, message):
+        self.log('debug', message)
+
+    def info(self, message):
+        self.log('info', message)
+
+    def warning(self, message):
+        self.log('warning', message)
+
+    def error(self, message):
+        self.log('error', message)
+
+    def critical(self, message):
+        self.log('critical', message)
 
     def put(self, obj):
         self._q.put(self._real.json_dump(obj))
@@ -1560,7 +1583,7 @@ class CachingEntityProxy(CachingProxy):
 
 
 class NodeProxy(CachingEntityProxy):
-    @property
+    @reify
     def character(self):
         return CharacterProxy(self.engine, self._charname)
 
@@ -3444,7 +3467,7 @@ def subprocess(
                 'debug',
                 "returning {} (of type {})".format(data, repr(type(data)))
             ))
-    engine_handle = EngineHandle(args, kwargs, callbacq)
+    engine_handle = EngineHandle(args, kwargs, callbacq, logq)
 
     while True:
         inst = handle_out_pipe.recv()
