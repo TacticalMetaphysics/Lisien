@@ -3071,6 +3071,21 @@ class EngineProxy(AbstractEngine):
         self._q = eventq
         (self._branch, self._tick) = self.handle('get_watched_time')
 
+    def debug(self, msg):
+        self.logger.debug(msg)
+
+    def info(self, msg):
+        self.logger.info(msg)
+
+    def warning(self, msg):
+        self.logger.warning(msg)
+
+    def error(self, msg):
+        self.logger.error(msg)
+
+    def critical(self, msg):
+        self.logger.critical(msg)
+
     def handle(self, func_name, args=[], silent=False):
         self._handle_out.send(self.json_dump((silent, func_name, args)))
         if not silent:
