@@ -107,13 +107,13 @@ class Engine(AbstractEngine, gORM):
         assert(self.caching)
         r = {}
         for (
-                    character,
-                    character_rulebook,
-                    avatar_rulebook,
-                    character_thing_rulebook,
-                    character_place_rulebook,
-                    character_node_rulebook,
-                    character_portal_rulebook
+                character,
+                character_rulebook,
+                avatar_rulebook,
+                character_thing_rulebook,
+                character_place_rulebook,
+                character_node_rulebook,
+                character_portal_rulebook
         ) in self.db.characters_rulebooks():
             r[character] = {
                 'character': character_rulebook,
@@ -565,7 +565,10 @@ class Engine(AbstractEngine, gORM):
             )
 
         for char in self._characters_rulebooks_cache:
-            for (rulemap, rulebook) in self._characters_rulebooks_cache[char].items():
+            for (
+                    rulemap,
+                    rulebook
+            ) in self._characters_rulebooks_cache[char].items():
                 for rule in self._rulebooks_cache[rulebook]:
                     if (
                         self._rule_active(rulebook, rule) and not
@@ -626,7 +629,14 @@ class Engine(AbstractEngine, gORM):
                             self._rule_active(rulebook, rule) and not
                             handled(char, nodeA, nodeB, rulebook, rule)
                         ):
-                            yield ('portal', char, nodeA, nodeB, rulebook, rule)
+                            yield (
+                                'portal',
+                                char,
+                                nodeA,
+                                nodeB,
+                                rulebook,
+                                rule
+                            )
 
     def _poll_rules(self):
         """Iterate over tuples containing rules yet unresolved in the current tick.
