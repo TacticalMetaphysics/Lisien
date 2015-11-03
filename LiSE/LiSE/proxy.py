@@ -2934,9 +2934,10 @@ class EngineProxy(AbstractEngine):
             for f in self._time_listeners:
                 f(b, t, branch, tick)
 
-    def __init__(self, handle_out, handle_in, eventq):
+    def __init__(self, handle_out, handle_in, logger, eventq):
         self._handle_out = handle_out
         self._handle_in = handle_in
+        self.logger = logger
         self._q = eventq
         self.eternal = EternalVarProxy(self)
         self.universal = GlobalVarProxy(self)
@@ -3544,6 +3545,7 @@ class EngineProcessManager(object):
         self.engine_proxy = EngineProxy(
             self._handle_out_pipe_send,
             handle_in_pipe_recv,
+            self.logger,
             callbacq
         )
         return self.engine_proxy
