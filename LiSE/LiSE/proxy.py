@@ -2934,51 +2934,141 @@ class EngineProxy(AbstractEngine):
             for f in self._time_listeners:
                 f(b, t, branch, tick)
 
-    def __init__(self, handle_out, handle_in, logger, eventq):
-        self._handle_out = handle_out
-        self._handle_in = handle_in
-        self.logger = logger
-        self._q = eventq
-        self.eternal = EternalVarProxy(self)
-        self.universal = GlobalVarProxy(self)
-        self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
-        self.rulebook = AllRuleBooksProxy(self)
-        self.rule = AllRulesProxy(self)
-        for funstore in ('action', 'prereq', 'trigger', 'sense', 'function'):
-            setattr(self, funstore, FuncStoreProxy(self, funstore))
-        self._rulebook_listeners = defaultdict(list)
-        self._time_listeners = []
-        self._lang_listeners = []
-        self._strings_listeners = []
-        self._string_listeners = defaultdict(list)
-        self._universals_listeners = []
-        self._universal_listeners = defaultdict(list)
-        self._char_listeners = defaultdict(list)
-        self._char_map_listeners = []
-        self._char_stat_listeners = defaultdict(lambda: defaultdict(list))
-        self._node_listeners = defaultdict(lambda: defaultdict(list))
-        self._node_stat_listeners = defaultdict(
+    @reify
+    def eternal(self):
+        return EternalVarProxy(self)
+
+    @reify
+    def universal(self):
+        return GlobalVarProxy(self)
+
+    @reify
+    def character(self):
+        return CharacterMapProxy(self)
+
+    @reify
+    def string(self):
+        return StringStoreProxy(self)
+
+    @reify
+    def rulebook(self):
+        return AllRuleBooksProxy(self)
+
+    @reify
+    def rule(self):
+        return AllRulesProxy(self)
+
+    @reify
+    def action(self):
+        return FuncStoreProxy(self, 'action')
+
+    @reify
+    def prereq(self):
+        return FuncStoreProxy(self, 'prereq')
+
+    @reify
+    def trigger(self):
+        return FuncStoreProxy(self, 'trigger')
+
+    @reify
+    def sense(self):
+        return FuncStoreProxy(self, 'sense')
+
+    @reify
+    def function(self):
+        return FuncStoreProxy(self, 'function')
+
+    @reify
+    def _rulebook_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _time_listeners(self):
+        return []
+
+    @reify
+    def _lang_listeners(self):
+        return []
+
+    @reify
+    def _strings_listeners(self):
+        return []
+
+    @reify
+    def _string_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _universals_listeners(self):
+        return []
+
+    @reify
+    def _universal_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _char_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _char_map_listeners(self):
+        return []
+
+    @reify
+    def _char_stat_listeners(self):
+        return defaultdict(lambda: defaultdict(list))
+
+    @reify
+    def _node_listeners(self):
+        return defaultdict(lambda: defaultdict(list))
+
+    @reify
+    def _node_stat_listeners(self):
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(list)
             )
         )
-        self._thing_map_listeners = defaultdict(list)
-        self._place_map_listeners = defaultdict(list)
-        self._node_map_listeners = defaultdict(list)
-        self._portal_listeners = defaultdict(
+
+    @reify
+    def _thing_map_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _place_map_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _node_map_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _portal_listeners(self):
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(list)
             )
         )
-        self._portal_stat_listeners = defaultdict(
+
+    @reify
+    def _portal_stat_listeners(self):
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(
                     lambda: defaultdict(list)
                 )
             )
         )
-        self._portal_map_listeners = defaultdict(list)
+
+    @reify
+    def _portal_map_listeners(self):
+        return defaultdict(list)
+
+    def __init__(self, handle_out, handle_in, logger, eventq):
+        self._handle_out = handle_out
+        self._handle_in = handle_in
+        self.logger = logger
+        self._q = eventq
         (self._branch, self._tick) = self.handle('get_watched_time')
 
     def handle(self, func_name, args=[], silent=False):
