@@ -152,6 +152,7 @@ class ELiDEApp(App):
             **enkw
         )
         self._pull_time()
+        self.engine.time_listener(self._pull_time)
 
         Clock.schedule_interval(self._check_stats, 0.01)
         Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
