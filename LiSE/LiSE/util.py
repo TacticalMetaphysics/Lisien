@@ -349,41 +349,42 @@ class AbstractEngine(object):
     def json_load_hints(self):
         return {}
 
-    @classmethod
-    def _enc_tuple(cls, obj):
-        if isinstance(obj, tuple):
-            return ['tuple'] + [cls._enc_tuple(v) for v in obj]
-        elif isinstance(obj, list):
-            return ['list'] + [cls._enc_tuple(v) for v in obj]
+    def _enc_tuple(self, obj):
+        if isinstance(obj, list):
+            return ["list"] + [self._enc_tuple(v) for v in obj]
+        elif isinstance(obj, tuple):
+            return ["tuple"] + [self._enc_tuple(v) for v in obj]
         elif isinstance(obj, dict):
-            return {
-                cls._enc_tuple(k): cls._enc_tuple(v)
+            return ["dict"] + [
+                [self._enc_tuple(k), self._enc_tuple(v)]
                 for (k, v) in obj.items()
-                }
-        elif isinstance(obj, cls.char_cls):
+            ]
+        elif isinstance(obj, self.char_cls):
             return ['character', obj.name]
-        elif isinstance(obj, cls.node_cls):
+        elif isinstance(obj, self.node_cls):
             return ['node', obj.character.name, obj.name]
-        elif isinstance(obj, cls.portal_cls):
+        elif isinstance(obj, self.portal_cls):
             return ['portal', obj.character.name, obj.nodeA.name, obj.nodeB.name]
         else:
             return obj
 
     def _dec_tuple(self, obj):
-        if isinstance(obj, dict):
-            r = {}
-            for (k, v) in obj.items():
-                r[self._dec_tuple(k)] = self._dec_tuple(v)
-            return r
-        elif isinstance(obj, list):
+        if isinstance(obj, list) or isinstance(obj, tuple):
             if obj == [] or obj == ["list"]:
                 return []
             elif obj == ["tuple"]:
                 return tuple()
+            elif obj == ['dict']:
+                return {}
             elif obj[0] == 'list':
                 return [self._dec_tuple(p) for p in obj[1:]]
             elif obj[0] == 'tuple':
                 return tuple(self._dec_tuple(p) for p in obj[1:])
+            elif obj[0] == 'dict':
+                return {
+                    self._dec_tuple(k): self._dec_tuple(v)
+                    for (k, v) in obj[1:]
+                }
             elif obj[0] == 'character':
                 return self.character[self._dec_tuple(obj[1])]
             elif obj[0] == 'node':
