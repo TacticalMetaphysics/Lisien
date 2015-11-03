@@ -6,27 +6,26 @@ flow of time.
 
 """
 from random import Random
-from collections import (
-    defaultdict,
-    deque,
-    Mapping,
-    MutableMapping,
-    Callable
-)
+from collections import defaultdict
 from sqlite3 import connect
 
 from gorm import ORM as gORM
 from gorm.window import window_left
-from .xcollections import StringStore, FunctionStore, GlobalVarMapping, CharacterMapping
+from .xcollections import (
+    StringStore,
+    FunctionStore,
+    GlobalVarMapping,
+    CharacterMapping
+)
 from .character import Character
 from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import AbstractEngine, dispatch, listen, listener, unlisten, unlistener, reify
-
-
-
+from .util import (
+    AbstractEngine,
+    reify
+)
 
 
 crhandled_defaultdict = lambda: defaultdict(  # character:
@@ -461,7 +460,7 @@ class Engine(AbstractEngine, gORM):
         new branch and tick.
 
         """
-        if not isinstance(v, Callable):
+        if not callable(v):
             raise TypeError("This is a decorator")
         if v not in self._time_listeners:
             self._time_listeners.append(v)
