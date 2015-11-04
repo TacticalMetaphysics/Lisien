@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from gorm.graph import Edge
-from gorm.window import window_left
 
 from .util import (
     dispatch,
@@ -53,9 +52,7 @@ class Portal(Edge, RuleFollower):
                     if branch not in cache[rule]:
                         continue
                     try:
-                        yield (rule, cache[rule][branch][
-                            window_left(cache[rule][branch].keys(), tick)
-                        ])
+                        yield (rule, cache[rule][branch][tick])
                         break
                     except ValueError:
                         continue

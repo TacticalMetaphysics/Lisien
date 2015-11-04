@@ -36,7 +36,6 @@ from gorm.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from gorm.window import window_left
 
 from .util import (
     CompositeDict,
@@ -86,12 +85,10 @@ class RuleFollower(BaseRuleFollower):
                     try:
                         yield (
                             rule,
-                            cache[rule][branch][
-                                window_left(cache[rule][branch].keys(), tick)
-                            ]
+                            cache[rule][branch][tick]
                         )
                         break
-                    except ValueError:
+                    except KeyError:
                         continue
             return
         return getattr(
@@ -123,18 +120,19 @@ class RuleFollower(BaseRuleFollower):
 
     def __contains__(self, k):
         if self.engine.caching:
-            try:
-                cache = self.engine._active_rules_cache[self._get_rulebook_name()][k]
-            except KeyError:
+            rulebook_name = self._get_rulebook_name()
+            if (
+                    rulebook_name not in self.engine._active_rules_cache or
+                    k not in self.engine._active_rules_cache[rulebook_name]
+            ):
                 return False
+            cache = self.engine._active_rules_cache[self._get_rulebook_name()][k]
             for (branch, tick) in self.engine._active_branches():
                 if branch not in cache:
                     continue
                 try:
-                    return cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]
-                except ValueError:
+                    return cache[branch][tick]
+                except KeyError:
                     continue
             return False
         return self.engine.db.active_rule_char(
@@ -201,11 +199,9 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         cache = self.engine._things_cache[self.character.name]
         for thing in cache:
             try:
-                if branch in cache[thing] and cache[thing][branch][
-                        window_left(cache[thing][branch].keys(), tick)
-                ]:
+                if branch in cache[thing] and cache[thing][branch][tick]:
                     yield thing
-            except ValueError:
+            except KeyError:
                 continue
 
     def __contains__(self, thing):
@@ -220,10 +216,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         cache = self.engine._things_cache[self.character.name][thing]
         for (branch, tick) in self.engine._active_branches():
             try:
-                return cache[branch][
-                    window_left(cache[branch].keys(), tick)
-                ]
-            except (KeyError, ValueError):
+                return cache[branch][tick]
+            except KeyError:
                 continue
         return False
 
@@ -356,11 +350,9 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                 if branch not in cache:
                     continue
                 try:
-                    if cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]:
+                    if cache[branch][tick]:
                         return not self.engine._is_thing(self.character.name, place)
-                except ValueError:
+                except KeyError:
                     continue
             return False
         (branch, tick) = self.engine.time
@@ -681,20 +673,19 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             if self.character.name not in cache:
                 return
             cache = cache[self.character.name]
-            seen = set()
+            seen = False
             for avatar in cache:
                 if avatar in seen:
                     continue
                 for node in cache[avatar]:
-                    if avatar in seen:
+                    if seen:
+                        seen = False
                         break
                     for (branch, tick) in self.engine._active_branches():
                         try:
-                            if cache[avatar][node][branch][
-                                window_left(cache[avatar][node][branch].keys(), tick)
-                            ]:
+                            if cache[avatar][node][branch][tick]:
                                 yield avatar
-                            seen.add(avatar)
+                            seen = True
                             break
                         except KeyError:
                             continue
@@ -724,9 +715,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             for node in cache:
                 for (branch, tick) in self.engine._active_branches():
                     try:
-                        if cache[node][branch][
-                            window_left(cache[node][branch].keys(), tick)
-                        ]:
+                        if cache[node][branch][tick]:
                             return self.CharacterAvatarMapping(self, g)
                     except KeyError:
                         continue
@@ -790,11 +779,9 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 try:
                     r.append((
                         node,
-                        ac[node][branch][
-                            window_left(ac[node][branch].keys(), rev)
-                        ]
+                        ac[node][branch][rev]
                     ))
-                except (KeyError, ValueError):
+                except KeyError:
                     continue
             return r
 
@@ -857,9 +844,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 return False
             for node in ac[av]:
                 try:
-                    if ac[av][branch][
-                        window_left(ac[av][branch].keys(), rev)
-                    ]:
+                    if ac[av][branch][rev]:
                         return True
                 except KeyError:
                     continue
@@ -1770,9 +1755,7 @@ class Character(DiGraph, RuleFollower):
                             branch in ac[g][n]
                     ):
                         seen.add((g, n))
-                        if ac[g][n][branch][
-                                window_left(ac[g][n][branch].keys(), tick)
-                        ]:
+                        if ac[g][n][branch][tick]:
                             # the character or avatar may have been
                             # deleted from the world. It remains
                             # "mine" in case it comes back, but don't

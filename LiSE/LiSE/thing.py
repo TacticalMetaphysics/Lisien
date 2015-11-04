@@ -92,9 +92,7 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
-                    return cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]
+                    return cache[branch][tick]
             raise CacheError("Locations not cached correctly")
         else:
             return super().__getitem__(key)
@@ -267,9 +265,7 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 try:
-                    return cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]
+                    return cache[branch][tick]
                 except (KeyError, ValueError):
                     continue
             raise CacheError("Thing loc and next weren't cached right")

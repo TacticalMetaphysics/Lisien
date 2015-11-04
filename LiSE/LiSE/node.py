@@ -3,7 +3,6 @@
 from collections import defaultdict, Mapping
 
 import gorm.graph
-from gorm.window import window_left
 
 from .util import (
     dispatch,
@@ -63,21 +62,15 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def _rule_names_activeness(self):
         if self.engine.caching:
             cache = self.engine._active_rules_cache[self._get_rulebook_name()]
-            seen = set()
             for rule in cache:
-                if rule in seen:
-                    continue
                 for (branch, tick) in self.engine._active_branches():
                     if branch not in cache[rule]:
                         continue
                     try:
                         yield (
                             rule,
-                            cache[rule][branch][
-                                window_left(cache[rule][branch].keys(), tick)
-                            ]
+                            cache[rule][branch][tick]
                         )
-                        seen.add(rule)
                         break
                     except ValueError:
                         continue
@@ -134,16 +127,11 @@ class Node(gorm.graph.Node, rule.RuleFollower):
 
     def _user_names(self):
         if self.engine.caching:
-            try:
-                cache = self.engine._avatarness_cache.user_order[self.character.name][self.name]
-            except KeyError:
-                return
+            cache = self.engine._avatarness_cache.user_order[self.character.name][self.name]
             for user in cache:
                 for (branch, tick) in self.engine._active_branches():
                     try:
-                        if cache[user][branch][
-                            window_left(cache[user][branch].keys(), tick)
-                        ]:
+                        if cache[user][branch][tick]:
                             yield user
                         break
                     except KeyError:
@@ -274,9 +262,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             (branch, tick) = self.engine.time
             for nodeB in cache:
                 try:
-                    if cache[nodeB][0][branch][
-                        window_left(cache[nodeB][0][branch].keys(), tick)
-                    ]:
+                    if cache[nodeB][0][branch][tick]:
                         yield nodeB
                 except (KeyError, ValueError):
                     continue
@@ -296,9 +282,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                 if self.name not in cache[nodeA]:
                     continue
                 try:
-                    if cache[nodeA][self.name][0][branch][
-                        window_left(cache[nodeA][self.name][0][branch].keys(), tick)
-                    ]:
+                    if cache[nodeA][self.name][0][branch][tick]:
                         yield nodeA
                 except (KeyError, ValueError):
                     continue

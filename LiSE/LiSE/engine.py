@@ -10,7 +10,6 @@ from collections import defaultdict
 from sqlite3 import connect
 
 from gorm import ORM as gORM
-from gorm.window import window_left
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -24,6 +23,7 @@ from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
 from .util import (
     AbstractEngine,
+    WindowDict,
     reify
 )
 
@@ -46,7 +46,7 @@ class AvatarnessCache(object):
             lambda: defaultdict(  # graph:
                 lambda: defaultdict(  # node:
                     lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
+                        WindowDict  # tick: is_avatar
                     )
                 )
             )
@@ -55,7 +55,7 @@ class AvatarnessCache(object):
             lambda: defaultdict(  # node:
                 lambda: defaultdict(  # character:
                     lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
+                        WindowDict  # tick: is_avatar
                     )
                 )
             )
@@ -155,7 +155,7 @@ class Engine(AbstractEngine, gORM):
         r = defaultdict(  # rulebook:
             lambda: defaultdict(  # rule:
                 lambda: defaultdict(  # branch:
-                    dict  # tick: active
+                    WindowDict  # tick: active
                 )
             )
         )
@@ -264,7 +264,7 @@ class Engine(AbstractEngine, gORM):
         r = defaultdict(  # character:
             lambda: defaultdict(  # thing:
                 lambda: defaultdict(  # branch:
-                    dict  # tick: (location, next_location)
+                    WindowDict  # tick: (location, next_location)
                 )
             )
         )
@@ -316,7 +316,7 @@ class Engine(AbstractEngine, gORM):
         if logfun is None:
             from logging import getLogger
             logger = getLogger(__name__)
-            
+
             def logfun(level, msg):
                 getattr(logger, level)(msg)
         self.log = logfun
@@ -569,9 +569,7 @@ class Engine(AbstractEngine, gORM):
         cache = self._active_rules_cache[rulebook][rule]
         for (branch, tick) in self._active_branches(*self.time):
             if branch in cache:
-                return cache[branch][
-                    window_left(cache[branch].keys(), tick)
-                ]
+                return cache[branch][tick]
         return False
 
     def _poll_char_rules(self):
@@ -841,7 +839,9 @@ class Engine(AbstractEngine, gORM):
         curtick = self.tick
         r = []
         while self.tick == curtick:
-            r.append(self.advance())
+            result = self.advance()
+            self.debug("[next_tick]: {}".format(result))
+            r.append(result)
         # The last element is always None, but is not a sentinel; any
         # rule may return None.
         return r[:-1]
@@ -893,10 +893,8 @@ class Engine(AbstractEngine, gORM):
                 return False
             for (branch, tick) in self._active_branches():
                 try:
-                    return cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]
-                except (KeyError, ValueError):
+                    return cache[branch][tick]
+                except KeyError:
                     continue
             return False
         return self.db.node_is_thing(character, node, *self.time)
@@ -909,10 +907,8 @@ class Engine(AbstractEngine, gORM):
                 return False
             for (branch, tick) in self._active_branches():
                 try:
-                    return cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]
-                except (KeyError, ValueError):
+                    return cache[branch][tick]
+                except KeyError:
                     continue
             return False
         return self.db.node_exists(character, node, *self.time)

@@ -5,9 +5,9 @@
 """
 import numpy
 from json import dumps, loads, JSONEncoder
-from collections import Mapping
+from collections import Mapping, MutableMapping
 from gorm.reify import reify
-from gorm.window import window_left, window_right
+from gorm.window import window_left, window_right, WindowDict
 
 
 def dispatch(d, key, *args):
@@ -190,6 +190,7 @@ class CompositeDict(Mapping):
 
 
 def path_len(graph, path, weight=None):
+
     """Return the number of ticks it will take to follow ``path``,
     assuming the portals' ``weight`` attribute is how long it will
     take to go through that portal--if unspecified, 1 tick.
