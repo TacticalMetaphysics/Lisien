@@ -28,15 +28,16 @@ from .util import (
 )
 
 
-crhandled_defaultdict = lambda: defaultdict(  # character:
-    lambda: defaultdict(  # rulebook:
-        lambda: defaultdict(  # rule:
-            lambda: defaultdict(  # branch:
-                set  # ticks handled
+def crhandled_defaultdict():
+    return defaultdict(  # character:
+        lambda: defaultdict(  # rulebook:
+            lambda: defaultdict(  # rule:
+                lambda: defaultdict(  # branch:
+                    set  # ticks handled
+                )
             )
         )
     )
-)
 
 
 class AvatarnessCache(object):
