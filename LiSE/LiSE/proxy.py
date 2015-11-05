@@ -84,6 +84,12 @@ class EngineHandle(object):
         self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
 
+        @self._real.next_tick_listener
+        def upon_next_tick(b, t, r):
+            self.tick = self._real.tick
+            self.put(('next_tick', b, t, r))
+            self.put(('set_time', b, t))
+
     def log(self, level, message):
         self._logq.put((level, message))
 
@@ -936,8 +942,6 @@ class EngineHandle(object):
 
     def next_tick(self):
         self._real.next_tick()
-        self.tick = self._real.tick
-        self.put(('set_time', self.branch, self.tick))
 
     def add_character(self, name, data, kwargs):
         self._real.add_character(name, data, **kwargs)

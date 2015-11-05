@@ -67,8 +67,10 @@ class Board(RelativeLayout):
             return
         self._parented = True
         self.kvlayoutback = KvLayoutBack(
+            character=self.character,
             pos=(0, 0)
         )
+        self.bind(character=self.kvlayoutback.setter('character'))
         self.size = self.kvlayoutback.size
         self.kvlayoutback.bind(size=self.setter('size'))
         self.arrowlayout = FloatLayout(**self.widkwargs)
@@ -562,9 +564,9 @@ Builder.load_string(
     size_hint: (None, None)
     Image:
         id: wallpaper
-        source: resource_find('wallpape.jpg')
+        source: resource_find(root.character.stat.get('wallpaper', 'wallpape.jpg')) if root.character else ''
         size_hint: (None, None)
-        size: self.texture.size
+        size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
 <Board>:
     size_hint: (None, None)
