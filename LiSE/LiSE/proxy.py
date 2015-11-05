@@ -2991,6 +2991,10 @@ class EngineProxy(AbstractEngine):
         return []
 
     @reify
+    def _next_tick_listeners(self):
+        return []
+
+    @reify
     def _lang_listeners(self):
         return []
 
@@ -3417,6 +3421,11 @@ class EngineProxy(AbstractEngine):
             (self._branch, self._tick) = data
             for fun in self._time_listeners:
                 fun(b, t, self._branch, self._tick)
+        elif typ == 'next_tick':
+            (b, t) = self.time
+            (self._branch, self._tick, results) = data
+            for fun in self._next_tick_listeners:
+                fun(b, t, self._branch, self._tick, results)
         elif typ == 'character':
             (branch, tick, charn, stat, val) = data
             try:
@@ -3504,6 +3513,20 @@ class EngineProxy(AbstractEngine):
             raise TypeError('this is a decorator')
         if f not in self._time_listeners:
             self._time_listeners.append(f)
+
+    def time_unlisten(self, f):
+        if f in self._time_listeners:
+            self._time_listeners.remove(f)
+
+    def next_tick_listener(self, f):
+        if not callable(f):
+            raise TypeError("next_tick_listener requires a callable")
+        if f not in self._next_tick_listeners:
+            self._next_tick_listeners.append(f)
+
+    def next_tick_unlisten(self, f):
+        if f in self._next_tick_listeners:
+            self._next_tick_listeners.remove(f)
 
     def add_character(self, name, data=None, **kwargs):
         self.handle('add_character', (name, data, kwargs))

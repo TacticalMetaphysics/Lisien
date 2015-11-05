@@ -49,7 +49,7 @@ class ELiDEApp(App):
     def on_engine(self, *args):
         if self.engine is None:
             return
-        self.engine.time_listener(self._pull_time)
+        self.engine.next_tick_listener(self._pull_time)
 
     def on_time(self, *args):
         local_time = list(self.time)
