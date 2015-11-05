@@ -278,6 +278,10 @@ class Engine(AbstractEngine, gORM):
         return []
 
     @reify
+    def _next_tick_listeners(self):
+        return []
+
+    @reify
     def codedb(self):
         return connect(self._codedb)
 
@@ -493,6 +497,18 @@ class Engine(AbstractEngine, gORM):
     def time_unlisten(self, v):
         if v in self._time_listeners:
             self._time_listeners.remove(v)
+        return v
+
+    def next_tick_listener(self, v):
+        if not callable(v):
+            raise TypeError("This is a decorator")
+        if v not in self._next_tick_listeners:
+            self._next_tick_listeners.append(v)
+        return v
+
+    def next_tick_unlisten(self, v):
+        if v in self._next_tick_listeners:
+            self._next_tick_listeners.remove(v)
         return v
 
     @property
@@ -844,6 +860,8 @@ class Engine(AbstractEngine, gORM):
             r.append(self.advance())
         # The last element is always None, but is not a sentinel; any
         # rule may return None.
+        for listener in self._next_tick_listeners:
+            listener(self.branch, self.tick, r)
         return r[:-1]
 
     def new_character(self, name, **kwargs):
