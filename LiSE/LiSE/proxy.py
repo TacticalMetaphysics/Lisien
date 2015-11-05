@@ -1077,7 +1077,7 @@ class EngineHandle(object):
             old = self._char_stat_cache.get(char, {})
             new = self.character_stat_copy(char)
             self._char_stat_cache[char] = new
-            r = dict_diff(old, new)
+            return dict_diff(old, new)
         except KeyError:
             return None
 
