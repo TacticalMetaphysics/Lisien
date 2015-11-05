@@ -1642,7 +1642,7 @@ class NodeProxy(CachingEntityProxy):
 
     def __bool__(self):
         """It means something that I exist, even if I don't have any data yet."""
-        return True
+        return self.exists
 
     def _get_diff(self):
         return self.engine.handle(
