@@ -6,38 +6,38 @@ flow of time.
 
 """
 from random import Random
-from collections import (
-    defaultdict,
-    deque,
-    Mapping,
-    MutableMapping,
-    Callable
-)
+from collections import defaultdict
 from sqlite3 import connect
 
 from gorm import ORM as gORM
 from gorm.window import window_left
-from .xcollections import StringStore, FunctionStore, GlobalVarMapping, CharacterMapping
+from .xcollections import (
+    StringStore,
+    FunctionStore,
+    GlobalVarMapping,
+    CharacterMapping
+)
 from .character import Character
 from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import AbstractEngine, dispatch, listen, listener, unlisten, unlistener, reify
+from .util import (
+    AbstractEngine,
+    reify
+)
 
 
-
-
-
-crhandled_defaultdict = lambda: defaultdict(  # character:
-    lambda: defaultdict(  # rulebook:
-        lambda: defaultdict(  # rule:
-            lambda: defaultdict(  # branch:
-                set  # ticks handled
+def crhandled_defaultdict():
+    return defaultdict(  # character:
+        lambda: defaultdict(  # rulebook:
+            lambda: defaultdict(  # rule:
+                lambda: defaultdict(  # branch:
+                    set  # ticks handled
+                )
             )
         )
     )
-)
 
 
 class AvatarnessCache(object):
@@ -108,13 +108,13 @@ class Engine(AbstractEngine, gORM):
         assert(self.caching)
         r = {}
         for (
-                    character,
-                    character_rulebook,
-                    avatar_rulebook,
-                    character_thing_rulebook,
-                    character_place_rulebook,
-                    character_node_rulebook,
-                    character_portal_rulebook
+                character,
+                character_rulebook,
+                avatar_rulebook,
+                character_thing_rulebook,
+                character_place_rulebook,
+                character_node_rulebook,
+                character_portal_rulebook
         ) in self.db.characters_rulebooks():
             r[character] = {
                 'character': character_rulebook,
@@ -297,7 +297,8 @@ class Engine(AbstractEngine, gORM):
             caching=True,
             commit_modulus=None,
             random_seed=None,
-            sql_rule_polling=False
+            sql_rule_polling=False,
+            logfun=None
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -310,8 +311,15 @@ class Engine(AbstractEngine, gORM):
             alchemy=alchemy,
             caching=caching,
             json_dump=self.json_dump,
-            json_load=self.json_load
+            json_load=self.json_load,
         )
+        if logfun is None:
+            from logging import getLogger
+            logger = getLogger(__name__)
+            
+            def logfun(level, msg):
+                getattr(logger, level)(msg)
+        self.log = logfun
         self._sql_polling = sql_rule_polling
         self.commit_modulus = commit_modulus
         self.random_seed = random_seed
@@ -392,6 +400,21 @@ class Engine(AbstractEngine, gORM):
     def character(self):
         return CharacterMapping(self)
 
+    def debug(self, msg):
+        self.log('debug', msg)
+
+    def info(self, msg):
+        self.log('info', msg)
+
+    def warning(self, msg):
+        self.log('warning', msg)
+
+    def error(self, msg):
+        self.log('error', msg)
+
+    def critical(self, msg):
+        self.log('critical', msg)
+
     def coinflip(self):
         """Return True or False with equal probability."""
         return self.choice((True, False))
@@ -461,7 +484,7 @@ class Engine(AbstractEngine, gORM):
         new branch and tick.
 
         """
-        if not isinstance(v, Callable):
+        if not callable(v):
             raise TypeError("This is a decorator")
         if v not in self._time_listeners:
             self._time_listeners.append(v)
@@ -566,7 +589,10 @@ class Engine(AbstractEngine, gORM):
             )
 
         for char in self._characters_rulebooks_cache:
-            for (rulemap, rulebook) in self._characters_rulebooks_cache[char].items():
+            for (
+                    rulemap,
+                    rulebook
+            ) in self._characters_rulebooks_cache[char].items():
                 for rule in self._rulebooks_cache[rulebook]:
                     if (
                         self._rule_active(rulebook, rule) and not
@@ -627,7 +653,14 @@ class Engine(AbstractEngine, gORM):
                             self._rule_active(rulebook, rule) and not
                             handled(char, nodeA, nodeB, rulebook, rule)
                         ):
-                            yield ('portal', char, nodeA, nodeB, rulebook, rule)
+                            yield (
+                                'portal',
+                                char,
+                                nodeA,
+                                nodeB,
+                                rulebook,
+                                rule
+                            )
 
     def _poll_rules(self):
         """Iterate over tuples containing rules yet unresolved in the current tick.

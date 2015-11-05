@@ -93,27 +93,13 @@ class Node(gorm.graph.Node, rule.RuleFollower):
 
     def _get_rulebook_name(self):
         if self.engine.caching:
-            try:
-                cache = self.engine._nodes_rulebooks_cache[self.character.name][self.name]
-            except KeyError:
-                (branch, tick) = self.engine.time
-                self.engine.db.set_node_rulebook(
-                    self.character.name,
-                    self.name,
-                    (self.character.name, self.name)
-                )
-                self.engine._nodes_rulebooks_cache[self.character.name][self.name][branch][tick] = (self.character.name, self.name)
+            cache = self.engine._nodes_rulebooks_cache
+            if (
+                    self.character.name not in cache or
+                    self.name not in cache[self.character.name]
+            ):
                 return (self.character.name, self.name)
-            for (branch, tick) in self.engine._active_branches():
-                if branch not in cache:
-                    continue
-                try:
-                    return cache[branch][
-                        window_left(cache[branch].keys(), tick)
-                    ]
-                except ValueError:
-                    continue
-            raise KeyError("{} has no rulebook?".format(self.name))
+            return cache[self.character.name][self.name]
         try:
             return self.engine.db.node_rulebook(
                 self.character.name,

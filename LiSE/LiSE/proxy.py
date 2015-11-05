@@ -22,7 +22,8 @@ from gorm.xjson import (
 from .util import (
     AbstractEngine,
     dict_diff,
-    list_diff
+    list_diff,
+    reify
 )
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
@@ -40,7 +41,7 @@ class EngineHandle(object):
     developing your own API.
 
     """
-    def __init__(self, args, kwargs, callbacq):
+    def __init__(self, args, kwargs, callbacq, logq):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
 
@@ -52,9 +53,13 @@ class EngineHandle(object):
         another, and a watched entity's stats differ between those
         points.
 
+        ``logq`` is another :class:`Queue` into which I'll put tuples of
+        ``(loglevel, message)``.
+
         """
-        self._real = Engine(*args, **kwargs)
+        self._real = Engine(*args, logfun=self.log, **kwargs)
         self._q = callbacq
+        self._logq = logq
         self._muted_chars = set()
         self.branch = self._real.branch
         self.tick = self._real.tick
@@ -78,6 +83,24 @@ class EngineHandle(object):
         self._char_places_cache = {}
         self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
+
+    def log(self, level, message):
+        self._logq.put((level, message))
+
+    def debug(self, message):
+        self.log('debug', message)
+
+    def info(self, message):
+        self.log('info', message)
+
+    def warning(self, message):
+        self.log('warning', message)
+
+    def error(self, message):
+        self.log('error', message)
+
+    def critical(self, message):
+        self.log('critical', message)
 
     def put(self, obj):
         self._q.put(self._real.json_dump(obj))
@@ -1560,7 +1583,7 @@ class CachingEntityProxy(CachingProxy):
 
 
 class NodeProxy(CachingEntityProxy):
-    @property
+    @reify
     def character(self):
         return CharacterProxy(self.engine, self._charname)
 
@@ -2911,51 +2934,157 @@ class EngineProxy(AbstractEngine):
             for f in self._time_listeners:
                 f(b, t, branch, tick)
 
-    def __init__(self, handle_out, handle_in, eventq):
-        self._handle_out = handle_out
-        self._handle_in = handle_in
-        self._q = eventq
-        self.eternal = EternalVarProxy(self)
-        self.universal = GlobalVarProxy(self)
-        self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
-        self.rulebook = AllRuleBooksProxy(self)
-        self.rule = AllRulesProxy(self)
-        for funstore in ('action', 'prereq', 'trigger', 'sense', 'function'):
-            setattr(self, funstore, FuncStoreProxy(self, funstore))
-        self._rulebook_listeners = defaultdict(list)
-        self._time_listeners = []
-        self._lang_listeners = []
-        self._strings_listeners = []
-        self._string_listeners = defaultdict(list)
-        self._universals_listeners = []
-        self._universal_listeners = defaultdict(list)
-        self._char_listeners = defaultdict(list)
-        self._char_map_listeners = []
-        self._char_stat_listeners = defaultdict(lambda: defaultdict(list))
-        self._node_listeners = defaultdict(lambda: defaultdict(list))
-        self._node_stat_listeners = defaultdict(
+    @reify
+    def eternal(self):
+        return EternalVarProxy(self)
+
+    @reify
+    def universal(self):
+        return GlobalVarProxy(self)
+
+    @reify
+    def character(self):
+        return CharacterMapProxy(self)
+
+    @reify
+    def string(self):
+        return StringStoreProxy(self)
+
+    @reify
+    def rulebook(self):
+        return AllRuleBooksProxy(self)
+
+    @reify
+    def rule(self):
+        return AllRulesProxy(self)
+
+    @reify
+    def action(self):
+        return FuncStoreProxy(self, 'action')
+
+    @reify
+    def prereq(self):
+        return FuncStoreProxy(self, 'prereq')
+
+    @reify
+    def trigger(self):
+        return FuncStoreProxy(self, 'trigger')
+
+    @reify
+    def sense(self):
+        return FuncStoreProxy(self, 'sense')
+
+    @reify
+    def function(self):
+        return FuncStoreProxy(self, 'function')
+
+    @reify
+    def _rulebook_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _time_listeners(self):
+        return []
+
+    @reify
+    def _lang_listeners(self):
+        return []
+
+    @reify
+    def _strings_listeners(self):
+        return []
+
+    @reify
+    def _string_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _universals_listeners(self):
+        return []
+
+    @reify
+    def _universal_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _char_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _char_map_listeners(self):
+        return []
+
+    @reify
+    def _char_stat_listeners(self):
+        return defaultdict(lambda: defaultdict(list))
+
+    @reify
+    def _node_listeners(self):
+        return defaultdict(lambda: defaultdict(list))
+
+    @reify
+    def _node_stat_listeners(self):
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(list)
             )
         )
-        self._thing_map_listeners = defaultdict(list)
-        self._place_map_listeners = defaultdict(list)
-        self._node_map_listeners = defaultdict(list)
-        self._portal_listeners = defaultdict(
+
+    @reify
+    def _thing_map_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _place_map_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _node_map_listeners(self):
+        return defaultdict(list)
+
+    @reify
+    def _portal_listeners(self):
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(list)
             )
         )
-        self._portal_stat_listeners = defaultdict(
+
+    @reify
+    def _portal_stat_listeners(self):
+        return defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(
                     lambda: defaultdict(list)
                 )
             )
         )
-        self._portal_map_listeners = defaultdict(list)
+
+    @reify
+    def _portal_map_listeners(self):
+        return defaultdict(list)
+
+    def __init__(self, handle_out, handle_in, logger, eventq):
+        self._handle_out = handle_out
+        self._handle_in = handle_in
+        self.logger = logger
+        self._q = eventq
         (self._branch, self._tick) = self.handle('get_watched_time')
+
+    def debug(self, msg):
+        self.logger.debug(msg)
+
+    def info(self, msg):
+        self.logger.info(msg)
+
+    def warning(self, msg):
+        self.logger.warning(msg)
+
+    def error(self, msg):
+        self.logger.error(msg)
+
+    def critical(self, msg):
+        self.logger.critical(msg)
 
     def handle(self, func_name, args=[], silent=False):
         self._handle_out.send(self.json_dump((silent, func_name, args)))
@@ -3444,7 +3573,7 @@ def subprocess(
                 'debug',
                 "returning {} (of type {})".format(data, repr(type(data)))
             ))
-    engine_handle = EngineHandle(args, kwargs, callbacq)
+    engine_handle = EngineHandle(args, kwargs, callbacq, logq)
 
     while True:
         inst = handle_out_pipe.recv()
@@ -3521,6 +3650,7 @@ class EngineProcessManager(object):
         self.engine_proxy = EngineProxy(
             self._handle_out_pipe_send,
             handle_in_pipe_recv,
+            self.logger,
             callbacq
         )
         return self.engine_proxy
