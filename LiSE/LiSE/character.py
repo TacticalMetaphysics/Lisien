@@ -1045,22 +1045,14 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
         self[name] = fun
 
 
-class FacadePlace(MutableMapping):
-    @property
-    def name(self):
-        return self['name']
+class FacadeEntity(MutableMapping):
+    @reify
+    def _masked(self):
+        return set()
 
-    def contents(self):
-        for thing in self.facade.thing.values():
-            if thing.container is self:
-                yield thing
-
-    def __init__(self, facade, real):
-        self.facade = facade
-        self._real = real
-        self._patch = {}
-        self._masked = set()
-        self._listeners = defaultdict(list)
+    @reify
+    def _listeners(self):
+        return defaultdict(list)
 
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
@@ -1092,7 +1084,7 @@ class FacadePlace(MutableMapping):
 
     def __getitem__(self, k):
         if k in self._masked:
-            raise KeyError("masked")
+            raise KeyError("{} has been masked.".format(k))
         if k in self._patch:
             return self._patch[k]
         return self._real[k]
@@ -1107,7 +1099,60 @@ class FacadePlace(MutableMapping):
         self._dispatch(k, None)
 
 
-class FacadeThing(FacadePlace):
+class FacadePlace(FacadeEntity):
+    @property
+    def name(self):
+        return self._real['name']
+
+    def contents(self):
+        for thing in self.facade.thing.values():
+            if thing.container is self:
+                yield thing
+
+    def __init__(self, facade, real_or_name, **kwargs):
+        self._patch = kwargs
+        if isinstance(real_or_name, Place) or \
+           isinstance(real_or_name, FacadePlace):
+            self._real = real_or_name
+        else:
+            self._real = {'name': real_or_name}
+
+    def __setitem__(self, k, v):
+        if k == 'name':
+            raise TypeError("Places have fixed names")
+        super().__setitem__(k, v)
+
+
+class FacadeThing(FacadeEntity):
+    @property
+    def name(self):
+        return self._real['name']
+
+    def __init__(self, facade, real_or_name, location=None, *args, **kwargs):
+        if location is None and not (
+                isinstance(real_or_name, Thing) or
+                isinstance(real_or_name, FacadeThing)
+        ):
+            raise TypeError(
+                "FacadeThing needs to wrap a real Thing or another "
+                "FacadeThing, or have a location of its own."
+            )
+        self._patch = kwargs
+        if hasattr(location, 'name'):
+            location = location.name
+        if location is not None and location not in self.facade.place:
+            self.facade.new_place(location)
+        self._real = {
+            'name': real_or_name.name if hasattr(real_or_name, 'name')
+            else real_or_name,
+            'location': location
+        }
+
+    def __setitem__(self, k, v):
+        if k == 'name':
+            raise TypeError("Things have fixed names")
+        super().__setitem__(k, v)
+
     @property
     def location(self):
         try:
@@ -1133,14 +1178,50 @@ class FacadeThing(FacadePlace):
             return self.location
 
 
-class FacadePortal(FacadePlace):
+class FacadePortal(FacadeEntity):
+    def __init__(self, real_or_origin, destination=None, **kwargs):
+        if destination is None:
+            if not (
+                    isinstance(real_or_origin, Portal) or
+                    isinstance(real_or_origin, FacadePortal)
+            ):
+                raise TypeError(
+                    "FacadePortal must wrap a real portal or another "
+                    "FacadePortal, or be instantiated with "
+                    "an origin and a destiantion."
+                )
+            self._real = real_or_origin
+        else:
+            if (
+                    isinstance(real_or_origin, Portal) or
+                    isinstance(real_or_origin, FacadePortal)
+            ):
+                raise TypeError(
+                    "Either wrap something, or supply origin and destination. "
+                    "Not both."
+                )
+            self._real = {
+                'origin': real_or_origin.name
+                if hasattr(real_or_origin, 'name')
+                else real_or_origin,
+                'destination': destination.name
+                if hasattr(destination, 'name')
+                else destination
+            }
+        self._patch = kwargs
+
+    def __setitem__(self, k, v):
+        if k in ('origin', 'destination'):
+            raise TypeError("Portals have fixed origin and destination")
+        super().__setitem__(k, v)
+
     @property
     def origin(self):
-        return self.facade.node[self['origin']]
+        return self.facade.node[self._real['origin']]
 
     @property
     def destination(self):
-        return self.facade.node[self['destination']]
+        return self.facade.node[self._real['destination']]
 
 
 class FacadeEntityMapping(MutableMapping):
