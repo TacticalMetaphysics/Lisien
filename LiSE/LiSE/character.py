@@ -28,6 +28,7 @@ from collections import (
     MutableMapping,
     Callable
 )
+from math import floor
 
 import networkx as nx
 from gorm.graph import (
@@ -67,6 +68,122 @@ class AbstractCharacter(object):
         if not callable(func):
             func = self.engine.function[func]
         func(self, *args, **kwargs)
+        return self
+
+    def perlin(self, stat='perlin'):
+        """Apply Perlin noise to my nodes, and return myself.
+
+        I'll try to use the name of the node as its spatial position
+        for this purpose, or use its stats 'x', 'y', and 'z', or skip
+        the node if neither are available. z is assumed 0 if not
+        provided for a node.
+
+        Result will be stored in a node stat named 'perlin' by default.
+        Supply the name of another stat to use it instead.
+
+        """
+        p = (
+            151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7,
+            225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190,
+            6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117,
+            35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136,
+            171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146,
+            158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41,
+            55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
+            73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116,
+            188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226,
+            250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207,
+            206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213,
+            119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43,
+            172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178,
+            185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144,
+            12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49,
+            192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50,
+            45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72,
+            243, 141, 128, 195, 78, 66, 215, 61, 156, 180
+        ) * 2
+
+        def fade(t):
+            return t * t * t * (t * (t * 6 - 15) + 10)
+
+        def lerp(t, a, b):
+            return a + t * (b - a)
+
+        def grad(hsh, x, y, z):
+            """CONVERT LO 4 BITS OF HASH CODE INTO 12 GRADIENT DIRECTIONS."""
+            h = hsh & 15
+            u = x if h < 8 else y
+            v = y if h < 4 else x if h == 12 or h == 14 else z
+            return (u if h & 1 == 0 else -u) + (v if h & 2 == 0 else -v)
+
+        def noise(x, y, z):
+            # FIND UNIT CUBE THAT CONTAINS POINT.
+            X = int(x) & 255
+            Y = int(y) & 255
+            Z = int(z) & 255
+            # FIND RELATIVE X, Y, Z OF POINT IN CUBE.
+            x -= floor(x)
+            y -= floor(y)
+            z -= floor(z)
+            # COMPUTE FADE CURVES FOR EACH OF X, Y, Z.
+            u = fade(x)
+            v = fade(y)
+            w = fade(z)
+            # HASH COORDINATES OF THE 8 CUBE CORNERS,
+            A = p[X] + Y
+            AA = p[A] + Z
+            AB = p[A+1] + Z
+            B = p[X+1] + y
+            BA = p[B] + Z
+            BB = p[B+1] + Z
+            # AND ADD BLENDED RESULTS FROM 8 CORNERS OF CUBE
+            return lerp(
+                w,
+                lerp(
+                    v,
+                    lerp(
+                        u,
+                        grad(p[AA], x, y, z),
+                        grad(p[BA], x-1, y, z)
+                    ),
+                    lerp(
+                        u,
+                        grad(p[AB], x, y-1, z),
+                        grad(p[BB], x-1, y-1, z)
+                    )
+                ),
+                lerp(
+                    v,
+                    lerp(
+                        u,
+                        grad(p[AA+1], x, y, z-1),
+                        grad(p[BA+1], x-1, y, z-1)
+                    ),
+                    lerp(
+                        u,
+                        grad(p[AB+1], x, y-1, z-1),
+                        grad(p[BB+1], x-1, y-1, z-1)
+                    )
+                )
+            )
+
+        for node in self.node.values():
+            try:
+                (x, y, z) = node.name
+            except ValueError:
+                try:
+                    (x, y) = node.name
+                    z = 0.0
+                except ValueError:
+                    try:
+                        x = node['x']
+                        y = node['y']
+                        z = node.get('z', 0.0)
+                    except KeyError:
+                        continue
+            x, y, z = map(float, (x, y, z))
+            node[stat] = noise(x, y, z)
+
         return self
 
 
