@@ -55,16 +55,18 @@ from .portal import Portal
 
 
 class AbstractCharacter(object):
-    def do(self, func):
-        """Apply the function to myself, and return myself. Look up the
-        function in the database if needed.
+    def do(self, func, *args, **kwargs):
+        """Apply the function to myself, and return myself.
+
+        Look up the function in the database if needed. Pass it any
+        arguments given, keyword or positional.
 
         Useful chiefly when chaining.
 
         """
         if not callable(func):
             func = self.engine.function[func]
-        func(self)
+        func(self, *args, **kwargs)
         return self
 
 
