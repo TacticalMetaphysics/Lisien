@@ -1405,16 +1405,52 @@ class FacadeStatsMapping(MutableMapping):
 
 
 class Facade(nx.DiGraph):
+    @reify
+    def thing(self):
+        return FacadeThingMapping(self)
+
+    @reify
+    def place(self):
+        return FacadePlaceMapping(self)
+
+    @reify
+    def node(self):
+        return CompositeDict(self.thing, self.place)
+
+    @reify
+    def portal(self):
+        return FacadePortalSuccessorsMapping(self)
+
+    @property
+    def succ(self):
+        return self.portal
+
+    @property
+    def edge(self):
+        return self.portal
+
+    @property
+    def adj(self):
+        return self.portal
+
+    @reify
+    def preportal(self):
+        return FacadePortalPredecessorsMapping(self)
+
+    @property
+    def pred(self):
+        return self.preportal
+
+    @reify
+    def graph(self):
+        return FacadeStatsMapping(self)
+
+    @property
+    def engine(self):
+        return self.character.engine
+
     def __init__(self, character):
         self.character = character
-        self.thing = FacadeThingMapping(self)
-        self.place = FacadePlaceMapping(self)
-        self.node = CompositeDict(self.thing, self.place)
-        self.portal = FacadePortalSuccessorsMapping(self)
-        self.succ = self.edge = self.adj = self.portal
-        self.preportal = FacadePortalPredecessorsMapping(self)
-        self.pred = self.preportal
-        self.graph = FacadeStatsMapping(self)
 
 
 class CharStatCache(MutableMapping):
