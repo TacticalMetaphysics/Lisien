@@ -54,6 +54,20 @@ from .place import Place
 from .portal import Portal
 
 
+class AbstractCharacter(object):
+    def do(self, func):
+        """Apply the function to myself, and return myself. Look up the
+        function in the database if needed.
+
+        Useful chiefly when chaining.
+
+        """
+        if not callable(func):
+            func = self.engine.function[func]
+        func(self)
+        return self
+
+
 class CharRuleMapping(RuleMapping):
     def __init__(self, character, rulebook, booktyp):
         super().__init__(rulebook.engine, rulebook)
@@ -1404,7 +1418,7 @@ class FacadeStatsMapping(MutableMapping):
         self._masked.add(k)
 
 
-class Facade(nx.DiGraph):
+class Facade(AbstractCharacter, nx.DiGraph):
     @reify
     def thing(self):
         return FacadeThingMapping(self)
@@ -1547,7 +1561,7 @@ class CharStatCache(MutableMapping):
         self._dispatch(k, None)
 
 
-class Character(DiGraph, RuleFollower):
+class Character(AbstractCharacter, DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
