@@ -40,9 +40,7 @@ import gorm.alchemy
 
 # Constants
 
-length = 50
-
-TEXT = String(length)
+TEXT = String(50)
 
 functyps = (
     'actions',
