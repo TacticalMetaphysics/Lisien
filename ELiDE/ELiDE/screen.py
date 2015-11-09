@@ -340,6 +340,8 @@ class MainScreen(Screen):
                 if cand.collide_point(*touch.pos):
                     if hasattr(self.selection, 'selected'):
                         self.selection.selected = False
+                    if hasattr(self.selection, 'hit'):
+                        self.selection.hit = False
                     self.selection = cand
                     cand.hit = cand.selected = True
                     touch.grab(cand)
