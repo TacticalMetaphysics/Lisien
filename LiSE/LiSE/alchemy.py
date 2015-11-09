@@ -38,14 +38,8 @@ from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 from sqlalchemy.sql.expression import union
 import gorm.alchemy
 
+# Constants
 
-
-
-
-
-
-
-### Constants
 length = 50
 
 TEXT = String(length)
@@ -862,9 +856,9 @@ def queries(table, view):
 
     def arhitick(*cols):
         wheres = [
-                     getattr(active_rules.c, col) == bindparam(col)
+            getattr(active_rules.c, col) == bindparam(col)
             for col in cols
-                     ] + [active_rules.c.tick <= bindparam('tick')]
+        ] + [active_rules.c.tick <= bindparam('tick')]
         return select(
             [
                 active_rules.c.rulebook,
@@ -1133,8 +1127,8 @@ def queries(table, view):
         ).select_from(
             characters.join(
                 current_active_rules,
-                getattr(characters.c, _rulebook)
-                == current_active_rules.c.rulebook
+                getattr(characters.c, _rulebook) ==
+                current_active_rules.c.rulebook
             ).join(
                 rulebooks,
                 and_(
@@ -1170,7 +1164,8 @@ def queries(table, view):
     r['poll_character_place_rules'] = poll_char_rules('character_place')
     r['handled_character_place_rules'] = handled_char_rules('character_place')
     r['poll_character_portal_rules'] = poll_char_rules('character_portal')
-    r['handled_character_portal_rules'] = handled_char_rules('character_portal')
+    r['handled_character_portal_rules'] \
+        = handled_char_rules('character_portal')
 
     def handled_character_ruletyp(typ):
         tab = table['{}_rules_handled'.format(typ)]
