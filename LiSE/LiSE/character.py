@@ -28,6 +28,7 @@ from collections import (
     MutableMapping,
     Callable
 )
+from operator import ge, gt, le, lt, eq
 from math import floor
 
 import networkx as nx
@@ -373,6 +374,62 @@ class AbstractCharacter(object):
 
     def gaussian_random_partition_graph(self, n, s, v, p_in, p_out, seed=None):
         return self.copy_from(nx.gaussian_random_partition_graph(n, s, v, p_in, p_out, directed=directed, seed=seed))
+
+    def _lookup_comparator(self, comparator):
+        if callable(comparator):
+            return comparator
+        ops = {
+            'ge': ge,
+            'gt': gt,
+            'le': le,
+            'lt': lt,
+            'eq': eq
+        }
+        if comparator in ops:
+            return ops[comparator]
+        return self.engine.function[comparator]
+
+    def cull_nodes(self, stat, threshold=0.5, comparator=ge):
+        """Delete nodes whose stat >= ``threshold`` (default 0.5).
+
+        Optional argument ``comparator`` will replace >= as the test
+        for whether to cull. You can use the name of a stored function.
+
+        """
+        comparator = self._lookup_comparator(comparator)
+        dead = [
+            name for name, node in self.node.items()
+            if stat in node and comparator(node[stat], threshold)
+        ]
+        self.remove_nodes_from(dead)
+        return self
+
+    def cull_portals(self, stat, threshold=0.5, comparator=ge):
+        """Delete portals whose stat >= ``threshold`` (default 0.5).
+
+        Optional argument ``comparator`` will replace >= as the test
+        for whether to cull. You can use the name of a stored function.
+
+        """
+        comparator = self._lookup_comparator(comparator)
+        dead = []
+        for u in self.portal:
+            for v in self.portal[u]:
+                if stat in self.portal[u][v] and comparator(
+                        self.portal[u][v][stat], threshold
+                ):
+                    dead.append((u, v))
+        self.remove_edges_from(dead)
+        return self
+
+    def cull_edges(self, stat, threshold=0.5, comparator=ge):
+        """Delete edges whose stat >= ``threshold`` (default 0.5).
+
+        Optional argument ``comparator`` will replace >= as the test
+        for whether to cull. You can use the name of a stored function.
+
+        """
+        return self.cull_portals(stat, threshold, comparator)
 
 
 class CharRuleMapping(RuleMapping):
