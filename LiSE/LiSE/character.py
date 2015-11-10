@@ -186,6 +186,194 @@ class AbstractCharacter(object):
 
         return self
 
+    def copy_from(self, g):
+        for k, v in g.node.items():
+            self.place[k] = v
+        for u in g.edge:
+            for v in g.edge[u]:
+                if isinstance(g, nx.MultiGraph) or\
+                   isinstance(g, nx.MultiDiGraph):
+                    self.edge[u][v] = g.edge[u][v][0]
+                else:
+                    self.edge[u][v] = g.edge[u][v]
+        return self
+
+    def become(self, g):
+        self.clear()
+        self.copy_from(g)
+        return self
+
+    def balanced_tree(self, r, h):
+        return self.copy_from(nx.balanced_tree(r, h))
+
+    def barbell_graph(self, m1, m2):
+        return self.copy_from(nx.barbell_graph(m1, m2))
+
+    def complete_graph(self, n):
+        return self.copy_from(nx.complete_graph(n))
+
+    def circular_ladder_graph(self, n):
+        return self.copy_from(nx.circular_ladder_graph(n))
+
+    def cycle_graph(self, n):
+        return self.copy_from(nx.cycle_graph(n))
+
+    def empty_graph(self, n):
+        return self.copy_from(nx.empty_graph(n))
+
+    def grid_2d_graph(self, m, n, periodic=False):
+        return self.copy_from(nx.grid_2d_graph(m, n, periodic))
+
+    def grid_graph(self, dim, periodic=False):
+        return self.copy_from(nx.grid_graph(dim, periodic))
+
+    def ladder_graph(self, n):
+        return self.copy_from(nx.ladder_graph(n))
+
+    def lollipop_graph(self, m, n):
+        return self.copy_from(nx.lollipop_graph(m, n))
+
+    def path_graph(self, n):
+        return self.copy_from(nx.path_graph(n))
+
+    def star_graph(self, n):
+        return self.copy_from(nx.star_graph(n))
+
+    def wheel_graph(self, n):
+        return self.copy_from(nx.wheel_graph(n))
+
+    def fast_gnp_random_graph(self, n, p, seed=None):
+        return self.copy_from(nx.fast_gnp_random_graph(n, p, seed, directed=True))
+
+    def gnp_random_graph(self, n, p, seed=None):
+        return self.copy_from(nx.gnp_random_graph(n, p, seed, directed=True))
+
+    def gnm_random_graph(self, n, m, seed=None):
+        return self.copy_from(nx.gnm_random_graph(n, m, seed, directed=True))
+
+    def erdos_renyi_graph(self, n, p, seed=None):
+        return self.copy_from(nx.erdos_renyi_graph(n, p, seed, directed=True))
+
+    def binomial_graph(self, n, p, seed=None):
+        return self.erdos_renyi_graph(n, p, seed)
+
+    def newman_watts_strogatz_graph(self, n, k, p, seed=None):
+        return self.copy_from(nx.newman_watts_strogatz_graph(n, k, p, seed))
+
+    def watts_strogatz_graph(self, n, k, p, seed=None):
+        return self.copy_from(nx.watts_strogatz_graph(n, k, p, seed))
+
+    def connected_watts_strogatz_graph(self, n, k, p, tries=100, seed=None):
+        return self.copy_from(nx.connected_watts_strogatz_graph(n, k, p, tries, seed))
+
+    def random_regular_graph(self, d, n, seed=None):
+        return self.copy_from(nx.random_regular_graph(d, n, seed))
+
+    def barabasi_albert_graph(self, n, m, seed=None):
+        return self.copy_from(nx.barabasi_albert_graph(n, m, seed))
+
+    def powerlaw_cluster_graph(self, n, m, p, seed=None):
+        return self.copy_from(nx.powerlaw_cluster_graph(n, m, p, seed))
+
+    def duplication_divergence_graph(self, n, p, seed=None):
+        return self.copy_from(nx.duplication_divergence_graph(n, p, seed))
+
+    def random_lobster(self, n, p1, p2, seed=None):
+        return self.copy_from(nx.random_lobster(n, p1, p2, seed))
+
+    def random_shell_graph(self, constructor, seed=None):
+        return self.copy_from(nx.random_shell_graph(constructor, seed))
+
+    def random_powerlaw_tree(self, n, gamma=3, seed=None, tries=100):
+        return self.copy_from(nx.random_powerlaw_tree(n, gamma, seed, tries))
+
+    def configuration_model(self, deg_sequence, seed=None):
+        return self.copy_from(nx.configuration_model(deg_sequence, seed=seed))
+
+    def directed_configuration_model(self, in_degree_sequence, out_degree_sequence, seed=None):
+        return self.copy_from(nx.directed_configuration_model(in_degree_sequence, out_degree_sequence, seed=seed))
+
+    def expected_degree_graph(self, w, seed=None, selfloops=True):
+        return self.copy_from(nx.expected_degree_graph(w, seed, selfloops))
+
+    def havel_hakmi_graph(self, deg_sequence):
+        return self.copy_from(nx.havel_hakimi_graph(deg_sequence))
+
+    def directed_havel_hakmi_graph(self, in_degree_sequence, out_degree_sequence):
+        return self.copy_from(nx.directed_havel_hakmi_graph(in_degree_sequence, out_degree_sequence))
+
+    def degree_sequence_tree(self, deg_sequence):
+        return self.copy_from(nx.degree_sequence_tree(deg_sequence))
+
+    def random_degree_sequence_graph(self, sequence, seed=None, tries=10):
+        return self.copy_from(nx.random_degree_sequence_graph(sequence, seed, tries))
+
+    def random_clustered_graph(self, joint_degree_sequence, seed=None):
+        return self.copy_from(nx.random_clustered_graph(joint_degree_sequence, seed=seed))
+
+    def gn_graph(self, n, kernel=None, seed=None):
+        return self.copy_from(nx.gn_graph(n, kernel, seed=seed))
+
+    def gnr_graph(self, n, p, seed=None):
+        return self.copy_from(nx.gnr_graph(n, p, seed=seed))
+
+    def gnc_graph(self, n, seed=None):
+        return self.copy_from(nx.gnc_graph(n, seed=seed))
+
+    def scale_free_graph(self, n, alpha=0.41, beta=0.54, gamma=0.05, delta_in=0.2, delta_out=0, seed=None):
+        return self.copy_from(nx.scale_free_graph(n, alpha, beta, gamma, delta_in, delta_out, seed=seed))
+
+    def random_geometric_graph(self, n, radius, dim=2, pos=None):
+        return self.copy_from(nx.random_geometric_graph(n, radius, dim, pos))
+
+    def geographical_threshold_graph(self, n, theta, alpha=2, dim=2, pos=None, weight=None):
+        return self.copy_from(nx.geographical_threshold_graph(n, theta, alpha, dim, pos, weight))
+
+    def waxman_graph(self, n, alpha=0.4, beta=0.1, L=None, domain=(0, 0, 1, 1)):
+        return self.copy_from(nx.waxman_graph(n, alpha, beta, L, domain))
+
+    def navigable_small_world_graph(self, n, p=1, q=1, r=2, dim=2, seed=None):
+        return self.copy_from(nx.navigable_small_world_graph(n, p, q, r, dim, seed))
+
+    def line_graph(self):
+        lg = nx.line_graph(self)
+        self.clear()
+        return self.copy_from(lg)
+
+    def ego_graph(self, G, n, radius=1, center=True, undirected=False, distance=None):
+        return self.become(nx.ego_graph(G, n, radius, center, undirected, distance))
+
+    def stochastic_graph(self, weight='weight'):
+        nx.stochastic_graph(self, copy=False, weight=weight)
+        return self
+
+    def uniform_random_intersection_graph(self, n, m, p, seed=None):
+        return self.copy_from(nx.uniform_random_intersection_graph(n, mp, p, seed=seed))
+
+    def k_random_intersection_graph(self, n, m, k, seed=None):
+        return self.copy_from(nx.k_random_intersection_graph(n, m, k, seed=seed))
+
+    def general_random_intersection_graph(self, n, m, p, seed=None):
+        return self.copy_from(nx.general_random_intersection_graph(n, m, p, seed=seed))
+
+    def caveman_graph(self, l, k):
+        return self.copy_from(nx.caveman_graph(l, k))
+
+    def connected_caveman_graph(self, l, k):
+        return self.copy_from(nx.connected_caveman_graph(l, k))
+
+    def relaxed_caveman_graph(self, l, k, p, seed=None):
+        return self.copy_from(nx.relaxed_caveman_graph(l, k, p, seed=seed))
+
+    def random_partition_graph(self, sizes, p_in, p_out, seed=None):
+        return self.copy_from(nx.random_partition_graph(sizes, p_in, p_out, seed=seed, directed=True))
+
+    def planted_partition_graph(self, l, k, p_in, p_out, seed=None):
+        return self.copy_from(nx.planted_partition_graph(l, k, p_in, p_out, seed=seed, directed=True))
+
+    def gaussian_random_partition_graph(self, n, s, v, p_in, p_out, seed=None):
+        return self.copy_from(nx.gaussian_random_partition_graph(n, s, v, p_in, p_out, directed=directed, seed=seed))
+
 
 class CharRuleMapping(RuleMapping):
     def __init__(self, character, rulebook, booktyp):
