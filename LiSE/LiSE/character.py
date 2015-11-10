@@ -94,7 +94,7 @@ class RuleFollower(BaseRuleFollower):
         return getattr(
             self.character.engine.db,
             'current_rules_' + self._book
-        )
+        )(self.character.name, *self.character.engine.time)
 
     def _get_rule_mapping(self):
         return CharRuleMapping(
