@@ -108,6 +108,34 @@ class Engine(AbstractEngine, gORM):
     rewound: simply set the properties ``branch`` and ``tick`` back to
     what they were just before the change you want to undo.
 
+    Properties:
+
+    - ``branch``: The fork of the timestream that we're on.
+    - ``tick``: Units of time that have passed since the sim started.
+    - ``time``: ``(branch, tick)``
+    - ``character``: A mapping of :class:`Character` objects by name.
+    - ``rule``: A mapping of all rules that have been made.
+    - ``rulebook``: A mapping of lists of rules. They are followed in
+      their order.  A whole rulebook full of rules may be assigned to
+      an entity at once.
+    - ``trigger``: A mapping of functions that might trigger a rule.
+    - ``prereq``: A mapping of functions a rule might require to return 
+      ``True`` for it to run.
+    - ``action``: A mapping of functions that might manipulate the world
+      state as a result of a rule running.
+    - ``function``: A mapping of generic functions stored in the same
+      database as the previous.
+    - ``string``: A mapping of strings, probably shown to the user of the simulation at some point.
+    - ``language``: Identifies the language used by
+      ``string``. There's a different ``string`` mapping for each
+      ``language``.
+    - ``eternal``: Mapping of arbitrary serializable objects. It isn't sensitive to sim-time. A good place to keep game settings.
+    - ``universal``: Another mapping of arbitrary serializable
+      objects, but this one *is* sensitive to sim-time. Each tick, the
+      state of the randomizer is saved here under the key
+      ``'rando_state'``.
+    - ``rando``: The randomizer used by all of the rules.
+
     """
     char_cls = Character
     node_cls = Node
