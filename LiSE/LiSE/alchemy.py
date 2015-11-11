@@ -38,18 +38,15 @@ from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 from sqlalchemy.sql.expression import union
 import gorm.alchemy
 
+# Constants
 
+TEXT = String(50)
 
-
-
-
-
-
-### Constants
-length = 50
-
-TEXT = String(length)
-
+# Names of the different function tables, which are otherwise
+# identical.
+#
+# Function tables hold marshalled bytecode, and usually plain source code,
+# for user defined functions.
 functyps = (
     'actions',
     'prereqs',
@@ -57,6 +54,14 @@ functyps = (
     'functions'
 )
 
+
+# Names of the different string tables, currently just 'strings'.
+#
+# String tables store text to be used in the game, probably displayed to the
+# player. There's accommodation for more than one such table in case it
+# becomes useful to handle different kinds of text differently,
+# such as text meant to be used in format strings vs. text meant to be
+# displayed as written.
 strtyps = (
     'strings',
 )
@@ -68,8 +73,12 @@ def tables_for_meta(meta):
 
     """
     def handled_table(prefix):
+        """Return a Table for recording the fact that a particular type of
+        rule has been handled on a particular tick.
+
+        """
         name = "{}_rules_handled".format(prefix)
-        return Table(
+        r = Table(
             name, meta,
             Column('character', TEXT, primary_key=True),
             Column('rulebook', TEXT, primary_key=True),
@@ -84,13 +93,14 @@ def tables_for_meta(meta):
                 ]
             )
         )
-        """Table to keep track of rules that have already been handled at some
-        sim-time.
-
-        """
+        return r
 
     def string_store_table(name):
-        return Table(
+        """Return a Table for storing strings, some of which may have
+        different versions for different languages.
+
+        """
+        r = Table(
             name, meta,
             Column('id', TEXT, primary_key=True),
             Column('language', TEXT, primary_key=True, default='eng'),
@@ -99,9 +109,20 @@ def tables_for_meta(meta):
             Column('description', TEXT, nullable=True),
             Column('string', TEXT)
         )
-        """Table to store strings, possibly for display to the player."""
+        return r
 
     def func_store_table(name):
+        """Return a table to store source code and bytecode of Python
+        functions.
+
+        If the 'base' field of a given record is filled in with the
+        name of another function, the function in this record is a
+        partial. These work a bit differently from
+        ``functools.partial``: only keyword arguments may be
+        prefilled, and these are kept in a JSON object in the
+        'plaincode' field.
+
+        """
         r = Table(
             name, meta,
             Column('name', TEXT, primary_key=True),
@@ -120,16 +141,6 @@ def tables_for_meta(meta):
             Column('plaincode', TEXT, nullable=True),
             Column('version', TEXT, nullable=True),
         )
-        """Table to store functions, both source code and bytecode.
-
-        If the 'base' field of a given record is filled in with the
-        name of another function, the function in this record is a
-        partial. These work a bit differently from
-        ``functools.partial``: only keyword arguments may be
-        prefilled, and these are kept in a JSON object in the
-        'plaincode' field.
-
-        """
         r.append_constraint(
             CheckConstraint(or_(
                 r.c.bytecode != None,
@@ -146,6 +157,7 @@ def tables_for_meta(meta):
     for strtyp in strtyps:
         r[strtyp] = string_store_table(strtyp)
 
+    # Table for global variables that are not sensitive to sim-time.
     r['lise_globals'] = Table(
         'lise_globals', meta,
         Column('key', TEXT, primary_key=True),
@@ -158,10 +170,8 @@ def tables_for_meta(meta):
         Column('description', TEXT, nullable=True),
         Column('value', TEXT, nullable=True)
     )
-    """Table for global variables that are not sensitive to sim-time.
 
-    """
-
+    # Header table for rules that exist.
     r['rules'] = Table(
         'rules', meta,
         Column('rule', TEXT, primary_key=True),
@@ -169,6 +179,9 @@ def tables_for_meta(meta):
         Column('creator', TEXT, nullable=True, default=None),
         Column('description', TEXT, nullable=True, default=None)
     )
+
+    # Table for rules' triggers, those functions that return True only
+    # when their rule should run (or at least check its prereqs).
     r['rule_triggers'] = Table(
         'rule_triggers', meta,
         Column('rule', TEXT, primary_key=True),
@@ -177,6 +190,9 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(['rule'], ['rules.rule']),
         ForeignKeyConstraint(['trigger'], ['triggers.name'])
     )
+
+    # Table for rules' prereqs, functions with veto power over a rule
+    # being followed
     r['rule_prereqs'] = Table(
         'rule_prereqs', meta,
         Column('rule', TEXT, primary_key=True),
@@ -185,6 +201,9 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(['rule'], ['rules.rule']),
         ForeignKeyConstraint(['prereq'], ['prereqs.name'])
     )
+
+    # Table for rules' actions, the functions that do what the rule
+    # does.
     r['rule_actions'] = Table(
         'rule_actions', meta,
         Column('rule', TEXT, primary_key=True),
@@ -194,6 +213,7 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(['action'], ['actions.name'])
     )
 
+    # Table grouping rules into lists called rulebooks.
     r['rulebooks'] = Table(
         'rulebooks', meta,
         Column('rulebook', TEXT, primary_key=True),
@@ -204,10 +224,9 @@ def tables_for_meta(meta):
         Column('rule', TEXT),
         ForeignKeyConstraint(['rule'], ['rules.rule'])
     )
-    """Table grouping rules into lists called rulebooks.
 
-    """
-
+    # Rules within a given rulebook that are active at a particular
+    # (branch, tick).
     r['active_rules'] = Table(
         'active_rules', meta,
         Column('rulebook', TEXT, primary_key=True),
@@ -225,11 +244,11 @@ def tables_for_meta(meta):
             ['rulebooks.rulebook', 'rulebooks.rule']
         )
     )
-    """Rules within a given rulebook that are active at a particular
-    ``(branch, tick)``.
 
-    """
-
+    # The top level of the LiSE world model, the character. Includes
+    # rulebooks for the character itself, its avatars, and all the things,
+    # places, and portals it contains--though those may have their own
+    # rulebooks as well.
     r['characters'] = Table(
         'characters', meta,
         Column('character', TEXT, primary_key=True),
@@ -257,12 +276,9 @@ def tables_for_meta(meta):
             ['character_portal_rulebook'], ['rulebooks.rulebook']
         )
     )
-    """The top level of the LiSE world model, the character. Includes
-    rulebooks for the character itself, its avatars, and the things,
-    places, and portals it contains.
 
-    """
-
+    # Rules handled within the rulebook associated with one thing in
+    # particular.
     r['thing_rules_handled'] = Table(
         'thing_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
@@ -272,11 +288,9 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
-    """Rules handled within the rulebook associated with one thing in
-    particular.
 
-    """
-
+    # Rules handled within the rulebook associated with one place in
+    # particular.
     r['place_rules_handled'] = Table(
         'place_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
@@ -286,11 +300,9 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
-    """Rules handled within the rulebook associated with one place in
-    particular.
 
-    """
-
+    # Rules handled within the rulebook associated with one portal in
+    # particular.
     r['portal_rules_handled'] = Table(
         'portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
@@ -302,17 +314,24 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
-    """Rules handled within the rulebook associated with one portal in
-    particular.
 
-    """
-
+    # The function to use for a given sense.
+    #
+    # Characters use senses to look at other characters. To model this,
+    # sense functions are called with a facade representing the
+    # character under observation; the function munges this facade to
+    # make it look as it does through the sense in question, and returns
+    # that.
+    #
+    # Just which function to use for a given sense may change over time,
+    # and a sense might not be usable all the time, in which case the
+    # 'active' field will be ``False``.
     r['senses'] = Table(
         'senses', meta,
+        # null character field means all characters have this sense
         Column(
             'character', TEXT, primary_key=True, nullable=True
         ),
-        # blank character field means all characters have this sense
         Column('sense', TEXT, primary_key=True),
         Column(
             'branch', TEXT, primary_key=True, default='master'
@@ -325,20 +344,16 @@ def tables_for_meta(meta):
         Column('active', Boolean, default=True),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
-    """The function to use for a given sense.
 
-    Characters use senses to look at other characters. To model this,
-    sense functions are called with a facade representing the
-    character under observation; the function munges this facade to
-    make it look as it does through the sense in question, and returns
-    that.
-
-    Just which function to use for a given sense may change over time,
-    and a sense might not be usable all the time, in which case the
-    'active' field will be ``False``.
-
-    """
-
+    # A list of tests that Things have to pass in order to move.
+    #
+    # Whenever a Thing tries to set its ``next_location``, its character
+    # will pass the Thing itself and the Portal it wants to travel
+    # into each of these functions, and will only allow it if all
+    # return True (or if there are no functions in travel_reqs for the
+    # character).
+    #
+    # Not used as of 2015-11-09
     r['travel_reqs'] = Table(
         'travel_reqs', meta,
         Column(
@@ -350,16 +365,14 @@ def tables_for_meta(meta):
         Column('reqs', TEXT, default='[]'),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
-    """A list of tests that Things have to pass in order to move.
 
-    Whenever a Thing tries to set its ``next_location``, its character
-    will pass the Thing itself and the Portal it wants to travel
-    into each of these functions, and will only allow it if all
-    return True (or if there are no functions in travel_reqs for the
-    charcater).
-
-    """
-
+    # Table for Things, being those nodes in a Character graph that have
+    # locations.
+    #
+    # A Thing's location can be either a Place or another Thing, as long
+    # as it's in the same Character. Things also have a
+    # ``next_location``, defaulting to ``None``, which when set
+    # indicates that the thing is in transit to that location.
     r['things'] = Table(
         'things', meta,
         Column('character', TEXT, primary_key=True),
@@ -371,11 +384,11 @@ def tables_for_meta(meta):
         Column('date', DateTime, nullable=True),
         Column('contributor', TEXT, nullable=True),
         Column('description', TEXT, nullable=True),
-        Column('location', TEXT, nullable=True),
         # when location is null, this node is not a thing, but a place
-        Column('next_location', TEXT, nullable=True),
+        Column('location', TEXT, nullable=True),
         # when next_location is not null, thing is en route between
         # location and next_location
+        Column('next_location', TEXT, nullable=True),
         ForeignKeyConstraint(
             ['character', 'thing'], ['nodes.graph', 'nodes.node']
         ),
@@ -386,16 +399,8 @@ def tables_for_meta(meta):
             ['character', 'next_location'], ['nodes.graph', 'nodes.node']
         )
     )
-    """Table for Things, being those nodes in a Character graph that have
-    locations.
 
-    A Thing's location can be either a Place or another Thing, as long
-    as it's in the same Character. Things also have a
-    ``next_location``, defaulting to ``None``, which when set
-    indicates that the thing is in transit to that location.
-
-    """
-
+    # The rulebook followed by a given node.
     r['node_rulebook'] = Table(
         'node_rulebook', meta,
         Column('character', TEXT, primary_key=True),
@@ -408,8 +413,13 @@ def tables_for_meta(meta):
             ['character', 'node'], ['nodes.graph', 'nodes.node']
         )
     )
-    """The rulebook followed by a given node."""
 
+    # The rulebook followed by a given Portal.
+    #
+    # "Portal" is LiSE's term for an edge in any of the directed
+    # graphs it uses. The name is different to distinguish them from
+    # Edge objects, which exist in an underlying object-relational
+    # mapper called gorm, and have a different API.
     r['portal_rulebook'] = Table(
         'portal_rulebook', meta,
         Column('character', TEXT, primary_key=True),
@@ -425,8 +435,18 @@ def tables_for_meta(meta):
             ['edges.graph', 'edges.nodeA', 'edges.nodeB', 'edges.idx']
         )
     )
-    """The rulebook followed by a given Portal."""
 
+    # The avatars representing one Character in another.
+    #
+    # In the common situation where a Character, let's say Alice has her
+    # own stats and skill tree and social graph, and also has a location
+    # in physical space, you can represent this by creating a Thing in
+    # the Character that represents physical space, and then making that
+    # Thing an avatar of Alice. On its own this doesn't do anything,
+    # it's just a convenient way of indicating the relation -- but if
+    # you like, you can make rules that affect all avatars of some
+    # Character, irrespective of what Character the avatar is actually
+    # *in*.
     r['avatars'] = Table(
         'avatars', meta,
         Column('character_graph', TEXT, primary_key=True),
@@ -446,19 +466,6 @@ def tables_for_meta(meta):
             ['nodes.graph', 'nodes.node']
         )
     )
-    """The avatars representing one Character in another.
-
-    In the common situation where a Character, let's say Alice has its
-    own stats and skill tree and social graph, and also has a location
-    in physical space, you can represent this by creating a Thing in
-    the Character that represents physical space, and then making that
-    Thing an avatar of Alice. On its own this doesn't do anything,
-    it's just a convenient way of indicating the relation -- but if
-    you like, you can make rules that affect all avatars of some
-    Character, irrespective of what Character the avatar is actually
-    *in*.
-
-    """
 
     for tab in (
         handled_table('character'),
@@ -509,6 +516,10 @@ def indices_for_table_dict(table):
 
     """
     def handled_idx(prefix):
+        """Return an index for the _rules_handled table with the given
+        prefix.
+
+        """
         t = table['{}_rules_handled'.format(prefix)]
         return Index(
             "{}_rules_handled_idx".format(prefix),
@@ -784,6 +795,11 @@ def queries(table, view):
         r['{}_del'.format(strtyp)] = string_table_del(table[strtyp])
 
     def universal_hitick(*columns):
+        """Return a query to find the time of the most recent change for some
+        columns in the 'lise_globals' table, called 'universal' in the
+        ORM.
+
+        """
         whereclause = [
             getattr(table['lise_globals'].c, col) == bindparam(col)
             for col in columns
@@ -861,10 +877,14 @@ def queries(table, view):
     ])
 
     def arhitick(*cols):
+        """Return a query to get the time of the most recent change to the
+        columns in a rulebook table.
+
+        """
         wheres = [
-                     getattr(active_rules.c, col) == bindparam(col)
+            getattr(active_rules.c, col) == bindparam(col)
             for col in cols
-                     ] + [active_rules.c.tick <= bindparam('tick')]
+        ] + [active_rules.c.tick <= bindparam('tick')]
         return select(
             [
                 active_rules.c.rulebook,
@@ -930,6 +950,12 @@ def queries(table, view):
     ).alias('nrhandle')
 
     def node_rules(*wheres):
+        """Return a query to get the active rules for a node.
+
+        It will have a WHERE clause containing any conditions you
+        pass in.
+
+        """
         return select(
             [
                 node_rulebook.c.character,
@@ -1037,6 +1063,11 @@ def queries(table, view):
     ).alias('handle')
 
     def portal_rules(*wheres):
+        """Return query to get a portal's rules not yet handled.
+
+        You can supply your own tests to be put in its where-clause.
+
+        """
         return select(
             [
                 portal_rulebook.c.character,
@@ -1106,6 +1137,7 @@ def queries(table, view):
         ])
 
     def poll_char_rules(prefix):
+        """Return query to get all a character's rules yet to be handled."""
         _rulebook = '{}_rulebook'.format(prefix)
         tabn = '{}_rules_handled'.format(prefix)
         rules_handled = table[tabn]
@@ -1133,8 +1165,8 @@ def queries(table, view):
         ).select_from(
             characters.join(
                 current_active_rules,
-                getattr(characters.c, _rulebook)
-                == current_active_rules.c.rulebook
+                getattr(characters.c, _rulebook) ==
+                current_active_rules.c.rulebook
             ).join(
                 rulebooks,
                 and_(
@@ -1170,9 +1202,11 @@ def queries(table, view):
     r['poll_character_place_rules'] = poll_char_rules('character_place')
     r['handled_character_place_rules'] = handled_char_rules('character_place')
     r['poll_character_portal_rules'] = poll_char_rules('character_portal')
-    r['handled_character_portal_rules'] = handled_char_rules('character_portal')
+    r['handled_character_portal_rules'] \
+        = handled_char_rules('character_portal')
 
     def handled_character_ruletyp(typ):
+        """Return query to declare that a rule of this type was handled."""
         tab = table['{}_rules_handled'.format(typ)]
         return insert_cols(
             tab,
@@ -1297,6 +1331,13 @@ def queries(table, view):
         )
 
     def character_rulebook_rules_activeness(prefix):
+        """Return query to get character rules w. activeness.
+
+        It will get a rulebook of a given type, eg. ``avatar`` or
+        ``character_portal``, and its final column will be a
+        boolean for whether the rule is active right now.
+
+        """
         coln = prefix + '_rulebook'
         return current_rules_activeness(
             characters, getattr(characters.c, coln)
@@ -1338,6 +1379,7 @@ def queries(table, view):
         )
 
     def rules_handled_hitick(prefix):
+        """Return query for time of latest change to a rules_handled table."""
         try:
             tbl = table['{}_rules_handled'.format(prefix)]
         except KeyError:
@@ -1364,6 +1406,7 @@ def queries(table, view):
         )
 
     def active_rule_char(prefix):
+        """Return query to check if a rule is active and not yet handled."""
         hitick = rules_handled_hitick(prefix)
         return select(
             [
@@ -1414,6 +1457,12 @@ def queries(table, view):
     things = table['things']
 
     def things_hitick(*cols):
+        """Return query to get the time of the latest change to the things table.
+
+        Pass in column names to filter the query by testing bound
+        parameters for equality with the columns.
+
+        """
         wheres = [
             getattr(things.c, col) == bindparam(col)
             for col in cols
@@ -1448,6 +1497,7 @@ def queries(table, view):
     )
 
     def rulebook_get_char(rulemap):
+        """Return query to get a rulebook of a character."""
         return select(
             [getattr(characters.c, '{}_rulebook'.format(rulemap))]
         ).where(
@@ -1465,6 +1515,7 @@ def queries(table, view):
     r['rulebook_get_character_portal'] = rulebook_get_char('character_portal')
 
     def upd_rulebook_char(rulemap):
+        """Return query to update one of the rulebooks of a character."""
         kwvalues = {'{}_rulebook'.format(rulemap): bindparam('rulebook')}
         return characters.update().values(**kwvalues).where(
             characters.c.character == bindparam('character')
@@ -1488,6 +1539,12 @@ def queries(table, view):
     ])
 
     def hitick_avatars(*cols):
+        """Return query to get the time of the latest change to the avatars table.
+
+        Pass in names of columns to test them for equality with bound
+        parameters.
+
+        """
         wheres = [
             getattr(avatars.c, col) == bindparam(col)
             for col in cols
@@ -1595,6 +1652,12 @@ def queries(table, view):
     nodes = table['nodes']
 
     def hirev_nodes_extant_cols(*cols):
+        """Return query to get the time of the latest change to a node's existence.
+
+        Pass in names of columns to restrict the query to bound values
+        of those columns.
+
+        """
         wheres = [
             getattr(nodes.c, col) == bindparam(col)
             for col in cols
@@ -1618,6 +1681,14 @@ def queries(table, view):
         ).alias('ext_hirev')
 
     def nodes_existence_cols(*cols):
+        """Return query to check whether nodes exist as of some sim-time.
+
+        You can narrow down which nodes to check by passing in
+        names of columns. They will become bind parameters, and
+        the columns will be tested for equality with the values
+        bound.
+
+        """
         hirev = hirev_nodes_extant_cols(*cols)
         return select(
             [
@@ -1872,6 +1943,12 @@ def queries(table, view):
     senses = table['senses']
 
     def senses_hitick(*cols):
+        """Return query to get the time of the latest change to the senses table.
+
+        Pass column names in, and the query will be narrowed down by
+        testing the columns for equality with bound parameters.
+
+        """
         wheres = [
             getattr(senses.c, col) == bindparam(col)
             for col in cols
@@ -1906,6 +1983,12 @@ def queries(table, view):
     )
 
     def sense_active_hitick(*cols):
+        """Return query to get the time of the latest change to a sense.
+
+        Pass names of columns to have them checked for equality. Each
+        will get its own bind parameter.
+
+        """
         wheres = [
             getattr(senses.c, col) == bindparam(col)
             for col in cols
@@ -2040,6 +2123,7 @@ def queries(table, view):
     actions = table['actions']
 
     def rule_something(ruletab, tab, something):
+        """Return query to select functions in a rule table."""
         return select([
             ruletab.c[something],
             tab.c.keywords,
@@ -2051,11 +2135,13 @@ def queries(table, view):
         )).order_by(ruletab.c.idx)
 
     def rule_something_count(tab):
+        """Return query to count the number of functions in a rule table."""
         return select([func.count(tab.c.idx)]).where(
             tab.c.rule == bindparam('rule')
         )
 
     def rule_something_ins(tab, something):
+        """Return query to insert a function into a rule table."""
         return tab.insert().values({
             'rule': bindparam('rule'),
             something: bindparam('something'),
@@ -2063,6 +2149,7 @@ def queries(table, view):
         })
 
     def rule_something_inc(tab):
+        """Return query to make room to insert a function into a rule table."""
         return tab.update().values(
             idx=tab.c.idx+column('1', is_literal=True)
         ).where(and_(
@@ -2071,6 +2158,12 @@ def queries(table, view):
         ))
 
     def rule_something_dec(tab):
+        """Return query to correct indices in a rule table after deletion.
+
+        Looks at all records for some rule, and decrements the indices
+        of those with idx greater than that given.
+
+        """
         return tab.update().values(
             idx=tab.c.idx+column('1', is_literal=True)
         ).where(and_(
@@ -2079,12 +2172,14 @@ def queries(table, view):
         ))
 
     def rule_something_del(tab):
+        """Return a query to delete a function from a rule table."""
         return tab.delete().where(and_(
             tab.c.rule == bindparam('rule'),
             tab.c.idx == bindparam('idx')
         ))
 
     def rule_something_del_all(tab):
+        """Return a query to delete all functions in a rule."""
         return tab.delete().where(tab.c.rule == bindparam('rule'))
 
     r['ins_rule'] = rules.insert().values(

@@ -1077,7 +1077,7 @@ class EngineHandle(object):
             old = self._char_stat_cache.get(char, {})
             new = self.character_stat_copy(char)
             self._char_stat_cache[char] = new
-            r = dict_diff(old, new)
+            return dict_diff(old, new)
         except KeyError:
             return None
 
@@ -1642,7 +1642,7 @@ class NodeProxy(CachingEntityProxy):
 
     def __bool__(self):
         """It means something that I exist, even if I don't have any data yet."""
-        return True
+        return self.exists
 
     def _get_diff(self):
         return self.engine.handle(
@@ -2581,14 +2581,38 @@ class CharacterProxy(MutableMapping):
             'add_portal',
             (self.name, origin, destination, symmetrical, kwargs)
         )
-        self.portal.invalidate()
+        if origin not in self.portal._cache:
+            self.portal._cache[origin] = SuccessorsProxy(
+                self.engine,
+                self.name,
+                origin
+            )
+        self.portal[origin]._cache[destination] = PortalProxy(
+            self.engine,
+            self.name,
+            origin,
+            destination
+        )
 
     def add_portals_from(self, seq, symmetrical=False):
+        l = list(seq)
         self.engine.handle(
             'add_portals_from',
-            (self.name, seq, symmetrical)
+            (self.name, l, symmetrical)
         )
-        self.portal.invalidate()
+        for (origin, destination) in l:
+            if origin not in self.portal._cache:
+                self.portal._cache[origin] = SuccessorsProxy(
+                    self.engine,
+                    self.name,
+                    origin
+                )
+            self.portal[origin]._cache[destination] = PortalProxy(
+                self.engine,
+                self.name,
+                origin,
+                destination
+            )
 
     def new_portal(self, origin, destination, symmetrical=False, **kwargs):
         self.add_portal(origin, destination, symmetrical, **kwargs)
