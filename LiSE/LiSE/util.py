@@ -449,7 +449,7 @@ def fire_stat_listeners(
             if (
                 branch_then == branch_now and
                 tick_now >= since and
-                until is None or tick_now < until
+                (until is None or tick_now < until)
             ):
                 continue
         except KeyError:
