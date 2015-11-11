@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-"""The core of LiSE is an object relational mapper with special
+"""The "engine" of LiSE is an object relational mapper with special
 stores for game data and entities, as well as properties for manipulating the
 flow of time.
 
@@ -29,6 +29,7 @@ from .util import (
 
 
 def crhandled_defaultdict():
+    """Return a defaultdict for recording when a rule's been handled."""
     return defaultdict(  # character:
         lambda: defaultdict(  # rulebook:
             lambda: defaultdict(  # rule:
@@ -41,6 +42,7 @@ def crhandled_defaultdict():
 
 
 class AvatarnessCache(object):
+    """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, db):
         self.db_order = defaultdict(  # character:
             lambda: defaultdict(  # graph:
@@ -51,6 +53,7 @@ class AvatarnessCache(object):
                 )
             )
         )
+        """Avatarness cached in the way it's stored in the database."""
         self.user_order = defaultdict(  # graph:
             lambda: defaultdict(  # node:
                 lambda: defaultdict(  # character:
@@ -60,10 +63,25 @@ class AvatarnessCache(object):
                 )
             )
         )
+        """Avatarness cached for iterating over the users of a node.
+
+        That is, characters that have a particular node as an avatar.
+
+        """
         for row in db.avatarness_dump():
             self.remember(*row)
 
     def remember(self, character, graph, node, branch, tick, is_avatar):
+        """Use this to record a change in avatarness.
+
+        Should be called whenever a node that wasn't an avatar of a
+        character now is, and whenever a node that was an avatar of a
+        character now isn't.
+
+        ``character`` is the one using the node as an avatar,
+        ``graph`` is the character the node is in.
+
+        """
         self.db_order[character][graph][node][branch][tick] = is_avatar
         self.user_order[graph][node][character][branch][tick] = is_avatar
 
@@ -405,18 +423,23 @@ class Engine(AbstractEngine, gORM):
         return CharacterMapping(self)
 
     def debug(self, msg):
+        """Log a message at level 'debug'"""
         self.log('debug', msg)
 
     def info(self, msg):
+        """Log a message at level 'info'"""
         self.log('info', msg)
 
     def warning(self, msg):
+        """Log a message at level 'warning'"""
         self.log('warning', msg)
 
     def error(self, msg):
+        """Log a message at level 'error'"""
         self.log('error', msg)
 
     def critical(self, msg):
+        """Log a message at level 'critical'"""
         self.log('critical', msg)
 
     def coinflip(self):
@@ -429,6 +452,9 @@ class Engine(AbstractEngine, gORM):
 
     def dice(self, n, d):
         """Roll ``n`` dice with ``d`` faces, and yield the results.
+
+        This is an iterator. You'll get the result of each die in
+        successon.
 
         """
         for i in range(0, n):
@@ -481,32 +507,41 @@ class Engine(AbstractEngine, gORM):
         self.close()
 
     def time_listener(self, v):
-        """Arrange to call a function whenever my ``branch`` or ``tick``
-        changes.
+        """Call a function whenever my ``branch`` or ``tick`` changes.
 
-        The arguments will be the old branch and tick followed by the
-        new branch and tick.
+        The function will be called with the old branch and tick
+        followed by the new branch and tick.
 
         """
         if not callable(v):
-            raise TypeError("This is a decorator")
+            raise TypeError("Need a function")
         if v not in self._time_listeners:
             self._time_listeners.append(v)
         return v
 
     def time_unlisten(self, v):
+        """Don't call this function when the time changes."""
         if v in self._time_listeners:
             self._time_listeners.remove(v)
         return v
 
     def next_tick_listener(self, v):
+        """Call a function when time passes.
+
+        It will only be called when the time changes as a result of
+        all the rules being processed for a tick. This is what it
+        means for time to 'pass', rather than for you to change the
+        time yourself.
+
+        """
         if not callable(v):
-            raise TypeError("This is a decorator")
+            raise TypeError("Need a function")
         if v not in self._next_tick_listeners:
             self._next_tick_listeners.append(v)
         return v
 
     def next_tick_unlisten(self, v):
+        """Don't call this function when time passes."""
         if v in self._next_tick_listeners:
             self._next_tick_listeners.remove(v)
         return v
@@ -832,10 +867,7 @@ class Engine(AbstractEngine, gORM):
                 )
 
     def advance(self):
-        """Follow the next rule, or if there isn't one, advance to the next
-        tick.
-
-        """
+        """Follow the next rule if available, or advance to the next tick."""
         try:
             r = next(self._rules_iter)
         except StopIteration:
@@ -848,7 +880,9 @@ class Engine(AbstractEngine, gORM):
         return r
 
     def next_tick(self):
-        """Call ``advance`` repeatedly, appending its results to a list until
+        """Make time move forward in the simulation.
+
+        Calls ``advance`` repeatedly, appending its results to a list until
         the tick has ended.  Return the list.
 
         """
@@ -870,8 +904,15 @@ class Engine(AbstractEngine, gORM):
         return self.character[name]
 
     def add_character(self, name, data=None, **kwargs):
-        """Create the :class:`Character` so it'll show up in my ``character``
-        mapping.
+        """Create a new character.
+
+        You'll be able to access it as a :class:`Character` object by
+        looking up ``name`` in my ``character`` property.
+
+        ``data``, if provided, should be a networkx-compatible graph
+        object. Your new character will be a copy of it.
+
+        Any keyword arguments will be set as stats of the new character.
 
         """
         self.new_digraph(name, data, **kwargs)
@@ -897,13 +938,6 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        """Private utility function to find out if a node is a Thing or not.
-
-        ``character`` argument must be the name of a character, not a
-        :class:`Character` object. Likewise ``node`` argument is the
-        node's ID.
-
-        """
         if self.caching:
             try:
                 cache = self._things_cache[character][node]
