@@ -1,23 +1,25 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+"""The type of node that is a location.
+
+Though both things and places are nodes, things are obliged to be
+located in another node. Places are not.
+
+"""
+
+
 from .node import Node
 from .util import dispatch
 
 
 class Place(Node):
-    """The kind of node where a Thing might ultimately be located."""
+    """The kind of node where a thing might ultimately be located."""
     extrakeys = {
         'name',
         'character'
     }
 
     def __getitem__(self, key):
-        """Return my name if ``key=='name'``, my character's name if
-        ``key=='character'``, the names of everything located in me if
-        ``key=='contents'``, or the value of the stat named ``key``
-        otherwise.
-
-        """
         if key == 'name':
             return self.name
         elif key == 'character':
@@ -32,7 +34,6 @@ class Place(Node):
             dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 
     def __repr__(self):
-        """Return my character and name"""
         return "{}.place[{}]".format(
             self['character'],
             self['name']
@@ -55,6 +56,12 @@ class Place(Node):
         return self.engine.json_dump(self._get_json_dict())
 
     def delete(self, nochar=False):
+        """Remove myself from the world model immediately.
+
+        With ``nochar=True``, avoid the final step of removing myself
+        from my character's ``place`` mapping.
+
+        """
         super().delete()
         if not nochar:
             del self.character.place[self.name]
