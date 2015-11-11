@@ -443,7 +443,7 @@ def fire_stat_listeners(
     def getstat(k, branch, tick):
         return cache[k][branch][window_left(cache[k][branch].keys(), tick)]
 
-    for k in keys:
+    for k in keys.union(stats_validity.keys()):
         try:
             (since, until) = stats_validity[k]
             if (

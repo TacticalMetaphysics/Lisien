@@ -1369,7 +1369,7 @@ class CharStatCache(MutableMapping):
     ):
         fire_stat_listeners(
             lambda k, v: dispatch(self._listeners, k, branch_now, tick_now, self.character, k, v),
-            (k for k in self.keys() if k in self._listeners),
+            set(self._listeners.keys()),
             self._cache,
             self._stats_validity,
             branch_then,

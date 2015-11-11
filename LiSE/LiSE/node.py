@@ -252,7 +252,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
                 k,
                 v
             ),
-            (k for k in self.keys() if k in self._stat_listeners),
+            set(self._stat_listeners.keys()),
             self._statcache,
             self._stats_validity,
             branch_then,

@@ -115,7 +115,7 @@ class Portal(Edge, RuleFollower):
     ):
         fire_stat_listeners(
             lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
-            (k for k in self.keys() if k in self._stat_listeners),
+            set(self._stat_listeners.keys()),
             self._statcache,
             self._stats_validity,
             branch_then,
