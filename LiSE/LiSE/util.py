@@ -207,9 +207,6 @@ def path_len(graph, path, weight=None):
     return n
 
 
-# ==Caching==
-
-
 class LiSEncoder(JSONEncoder):
     def default(self, o):
         t = type(o)
@@ -336,9 +333,6 @@ def keycache_iter(keycache, branch, tick, get_iterator):
     if tick not in keycache[branch]:
         keycache[branch][tick] = set(get_iterator())
     yield from keycache[branch][tick]
-
-
-# ABCs
 
 
 class AbstractEngine(object):
