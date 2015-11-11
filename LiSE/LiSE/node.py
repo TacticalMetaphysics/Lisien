@@ -1,5 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+"""A base class for nodes that can be in a character.
+
+Every actual node that you're meant to use will be a place or
+thing. This module is for what they have in common.
+
+"""
 from collections import defaultdict, Mapping
 
 import gorm.graph
@@ -16,16 +22,18 @@ from . import rule
 
 
 class RuleMapping(rule.RuleMapping):
-    """Version of :class:`LiSE.rule.RuleMapping` that works more easily with a node. """
+    """Version of :class:`LiSE.rule.RuleMapping` that works more easily
+    with a node.
+
+    """
     def __init__(self, node):
-        """Initialize with node's engine and rulebook. Store character and engine. """
+        """Initialize with node's engine, character, and rulebook."""
         super().__init__(node.engine, node.rulebook)
         self.character = node.character
         self.node = node
         self.engine = self.character.engine
 
     def __iter__(self):
-        """Iterate over the names of rules for this node."""
         if self.engine.caching:
             for (rule, active) in self.node._rule_names_activeness():
                 if active:
@@ -39,7 +47,17 @@ class RuleMapping(rule.RuleMapping):
 
 
 class UserMapping(Mapping):
+    """A mapping of the characters that have a particular node as an avatar.
+
+    Getting characters from here isn't any better than getting them from
+    the engine direct, but with this you can do things like use the
+    .get() method to get a character if it's a user and otherwise
+    get something else; or test whether the character's name is in
+    the keys; and so on.
+
+    """
     def __init__(self, node):
+        """Store the node"""
         self.node = node
         self.engine = node.engine
 
@@ -200,7 +218,8 @@ class Node(gorm.graph.Node, rule.RuleFollower):
     def unlisten(self, f=None, stat=None):
         """Stop calling a function when a stat changes.
 
-        If the function wasn't passed to ``self.listener`` in the same way, this won't do anything.
+        If the function wasn't passed to ``self.listener`` in the same
+        way, this won't do anything.
 
         """
         r = unlisten(self._stat_listeners, f, stat)
@@ -209,25 +228,12 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         return r
 
     def __setitem__(self, k, v):
-        """Set a stat.
-
-        Stats are time-sensitive. Values set to stats will appear to change to their predecessors, or disappear
-        entirely, if the sim-time is set to a tick before the value was set.
-
-        """
         super().__setitem__(k, v)
         self._dispatch_stat(k, v)
 
     def __delitem__(self, k):
-        """Delete a stat.
-
-        Stats are time-sensitive, so the stat may appear to pop back into existence if you set the tick to one before
-        when the stat was deleted.
-
-        """
         super().__delitem__(k)
         self._dispatch_stat(k, None)
-
 
     def _fire_my_stat_listeners(
         self,
@@ -343,6 +349,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         )
 
     def one_way(self, other, **stats):
+        """Connect a portal from here to another node, and return it."""
         return self.one_way_portal(other, **stats)
 
     def two_way_portal(self, other, **stats):
@@ -352,6 +359,7 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         )
 
     def two_way(self, other, **stats):
+        """Connect these nodes with a two-way portal and return it."""
         return self.two_way_portal(other, **stats)
 
     def new_thing(self, name, **stats):
@@ -361,7 +369,6 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         )
 
     def __bool__(self):
-        """Return whether I really exist in the world model, ie. in my character."""
         return self.name in self.character.node
 
     def __eq__(self, other):
