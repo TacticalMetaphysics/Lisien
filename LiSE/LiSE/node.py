@@ -12,7 +12,8 @@ import gorm.graph
 
 from .util import (
     TimeDispatcher,
-    reify
+    reify,
+    getatt
 )
 from . import rule
 
@@ -25,9 +26,10 @@ class RuleMapping(rule.RuleMapping):
     def __init__(self, node):
         """Initialize with node's engine, character, and rulebook."""
         super().__init__(node.engine, node.rulebook)
-        self.character = node.character
         self.node = node
-        self.engine = self.character.engine
+
+    engine = getatt('node.engine')
+    character = getatt('node.character')
 
     def __iter__(self):
         if self.engine.caching:
@@ -55,7 +57,8 @@ class UserMapping(Mapping):
     def __init__(self, node):
         """Store the node"""
         self.node = node
-        self.engine = node.engine
+
+    engine = getatt('node.engine')
 
     def __iter__(self):
         yield from self.node._user_names()

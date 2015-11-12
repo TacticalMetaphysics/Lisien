@@ -2,7 +2,7 @@
 
 from gorm.graph import Edge
 
-from .util import TimeDispatcher
+from .util import TimeDispatcher, getatt
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 
@@ -12,11 +12,11 @@ class RuleMapping(BaseRuleMapping):
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
-        self.character = portal.character
-        self.engine = portal.engine
-        self.orign = portal._origin
-        self.destn = portal._destn
         self.portal = portal
+
+    character = getatt('portal.character')
+    orign = getatt('portal._orign')
+    destn = getatt('portal._destn')
 
     def __iter__(self):
         if self.engine.caching:

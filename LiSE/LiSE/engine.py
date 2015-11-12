@@ -22,7 +22,7 @@ from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import AbstractEngine, reify
+from .util import AbstractEngine, reify, getatt
 
 
 def crhandled_defaultdict():
@@ -382,24 +382,25 @@ class Engine(AbstractEngine, gORM):
         else:
             self.rando.seed(self.random_seed)
             self.universal['rando_state'] = self.rando.getstate()
-        self.betavariate = self.rando.betavariate
-        self.choice = self.rando.choice
-        self.expovariate = self.rando.expovariate
-        self.gammaraviate = self.rando.gammavariate
-        self.gauss = self.rando.gauss
-        self.getrandbits = self.rando.getrandbits
-        self.lognormvariate = self.rando.lognormvariate
-        self.normalvariate = self.rando.normalvariate
-        self.paretovariate = self.rando.paretovariate
-        self.randint = self.rando.randint
-        self.random = self.rando.random
-        self.randrange = self.rando.randrange
-        self.sample = self.rando.sample
-        self.shuffle = self.rando.shuffle
-        self.triangular = self.rando.triangular
-        self.uniform = self.rando.uniform
-        self.vonmisesvariate = self.rando.vonmisesvariate
-        self.weibullvariate = self.rando.weibullvariate
+
+    betavariate = getatt('rando.betavariate')
+    choice = getatt('rando.choice')
+    expovariate = getatt('rando.expovariate')
+    gammavariate = getatt('rando.gammavariate')
+    gauss = getatt('rando.gauss')
+    getrandbits = getatt('rando.getrandbits')
+    lognormvariate = getatt('rando.lognormvariate')
+    normalvariate = getatt('rando.normalvariate')
+    paretovariate = getatt('rando.paretovariate')
+    randint = getatt('rando.randint')
+    random = getatt('rando.random')
+    randrange = getatt('rando.randrange')
+    sample = getatt('rando.sample')
+    shuffle = getatt('rando.shuffle')
+    triangular = getatt('rando.triangular')
+    uniform = getatt('rando.uniform')
+    vonmisesvariate = getatt('rando.vonmisesvariate')
+    weibullvariate = getatt('rando.weibullvariate')
 
     @reify
     def action(self):

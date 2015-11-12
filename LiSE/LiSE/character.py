@@ -175,11 +175,17 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
     def _cache(self):
         return self._dispatch_cache
 
+    @property
+    def engine(self):
+        return self.character.engine
+
+    @property
+    def name(self):
+        return self.character.name
+
     def __init__(self, character):
         """Store the character and initialize cache"""
         self.character = character
-        self.engine = character.engine
-        self.name = character.name
 
     def __iter__(self):
         if not self.engine.caching:
@@ -283,11 +289,17 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
     def _cache(self):
         return self._dispatch_cache
 
+    @property
+    def engine(self):
+        return self.character.engine
+
+    @property
+    def name(self):
+        return self.character.name
+
     def __init__(self, character):
         """Store the character and initialize the cache (if caching)"""
         self.character = character
-        self.engine = character.engine
-        self.name = character.name
 
     def __iter__(self):
         things = set(self.character.thing.keys())
@@ -370,11 +382,25 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
     def _cache(self):
         return self._dispatch_cache
 
+    @property
+    def graph(self):
+        return self.character
+
+    @property
+    def engine(self):
+        return self.character.engine
+
+    @property
+    def gorm(self):
+        return self.character.engine
+
+    @property
+    def name(self):
+        return self.character.name
+
     def __init__(self, character):
         """Store the character"""
-        self.character = self.graph = character
-        self.engine = self.gorm = character.engine
-        self.name = character.name
+        self.character = character
 
     def __getitem__(self, k):
         try:
@@ -548,12 +574,17 @@ class CharacterPortalPredecessorsMapping(
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
     _book = "avatar"
 
+    @property
+    def engine(self):
+        return self.character.engine
+
+    @property
+    def name(self):
+        return self.character.name
+
     def __init__(self, char):
         """Remember my character"""
         self.character = char
-        self.engine = char.engine
-        self.name = char.name
-        self._name = char._name
 
     def __call__(self, av):
         """Add the avatar. It must be an instance of Place or Thing."""
@@ -802,13 +833,16 @@ class SenseFuncWrap(object):
     provided with its name, and prefills the first two arguments.
 
     """
+    @property
+    def engine(self):
+        return self.character.engine
+
     def __init__(self, character, fun):
         """Store the character and the function, looking up the function if
         needed
 
         """
         self.character = character
-        self.engine = character.engine
         if isinstance(fun, str):
             self.fun = self.engine.sense[fun]
         else:
@@ -828,12 +862,18 @@ class CharacterSense(object):
     but haven't yet specified what character to look at
 
     """
+    @property
+    def engine(self):
+        return self.container.engine
+
+    @property
+    def observer(self):
+        return self.container.character
+
     def __init__(self, container, sensename):
         """Store the container and the name of the sense"""
         self.container = container
-        self.engine = self.container.engine
         self.sensename = sensename
-        self.observer = self.container.character
 
     @property
     def func(self):
@@ -866,10 +906,13 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """Used to view other Characters as seen by one, via a particular sense"""
     _book = "character"
 
+    @property
+    def engine(self):
+        return self.character.engine
+
     def __init__(self, character):
         """Store the character"""
         self.character = character
-        self.engine = character.engine
 
     def __iter__(self):
         """Iterate over active sense names"""
@@ -1313,13 +1356,17 @@ class Character(DiGraph, RuleFollower):
     """
     _book = "character"
 
+    @property
+    def character(self):
+        return self
+
+
     def __init__(self, engine, name, data=None, **attr):
         """Store engine and name, and set up mappings for Thing, Place, and
         Portal
 
         """
         super().__init__(engine, name, data, **attr)
-        self.character = self
         self.engine = engine
         d = {}
         for mapp in ('character', 'avatar', 'thing', 'place', 'portal', 'node'):
