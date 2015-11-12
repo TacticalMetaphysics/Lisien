@@ -578,7 +578,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             cache = cache[self.character.name]
             seen = False
             for avatar in cache:
-                if avatar in seen:
+                if seen:
                     continue
                 for node in cache[avatar]:
                     if seen:
