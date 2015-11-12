@@ -1222,15 +1222,37 @@ class FacadeStatsMapping(MutableMapping, TimeDispatcher):
 
 
 class Facade(nx.DiGraph):
+    @property
+    def engine(self):
+        return self.character.engine
+
+    @property
+    def succ(self):
+        return self.portal
+
+    @property
+    def edge(self):
+        return self.portal
+
+    @property
+    def adj(self):
+        return self.portal
+
+    @property
+    def pred(self):
+        return self.preportal
+
+    @property
+    def stat(self):
+        return self.graph
+
     def __init__(self, character):
         self.character = character
         self.thing = FacadeThingMapping(self)
         self.place = FacadePlaceMapping(self)
         self.node = CompositeDict(self.thing, self.place)
         self.portal = FacadePortalSuccessorsMapping(self)
-        self.succ = self.edge = self.adj = self.portal
         self.preportal = FacadePortalPredecessorsMapping(self)
-        self.pred = self.preportal
         self.graph = FacadeStatsMapping(self)
 
 
@@ -1342,11 +1364,11 @@ class Character(DiGraph, RuleFollower):
     def portal(self):
         return CharacterPortalSuccessorsMapping(self)
 
-    @reify
+    @property
     def adj(self):
         return self.portal
 
-    @reify
+    @property
     def succ(self):
         return self.portal
 
