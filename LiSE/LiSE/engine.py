@@ -10,6 +10,7 @@ from collections import defaultdict
 from sqlite3 import connect
 
 from gorm import ORM as gORM
+from gorm.window import WindowDict
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -21,11 +22,7 @@ from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import (
-    AbstractEngine,
-    WindowDict,
-    reify
-)
+from .util import AbstractEngine, reify
 
 
 def crhandled_defaultdict():
