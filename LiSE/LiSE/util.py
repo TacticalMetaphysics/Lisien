@@ -5,9 +5,9 @@
 """
 import numpy
 from json import dumps, loads, JSONEncoder
-from collections import Mapping, MutableMapping
+from collections import Mapping
 from gorm.reify import reify
-from gorm.window import window_left, window_right, WindowDict
+from gorm.window import window_left, window_right
 from operator import attrgetter
 
 
