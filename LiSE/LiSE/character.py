@@ -1346,7 +1346,6 @@ class Character(DiGraph, RuleFollower):
                 'character_portal': d.get('portal',
                                           (self.name, 'character_portal'))
             }
-        self._portal_traits = set()
 
     @reify
     def thing(self):
