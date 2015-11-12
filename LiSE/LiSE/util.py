@@ -10,7 +10,7 @@ from gorm.reify import reify
 from gorm.window import window_left, window_right, WindowDict
 
 
-def dispatch(d, key, *args):
+def dispatch(d, key, v, *args):
     """Call functions in a dictionary to inform them that a value in
     another mapping has changed.
 
@@ -21,6 +21,8 @@ def dispatch(d, key, *args):
     """
     assert(isinstance(d, Mapping))
     if key in d:
+        if d[key] == v:
+            return
         for f in d[key]:
             f(*args)
     if None in d:
