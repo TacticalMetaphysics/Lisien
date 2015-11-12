@@ -800,8 +800,8 @@ class AllRules(MutableMapping):
     def listener(self, f=None, rule=None):
         return listener(self._listeners, f, rule)
 
-    def _dispatch(self, rule, active):
-        dispatch(self._listeners, rule.name, self, rule, active)
+    def dispatch(self, rule, active):
+        dispatch(self._listeners, rule.name, active, self, rule, active)
 
     def __iter__(self):
         yield from self.db.allrules()
@@ -841,14 +841,14 @@ class AllRules(MutableMapping):
             raise TypeError(
                 "Don't know how to store {} as a rule.".format(type(v))
             )
-        self._dispatch(new, True)
+        self.dispatch(new, True)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such rule")
         old = self[k]
         self.db.ruledel(k)
-        self._dispatch(old, False)
+        self.dispatch(old, False)
 
     def __call__(self, v=None, name=None):
         if v is None and name is not None:
@@ -865,5 +865,5 @@ class AllRules(MutableMapping):
             raise KeyError("Already have rule {}".format(name))
         new = Rule(self.engine, name)
         self._cache[name] = new
-        self._dispatch(new, True)
+        self.dispatch(new, True)
         return new
