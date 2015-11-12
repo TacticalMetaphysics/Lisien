@@ -2,8 +2,10 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 
 
-"""The basic data model of LiSE, based on NetworkX DiGraph objects
-with various additions and conveniences.
+"""The top level of the LiSE world model, the Character.
+
+Based on NetworkX DiGraph objects with various additions and
+conveniences.
 
 A Character is a graph that follows rules. Its rules may be assigned
 to run on only some portion of it: just edges (called Portals), just
@@ -51,12 +53,41 @@ from .portal import Portal
 
 
 class CharRuleMapping(RuleMapping):
+    """Wraps one of a character's rulebooks so you can get its rules by name.
+
+    You can access the rules in this either dictionary-style or as
+    attributes. This is for convenience if you want to get at a rule's
+    decorators, eg. to add an Action to the rule.
+
+    Using this as a decorator will create a new rule, named for the
+    decorated function, and using the decorated function as the
+    initial Action.
+
+    Using this like a dictionary will let you create new rules,
+    appending them onto the underlying :class:`RuleBook`; replace one
+    rule with another, where the new one will have the same index in
+    the :class:`RuleBook` as the old one; and activate or deactivate
+    rules. The name of a rule may be used in place of the actual rule,
+    so long as the rule already exists.
+
+    You can also set a rule active or inactive by setting it to
+    ``True`` or ``False``, respectively. Inactive rules are still in
+    the rulebook, but won't be followed.
+
+    """
     def __init__(self, character, rulebook, booktyp):
+        """Initialize as usual for the ``rulebook``, mostly.
+
+        My ``character`` property will be the one passed in, and my
+        ``_table`` will be the ``booktyp`` with ``"_rules"`` appended.
+
+        """
         super().__init__(rulebook.engine, rulebook)
         self.character = character
         self._table = booktyp + "_rules"
 
     def __iter__(self):
+        """Use a query specialized to the character-rule tables."""
         return self.engine.db.active_rules_char(
             self._table,
             self.character.name,
@@ -66,10 +97,7 @@ class CharRuleMapping(RuleMapping):
 
 
 class RuleFollower(BaseRuleFollower):
-    """Mixin class that has a rulebook associated, which you can get a
-    RuleMapping into
-
-    """
+    """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
     def _rule_names_activeness(self):
         if self.engine.caching:
             rulebook = self.engine._characters_rulebooks_cache[self.character.name][self._book]

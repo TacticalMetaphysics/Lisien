@@ -535,11 +535,10 @@ class RuleBook(MutableSequence):
 
 
 class RuleMapping(MutableMapping):
-    """A wrapper around a :class:`RuleBook` that lets you get at its rules
-    by name.
+    """Wraps a :class:`RuleBook` so you can get its rules by name.
 
     You can access the rules in this either dictionary-style or as
-    attributes; this is for convenience if you want to get at a rule's
+    attributes. This is for convenience if you want to get at a rule's
     decorators, eg. to add an Action to the rule.
 
     Using this as a decorator will create a new rule, named for the
@@ -555,7 +554,7 @@ class RuleMapping(MutableMapping):
 
     You can also set a rule active or inactive by setting it to
     ``True`` or ``False``, respectively. Inactive rules are still in
-    the rulebook but won't be followed until activated again.
+    the rulebook, but won't be followed.
 
     """
     def __init__(self, engine, rulebook):

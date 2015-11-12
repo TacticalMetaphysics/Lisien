@@ -8,7 +8,9 @@ from .rule import RuleMapping as BaseRuleMapping
 
 
 class RuleMapping(BaseRuleMapping):
+    """Mapping to get rules followed by a portal."""
     def __init__(self, portal):
+        """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
         self.character = portal.character
         self.engine = portal.engine
@@ -35,7 +37,10 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
 
     Portals are one-way, but you can make one appear two-way by
     setting the ``symmetrical`` key to ``True``,
-    eg. ``character.add_portal(orig, dest, symmetrical=True)``
+    eg. ``character.add_portal(orig, dest, symmetrical=True)``.
+    The portal going the other way will appear to have all the
+    stats of this one, and attempting to set a stat on it will
+    set it here instead.
 
     """
     @property
@@ -73,10 +78,7 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         return RuleMapping(self)
 
     def __init__(self, character, origin, destination):
-        """Initialize a Portal in a character from an origin to a
-        destination
-
-        """
+        """Remember what portal I am, and initialize caches."""
         self._origin = origin
         self._destination = destination
         self.character = character
