@@ -461,7 +461,9 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower, Tim
                 if nodeB not in self._cache:
                     self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
                 return self._cache[nodeB]
-            raise KeyError("No such portal")
+            raise KeyError("No such portal: {}->{}".format(
+                self.nodeA, nodeB
+            ))
 
         def __setitem__(self, nodeB, value):
             (branch, tick) = self.engine.time
