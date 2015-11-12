@@ -424,40 +424,132 @@ def stat_validity(k, cache, branch, tick):
     return (lo, hi)
 
 
-def fire_stat_listeners(
-        dispatcher,
-        keys,
-        cache,
-        stats_validity,
-        branch_then,
-        tick_then,
-        branch_now,
-        tick_now
-):
-    def getstat(k, branch, tick):
-        return cache[k][branch][window_left(cache[k][branch].keys(), tick)]
+class SessionList(MutableSequence):
+    """List that calls listeners on first item set and last delete."""
+    def __init__(self, listeners=[]):
+        self._real = []
+        self._listeners = listeners
 
-    for k in keys.union(stats_validity.keys()):
-        try:
-            (since, until) = stats_validity[k]
-            if (
-                branch_then == branch_now and
-                tick_now >= since and
-                (until is None or tick_now < until)
-            ):
+    def listener(self, f):
+        if f not in self._listeners:
+            self._listeners.append(f)
+
+    def unlisten(self, f):
+        if f in self._listeners:
+            self._listeners.remove(f)
+
+    def insert(self, i, v):
+        self._real.insert(i, v)
+
+    def __iter__(self):
+        return iter(self._real)
+
+    def __len__(self):
+        return len(self._real)
+
+    def __getitem__(self, i):
+        return self._real[i]
+
+    def __setitem__(self, i, v):
+        begun = self._real == []
+        self._real[i] = v
+        if begun:
+            for f in self._listeners:
+                f(self)
+
+    def __delitem__(self, i):
+        del self._real[i]
+        if self._real == []:
+            for f in self._listeners:
+                f(self)
+
+    def __str__(self):
+        return str(self._real)
+
+    def __repr__(self):
+        return repr(self._real)
+
+
+class TimeDispatcher(object):
+    """Mixin class for sim-time-sensitive objects with callback functions.
+
+    The callback functions get called with args ``(key, value, self,
+    branch, tick)`` whenever the watched key *appears* to change its
+    value. This can happen either because a new value was actually
+    set, or because one had already been set in the future, and time
+    passed so that the future is now the present.
+
+    """
+    @reify
+    def _listeners(self):
+        return defaultdict(lambda: SessionList([
+            self._listen_to_time_if
+        ]))
+
+    @reify
+    def _dispatch_validity(self):
+        return {}
+
+    @reify
+    def _dispatch_cache(self):
+        return defaultdict(lambda: SessionList([
+            self._listen_to_time_if
+        ]))
+
+    def listener(self, fun=None, key=None):
+        return listener(self._listeners, fun, key)
+
+    def unlisten(self, fun=None, key=None):
+        return unlistener(self._listeners, fun, key)
+
+    def dispatch(self, k, v):
+        if k in self and self[k] == v:
+            return
+        (branch, tick) = self.engine.time
+        d = self._listeners
+        if k in d:
+            for f in d[k]:
+                f(branch, tick, self, k, v)
+        if None in d:
+            for f in d[None]:
+                f(branch, tick, self, k, v)
+
+    def dispatch_time(
+            self,
+            branch_then,
+            tick_then,
+            branch_now,
+            tick_now
+    ):
+        for k in set(self.keys()).union(self._dispatch_validity.keys()):
+            try:
+                (since, until) = self._dispatch_validity[k]
+                if (
+                    branch_then == branch_now and
+                    tick_now >= since and
+                    (until is None or tick_now < until)
+                ):
+                    continue
+            except KeyError:
+                pass
+            try:
+                self._dispatch_validity[k] = stat_validity(
+                    k, self._dispatch_cache, branch_now, tick_now
+                )
+            except ValueError:
+                if k in self._dispatch_validity:
+                    del self._dispatch_validity[k]
+            try:
+                newv = self._dispatch_cache[k][branch_now][tick_now]
+                oldv = self._dispatch_cache[k][branch_then][tick_then]
+                if newv == oldv:
+                    continue
+            except (KeyError, ValueError):
                 continue
-        except KeyError:
-            pass
-        try:
-            stats_validity[k] = stat_validity(k, cache, branch_now, tick_now)
-        except ValueError:
-            if k in stats_validity:
-                del stats_validity[k]
-        try:
-            newv = getstat(k, branch_now, tick_now)
-            oldv = getstat(k, branch_then, tick_then)
-            if newv == oldv:
-                continue
-        except (KeyError, ValueError):
-            continue
-        dispatcher(k, newv)
+            self.dispatch(k, newv)
+
+    def _listen_to_time_if(self, b):
+        if b:
+            self.engine.time_listener(self.dispatch_time)
+        else:
+            self.engine.time_unlisten(self.dispatch_time)

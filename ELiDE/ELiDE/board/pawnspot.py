@@ -69,7 +69,7 @@ class PawnSpot(ImageStack, MirrorMapping):
             self.remote['_stackhs'] = zeroes
         self.remote.listeners(
             fun=self._listen_func,
-            stats=(
+            keys=(
                 '_image_paths',
                 '_offxs',
                 '_offys',

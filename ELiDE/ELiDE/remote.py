@@ -57,7 +57,7 @@ class MirrorMapping(EventDispatcher):
         remote = kwargs.get('remote', None) or self.remote
         remote.listener(
             fun=self._listen_func,
-            stat=kwargs.get('stat', None)
+            key=kwargs.get('stat', None)
         )
 
     def unlisten(self, *args, **kwargs):
@@ -70,7 +70,7 @@ class MirrorMapping(EventDispatcher):
         remote = kwargs.get('remote', None) or self.remote
         remote.unlisten(
             fun=self._listen_func,
-            stat=kwargs.get('stat', None)
+            key=kwargs.get('stat', None)
         )
 
     def _listen_func(self, branch, tick, what, k, v):

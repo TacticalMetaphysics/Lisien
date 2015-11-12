@@ -2,13 +2,7 @@ from collections import defaultdict
 
 from gorm.graph import Edge
 
-from .util import (
-    dispatch,
-    listener,
-    unlisten,
-    stat_validity,
-    fire_stat_listeners
-)
+from .util import TimeDispatcher
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 
@@ -36,7 +30,7 @@ class RuleMapping(BaseRuleMapping):
         )
 
 
-class Portal(Edge, RuleFollower):
+class Portal(Edge, RuleFollower, TimeDispatcher):
     """Connection between two Places that Things may travel along.
 
     Portals are one-way, but you can make one appear two-way by
@@ -44,6 +38,10 @@ class Portal(Edge, RuleFollower):
     eg. ``character.add_portal(orig, dest, symmetrical=True)``
 
     """
+    @property
+    def _cache(self):
+        return self._dispatch_cache
+
     def _rule_name_activeness(self):
         if self.engine.caching:
             cache = self.engine._active_rules_cache[self._get_rulebook_name()]
@@ -81,64 +79,17 @@ class Portal(Edge, RuleFollower):
         """
         self._origin = origin
         self._destination = destination
-        self._stat_listeners = defaultdict(list)
         self.character = character
         self.engine = character.engine
         self._keycache = {}
-        self._cache = {}
         self._existence = {}
 
         if self.engine.caching:
             (branch, tick) = self.engine.time
-            self._stats_validity = {}
-            self._statcache = self.engine._edges_cache[
+            self._dispatch_cache = self.engine._edge_val_cache[
                 self.character.name][self._origin][self._destination][0]
-            for k in self._statcache:
-                try:
-                    self._stats_validity[k] = stat_validity(
-                        k,
-                        self._statcache,
-                        branch,
-                        tick
-                    )
-                except (KeyError, ValueError):
-                    pass
 
         super().__init__(character, self._origin, self._destination)
-
-    def _fire_my_stat_listeners(
-        self,
-        branch_then,
-        tick_then,
-        branch_now,
-        tick_now
-    ):
-        fire_stat_listeners(
-            lambda k, v: dispatch(self._stat_listeners, k, branch_now, tick_now, self, k, v),
-            set(self._stat_listeners.keys()),
-            self._statcache,
-            self._stats_validity,
-            branch_then,
-            tick_then,
-            branch_now,
-            tick_now
-        )
-
-    def _dispatch_stat(self, k, v):
-        if k in self and self[k] == v:
-            return
-        (branch, tick) = self.engine.time
-        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
-
-    def listener(self, f=None, stat=None):
-        self.engine.time_listener(self._fire_my_stat_listeners)
-        return listener(self._stat_listeners, f, stat)
-
-    def unlisten(self, f=None, stat=None):
-        r = unlisten(self._stat_listeners, f, stat)
-        if not self._stat_listeners:
-            self.engine.time_unlisten(self._fire_my_stat_listeners)
-        return r
 
     def __getitem__(self, key):
         """Get the present value of the key.
@@ -214,7 +165,7 @@ class Portal(Edge, RuleFollower):
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
         super().__setitem__(key, value)
-        self._dispatch_stat(key, value)
+        self.dispatch(key, value)
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
@@ -223,7 +174,7 @@ class Portal(Edge, RuleFollower):
             return
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
-        self._dispatch_stat(key, None)
+        self.dispatch(key, None)
 
     def __repr__(self):
         """Describe character, origin, and destination"""

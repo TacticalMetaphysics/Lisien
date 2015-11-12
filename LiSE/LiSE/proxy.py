@@ -402,7 +402,7 @@ class EngineHandle(object):
             return
         character = self._real.character[charn]
 
-        @character.stat.listener(stat=statn)
+        @character.stat.listener(key=statn)
         def put_stat(b, t, char, k, v):
             if charn in self._muted_chars:
                 return
@@ -474,50 +474,9 @@ class EngineHandle(object):
                     )
                 )
 
-        @self._real.time_listener
-        def check_stats(oldb, oldt, newb, newt):
-            if char in self._muted_chars:
-                return
-            self._real.locktime = True
-            self._real.time = (oldb, oldt)
-            olds = json_deepcopy(node)
-            self._real.time = (newb, newt)
-            del self._real.locktime
-            seen = set()
-            for (k, v) in olds.items():
-                if k not in node:
-                    self.put(
-                        (
-                            'node',
-                            newb, newt,
-                            char, noden,
-                            k, None
-                        )
-                    )
-                elif node[k] != v:
-                    self.put(
-                        (
-                            'node',
-                            newb, newt,
-                            char, noden,
-                            k, self.unwrap_node_stat(char, noden, k, v)
-                        )
-                    )
-                seen.add(k)
-            for (k, v) in node.items():
-                if k not in seen and k not in olds:
-                    self.put(
-                        (
-                            'node',
-                            newb, newt,
-                            char, noden,
-                            k, v
-                        )
-                    )
-
         if char not in self._node_listeners:
             self._node_listeners[char] = {}
-        self._node_listeners[char][noden] = (put_stat, check_stats)
+        self._node_listeners[char][noden] = put_stat
 
     def unlisten_to_node(self, charn, noden):
         if not (
@@ -525,9 +484,9 @@ class EngineHandle(object):
                 noden in self._node_listeners[charn]
         ):
             return
-        (a, b) = self._node_listeners[charn][noden]
-        self._real.character[charn].node[noden].unlisten(a)
-        self._real.time_unlisten(b)
+        self._real.character[charn].node[noden].unlisten(
+            self._node_listeners[charn][noden]
+        )
 
     def listen_to_thing_map(self, charn):
         if charn in self._thing_map_listeners:
@@ -628,7 +587,7 @@ class EngineHandle(object):
             return
         node = self._real.character[charn].node[noden]
 
-        @node.listener(stat=statn)
+        @node.listener(key=statn)
         def put_stat(b, t, node, k, v):
             if charn in self._muted_chars:
                 return
@@ -680,7 +639,7 @@ class EngineHandle(object):
         ):
             return
         (a, b) = self._node_stat_listeners[charn][noden][statn]
-        self._real.character[charn].node[noden].unlisten(fun=a, stat=statn)
+        self._real.character[charn].node[noden].unlisten(fun=a, key=statn)
         self._real.time_unlisten(b)
 
     def listen_to_portal(self, char, a, b):
@@ -873,7 +832,7 @@ class EngineHandle(object):
             return
         port = self._real.character[charn].portal[a][b]
 
-        @port.listener(stat=statn)
+        @port.listener(key=statn)
         def put_stat(b, t, portal, k, v):
             if charn in self._muted_chars:
                 return
@@ -930,7 +889,7 @@ class EngineHandle(object):
             return
         (a, b) = self._portal_stat_listeners[charn][orign][destn][statn]
         self._real.character[charn].portal[orign][destn].unlisten(
-            fun=a, stat=statn
+            fun=a, key=statn
         )
         self._real.time_unlisten(b)
 
@@ -1668,41 +1627,41 @@ class NodeProxy(CachingEntityProxy):
             silent=True
         )
 
-    def listener(self, fun=None, stat=None):
-        if None not in (fun, stat):
+    def listener(self, fun=None, key=None):
+        if None not in (fun, key):
             self.engine.node_stat_listener(
-                self._charname, self.name, stat, fun
+                self._charname, self.name, key, fun
             )
             return fun
-        elif stat is None:
+        elif key is None:
             self.engine.node_listener(
                 self._charname, self.name, fun
             )
             return fun
         else:
-            return lambda f: self.listener(fun=f, stat=stat)
+            return lambda f: self.listener(fun=f, key=key)
 
-    def listeners(self, fun=None, stats=None):
-        if stats is None:
-            raise TypeError('Need some stats here')
+    def listeners(self, fun=None, keys=None):
+        if keys is None:
+            raise TypeError('Need some keys here')
         if fun is None:
-            return lambda f: self.listeners(fun=f, stats=stats)
+            return lambda f: self.listeners(fun=f, keys=keys)
         self.engine.node_stats_listener(
-            self._charname, self.name, stats, fun
+            self._charname, self.name, keys, fun
         )
         return fun
 
-    def unlisten(self, fun=None, stat=None):
-        if None not in (fun, stat):
+    def unlisten(self, fun=None, key=None):
+        if None not in (fun, key):
             self.engine.node_stat_unlisten(
-                self._charname, self.name, stat, fun
+                self._charname, self.name, key, fun
             )
-        elif stat is None:
+        elif key is None:
             self.engine.node_unlisten(
                 self._charname, self.name, fun
             )
         else:
-            return lambda f: self.unlisten(fun=f, stat=stat)
+            return lambda f: self.unlisten(fun=f, key=key)
 
     def delete(self):
         self.engine.del_node(self._charname, self.name)
@@ -1915,31 +1874,31 @@ class PortalProxy(CachingEntityProxy):
         """It means something that I exist, even if I don't have any data yet."""
         return True
 
-    def listener(self, fun=None, stat=None):
-        if None not in (fun, stat):
+    def listener(self, fun=None, key=None):
+        if None not in (fun, key):
             self.engine.portal_stat_listener(
-                self._charname, self._nodeA, self._nodeB, stat, fun
+                self._charname, self._nodeA, self._nodeB, key, fun
             )
             return fun
-        elif stat is None:
+        elif key is None:
             self.engine.portal_listener(
                 self._charname, self._nodeA, self._nodeB, fun
             )
             return fun
         else:
-            return lambda f: self.listener(fun=f, stat=stat)
+            return lambda f: self.listener(fun=f, key=key)
 
-    def unlisten(self, fun=None, stat=None):
-        if None not in (fun, stat):
+    def unlisten(self, fun=None, key=None):
+        if None not in (fun, key):
             self.engine.portal_stat_unlisten(
-                self._charname, self._nodeA, self._nodeB, stat, fun
+                self._charname, self._nodeA, self._nodeB, key, fun
             )
-        elif stat is None:
+        elif key is None:
             self.engine.portal_unlisten(
                 self._charname, self._nodeA, self._nodeB, fun
             )
         else:
-            return lambda f: self.unlisten(fun=f, stat=stat)
+            return lambda f: self.unlisten(fun=f, key=key)
 
     def delete(self):
         self.engine.del_portal(
@@ -2316,28 +2275,28 @@ class CharStatProxy(CachingEntityProxy):
             silent=True
         )
 
-    def listener(self, fun=None, stat=None):
-        if stat is None:
+    def listener(self, fun=None, key=None):
+        if key is None:
             self.engine.char_listener(
                 self.name, fun
             )
         elif fun is None:
-            return lambda f: self.listener(fun=f, stat=stat)
+            return lambda f: self.listener(fun=f, key=key)
         else:
             self.engine.char_stat_listener(
-                self.name, stat, fun
+                self.name, key, fun
             )
         return fun
 
-    def unlisten(self, fun=None, stat=None):
-        if stat is None:
+    def unlisten(self, fun=None, key=None):
+        if key is None:
             self.engine.char_unlisten(self.name, fun)
         elif fun is None:
             return lambda f: self.engine.char_stat_unlisten(
-                self.name, stat, f
+                self.name, key, f
             )
         else:
-            self.engine.char_stat_unlisten(self.name, stat, fun)
+            self.engine.char_stat_unlisten(self.name, key, fun)
         return fun
 
 

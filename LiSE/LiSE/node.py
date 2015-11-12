@@ -6,17 +6,13 @@ Every actual node that you're meant to use will be a place or
 thing. This module is for what they have in common.
 
 """
-from collections import defaultdict, Mapping
+from collections import Mapping
 
 import gorm.graph
 
 from .util import (
-    dispatch,
-    listener,
-    unlisten,
-    reify,
-    stat_validity,
-    fire_stat_listeners
+    TimeDispatcher,
+    reify
 )
 from . import rule
 
@@ -75,7 +71,7 @@ class UserMapping(Mapping):
         return self.engine.character[k]
 
 
-class Node(gorm.graph.Node, rule.RuleFollower):
+class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     """Superclass for both Thing and Place"""
     def _rule_names_activeness(self):
         if self.engine.caching:
@@ -137,12 +133,6 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             v
         )
 
-    def _dispatch_stat(self, k, v):
-        if k in self and self[k] == v:
-            return
-        (branch, tick) = self.engine.time
-        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
-
     def _user_names(self):
         if self.engine.caching:
             cache = self.engine._avatarness_cache.user_order[self.character.name][self.name]
@@ -177,23 +167,9 @@ class Node(gorm.graph.Node, rule.RuleFollower):
         self.gorm = self.engine
         self.graph = self.character
         self.name = self.node = name
-        self._rulebook_listeners = []
-        self._stat_listeners = defaultdict(list)
         if self.engine.caching:
             (branch, tick) = self.engine.time
-            self._stats_validity = {}
-            self._statcache = self.engine._node_val_cache[self.character.name][self.name]
-            for k in self:
-                try:
-                    self._stats_validity[k] = stat_validity(
-                        k,
-                        self._statcache,
-                        branch,
-                        tick
-                    )
-                except ValueError:
-                    self._stats_validity[k] = (0, None)
-        super().__init__(character, name)
+            self._dispatch_cache = self.engine._node_val_cache[self.character.name][self.name]
 
     def __iter__(self):
         yield from super().__iter__()
@@ -206,60 +182,13 @@ class Node(gorm.graph.Node, rule.RuleFollower):
             return True
         return super().__contains__(k)
 
-    def listener(self, f=None, stat=None):
-        """Arrange to call a function whenever a stat changes.
-
-        If no stat is provided, changes to any stat will result in a call.
-
-        """
-        self.engine.time_listener(self._fire_my_stat_listeners)
-        return listener(self._stat_listeners, f, stat)
-
-    def unlisten(self, f=None, stat=None):
-        """Stop calling a function when a stat changes.
-
-        If the function wasn't passed to ``self.listener`` in the same
-        way, this won't do anything.
-
-        """
-        r = unlisten(self._stat_listeners, f, stat)
-        if not self._stat_listeners:
-            self.engine.time_unlisten(self._fire_my_stat_listeners)
-        return r
-
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
-        self._dispatch_stat(k, v)
+        self.dispatch(k, v)
 
     def __delitem__(self, k):
         super().__delitem__(k)
-        self._dispatch_stat(k, None)
-
-    def _fire_my_stat_listeners(
-        self,
-        branch_then,
-        tick_then,
-        branch_now,
-        tick_now
-    ):
-        fire_stat_listeners(
-            lambda k, v: dispatch(
-                self._stat_listeners,
-                k,
-                branch_now,
-                tick_now,
-                self,
-                k,
-                v
-            ),
-            set(self._stat_listeners.keys()),
-            self._statcache,
-            self._stats_validity,
-            branch_then,
-            tick_then,
-            branch_now,
-            tick_now
-        )
+        self.dispatch(k, None)
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""

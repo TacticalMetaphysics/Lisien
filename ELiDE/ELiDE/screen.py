@@ -198,7 +198,7 @@ class MainScreen(Screen):
             return
         if hasattr(self, '_old_character'):
             self._old_character.stat.unlisten(
-                stat='_kv', fun=self._pull_kv
+                key='_kv', fun=self._pull_kv
             )
         else:
             self.bind(kv=self._trigger_remake_display)
@@ -206,7 +206,7 @@ class MainScreen(Screen):
         if '_kv' in self.character.stat:
             self.kv = self.character.stat['_kv']
         self.character.stat.listener(
-            stat='_kv', fun=self._pull_kv
+            key='_kv', fun=self._pull_kv
         )
 
     def _pull_kv(self, *args):

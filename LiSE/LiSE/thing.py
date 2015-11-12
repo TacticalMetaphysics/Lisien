@@ -118,17 +118,15 @@ class Thing(Node):
             (branch, tick) = self.engine.time
             self.engine._things_cache\
                 [self.character.name][self.name][branch][tick] = value
-            self._dispatch_stat('locations', value)
+            self.dispatch('locations', value)
         else:
             super().__setitem__(key, value)
-            self._dispatch_stat(key, value)
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
         if key in self.extrakeys:
             raise ValueError("Can't delete {}".format(key))
         super().__delitem__(key)
-        self._dispatch_stat(key, None)
 
     def __repr__(self):
         """Return my character, name, and location"""

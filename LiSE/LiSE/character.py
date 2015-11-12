@@ -38,13 +38,9 @@ from gorm.graph import (
 )
 
 from .util import (
+    TimeDispatcher,
     CompositeDict,
-    dispatch,
-    listener,
-    unlistener,
-    reify,
-    stat_validity,
-    fire_stat_listeners
+    reify
 )
 from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
@@ -144,42 +140,19 @@ class RuleFollower(BaseRuleFollower):
         )
 
 
-class CharacterThingMapping(MutableMapping, RuleFollower):
+class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """:class:`Thing` objects that are in a :class:`Character`"""
     _book = "character_thing"
+
+    @property
+    def _cache(self):
+        return self._dispatch_cache
 
     def __init__(self, character):
         """Store the character and initialize cache"""
         self.character = character
         self.engine = character.engine
         self.name = character.name
-        self._thing_listeners = defaultdict(list)
-        self._cache = {}
-
-    def _dispatch_thing(self, k, v):
-        """Internal use. Calls listeners when a Thing has changed."""
-        (b, t) = self.engine.time
-        dispatch(self._thing_listeners, k, b, t, self, k, v)
-
-    def listener(self, fun=None, thing=None):
-        """Register a listener function to be called when a thing is created
-        or deleted.
-
-        Optional argument ``thing`` indicates that the function should
-        only be called when that particular thing is created or
-        deleted.
-
-        """
-        return listener(self._thing_listeners, fun, thing)
-
-    def unlisten(self, fun=None, thing=None):
-        """Stop calling the given function when things are created or deleted.
-
-        If you registered it to listen to some particular thing, you
-        need to supply its name here too.
-
-        """
-        return unlistener(self._thing_listeners, fun, thing)
 
     def __iter__(self):
         """Iterate over nodes that have locations, and are therefore
@@ -267,10 +240,10 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         th = Thing(self.character, thing)
         th.clear()
         th.update(val)
-        self._dispatch_thing(thing, th)
         if self.engine.caching:
             self.engine._nodes_cache[self.character.name][thing][branch][tick] = True
             self.engine._things_cache[self.character.name][thing][branch][tick] = (location, next_location)
+        self.dispatch(thing, th)
 
     def __delitem__(self, thing):
         """Delete the thing from the cache and the database"""
@@ -279,49 +252,26 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if self.engine.caching:
             if thing in self._cache:
                 del self._cache[thing]
-        self._dispatch_thing(thing, None)
+        self.dispatch(thing, None)
 
     def __repr__(self):
         """Represent myself as a dict"""
         return repr(dict(self))
 
 
-class CharacterPlaceMapping(MutableMapping, RuleFollower):
+class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """:class:`Place` objects that are in a :class:`Character`"""
     _book = "character_place"
+
+    @property
+    def _cache(self):
+        return self._dispatch_cache
 
     def __init__(self, character):
         """Store the character and initialize the cache (if caching)"""
         self.character = character
         self.engine = character.engine
         self.name = character.name
-        self._place_listeners = defaultdict(list)
-        self._cache = {}
-
-    def _dispatch_place(self, k, v):
-        """Internal use. Calls functions listening to places."""
-        (branch, tick) = self.engine.time
-        dispatch(self._place_listeners, k, branch, tick, self, k, v)
-
-    def listener(self, fun=None, place=None):
-        """Register a listener function to be called when a place is created
-        or deleted.
-
-        Optional argument ``place`` indicates that the function should
-        only be called when that particular place is created or
-        deleted.
-
-        """
-        return listener(self._place_listeners, fun, place)
-
-    def unlisten(self, fun=None, place=None):
-        """Stop calling the given function when places are created or deleted.
-
-        If you registered it to listen to some particular place, you
-        need to supply its name here too.
-
-        """
-        return unlistener(self._place_listeners, fun, place)
 
     def __iter__(self):
         """Iterate over names of nodes that are not things,
@@ -387,7 +337,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             if place not in self._cache:
                 self._cache[place] = Place(self.character, place)
             pl = self._cache[place]
-        self._dispatch_place(place, v)
         (branch, tick) = self.engine.time
         self.engine.db.exist_node(
             self.character.name,
@@ -400,11 +349,12 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         pl.update(v)
         if self.engine.caching:
             self.engine._nodes_cache[self.character.name][place][branch][tick] = True
+        self.dispatch(place, v)
 
     def __delitem__(self, place):
         """Delete place from both cache and database"""
         self[place].delete(nochar=True)
-        self._dispatch_place(place, None)
+        self.dispatch(place, None)
 
     def __repr__(self):
         """Represent myself as a dictionary"""
@@ -414,6 +364,10 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
 class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
     """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
     _book = "character_node"
+
+    @property
+    def _cache(self):
+        return self._dispatch_cache
 
     def __init__(self, character):
         """Store the character"""
@@ -442,42 +396,20 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
             raise KeyError("No such thing or place: {}".format(k))
 
 
-class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
+class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower, TimeDispatcher):
     _book = "character_portal"
 
-    @reify
+    @property
     def character(self):
         return self.graph
 
-    @reify
+    @property
     def engine(self):
         return self.graph.engine
 
-    @reify
+    @property
     def _cache(self):
-        return {}
-
-    @reify
-    def _portal_listeners(self):
-        return defaultdict(list)
-
-    def _dispatch_portal(self, o, d, p):
-        dispatch(
-            self._portal_listeners,
-            o,
-            self.gorm.branch,
-            self.gorm.rev,
-            self,
-            self.graph.node[o],
-            self.graph.node[d],
-            p
-        )
-
-    def listener(self, fun=None, place=None):
-        return listener(self._portal_listeners, fun, place)
-
-    def unlisten(self, fun=None, place=None):
-        return unlistener(self._portal_listeners, fun, place)
+        return self._dispatch_cache
 
     def __getitem__(self, nodeA):
         if self.engine._node_exists(
@@ -495,37 +427,26 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
         sucs = self._cache[nodeA]
         sucs.clear()
         sucs.update(val)
+        self.dispatch(nodeA, val)
 
     def __delitem__(self, nodeA):
-        bs = list(self[nodeA].keys())
         super().__delitem__(nodeA)
-        for b in bs:
-            self._dispatch_portal(nodeA, b, None)
+        self.dispatch(nodeA, None)
 
-    class Successors(GraphSuccessorsMapping.Successors):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.engine = self.graph.engine
-            self._portal_listeners = defaultdict(list)
-            if self.engine.caching:
-                self._cache = {}
+    class Successors(GraphSuccessorsMapping.Successors, TimeDispatcher):
+        """Mapping for possible destinations from some node."""
 
-        def _dispatch_portal(self, nodeB, portal):
-            dispatch(
-                self._portal_listeners,
-                nodeB,
-                self,
-                self.container.graph.node[self.nodeA],
-                self.container.graph.node[nodeB],
-                portal
-            )
-            self.container._dispatch_portal(self.nodeA, nodeB, portal)
+        @property
+        def _cache(self):
+            return self._dispatch_cache
 
-        def listener(self, fun=None, nodeB=None):
-            return listener(self._portal_listeners, fun, nodeB)
+        @property
+        def engine(self):
+            return self.graph.engine
 
-        def unlisten(self, fun=None, nodeB=None):
-            return unlistener(self._portal_listeners, fun, nodeB)
+        def dispatch(self, nodeB, portal):
+            super().dispatch(nodeB, portal)
+            self.container.dispatch(self.nodeA, self)
 
         def _getsub(self, nodeB):
             if hasattr(self, '_cache'):
@@ -564,7 +485,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             p.update(value)
             if self.engine.caching:
                 self.engine._edges_cache[self.graph.name][self.nodeA][nodeB][0][branch][tick] = True
-            self._dispatch_portal(nodeB, p)
+            self.dispatch(nodeB, p)
 
         def __delitem__(self, nodeB):
             if not self.engine.caching:
@@ -579,7 +500,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                 del self._cache[nodeB][branch][tick]
             super().__delitem__(nodeB)
             self.engine._edges_cache[self.character.name][self.nodeA][nodeB][0][branch][tick] = False
-            self._dispatch_portal(nodeB, None)
+            self.dispatch(nodeB, None)
 
 
 class CharacterPortalPredecessorsMapping(
@@ -633,23 +554,6 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         self.engine = char.engine
         self.name = char.name
         self._name = char._name
-        self._listeners = defaultdict(list)
-
-    def listener(self, fun=None, graph=None):
-        return listener(self._listeners, fun, graph)
-
-    def unlisten(self, fun=None, graph=None):
-        return unlistener(self._listeners, fun, graph)
-
-    def _dispatch(self, k, v, ex):
-        dispatch(
-            self._listeners,
-            k,
-            self.character,
-            self.engine.character[k],
-            self.engine.character[k].node[v],
-            ex
-        )
 
     def __call__(self, av):
         """Add the avatar. It must be an instance of Place or Thing."""
@@ -958,7 +862,7 @@ class CharacterSense(object):
         return r
 
 
-class CharacterSenseMapping(MutableMapping, RuleFollower):
+class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """Used to view other Characters as seen by one, via a particular sense"""
     _book = "character"
 
@@ -966,17 +870,6 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
         """Store the character"""
         self.character = character
         self.engine = character.engine
-        self._listeners = defaultdict(list)
-
-    def _dispatch(self, k, v):
-        (branch, tick) = self.engine.time
-        dispatch(self._listeners, k, branch, tick, self, k, v)
-
-    def listener(self, fun=None, sense=None):
-        return listener(self._listeners, fun, sense)
-
-    def unlisten(self, fun=None, sense=None):
-        return unlistener(self._listeners, fun, sense)
 
     def __iter__(self):
         """Iterate over active sense names"""
@@ -1020,7 +913,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             funn,
             True
         )
-        self._dispatch(k, v)
+        self.dispatch(k, v)
 
     def __delitem__(self, k):
         """Stop having the given sense"""
@@ -1032,7 +925,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             tick,
             False
         )
-        self._dispatch(k, None)
+        self.dispatch(k, None)
 
     def __call__(self, fun, name=None):
         """Decorate the function so it's mine now"""
@@ -1045,10 +938,14 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
         self[name] = fun
 
 
-class FacadePlace(MutableMapping):
+class FacadePlace(MutableMapping, TimeDispatcher):
     @property
     def name(self):
         return self['name']
+
+    @property
+    def _dispatch_cache(self):
+        return self
 
     def contents(self):
         for thing in self.facade.thing.values():
@@ -1060,16 +957,6 @@ class FacadePlace(MutableMapping):
         self._real = real
         self._patch = {}
         self._masked = set()
-        self._listeners = defaultdict(list)
-
-    def _dispatch(self, k, v):
-        dispatch(self._listeners, k, self, k, v)
-
-    def listener(self, fun=None, stat=None):
-        return listener(self._listeners, fun, stat)
-
-    def unlisten(self, fun=None, stat=None):
-        return unlistener(self._listeners, fun, stat)
 
     def __iter__(self):
         seen = set()
@@ -1100,11 +987,11 @@ class FacadePlace(MutableMapping):
     def __setitem__(self, k, v):
         self._masked.discard(k)
         self._patch[k] = v
-        self._dispatch(k, v)
+        self.dispatch(k, v)
 
     def __delitem__(self, k):
         self._masked.add(k)
-        self._dispatch(k, None)
+        self.dispatch(k, None)
 
 
 class FacadeThing(FacadePlace):
@@ -1143,21 +1030,25 @@ class FacadePortal(FacadePlace):
         return self.facade.node[self['destination']]
 
 
-class FacadeEntityMapping(MutableMapping):
+class FacadeEntityMapping(MutableMapping, TimeDispatcher):
+    @property
+    def _dispatch_cache(self):
+        return self
+
+    @property
+    def engine(self):
+        return self.facade.engine
+
+    @reify
+    def _patch(self):
+        return {}
+
+    @reify
+    def _masked(self):
+        return set()
+
     def __init__(self, facade):
         self.facade = facade
-        self._patch = {}
-        self._masked = set()
-        self._listeners = defaultdict(list)
-
-    def dispatch(self, k, v):
-        dispatch(self._listeners, k, self, k, v)
-
-    def listener(self, fun=None, stat=None):
-        return listener(self._listeners, fun, stat)
-
-    def unlisten(self, fun=None, stat=None):
-        return unlistener(self._listeners, fun, stat)
 
     def __contains__(self, k):
         return (
@@ -1199,7 +1090,7 @@ class FacadeEntityMapping(MutableMapping):
             v = self.facadecls(self.facade, v)
         self._masked.discard(k)
         self._patch[k] = v
-        self._dispatch(k, v)
+        self.dispatch(k, v)
 
     def __delitem__(self, k):
         self._masked.add(k)
@@ -1278,7 +1169,11 @@ class FacadePortalPredecessorsMapping(FacadePortalMapping):
         return self.facade.character.preportal
 
 
-class FacadeStatsMapping(MutableMapping):
+class FacadeStatsMapping(MutableMapping, TimeDispatcher):
+    @property
+    def _dispatch_cache(self):
+        return self
+
     def __init__(self, facade):
         self.facade = facade
         self._patch = {}
@@ -1318,9 +1213,11 @@ class FacadeStatsMapping(MutableMapping):
     def __setitem__(self, k, v):
         self._masked.discard(k)
         self._patch[k] = v
+        self.dispatch(k, v)
 
     def __delitem__(self, k):
         self._masked.add(k)
+        self.dispatch(k, None)
 
 
 class Facade(nx.DiGraph):
@@ -1336,71 +1233,25 @@ class Facade(nx.DiGraph):
         self.graph = FacadeStatsMapping(self)
 
 
-class CharStatCache(MutableMapping):
+class CharStatCache(MutableMapping, TimeDispatcher):
     """Caching dict-alike for character stats"""
+    @property
+    def _dispatch_cache(self):
+        return self.engine._graph_val_cache[
+            self.character.name
+        ]
+
+    @property
+    def engine(self):
+        return self.character.engine
+
+    @property
+    def _real(self):
+        return self.character.graph
+
     def __init__(self, char):
-        """Store character, initialize cache"""
+        """Store character"""
         self.character = char
-        self.engine = char.engine
-        self._real = char.graph
-        self._listeners = defaultdict(list)
-
-        if self.engine.caching:
-            (branch, tick) = self.engine.time
-            self._stats_validity = {}
-            self._cache = self.engine._graph_val_cache[self.character.name]
-            for k in self._cache:
-                try:
-                    self._stats_validity[k] = stat_validity(
-                        k,
-                        self._cache,
-                        branch,
-                        tick
-                    )
-                except ValueError:
-                    continue
-
-    def _fire_my_stat_listeners(
-        self,
-        branch_then,
-        tick_then,
-        branch_now,
-        tick_now
-    ):
-        fire_stat_listeners(
-            lambda k, v: dispatch(self._listeners, k, branch_now, tick_now, self.character, k, v),
-            set(self._listeners.keys()),
-            self._cache,
-            self._stats_validity,
-            branch_then,
-            tick_then,
-            branch_now,
-            tick_now
-        )
-
-    def listener(self, fun=None, stat=None):
-        self.engine.time_listener(self._fire_my_stat_listeners)
-        return listener(self._listeners, fun, stat)
-
-    def unlisten(self, fun=None, stat=None):
-        r = unlistener(self._listeners, fun, stat)
-        if not self._listeners:
-            self.engine.time_unlisten(self._fire_my_stat_listeners)
-        return r
-
-    def _dispatch(self, k, v):
-        if k in self and self[k] == v:
-            return
-        (branch, tick) = self.engine.time
-        dispatch(
-            self._listeners,
-            k,
-            branch,
-            tick,
-            self.character,
-            k,
-            v
-        )
 
     def __iter__(self):
         """Iterate over underlying keys"""
@@ -1422,12 +1273,12 @@ class CharStatCache(MutableMapping):
         """Cache new value and set it the normal way"""
         assert(v is not None)
         self._real[k] = v
-        self._dispatch(k, v)
+        self.dispatch(k, v)
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
         del self._real[k]
-        self._dispatch(k, None)
+        self.dispatch(k, None)
 
 
 class Character(DiGraph, RuleFollower):
@@ -1697,7 +1548,6 @@ class Character(DiGraph, RuleFollower):
             self.engine._avatarness_cache.remember(
                 self.name, g, n, branch, tick, True
             )
-        self.avatar._dispatch(g, n, True)
 
     def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own"""
@@ -1727,7 +1577,6 @@ class Character(DiGraph, RuleFollower):
             self.engine._avatarness_cache.remember(
                 self.character.name, g, n, branch, tick, False
             )
-        self.avatar._dispatch(g, n, False)
 
     def portals(self):
         """Iterate over all portals"""

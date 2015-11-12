@@ -9,7 +9,6 @@ located in another node. Places are not.
 
 
 from .node import Node
-from .util import dispatch
 
 
 class Place(Node):
@@ -26,12 +25,6 @@ class Place(Node):
             return self.character.name
         else:
             return super().__getitem__(key)
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        if self.engine.caching:
-            (branch, tick) = self.engine.time
-            dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 
     def __repr__(self):
         return "{}.place[{}]".format(

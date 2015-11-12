@@ -122,13 +122,13 @@ class Spot(PawnSpot):
     def listen_pos(self, *args):
         self.remote.listener(
             fun=self._upd_pos,
-            stat='pos'
+            key='pos'
         )
 
     def unlisten_pos(self, *args):
         self.remote.unlisten(
             fun=self._upd_pos,
-            stat='pos'
+            key='pos'
         )
 
     def on_remote(self, *args):

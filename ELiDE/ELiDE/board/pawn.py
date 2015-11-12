@@ -95,22 +95,22 @@ class Pawn(PawnSpot):
     def listen_loc(self, *args):
         self.remote.listener(
             fun=self._trigger_upd_loc_name,
-            stat='location'
+            key='location'
         )
         self.remote.listener(
             fun=self._trigger_upd_next_loc_name,
-            stat='next_location'
+            key='next_location'
         )
     _trigger_listen_loc = trigger(listen_loc)
 
     def unlisten_loc(self, *args):
         self.remote.unlisten(
             fun=self._trigger_upd_loc_name,
-            stat='location'
+            key='location'
         )
         self.remote.unlisten(
             fun=self._trigger_upd_next_loc_name,
-            stat='next_location'
+            key='next_location'
         )
     _trigger_unlisten_loc = trigger(unlisten_loc)
 
