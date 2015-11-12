@@ -1470,9 +1470,9 @@ class Character(DiGraph, RuleFollower):
         :class:`Portal`.
 
         """
-        if origin.__class__ in (Place, Thing):
+        if isinstance(origin, Node):
             origin = origin.name
-        if destination.__class__ in (Place, Thing):
+        if isinstance(destination, Node):
             destination = destination.name
         super(Character, self).add_edge(origin, destination, **kwargs)
         if symmetrical:
