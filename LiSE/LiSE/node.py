@@ -155,7 +155,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     def user(self):
         return UserMapping(self)
 
-    @reify
+    @property
     def portal(self):
         """Return a mapping of portals to other nodes."""
         return self.character.portal[self.name]
