@@ -1,4 +1,3 @@
-from collections import defaultdict
 
 from gorm.graph import Edge
 
