@@ -641,7 +641,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
     def __getattr__(self, attr):
         """If I've got only one avatar, return its attribute"""
         if len(self.keys()) == 1:
-            avs = self.CharacterAvatarMapping(self, list(d.keys())[0])
+            avs = self.CharacterAvatarMapping(self, next(iter(self.keys())))
             if len(avs) == 1:
                 av = list(avs.keys())[0]
                 if attr == av:
