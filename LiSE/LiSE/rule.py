@@ -683,15 +683,9 @@ class RuleFollower(object):
             return self._rule_mapping(v, name)
         return self._rule_mapping
 
-    @property
+    @reify
     def _rulebook_listeners(self):
-        if not hasattr(self, '_rbl'):
-            self._rbl = []
-        return self._rbl
-
-    @_rulebook_listeners.setter
-    def _rulebook_listeners(self, v):
-        self._rbl = v
+        return []
 
     @property
     def rulebook(self):
