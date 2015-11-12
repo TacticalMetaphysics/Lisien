@@ -25,7 +25,6 @@ and their node in the physical world is an avatar of it.
 """
 
 from collections import (
-    defaultdict,
     Mapping,
     MutableMapping,
     Callable
