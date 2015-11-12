@@ -8,6 +8,12 @@ from json import dumps, loads, JSONEncoder
 from collections import Mapping, MutableMapping
 from gorm.reify import reify
 from gorm.window import window_left, window_right, WindowDict
+from operator import attrgetter
+
+
+def getatt(attribute_name):
+    """An easy way to make an alias"""
+    return property(attrgetter(attribute_name))
 
 
 def dispatch(d, key, v, *args):
