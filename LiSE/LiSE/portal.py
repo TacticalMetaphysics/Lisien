@@ -1,3 +1,4 @@
+"""Directed edges, as used by LiSE."""
 
 from gorm.graph import Edge
 
