@@ -155,10 +155,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.name = character.name
 
     def __iter__(self):
-        """Iterate over nodes that have locations, and are therefore
-        Things. Yield their names.
-
-        """
         if not self.engine.caching:
             for (n, l) in self.engine.db.thing_loc_items(
                 self.character.name,
@@ -195,7 +191,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         return False
 
     def __len__(self):
-        """Just iterate and count stuff"""
         n = 0
         for th in self:
             n += 1
@@ -219,10 +214,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         return r
 
     def __setitem__(self, thing, val):
-        """Clear out any existing :class:`Thing` by this name and make a new
-        one out of ``val`` (assumed to be a mapping of some kind)
-
-        """
         if not isinstance(val, Mapping):
             raise TypeError('Things are made from Mappings')
         if 'location' not in val:
@@ -246,7 +237,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.dispatch(thing, th)
 
     def __delitem__(self, thing):
-        """Delete the thing from the cache and the database"""
         (branch, tick) = self.engine.time
         self[thing].delete(nochar=True)
         if self.engine.caching:
@@ -255,7 +245,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.dispatch(thing, None)
 
     def __repr__(self):
-        """Represent myself as a dict"""
         return repr(dict(self))
 
 
@@ -274,17 +263,12 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.name = character.name
 
     def __iter__(self):
-        """Iterate over names of nodes that are not things,
-        ie. places.
-
-        """
         things = set(self.character.thing.keys())
         for node in self.character.nodes():
             if node not in things:
                 yield node
 
     def __len__(self):
-        """Iterate and count"""
         n = 0
         for place in self:
             n += 1
@@ -314,10 +298,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
         )
 
     def __getitem__(self, place):
-        """Get the place from the cache if I can, otherwise check that it
-        exists, and if it does, cache and return it
-
-        """
         if place not in self:
             raise KeyError("No such place: {}".format(place))
         if not self.engine.caching:
@@ -327,10 +307,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
         return self._cache[place]
 
     def __setitem__(self, place, v):
-        """Wipe out any existing place by that name, and replace it with one
-        described by ``v``
-
-        """
         if not self.engine.caching:
             pl = Place(self.character, place)
         else:
@@ -352,12 +328,10 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.dispatch(place, v)
 
     def __delitem__(self, place):
-        """Delete place from both cache and database"""
         self[place].delete(nochar=True)
         self.dispatch(place, None)
 
     def __repr__(self):
-        """Represent myself as a dictionary"""
         return repr(dict(self))
 
 
@@ -376,18 +350,15 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
         self.name = character.name
 
     def __getitem__(self, k):
-        """Return a :class:`Thing` or :class:`Place` as appropriate"""
         try:
             return self.character.place[k]
         except KeyError:
             return self.character.thing[k]
 
     def __setitem__(self, k, v):
-        """Assume you're trying to create a :class:`Place`"""
         self.character.place[k] = v
 
     def __delitem__(self, k):
-        """Delete place or thing"""
         if k in self.character.thing:
             del self.character.thing[k]
         elif k in self.character.place:
@@ -1254,11 +1225,9 @@ class CharStatCache(MutableMapping, TimeDispatcher):
         self.character = char
 
     def __iter__(self):
-        """Iterate over underlying keys"""
         return iter(self._real)
 
     def __len__(self):
-        """Length of underlying graph"""
         return len(self._real)
 
     def __getitem__(self, k):
@@ -1270,13 +1239,11 @@ class CharStatCache(MutableMapping, TimeDispatcher):
         return self[k]
 
     def __setitem__(self, k, v):
-        """Cache new value and set it the normal way"""
         assert(v is not None)
         self._real[k] = v
         self.dispatch(k, v)
 
     def __delitem__(self, k):
-        """Clear the cached value and delete the normal way"""
         del self._real[k]
         self.dispatch(k, None)
 
