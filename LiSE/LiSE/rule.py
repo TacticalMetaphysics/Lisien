@@ -701,16 +701,11 @@ class RuleFollower(object):
         self._upd_rulebook()
 
     def _upd_rulebook(self):
-        """Set my ``_rulebook`` property to my rulebook as of this moment, and
-        call all of my ``_rulebook_listeners``.
-
-        """
         self._rulebook = self._get_rulebook()
         for f in self._rulebook_listeners:
             f(self, self._rulebook)
 
     def _get_rulebook(self):
-        """Return my :class:`RuleBook` as of this moment."""
         return RuleBook(
             self.engine,
             self._get_rulebook_name()
