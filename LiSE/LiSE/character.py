@@ -37,12 +37,10 @@ from gorm.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
+from gorm.reify import reify
 
-from .util import (
-    TimeDispatcher,
-    CompositeDict,
-    reify
-)
+from .util import CompositeDict
+from .bind import TimeDispatcher
 from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
 from .node import Node

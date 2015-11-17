@@ -9,12 +9,10 @@ thing. This module is for what they have in common.
 from collections import Mapping
 
 import gorm.graph
+from gorm.reify import reify
 
-from .util import (
-    TimeDispatcher,
-    reify,
-    getatt
-)
+from .util import getatt
+from .bind import TimeDispatcher
 from . import rule
 
 

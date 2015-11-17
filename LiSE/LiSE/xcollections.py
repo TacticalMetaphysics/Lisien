@@ -1,6 +1,6 @@
 from collections import Mapping, MutableMapping, defaultdict
 from .character import Character
-from .util import dispatch, listen, listener, unlisten, unlistener
+from .bind import dispatch, listen, listener, unlisten, unlistener
 
 
 class NotThatMap(Mapping):

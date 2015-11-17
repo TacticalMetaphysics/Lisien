@@ -24,12 +24,13 @@ from collections import (
 )
 from functools import partial
 
-from .util import (
+from gorm.reify import reify
+
+from .bind import (
     dispatch,
     listener,
     unlistener,
-    listen,
-    reify
+    listen
 )
 
 

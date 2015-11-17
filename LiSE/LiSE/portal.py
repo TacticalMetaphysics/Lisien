@@ -2,7 +2,8 @@
 
 from gorm.graph import Edge
 
-from .util import TimeDispatcher, getatt
+from .util import getatt
+from .bind import TimeDispatcher
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 
