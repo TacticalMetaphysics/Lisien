@@ -12,7 +12,7 @@ from collections import (
 from multiprocessing import Process, Pipe, Queue
 from queue import Empty
 
-from .engine import Engine
+from .engine import AbstractEngine, Engine
 from .character import Facade
 from gorm.xjson import (
     JSONReWrapper,
@@ -21,7 +21,6 @@ from gorm.xjson import (
 )
 from gorm.reify import reify
 from .util import (
-    AbstractEngine,
     dict_diff,
     list_diff
 )
