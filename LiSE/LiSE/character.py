@@ -950,6 +950,14 @@ class FacadePlace(MutableMapping, TimeDispatcher):
     def _dispatch_cache(self):
         return self
 
+    @reify
+    def _patch(self):
+        return {}
+
+    @reify
+    def _masked(self):
+        return set()
+
     def contents(self):
         for thing in self.facade.thing.values():
             if thing.container is self:
@@ -958,8 +966,6 @@ class FacadePlace(MutableMapping, TimeDispatcher):
     def __init__(self, facade, real):
         self.facade = facade
         self._real = real
-        self._patch = {}
-        self._masked = set()
 
     def __iter__(self):
         seen = set()
