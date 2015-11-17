@@ -4,7 +4,6 @@
 
 """
 from operator import attrgetter
-from gorm.reify import reify
 
 
 def getatt(attribute_name):

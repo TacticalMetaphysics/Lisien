@@ -19,11 +19,11 @@ from gorm.xjson import (
     JSONListReWrapper,
     json_deepcopy
 )
+from gorm.reify import reify
 from .util import (
     AbstractEngine,
     dict_diff,
-    list_diff,
-    reify
+    list_diff
 )
 
 """Proxy objects to make LiSE usable when launched in a subprocess,

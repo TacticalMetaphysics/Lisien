@@ -12,6 +12,7 @@ from json import dumps, loads, JSONEncoder
 from numpy import sctypes
 from gorm import ORM as gORM
 from gorm.window import WindowDict
+from gorm.reify import reify
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -23,7 +24,7 @@ from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import reify, getatt
+from .util import getatt
 
 
 def crhandled_defaultdict():
