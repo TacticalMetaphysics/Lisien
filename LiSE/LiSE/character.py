@@ -97,7 +97,8 @@ class RuleFollower(BaseRuleFollower):
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
     def _rule_names_activeness(self):
         if self.engine.caching:
-            rulebook = self.engine._characters_rulebooks_cache[self.character.name][self._book]
+            rulebook = self.engine._characters_rulebooks_cache[
+                self.character.name][self._book]
             cache = self.engine._active_rules_cache[rulebook]
             for rule in cache:
                 for (branch, tick) in self.engine._active_branches():
@@ -130,14 +131,14 @@ class RuleFollower(BaseRuleFollower):
                 self._book,
                 self.character.name
             )
-        return self.engine._characters_rulebooks_cache\
-            [self.character.name][self._book]
+        return self.engine._characters_rulebooks_cache[
+            self.character.name][self._book]
 
     def _set_rulebook_name(self, n):
         self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
         if self.engine.caching:
-            self.engine._characters_rulebooks_cache\
-                [self.character.name][self._book] = n
+            self.engine._characters_rulebooks_cache[
+                self.character.name][self._book] = n
 
     def __contains__(self, k):
         if self.engine.caching:
@@ -147,7 +148,8 @@ class RuleFollower(BaseRuleFollower):
                     k not in self.engine._active_rules_cache[rulebook_name]
             ):
                 return False
-            cache = self.engine._active_rules_cache[self._get_rulebook_name()][k]
+            cache = self.engine._active_rules_cache[
+                self._get_rulebook_name()][k]
             for (branch, tick) in self.engine._active_branches():
                 if branch not in cache:
                     continue
@@ -263,8 +265,11 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         th.clear()
         th.update(val)
         if self.engine.caching:
-            self.engine._nodes_cache[self.character.name][thing][branch][tick] = True
-            self.engine._things_cache[self.character.name][thing][branch][tick] = (location, next_location)
+            self.engine._nodes_cache[
+                self.character.name][thing][branch][tick] = True
+            self.engine._things_cache[
+                self.character.name][thing][branch][tick] \
+                = (location, next_location)
         self.dispatch(thing, th)
 
     def __delitem__(self, thing):
@@ -322,7 +327,9 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
                     continue
                 try:
                     if cache[branch][tick]:
-                        return not self.engine._is_thing(self.character.name, place)
+                        return not self.engine._is_thing(
+                            self.character.name, place
+                        )
                 except KeyError:
                     continue
             return False
@@ -361,7 +368,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
         pl.clear()
         pl.update(v)
         if self.engine.caching:
-            self.engine._nodes_cache[self.character.name][place][branch][tick] = True
+            self.engine._nodes_cache[
+                self.character.name][place][branch][tick] = True
         self.dispatch(place, v)
 
     def __delitem__(self, place):
@@ -418,7 +426,9 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
             raise KeyError("No such thing or place: {}".format(k))
 
 
-class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower, TimeDispatcher):
+class CharacterPortalSuccessorsMapping(
+        GraphSuccessorsMapping, RuleFollower, TimeDispatcher
+):
     _book = "character_portal"
 
     @property
@@ -508,7 +518,8 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower, Tim
             p.clear()
             p.update(value)
             if self.engine.caching:
-                self.engine._edges_cache[self.graph.name][self.nodeA][nodeB][0][branch][tick] = True
+                self.engine._edges_cache[
+                    self.graph.name][self.nodeA][nodeB][0][branch][tick] = True
             self.dispatch(nodeB, p)
 
         def __delitem__(self, nodeB):
@@ -523,7 +534,9 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower, Tim
             ):
                 del self._cache[nodeB][branch][tick]
             super().__delitem__(nodeB)
-            self.engine._edges_cache[self.character.name][self.nodeA][nodeB][0][branch][tick] = False
+            self.engine._edges_cache[
+                self.character.name][self.nodeA][nodeB][0][
+                    branch][tick] = False
             self.dispatch(nodeB, None)
 
 
@@ -566,7 +579,9 @@ class CharacterPortalPredecessorsMapping(
             p.update(value)
             if self.engine.caching:
                 (branch, tick) = self.engine.time
-                self.engine._edges_cache[self.character.name][self.nodeB][nodeA][0][branch][tick] = True
+                self.engine._edges_cache[
+                    self.character.name][self.nodeB][nodeA][0][
+                        branch][tick] = True
 
 
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
@@ -644,7 +659,8 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
         """
         if self.engine.caching:
-            cache = self.engine._avatarness_cache.db_order[self.character.name][g]
+            cache = self.engine._avatarness_cache.db_order[
+                self.character.name][g]
             for node in cache:
                 for (branch, tick) in self.engine._active_branches():
                     try:
@@ -654,7 +670,9 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                         continue
             if len(self) == 1:
                 return self.CharacterAvatarMapping(self, next(iter(self)))[g]
-            raise KeyError("{} has no avatar in {}".format(self.character.name, g))
+            raise KeyError("{} has no avatar in {}".format(
+                self.character.name, g
+            ))
         d = self._avatarness_db()
         if g in d:
             return self.CharacterAvatarMapping(self, g)
@@ -706,7 +724,8 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 )
 
         def _branchdata_cache(self, branch, rev):
-            ac = self.engine._avatarness_cache.db_order[self.character.name][self.graph]
+            ac = self.engine._avatarness_cache.db_order[
+                self.character.name][self.graph]
             r = []
             for node in ac:
                 try:
@@ -772,7 +791,8 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             return False
 
         def _contains_when_cache(self, av, branch, rev):
-            ac = self.engine._avatarness_cache.db_order[self.character.name][self.graph]
+            ac = self.engine._avatarness_cache.db_order[
+                self.character.name][self.graph]
             if av not in ac:
                 return False
             for node in ac[av]:
@@ -1358,7 +1378,6 @@ class Character(DiGraph, RuleFollower):
     def character(self):
         return self
 
-
     def __init__(self, engine, name, data=None, **attr):
         """Store engine and name, and set up mappings for Thing, Place, and
         Portal
@@ -1367,13 +1386,18 @@ class Character(DiGraph, RuleFollower):
         super().__init__(engine, name, data, **attr)
         self.engine = engine
         d = {}
-        for mapp in ('character', 'avatar', 'thing', 'place', 'portal', 'node'):
+        for mapp in (
+                'character',
+                'avatar',
+                'thing',
+                'place',
+                'portal',
+                'node'
+        ):
             if mapp + '_rulebook' in attr:
                 rulebook = attr[mapp + '_rulebook']
-                d[mapp] = rulebook.name if isinstance(
-                    rulebook,
-                    RuleBook
-                ) else rulebook
+                d[mapp] = rulebook.name if isinstance(rulebook, RuleBook) \
+                          else rulebook
         self.engine.db.init_character(
             self.name,
             **d
@@ -1492,7 +1516,8 @@ class Character(DiGraph, RuleFollower):
             next_location
         )
         if self.engine.caching:
-            self.engine._things_cache[self.name][name][branch][tick] = (location, next_location)
+            self.engine._things_cache[self.name][name][branch][tick] \
+                = (location, next_location)
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
