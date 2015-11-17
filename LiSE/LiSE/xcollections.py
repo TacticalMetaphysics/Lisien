@@ -411,3 +411,34 @@ class CharacterMapping(MutableMapping):
             del self._cache[name]
         self.engine.db.del_character(name)
         self._dispatch(name, None)
+
+
+class CompositeDict(Mapping):
+    """Read-only mapping that looks up values in a first dict if
+    available, then a second dict if possible.
+
+    Assumes the dicts have no overlap.
+
+    """
+    def __init__(self, d1, d2):
+        """Store dictionaries"""
+        self.d1 = d1
+        self.d2 = d2
+
+    def __iter__(self):
+        """Iterate over both dictionaries' keys"""
+        for k in self.d1:
+            yield k
+        for k in self.d2:
+            yield k
+
+    def __len__(self):
+        """Sum the lengths of both dictionaries"""
+        return len(self.d1) + len(self.d2)
+
+    def __getitem__(self, k):
+        """Get an item from ``d1`` if possible, then ``d2``"""
+        try:
+            return self.d1[k]
+        except KeyError:
+            return self.d2[k]

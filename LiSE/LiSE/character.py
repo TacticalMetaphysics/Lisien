@@ -39,7 +39,7 @@ from gorm.graph import (
 )
 from gorm.reify import reify
 
-from .util import CompositeDict
+from .xcollections import CompositeDict
 from .bind import TimeDispatcher
 from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
