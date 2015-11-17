@@ -47,6 +47,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
+from .util import getatt
 
 
 class CharRuleMapping(RuleMapping):
@@ -171,17 +172,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """:class:`Thing` objects that are in a :class:`Character`"""
     _book = "character_thing"
 
-    @property
-    def _cache(self):
-        return self._dispatch_cache
-
-    @property
-    def engine(self):
-        return self.character.engine
-
-    @property
-    def name(self):
-        return self.character.name
+    engine = getatt('character.engine')
+    name = getatt('character.name')
 
     def __init__(self, character):
         """Store the character and initialize cache"""
@@ -288,17 +280,9 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """:class:`Place` objects that are in a :class:`Character`"""
     _book = "character_place"
 
-    @property
-    def _cache(self):
-        return self._dispatch_cache
-
-    @property
-    def engine(self):
-        return self.character.engine
-
-    @property
-    def name(self):
-        return self.character.name
+    _cache = getatt('_dispatch_cache')
+    engine = getatt('character.engine')
+    name = getatt('character.name')
 
     def __init__(self, character):
         """Store the character and initialize the cache (if caching)"""
@@ -384,25 +368,10 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
     """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
     _book = "character_node"
 
-    @property
-    def _cache(self):
-        return self._dispatch_cache
-
-    @property
-    def graph(self):
-        return self.character
-
-    @property
-    def engine(self):
-        return self.character.engine
-
-    @property
-    def gorm(self):
-        return self.character.engine
-
-    @property
-    def name(self):
-        return self.character.name
+    _cache = getatt('_dispatch_cache')
+    graph = getatt('character')
+    engine = gorm = getatt('character.engine')
+    name = getatt('character.name')
 
     def __init__(self, character):
         """Store the character"""
@@ -431,17 +400,9 @@ class CharacterPortalSuccessorsMapping(
 ):
     _book = "character_portal"
 
-    @property
-    def character(self):
-        return self.graph
-
-    @property
-    def engine(self):
-        return self.graph.engine
-
-    @property
-    def _cache(self):
-        return self._dispatch_cache
+    character = getatt('graph')
+    engine = getatt('graph.engine')
+    _cache = getatt('_dispatch_cache')
 
     def __getitem__(self, nodeA):
         if self.engine._node_exists(
@@ -468,13 +429,8 @@ class CharacterPortalSuccessorsMapping(
     class Successors(GraphSuccessorsMapping.Successors, TimeDispatcher):
         """Mapping for possible destinations from some node."""
 
-        @property
-        def _cache(self):
-            return self._dispatch_cache
-
-        @property
-        def engine(self):
-            return self.graph.engine
+        _cache = getatt('_dispatch_cache')
+        engine = getatt('graph.engine')
 
         def dispatch(self, nodeB, portal):
             super().dispatch(nodeB, portal)
@@ -587,13 +543,8 @@ class CharacterPortalPredecessorsMapping(
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
     _book = "avatar"
 
-    @property
-    def engine(self):
-        return self.character.engine
-
-    @property
-    def name(self):
-        return self.character.name
+    engine = getatt('character.engine')
+    name = getatt('character.name')
 
     def __init__(self, char):
         """Remember my character"""
@@ -851,9 +802,7 @@ class SenseFuncWrap(object):
     provided with its name, and prefills the first two arguments.
 
     """
-    @property
-    def engine(self):
-        return self.character.engine
+    engine = getatt('character.engine')
 
     def __init__(self, character, fun):
         """Store the character and the function, looking up the function if
@@ -880,13 +829,8 @@ class CharacterSense(object):
     but haven't yet specified what character to look at
 
     """
-    @property
-    def engine(self):
-        return self.container.engine
-
-    @property
-    def observer(self):
-        return self.container.character
+    engine = getatt('container.engine')
+    observer = getatt('container.character')
 
     def __init__(self, container, sensename):
         """Store the container and the name of the sense"""
@@ -924,9 +868,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
     """Used to view other Characters as seen by one, via a particular sense"""
     _book = "character"
 
-    @property
-    def engine(self):
-        return self.character.engine
+    engine = getatt('character.engine')
 
     def __init__(self, character):
         """Store the character"""
@@ -1096,9 +1038,7 @@ class FacadeEntityMapping(MutableMapping, TimeDispatcher):
     def _dispatch_cache(self):
         return self
 
-    @property
-    def engine(self):
-        return self.facade.engine
+    engine = getatt('facade.engine')
 
     @reify
     def _patch(self):
@@ -1282,29 +1222,10 @@ class FacadeStatsMapping(MutableMapping, TimeDispatcher):
 
 
 class Facade(nx.DiGraph):
-    @property
-    def engine(self):
-        return self.character.engine
-
-    @property
-    def succ(self):
-        return self.portal
-
-    @property
-    def edge(self):
-        return self.portal
-
-    @property
-    def adj(self):
-        return self.portal
-
-    @property
-    def pred(self):
-        return self.preportal
-
-    @property
-    def stat(self):
-        return self.graph
+    engine = getatt('character.engine')
+    succ = edge = adj = getatt('portal')
+    pred = getatt('preportal')
+    stat = getatt('graph')
 
     def __init__(self, character):
         self.character = character
@@ -1324,13 +1245,8 @@ class CharStatCache(MutableMapping, TimeDispatcher):
             self.character.name
         ]
 
-    @property
-    def engine(self):
-        return self.character.engine
-
-    @property
-    def _real(self):
-        return self.character.graph
+    engine = getatt('character.engine')
+    _real = getatt('character.graph')
 
     def __init__(self, char):
         """Store character"""
@@ -1373,6 +1289,8 @@ class Character(DiGraph, RuleFollower):
 
     """
     _book = "character"
+
+    adj = succ = getatt('portal')
 
     @property
     def character(self):
@@ -1430,14 +1348,6 @@ class Character(DiGraph, RuleFollower):
     @reify
     def portal(self):
         return CharacterPortalSuccessorsMapping(self)
-
-    @property
-    def adj(self):
-        return self.portal
-
-    @property
-    def succ(self):
-        return self.portal
 
     @reify
     def preportal(self):
