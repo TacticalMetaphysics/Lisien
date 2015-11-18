@@ -51,7 +51,39 @@ from .portal import Portal
 from .util import getatt
 
 
-class AbstractCharacter(object):
+class AbstractCharacter(nx.DiGraph):
+    @reify
+    def thing(self):
+        return self.ThingMapping(self)
+
+    @reify
+    def place(self):
+        return self.PlaceMapping(self)
+
+    @reify
+    def node(self):
+        return self.ThingPlaceMapping(self)
+
+    @reify
+    def portal(self):
+        return self.PortalSuccessorsMapping(self)
+
+    @reify
+    def preportal(self):
+        return self.PortalPredecessorsMapping(self)
+
+    @reify
+    def avatar(self):
+        return self.AvatarGraphMapping(self)
+
+    @reify
+    def stat(self):
+        return self.StatMapping(self)
+
+    pred = getatt('preportal')
+    adj = succ = edge = getatt('portal')
+    graph = getatt('stat')
+
     def do(self, func, *args, **kwargs):
         """Apply the function to myself, and return myself.
 
@@ -626,655 +658,6 @@ class RuleFollower(BaseRuleFollower):
         )
 
 
-class CharacterThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
-    """:class:`Thing` objects that are in a :class:`Character`"""
-    _book = "character_thing"
-
-    engine = getatt('character.engine')
-    name = getatt('character.name')
-
-    def __init__(self, character):
-        """Store the character and initialize cache"""
-        self.character = character
-
-    def __iter__(self):
-        if not self.engine.caching:
-            for (n, l) in self.engine.db.thing_loc_items(
-                self.character.name,
-                *self.engine.time
-            ):
-                yield n
-            return
-        (branch, tick) = self.engine.time
-        if self.character.name not in self.engine._things_cache:
-            return
-        cache = self.engine._things_cache[self.character.name]
-        for thing in cache:
-            try:
-                if branch in cache[thing] and cache[thing][branch][tick]:
-                    yield thing
-            except KeyError:
-                continue
-
-    def __contains__(self, thing):
-        if not self.engine.caching:
-            for (n, l) in self.engine.db.thing_loc_items(
-                self.character.name,
-                *self.engine.time
-            ):
-                if n == thing:
-                    return True
-            return False
-        cache = self.engine._things_cache[self.character.name][thing]
-        for (branch, tick) in self.engine._active_branches():
-            try:
-                return cache[branch][tick]
-            except KeyError:
-                continue
-        return False
-
-    def __len__(self):
-        n = 0
-        for th in self:
-            n += 1
-        return n
-
-    def __getitem__(self, thing):
-        if self.engine.caching and thing in self:
-            if thing not in self._cache:
-                self._cache[thing] = Thing(self.character, thing)
-            return self._cache[thing]
-        if thing not in self:
-            raise KeyError("No such thing: {}".format(thing))
-        (th, l) = self.engine.db.thing_and_loc(
-            self.character.name,
-            thing,
-            *self.engine.time
-        )
-        r = Thing(self.character, th)
-        if self.engine.caching:
-            self._cache[thing] = r
-        return r
-
-    def __setitem__(self, thing, val):
-        if not isinstance(val, Mapping):
-            raise TypeError('Things are made from Mappings')
-        if 'location' not in val:
-            raise ValueError('Thing needs location')
-        (branch, tick) = self.engine.time
-        self.engine.db.exist_node(
-            self.character.name,
-            thing,
-            branch,
-            tick,
-            True
-        )
-        location = val['location']
-        next_location = val.get('next_location', None)
-        th = Thing(self.character, thing)
-        th.clear()
-        th.update(val)
-        if self.engine.caching:
-            self.engine._nodes_cache[
-                self.character.name][thing][branch][tick] = True
-            self.engine._things_cache[
-                self.character.name][thing][branch][tick] \
-                = (location, next_location)
-        self.dispatch(thing, th)
-
-    def __delitem__(self, thing):
-        (branch, tick) = self.engine.time
-        self[thing].delete(nochar=True)
-        if self.engine.caching:
-            if thing in self._cache:
-                del self._cache[thing]
-        self.dispatch(thing, None)
-
-    def __repr__(self):
-        return repr(dict(self))
-
-
-class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
-    """:class:`Place` objects that are in a :class:`Character`"""
-    _book = "character_place"
-
-    _cache = getatt('_dispatch_cache')
-    engine = getatt('character.engine')
-    name = getatt('character.name')
-
-    def __init__(self, character):
-        """Store the character."""
-        self.character = character
-
-    def __iter__(self):
-        things = set(self.character.thing.keys())
-        for node in self.character.nodes():
-            if node not in things:
-                yield node
-
-    def __len__(self):
-        n = 0
-        for place in self:
-            n += 1
-        return n
-
-    def __contains__(self, place):
-        if self.engine.caching:
-            try:
-                cache = self.engine._nodes_cache[self.character.name][place]
-            except KeyError:
-                return False
-            for (branch, tick) in self.engine._active_branches():
-                if branch not in cache:
-                    continue
-                try:
-                    if cache[branch][tick]:
-                        return not self.engine._is_thing(
-                            self.character.name, place
-                        )
-                except KeyError:
-                    continue
-            return False
-        (branch, tick) = self.engine.time
-        return self.engine.db.node_exists(
-            self.character.name,
-            place,
-            branch,
-            tick
-        )
-
-    def __getitem__(self, place):
-        if place not in self:
-            raise KeyError("No such place: {}".format(place))
-        if not self.engine.caching:
-            return Place(self.character, place)
-        if place not in self._cache:
-            self._cache[place] = Place(self.character, place)
-        return self._cache[place]
-
-    def __setitem__(self, place, v):
-        if not self.engine.caching:
-            pl = Place(self.character, place)
-        else:
-            if place not in self._cache:
-                self._cache[place] = Place(self.character, place)
-            pl = self._cache[place]
-        (branch, tick) = self.engine.time
-        self.engine.db.exist_node(
-            self.character.name,
-            place,
-            branch,
-            tick,
-            True
-        )
-        pl.clear()
-        pl.update(v)
-        if self.engine.caching:
-            self.engine._nodes_cache[
-                self.character.name][place][branch][tick] = True
-        self.dispatch(place, v)
-
-    def __delitem__(self, place):
-        self[place].delete(nochar=True)
-        self.dispatch(place, None)
-
-    def __repr__(self):
-        return repr(dict(self))
-
-
-class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
-    """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
-    _book = "character_node"
-
-    _cache = getatt('_dispatch_cache')
-    graph = getatt('character')
-    engine = gorm = getatt('character.engine')
-    name = getatt('character.name')
-
-    def __init__(self, character):
-        """Store the character."""
-        self.character = character
-
-    def __getitem__(self, k):
-        try:
-            return self.character.place[k]
-        except KeyError:
-            return self.character.thing[k]
-
-    def __setitem__(self, k, v):
-        self.character.place[k] = v
-
-    def __delitem__(self, k):
-        if k in self.character.thing:
-            del self.character.thing[k]
-        elif k in self.character.place:
-            del self.character.place[k]
-        else:
-            raise KeyError("No such thing or place: {}".format(k))
-
-
-class CharacterPortalSuccessorsMapping(
-        GraphSuccessorsMapping, RuleFollower, TimeDispatcher
-):
-    """Mapping of nodes that have at least one outgoing edge.
-
-    Maps them to another mapping, keyed by the destination nodes,
-    which maps to Portal objects.
-
-    """
-    _book = "character_portal"
-
-    character = getatt('graph')
-    engine = getatt('graph.engine')
-    _cache = getatt('_dispatch_cache')
-
-    def __getitem__(self, nodeA):
-        if self.engine._node_exists(
-                self.graph.name,
-                nodeA
-        ):
-            if nodeA not in self._cache:
-                self._cache[nodeA] = self.Successors(self, nodeA)
-            return self._cache[nodeA]
-        raise KeyError("No such node")
-
-    def __setitem__(self, nodeA, val):
-        if nodeA not in self._cache:
-            self._cache[nodeA] = self.Successors(self, nodeA)
-        sucs = self._cache[nodeA]
-        sucs.clear()
-        sucs.update(val)
-        self.dispatch(nodeA, val)
-
-    def __delitem__(self, nodeA):
-        super().__delitem__(nodeA)
-        self.dispatch(nodeA, None)
-
-    class Successors(GraphSuccessorsMapping.Successors, TimeDispatcher):
-        """Mapping for possible destinations from some node."""
-
-        _cache = getatt('_dispatch_cache')
-        engine = getatt('graph.engine')
-
-        def dispatch(self, nodeB, portal):
-            """Call all listeners to ``nodeB`` and to my ``nodeA``."""
-            super().dispatch(nodeB, portal)
-            self.container.dispatch(self.nodeA, self)
-
-        def _getsub(self, nodeB):
-            if hasattr(self, '_cache'):
-                if nodeB not in self._cache:
-                    self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
-                return self._cache[nodeB]
-            return Portal(self.graph, self.nodeA, nodeB)
-
-        def __getitem__(self, nodeB):
-            if not self.engine.caching:
-                return super().__getitem__(nodeB)
-            if nodeB in self:
-                if nodeB not in self._cache:
-                    self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
-                return self._cache[nodeB]
-            raise KeyError("No such portal: {}->{}".format(
-                self.nodeA, nodeB
-            ))
-
-        def __setitem__(self, nodeB, value):
-            (branch, tick) = self.engine.time
-            if self.engine.caching:
-                if nodeB not in self._cache:
-                    self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
-                p = self._cache[nodeB]
-            else:
-                p = Portal(self.graph, self.nodeA, nodeB)
-            self.engine.db.exist_edge(
-                self.graph.name,
-                self.nodeA,
-                nodeB,
-                0,
-                branch,
-                tick,
-                True
-            )
-            p.clear()
-            p.update(value)
-            if self.engine.caching:
-                self.engine._edges_cache[
-                    self.graph.name][self.nodeA][nodeB][0][branch][tick] = True
-            self.dispatch(nodeB, p)
-
-        def __delitem__(self, nodeB):
-            if not self.engine.caching:
-                super().__delitem__(nodeB)
-                return
-            (branch, tick) = self.engine.time
-            if (
-                    nodeB in self._cache and
-                    branch in self._cache[nodeB] and
-                    tick in self._cache[nodeB][branch]
-            ):
-                del self._cache[nodeB][branch][tick]
-            super().__delitem__(nodeB)
-            self.engine._edges_cache[
-                self.character.name][self.nodeA][nodeB][0][
-                    branch][tick] = False
-            self.dispatch(nodeB, None)
-
-
-class CharacterPortalPredecessorsMapping(
-        DiGraphPredecessorsMapping,
-        RuleFollower
-):
-    """Mapping of nodes that have at least one incoming edge.
-
-    Maps to another mapping keyed by the origin nodes, which maps to
-    Portal objects.
-
-    """
-    _book = "character_portal"
-
-    class Predecessors(DiGraphPredecessorsMapping.Predecessors):
-        """Mapping of possible origins from some destination."""
-        def _getsub(self, nodeA):
-            if not self.graph.engine.caching:
-                return Portal(self.graph, nodeA, self.nodeB)
-            if nodeA in self.graph.portal:
-                if (
-                        self.graph.engine.caching and
-                        self.nodeB not in self.graph.portal[nodeA]._cache
-                ):
-                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
-                        self.graph,
-                        nodeA,
-                        self.nodeB
-                    )
-                return self.graph.portal[nodeA][self.nodeB]
-            return Portal(self.graph, nodeA, self.nodeB)
-
-        def __setitem__(self, nodeA, value):
-            if nodeA in self.graph.portal:
-                if (
-                        self.graph.engine.caching and
-                        self.nodeB not in self.graph.portal[nodeA]._cache
-                ):
-                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
-                        self.graph,
-                        nodeA,
-                        self.nodeB
-                    )
-            p = self.graph.portal[nodeA][self.nodeB]
-            p.clear()
-            p.update(value)
-            if self.engine.caching:
-                (branch, tick) = self.engine.time
-                self.engine._edges_cache[
-                    self.character.name][self.nodeB][nodeA][0][
-                        branch][tick] = True
-
-
-class CharacterAvatarGraphMapping(Mapping, RuleFollower):
-    """A mapping of other characters in which one has an avatar.
-
-    Maps to a mapping of the avatars themselves, or if there's only
-    one, to that.
-
-    """
-    _book = "avatar"
-
-    engine = getatt('character.engine')
-    name = getatt('character.name')
-
-    def __init__(self, char):
-        """Remember my character"""
-        self.character = char
-
-    def __call__(self, av):
-        """Add the avatar. It must be an instance of Place or Thing."""
-        if av.__class__ not in (Place, Thing):
-            raise TypeError("Only Things and Places may be avatars")
-        self.character.add_avatar(av.name, av.character.name)
-
-    def _avatarness_db(self):
-        """Get avatar-ness data and return it"""
-        return self.engine.db.avatarness(
-            self.character.name, *self.engine.time
-        )
-
-    def __iter__(self):
-        """Iterate over every avatar graph that has at least one avatar node
-        in it presently
-
-        """
-        if self.engine.caching:
-            cache = self.engine._avatarness_cache.db_order
-            if self.character.name not in cache:
-                return
-            cache = cache[self.character.name]
-            seen = False
-            for avatar in cache:
-                if seen:
-                    continue
-                for node in cache[avatar]:
-                    if seen:
-                        seen = False
-                        break
-                    for (branch, tick) in self.engine._active_branches():
-                        try:
-                            if cache[avatar][node][branch][tick]:
-                                yield avatar
-                            seen = True
-                            break
-                        except KeyError:
-                            continue
-            return
-        yield from self._avatarness_db()
-
-    def __len__(self):
-        """Number of graphs in which I have an avatar"""
-        n = 0
-        for g in self:
-            n += 1
-        return n
-
-    def __getitem__(self, g):
-        """Get the CharacterAvatarMapping for the given graph, if I have any
-        avatars in it.
-
-        If I have avatars in only one graph, behave as a proxy to that
-        graph's CharacterAvatarMapping.
-
-        Unless I have only one avatar anywhere, in which case be a
-        proxy to that.
-
-        """
-        if self.engine.caching:
-            cache = self.engine._avatarness_cache.db_order[
-                self.character.name][g]
-            for node in cache:
-                for (branch, tick) in self.engine._active_branches():
-                    try:
-                        if cache[node][branch][tick]:
-                            return self.CharacterAvatarMapping(self, g)
-                    except KeyError:
-                        continue
-            if len(self) == 1:
-                return self.CharacterAvatarMapping(self, next(iter(self)))[g]
-            raise KeyError("{} has no avatar in {}".format(
-                self.character.name, g
-            ))
-        d = self._avatarness_db()
-        if g in d:
-            return self.CharacterAvatarMapping(self, g)
-        elif len(d.keys()) == 1:
-            avm = self.CharacterAvatarMapping(self, list(d.keys())[0])
-            if len(avm.keys()) == 1:
-                return avm[list(avm.keys())[0]][g]
-            else:
-                return avm[g]
-        raise KeyError("No avatar in {}".format(g))
-
-    def __getattr__(self, attr):
-        """If I've got only one avatar, return its attribute"""
-        if len(self.keys()) == 1:
-            avs = self.CharacterAvatarMapping(self, next(iter(self.keys())))
-            if len(avs) == 1:
-                av = list(avs.keys())[0]
-                if attr == av:
-                    return avs[attr]
-                else:
-                    return getattr(avs[list(avs.keys())[0]], attr)
-        raise AttributeError
-
-    def __repr__(self):
-        """Represent myself like a dictionary"""
-        d = {}
-        for k in self:
-            d[k] = dict(self[k])
-        return repr(d)
-
-    class CharacterAvatarMapping(Mapping):
-        """Mapping of avatars of one Character in another Character."""
-        def __init__(self, outer, graphn):
-            """Store the character and the name of the "graph", ie. the other
-            character.
-
-            """
-            self.character = outer.character
-            self.engine = outer.engine
-            self.name = outer.name
-            self.graph = graphn
-
-        def _branchdata(self, branch, rev):
-            if self.engine.caching:
-                return self._branchdata_cache(branch, rev)
-            else:
-                return self.engine.db.avatar_branch_data(
-                    self.character.name, self.graph, branch, rev
-                )
-
-        def _branchdata_cache(self, branch, rev):
-            ac = self.engine._avatarness_cache.db_order[
-                self.character.name][self.graph]
-            r = []
-            for node in ac:
-                try:
-                    r.append((
-                        node,
-                        ac[node][branch][rev]
-                    ))
-                except KeyError:
-                    continue
-            return r
-
-        def __getattr__(self, attrn):
-            """If I don't have such an attribute, but I contain exactly one
-            avatar, and *it* has the attribute, return the
-            avatar's attribute.
-
-            """
-            seen = set()
-            counted = 0
-            for (branch, rev) in self.engine._active_branches():
-                if counted > 1:
-                    break
-                for (n, extant) in self._branchdata(branch, rev):
-                    if counted > 1:
-                        break
-                    x = bool(extant)
-                    if x and n not in seen:
-                        counted += 1
-                    seen.add(n)
-            if counted == 1:
-                node = self.engine.character[self.graph].node[seen.pop()]
-                if hasattr(node, attrn):
-                    return getattr(node, attrn)
-            raise AttributeError("No such attribute: " + attrn)
-
-        def __iter__(self):
-            """Iterate over the names of all the presently existing nodes in the
-            graph that are avatars of the character
-
-            """
-            seen = set()
-            for (branch, rev) in self.engine._active_branches():
-                for (n, x) in self._branchdata(branch, rev):
-                    if (
-                            x and
-                            n not in seen and
-                            self.engine._node_exists(self.graph, n)
-                    ):
-                        yield n
-                    seen.add(n)
-
-        def __contains__(self, av):
-            fun = (
-                self._contains_when_cache
-                if self.engine.caching
-                else self._contains_when_db
-            )
-            for (branch, tick) in self.engine._active_branches():
-                r = fun(av, branch, tick)
-                if r is None:
-                    continue
-                return r
-            return False
-
-        def _contains_when_cache(self, av, branch, rev):
-            ac = self.engine._avatarness_cache.db_order[
-                self.character.name][self.graph]
-            if av not in ac:
-                return False
-            for node in ac[av]:
-                try:
-                    if ac[av][branch][rev]:
-                        return True
-                except KeyError:
-                    continue
-
-        def _contains_when_db(self, av, branch, tick):
-            return self.engine.db.is_avatar_of(
-                self.character.name,
-                self.graph,
-                av,
-                branch,
-                tick
-            )
-
-        def __len__(self):
-            """Number of presently existing nodes in the graph that are avatars of
-            the character"""
-            n = 0
-            for a in self:
-                n += 1
-            return n
-
-        def __getitem__(self, av):
-            """Return the Place or Thing by the given name in the graph, if it's
-            my avatar and it exists.
-
-            If I contain exactly *one* Place or Thing, and you're
-            not trying to get it by its name, delegate to its
-            __getitem__. It's common for one Character to have
-            exactly one avatar in another Character, and when that
-            happens, it's nice not to have to specify the avatar's
-            name.
-
-            """
-            if av in self:
-                return self.engine.character[self.graph].node[av]
-            if len(self.keys()) == 1:
-                k = list(self.keys())[0]
-                return self.engine.character[self.graph].node[k]
-            raise KeyError("No such avatar")
-
-        def __repr__(self):
-            """Represent myself like a dictionary"""
-            d = {}
-            for k in self:
-                d[k] = dict(self[k])
-            return repr(d)
-
-
 class SenseFuncWrap(object):
     """Wrapper for a sense function that looks it up in the code store if
     provided with its name, and prefills the first two arguments.
@@ -1664,22 +1047,6 @@ class FacadeEntityMapping(MutableMapping, TimeDispatcher):
         self.dispatch(k, None)
 
 
-class FacadeThingMapping(FacadeEntityMapping):
-    facadecls = FacadeThing
-    innercls = Thing
-
-    def _get_inner_map(self):
-        return self.facade.character.thing
-
-
-class FacadePlaceMapping(FacadeEntityMapping):
-    facadecls = FacadePlace
-    innercls = Place
-
-    def _get_inner_map(self):
-        return self.facade.character.place
-
-
 class FacadePortalSuccessors(FacadeEntityMapping):
     facadecls = FacadePortal
     innercls = Portal
@@ -1722,146 +1089,91 @@ class FacadePortalMapping(FacadeEntityMapping):
         self._masked.add(node)
 
 
-class FacadePortalSuccessorsMapping(FacadePortalMapping):
-    cls = FacadePortalSuccessors
-
-    def _get_inner_map(self):
-        return self.facade.character.portal
-
-
-class FacadePortalPredecessorsMapping(FacadePortalMapping):
-    cls = FacadePortalPredecessors
-
-    def _get_inner_map(self):
-        return self.facade.character.preportal
-
-
-class FacadeStatsMapping(MutableMapping, TimeDispatcher):
-    @property
-    def _dispatch_cache(self):
-        return self
-
-    def __init__(self, facade):
-        self.facade = facade
-        self._patch = {}
-        self._masked = set()
-
-    def __iter__(self):
-        seen = set()
-        for k in self.facade.graph:
-            if k not in self._masked:
-                yield k
-            seen.add(k)
-        for k in self._patch:
-            if k not in seen:
-                yield k
-
-    def __len__(self):
-        n = 0
-        for k in self:
-            n += 1
-        return n
-
-    def __contains__(self, k):
-        if k in self._masked:
-            return False
-        return (
-            k in self._patch or
-            k in self.facade.graph
-        )
-
-    def __getitem__(self, k):
-        if k in self._masked:
-            raise KeyError("masked")
-        if k in self._patch:
-            return self._patch[k]
-        return self.facade.graph[k]
-
-    def __setitem__(self, k, v):
-        self._masked.discard(k)
-        self._patch[k] = v
-        self.dispatch(k, v)
-
-    def __delitem__(self, k):
-        self._masked.add(k)
-        self.dispatch(k, None)
-
-
-class Facade(AbstractCharacter, nx.DiGraph):
+class Facade(AbstractCharacter):
     engine = getatt('character.engine')
-    succ = edge = adj = getatt('portal')
-    pred = getatt('preportal')
-    stat = getatt('graph')
-
-    @reify
-    def thing(self):
-        return FacadeThingMapping(self)
-
-    @reify
-    def place(self):
-        return FacadePlaceMapping(self)
-
-    @reify
-    def node(self):
-        return CompositeDict(self.thing, self.place)
-
-    @reify
-    def portal(self):
-        return FacadePortalSuccessorsMapping(self)
-
-    @reify
-    def graph(self):
-        return FacadeStatsMapping(self)
-
-    @reify
-    def preportal(self):
-        return FacadePortalPredecessorsMapping(self)
 
     def __init__(self, character):
         """Store the character"""
         self.character = character
 
+    class ThingMapping(FacadeEntityMapping):
+        facadecls = FacadeThing
+        innercls = Thing
 
-class CharStatCache(MutableMapping, TimeDispatcher):
-    """Caching dict-alike for character stats"""
-    @property
-    def _dispatch_cache(self):
-        return self.engine._graph_val_cache[
-            self.character.name
-        ]
+        def _get_inner_map(self):
+            return self.facade.character.thing
 
-    engine = getatt('character.engine')
-    _real = getatt('character.graph')
+    class PlaceMapping(FacadeEntityMapping):
+        facadecls = FacadePlace
+        innercls = Place
 
-    def __init__(self, char):
-        """Store character"""
-        self.character = char
+        def _get_inner_map(self):
+            return self.facade.character.place
 
-    def __iter__(self):
-        return iter(self._real)
+    class PortalSuccessorsMapping(FacadePortalMapping):
+        cls = FacadePortalSuccessors
 
-    def __len__(self):
-        return len(self._real)
+        def _get_inner_map(self):
+            return self.facade.character.portal
 
-    def __getitem__(self, k):
-        return self._real[k]
+    class PortalPredecessorsMapping(FacadePortalMapping):
+        cls = FacadePortalPredecessors
 
-    def _get(self, k=None):
-        if k is None:
+        def _get_inner_map(self):
+            return self.facade.character.preportal
+
+    class StatMapping(MutableMapping, TimeDispatcher):
+        @property
+        def _dispatch_cache(self):
             return self
-        return self[k]
 
-    def __setitem__(self, k, v):
-        assert(v is not None)
-        self._real[k] = v
-        self.dispatch(k, v)
+        def __init__(self, facade):
+            self.facade = facade
+            self._patch = {}
+            self._masked = set()
 
-    def __delitem__(self, k):
-        del self._real[k]
-        self.dispatch(k, None)
+        def __iter__(self):
+            seen = set()
+            for k in self.facade.graph:
+                if k not in self._masked:
+                    yield k
+                seen.add(k)
+            for k in self._patch:
+                if k not in seen:
+                    yield k
+
+        def __len__(self):
+            n = 0
+            for k in self:
+                n += 1
+            return n
+
+        def __contains__(self, k):
+            if k in self._masked:
+                return False
+            return (
+                k in self._patch or
+                k in self.facade.graph
+            )
+
+        def __getitem__(self, k):
+            if k in self._masked:
+                raise KeyError("masked")
+            if k in self._patch:
+                return self._patch[k]
+            return self.facade.graph[k]
+
+        def __setitem__(self, k, v):
+            self._masked.discard(k)
+            self._patch[k] = v
+            self.dispatch(k, v)
+
+        def __delitem__(self, k):
+            self._masked.add(k)
+            self.dispatch(k, None)
 
 
-class Character(AbstractCharacter, DiGraph, RuleFollower):
+class Character(DiGraph, AbstractCharacter, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
@@ -1918,37 +1230,687 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                                           (self.name, 'character_portal'))
             }
 
-    @reify
-    def thing(self):
-        return CharacterThingMapping(self)
+    class ThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
+        """:class:`Thing` objects that are in a :class:`Character`"""
+        _book = "character_thing"
 
-    @reify
-    def place(self):
-        return CharacterPlaceMapping(self)
+        engine = getatt('character.engine')
+        name = getatt('character.name')
 
-    @reify
-    def node(self):
-        return CharacterThingPlaceMapping(self)
+        def __init__(self, character):
+            """Store the character and initialize cache"""
+            self.character = character
 
-    @reify
-    def portal(self):
-        return CharacterPortalSuccessorsMapping(self)
+        def __iter__(self):
+            if not self.engine.caching:
+                for (n, l) in self.engine.db.thing_loc_items(
+                    self.character.name,
+                    *self.engine.time
+                ):
+                    yield n
+                return
+            (branch, tick) = self.engine.time
+            if self.character.name not in self.engine._things_cache:
+                return
+            cache = self.engine._things_cache[self.character.name]
+            for thing in cache:
+                try:
+                    if branch in cache[thing] and cache[thing][branch][tick]:
+                        yield thing
+                except KeyError:
+                    continue
 
-    @reify
-    def preportal(self):
-        return CharacterPortalPredecessorsMapping(self)
+        def __contains__(self, thing):
+            if not self.engine.caching:
+                for (n, l) in self.engine.db.thing_loc_items(
+                    self.character.name,
+                    *self.engine.time
+                ):
+                    if n == thing:
+                        return True
+                return False
+            cache = self.engine._things_cache[self.character.name][thing]
+            for (branch, tick) in self.engine._active_branches():
+                try:
+                    return cache[branch][tick]
+                except KeyError:
+                    continue
+            return False
 
-    @reify
-    def pred(self):
-        return self.preportal
+        def __len__(self):
+            n = 0
+            for th in self:
+                n += 1
+            return n
 
-    @reify
-    def avatar(self):
-        return CharacterAvatarGraphMapping(self)
+        def __getitem__(self, thing):
+            if self.engine.caching and thing in self:
+                if thing not in self._cache:
+                    self._cache[thing] = Thing(self.character, thing)
+                return self._cache[thing]
+            if thing not in self:
+                raise KeyError("No such thing: {}".format(thing))
+            (th, l) = self.engine.db.thing_and_loc(
+                self.character.name,
+                thing,
+                *self.engine.time
+            )
+            r = Thing(self.character, th)
+            if self.engine.caching:
+                self._cache[thing] = r
+            return r
 
-    @reify
-    def stat(self):
-        return CharStatCache(self)
+        def __setitem__(self, thing, val):
+            if not isinstance(val, Mapping):
+                raise TypeError('Things are made from Mappings')
+            if 'location' not in val:
+                raise ValueError('Thing needs location')
+            (branch, tick) = self.engine.time
+            self.engine.db.exist_node(
+                self.character.name,
+                thing,
+                branch,
+                tick,
+                True
+            )
+            location = val['location']
+            next_location = val.get('next_location', None)
+            th = Thing(self.character, thing)
+            th.clear()
+            th.update(val)
+            if self.engine.caching:
+                self.engine._nodes_cache[
+                    self.character.name][thing][branch][tick] = True
+                self.engine._things_cache[
+                    self.character.name][thing][branch][tick] \
+                    = (location, next_location)
+            self.dispatch(thing, th)
+
+        def __delitem__(self, thing):
+            (branch, tick) = self.engine.time
+            self[thing].delete(nochar=True)
+            if self.engine.caching:
+                if thing in self._cache:
+                    del self._cache[thing]
+            self.dispatch(thing, None)
+
+        def __repr__(self):
+            return repr(dict(self))
+
+    class PlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
+        """:class:`Place` objects that are in a :class:`Character`"""
+        _book = "character_place"
+
+        _cache = getatt('_dispatch_cache')
+        engine = getatt('character.engine')
+        name = getatt('character.name')
+
+        def __init__(self, character):
+            """Store the character."""
+            self.character = character
+
+        def __iter__(self):
+            things = set(self.character.thing.keys())
+            for node in self.character.nodes():
+                if node not in things:
+                    yield node
+
+        def __len__(self):
+            n = 0
+            for place in self:
+                n += 1
+            return n
+
+        def __contains__(self, place):
+            if self.engine.caching:
+                try:
+                    cache = self.engine._nodes_cache[self.character.name][place]
+                except KeyError:
+                    return False
+                for (branch, tick) in self.engine._active_branches():
+                    if branch not in cache:
+                        continue
+                    try:
+                        if cache[branch][tick]:
+                            return not self.engine._is_thing(
+                                self.character.name, place
+                            )
+                    except KeyError:
+                        continue
+                return False
+            (branch, tick) = self.engine.time
+            return self.engine.db.node_exists(
+                self.character.name,
+                place,
+                branch,
+                tick
+            )
+
+        def __getitem__(self, place):
+            if place not in self:
+                raise KeyError("No such place: {}".format(place))
+            if not self.engine.caching:
+                return Place(self.character, place)
+            if place not in self._cache:
+                self._cache[place] = Place(self.character, place)
+            return self._cache[place]
+
+        def __setitem__(self, place, v):
+            if not self.engine.caching:
+                pl = Place(self.character, place)
+            else:
+                if place not in self._cache:
+                    self._cache[place] = Place(self.character, place)
+                pl = self._cache[place]
+            (branch, tick) = self.engine.time
+            self.engine.db.exist_node(
+                self.character.name,
+                place,
+                branch,
+                tick,
+                True
+            )
+            pl.clear()
+            pl.update(v)
+            if self.engine.caching:
+                self.engine._nodes_cache[
+                    self.character.name][place][branch][tick] = True
+            self.dispatch(place, v)
+
+        def __delitem__(self, place):
+            self[place].delete(nochar=True)
+            self.dispatch(place, None)
+
+        def __repr__(self):
+            return repr(dict(self))
+
+    class ThingPlaceMapping(GraphNodeMapping, RuleFollower):
+        """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
+        _book = "character_node"
+
+        _cache = getatt('_dispatch_cache')
+        graph = getatt('character')
+        engine = gorm = getatt('character.engine')
+        name = getatt('character.name')
+
+        def __init__(self, character):
+            """Store the character."""
+            self.character = character
+
+        def __getitem__(self, k):
+            try:
+                return self.character.place[k]
+            except KeyError:
+                return self.character.thing[k]
+
+        def __setitem__(self, k, v):
+            self.character.place[k] = v
+
+        def __delitem__(self, k):
+            if k in self.character.thing:
+                del self.character.thing[k]
+            elif k in self.character.place:
+                del self.character.place[k]
+            else:
+                raise KeyError("No such thing or place: {}".format(k))
+
+    class PortalSuccessorsMapping(
+            GraphSuccessorsMapping, RuleFollower, TimeDispatcher
+    ):
+        """Mapping of nodes that have at least one outgoing edge.
+
+        Maps them to another mapping, keyed by the destination nodes,
+        which maps to Portal objects.
+
+        """
+        _book = "character_portal"
+
+        character = getatt('graph')
+        engine = getatt('graph.engine')
+        _cache = getatt('_dispatch_cache')
+
+        def __getitem__(self, nodeA):
+            if self.engine._node_exists(
+                    self.graph.name,
+                    nodeA
+            ):
+                if nodeA not in self._cache:
+                    self._cache[nodeA] = self.Successors(self, nodeA)
+                return self._cache[nodeA]
+            raise KeyError("No such node")
+
+        def __setitem__(self, nodeA, val):
+            if nodeA not in self._cache:
+                self._cache[nodeA] = self.Successors(self, nodeA)
+            sucs = self._cache[nodeA]
+            sucs.clear()
+            sucs.update(val)
+            self.dispatch(nodeA, val)
+
+        def __delitem__(self, nodeA):
+            super().__delitem__(nodeA)
+            self.dispatch(nodeA, None)
+
+        class Successors(GraphSuccessorsMapping.Successors, TimeDispatcher):
+            """Mapping for possible destinations from some node."""
+
+            _cache = getatt('_dispatch_cache')
+            engine = getatt('graph.engine')
+
+            def dispatch(self, nodeB, portal):
+                """Call all listeners to ``nodeB`` and to my ``nodeA``."""
+                super().dispatch(nodeB, portal)
+                self.container.dispatch(self.nodeA, self)
+
+            def _getsub(self, nodeB):
+                if hasattr(self, '_cache'):
+                    if nodeB not in self._cache:
+                        self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+                    return self._cache[nodeB]
+                return Portal(self.graph, self.nodeA, nodeB)
+
+            def __getitem__(self, nodeB):
+                if not self.engine.caching:
+                    return super().__getitem__(nodeB)
+                if nodeB in self:
+                    if nodeB not in self._cache:
+                        self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+                    return self._cache[nodeB]
+                raise KeyError("No such portal: {}->{}".format(
+                    self.nodeA, nodeB
+                ))
+
+            def __setitem__(self, nodeB, value):
+                (branch, tick) = self.engine.time
+                if self.engine.caching:
+                    if nodeB not in self._cache:
+                        self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+                    p = self._cache[nodeB]
+                else:
+                    p = Portal(self.graph, self.nodeA, nodeB)
+                self.engine.db.exist_edge(
+                    self.graph.name,
+                    self.nodeA,
+                    nodeB,
+                    0,
+                    branch,
+                    tick,
+                    True
+                )
+                p.clear()
+                p.update(value)
+                if self.engine.caching:
+                    self.engine._edges_cache[
+                        self.graph.name][self.nodeA][nodeB][0][
+                            branch][tick] = True
+                self.dispatch(nodeB, p)
+
+            def __delitem__(self, nodeB):
+                if not self.engine.caching:
+                    super().__delitem__(nodeB)
+                    return
+                (branch, tick) = self.engine.time
+                if (
+                        nodeB in self._cache and
+                        branch in self._cache[nodeB] and
+                        tick in self._cache[nodeB][branch]
+                ):
+                    del self._cache[nodeB][branch][tick]
+                super().__delitem__(nodeB)
+                self.engine._edges_cache[
+                    self.character.name][self.nodeA][nodeB][0][
+                        branch][tick] = False
+                self.dispatch(nodeB, None)
+
+    class PortalPredecessorsMapping(
+            DiGraphPredecessorsMapping,
+            RuleFollower
+    ):
+        """Mapping of nodes that have at least one incoming edge.
+
+        Maps to another mapping keyed by the origin nodes, which maps to
+        Portal objects.
+
+        """
+        _book = "character_portal"
+
+        class Predecessors(DiGraphPredecessorsMapping.Predecessors):
+            """Mapping of possible origins from some destination."""
+            def _getsub(self, nodeA):
+                if not self.graph.engine.caching:
+                    return Portal(self.graph, nodeA, self.nodeB)
+                if nodeA in self.graph.portal:
+                    if (
+                            self.graph.engine.caching and
+                            self.nodeB not in self.graph.portal[nodeA]._cache
+                    ):
+                        self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
+                            self.graph,
+                            nodeA,
+                            self.nodeB
+                        )
+                    return self.graph.portal[nodeA][self.nodeB]
+                return Portal(self.graph, nodeA, self.nodeB)
+
+            def __setitem__(self, nodeA, value):
+                if nodeA in self.graph.portal:
+                    if (
+                            self.graph.engine.caching and
+                            self.nodeB not in self.graph.portal[nodeA]._cache
+                    ):
+                        self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
+                            self.graph,
+                            nodeA,
+                            self.nodeB
+                        )
+                p = self.graph.portal[nodeA][self.nodeB]
+                p.clear()
+                p.update(value)
+                if self.engine.caching:
+                    (branch, tick) = self.engine.time
+                    self.engine._edges_cache[
+                        self.character.name][self.nodeB][nodeA][0][
+                            branch][tick] = True
+
+    class AvatarGraphMapping(Mapping, RuleFollower):
+        """A mapping of other characters in which one has an avatar.
+
+        Maps to a mapping of the avatars themselves, or if there's only
+        one, to that.
+
+        """
+        _book = "avatar"
+
+        engine = getatt('character.engine')
+        name = getatt('character.name')
+
+        def __init__(self, char):
+            """Remember my character"""
+            self.character = char
+
+        def __call__(self, av):
+            """Add the avatar. It must be an instance of Place or Thing."""
+            if av.__class__ not in (Place, Thing):
+                raise TypeError("Only Things and Places may be avatars")
+            self.character.add_avatar(av.name, av.character.name)
+
+        def _avatarness_db(self):
+            """Get avatar-ness data and return it"""
+            return self.engine.db.avatarness(
+                self.character.name, *self.engine.time
+            )
+
+        def __iter__(self):
+            """Iterate over every avatar graph that has at least one avatar node
+            in it presently
+
+            """
+            if self.engine.caching:
+                cache = self.engine._avatarness_cache.db_order
+                if self.character.name not in cache:
+                    return
+                cache = cache[self.character.name]
+                seen = False
+                for avatar in cache:
+                    if seen:
+                        continue
+                    for node in cache[avatar]:
+                        if seen:
+                            seen = False
+                            break
+                        for (branch, tick) in self.engine._active_branches():
+                            try:
+                                if cache[avatar][node][branch][tick]:
+                                    yield avatar
+                                seen = True
+                                break
+                            except KeyError:
+                                continue
+                return
+            yield from self._avatarness_db()
+
+        def __len__(self):
+            """Number of graphs in which I have an avatar"""
+            n = 0
+            for g in self:
+                n += 1
+            return n
+
+        def __getitem__(self, g):
+            """Get the CharacterAvatarMapping for the given graph, if I have any
+            avatars in it.
+
+            If I have avatars in only one graph, behave as a proxy to that
+            graph's CharacterAvatarMapping.
+
+            Unless I have only one avatar anywhere, in which case be a
+            proxy to that.
+
+            """
+            if self.engine.caching:
+                cache = self.engine._avatarness_cache.db_order[
+                    self.character.name][g]
+                for node in cache:
+                    for (branch, tick) in self.engine._active_branches():
+                        try:
+                            if cache[node][branch][tick]:
+                                return self.CharacterAvatarMapping(self, g)
+                        except KeyError:
+                            continue
+                if len(self) == 1:
+                    return self.CharacterAvatarMapping(self, next(iter(self)))[g]
+                raise KeyError("{} has no avatar in {}".format(
+                    self.character.name, g
+                ))
+            d = self._avatarness_db()
+            if g in d:
+                return self.CharacterAvatarMapping(self, g)
+            elif len(d.keys()) == 1:
+                avm = self.CharacterAvatarMapping(self, list(d.keys())[0])
+                if len(avm.keys()) == 1:
+                    return avm[list(avm.keys())[0]][g]
+                else:
+                    return avm[g]
+            raise KeyError("No avatar in {}".format(g))
+
+        def __getattr__(self, attr):
+            """If I've got only one avatar, return its attribute"""
+            if len(self.keys()) == 1:
+                avs = self.CharacterAvatarMapping(self, next(iter(self.keys())))
+                if len(avs) == 1:
+                    av = list(avs.keys())[0]
+                    if attr == av:
+                        return avs[attr]
+                    else:
+                        return getattr(avs[list(avs.keys())[0]], attr)
+            raise AttributeError
+
+        def __repr__(self):
+            """Represent myself like a dictionary"""
+            d = {}
+            for k in self:
+                d[k] = dict(self[k])
+            return repr(d)
+
+        class CharacterAvatarMapping(Mapping):
+            """Mapping of avatars of one Character in another Character."""
+            def __init__(self, outer, graphn):
+                """Store the character and the name of the "graph", ie. the other
+                character.
+
+                """
+                self.character = outer.character
+                self.engine = outer.engine
+                self.name = outer.name
+                self.graph = graphn
+
+            def _branchdata(self, branch, rev):
+                if self.engine.caching:
+                    return self._branchdata_cache(branch, rev)
+                else:
+                    return self.engine.db.avatar_branch_data(
+                        self.character.name, self.graph, branch, rev
+                    )
+
+            def _branchdata_cache(self, branch, rev):
+                ac = self.engine._avatarness_cache.db_order[
+                    self.character.name][self.graph]
+                r = []
+                for node in ac:
+                    try:
+                        r.append((
+                            node,
+                            ac[node][branch][rev]
+                        ))
+                    except KeyError:
+                        continue
+                return r
+
+            def __getattr__(self, attrn):
+                """If I don't have such an attribute, but I contain exactly one
+                avatar, and *it* has the attribute, return the
+                avatar's attribute.
+
+                """
+                seen = set()
+                counted = 0
+                for (branch, rev) in self.engine._active_branches():
+                    if counted > 1:
+                        break
+                    for (n, extant) in self._branchdata(branch, rev):
+                        if counted > 1:
+                            break
+                        x = bool(extant)
+                        if x and n not in seen:
+                            counted += 1
+                        seen.add(n)
+                if counted == 1:
+                    node = self.engine.character[self.graph].node[seen.pop()]
+                    if hasattr(node, attrn):
+                        return getattr(node, attrn)
+                raise AttributeError("No such attribute: " + attrn)
+
+            def __iter__(self):
+                """Iterate over the names of all the presently existing nodes in the
+                graph that are avatars of the character
+
+                """
+                seen = set()
+                for (branch, rev) in self.engine._active_branches():
+                    for (n, x) in self._branchdata(branch, rev):
+                        if (
+                                x and
+                                n not in seen and
+                                self.engine._node_exists(self.graph, n)
+                        ):
+                            yield n
+                        seen.add(n)
+
+            def __contains__(self, av):
+                fun = (
+                    self._contains_when_cache
+                    if self.engine.caching
+                    else self._contains_when_db
+                )
+                for (branch, tick) in self.engine._active_branches():
+                    r = fun(av, branch, tick)
+                    if r is None:
+                        continue
+                    return r
+                return False
+
+            def _contains_when_cache(self, av, branch, rev):
+                ac = self.engine._avatarness_cache.db_order[
+                    self.character.name][self.graph]
+                if av not in ac:
+                    return False
+                for node in ac[av]:
+                    try:
+                        if ac[av][branch][rev]:
+                            return True
+                    except KeyError:
+                        continue
+
+            def _contains_when_db(self, av, branch, tick):
+                return self.engine.db.is_avatar_of(
+                    self.character.name,
+                    self.graph,
+                    av,
+                    branch,
+                    tick
+                )
+
+            def __len__(self):
+                """Number of presently existing nodes in the graph that are avatars of
+                the character"""
+                n = 0
+                for a in self:
+                    n += 1
+                return n
+
+            def __getitem__(self, av):
+                """Return the Place or Thing by the given name in the graph, if it's
+                my avatar and it exists.
+
+                If I contain exactly *one* Place or Thing, and you're
+                not trying to get it by its name, delegate to its
+                __getitem__. It's common for one Character to have
+                exactly one avatar in another Character, and when that
+                happens, it's nice not to have to specify the avatar's
+                name.
+
+                """
+                if av in self:
+                    return self.engine.character[self.graph].node[av]
+                if len(self.keys()) == 1:
+                    k = list(self.keys())[0]
+                    return self.engine.character[self.graph].node[k]
+                raise KeyError("No such avatar")
+
+            def __repr__(self):
+                """Represent myself like a dictionary"""
+                d = {}
+                for k in self:
+                    d[k] = dict(self[k])
+                return repr(d)
+
+    class StatMapping(MutableMapping, TimeDispatcher):
+        """Caching dict-alike for character stats"""
+        @property
+        def _dispatch_cache(self):
+            return self.engine._graph_val_cache[
+                self.character.name
+            ]
+
+        engine = getatt('character.engine')
+        _real = getatt('character.graph')
+
+        def __init__(self, char):
+            """Store character"""
+            self.character = char
+
+        def __iter__(self):
+            return iter(self._real)
+
+        def __len__(self):
+            return len(self._real)
+
+        def __getitem__(self, k):
+            return self._real[k]
+
+        def _get(self, k=None):
+            if k is None:
+                return self
+            return self[k]
+
+        def __setitem__(self, k, v):
+            assert(v is not None)
+            self._real[k] = v
+            self.dispatch(k, v)
+
+        def __delitem__(self, k):
+            del self._real[k]
+            self.dispatch(k, None)
 
     def facade(self):
         return Facade(self)
