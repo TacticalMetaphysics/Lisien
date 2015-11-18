@@ -29,6 +29,8 @@ from collections import (
     MutableMapping,
     Callable
 )
+from operator import ge, gt, le, lt, eq
+from math import floor
 
 import networkx as nx
 from gorm.graph import (
@@ -48,6 +50,382 @@ from .thing import Thing
 from .place import Place
 from .portal import Portal
 from .util import getatt
+
+
+class AbstractCharacter(object):
+    def do(self, func, *args, **kwargs):
+        """Apply the function to myself, and return myself.
+
+        Look up the function in the database if needed. Pass it any
+        arguments given, keyword or positional.
+
+        Useful chiefly when chaining.
+
+        """
+        if not callable(func):
+            func = self.engine.function[func]
+        func(self, *args, **kwargs)
+        return self
+
+    def perlin(self, stat='perlin'):
+        """Apply Perlin noise to my nodes, and return myself.
+
+        I'll try to use the name of the node as its spatial position
+        for this purpose, or use its stats 'x', 'y', and 'z', or skip
+        the node if neither are available. z is assumed 0 if not
+        provided for a node.
+
+        Result will be stored in a node stat named 'perlin' by default.
+        Supply the name of another stat to use it instead.
+
+        """
+        p = self.engine.shuffle([
+            151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7,
+            225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190,
+            6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117,
+            35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136,
+            171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146,
+            158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41,
+            55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
+            73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116,
+            188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226,
+            250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207,
+            206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213,
+            119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43,
+            172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178,
+            185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144,
+            12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49,
+            192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50,
+            45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72,
+            243, 141, 128, 195, 78, 66, 215, 61, 156, 180
+        ]) * 2
+
+        def fade(t):
+            return t * t * t * (t * (t * 6 - 15) + 10)
+
+        def lerp(t, a, b):
+            return a + t * (b - a)
+
+        def grad(hsh, x, y, z):
+            """CONVERT LO 4 BITS OF HASH CODE INTO 12 GRADIENT DIRECTIONS."""
+            h = hsh & 15
+            u = x if h < 8 else y
+            v = y if h < 4 else x if h == 12 or h == 14 else z
+            return (u if h & 1 == 0 else -u) + (v if h & 2 == 0 else -v)
+
+        def noise(x, y, z):
+            # FIND UNIT CUBE THAT CONTAINS POINT.
+            X = int(x) & 255
+            Y = int(y) & 255
+            Z = int(z) & 255
+            # FIND RELATIVE X, Y, Z OF POINT IN CUBE.
+            x -= floor(x)
+            y -= floor(y)
+            z -= floor(z)
+            # COMPUTE FADE CURVES FOR EACH OF X, Y, Z.
+            u = fade(x)
+            v = fade(y)
+            w = fade(z)
+            # HASH COORDINATES OF THE 8 CUBE CORNERS,
+            A = p[X] + Y
+            AA = p[A] + Z
+            AB = p[A+1] + Z
+            B = p[X+1] + y
+            BA = p[B] + Z
+            BB = p[B+1] + Z
+            # AND ADD BLENDED RESULTS FROM 8 CORNERS OF CUBE
+            return lerp(
+                w,
+                lerp(
+                    v,
+                    lerp(
+                        u,
+                        grad(p[AA], x, y, z),
+                        grad(p[BA], x-1, y, z)
+                    ),
+                    lerp(
+                        u,
+                        grad(p[AB], x, y-1, z),
+                        grad(p[BB], x-1, y-1, z)
+                    )
+                ),
+                lerp(
+                    v,
+                    lerp(
+                        u,
+                        grad(p[AA+1], x, y, z-1),
+                        grad(p[BA+1], x-1, y, z-1)
+                    ),
+                    lerp(
+                        u,
+                        grad(p[AB+1], x, y-1, z-1),
+                        grad(p[BB+1], x-1, y-1, z-1)
+                    )
+                )
+            )
+
+        for node in self.node.values():
+            try:
+                (x, y, z) = node.name
+            except ValueError:
+                try:
+                    (x, y) = node.name
+                    z = 0.0
+                except ValueError:
+                    try:
+                        x = node['x']
+                        y = node['y']
+                        z = node.get('z', 0.0)
+                    except KeyError:
+                        continue
+            x, y, z = map(float, (x, y, z))
+            node[stat] = noise(x, y, z)
+
+        return self
+
+    def copy_from(self, g):
+        for k, v in g.node.items():
+            self.place[k] = v
+        for u in g.edge:
+            for v in g.edge[u]:
+                if isinstance(g, nx.MultiGraph) or\
+                   isinstance(g, nx.MultiDiGraph):
+                    self.edge[u][v] = g.edge[u][v][0]
+                else:
+                    self.edge[u][v] = g.edge[u][v]
+        return self
+
+    def become(self, g):
+        self.clear()
+        self.copy_from(g)
+        return self
+
+    def balanced_tree(self, r, h):
+        return self.copy_from(nx.balanced_tree(r, h))
+
+    def barbell_graph(self, m1, m2):
+        return self.copy_from(nx.barbell_graph(m1, m2))
+
+    def complete_graph(self, n):
+        return self.copy_from(nx.complete_graph(n))
+
+    def circular_ladder_graph(self, n):
+        return self.copy_from(nx.circular_ladder_graph(n))
+
+    def cycle_graph(self, n):
+        return self.copy_from(nx.cycle_graph(n))
+
+    def empty_graph(self, n):
+        return self.copy_from(nx.empty_graph(n))
+
+    def grid_2d_graph(self, m, n, periodic=False):
+        return self.copy_from(nx.grid_2d_graph(m, n, periodic))
+
+    def grid_graph(self, dim, periodic=False):
+        return self.copy_from(nx.grid_graph(dim, periodic))
+
+    def ladder_graph(self, n):
+        return self.copy_from(nx.ladder_graph(n))
+
+    def lollipop_graph(self, m, n):
+        return self.copy_from(nx.lollipop_graph(m, n))
+
+    def path_graph(self, n):
+        return self.copy_from(nx.path_graph(n))
+
+    def star_graph(self, n):
+        return self.copy_from(nx.star_graph(n))
+
+    def wheel_graph(self, n):
+        return self.copy_from(nx.wheel_graph(n))
+
+    def fast_gnp_random_graph(self, n, p, seed=None):
+        return self.copy_from(nx.fast_gnp_random_graph(n, p, seed, directed=True))
+
+    def gnp_random_graph(self, n, p, seed=None):
+        return self.copy_from(nx.gnp_random_graph(n, p, seed, directed=True))
+
+    def gnm_random_graph(self, n, m, seed=None):
+        return self.copy_from(nx.gnm_random_graph(n, m, seed, directed=True))
+
+    def erdos_renyi_graph(self, n, p, seed=None):
+        return self.copy_from(nx.erdos_renyi_graph(n, p, seed, directed=True))
+
+    def binomial_graph(self, n, p, seed=None):
+        return self.erdos_renyi_graph(n, p, seed)
+
+    def newman_watts_strogatz_graph(self, n, k, p, seed=None):
+        return self.copy_from(nx.newman_watts_strogatz_graph(n, k, p, seed))
+
+    def watts_strogatz_graph(self, n, k, p, seed=None):
+        return self.copy_from(nx.watts_strogatz_graph(n, k, p, seed))
+
+    def connected_watts_strogatz_graph(self, n, k, p, tries=100, seed=None):
+        return self.copy_from(nx.connected_watts_strogatz_graph(n, k, p, tries, seed))
+
+    def random_regular_graph(self, d, n, seed=None):
+        return self.copy_from(nx.random_regular_graph(d, n, seed))
+
+    def barabasi_albert_graph(self, n, m, seed=None):
+        return self.copy_from(nx.barabasi_albert_graph(n, m, seed))
+
+    def powerlaw_cluster_graph(self, n, m, p, seed=None):
+        return self.copy_from(nx.powerlaw_cluster_graph(n, m, p, seed))
+
+    def duplication_divergence_graph(self, n, p, seed=None):
+        return self.copy_from(nx.duplication_divergence_graph(n, p, seed))
+
+    def random_lobster(self, n, p1, p2, seed=None):
+        return self.copy_from(nx.random_lobster(n, p1, p2, seed))
+
+    def random_shell_graph(self, constructor, seed=None):
+        return self.copy_from(nx.random_shell_graph(constructor, seed))
+
+    def random_powerlaw_tree(self, n, gamma=3, seed=None, tries=100):
+        return self.copy_from(nx.random_powerlaw_tree(n, gamma, seed, tries))
+
+    def configuration_model(self, deg_sequence, seed=None):
+        return self.copy_from(nx.configuration_model(deg_sequence, seed=seed))
+
+    def directed_configuration_model(self, in_degree_sequence, out_degree_sequence, seed=None):
+        return self.copy_from(nx.directed_configuration_model(in_degree_sequence, out_degree_sequence, seed=seed))
+
+    def expected_degree_graph(self, w, seed=None, selfloops=True):
+        return self.copy_from(nx.expected_degree_graph(w, seed, selfloops))
+
+    def havel_hakmi_graph(self, deg_sequence):
+        return self.copy_from(nx.havel_hakimi_graph(deg_sequence))
+
+    def directed_havel_hakmi_graph(self, in_degree_sequence, out_degree_sequence):
+        return self.copy_from(nx.directed_havel_hakmi_graph(in_degree_sequence, out_degree_sequence))
+
+    def degree_sequence_tree(self, deg_sequence):
+        return self.copy_from(nx.degree_sequence_tree(deg_sequence))
+
+    def random_degree_sequence_graph(self, sequence, seed=None, tries=10):
+        return self.copy_from(nx.random_degree_sequence_graph(sequence, seed, tries))
+
+    def random_clustered_graph(self, joint_degree_sequence, seed=None):
+        return self.copy_from(nx.random_clustered_graph(joint_degree_sequence, seed=seed))
+
+    def gn_graph(self, n, kernel=None, seed=None):
+        return self.copy_from(nx.gn_graph(n, kernel, seed=seed))
+
+    def gnr_graph(self, n, p, seed=None):
+        return self.copy_from(nx.gnr_graph(n, p, seed=seed))
+
+    def gnc_graph(self, n, seed=None):
+        return self.copy_from(nx.gnc_graph(n, seed=seed))
+
+    def scale_free_graph(self, n, alpha=0.41, beta=0.54, gamma=0.05, delta_in=0.2, delta_out=0, seed=None):
+        return self.copy_from(nx.scale_free_graph(n, alpha, beta, gamma, delta_in, delta_out, seed=seed))
+
+    def random_geometric_graph(self, n, radius, dim=2, pos=None):
+        return self.copy_from(nx.random_geometric_graph(n, radius, dim, pos))
+
+    def geographical_threshold_graph(self, n, theta, alpha=2, dim=2, pos=None, weight=None):
+        return self.copy_from(nx.geographical_threshold_graph(n, theta, alpha, dim, pos, weight))
+
+    def waxman_graph(self, n, alpha=0.4, beta=0.1, L=None, domain=(0, 0, 1, 1)):
+        return self.copy_from(nx.waxman_graph(n, alpha, beta, L, domain))
+
+    def navigable_small_world_graph(self, n, p=1, q=1, r=2, dim=2, seed=None):
+        return self.copy_from(nx.navigable_small_world_graph(n, p, q, r, dim, seed))
+
+    def line_graph(self):
+        lg = nx.line_graph(self)
+        self.clear()
+        return self.copy_from(lg)
+
+    def ego_graph(self, G, n, radius=1, center=True, undirected=False, distance=None):
+        return self.become(nx.ego_graph(G, n, radius, center, undirected, distance))
+
+    def stochastic_graph(self, weight='weight'):
+        nx.stochastic_graph(self, copy=False, weight=weight)
+        return self
+
+    def uniform_random_intersection_graph(self, n, m, p, seed=None):
+        return self.copy_from(nx.uniform_random_intersection_graph(n, mp, p, seed=seed))
+
+    def k_random_intersection_graph(self, n, m, k, seed=None):
+        return self.copy_from(nx.k_random_intersection_graph(n, m, k, seed=seed))
+
+    def general_random_intersection_graph(self, n, m, p, seed=None):
+        return self.copy_from(nx.general_random_intersection_graph(n, m, p, seed=seed))
+
+    def caveman_graph(self, l, k):
+        return self.copy_from(nx.caveman_graph(l, k))
+
+    def connected_caveman_graph(self, l, k):
+        return self.copy_from(nx.connected_caveman_graph(l, k))
+
+    def relaxed_caveman_graph(self, l, k, p, seed=None):
+        return self.copy_from(nx.relaxed_caveman_graph(l, k, p, seed=seed))
+
+    def random_partition_graph(self, sizes, p_in, p_out, seed=None):
+        return self.copy_from(nx.random_partition_graph(sizes, p_in, p_out, seed=seed, directed=True))
+
+    def planted_partition_graph(self, l, k, p_in, p_out, seed=None):
+        return self.copy_from(nx.planted_partition_graph(l, k, p_in, p_out, seed=seed, directed=True))
+
+    def gaussian_random_partition_graph(self, n, s, v, p_in, p_out, seed=None):
+        return self.copy_from(nx.gaussian_random_partition_graph(n, s, v, p_in, p_out, directed=directed, seed=seed))
+
+    def _lookup_comparator(self, comparator):
+        if callable(comparator):
+            return comparator
+        ops = {
+            'ge': ge,
+            'gt': gt,
+            'le': le,
+            'lt': lt,
+            'eq': eq
+        }
+        if comparator in ops:
+            return ops[comparator]
+        return self.engine.function[comparator]
+
+    def cull_nodes(self, stat, threshold=0.5, comparator=ge):
+        """Delete nodes whose stat >= ``threshold`` (default 0.5).
+
+        Optional argument ``comparator`` will replace >= as the test
+        for whether to cull. You can use the name of a stored function.
+
+        """
+        comparator = self._lookup_comparator(comparator)
+        dead = [
+            name for name, node in self.node.items()
+            if stat in node and comparator(node[stat], threshold)
+        ]
+        self.remove_nodes_from(dead)
+        return self
+
+    def cull_portals(self, stat, threshold=0.5, comparator=ge):
+        """Delete portals whose stat >= ``threshold`` (default 0.5).
+
+        Optional argument ``comparator`` will replace >= as the test
+        for whether to cull. You can use the name of a stored function.
+
+        """
+        comparator = self._lookup_comparator(comparator)
+        dead = []
+        for u in self.portal:
+            for v in self.portal[u]:
+                if stat in self.portal[u][v] and comparator(
+                        self.portal[u][v][stat], threshold
+                ):
+                    dead.append((u, v))
+        self.remove_edges_from(dead)
+        return self
+
+    def cull_edges(self, stat, threshold=0.5, comparator=ge):
+        """Delete edges whose stat >= ``threshold`` (default 0.5).
+
+        Optional argument ``comparator`` will replace >= as the test
+        for whether to cull. You can use the name of a stored function.
+
+        """
+        return self.cull_portals(stat, threshold, comparator)
 
 
 class CharRuleMapping(RuleMapping):
@@ -986,10 +1364,18 @@ class FacadePlace(MutableMapping, TimeDispatcher):
             if thing.container is self:
                 yield thing
 
-    def __init__(self, facade, real):
-        """Store ``facade`` and ``real``"""
-        self.facade = facade
-        self._real = real
+    def __init__(self, facade, real_or_name, **kwargs):
+        """Store ``facade``; store ``real_or_name`` if it's a Place
+
+        Otherwise use a plain dict for the underlying 'place'.
+
+        """
+        self._patch = kwargs
+        if isinstance(real_or_name, Place) or \
+           isinstance(real_or_name, FacadePlace):
+            self._real = real_or_name
+        else:
+            self._real = {'name': real_or_name}
 
     def __iter__(self):
         seen = set()
@@ -1012,12 +1398,14 @@ class FacadePlace(MutableMapping, TimeDispatcher):
 
     def __getitem__(self, k):
         if k in self._masked:
-            raise KeyError("masked")
+            raise KeyError("{} has been masked.".format(k))
         if k in self._patch:
             return self._patch[k]
         return self._real[k]
 
     def __setitem__(self, k, v):
+        if k == 'name':
+            raise TypeError("Can't change names")
         self._masked.discard(k)
         self._patch[k] = v
         self.dispatch(k, v)
@@ -1028,7 +1416,30 @@ class FacadePlace(MutableMapping, TimeDispatcher):
 
 
 class FacadeThing(FacadePlace):
-    """Lightweight analogue of Thing for Facade use"""
+    @property
+    def name(self):
+        return self._real['name']
+
+    def __init__(self, facade, real_or_name, location=None, *args, **kwargs):
+        if location is None and not (
+                isinstance(real_or_name, Thing) or
+                isinstance(real_or_name, FacadeThing)
+        ):
+            raise TypeError(
+                "FacadeThing needs to wrap a real Thing or another "
+                "FacadeThing, or have a location of its own."
+            )
+        self._patch = kwargs
+        if hasattr(location, 'name'):
+            location = location.name
+        if location is not None and location not in self.facade.place:
+            self.facade.new_place(location)
+        self._real = {
+            'name': real_or_name.name if hasattr(real_or_name, 'name')
+            else real_or_name,
+            'location': location
+        }
+
     @property
     def location(self):
         try:
@@ -1056,13 +1467,49 @@ class FacadeThing(FacadePlace):
 
 class FacadePortal(FacadePlace):
     """Lightweight analogue of Portal for Facade use"""
+    def __init__(self, real_or_origin, destination=None, **kwargs):
+        if destination is None:
+            if not (
+                    isinstance(real_or_origin, Portal) or
+                    isinstance(real_or_origin, FacadePortal)
+            ):
+                raise TypeError(
+                    "FacadePortal must wrap a real portal or another "
+                    "FacadePortal, or be instantiated with "
+                    "an origin and a destiantion."
+                )
+            self._real = real_or_origin
+        else:
+            if (
+                    isinstance(real_or_origin, Portal) or
+                    isinstance(real_or_origin, FacadePortal)
+            ):
+                raise TypeError(
+                    "Either wrap something, or supply origin and destination. "
+                    "Not both."
+                )
+            self._real = {
+                'origin': real_or_origin.name
+                if hasattr(real_or_origin, 'name')
+                else real_or_origin,
+                'destination': destination.name
+                if hasattr(destination, 'name')
+                else destination
+            }
+        self._patch = kwargs
+
+    def __setitem__(self, k, v):
+        if k in ('origin', 'destination'):
+            raise TypeError("Portals have fixed origin and destination")
+        super().__setitem__(k, v)
+
     @property
     def origin(self):
-        return self.facade.node[self['origin']]
+        return self.facade.node[self._real['origin']]
 
     @property
     def destination(self):
-        return self.facade.node[self['destination']]
+        return self.facade.node[self._real['destination']]
 
 
 class FacadeEntityMapping(MutableMapping, TimeDispatcher):
@@ -1260,20 +1707,39 @@ class FacadeStatsMapping(MutableMapping, TimeDispatcher):
         self.dispatch(k, None)
 
 
-class Facade(nx.DiGraph):
+class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
     succ = edge = adj = getatt('portal')
     pred = getatt('preportal')
     stat = getatt('graph')
 
+    @reify
+    def thing(self):
+        return FacadeThingMapping(self)
+
+    @reify
+    def place(self):
+        return FacadePlaceMapping(self)
+
+    @reify
+    def node(self):
+        return CompositeDict(self.thing, self.place)
+
+    @reify
+    def portal(self):
+        return FacadePortalSuccessorsMapping(self)
+
+    @reify
+    def graph(self):
+        return FacadeStatsMapping(self)
+
+    @reify
+    def preportal(self):
+        return FacadePortalPredecessorsMapping(self)
+
     def __init__(self, character):
+        """Store the character"""
         self.character = character
-        self.thing = FacadeThingMapping(self)
-        self.place = FacadePlaceMapping(self)
-        self.node = CompositeDict(self.thing, self.place)
-        self.portal = FacadePortalSuccessorsMapping(self)
-        self.preportal = FacadePortalPredecessorsMapping(self)
-        self.graph = FacadeStatsMapping(self)
 
 
 class CharStatCache(MutableMapping, TimeDispatcher):
@@ -1315,7 +1781,7 @@ class CharStatCache(MutableMapping, TimeDispatcher):
         self.dispatch(k, None)
 
 
-class Character(DiGraph, RuleFollower):
+class Character(AbstractCharacter, DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
