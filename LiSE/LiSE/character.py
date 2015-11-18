@@ -41,6 +41,7 @@ from gorm.graph import (
 )
 from gorm.reify import reify
 
+from .xcollections import CompositeDict
 from .bind import TimeDispatcher
 from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
@@ -1108,6 +1109,9 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
         def _get_inner_map(self):
             return self.facade.character.place
+
+    def ThingPlaceMapping(self, *args):
+        return CompositeDict(self.thing, self.place)
 
     class PortalSuccessorsMapping(FacadePortalMapping):
         cls = FacadePortalSuccessors

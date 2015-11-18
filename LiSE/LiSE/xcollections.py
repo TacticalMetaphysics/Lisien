@@ -1,5 +1,4 @@
 from collections import Mapping, MutableMapping, defaultdict
-from .character import Character
 from .bind import dispatch, listen, listener, unlisten, unlistener
 
 
@@ -386,6 +385,7 @@ class CharacterMapping(MutableMapping):
         Try to use the cache if possible.
 
         """
+        from .character import Character
         if name not in self:
             raise KeyError("No such character")
         if hasattr(self, '_cache'):
@@ -399,6 +399,7 @@ class CharacterMapping(MutableMapping):
         the given value.
 
         """
+        from .character import Character
         if isinstance(value, Character):
             self._cache[name] = value
             return
