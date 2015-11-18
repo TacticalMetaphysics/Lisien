@@ -239,7 +239,9 @@ class AbstractCharacter(object):
         return self.copy_from(nx.wheel_graph(n))
 
     def fast_gnp_random_graph(self, n, p, seed=None):
-        return self.copy_from(nx.fast_gnp_random_graph(n, p, seed, directed=True))
+        return self.copy_from(nx.fast_gnp_random_graph(
+            n, p, seed, directed=True
+        ))
 
     def gnp_random_graph(self, n, p, seed=None):
         return self.copy_from(nx.gnp_random_graph(n, p, seed, directed=True))
@@ -260,7 +262,9 @@ class AbstractCharacter(object):
         return self.copy_from(nx.watts_strogatz_graph(n, k, p, seed))
 
     def connected_watts_strogatz_graph(self, n, k, p, tries=100, seed=None):
-        return self.copy_from(nx.connected_watts_strogatz_graph(n, k, p, tries, seed))
+        return self.copy_from(nx.connected_watts_strogatz_graph(
+            n, k, p, tries, seed
+        ))
 
     def random_regular_graph(self, d, n, seed=None):
         return self.copy_from(nx.random_regular_graph(d, n, seed))
@@ -286,8 +290,17 @@ class AbstractCharacter(object):
     def configuration_model(self, deg_sequence, seed=None):
         return self.copy_from(nx.configuration_model(deg_sequence, seed=seed))
 
-    def directed_configuration_model(self, in_degree_sequence, out_degree_sequence, seed=None):
-        return self.copy_from(nx.directed_configuration_model(in_degree_sequence, out_degree_sequence, seed=seed))
+    def directed_configuration_model(
+            self,
+            in_degree_sequence,
+            out_degree_sequence,
+            seed=None
+    ):
+        return self.copy_from(nx.directed_configuration_model(
+            in_degree_sequence,
+            out_degree_sequence,
+            seed=seed
+        ))
 
     def expected_degree_graph(self, w, seed=None, selfloops=True):
         return self.copy_from(nx.expected_degree_graph(w, seed, selfloops))
@@ -295,17 +308,28 @@ class AbstractCharacter(object):
     def havel_hakmi_graph(self, deg_sequence):
         return self.copy_from(nx.havel_hakimi_graph(deg_sequence))
 
-    def directed_havel_hakmi_graph(self, in_degree_sequence, out_degree_sequence):
-        return self.copy_from(nx.directed_havel_hakmi_graph(in_degree_sequence, out_degree_sequence))
+    def directed_havel_hakmi_graph(
+            self,
+            in_degree_sequence,
+            out_degree_sequence
+    ):
+        return self.copy_from(nx.directed_havel_hakmi_graph(
+            in_degree_sequence,
+            out_degree_sequence
+        ))
 
     def degree_sequence_tree(self, deg_sequence):
         return self.copy_from(nx.degree_sequence_tree(deg_sequence))
 
     def random_degree_sequence_graph(self, sequence, seed=None, tries=10):
-        return self.copy_from(nx.random_degree_sequence_graph(sequence, seed, tries))
+        return self.copy_from(nx.random_degree_sequence_graph(
+            sequence, seed, tries
+        ))
 
     def random_clustered_graph(self, joint_degree_sequence, seed=None):
-        return self.copy_from(nx.random_clustered_graph(joint_degree_sequence, seed=seed))
+        return self.copy_from(nx.random_clustered_graph(
+            joint_degree_sequence, seed=seed
+        ))
 
     def gn_graph(self, n, kernel=None, seed=None):
         return self.copy_from(nx.gn_graph(n, kernel, seed=seed))
@@ -316,41 +340,92 @@ class AbstractCharacter(object):
     def gnc_graph(self, n, seed=None):
         return self.copy_from(nx.gnc_graph(n, seed=seed))
 
-    def scale_free_graph(self, n, alpha=0.41, beta=0.54, gamma=0.05, delta_in=0.2, delta_out=0, seed=None):
-        return self.copy_from(nx.scale_free_graph(n, alpha, beta, gamma, delta_in, delta_out, seed=seed))
+    def scale_free_graph(
+            self, n,
+            alpha=0.41,
+            beta=0.54,
+            gamma=0.05,
+            delta_in=0.2,
+            delta_out=0,
+            seed=None
+    ):
+        return self.copy_from(nx.scale_free_graph(
+            n,
+            alpha,
+            beta,
+            gamma,
+            delta_in,
+            delta_out,
+            seed=seed
+        ))
 
     def random_geometric_graph(self, n, radius, dim=2, pos=None):
         return self.copy_from(nx.random_geometric_graph(n, radius, dim, pos))
 
-    def geographical_threshold_graph(self, n, theta, alpha=2, dim=2, pos=None, weight=None):
-        return self.copy_from(nx.geographical_threshold_graph(n, theta, alpha, dim, pos, weight))
+    def geographical_threshold_graph(
+            self, n, theta,
+            alpha=2,
+            dim=2,
+            pos=None,
+            weight=None
+    ):
+        return self.copy_from(nx.geographical_threshold_graph(
+            n, theta, alpha, dim, pos, weight
+        ))
 
-    def waxman_graph(self, n, alpha=0.4, beta=0.1, L=None, domain=(0, 0, 1, 1)):
-        return self.copy_from(nx.waxman_graph(n, alpha, beta, L, domain))
+    def waxman_graph(
+            self, n,
+            alpha=0.4,
+            beta=0.1,
+            L=None,
+            domain=(0, 0, 1, 1)
+    ):
+        return self.copy_from(nx.waxman_graph(
+            n, alpha, beta, L, domain
+        ))
 
     def navigable_small_world_graph(self, n, p=1, q=1, r=2, dim=2, seed=None):
-        return self.copy_from(nx.navigable_small_world_graph(n, p, q, r, dim, seed))
+        return self.copy_from(nx.navigable_small_world_graph(
+            n, p, q, r, dim, seed
+        ))
 
     def line_graph(self):
         lg = nx.line_graph(self)
         self.clear()
         return self.copy_from(lg)
 
-    def ego_graph(self, G, n, radius=1, center=True, undirected=False, distance=None):
-        return self.become(nx.ego_graph(G, n, radius, center, undirected, distance))
+    def ego_graph(
+            self, n,
+            radius=1,
+            center=True,
+            distance=None
+    ):
+        return self.become(nx.ego_graph(
+            self, n,
+            radius,
+            center,
+            False,
+            distance
+        ))
 
     def stochastic_graph(self, weight='weight'):
         nx.stochastic_graph(self, copy=False, weight=weight)
         return self
 
     def uniform_random_intersection_graph(self, n, m, p, seed=None):
-        return self.copy_from(nx.uniform_random_intersection_graph(n, mp, p, seed=seed))
+        return self.copy_from(nx.uniform_random_intersection_graph(
+            n, m, p, seed=seed
+        ))
 
     def k_random_intersection_graph(self, n, m, k, seed=None):
-        return self.copy_from(nx.k_random_intersection_graph(n, m, k, seed=seed))
+        return self.copy_from(nx.k_random_intersection_graph(
+            n, m, k, seed=seed
+        ))
 
     def general_random_intersection_graph(self, n, m, p, seed=None):
-        return self.copy_from(nx.general_random_intersection_graph(n, m, p, seed=seed))
+        return self.copy_from(
+            nx.general_random_intersection_graph(n, m, p, seed=seed)
+        )
 
     def caveman_graph(self, l, k):
         return self.copy_from(nx.caveman_graph(l, k))
@@ -362,13 +437,19 @@ class AbstractCharacter(object):
         return self.copy_from(nx.relaxed_caveman_graph(l, k, p, seed=seed))
 
     def random_partition_graph(self, sizes, p_in, p_out, seed=None):
-        return self.copy_from(nx.random_partition_graph(sizes, p_in, p_out, seed=seed, directed=True))
+        return self.copy_from(nx.random_partition_graph(
+            sizes, p_in, p_out, seed=seed, directed=True
+        ))
 
     def planted_partition_graph(self, l, k, p_in, p_out, seed=None):
-        return self.copy_from(nx.planted_partition_graph(l, k, p_in, p_out, seed=seed, directed=True))
+        return self.copy_from(nx.planted_partition_graph(
+            l, k, p_in, p_out, seed=seed, directed=True
+        ))
 
     def gaussian_random_partition_graph(self, n, s, v, p_in, p_out, seed=None):
-        return self.copy_from(nx.gaussian_random_partition_graph(n, s, v, p_in, p_out, directed=directed, seed=seed))
+        return self.copy_from(nx.gaussian_random_partition_graph(
+            n, s, v, p_in, p_out, directed=directed, seed=seed
+        ))
 
     def _lookup_comparator(self, comparator):
         if callable(comparator):
