@@ -82,7 +82,6 @@ class AbstractCharacter(object):
 
     pred = getatt('preportal')
     adj = succ = edge = getatt('portal')
-    graph = getatt('stat')
 
     def do(self, func, *args, **kwargs):
         """Apply the function to myself, and return myself.
