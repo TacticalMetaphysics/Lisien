@@ -479,7 +479,7 @@ class AbstractCharacter(object):
 
     def gaussian_random_partition_graph(self, n, s, v, p_in, p_out, seed=None):
         return self.copy_from(nx.gaussian_random_partition_graph(
-            n, s, v, p_in, p_out, directed=directed, seed=seed
+            n, s, v, p_in, p_out, seed=seed
         ))
 
     def _lookup_comparator(self, comparator):
@@ -1210,7 +1210,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         ):
             if mapp + '_rulebook' in attr:
                 rulebook = attr[mapp + '_rulebook']
-                d[mapp] = rulebook.name if isinstance(rulebook, RuleBook) \
+                d[mapp] = rulebook.name \
+                          if isinstance(rulebook, RuleBook) \
                           else rulebook
         self.engine.db.init_character(
             self.name,
@@ -1364,7 +1365,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __contains__(self, place):
             if self.engine.caching:
                 try:
-                    cache = self.engine._nodes_cache[self.character.name][place]
+                    cache = self.engine._nodes_cache[
+                        self.character.name][place]
                 except KeyError:
                     return False
                 for (branch, tick) in self.engine._active_branches():
@@ -1505,7 +1507,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             def _getsub(self, nodeB):
                 if hasattr(self, '_cache'):
                     if nodeB not in self._cache:
-                        self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+                        self._cache[nodeB] = Portal(
+                            self.graph, self.nodeA, nodeB
+                        )
                     return self._cache[nodeB]
                 return Portal(self.graph, self.nodeA, nodeB)
 
@@ -1514,7 +1518,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     return super().__getitem__(nodeB)
                 if nodeB in self:
                     if nodeB not in self._cache:
-                        self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+                        self._cache[nodeB] = Portal(
+                            self.graph, self.nodeA, nodeB
+                        )
                     return self._cache[nodeB]
                 raise KeyError("No such portal: {}->{}".format(
                     self.nodeA, nodeB
@@ -1524,7 +1530,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 (branch, tick) = self.engine.time
                 if self.engine.caching:
                     if nodeB not in self._cache:
-                        self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+                        self._cache[nodeB] = Portal(
+                            self.graph, self.nodeA, nodeB
+                        )
                     p = self._cache[nodeB]
                 else:
                     p = Portal(self.graph, self.nodeA, nodeB)
@@ -1698,7 +1706,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                         except KeyError:
                             continue
                 if len(self) == 1:
-                    return self.CharacterAvatarMapping(self, next(iter(self)))[g]
+                    return self.CharacterAvatarMapping(
+                        self, next(iter(self))
+                    )[g]
                 raise KeyError("{} has no avatar in {}".format(
                     self.character.name, g
                 ))
@@ -1716,7 +1726,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __getattr__(self, attr):
             """If I've got only one avatar, return its attribute"""
             if len(self.keys()) == 1:
-                avs = self.CharacterAvatarMapping(self, next(iter(self.keys())))
+                avs = self.CharacterAvatarMapping(
+                    self, next(iter(self.keys()))
+                )
                 if len(avs) == 1:
                     av = list(avs.keys())[0]
                     if attr == av:
