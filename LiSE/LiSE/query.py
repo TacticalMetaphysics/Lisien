@@ -7,7 +7,7 @@ from marshal import dumps as marshalled
 
 import gorm.query
 
-from .util import (
+from .exc import (
     IntegrityError,
     OperationalError,
     RedundantRuleError,
