@@ -51,7 +51,7 @@ from .portal import Portal
 from .util import getatt
 
 
-class AbstractCharacter(nx.DiGraph):
+class AbstractCharacter(object):
     @reify
     def thing(self):
         return self.ThingMapping(self)
@@ -1089,7 +1089,7 @@ class FacadePortalMapping(FacadeEntityMapping):
         self._masked.add(node)
 
 
-class Facade(AbstractCharacter):
+class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
 
     def __init__(self, character):
@@ -1173,7 +1173,7 @@ class Facade(AbstractCharacter):
             self.dispatch(k, None)
 
 
-class Character(DiGraph, AbstractCharacter, RuleFollower):
+class Character(AbstractCharacter, DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
