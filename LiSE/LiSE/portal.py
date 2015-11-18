@@ -165,8 +165,6 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         if not self.engine.caching:
             super().__setitem__(key, value)
             return
-        if key in self.character._portal_traits:
-            self.character._portal_traits = set()
         super().__setitem__(key, value)
         self.dispatch(key, value)
 
@@ -175,8 +173,6 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         if not self.engine.caching:
             super().__delitem__(key)
             return
-        if key in self.character._portal_traits:
-            self.character._portal_traits = set()
         self.dispatch(key, None)
 
     def __repr__(self):
