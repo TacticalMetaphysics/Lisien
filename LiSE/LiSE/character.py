@@ -1236,6 +1236,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         engine = getatt('character.engine')
         name = getatt('character.name')
+        _cache = getatt('_dispatch_cache')
 
         def __init__(self, character):
             """Store the character and initialize cache"""
