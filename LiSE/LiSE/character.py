@@ -285,7 +285,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
     name = getatt('character.name')
 
     def __init__(self, character):
-        """Store the character and initialize the cache (if caching)"""
+        """Store the character."""
         self.character = character
 
     def __iter__(self):
@@ -374,7 +374,7 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
     name = getatt('character.name')
 
     def __init__(self, character):
-        """Store the character"""
+        """Store the character."""
         self.character = character
 
     def __getitem__(self, k):
@@ -398,6 +398,12 @@ class CharacterThingPlaceMapping(GraphNodeMapping, RuleFollower):
 class CharacterPortalSuccessorsMapping(
         GraphSuccessorsMapping, RuleFollower, TimeDispatcher
 ):
+    """Mapping of nodes that have at least one outgoing edge.
+
+    Maps them to another mapping, keyed by the destination nodes,
+    which maps to Portal objects.
+
+    """
     _book = "character_portal"
 
     character = getatt('graph')
@@ -433,6 +439,7 @@ class CharacterPortalSuccessorsMapping(
         engine = getatt('graph.engine')
 
         def dispatch(self, nodeB, portal):
+            """Call all listeners to ``nodeB`` and to my ``nodeA``."""
             super().dispatch(nodeB, portal)
             self.container.dispatch(self.nodeA, self)
 
@@ -500,9 +507,16 @@ class CharacterPortalPredecessorsMapping(
         DiGraphPredecessorsMapping,
         RuleFollower
 ):
+    """Mapping of nodes that have at least one incoming edge.
+
+    Maps to another mapping keyed by the origin nodes, which maps to
+    Portal objects.
+
+    """
     _book = "character_portal"
 
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
+        """Mapping of possible origins from some destination."""
         def _getsub(self, nodeA):
             if not self.graph.engine.caching:
                 return Portal(self.graph, nodeA, self.nodeB)
@@ -541,6 +555,12 @@ class CharacterPortalPredecessorsMapping(
 
 
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
+    """A mapping of other characters in which one has an avatar.
+
+    Maps to a mapping of the avatars themselves, or if there's only
+    one, to that.
+
+    """
     _book = "avatar"
 
     engine = getatt('character.engine')
@@ -805,8 +825,10 @@ class SenseFuncWrap(object):
     engine = getatt('character.engine')
 
     def __init__(self, character, fun):
-        """Store the character and the function, looking up the function if
-        needed
+        """Store the character and the function.
+
+        Look up the function in the engine's ``sense`` function store,
+        if needed.
 
         """
         self.character = character
@@ -942,6 +964,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
 
 
 class FacadePlace(MutableMapping, TimeDispatcher):
+    """Lightweight analogue of Place for Facade use"""
     @property
     def name(self):
         return self['name']
@@ -964,6 +987,7 @@ class FacadePlace(MutableMapping, TimeDispatcher):
                 yield thing
 
     def __init__(self, facade, real):
+        """Store ``facade`` and ``real``"""
         self.facade = facade
         self._real = real
 
@@ -1004,6 +1028,7 @@ class FacadePlace(MutableMapping, TimeDispatcher):
 
 
 class FacadeThing(FacadePlace):
+    """Lightweight analogue of Thing for Facade use"""
     @property
     def location(self):
         try:
@@ -1030,6 +1055,7 @@ class FacadeThing(FacadePlace):
 
 
 class FacadePortal(FacadePlace):
+    """Lightweight analogue of Portal for Facade use"""
     @property
     def origin(self):
         return self.facade.node[self['origin']]
@@ -1040,6 +1066,12 @@ class FacadePortal(FacadePlace):
 
 
 class FacadeEntityMapping(MutableMapping, TimeDispatcher):
+    """Mapping that contains entities in a Facade.
+
+    All the entities are of the same type, ``facadecls``, possibly
+    being distorted views of entities of the type ``innercls``.
+
+    """
     @property
     def _dispatch_cache(self):
         return self
@@ -1055,6 +1087,7 @@ class FacadeEntityMapping(MutableMapping, TimeDispatcher):
         return set()
 
     def __init__(self, facade):
+        """Store the facade"""
         self.facade = facade
 
     def __contains__(self, k):
