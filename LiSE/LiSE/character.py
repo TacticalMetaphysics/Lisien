@@ -215,15 +215,26 @@ class AbstractCharacter(object):
         return self
 
     def copy_from(self, g):
+        renamed = {}
         for k, v in g.node.items():
+            ok = k
+            if k in self.place:
+                n = 0
+                if not isinstance(k, str):
+                    k = str(k)
+                k += str(n)
+                while k in self.place:
+                    k = k.replace(str(n), str(n+1))
+                    n += 1
+            renamed[ok] = k
             self.place[k] = v
         for u in g.edge:
             for v in g.edge[u]:
                 if isinstance(g, nx.MultiGraph) or\
                    isinstance(g, nx.MultiDiGraph):
-                    self.edge[u][v] = g.edge[u][v][0]
+                    self.edge[renamed[u]][renamed[v]] = g.edge[u][v][0]
                 else:
-                    self.edge[u][v] = g.edge[u][v]
+                    self.edge[renamed[u]][renamed[v]] = g.edge[u][v]
         return self
 
     def become(self, g):
