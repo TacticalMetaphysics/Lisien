@@ -220,11 +220,8 @@ class AbstractCharacter(object):
             ok = k
             if k in self.place:
                 n = 0
-                if not isinstance(k, str):
-                    k = str(k)
-                k += str(n)
                 while k in self.place:
-                    k = k.replace(str(n), str(n+1))
+                    k = ok + (n,) if isinstance(ok, tuple) else (ok, n)
                     n += 1
             renamed[ok] = k
             self.place[k] = v
