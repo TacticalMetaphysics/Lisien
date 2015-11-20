@@ -308,6 +308,12 @@ class ArrowWidget(Widget):
             # I'll do my best..
             pawn.pos = self.pos_along(0)
             return
+        elif (
+                pawn.thing['next_arrival_time'] and
+                self.board.tick >= pawn.thing['next_arrival_time']
+        ):
+            pawn.pos = self.pos_along(1)
+            return
         pawn.pos = self.pos_along(
             (
                 self.board.tick -
