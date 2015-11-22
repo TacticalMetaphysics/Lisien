@@ -1039,6 +1039,14 @@ class EngineHandle(object):
         except KeyError:
             return None
 
+    def character_diff(self, char):
+        """Return a dictionary of changes to ``char`` since previous call."""
+        return {
+            'character': self.character_stat_diff(char),
+            'node': self.character_node_stat_diff(char),
+            'portal': self.character_portal_stat_diff(char)
+        }
+
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
 
@@ -1106,6 +1114,12 @@ class EngineHandle(object):
             return r
         except KeyError:
             return None
+
+    def character_nodes_stat_diff(self, char):
+        return {
+            node: self.node_stat_diff(char, node)
+            for node in self._real.character[char].node.keys()
+        }
 
     def node_stat_len(self, char, node):
         return len(self._real.character[char].node[node])
@@ -1356,6 +1370,14 @@ class EngineHandle(object):
             return dict_diff(old, new)
         except KeyError:
             return None
+
+    def character_portals_stat_diff(self, char):
+        return {
+            orig: {
+                dest: self.portal_stat_diff(char, orig, dest)
+                for dest in self._real.character[char].portal[orig].keys()
+            } for orig in self._real.character[char].portal.keys()
+        }
 
     def portal_stats(self, char, o, d):
         return list(self._real.character[char][o][d].keys())
