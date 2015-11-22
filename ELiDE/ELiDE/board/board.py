@@ -148,60 +148,15 @@ class Board(RelativeLayout):
         return r
 
     def on_character(self, *args):
-        """Arrange to save my scroll state in my character, and to get updated
-        whenever my character is.
-
-        """
         if self.character is None:
             Clock.schedule_once(self.on_character, 0)
             return
-        self.rebind()
         self._old_character = self.character
 
         self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
         self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
         self.parent.effect_x.bind(velocity=self.track_vel)
         self.parent.effect_y.bind(velocity=self.track_vel)
-
-        self._trigger_update()
-
-    def rebind(self, *args):
-        """Bind my listeners to the new character, unbinding from the old
-        character first if needed.
-
-        """
-        if hasattr(self, '_old_character'):
-            self._old_character.thing.unlisten(
-                self.char_thing_listener
-            )
-            self._old_character.place.unlisten(
-                self.char_place_listener
-            )
-            self._old_character.portal.unlisten(
-                self.char_portal_listener
-            )
-            del self._old_character
-        self.character.thing.listener(self.char_thing_listener)
-        self.character.place.listener(self.char_place_listener)
-        self.character.portal.listener(self.char_portal_listener)
-
-    def char_place_listener(self, branch, tick, mapping, place, extant):
-        if extant:
-            self._trigger_add_spot(place)
-        else:
-            self._trigger_discard_spot(place)
-
-    def char_thing_listener(self, branch, tick, mapping, thing, extant):
-        if extant:
-            self._trigger_add_pawn(thing)
-        else:
-            self._trigger_discard_pawn(thing)
-
-    def char_portal_listener(self, branch, tick, mapping, orig, dest, extant):
-        if extant:
-            self._trigger_add_arrow(orig, dest)
-        else:
-            self._trigger_discard_arrow(orig, dest)
 
     def track_vel(self, *args):
         """Track scrolling once it starts, so that we can tell when it
