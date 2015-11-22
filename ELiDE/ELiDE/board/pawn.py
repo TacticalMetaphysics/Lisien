@@ -52,6 +52,12 @@ class Pawn(PawnSpot):
     def on_parent(self, *args):
         if self.parent:
             self._board = self.parent.board
+            self.bind(
+                loc_name=self._trigger_relocate,
+                next_loc_name=self._trigger_relocate
+            )
+            if self.remote:
+                self._trigger_relocate()
         else:
             if not hasattr(self, '_board'):
                 return
@@ -76,55 +82,12 @@ class Pawn(PawnSpot):
             location.add_widget(self)
     _trigger_relocate = trigger(relocate)
 
-    def upd_loc_name(self, *args):
-        try:
-            self.loc_name = self.remote['location']
-            self._trigger_relocate()
-        except ValueError:
-            if self.name in self.board.pawn:
-                self.board.rm_pawn(self.name)
-            elif self.parent:
-                self.parent.remove_widget(self)
-    _trigger_upd_loc_name = trigger(upd_loc_name)
-
-    def upd_next_loc_name(self, *args):
-        self.next_loc_name = self.remote.get('next_location', None)
-        self._trigger_relocate()
-    _trigger_upd_next_loc_name = trigger(upd_next_loc_name)
-
-    def listen_loc(self, *args):
-        self.remote.listener(
-            fun=self._trigger_upd_loc_name,
-            key='location'
-        )
-        self.remote.listener(
-            fun=self._trigger_upd_next_loc_name,
-            key='next_location'
-        )
-    _trigger_listen_loc = trigger(listen_loc)
-
-    def unlisten_loc(self, *args):
-        self.remote.unlisten(
-            fun=self._trigger_upd_loc_name,
-            key='location'
-        )
-        self.remote.unlisten(
-            fun=self._trigger_upd_next_loc_name,
-            key='next_location'
-        )
-    _trigger_unlisten_loc = trigger(unlisten_loc)
-
     def on_remote(self, *args):
-        """In addition to the usual behavior from
-        :class:`remote.MirrorMapping`, copy ``loc_name`` from remote's
-        'location', ``next_loc_name`` from remote's 'next_location',
-        and arrange to keep them both up to date.
-
-        """
         super().on_remote(*args)
+        if not self.remote or not self.remote.exists:
+            return
         self.loc_name = self.remote['location']
         self.next_loc_name = self.remote.get('next_location', None)
-        self._trigger_listen_loc()
 
     def push_location(self, *args):
         self.remote['location'] = self.loc_name

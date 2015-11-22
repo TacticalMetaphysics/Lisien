@@ -24,7 +24,6 @@ from kivy.uix.listview import (
 )
 from kivy.adapters.dictadapter import DictAdapter
 from kivy.lang import Builder
-from ELiDE.remote import MirrorMapping
 from .util import trigger
 
 
@@ -148,9 +147,11 @@ default_cfg = {
 }
 
 
-class StatListView(ListView, MirrorMapping):
+class StatListView(ListView):
     control = DictProperty({})
     config = DictProperty({})
+    mirror = DictProperty({})
+    remote = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
@@ -166,8 +167,7 @@ class StatListView(ListView, MirrorMapping):
         if hasattr(self, '_old_remote'):
             self.unlisten(remote=self._old_remote)
         self._old_remote = self.remote
-        self.listen()
-        self.sync()
+        self.mirror = dict(self.remote)
         self.refresh_adapter()
     _trigger_handle_remote = trigger(handle_remote)
 
@@ -267,6 +267,7 @@ class StatListView(ListView, MirrorMapping):
     _trigger_refresh_adapter = trigger(refresh_adapter)
 
     def upd_data(self, *args):
+        self.mirror = dict(self.remote)
         if (
                 '_control' in self.mirror
         ):

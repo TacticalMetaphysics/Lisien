@@ -15,27 +15,23 @@ from kivy.graphics import (
     Line
 )
 from kivy.logger import Logger
-from kivy.clock import Clock
 from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
-from ..remote import MirrorMapping
 from ..util import trigger
 
 
-class PawnSpot(ImageStack, MirrorMapping):
+class PawnSpot(ImageStack):
     """The kind of ImageStack that represents a :class:`Thing` or
     :class:`Place`.
 
     """
     board = ObjectProperty()
+    remote = ObjectProperty()
     engine = ObjectProperty()
     selected = BooleanProperty(False)
     hit = BooleanProperty(False)
     linecolor = ListProperty()
     name = ObjectProperty()
-    listen_branch = StringProperty('master')
-    listen_tick = NumericProperty(0)
-    listen_time = ReferenceListProperty(listen_branch, listen_tick)
     use_boardspace = True
 
     def on_remote(self, *args):
@@ -67,18 +63,6 @@ class PawnSpot(ImageStack, MirrorMapping):
             self.remote['_offys'] = zeroes
         if '_stackhs' not in self.remote:
             self.remote['_stackhs'] = zeroes
-        self.remote.listeners(
-            fun=self._listen_func,
-            keys=(
-                '_image_paths',
-                '_offxs',
-                '_offys',
-                '_stackhs',
-                '_x',
-                '_y'
-            )
-        )
-        self.sync()
 
     def push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)

@@ -63,17 +63,17 @@ class Spot(PawnSpot):
         rx = self.width / 2
         ry = self.height / 2
         if (
-                                not self.collider or
-            not hasattr(self.collider, 'pos') or
-            self.collider.pos != self.center or
-            self.collider.rx != rx or
-            self.collider.ry != ry
+                not self.collider or
+                not hasattr(self.collider, 'pos') or
+                self.collider.pos != self.center or
+                self.collider.rx != rx or
+                self.collider.ry != ry
         ):
             self.collider = CollideEllipse(
                 x=self.center_x, y=self.center_y, rx=rx, ry=ry
             )
     _trigger_upd_collider = trigger(_upd_collider)
-        
+
     def _get_pospawn_partial(self, pawn):
         if pawn not in self._pospawn_partials:
             self._pospawn_partials[pawn] = partial(
@@ -119,21 +119,8 @@ class Spot(PawnSpot):
             int(self.remote.get('_y', self.default_pos[1]) * self.board.height)
         )
 
-    def listen_pos(self, *args):
-        self.remote.listener(
-            fun=self._upd_pos,
-            key='pos'
-        )
-
-    def unlisten_pos(self, *args):
-        self.remote.unlisten(
-            fun=self._upd_pos,
-            key='pos'
-        )
-
     def on_remote(self, *args):
         super().on_remote(*args)
-        self.listen_pos()
         self._upd_pos()
 
     def push_pos(self, *args):

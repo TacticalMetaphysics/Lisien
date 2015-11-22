@@ -23,7 +23,6 @@ from kivy.clock import Clock
 
 from ..kivygarden.collider import Collide2DPoly
 from ..util import get_thin_rect_vertices, ninety, fortyfive
-from ..remote import MirrorMapping
 
 
 def get_points(ox, oy, ro, dx, dy, rd, taillen):
@@ -163,7 +162,6 @@ class ArrowWidget(Widget):
     collide_radius = NumericProperty(3)
     collider = ObjectProperty()
     portal = ObjectProperty()
-    mirrormap = ObjectProperty()
 
     def on_portal(self, *args):
         """Set my ``name`` and instantiate my ``mirrormap`` as soon as I have
@@ -179,11 +177,8 @@ class ArrowWidget(Widget):
         ):
             Clock.schedule_once(self.on_portal, 0)
             return
-        self.mirrormap = MirrorMapping(
-            remote=self.board.character.portal[self.origin.name][
-                self.destination.name
-            ]
-        )
+        self.portal = self.character.portal[self.origin.name][
+            self.destination.name]
         self.name = '{}->{}'.format(self.origin.name, self.destination.name)
 
     def collide_point(self, x, y):
