@@ -9,6 +9,7 @@ from collections import (
     MutableMapping,
     MutableSequence
 )
+from threading import Thread
 from multiprocessing import Process, Pipe, Queue
 from queue import Empty
 
@@ -898,8 +899,10 @@ class EngineHandle(object):
     def advance(self):
         self._real.advance()
 
-    def next_tick(self):
+    def next_tick(self, char=None):
         self._real.next_tick()
+        if char:
+            self.put(self.character_diff(char))
 
     def add_character(self, name, data, kwargs):
         self._real.add_character(name, data, **kwargs)
@@ -3122,8 +3125,21 @@ class EngineProxy(AbstractEngine):
     def json_load(self, s):
         return self.json_rewrap(super().json_load(s))
 
-    def next_tick(self):
-        self.handle('next_tick', silent=True)
+    def _call_with_recv(self, cb):
+        cb(self.json_load(self._handle_in.recv()))
+
+    def next_tick(self, char=None, cb=None):
+        if (char is None) != (cb is None):
+            raise ValueError(
+                "If you want to call a callback after next_tick is done, "
+                "you need to supply both the callback and the character "
+                "whose diff to pass it."
+            )
+        self.handle('next_tick', (char,), silent=True)
+        if char:
+            Thread(
+                target=self._call_with_recv, args=(cb,), daemon=True
+            ).start()
 
     def char_listener(self, char, fun):
         if char not in self._char_listeners:
