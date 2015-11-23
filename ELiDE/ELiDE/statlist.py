@@ -240,7 +240,7 @@ class StatListView(ListView):
         return {
             k: (k, v) for (k, v) in self.mirror.items()
             if (
-                k[0] != '_' and
+                not (isinstance(k, str) and k[0] == '_') and
                 k not in (
                     'character',
                     'name',
@@ -249,7 +249,7 @@ class StatListView(ListView):
                     'locations',
                     'arrival_time',
                     'next_arrival_time'
-                ) or not isinstance(k, str)
+                )
             )
         }
 
