@@ -1046,9 +1046,12 @@ class EngineHandle(object):
     def character_diff(self, char):
         """Return a dictionary of changes to ``char`` since previous call."""
         return {
-            'character': self.character_stat_diff(char),
-            'node': self.character_node_stat_diff(char),
-            'portal': self.character_portal_stat_diff(char)
+            'character_stat': self.character_stat_diff(char),
+            'node_stat': self.character_node_stat_diff(char),
+            'things': self.character_things_diff(char),
+            'places': self.character_places_diff(char),
+            'portal_stat': self.character_portal_stat_diff(char),
+            'portals': self.character_portals_diff(char)
         }
 
     def set_character_stat(self, char, k, v):
