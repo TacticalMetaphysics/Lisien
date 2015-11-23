@@ -1510,8 +1510,8 @@ class EngineHandle(object):
 
 class CachingProxy(MutableMapping):
     def __init__(self, engine_proxy):
-        self._cache = {}
-        self._cache_valid = False
+        self._cache = self._get_state()
+        self._cache_valid = True
         self.engine = engine_proxy
         self.engine.time_listener(self.invalidate)
         self.exists = None
@@ -1538,7 +1538,6 @@ class CachingProxy(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        self.validate_cache()
         self._set_item(k, v)
         self._cache[k] = self._cache_munge(k, v)
 
@@ -1547,6 +1546,14 @@ class CachingProxy(MutableMapping):
             raise KeyError("No such key: {}".format(k))
         self._del_item(k)
         del self._cache[k]
+
+    def _apply_diff(self, diff):
+        for (k, v) in diff.items():
+            if v is None:
+                if k in self._cache:
+                    del self._cache[k]
+            elif k in self._cache and self._cache[k] != v:
+                self._cache[k] = v
 
     def invalidate(self, *args, **kwargs):
         self._cache_valid = False
@@ -1563,11 +1570,7 @@ class CachingProxy(MutableMapping):
         if not self.exists:
             self._cache = {}
             return
-        for (k, v) in diff.items():
-            if v is not None:
-                self._cache[k] = self._cache_munge(k, v)
-            elif k in self._cache:
-                del self._cache[k]
+        self._apply_diff(diff)
 
     def _get_diff(self):
         raise NotImplementedError("Abstract method")
@@ -1644,6 +1647,12 @@ class NodeProxy(CachingEntityProxy):
     def __bool__(self):
         """It means something that I exist, even if I don't have any data yet."""
         return self.exists
+
+    def _get_state(self):
+        return self.engine.handle(
+            'node_stat_copy',
+            (self._charname, self.name)
+        )
 
     def _get_diff(self):
         return self.engine.handle(
@@ -1854,6 +1863,12 @@ class PortalProxy(CachingEntityProxy):
     def _get_rulebook(self):
         return RuleBookProxy(self.engine, self._get_rulebook_name())
 
+    def _get_state(self):
+        return self.engine.handle(
+            'portal_stat_copy',
+            (self._charname, self._nodeA, self._nodeB)
+        )
+
     def _get_diff(self):
         return self.engine.handle(
             'portal_stat_diff',
@@ -1994,6 +2009,29 @@ class ThingMapProxy(CachingProxy):
     def __eq__(self, other):
         return self is other
 
+    def _get_state(self):
+        return {
+            thing: self._cache[thing] if thing in self._cache
+            else ThingProxy(self.engine, self.name, thing)
+            for thing in self.engine.handle(
+                    'character_things',
+                    (self.name,)
+            )
+        }
+
+    def _apply_diff(self, diff):
+        for (thing, ex) in diff.items():
+            if ex:
+                if thing not in self._cache:
+                    self._cache[thing] = ThingProxy(
+                        self.engine,
+                        self.name,
+                        thing
+                    )
+            else:
+                if thing in self._cache:
+                    del self._cache[thing]
+
     def _get_diff(self):
         return self.engine.handle(
             'character_things_diff',
@@ -2043,6 +2081,29 @@ class PlaceMapProxy(CachingProxy):
 
     def __eq__(self, other):
         return self is other
+
+    def _get_state(self):
+        return {
+            place: self._cache[place] if place in self._cache
+            else PlaceProxy(self.engine, self.name, place)
+            for place in self.engine.handle(
+                    'character_places',
+                    (self.name,)
+            )
+        }
+
+    def _apply_diff(self, diff):
+        for (place, ex) in diff.items():
+            if ex:
+                if place not in self._cache:
+                    self._cache[place] = PlaceProxy(
+                        self.engine,
+                        self.name,
+                        place
+                    )
+            else:
+                if place in self._cache:
+                    del self._cache[place]
 
     def _get_diff(self):
         return self.engine.handle(
@@ -2096,6 +2157,21 @@ class SuccessorsProxy(CachingProxy):
             self._nodeA == other._nodeA
         )
 
+    def _get_state(self):
+        return {
+            node: self._cache[node] if node in self._cache else
+            PortalProxy(self.engine, self._charname, self._nodeA, node)
+            for node in self.engine.handle(
+                    'node_successors',
+                    (self._charname, self._nodeA)
+            )
+        }
+
+    def _apply_diff(self, diff):
+        raise NotImplementedError(
+            "Apply the diff on CharSuccessorsMappingProxy"
+        )
+
     def _get_diff(self):
         return self.engine.handle(
             'node_successors_diff',
@@ -2145,6 +2221,37 @@ class CharSuccessorsMappingProxy(CachingProxy):
             self.name,
             k
         )
+
+    def _get_state(self):
+        return {
+            node: self._cache[node] if node in self._cache else
+            SuccessorsProxy(self.engine, self.name, node)
+            for node in self.engine.handle(
+                    'character_nodes_with_successors',
+                    (self.name,)
+            )
+        }
+
+    def _apply_diff(self, diff):
+        for ((o, d), ex) in diff.items():
+            if ex:
+                if o not in self._cache:
+                    self._cache[o] = SuccessorsProxy(
+                        self.engine,
+                        self.name,
+                        o
+                    )
+                if d not in self._cache[o]._cache:
+                    self._cache[o]._cache[d] = PortalProxy(
+                        self.engine,
+                        self.name,
+                        o, d
+                    )
+            else:
+                if o in self._cache and d in self._cache[o]._cache:
+                    del self._cache[o]._cache[d]
+                    if not self._cache[o]._cache:
+                        del self._cache[o]
 
     def _get_diff(self):
         return self.engine.handle(
@@ -2295,6 +2402,12 @@ class CharStatProxy(CachingEntityProxy):
             isinstance(other, CharStatProxy) and
             self.engine is other.engine and
             self.name == other.name
+        )
+
+    def _get_state(self):
+        return self.engine.handle(
+            'character_stat_copy',
+            (self.name,)
         )
 
     def _get_diff(self):
@@ -2532,6 +2645,22 @@ class CharacterProxy(MutableMapping):
 
     def __delitem__(self, k):
         del self.node[k]
+
+    def _apply_diff(self, diff):
+        self.stat._apply_diff(diff['character_stat'])
+        self.thing._apply_diff(diff['things'])
+        self.place._apply_diff(diff['places'])
+        self.portal._apply_diff(diff['portals'])
+        for (node, nodediff) in diff['node_stat'].items():
+            if node in self.node:
+                # if the node had its stats changed, and THEN
+                # got deleted...
+                # really it shouldn't send the stat changes anyway,
+                # but let's be safe
+                self.node[node]._apply_diff(nodediff)
+        for ((o, d), portdiff) in diff['portal_stat'].items():
+            if o in self.portal and d in self.portal[o]:
+                self.portal[o][d]._apply_diff(diff['portal_stat'])
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
@@ -3146,7 +3275,10 @@ class EngineProxy(AbstractEngine):
     def _call_with_recv(self, cb):
         cb(self.json_load(self._handle_in.recv()))
 
-    def next_tick(self, char=None, cb=None):
+    def _upd_char_cache(self, char, chardiff):
+        self.character[char]._apply_diff(chardiff)
+
+    def next_tick(self, char=None):
         if (char is None) != (cb is None):
             raise ValueError(
                 "If you want to call a callback after next_tick is done, "
@@ -3156,7 +3288,9 @@ class EngineProxy(AbstractEngine):
         self.handle('next_tick', (char,), silent=True)
         if char:
             Thread(
-                target=self._call_with_recv, args=(cb,), daemon=True
+                target=self._call_with_recv,
+                args=(self._upd_char_cache,),
+                daemon=True
             ).start()
 
     def char_listener(self, char, fun):
