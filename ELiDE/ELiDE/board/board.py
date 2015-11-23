@@ -444,6 +444,29 @@ class Board(RelativeLayout):
             if not ('_x' in spot.mirror and '_y' in spot.mirror)
         ]
 
+    def update_from_diff(self, chardiff, *args):
+        """Apply the changes described in the dict ``chardiff``."""
+        for (place, extant) in chardiff['places'].items():
+            if extant and place not in self.spot:
+                self.add_spot(place)
+            elif not extant and place in self.spot:
+                self.rm_spot(place)
+        for (thing, extant) in chardiff['things'].items():
+            if extant and thing not in self.pawn:
+                self.add_pawn(thing)
+            elif not extant and thing in self.pawn:
+                self.rm_pawn(thing)
+        for ((orig, dest), extant) in chardiff['portals'].items():
+            if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
+                self.add_arrow(orig, dest)
+            elif not extant and orig in self.arrow and dest in self.arrow[orig]:
+                self.rm_arrow(orig, dest)
+
+    def trigger_update_from_diff(self, chardiff, *args):
+        part = partial(self.update_from_diff, chardiff)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
+
     def on_spots_unposd(self, *args):
         # TODO: If only some spots are unpositioned, and they remain
         # that way for several frames, put them somewhere that the

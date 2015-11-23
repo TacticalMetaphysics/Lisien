@@ -581,13 +581,20 @@ class MainScreen(Screen):
             )
         )
 
+    def _update_from_chardiff(self, chardiff):
+        self.board.trigger_update_from_diff(chardiff)
+        self.ids.statpanel.stat_list.mirror = dict(self.ids.statpanel.remote)
+
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
         if self.playbut.state == 'normal':
             return
         elif not hasattr(self, '_old_time'):
             self._old_time = tuple(self.time)
-            self.engine.next_tick()
+            self.engine.next_tick(
+                char=self.character_name,
+                cb=self._update_from_chardiff
+            )
         elif self._old_time == self.time:
             return
         else:
