@@ -213,12 +213,7 @@ class MainScreen(Screen):
         self._old_character = self.character
         if '_kv' in self.character.stat:
             self.kv = self.character.stat['_kv']
-        self.character.stat.listener(
-            key='_kv', fun=self._pull_kv
-        )
-
-    def _pull_kv(self, *args):
-        self.kv = self.character.stat['_kv']
+        self.board.trigger_update()
 
     def remake_display(self, *args):
         """Remake any affected widgets after a change in my ``kv``.
