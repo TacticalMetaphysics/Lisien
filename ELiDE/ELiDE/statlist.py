@@ -156,20 +156,11 @@ class StatListView(ListView):
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
         self._listeners = {}
-        self.bind(remote=self._trigger_handle_remote)
         super().__init__(**kwargs)
 
     def on_time(self, *args):
         super().on_time(*args)
         self._trigger_upd_data()
-
-    def handle_remote(self, *args):
-        if hasattr(self, '_old_remote'):
-            self.unlisten(remote=self._old_remote)
-        self._old_remote = self.remote
-        self.mirror = dict(self.remote)
-        self.refresh_adapter()
-    _trigger_handle_remote = trigger(handle_remote)
 
     def on_mirror(self, *args):
         self._trigger_upd_data()
@@ -267,7 +258,6 @@ class StatListView(ListView):
     _trigger_refresh_adapter = trigger(refresh_adapter)
 
     def upd_data(self, *args):
-        self.mirror = dict(self.remote)
         if (
                 '_control' in self.mirror
         ):
