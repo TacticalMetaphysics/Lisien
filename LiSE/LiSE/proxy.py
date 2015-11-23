@@ -1333,7 +1333,12 @@ class EngineHandle(object):
         self._real.character[char].portal[o][d] = statdict
 
     def character_portals(self, char):
-        return list(self._real.character[char].portals())
+        r = []
+        portal = self._real.character[char].portal
+        for o in portal:
+            for d in portal[o]:
+                r.append((o, d))
+        return r
 
     def add_portal(self, char, o, d, symmetrical, statdict):
         self._real.character[char].add_portal(o, d, symmetrical, **statdict)
