@@ -22,6 +22,7 @@ from kivy.properties import (
     AliasProperty,
     BooleanProperty,
     BoundedNumericProperty,
+    DictProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
@@ -65,12 +66,18 @@ class StatListPanel(BoxLayout):
     tick = NumericProperty()
     time = ReferenceListProperty(branch, tick)
     selected_remote = ObjectProperty()
+    mirror = DictProperty({})
     selection_name = StringProperty()
     button_text = StringProperty('cfg')
     set_value = ObjectProperty()
     cfgstatbut = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
     stat_list = ObjectProperty()
+
+    def on_selected_remote(self, *args):
+        if self.selected_remote is None:
+            return
+        self.mirror = dict(self.selected_remote)
 
 
 class TimePanel(BoxLayout):
@@ -617,6 +624,7 @@ Builder.load_string(
         id: stat_list
         size_hint_y: 0.95
         remote: root.selected_remote
+        mirror: root.mirror
         time: root.time
         set_value: root.set_value
     Button:
