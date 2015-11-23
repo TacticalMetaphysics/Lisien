@@ -40,6 +40,7 @@ Factory.register('CharMenu', cls=CharMenu)
 class KvLayout(FloatLayout):
     pass
 
+
 class BoardView(ScrollView):
     """A ScrollView that contains the Board for the character being
     viewed.
