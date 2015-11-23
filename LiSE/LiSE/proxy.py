@@ -81,6 +81,7 @@ class EngineHandle(object):
         self._char_stat_cache = {}
         self._char_things_cache = {}
         self._char_places_cache = {}
+        self._char_portals_cache = {}
         self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
 
@@ -1339,6 +1340,15 @@ class EngineHandle(object):
             for d in portal[o]:
                 r.append((o, d))
         return r
+
+    def character_portals_diff(self, char):
+        try:
+            old = self._char_portals_cache.get(char, {})
+            new = self.character_portals(char)
+            self._char_portals_cache[char] = new
+            return list_diff(old, new)
+        except KeyError:
+            return None
 
     def add_portal(self, char, o, d, symmetrical, statdict):
         self._real.character[char].add_portal(o, d, symmetrical, **statdict)
