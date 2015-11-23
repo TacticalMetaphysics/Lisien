@@ -421,7 +421,7 @@ class Board(RelativeLayout):
                 self.pawn[thing_name] = pwn
 
     @trigger
-    def _trigger_update(self, *args):
+    def trigger_update(self, *args):
         """Force an update to match the current state of my character.
 
         This polls every element of the character, and therefore
@@ -441,7 +441,7 @@ class Board(RelativeLayout):
         self.add_new_pawns()
         self.spots_unposd = [
             spot for spot in self.spot.values()
-            if not ('_x' in spot.mirror and '_y' in spot.mirror)
+            if not ('_x' in spot.remote and '_y' in spot.remote)
         ]
 
     def update_from_diff(self, chardiff, *args):
