@@ -177,9 +177,7 @@ class ArrowWidget(Widget):
         ):
             Clock.schedule_once(self.on_portal, 0)
             return
-        self.portal = self.board.character.portal[self.origin.name][
-            self.destination.name]
-        self.name = '{}->{}'.format(self.origin.name, self.destination.name)
+        self.name = '{}->{}'.format(self.portal['origin'], self.portal['destination'])
 
     def collide_point(self, x, y):
         """Delegate to my ``collider``, or return ``False`` if I don't have
