@@ -492,11 +492,11 @@ class Board(RelativeLayout):
         l = self.grid_layout(spots_only)
 
         def position_spot(spot, x, y, *args):
-            if not (spot.name and spot.remote and spot.mirror):
+            if not (spot.name and spot.remote):
                 Clock.schedule_once(partial(position_spot, spot, x, y), 0)
                 return
-            spot.mirror['_x'] = spot.remote['_x'] = x
-            spot.mirror['_y'] = spot.remote['_y'] = y
+            spot.remote['_x'] = x
+            spot.remote['_y'] = y
             spot.pos = (
                 int(x * self.width),
                 int(y * self.height)
