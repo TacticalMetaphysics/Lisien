@@ -1513,7 +1513,6 @@ class CachingProxy(MutableMapping):
         self._cache = self._get_state()
         self._cache_valid = True
         self.engine = engine_proxy
-        self.engine.time_listener(self.invalidate)
         self.exists = None
 
     def __iter__(self):
