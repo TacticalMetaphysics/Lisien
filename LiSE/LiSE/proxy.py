@@ -1889,11 +1889,11 @@ class PortalProxy(CachingEntityProxy):
         )
 
     def __init__(self, engine_proxy, charname, nodeAname, nodeBname):
-        super().__init__(engine_proxy)
         self._charname = charname
         self._nodeA = nodeAname
         self._nodeB = nodeBname
         self._stat_listeners = defaultdict(list)
+        super().__init__(engine_proxy)
 
     def __eq__(self, other):
         if hasattr(other, 'engine'):
