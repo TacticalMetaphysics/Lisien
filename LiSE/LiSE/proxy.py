@@ -1514,7 +1514,10 @@ class CachingProxy(MutableMapping):
         self._cache = {}  # sometimes _get_state uses it
         self._cache = self._get_state()
         self._cache_valid = True
-        self.exists = None
+        self.exists = True
+
+    def __bool__(self):
+        return bool(self.exists)
 
     def __iter__(self):
         self.validate_cache()
@@ -1643,10 +1646,6 @@ class NodeProxy(CachingEntityProxy):
         if k == 'character':
             return self._charname
         return super().__getitem__(k)
-
-    def __bool__(self):
-        """It means something that I exist, even if I don't have any data yet."""
-        return self.exists
 
     def _get_state(self):
         return self.engine.handle(
@@ -1924,12 +1923,7 @@ class PortalProxy(CachingEntityProxy):
             return self._nodeB
         elif k == 'character':
             return self._charname
-        else:
-            return super().__getitem__(k)
-
-    def __bool__(self):
-        """It means something that I exist, even if I don't have any data yet."""
-        return True
+        return super().__getitem__(k)
 
     def listener(self, fun=None, key=None):
         if None not in (fun, key):
