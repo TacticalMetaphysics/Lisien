@@ -3249,18 +3249,28 @@ class EngineProxy(AbstractEngine):
             return self.json_load(r)
 
     def json_rewrap(self, r):
-        if isinstance(r, tuple) and r[0] in ('JSONListReWrapper', 'JSONReWrapper'):
-            cls = JSONReWrapper if r[0] == 'JSONReWrapper' else JSONListReWrapper
-            if r[1] == 'character':
-                (charn, k, v) = r[2:]
-                return cls(self.character[charn], k, v)
-            elif r[1] == 'node':
-                (char, node, k, v) = r[2:]
-                return cls(self.character[char].node[node], k, v)
+        if isinstance(r, tuple):
+            if r[0] in ('JSONListReWrapper', 'JSONReWrapper'):
+                cls = JSONReWrapper if r[0] == 'JSONReWrapper' else JSONListReWrapper
+                if r[1] == 'character':
+                    (charn, k, v) = r[2:]
+                    return cls(self.character[charn], k, v)
+                elif r[1] == 'node':
+                    (char, node, k, v) = r[2:]
+                    return cls(self.character[char].node[node], k, v)
+                else:
+                    assert (r[1] == 'portal')
+                    (char, nodeA, nodeB, k, v) = r[2:]
+                    return cls(self.character[char].portal[nodeA][nodeB], k, v)
             else:
-                assert (r[1] == 'portal')
-                (char, nodeA, nodeB, k, v) = r[2:]
-                return cls(self.character[char].portal[nodeA][nodeB], k, v)
+                return tuple(self.json_rewrap(v) for v in r)
+        elif isinstance(r, dict):
+            return {
+                self.json_rewrap(k): self.json_rewrap(v)
+                for (k, v) in r.items()
+            }
+        elif isinstance(r, list):
+            return [self.json_rewrap(v) for v in r]
         return r
 
     def json_load(self, s):
