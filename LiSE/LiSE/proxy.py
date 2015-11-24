@@ -1510,9 +1510,10 @@ class EngineHandle(object):
 
 class CachingProxy(MutableMapping):
     def __init__(self, engine_proxy):
+        self.engine = engine_proxy
+        self._cache = {}  # sometimes _get_state uses it
         self._cache = self._get_state()
         self._cache_valid = True
-        self.engine = engine_proxy
         self.exists = None
 
     def __iter__(self):
