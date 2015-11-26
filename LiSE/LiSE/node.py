@@ -26,7 +26,6 @@ class RuleMapping(rule.RuleMapping):
         super().__init__(node.engine, node.rulebook)
         self.node = node
 
-    engine = getatt('node.engine')
     character = getatt('node.character')
 
     def __iter__(self):
