@@ -1014,7 +1014,7 @@ class Engine(AbstractEngine, gORM):
         # The last element is always None, but is not a sentinel; any
         # rule may return None.
         for listener in self._next_tick_listeners:
-            listener(curtick[0], curtick[1], self.branch, self.tick, r)
+            listener(self.branch, self.tick, r)
         return r[:-1]
 
     def new_character(self, name, **kwargs):
