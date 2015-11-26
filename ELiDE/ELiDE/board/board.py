@@ -163,7 +163,7 @@ class Board(RelativeLayout):
         self.parent.effect_x.bind(velocity=self.track_vel)
         self.parent.effect_y.bind(velocity=self.track_vel)
 
-        self._trigger_update()
+        self.trigger_update()
 
     def rebind(self, *args):
         """Bind my listeners to the new character, unbinding from the old
@@ -466,7 +466,7 @@ class Board(RelativeLayout):
                 self.pawn[thing_name] = pwn
 
     @trigger
-    def _trigger_update(self, *args):
+    def trigger_update(self, *args):
         """Force an update to match the current state of my character.
 
         This polls every element of the character, and therefore
