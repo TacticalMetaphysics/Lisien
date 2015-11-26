@@ -1509,12 +1509,14 @@ class EngineHandle(object):
 
 
 class CachingProxy(MutableMapping):
-    def __init__(self, engine_proxy):
-        self.engine = engine_proxy
-        self._cache = {}  # sometimes _get_state uses it
-        self._cache = self._get_state()
+    @reify
+    def _cache(self):
         self._cache_valid = True
         self.exists = True
+        return self._get_state()
+
+    def __init__(self, engine_proxy):
+        self.engine = engine_proxy
 
     def __bool__(self):
         return bool(self.exists)
@@ -2596,9 +2598,9 @@ class CharacterProxy(MutableMapping):
         self.pred = self.preportal = CharPredecessorsMappingProxy(
             self.engine, self.name
         )
-        self.node = NodeMapProxy(self.engine, self.name)
         self.thing = ThingMapProxy(self.engine, self.name)
         self.place = PlaceMapProxy(self.engine, self.name)
+        self.node = NodeMapProxy(self.engine, self.name)
         self.stat = CharStatProxy(self.engine, self.name)
 
     def __bool__(self):
