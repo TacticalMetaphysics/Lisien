@@ -153,7 +153,6 @@ class ELiDEApp(App):
         )
         self._pull_time()
 
-        Clock.schedule_interval(self._check_stats, 0.01)
         Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
@@ -247,10 +246,6 @@ class ELiDEApp(App):
             inspector.create_inspector(Window, self.mainscreen)
 
         return s
-
-    def _check_stats(self, *args):
-        """Ask the engine to poll changes."""
-        self.engine.poll_changes()
 
     def on_character_name(self, *args):
         if self.config['ELiDE']['boardchar'] != self.character_name:
