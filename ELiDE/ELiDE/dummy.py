@@ -9,6 +9,8 @@ from kivy.logger import Logger
 
 from .kivygarden.texturestack import ImageStack
 
+from . import menu  # for kv
+
 
 class Dummy(ImageStack):
     """A widget that looks like the ones on the board, which, when dragged
