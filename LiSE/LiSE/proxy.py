@@ -3251,11 +3251,6 @@ class EngineProxy(AbstractEngine):
                     return cls(self.character[char].portal[nodeA][nodeB], k, v)
             else:
                 return tuple(self.json_rewrap(v) for v in r)
-        elif isinstance(r, dict):
-            return {
-                self.json_rewrap(k): self.json_rewrap(v)
-                for (k, v) in r.items()
-            }
         elif isinstance(r, list):
             return [self.json_rewrap(v) for v in r]
         return r
