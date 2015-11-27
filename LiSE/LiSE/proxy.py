@@ -1509,16 +1509,11 @@ class EngineHandle(object):
 
 
 class CachingProxy(MutableMapping):
-    @reify
-    def _cache(self):
-        return self._get_state()
-
-    @reify
-    def exists(self):
-        return True
-
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
+        self._cache = {}
+        self._cache = self._get_state()
+        self.exists = True
 
     def __bool__(self):
         return bool(self.exists)
