@@ -1511,9 +1511,11 @@ class EngineHandle(object):
 class CachingProxy(MutableMapping):
     @reify
     def _cache(self):
-        self._cache_valid = True
-        self.exists = True
         return self._get_state()
+
+    @reify
+    def exists(self):
+        return True
 
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
@@ -1522,17 +1524,14 @@ class CachingProxy(MutableMapping):
         return bool(self.exists)
 
     def __iter__(self):
-        self.validate_cache()
         yield from self._cache
 
     def __len__(self):
-        self.validate_cache()
         return len(self._cache)
 
     def __contains__(self, k):
         if k == 'name':
             return True
-        self.validate_cache()
         return k in self._cache
 
     def __getitem__(self, k):
@@ -1559,15 +1558,6 @@ class CachingProxy(MutableMapping):
                     del self._cache[k]
             elif k in self._cache and self._cache[k] != v:
                 self._cache[k] = v
-
-    def invalidate(self, *args, **kwargs):
-        self._cache_valid = False
-
-    def validate_cache(self):
-        if self._cache_valid:
-            return
-        self.update_cache()
-        self._cache_valid = True
 
     def update_cache(self):
         diff = self._get_diff()
