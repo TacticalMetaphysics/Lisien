@@ -1511,8 +1511,6 @@ class EngineHandle(object):
 class CachingProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = {}
-        self._cache = self._get_state()
         self.exists = True
 
     def __bool__(self):
@@ -1611,6 +1609,10 @@ class NodeProxy(CachingEntityProxy):
             )
             return (self._charname, self.name)
         return r
+
+    @property
+    def _cache(self):
+        return self.engine._node_stat_cache[self._charname][self.name]
 
     def __init__(self, engine_proxy, charname, nodename):
         self._charname = charname
@@ -1849,11 +1851,10 @@ class PortalProxy(CachingEntityProxy):
     def _get_rulebook(self):
         return RuleBookProxy(self.engine, self._get_rulebook_name())
 
-    def _get_state(self):
-        return self.engine.handle(
-            'portal_stat_copy',
-            (self._charname, self._nodeA, self._nodeB)
-        )
+    @property
+    def _cache(self):
+        return self.engine._portal_stat_cache[self.charname][
+            self._nodeA][self._nodeB]
 
     def _get_diff(self):
         return self.engine.handle(
@@ -1983,22 +1984,16 @@ class ThingMapProxy(CachingProxy):
     def character(self):
         return self.engine.character[self.name]
 
+    @property
+    def _cache(self):
+        return self.engine._character_things_cache[self.name]
+
     def __init__(self, engine_proxy, charname):
         self.name = charname
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
         return self is other
-
-    def _get_state(self):
-        return {
-            thing: self._cache[thing] if thing in self._cache
-            else ThingProxy(self.engine, self.name, thing)
-            for thing in self.engine.handle(
-                    'character_things',
-                    (self.name,)
-            )
-        }
 
     def _apply_diff(self, diff):
         for (thing, ex) in diff.items():
@@ -2056,22 +2051,16 @@ class PlaceMapProxy(CachingProxy):
     def character(self):
         return self.engine.character[self.name]
 
+    @property
+    def _cache(self):
+        return self.engine._character_places_cache[self.name]
+
     def __init__(self, engine_proxy, character):
         self.name = character
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
         return self is other
-
-    def _get_state(self):
-        return {
-            place: self._cache[place] if place in self._cache
-            else PlaceProxy(self.engine, self.name, place)
-            for place in self.engine.handle(
-                    'character_places',
-                    (self.name,)
-            )
-        }
 
     def _apply_diff(self, diff):
         for (place, ex) in diff.items():
@@ -2184,6 +2173,10 @@ class CharSuccessorsMappingProxy(CachingProxy):
     @property
     def character(self):
         return self.engine.character[self._charname]
+
+    @property
+    def _cache(self):
+        return self.engine._character_portals_cache[self.name]
 
     def __init__(self, engine_proxy, charname):
         self.name = charname
@@ -2328,7 +2321,6 @@ class CharPredecessorsMappingProxy(MutableMapping):
     def __init__(self, engine_proxy, charname):
         self.engine = engine_proxy
         self.name = charname
-        self._cache = {}
 
     def __contains__(self, k):
         if k in self._cache:
@@ -2374,6 +2366,10 @@ class CharPredecessorsMappingProxy(MutableMapping):
 
 
 class CharStatProxy(CachingEntityProxy):
+    @property
+    def _cache(self):
+        return self.engine._char_stat_cache[self.name]
+
     def __init__(self, engine_proxy, character):
         self.name = character
         super().__init__(engine_proxy)
@@ -2645,14 +2641,16 @@ class CharacterProxy(MutableMapping):
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
-        self.place.invalidate()
 
     def add_places_from(self, seq):
         self.engine.handle(
             'add_places_from',
             (self.name, list(seq))
         )
-        self.place.invalidate()
+        for pln in seq:
+            self.place._cache[pln] = PlaceProxy(
+                self.engine, self.name, pln
+            )
 
     def add_nodes_from(self, seq):
         self.add_places_from(seq)
@@ -2662,14 +2660,19 @@ class CharacterProxy(MutableMapping):
             'add_thing',
             (self.name, name, location, next_location, kwargs)
         )
-        self.thing.invalidate()
+        self.thing._cache[name] = ThingProxy(
+            self.engine, self.name, name
+        )
 
     def add_things_from(self, seq):
         self.engine.handle(
             'add_things_from',
             (self.name, seq)
         )
-        self.thing.invalidate()
+        for thn in seq:
+            self.thing._cache[thn] = ThingProxy(
+                self.engine, self.name, thn
+            )
 
     def new_place(self, name, **kwargs):
         self.add_place(name, **kwargs)
@@ -2684,8 +2687,6 @@ class CharacterProxy(MutableMapping):
             'place2thing',
             (self.name, name, location, next_location)
         )
-        self.place.invalidate()
-        self.thing.invalidate()
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         self.engine.handle(
@@ -2740,14 +2741,12 @@ class CharacterProxy(MutableMapping):
             'add_avatar',
             (self.name, a, b)
         )
-        self.avatar.invalidate()
 
     def del_avatar(self, a, b=None):
         self.engine.handle(
             'del_avatar',
             (self.name, a, b)
         )
-        self.avatar.invalidate()
 
     def avatars(self):
         yield from self.engine.handle(
@@ -3207,6 +3206,97 @@ class EngineProxy(AbstractEngine):
     def _portal_map_listeners(self):
         return defaultdict(list)
 
+    @reify
+    def _node_stat_cache(self):
+        r = defaultdict(  # character
+            lambda: defaultdict(  # node
+                dict  # stat: value
+            )
+        )
+        for char in self.character:
+            for (node, stats) in self.handle(
+                    'character_nodes_stat_diff',
+                    (char,)
+            ).items():
+                r[char][node] = stats
+        return r
+
+    @reify
+    def _portal_stat_cache(self):
+        r = defaultdict(  # character
+            lambda: defaultdict(  # origin
+                lambda: defaultdict(  # destination
+                    dict  # stat: value
+                )
+            )
+        )
+        for char in self.character:
+            diff = self.handle(
+                'character_portals_stat_diff',
+                (char,)
+            )
+            for orig in diff:
+                for dest in diff[orig]:
+                    r[orig][dest] = diff[orig][dest]
+        return r
+
+    @reify
+    def _char_stat_cache(self):
+        r = defaultdict(dict)
+        for char in self.character:
+            r[char] = self.handle(
+                'character_stat_diff',
+                (char,)
+            )
+        return r
+
+    @reify
+    def _character_things_cache(self):
+        r = defaultdict(dict)
+        for char in self.character:
+            for (thing, ex) in self.handle(
+                    'character_things_diff',
+                    (char,)
+            ).items():
+                if ex:
+                    r[thing] = ThingProxy(
+                        self, char, thing
+                    )
+        return r
+
+    @reify
+    def _character_places_cache(self):
+        r = defaultdict(dict)
+        for char in self.character:
+            for (place, ex) in self.handle(
+                    'character_places_diff',
+                    (char,)
+            ).items():
+                if ex:
+                    r[place] = PlaceProxy(
+                        self, char, place
+                    )
+        return r
+
+    @reify
+    def _character_portals_cache(self):
+        r = defaultdict(
+            lambda: defaultdict(dict)
+        )
+        for char in self.character:
+            for ((orig, dest), ex) in self.handle(
+                'character_portals_diff',
+                (char,)
+            ):
+                if ex:
+                    r[orig][dest] = PortalProxy(
+                        self,
+                        char,
+                        orig,
+                        dest
+                    )
+        return r
+
     def __init__(self, handle_out, handle_in, logger, eventq):
         self._handle_out = handle_out
         self._handle_in = handle_in
@@ -3251,6 +3341,9 @@ class EngineProxy(AbstractEngine):
                     return cls(self.character[char].portal[nodeA][nodeB], k, v)
             else:
                 return tuple(self.json_rewrap(v) for v in r)
+        elif isinstance(r, dict):
+            # These can't have been stored in a stat
+            return {k: self.json_rewrap(v) for (k, v) in r.items()}
         elif isinstance(r, list):
             return [self.json_rewrap(v) for v in r]
         return r
