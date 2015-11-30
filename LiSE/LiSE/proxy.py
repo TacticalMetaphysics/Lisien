@@ -3360,8 +3360,9 @@ class EngineProxy(AbstractEngine):
         return self.json_rewrap(super().json_load(s))
 
     def _call_with_recv(self, *cbs):
+        received = self.json_load(self._handle_in.recv())
         for cb in cbs:
-            cb(self.json_load(self._handle_in.recv()))
+            cb(received)
 
     def _upd_char_cache(self, char, chardiff):
         self.character[char]._apply_diff(chardiff)
