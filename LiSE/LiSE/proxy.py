@@ -1047,10 +1047,10 @@ class EngineHandle(object):
         """Return a dictionary of changes to ``char`` since previous call."""
         return {
             'character_stat': self.character_stat_diff(char),
-            'node_stat': self.character_node_stat_diff(char),
+            'node_stat': self.character_nodes_stat_diff(char),
             'things': self.character_things_diff(char),
             'places': self.character_places_diff(char),
-            'portal_stat': self.character_portal_stat_diff(char),
+            'portal_stat': self.character_portals_stat_diff(char),
             'portals': self.character_portals_diff(char)
         }
 
