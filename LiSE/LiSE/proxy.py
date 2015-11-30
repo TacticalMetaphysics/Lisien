@@ -2025,6 +2025,7 @@ class ThingMapProxy(CachingProxy):
             (self.name, k, v),
             silent=True
         )
+        self.engine._node_stat_cache[self.name][k] = v
 
     def _del_item(self, k):
         self.engine.handle(
@@ -2032,6 +2033,7 @@ class ThingMapProxy(CachingProxy):
             (self.name, k),
             silent=True
         )
+        del self.engine._node_stat_cache[self.name][k]
 
     def listener(self, fun):
         self.engine.thing_map_listener(
@@ -2092,6 +2094,7 @@ class PlaceMapProxy(CachingProxy):
             (self.name, k, v),
             silent=True
         )
+        self.engine._node_stat_cache[self.name][k] = v
 
     def _del_item(self, k):
         self.engine.handle(
@@ -2099,6 +2102,7 @@ class PlaceMapProxy(CachingProxy):
             (self.name, k),
             silent=True
         )
+        del self.engine._node_stat_cache[self.name][k]
 
     def listener(self, fun):
         self.engine.place_map_listener(
@@ -3237,7 +3241,7 @@ class EngineProxy(AbstractEngine):
             )
             for orig in diff:
                 for dest in diff[orig]:
-                    r[orig][dest] = diff[orig][dest]
+                    r[char][orig][dest] = diff[orig][dest]
         return r
 
     @reify
@@ -3259,7 +3263,7 @@ class EngineProxy(AbstractEngine):
                     (char,)
             ).items():
                 if ex:
-                    r[thing] = ThingProxy(
+                    r[char][thing] = ThingProxy(
                         self, char, thing
                     )
         return r
@@ -3273,7 +3277,7 @@ class EngineProxy(AbstractEngine):
                     (char,)
             ).items():
                 if ex:
-                    r[place] = PlaceProxy(
+                    r[char][place] = PlaceProxy(
                         self, char, place
                     )
         return r
@@ -3289,7 +3293,7 @@ class EngineProxy(AbstractEngine):
                 (char,)
             ):
                 if ex:
-                    r[orig][dest] = PortalProxy(
+                    r[char][orig][dest] = PortalProxy(
                         self,
                         char,
                         orig,
@@ -3331,14 +3335,18 @@ class EngineProxy(AbstractEngine):
                 cls = JSONReWrapper if r[0] == 'JSONReWrapper' else JSONListReWrapper
                 if r[1] == 'character':
                     (charn, k, v) = r[2:]
-                    return cls(self.character[charn], k, v)
+                    return cls(CharacterProxy(self, charn), k, v)
                 elif r[1] == 'node':
                     (char, node, k, v) = r[2:]
-                    return cls(self.character[char].node[node], k, v)
+                    try:
+                        node = self.character[char].node[node]
+                    except KeyError:
+                        node = PlaceProxy(self, char, node)
+                    return cls(node, k, v)
                 else:
                     assert (r[1] == 'portal')
                     (char, nodeA, nodeB, k, v) = r[2:]
-                    return cls(self.character[char].portal[nodeA][nodeB], k, v)
+                    return cls(PortalProxy(self, char, nodeA, nodeB), k, v)
             else:
                 return tuple(self.json_rewrap(v) for v in r)
         elif isinstance(r, dict):
