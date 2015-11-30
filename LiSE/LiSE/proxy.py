@@ -3291,7 +3291,7 @@ class EngineProxy(AbstractEngine):
             for ((orig, dest), ex) in self.handle(
                 'character_portals_diff',
                 (char,)
-            ):
+            ).items():
                 if ex:
                     r[char][orig][dest] = PortalProxy(
                         self,
