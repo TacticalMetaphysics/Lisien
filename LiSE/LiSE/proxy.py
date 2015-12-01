@@ -1123,10 +1123,12 @@ class EngineHandle(object):
             return None
 
     def character_nodes_stat_diff(self, char):
-        return {
-            node: self.node_stat_diff(char, node)
-            for node in self._real.character[char].node.keys()
-        }
+        r = {}
+        for node in self._real.character[char].node:
+            diff = self.node_stat_diff(char, node)
+            if diff:
+                r[node] = diff
+        return r
 
     def node_stat_len(self, char, node):
         return len(self._real.character[char].node[node])
@@ -1393,12 +1395,15 @@ class EngineHandle(object):
             return None
 
     def character_portals_stat_diff(self, char):
-        return {
-            orig: {
-                dest: self.portal_stat_diff(char, orig, dest)
-                for dest in self._real.character[char].portal[orig].keys()
-            } for orig in self._real.character[char].portal.keys()
-        }
+        r = {}
+        for orig in self._real.character[char].portal:
+            for dest in self._real.character[char].portal[orig]:
+                diff = self.portal_stat_diff(char, orig, dest)
+                if diff:
+                    if orig not in r:
+                        r[orig] = {}
+                    r[orig][dest] = diff
+        return r
 
     def portal_stats(self, char, o, d):
         return list(self._real.character[char][o][d].keys())
