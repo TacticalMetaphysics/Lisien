@@ -2123,6 +2123,11 @@ class PlaceMapProxy(CachingProxy):
 
 
 class SuccessorsProxy(CachingProxy):
+    @property
+    def _cache(self):
+        return self.engine._character_portals_cache[
+            self._charname][self._nodeA]
+
     def __init__(self, engine_proxy, charname, nodeAname):
         self._charname = charname
         self._nodeA = nodeAname
@@ -2199,33 +2204,25 @@ class CharSuccessorsMappingProxy(CachingProxy):
         )
 
     def _cache_munge(self, k, v):
+        return {
+            vk: PortalProxy(self.engine, self.name, vk, vv)
+            for (vk, vv) in v.items()
+        }
+
+    def __getitem__(self, k):
+        if k not in self:
+            raise KeyError("No portals from {}".format(k))
         return SuccessorsProxy(
             self.engine,
             self.name,
             k
         )
 
-    def _get_state(self):
-        return {
-            node: self._cache[node] if node in self._cache else
-            SuccessorsProxy(self.engine, self.name, node)
-            for node in self.engine.handle(
-                    'character_nodes_with_successors',
-                    (self.name,)
-            )
-        }
-
     def _apply_diff(self, diff):
         for ((o, d), ex) in diff.items():
             if ex:
-                if o not in self._cache:
-                    self._cache[o] = SuccessorsProxy(
-                        self.engine,
-                        self.name,
-                        o
-                    )
-                if d not in self._cache[o]._cache:
-                    self._cache[o]._cache[d] = PortalProxy(
+                if d not in self._cache[o]:
+                    self._cache[o][d] = PortalProxy(
                         self.engine,
                         self.name,
                         o, d
