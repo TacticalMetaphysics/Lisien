@@ -581,7 +581,8 @@ class MainScreen(Screen):
             )
         )
 
-    def _update_from_chardiff(self, chardiff):
+    def _update_from_chardiff(self, char, chardiff):
+        assert self.board.character.name == char
         self.board.trigger_update_from_diff(chardiff)
         self.ids.statpanel.stat_list.mirror = dict(self.ids.statpanel.remote)
 
@@ -700,7 +701,7 @@ Builder.load_string(
         tick: root.tick
         branch_setter: root.set_branch
         tick_setter: root.set_tick
-        next_tick: lambda: root.engine.next_tick(root.character_name)
+        next_tick: lambda: root.engine.next_tick(char=root.character_name, cb=root._update_from_chardiff)
     CharMenu:
         id: charmenu
         pos_hint: {'right': 1, 'top': 1}

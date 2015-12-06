@@ -903,7 +903,7 @@ class EngineHandle(object):
     def next_tick(self, char=None):
         self._real.next_tick()
         if char:
-            self.put(self.character_diff(char))
+            return self.character_diff(char)
 
     def add_character(self, name, data, kwargs):
         self._real.add_character(name, data, **kwargs)
@@ -3364,23 +3364,26 @@ class EngineProxy(AbstractEngine):
     def json_load(self, s):
         return self.json_rewrap(super().json_load(s))
 
-    def _call_with_recv(self, *cbs):
+    def _call_with_recv(self, char, *cbs):
         received = self.json_load(self._handle_in.recv())
         for cb in cbs:
-            cb(received)
+            cb(char, received)
 
     def _upd_char_cache(self, char, chardiff):
         self.character[char]._apply_diff(chardiff)
 
     def next_tick(self, char=None, cb=None):
-        self.handle('next_tick', (char,), silent=True)
-        if char or cb:
+        if cb and not char:
+            raise TypeError("Callbacks require char name")
+        if char:
+            self._handle_out.send(self.json_dump((False, 'next_tick', [char])))
             Thread(
                 target=self._call_with_recv,
-                args=(self._upd_char_cache, cb) if cb else
-                (self._upd_char_cache,),
-                daemon=True
+                args=(char, self._upd_char_cache, cb) if cb else
+                (char, self._upd_char_cache,)
             ).start()
+        else:
+            self.handle('next_tick', (char,), silent=True)
 
     def char_listener(self, char, fun):
         if char not in self._char_listeners:
