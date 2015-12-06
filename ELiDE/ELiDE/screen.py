@@ -166,6 +166,7 @@ class MainScreen(Screen):
     set_branch = ObjectProperty()
     set_tick = ObjectProperty()
     set_time = ObjectProperty()
+    app = ObjectProperty()
 
     select_character = ObjectProperty()
     pawn_cfg = ObjectProperty()
@@ -584,7 +585,8 @@ class MainScreen(Screen):
     def _update_from_chardiff(self, char, chardiff):
         assert self.board.character.name == char
         self.board.trigger_update_from_diff(chardiff)
-        self.ids.statpanel.stat_list.mirror = dict(self.ids.statpanel.remote)
+        self.ids.statpanel.stat_list.mirror = dict(self.selected_remote)
+        self.app._pull_time()
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""

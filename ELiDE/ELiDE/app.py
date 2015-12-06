@@ -211,6 +211,7 @@ class ELiDEApp(App):
         self.bind(time=stat_cfg.setter('time'))
 
         self.mainscreen = ELiDE.screen.MainScreen(
+            app=self,
             engine=self.engine,
             character=self.character,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
