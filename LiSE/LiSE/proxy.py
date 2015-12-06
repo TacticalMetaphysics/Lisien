@@ -2373,7 +2373,7 @@ def subprocess(
                 'debug',
                 "returning {} (of type {})".format(data, repr(type(data)))
             ))
-    engine_handle = EngineHandle(args, kwargs, callbacq, logq)
+    engine_handle = EngineHandle(args, kwargs, logq)
 
     while True:
         inst = handle_out_pipe.recv()
