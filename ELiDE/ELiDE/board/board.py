@@ -456,6 +456,28 @@ class Board(RelativeLayout):
                 self.add_pawn(thing)
             elif not extant and thing in self.pawn:
                 self.rm_pawn(thing)
+        for (node, stats) in chardiff['node_stat'].items():
+            if node in self.spot:
+                spot = self.spot[node]
+                if '_x' in stats:
+                    spot.x = stats['_x'] * self.width
+                if '_y' in stats:
+                    spot.y = stats['_y'] * self.height
+                if '_image_paths' in stats:
+                    spot.paths = stats['_image_paths']
+            elif node in self.pawn:
+                pawn = self.pawn[node]
+                if 'location' in stats:
+                    pawn.loc_name = stats['location']
+                if 'next_location' in stats:
+                    pawn.next_loc_name = stats['next_location']
+                if '_image_paths' in stats:
+                    pawn.paths = stats['_image_paths']
+            else:
+                raise ValueError(
+                    "Diff tried to change stats of "
+                    "nonexistent node {}".format(node)
+                )
         for ((orig, dest), extant) in chardiff['portals'].items():
             if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
                 self.add_arrow(orig, dest)
