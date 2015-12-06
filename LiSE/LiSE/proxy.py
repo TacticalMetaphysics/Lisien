@@ -735,13 +735,9 @@ class CachingProxy(MutableMapping):
         return len(self._cache)
 
     def __contains__(self, k):
-        if k == 'name':
-            return True
         return k in self._cache
 
     def __getitem__(self, k):
-        if k == 'name':
-            return self.name
         if k not in self:
             raise KeyError("No such key: {}".format(k))
         return self._cache[k]
@@ -839,13 +835,15 @@ class NodeProxy(CachingEntityProxy):
         )
 
     def __contains__(self, k):
-        if k == 'character':
+        if k in ('character', 'name'):
             return True
         return super().__contains__(k)
 
     def __getitem__(self, k):
         if k == 'character':
             return self._charname
+        elif k == 'name':
+            return self.name
         return super().__getitem__(k)
 
     def _get_state(self):
@@ -1700,9 +1698,13 @@ class CharacterProxy(MutableMapping):
         )
 
     def __contains__(self, k):
+        if k == 'name':
+            return True
         return k in self.node
 
     def __getitem__(self, k):
+        if k == 'name':
+            return self.name
         return self.node[k]
 
     def __setitem__(self, k, v):
