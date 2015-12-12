@@ -85,68 +85,6 @@ class AvatarnessCache(object):
         self.user_order[graph][node][character][branch][tick] = is_avatar
 
 
-class NodesRulebooksCache(dict):
-    def __init__(self, engine):
-        self.engine = engine
-        assert self.engine.caching
-        super().__init__()
-        for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
-            self[character][node] = rulebook
-
-    def __iter__(self):
-        seen = set()
-        for k in super().__iter__():
-            yield k
-            seen.add(k)
-        for char in self.engine.character.keys():
-            if char not in seen:
-                yield char
-
-    def __contains__(self, k):
-        if k in self.engine.character:
-            return True
-        return super().__contains__(k)
-
-    def __getitem__(self, k):
-        if not super().__contains__(k):
-            self[k] = self.NodeRulebookDefaultDict(self.engine, k)
-        return super().__getitem__(k)
-
-    def __setitem__(self, k, v):
-        if not isinstance(v, NodeRulebookDefaultDict):
-            if not isinstance(v, dict):
-                raise ValueError
-            vv = self.NodeRulebookDefaultDict(self.engine, k)
-            vv.update(v)
-            v = vv
-        super().__setitem__(k, v)
-
-    class NodeRulebookDefaultDict(dict):
-        def __init__(self, engine, charname):
-            self.engine = engine
-            self._charname = charname
-            super().__init__()
-
-        def __iter__(self):
-            seen = set()
-            for k in super().__iter__():
-                yield k
-                seen.add(k)
-            for node in self.engine.character[self._charname].node.keys():
-                if node not in seen:
-                    yield node
-
-        def __contains__(self, k):
-            if k in self.engine.character[self._charname].node:
-                return True
-            return super().__contains__(k)
-
-        def __getitem__(self, k):
-            if not super().__contains__(k):
-                self[k] = (self._charname, k)
-            return super().__getitem__(k)
-
-
 class LiSEncoder(JSONEncoder):
     def default(self, o):
         t = type(o)
@@ -326,95 +264,18 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _nodes_rulebooks_cache(self):
-        return NodesRulebooksCache(self)
+        assert(self.caching)
+        r = defaultdict(dict)
+        for (character, node, rulebook) in self.db.nodes_rulebooks():
+            r[character][node] = rulebook
+        return r
 
     @reify
     def _portals_rulebooks_cache(self):
-        class PortalRulebookDefaultDict(dict):
-            def __init__(self, engine, charname, nodeA):
-                self.engine = engine
-                self._charname = charname
-                self._nodeA = nodeA
-                super().__init__()
-
-            def __iter__(self):
-                seen = set()
-                for k in super().__iter__():
-                    yield k
-                    seen.add(k)
-                for nodeB in self.engine.character[self._charname].portal[self._nodeA]:
-                    if nodeB not in seen:
-                        yield nodeB
-
-            def __contains__(self, k):
-                if k in self.engine.character[self._charname].portal[self._nodeA]:
-                    return True
-                return super().__contains__(k)
-
-            def __getitem__(self, k):
-                if not super().__contains__(k):
-                    self[k] = (self._charname, self._nodeA, k)
-                return super().__getitem__(k)
-
-        class NodeARulebookDefaultDict(dict):
-            def __init__(self, engine, charname):
-                self.engine = engine
-                self._charname = charname
-                super().__init__()
-
-            def __iter__(self):
-                seen = set()
-                for k in super().__iter__():
-                    yield k
-                    seen.add(k)
-                for nodeA in self.engine.character[self._charname].portal:
-                    if nodeA not in seen:
-                        yield nodeA
-
-            def __contains__(self, k):
-                if k in self.engine.character[self._charname].portal:
-                    return True
-                return super().__contains__(k)
-
-            def __getitem__(self, k):
-                if not super().__contains__(k):
-                    self[k] = PortalRulebookDefaultDict(
-                        self.engine, self._charname, k
-                    )
-                return super().__getitem__(k)
-
-            def __setitem__(self, k, v):
-                if not isinstance(v, PortalRulebookDefaultDict):
-                    if not isinstance(v, dict):
-                        raise ValueError
-                    vv = PortalRulebookDefaultDict(
-                        self.engine, self._charname, k
-                    )
-                    vv.update(v)
-                    v = vv
-                super().__setitem__(k, v)
-
-        class CharNodeARulebookDefaultDict(dict):
-            def __init__(self, engine):
-                self.engine = engine
-                super().__init__()
-
-            def __getitem__(self, k):
-                if not super().__contains__(k):
-                    self[k] = NodeARulebookDefaultDict(self.engine, k)
-                return super().__getitem__(k)
-
-            def __setitem__(self, k, v):
-                if not isinstance(v, NodeARulebookDefaultDict):
-                    if not isinstance(v, dict):
-                        raise ValueError
-                    vv = NodeARulebookDefaultDict(self.engine, k)
-                    vv.update(v)
-                    v = vv
-                super().__setitem__(k, v)
-
         assert(self.caching)
-        r = CharNodeARulebookDefaultDict(self)
+        r = defaultdict(
+            lambda: defaultdict(dict)
+        )
         for (character, nodeA, nodeB, rulebook) in self.db.portals_rulebooks():
             r[character][nodeA][nodeB] = rulebook
         return r
@@ -569,8 +430,8 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            worlddb='LiSEworld.db',
-            codedb='LiSEcode.db',
+            worlddb,
+            codedb,
             connect_args={},
             alchemy=False,
             caching=True,
