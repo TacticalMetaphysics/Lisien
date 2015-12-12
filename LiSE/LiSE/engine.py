@@ -785,14 +785,15 @@ class Engine(AbstractEngine, gORM):
             )
 
         for chara in self.character.values():
+            char = chara.name
             for node in chara.node:
                 if (
-                        chara.name in self._nodes_rulebooks_cache and
-                        node in self._nodes_rulebooks_cache[chara.name]
+                        char in self._nodes_rulebooks_cache and
+                        node in self._nodes_rulebooks_cache[char]
                 ):
-                    rulebook = self._nodes_rulebooks_cache[chara.name][node]
+                    rulebook = self._nodes_rulebooks_cache[char][node]
                 else:
-                    rulebook = (chara.name, node)
+                    rulebook = (char, node)
                 for rule in self._rulebooks_cache[rulebook]:
                     if (
                         self._rule_active(rulebook, rule) and not
