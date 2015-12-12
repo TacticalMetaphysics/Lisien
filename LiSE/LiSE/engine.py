@@ -799,7 +799,7 @@ class Engine(AbstractEngine, gORM):
                         self._rule_active(rulebook, rule) and not
                         handled(char, node, rulebook, rule)
                     ):
-                        yield ('node', char, node, rulebook, rule)
+                        yield (char, node, rulebook, rule)
 
     def _poll_portal_rules(self):
         if not self.caching or self._sql_polling:
@@ -838,7 +838,6 @@ class Engine(AbstractEngine, gORM):
                             handled(char, nodeA, nodeB, rulebook, rule)
                         ):
                             yield (
-                                'portal',
                                 char,
                                 nodeA,
                                 nodeB,
