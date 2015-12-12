@@ -923,8 +923,15 @@ class Engine(AbstractEngine, gORM):
                 self.tick in cache[char][rule][rulebook][self.branch]
             )
 
-        for char in self._nodes_rulebooks_cache:
-            for (node, rulebook) in self._nodes_rulebooks_cache[char].items():
+        for chara in self.character.values():
+            for node in chara.node:
+                if (
+                        chara.name in self._nodes_rulebooks_cache and
+                        node in self._nodes_rulebooks_cache[chara.name]
+                ):
+                    rulebook = self._nodes_rulebooks_cache[chara.name][node]
+                else:
+                    rulebook = (chara.name, node)
                 for rule in self._rulebooks_cache[rulebook]:
                     if (
                         self._rule_active(rulebook, rule) and not
@@ -952,9 +959,17 @@ class Engine(AbstractEngine, gORM):
             )
 
         cache = self._portals_rulebooks_cache
-        for char in cache:
-            for nodeA in cache[char]:
-                for (nodeB, rulebook) in cache[char][nodeA].items():
+        for chara in self.character.values():
+            for nodeA in chara.portal:
+                for nodeB in chara.portal[nodeA]:
+                    if (
+                            chara.name in cache and
+                            nodeA in cache[chara.name] and
+                            nodeB in cache[chara.name][nodeA]
+                    ):
+                        rulebook = cache[chara.name][nodeA][nodeB]
+                    else:
+                        rulebook = (chara.name, nodeA, nodeB)
                     for rule in self._rulebooks_cache[rulebook]:
                         if (
                             self._rule_active(rulebook, rule) and not
