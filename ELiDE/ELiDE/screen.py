@@ -586,7 +586,7 @@ class MainScreen(Screen):
         assert self.board.character.name == char
         self.board.trigger_update_from_diff(chardiff)
         self.ids.statpanel.stat_list.mirror = dict(self.selected_remote)
-        self.app._pull_time()
+        self.app.pull_time()
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""

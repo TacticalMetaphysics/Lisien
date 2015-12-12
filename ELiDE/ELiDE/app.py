@@ -26,6 +26,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
+from .util import trigger
 
 """Object to configure, start, and stop ELiDE."""
 
@@ -43,7 +44,8 @@ class ELiDEApp(App):
     time = ReferenceListProperty(branch, tick)
     character = ObjectProperty()
 
-    def _pull_time(self, *args):
+    @trigger
+    def pull_time(self, *args):
         self.time = self.engine.time
 
     def on_time(self, *args):
@@ -146,7 +148,7 @@ class ELiDEApp(App):
             config['LiSE']['code'],
             **enkw
         )
-        self._pull_time()
+        self.pull_time()
 
         Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
         char = config['ELiDE']['boardchar']
