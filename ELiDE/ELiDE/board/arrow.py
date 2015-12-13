@@ -128,6 +128,11 @@ class ArrowWidget(Widget):
 
     """
     board = ObjectProperty()
+    app = AliasProperty(
+        lambda self: self.board.screen.app if self.board else None,
+        lambda self, v: None,
+        bind=('board',)
+    )
     name = StringProperty()
     margin = NumericProperty(10)
     """When deciding whether a touch collides with me, how far away can
@@ -172,8 +177,8 @@ class ArrowWidget(Widget):
                 self.board and
                 self.origin and
                 self.destination and
-                self.origin.name in self.board.character.portal and
-                self.destination.name in self.board.character.portal
+                self.origin.name in self.app.character.portal and
+                self.destination.name in self.app.character.portal
         ):
             Clock.schedule_once(self.on_portal, 0)
             return
@@ -296,20 +301,20 @@ class ArrowWidget(Widget):
         its :class:`Thing` has gone along my :class:`Portal`.
 
         """
-        if self.board.tick < pawn.thing['arrival_time']:
+        if self.app.tick < pawn.thing['arrival_time']:
             # It's weird that the pawn is getting placed in me, but
             # I'll do my best..
             pawn.pos = self.pos_along(0)
             return
         elif (
                 pawn.thing['next_arrival_time'] and
-                self.board.tick >= pawn.thing['next_arrival_time']
+                self.app.tick >= pawn.thing['next_arrival_time']
         ):
             pawn.pos = self.pos_along(1)
             return
         pawn.pos = self.pos_along(
             (
-                self.board.tick -
+                self.app.tick -
                 pawn.thing['arrival_time']
             ) / (
                 pawn.thing['next_arrival_time'] -

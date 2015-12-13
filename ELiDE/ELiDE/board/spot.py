@@ -88,7 +88,7 @@ class Spot(PawnSpot):
             )
         return self._pospawn_triggers[pawn]
 
-    def _bind_trigger_pospawn(self, pawn):
+    def bind_trigger_pospawn(self, pawn):
         trigger = self._get_pospawn_trigger(pawn)
         pawn.bind(
             pos=trigger,
@@ -99,7 +99,7 @@ class Spot(PawnSpot):
             size=trigger
         )
 
-    def _unbind_trigger_pospawn(self, pawn):
+    def unbind_trigger_pospawn(self, pawn):
         trigger = self._get_pospawn_trigger(pawn)
         pawn.unbind(
             pos=trigger,
@@ -145,7 +145,7 @@ class Spot(PawnSpot):
 
         """
         super().add_widget(wid, i, canvas)
-        self._bind_trigger_pospawn(wid)
+        self.bind_trigger_pospawn(wid)
         if not hasattr(wid, 'group'):
             return
         wid._no_use_canvas = True
@@ -171,7 +171,7 @@ class Spot(PawnSpot):
 
     def remove_widget(self, wid):
         try:
-            self._unbind_trigger_pospawn(wid)
+            self.unbind_trigger_pospawn(wid)
         except KeyError:
             pass
         return super().remove_widget(wid)

@@ -148,15 +148,39 @@ default_cfg = {
 
 
 class StatListView(ListView):
+    app = ObjectProperty()
     control = DictProperty({})
     config = DictProperty({})
     mirror = DictProperty({})
-    remote = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
         self._listeners = {}
         super().__init__(**kwargs)
+
+    @trigger
+    def pull_remote(self, *args):
+        if self.app.selected_remote is not None:
+            self.mirror = dict(self.app.selected_remote)
+
+    def on_app(self, *args):
+        self.app.bind(
+            selected_remote=self.pull_remote,
+            time=self._trigger_upd_data
+        )
+        self.pull_remote()
+
+    def set_value(self, k, v):
+        if v is None:
+            del self.app.selected_remote[k]
+            del self.mirror[k]
+        else:
+            try:
+                vv = self.app.engine.json_load(v)
+            except (TypeError, ValueError):
+                vv = v
+            self.app.selected_remote[k] = vv
+            self.mirror[k] = vv
 
     def on_time(self, *args):
         super().on_time(*args)
@@ -172,13 +196,13 @@ class StatListView(ListView):
         if key not in self.config:
             cfgd = dict(self.config)
             cfgd[key] = default_cfg
-            self.remote['_config'] = cfgd
+            self.app.selected_remote['_config'] = cfgd
         else:
             cfgd = dict(self.config)
             for option in default_cfg:
                 if option not in cfgd[key]:
                     cfgd[key][option] = default_cfg[option]
-            self.remote['_config'] = cfgd
+            self.app.selected_remote['_config'] = cfgd
 
     def get_adapter(self):
         return DictAdapter(
@@ -202,21 +226,23 @@ class StatListView(ListView):
         else:
             ctrld = dict(self.control)
             ctrld[key] = control
-        self.remote['_control'] = self.control = ctrld
+        self.app.selected_remote['_control'] = self.control = ctrld
         self.canvas.after.clear()
         self._trigger_sync()
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
-            self.remote['_config'] = self.config = {key: {option: value}}
+            self.app.selected_remote['_config'] \
+                = self.config \
+                = {key: {option: value}}
         elif key in self.config:
             newcfg = dict(self.config)
             newcfg[key][option] = value
-            self.remote['_config'] = self.config = newcfg
+            self.app.selected_remote['_config'] = self.config = newcfg
         else:
             newcfg = dict(default_cfg)
             newcfg[option] = value
-            self.remote['_config'][key] = self.config = newcfg
+            self.app.selected_remote['_config'][key] = self.config = newcfg
         self._trigger_sync()
 
     def get_cls_dicts(self, key, value):
