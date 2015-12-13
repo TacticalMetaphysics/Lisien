@@ -115,7 +115,6 @@ class PawnSpot(ImageStack):
 
 kv = """
 <PawnSpot>:
-    time: self.board.time if self.board else ['master', 0]
     linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
 """
 Builder.load_string(kv)

@@ -45,6 +45,7 @@ class ConfigListItem(CompositeListItem):
 
 
 class ControlTypePicker(ListItemButton):
+    app = ObjectProperty()
     key = ObjectProperty()
     mainbutton = ObjectProperty()
     dropdown = ObjectProperty()
@@ -57,6 +58,12 @@ class ControlTypePicker(ListItemButton):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.build()
+
+    def set_value(self, k, v):
+        if v is None:
+            del self.app.selected_remote[k]
+        else:
+            self.app.selected_remote[k] = v
 
     def selected(self, v):
         self.setter(self.key, v)
@@ -105,6 +112,7 @@ class ControlTypePicker(ListItemButton):
 
 
 class StatListViewConfigurator(StatListView):
+    app = ObjectProperty()
     stat_list = ObjectProperty()
 
     def set_config(self, key, option, value):
@@ -117,7 +125,7 @@ class StatListViewConfigurator(StatListView):
 
     def del_key(self, key):
         if key in self.mirror:
-            del self.remote[key]
+            del self.app.selected_remote[key]
 
     def get_adapter(self):
         return DictAdapter(
@@ -274,13 +282,9 @@ class StatListViewConfigurator(StatListView):
 
 
 class StatScreen(Screen):
-    json_loader = ObjectProperty()
-    remote = ObjectProperty()
+    app = ObjectProperty()
     stat_list = ObjectProperty()
     toggle = ObjectProperty()
-    branch = StringProperty()
-    tick = NumericProperty()
-    time = ReferenceListProperty(branch, tick)
 
     def new_stat(self):
         """Look at the key and value that the user has entered into the stat
@@ -294,7 +298,10 @@ class StatScreen(Screen):
             # TODO implement some feedback to the effect that
             # you need to enter things
             return
-        self.remote[key] = try_load(self.json_loader, value)
+        try:
+            self.app.selected_remote[key] = self.app.engine.json_load(value)
+        except (TypeError, ValueError):
+            self.app.selected_remote[key] = value
         self.ids.newstatkey.text = ''
         self.ids.newstatval.text = ''
 
@@ -303,14 +310,13 @@ Builder.load_string("""
 <ConfigListItem>:
     height: 30
 <StatScreen>:
-    name: 'stat_cfg'
+    name: 'statcfg'
     BoxLayout:
         orientation: 'vertical'
         StatListViewConfigurator:
             id: cfg
+            app: root.app
             stat_list: root.stat_list
-            time: root.time
-            remote: root.remote
             size_hint_y: 0.95
         BoxLayout:
             orientation: 'horizontal'

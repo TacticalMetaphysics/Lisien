@@ -4,6 +4,7 @@ from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
 
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     ObjectProperty,
     NumericProperty,
@@ -13,150 +14,110 @@ from kivy.properties import (
 from .board.spot import Spot
 from .board.pawn import Pawn
 from .board.arrow import ArrowWidget
-from .util import try_load, remote_setter, dummynum
+from .util import try_load, dummynum
 
 
 class CharMenu(BoxLayout):
-    engine = ObjectProperty()
-    branch = StringProperty()
-    tick = NumericProperty()
-    time = ReferenceListProperty(branch, tick)
-    selection = ObjectProperty(None, allownone=True)
-    board = ObjectProperty()
-    character = ObjectProperty()
-    select_character = ObjectProperty()
-    selected_remote = ObjectProperty()
+    screen = ObjectProperty()
+    app = AliasProperty(
+        lambda self: self.screen.app if self.screen else None,
+        lambda self, v: None,
+        bind=('screen',)
+    )
+    revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
-    portaladdbut = ObjectProperty()
-    portaldirbut = ObjectProperty()
-    spot_from_dummy = ObjectProperty()
-    pawn_from_dummy = ObjectProperty()
-    reciprocal_portal = BooleanProperty(False)
-    charlist = ObjectProperty()
-    chars = ObjectProperty()
-    rulesview = ObjectProperty()
-    rulesbox = ObjectProperty()
-    funcs = ObjectProperty()
-    strings = ObjectProperty()
-    stat_cfg = ObjectProperty()
-    spot_cfg = ObjectProperty()
-    pawn_cfg = ObjectProperty()
-    revarrow = ObjectProperty(None, allownone=True)
-    current = StringProperty()
 
     def delete_selection(self):
         """Delete both the selected widget and whatever it represents."""
-        if self.selection is None:
+        selection = self.app.selection
+        if selection is None:
             return
-        if isinstance(self.selection, ArrowWidget):
-            arr = self.selection
-            self.selection = None
-            self.board.rm_arrow(arr.origin.name, arr.destination.name)
-            arr.portal.delete()
-        elif isinstance(self.selection, Spot):
-            spot = self.selection
-            self.selection = None
-            self.board.rm_spot(spot.name)
-            spot.remote.delete()
-        else:
-            assert(isinstance(self.selection, Pawn))
-            pawn = self.selection
-            self.selection = None
-            self.board.rm_pawn(pawn.name)
-            pawn.remote.delete()
-
-    def toggle_stat_cfg(self, *args):
-        """Display or hide the configurator where you decide how to display an
-        entity's stats, or add or delete stats.
-
-        """
-        if self.current != 'statcfg':
-            self.stat_cfg.remote = self.selected_remote
-            self.stat_cfg.set_value = remote_setter(
-                self.engine.json_load,
-                self.stat_cfg.remote
+        if isinstance(selection, ArrowWidget):
+            self.app.selection = None
+            self.app.board.rm_arrow(
+                selection.origin.name,
+                selection.destination.name
             )
-        self.stat_cfg.toggle()
+            selection.portal.delete()
+        elif isinstance(selection, Spot):
+            self.app.selection = None
+            self.app.board.rm_spot(selection.name)
+            selection.remote.delete()
+        else:
+            assert isinstance(selection, Pawn)
+            self.app.selection = None
+            self.app.board.rm_pawn(selection.name)
+            selection.remote.delete()
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""
-        if self.current != 'chars':
-            adapter = self.chars.charsview.adapter
-            adapter.data = list(self.engine.character)
+        if self.app.current != 'chars':
+            adapter = self.app.chars.charsview.adapter
+            adapter.data = list(self.app.character)
             adapter.select_list(
                 [adapter.get_view(
-                    adapter.data.index(self.character.name)
+                    adapter.data.index(self.app.character_name)
                 )]
             )
-        self.chars.toggle()
+        self.app.chars.toggle()
 
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
-        if self.current != 'rules':
-            if not hasattr(self.selected_remote, 'rulebook'):
-                self.rules.rulebook = self.character.rulebook
+        if self.app.manager.current != 'rules':
+            if not hasattr(self.app.selected_remote, 'rulebook'):
+                self.app.rules.rulebook = self.app.character.rulebook
             else:
-                self.rules.rulebook = self.selected_remote.rulebook
-        self.rules.toggle()
+                self.app.rules.rulebook = self.app.selected_remote.rulebook
+        self.app.rules.toggle()
 
     def toggle_funcs_editor(self, functyp):
         """Display or hide the text editing window for functions."""
-        if self.current != 'funcs':
-            self.funcs.store = getattr(self.engine, functyp)
-            self.funcs.table = functyp
-        self.funcs.toggle()
-
-    def toggle_strings_editor(self):
-        """Display or hide the text editing window for strings."""
-        self.strings.toggle()
+        if self.app.manager.current != 'funcs':
+            self.app.funcs.store = getattr(self.engine, functyp)
+            self.app.funcs.table = functyp
+        self.app.funcs.toggle()
 
     def toggle_spot_cfg(self):
         """Show the dialog where you select graphics and a name for a place,
         or hide it if already showing.
 
         """
-        if self.spot_cfg is None:
-            Logger.warning("CharMenu: no spot config")
-            return
-        if self.current == 'spotcfg':
-            dummyplace = self.dummyplace
+        if self.app.manager.current == 'spotcfg':
+            dummyplace = self.screendummyplace
             self.ids.placetab.remove_widget(dummyplace)
             dummyplace.clear()
-            if self.spot_cfg.prefix:
-                dummyplace.prefix = self.spot_cfg.prefix
+            if self.app.spotcfg.prefix:
+                dummyplace.prefix = self.app.spotcfg.prefix
                 dummyplace.num = dummynum(
-                    self.character, dummyplace.prefix
+                    self.app.character, dummyplace.prefix
                 ) + 1
-            dummyplace.paths = self.spot_cfg.imgpaths
+            dummyplace.paths = self.app.spotcfg.imgpaths
             self.ids.placetab.add_widget(dummyplace)
         else:
-            self.spot_cfg.prefix = self.ids.dummyplace.prefix
-        self.spot_cfg.toggle()
+            self.app.spotcfg.prefix = self.ids.dummyplace.prefix
+        self.app.spotcfg.toggle()
 
     def toggle_pawn_cfg(self):
         """Show or hide the pop-over where you can configure the dummy pawn"""
-        if self.pawn_cfg is None:
-            Logger.warning("CharMenu: no pawn config")
-            return
-        if self.current == 'pawncfg':
-            dummything = self.dummything
+        if self.app.current == 'pawncfg':
+            dummything = self.app.dummything
             self.ids.thingtab.remove_widget(dummything)
             dummything.clear()
-            if self.pawn_cfg.prefix:
-                dummything.prefix = self.pawn_cfg.prefix
+            if self.app.pawncfg.prefix:
+                dummything.prefix = self.app.pawncfg.prefix
                 dummything.num = dummynum(
-                    self.character, dummything.prefix
+                    self.app.character, dummything.prefix
                 ) + 1
-            if self.pawn_cfg.imgpaths:
-                dummything.paths = self.pawn_cfg.imgpaths
+            if self.app.pawncfg.imgpaths:
+                dummything.paths = self.app.pawncfg.imgpaths
             else:
                 dummything.paths = ['atlas://rltiles/base/unseen']
             self.ids.thingtab.add_widget(dummything)
         else:
-            self.pawn_cfg.prefix = self.ids.dummything.prefix
-        self.pawn_cfg.toggle()
+            self.app.pawncfg.prefix = self.ids.dummything.prefix
+        self.app.pawncfg.toggle()
 
     def toggle_reciprocal(self):
         """Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)
@@ -164,11 +125,11 @@ class CharMenu(BoxLayout):
         fact.
 
         """
-        self.reciprocal_portal = not self.reciprocal_portal
-        if self.reciprocal_portal:
+        self.screen.reciprocal_portal = not self.screen.reciprocal_portal
+        if self.screen.reciprocal_portal:
             assert(self.revarrow is None)
             self.revarrow = ArrowWidget(
-                board=self.board,
+                board=self.app.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
             )
@@ -179,58 +140,16 @@ class CharMenu(BoxLayout):
                 self.revarrow = None
 
     def new_character(self, but):
-        charn = try_load(self.engine.json_load, self.chars.ids.newname.text)
-        self.select_character(self.engine.new_character(charn))
-        self.chars.ids.newname.text = ''
-        self.chars.charsview.adapter.data = list(
+        charn = try_load(
+            self.app.engine.json_load,
+            self.app.chars.ids.newname.text
+        )
+        self.app.select_character(self.app.engine.new_character(charn))
+        self.app.chars.ids.newname.text = ''
+        self.app.chars.charsview.adapter.data = list(
             self.engine.character.keys()
         )
         Clock.schedule_once(self.toggle_chars_screen, 0.01)
-
-    def new_rule(self, *args):
-        new_rule_name = self.rulebox.ids.rulename.text
-        if new_rule_name and new_rule_name not in self.engine.rule:
-            new = self.engine.rule.new_empty(new_rule_name)
-            rulesview = self.rulesbox.ids.rulesview
-            rulesview.rulebook.append(new)
-
-            def select_new(*args):
-                view = rulesview._list.adapter.get_view(
-                    rulesview._list.adapter.data.index(new)
-                )
-                rulesview._list.adapter.select_list([view])
-                rulesview.rule = new
-            Clock.schedule_once(select_new, 0.01)
-        self.rulesbox.ids.rulename.text = ''
-
-    def on_board(self, *args):
-        if hasattr(self, '_boarded'):
-            return
-        if None in (
-                self.board,
-                self.character,
-                self.selected_remote,
-                self.spot_from_dummy,
-                self.pawn_from_dummy,
-                self.select_character,
-                self.selected_remote,
-                self.rules,
-                self.chars,
-                self.stat_cfg
-        ):
-            Clock.schedule_once(self.on_board, 0)
-            return
-        self.rulesview = self.rules.rulesview
-        self.rules.bind(rulesview=self.setter('rulesview'))
-        self.chars.character = self.character
-        self.bind(character=self.chars.setter('character'))
-        self.stat_cfg.time = self.time
-        self.stat_cfg.remote = self.selected_remote
-        self.bind(
-            time=self.stat_cfg.setter('time'),
-            selected_remote=self.stat_cfg.setter('remote')
-        )
-        self._boarded = True
 
     def on_dummyplace(self, *args):
         if not self.dummyplace.paths:
@@ -294,12 +213,12 @@ Builder.load_string("""
                 center_y: portaladdbut.center_y
                 size: (0, 0)
             ArrowWidget:
-                board: root.board
+                board: root.app.board if root.app else None
                 origin: emptyleft
                 destination: emptyright
         Button:
             id: portaldirbut
-            text: 'One-way' if root.reciprocal_portal else 'Two-way'
+            text: 'One-way' if root.screen and root.screen.reciprocal_portal else 'Two-way'
             on_press: root.toggle_reciprocal()
     BoxLayout:
         Widget:

@@ -11,9 +11,10 @@ from kivy.resources import resource_add_path
 from kivy.uix.screenmanager import ScreenManager
 
 from kivy.properties import (
+    AliasProperty,
     ObjectProperty,
     NumericProperty,
-    ReferenceListProperty,
+    ListProperty,
     StringProperty
 )
 import LiSE
@@ -26,6 +27,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
+from .util import trigger
 
 """Object to configure, start, and stop ELiDE."""
 
@@ -38,16 +40,36 @@ class ELiDEApp(App):
 
     """
     engine = ObjectProperty()
-    branch = StringProperty()
-    tick = NumericProperty()
-    time = ReferenceListProperty(branch, tick)
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    time = ListProperty(['master', 0])
     character = ObjectProperty()
+    selection = ObjectProperty(None, allownone=True)
+    selected_remote = ObjectProperty()
+
+    def _get_character_name(self, *args):
+        if self.character is None:
+            return
+        return self.character.name
+
+    def _set_character_name(self, name):
+        self.character = self.engine.character[name]
+
+    character_name = AliasProperty(
+        _get_character_name,
+        _set_character_name,
+        bind=('character',)
+    )
 
     def _pull_time(self, *args):
-        self.time = self.engine.time
+        if not self.engine:
+            Clock.schedule_once(self._pull_time, 0)
+            return
+        (self.branch, self.tick) = self.engine.time
+    pull_time = trigger(_pull_time)
 
     def on_time(self, *args):
-        local_time = list(self.time)
+        local_time = tuple(self.time)
         if local_time != self.engine.time:
             self.engine.time = local_time
 
@@ -63,7 +85,7 @@ class ELiDEApp(App):
         if t is None:
             (b, t) = b
         t = int(t)
-        self.time = (b, t)
+        (self.branch, self.tick) = self.time = (b, t)
 
     def select_character(self, char):
         """Change my ``character`` to the selected character object if they
@@ -135,66 +157,65 @@ class ELiDEApp(App):
         if config['ELiDE']['debugger'] == 'yes':
             import pdb
             pdb.set_trace()
-        self.manager = EngineProcessManager()
+        self.procman = EngineProcessManager()
         enkw = {}
         if 'logfile' in config['LiSE']:
             enkw['logfile'] = config['LiSE']['logfile']
         if 'loglevel' in config['LiSE']:
             enkw['loglevel'] = config['LiSE']['loglevel']
-        self.engine = self.manager.start(
+        self.engine = self.procman.start(
             config['LiSE']['world'],
             config['LiSE']['code'],
             **enkw
         )
-        self._pull_time()
+        self.pull_time()
 
-        Clock.schedule_interval(lambda dt: self.manager.sync_log(), 0.1)
+        Clock.schedule_interval(lambda dt: self.procman.sync_log(), 0.1)
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             self.engine.add_character(char)
 
-        s = ScreenManager()
+        self.manager = ScreenManager()
 
         def toggler(screenname):
             def tog(*args):
-                if s.current == screenname:
-                    s.current = 'main'
+                if self.manager.current == screenname:
+                    self.manager.current = 'main'
                 else:
-                    s.current = screenname
+                    self.manager.current = screenname
             return tog
 
-        pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
+        self.pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
             toggle=toggler('pawncfg'),
             data=json.loads(config['ELiDE']['thing_graphics'])
         )
 
-        spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
+        self.spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
             toggle=toggler('spotcfg'),
             data=json.loads(config['ELiDE']['place_graphics'])
         )
 
-        rules = ELiDE.rulesview.RulesScreen(
+        self.rules = ELiDE.rulesview.RulesScreen(
             engine=self.engine,
             toggle=toggler('rules')
         )
 
-        chars = ELiDE.charsview.CharactersScreen(
-            toggle=toggler('chars'),
-            select_character=self.select_character,
-            engine=self.engine
+        self.chars = ELiDE.charsview.CharactersScreen(
+            engine=self.engine,
+            toggle=toggler('chars')
         )
 
-        strings = ELiDE.stringsed.StringsEdScreen(
+        self.strings = ELiDE.stringsed.StringsEdScreen(
             engine=self.engine,
             toggle=toggler('strings')
         )
 
-        funcs = ELiDE.funcsed.FuncsEdScreen(
+        self.funcs = ELiDE.funcsed.FuncsEdScreen(
             table='trigger',
             store=self.engine.trigger,
             toggle=toggler('funcs')
         )
-        funcs.bind(data=rules.rulesview._trigger_update_builders)
+        self.funcs.bind(data=self.rules.rulesview._trigger_update_builders)
 
         self.select_character(
             self.engine.character[
@@ -202,46 +223,53 @@ class ELiDEApp(App):
             ]
         )
 
-        stat_cfg = ELiDE.statcfg.StatScreen(
-            json_loader=self.engine.json_load,
-            remote=self.character.stat,
-            toggle=toggler('stat_cfg'),
-            time=self.time
+        self.statcfg = ELiDE.statcfg.StatScreen(
+            app=self,
+            toggle=toggler('statcfg')
         )
-        self.bind(time=stat_cfg.setter('time'))
+        self.bind(time=self.statcfg.setter('time'))
 
         self.mainscreen = ELiDE.screen.MainScreen(
             app=self,
-            engine=self.engine,
-            character=self.character,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            play_speed=int(config['ELiDE']['play_speed']),
-            time=self.time,
-            set_branch=self.set_branch,
-            set_tick=self.set_tick,
-            set_time=self.set_time,
-            select_character=self.select_character,
-            pawn_cfg=pawncfg,
-            spot_cfg=spotcfg,
-            stat_cfg=stat_cfg,
-            rules=rules,
-            chars=chars,
-            strings=strings,
-            funcs=funcs
+            play_speed=int(config['ELiDE']['play_speed'])
         )
-        for wid in (self.mainscreen, pawncfg, spotcfg, stat_cfg, rules, chars, strings, funcs):
-            s.add_widget(wid)
-        s.bind(current=self.mainscreen.setter('current'))
-        self.bind(
-            character=self.mainscreen.setter('character'),
-            time=self.mainscreen.setter('time')
-        )
+        self.bind(selection=self.reremote)
+        self.selected_remote = self._get_selected_remote()
+        for wid in (
+                self.mainscreen,
+                self.pawncfg,
+                self.spotcfg,
+                self.statcfg,
+                self.rules,
+                self.chars,
+                self.strings,
+                self.funcs
+        ):
+            self.manager.add_widget(wid)
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.mainscreen)
 
-        return s
+        return self.manager
+
+    def _get_selected_remote(self):
+        if self.selection is None:
+            return self.character.stat
+        elif hasattr(self.selection, 'remote'):
+            return self.selection.remote
+        elif (
+                hasattr(self.selection, 'portal') and
+                self.selection.portal is not None
+        ):
+            return self.selection.portal
+        else:
+            raise ValueError("Invalid selection: {}".format(self.selection))
+
+    @trigger
+    def reremote(self, *args):
+        self.selected_remote = self._get_selected_remote()
 
     def on_character_name(self, *args):
         if self.config['ELiDE']['boardchar'] != self.character_name:
@@ -254,11 +282,17 @@ class ELiDEApp(App):
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.manager.shutdown()
+        self.procman.shutdown()
         self.config.write()
+
+    def on_selection(self, *args):
+        Logger.debug("ELiDEApp: selection {}".format(self.selection))
 
 
 kv = """
+<App>:
+    time: [root.branch, root.tick]
+    selected_remote: root.selection.remote if root.selection else None
 <SymbolLabel@Label>:
     font_name: "Symbola.ttf"
     font_size: 50

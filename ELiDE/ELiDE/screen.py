@@ -46,10 +46,7 @@ class BoardView(ScrollView):
     viewed.
 
     """
-    selection = ObjectProperty(None, allownone=True)
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
-    character = ObjectProperty()
+    screen = ObjectProperty()
     board = ObjectProperty()
 
 
@@ -63,22 +60,32 @@ class StatListPanel(BoxLayout):
     in the StatListPanel.
 
     """
-    branch = StringProperty()
-    tick = NumericProperty()
-    time = ReferenceListProperty(branch, tick)
-    selected_remote = ObjectProperty()
-    mirror = DictProperty({})
+    app = ObjectProperty()
     selection_name = StringProperty()
     button_text = StringProperty('cfg')
-    set_value = ObjectProperty()
     cfgstatbut = ObjectProperty()
-    toggle_stat_cfg = ObjectProperty()
     stat_list = ObjectProperty()
 
-    def on_selected_remote(self, *args):
-        if self.selected_remote is None:
-            return
-        self.mirror = dict(self.selected_remote)
+    def on_app(self, *args):
+        self.app.bind(selected_remote=self.pull_selection_name)
+        self.pull_selection_name()
+
+    def pull_selection_name(self, *args):
+        if hasattr(self.app.selected_remote, 'name'):
+            self.selection_name = str(self.app.selected_remote.name)
+
+    def set_value(self, k, v):
+        if v is None:
+            del self.app.selected_remote[k]
+        else:
+            try:
+                vv = self.app.engine.json_load(v)
+            except (TypeError, ValueError):
+                vv = v
+            self.app.selected_remote[k] = vv
+
+    def toggle_stat_cfg(self, *args):
+        self.app.statcfg.toggle()
 
 
 class TimePanel(BoxLayout):
@@ -95,23 +102,23 @@ class TimePanel(BoxLayout):
     that's been made to call the ``advance`` method of the LiSE core.
 
     """
-    next_tick = ObjectProperty()
-    branch = StringProperty()
-    branch_setter = ObjectProperty()
-    tick = NumericProperty()
-    tick_setter = ObjectProperty()
-    playbut = ObjectProperty()
-    time = ReferenceListProperty(branch, tick)
+    screen = ObjectProperty()
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
         self.ids.branchfield.text = ''
-        self.branch_setter(branch)
+        self.screen.app.set_branch(branch)
 
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
-        self.tick_setter(tick)
+        self.screen.app.set_tick(tick)
+
+    def next_tick(self, *args):
+        self.screen.app.engine.next_tick(
+            char=self.screen.app.character_name,
+            cb=self.screen._update_from_chardiff
+        )
 
 
 class MainScreen(Screen):
@@ -125,66 +132,32 @@ class MainScreen(Screen):
 
     """
 
-    def _get_character_name(self, *args):
-        if self.character is None:
-            return
-        return self.character.name
-
-    def _set_character_name(self, name):
-        self.character = self.engine.character[name]
-
-    character = ObjectProperty()
-    character_name = AliasProperty(_get_character_name, _set_character_name, bind=('character',))
     board = ObjectProperty()
     kv = StringProperty()
     use_kv = BooleanProperty()
     play_speed = NumericProperty()
     playbut = ObjectProperty()
     portaladdbut = ObjectProperty()
+    portaldirbut = ObjectProperty()
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
-    visible = AliasProperty(
-        lambda self: self.current == self,
-        lambda self, v: None,
-        bind=('current',)
-    )
-    engine = ObjectProperty()
+    visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
     grabbing = BooleanProperty(True)
     reciprocal_portal = BooleanProperty(False)
     grabbed = ObjectProperty(None, allownone=True)
-    selection = ObjectProperty(None, allownone=True)
     selection_candidates = ListProperty([])
-    selected_remote = ObjectProperty()
     keep_selection = BooleanProperty(False)
     rules_per_frame = BoundedNumericProperty(10, min=1)
-    current = StringProperty()
-    branch = StringProperty()
-    tick = NumericProperty()
-    time = ReferenceListProperty(branch, tick)
-    set_branch = ObjectProperty()
-    set_tick = ObjectProperty()
-    set_time = ObjectProperty()
     app = ObjectProperty()
 
-    select_character = ObjectProperty()
-    pawn_cfg = ObjectProperty()
-    spot_cfg = ObjectProperty()
-    stat_cfg = ObjectProperty()
-    stat_list = ObjectProperty()
-    rules = ObjectProperty()
-    chars = ObjectProperty()
-    strings = ObjectProperty()
-    funcs = ObjectProperty()
+    def pull_visibility(self, *args):
+        self.visible = self.app.manager.current == 'main'
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.bind(
-            selection=self._trigger_reremote,
-            stat_list=self.stat_cfg.setter('stat_list'),
-        )
-        self._trigger_reremote()
+    def on_app(self, *args):
+        self.pull_visibility()
+        self.app.manager.bind(current=self.pull_visibility)
 
     def on_play_speed(self, *args):
         """Change the interval at which ``self.play`` is called to match my
@@ -228,39 +201,6 @@ class MainScreen(Screen):
         self.add_widget(self._kv_layout)
     _trigger_remake_display = trigger(remake_display)
 
-    def reremote(self, *args):
-        """Arrange to update my ``selected_remote`` with the currently
-        selected entity when I can.
-
-        """
-        if self.character is None or 'statpanel' not in self.ids:
-            Clock.schedule_once(self.reremote, 0)
-            return
-        try:
-            self.selected_remote = self._get_selected_remote()
-        except ValueError:
-            return
-    _trigger_reremote = trigger(reremote)
-
-    def _get_selected_remote(self):
-        """Return the currently selected entity, or ``self.character.stat`` if
-        no entity is selected.
-
-        """
-        if self.selection is None:
-            return self.character.stat
-        elif hasattr(self.selection, 'remote'):
-            return self.selection.remote
-        elif (
-            hasattr(self.selection, 'portal') and
-            self.selection.portal is not None
-        ):
-            return self.selection.portal
-        else:
-            raise ValueError(
-                "Invalid selection: {}".format(repr(self.selection))
-            )
-
     def on_touch_down(self, touch):
         """Dispatch the touch to the board, then its :class:`ScrollView`, then
         the dummies, then the menus.
@@ -283,13 +223,15 @@ class MainScreen(Screen):
             return
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
-        if self.selection:
-            self.selection.hit = self.selection.collide_point(*touch.pos)
+        if self.app.selection:
+            self.app.selection.hit = self.app.selection.collide_point(*touch.pos)
+            if self.app.selection.hit:
+                touch.grab(self.app.selection)
         pawns = list(self.board.pawns_at(*touch.pos))
         if pawns:
             self.selection_candidates = pawns
-            if self.selection in self.selection_candidates:
-                self.selection_candidates.remove(self.selection)
+            if self.app.selection in self.selection_candidates:
+                self.selection_candidates.remove(self.app.selection)
             return True
         spots = list(self.board.spots_at(*touch.pos))
         if spots:
@@ -302,7 +244,7 @@ class MainScreen(Screen):
                     size=(0, 0)
                 )
                 self.board.add_widget(self.protodest)
-                self.selection = self.protodest
+                self.app.selection = self.protodest
                 # why do I need this next?
                 self.protodest.on_touch_down(touch)
                 self.protoportal = ArrowWidget(
@@ -334,19 +276,19 @@ class MainScreen(Screen):
         """
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
-        if self.selection in self.selection_candidates:
-            self.selection_candidates.remove(self.selection)
-        if self.selection and not self.selection_candidates:
+        if self.app.selection in self.selection_candidates:
+            self.selection_candidates.remove(self.app.selection)
+        if self.app.selection and not self.selection_candidates:
             self.keep_selection = True
-            self.selection.dispatch('on_touch_move', touch)
+            self.app.selection.dispatch('on_touch_move', touch)
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
-                    if hasattr(self.selection, 'selected'):
-                        self.selection.selected = False
-                    if hasattr(self.selection, 'hit'):
-                        self.selection.hit = False
-                    self.selection = cand
+                    if hasattr(self.app.selection, 'selected'):
+                        self.app.selection.selected = False
+                    if hasattr(self.app.selection, 'hit'):
+                        self.app.selection.hit = False
+                    self.app.selection = cand
                     cand.hit = cand.selected = True
                     touch.grab(cand)
                     cand.dispatch('on_touch_move', touch)
@@ -419,18 +361,18 @@ class MainScreen(Screen):
         while self.selection_candidates:
             candidate = self.selection_candidates.pop(0)
             if candidate.collide_point(*touch.pos):
-                if hasattr(self.selection, 'selected'):
-                    self.selection.selected = False
-                if hasattr(self.selection, '_start'):
-                    self.selection.pos = self.selection._start
-                    del self.selection._start
-                self.selection = candidate
-                self.selection.selected = True
+                if hasattr(self.app.selection, 'selected'):
+                    self.app.selection.selected = False
+                if hasattr(self.app.selection, '_start'):
+                    self.app.selection.pos = self.app.selection._start
+                    del self.app.selection._start
+                self.app.selection = candidate
+                self.app.selection.selected = True
                 if (
-                        hasattr(self.selection, 'thing') and not
-                        hasattr(self.selection, '_start')
+                        hasattr(self.app.selection, 'thing') and not
+                        hasattr(self.app.selection, '_start')
                 ):
-                    self.selection._start = tuple(self.selection.pos)
+                    self.app.selection._start = tuple(self.app.selection.pos)
                 touch.pop()
                 self.keep_selection = True
                 return True
@@ -457,8 +399,8 @@ class MainScreen(Screen):
         elif self.ids.statpanel.collide_point(*touch.pos):
             self.ids.statpanel.dispatch('on_touch_up', touch)
             return True
-        elif hasattr(self.selection, 'on_touch_up'):
-            self.selection.dispatch('on_touch_up', touch)
+        elif hasattr(self.app.selection, 'on_touch_up'):
+            self.app.selection.dispatch('on_touch_up', touch)
         # If we're not making a portal, and the touch hasn't landed
         # anywhere that would demand special treatment, but the
         # touch_down hit some selectable items, select the first of
@@ -466,10 +408,12 @@ class MainScreen(Screen):
         if self.selection_candidates:
             self._selection_touch_up(touch)
         if not self.keep_selection:
-            if hasattr(self.selection, 'selected'):
-                self.selection.selected = False
-            self.selection = None
+            if hasattr(self.app.selection, 'selected'):
+                self.app.selection.selected = False
+            self.app.selection = None
         self.keep_selection = False
+        touch.ungrab(self)
+        return True
 
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
@@ -478,32 +422,27 @@ class MainScreen(Screen):
 
         """
         def renum_dummy(dummy, *args):
-            dummy.num = dummynum(self.character, dummy.prefix) + 1
+            dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 
-        if self.board is None or self.character is None:
-            Clock.schedule_once(self.on_dummies, 0)
-            return
         for dummy in self.dummies:
             if dummy is None or hasattr(dummy, '_numbered'):
                 continue
             if dummy == self.dummything:
-                self.ids.charmenu._pawn_config = self.pawn_cfg
-                self.pawn_cfg.bind(imgpaths=self._propagate_thing_paths)
+                self.app.pawncfg.bind(imgpaths=self._propagate_thing_paths)
             if dummy == self.dummyplace:
-                self.ids.charmenu._spot_config = self.spot_cfg
-                self.spot_cfg.bind(imgpaths=self._propagate_place_paths)
-            dummy.num = dummynum(self.character, dummy.prefix) + 1
+                self.app.spotcfg.bind(imgpaths=self._propagate_place_paths)
+            dummy.num = dummynum(self.app.character, dummy.prefix) + 1
             Logger.debug("MainScreen: dummy #{}".format(dummy.num))
             dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
 
     def _propagate_thing_paths(self, *args):
         # horrible hack
-        self.dummything.paths = self.pawn_cfg.imgpaths
+        self.dummything.paths = self.app.pawncfg.imgpaths
 
     def _propagate_place_paths(self, *args):
         # horrible hack
-        self.dummyplace.paths = self.spot_cfg.imgpaths
+        self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def spot_from_dummy(self, dummy):
         """Create a new :class:`board.Spot` instance, along with the
@@ -583,10 +522,12 @@ class MainScreen(Screen):
         )
 
     def _update_from_chardiff(self, char, chardiff):
-        assert self.board.character.name == char
+        Logger.debug("{}: updating from diff {}".format(
+            char, chardiff
+        ))
         self.board.trigger_update_from_diff(chardiff)
         self.ids.statpanel.stat_list.mirror = dict(self.selected_remote)
-        self.app._pull_time()
+        self.app.pull_time()
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
@@ -595,7 +536,7 @@ class MainScreen(Screen):
         elif not hasattr(self, '_old_time'):
             self._old_time = tuple(self.time)
             self.engine.next_tick(
-                char=self.character_name,
+                char=self.app.character_name,
                 cb=self._update_from_chardiff
             )
         elif self._old_time == self.time:
@@ -614,10 +555,7 @@ Builder.load_string(
     board: board
     Board:
         id: board
-        selection: root.selection
-        branch: root.branch
-        tick: root.tick
-        character: root.character
+        screen: root.screen
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
@@ -629,10 +567,7 @@ Builder.load_string(
     StatListView:
         id: stat_list
         size_hint_y: 0.95
-        remote: root.selected_remote
-        mirror: root.mirror
-        time: root.time
-        set_value: root.set_value
+        app: root.app
     Button:
         id: cfgstatbut
         size_hint_y: 0.05
@@ -656,7 +591,7 @@ Builder.load_string(
             text: 'Branch'
         MenuTextInput:
             setter: root.set_branch
-            hint_text: root.branch
+            hint_text: root.screen.app.branch if root.screen else ''
     BoxLayout:
         orientation: 'vertical'
         Label:
@@ -664,7 +599,7 @@ Builder.load_string(
         MenuIntInput:
             id: tickfield
             setter: root.set_tick
-            hint_text: str(root.tick)
+            hint_text: str(root.screen.app.tick) if root.screen else ''
 <MainScreen>:
     name: 'main'
     dummyplace: charmenu.dummyplace
@@ -681,48 +616,20 @@ Builder.load_string(
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.height
-        selection: root.selection
-        branch: root.branch
-        tick: root.tick
-        character: root.character
+        screen: root
     StatListPanel:
         id: statpanel
+        app: root.app
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
-        time: root.time
-        selected_remote: root.selected_remote
-        selection_name: str(root.character_name) \
-        if root.selection is None else str(root.selection.name)
-        set_value: remote_setter(root.engine.json_load, root.selected_remote)
-        toggle_stat_cfg: charmenu.toggle_stat_cfg
     TimePanel:
         id: timepanel
+        screen: root
         pos_hint: {'bot': 0}
         size_hint: (0.85, 0.1)
-        branch: root.branch
-        tick: root.tick
-        branch_setter: root.set_branch
-        tick_setter: root.set_tick
-        next_tick: lambda: root.engine.next_tick(char=root.character_name, cb=root._update_from_chardiff)
     CharMenu:
         id: charmenu
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
-        engine: root.engine
-        board: root.board
-        selection: root.selection
-        character: root.character
-        character_name: root.character_name
-        selected_remote: root.selected_remote
-        spot_from_dummy: root.spot_from_dummy
-        pawn_from_dummy: root.pawn_from_dummy
-        select_character: root.select_character
-        pawn_cfg: root.pawn_cfg
-        spot_cfg: root.spot_cfg
-        stat_cfg: root.stat_cfg
-        rules: root.rules
-        chars: root.chars
-        strings: root.strings
-        funcs: root.funcs
 """
 )
