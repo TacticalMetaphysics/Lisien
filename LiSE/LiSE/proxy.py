@@ -1027,7 +1027,7 @@ class PortalProxy(CachingEntityProxy):
 
     @property
     def _cache(self):
-        return self.engine._portal_stat_cache[self.charname][
+        return self.engine._portal_stat_cache[self._charname][
             self._nodeA][self._nodeB]
 
     def _get_diff(self):
