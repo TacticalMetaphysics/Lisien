@@ -187,22 +187,6 @@ class CharMenu(BoxLayout):
         )
         Clock.schedule_once(self.toggle_chars_screen, 0.01)
 
-    def new_rule(self, *args):
-        new_rule_name = self.rulebox.ids.rulename.text
-        if new_rule_name and new_rule_name not in self.engine.rule:
-            new = self.engine.rule.new_empty(new_rule_name)
-            rulesview = self.rulesbox.ids.rulesview
-            rulesview.rulebook.append(new)
-
-            def select_new(*args):
-                view = rulesview._list.adapter.get_view(
-                    rulesview._list.adapter.data.index(new)
-                )
-                rulesview._list.adapter.select_list([view])
-                rulesview.rule = new
-            Clock.schedule_once(select_new, 0.01)
-        self.rulesbox.ids.rulename.text = ''
-
     def on_board(self, *args):
         if hasattr(self, '_boarded'):
             return
