@@ -15,7 +15,6 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.screenmanager import Screen
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
-from LiSE.rule import Rule
 from .util import trigger
 
 
@@ -25,7 +24,6 @@ from .util import trigger
 
 
 dbg = Logger.debug
-
 
 
 def getname(o):
@@ -59,7 +57,10 @@ class RulesList(ListView):
     def on_adapter(self, *args):
         self.adapter.bind(
             on_selection_change=lambda inst:
-            self.set_rule(self.adapter.selection[0].rule if self.adapter.selection else None)
+            self.set_rule(
+                self.adapter.selection[0].rule
+                if self.adapter.selection else None
+            )
         )
 
     def on_rulebook(self, *args):
