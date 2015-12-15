@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 import re
 from functools import partial
 from string import ascii_letters, digits

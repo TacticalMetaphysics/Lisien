@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+# Copyright (C) Zachary Spector, ZacharySpector@gmail.com
 """Grid of current values for some entity. Can be changed by the
 user. Autoupdates when there's a change for any reason.
 

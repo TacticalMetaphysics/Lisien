@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+# Copyright (C) Zachary Spector, ZacharySpector@gmail.com
 """Widget to display the contents of a :class:`kivy.atlas.Atlas` in
 one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 :class:`kivy.uix.stacklayout.StackLayout`. The user selects graphics

@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Directed edges, as used by LiSE."""
 
 from gorm.graph import Edge

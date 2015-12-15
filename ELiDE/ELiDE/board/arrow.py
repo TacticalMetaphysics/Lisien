@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """That which displays a one-way connection between two places.
 
 An arrow connects two spots, the origin and the destination, and it

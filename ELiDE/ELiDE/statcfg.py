@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 from kivy.clock import Clock
 from kivy.properties import DictProperty, NumericProperty, StringProperty, ReferenceListProperty, ObjectProperty
 from kivy.lang import Builder

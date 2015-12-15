@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Editors for textual data in the database.
 
 The data is accessed via a "store" -- a mapping onto the table, used

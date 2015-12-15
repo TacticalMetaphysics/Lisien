@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 from gorm.reify import reify
 from collections import defaultdict, Mapping, MutableSequence
 from gorm.window import window_left, window_right

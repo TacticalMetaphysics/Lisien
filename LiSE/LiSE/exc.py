@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 try:
     from sqlalchemy.exc import OperationalError as alchemyOpError
     from sqlite3 import OperationalError as liteOpError

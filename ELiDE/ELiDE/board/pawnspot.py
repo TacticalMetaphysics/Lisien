@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Code that draws the box around a Pawn or Spot when it's selected"""
 from kivy.properties import (
     ObjectProperty,

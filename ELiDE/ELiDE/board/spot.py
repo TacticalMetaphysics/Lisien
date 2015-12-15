@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Widget to represent :class:`Place`s. :class:`Pawn` moves around on
 top of these.
 
