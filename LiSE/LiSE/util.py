@@ -50,10 +50,13 @@ def dict_diff(old, new):
 
 
 def list_diff(old, new):
-    r = {item: True for item in new}
+    r = {}
     for item in old:
         if item not in new:
             r[item] = False
+    for item in new:
+        if item not in old:
+            r[item] = True
     return r
 
 
