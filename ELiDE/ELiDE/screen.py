@@ -629,6 +629,7 @@ Builder.load_string(
         size_hint: (0.85, 0.1)
     CharMenu:
         id: charmenu
+        screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
 """

@@ -129,7 +129,8 @@ class ArrowWidget(Widget):
     """
     board = ObjectProperty()
     app = AliasProperty(
-        lambda self: self.board.screen.app if self.board else None,
+        lambda self: self.board.screen.app
+        if self.board and self.board.screen else None,
         lambda self, v: None,
         bind=('board',)
     )

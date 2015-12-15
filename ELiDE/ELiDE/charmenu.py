@@ -36,19 +36,19 @@ class CharMenu(BoxLayout):
             return
         if isinstance(selection, ArrowWidget):
             self.app.selection = None
-            self.app.board.rm_arrow(
+            self.screen.board.rm_arrow(
                 selection.origin.name,
                 selection.destination.name
             )
             selection.portal.delete()
         elif isinstance(selection, Spot):
             self.app.selection = None
-            self.app.board.rm_spot(selection.name)
+            self.screen.board.rm_spot(selection.name)
             selection.remote.delete()
         else:
             assert isinstance(selection, Pawn)
             self.app.selection = None
-            self.app.board.rm_pawn(selection.name)
+            self.screen.board.rm_pawn(selection.name)
             selection.remote.delete()
 
     def toggle_chars_screen(self, *args):
@@ -129,7 +129,7 @@ class CharMenu(BoxLayout):
         if self.screen.reciprocal_portal:
             assert(self.revarrow is None)
             self.revarrow = ArrowWidget(
-                board=self.app.board,
+                board=self.screen.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
             )
@@ -213,7 +213,7 @@ Builder.load_string("""
                 center_y: portaladdbut.center_y
                 size: (0, 0)
             ArrowWidget:
-                board: root.app.board if root.app else None
+                board: root.screen.board if root.screen else None
                 origin: emptyleft
                 destination: emptyright
         Button:
