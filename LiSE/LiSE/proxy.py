@@ -631,19 +631,19 @@ class EngineHandle(object):
         self._real.character[char].del_avatar(a, b)
 
     def get_rule_actions(self, rule):
-        return self._real.rule.db.rule_actions(rule)
+        return self._real.rule[rule].actions._cache
 
     def set_rule_actions(self, rule, l):
         self._real.rule.db.set_rule_actions(rule, l)
 
     def get_rule_triggers(self, rule):
-        return self._real.rule.db.rule_triggers(rule)
+        return self._real.rule[rule].triggers._cache
 
     def set_rule_triggers(self, rule, l):
         self._real.rule.db.set_rule_triggers(rule, l)
 
     def get_rule_prereqs(self, rule):
-        return self._real.rule.db.rule_prereqs(rule)
+        return self._real.rule[rule].prereqs._cache
 
     def set_rule_prereqs(self, rule, l):
         self._real.rule.db.set_rule_prereqs(rule, l)
@@ -661,17 +661,17 @@ class EngineHandle(object):
         self._real.rule.new_empty(k)
 
     def get_rulebook_rules(self, rulebook):
-        return list(self._real.db.rulebook_rules(rulebook))
+        return self._real.rulebook[rulebook]._cache
 
     def set_rulebook_rule(self, rulebook, i, rule):
-        self._real.db.rulebook_set(rulebook, i, rule)
+        self._real.rule.db.rulebook_set(rulebook, i, rule)
 
     def ins_rulebook_rule(self, rulebook, i, rule):
-        self._real.db.rulebook_decr(rulebook, i)
+        self._real.rule.db.rulebook_decr(rulebook, i)
         self.set_rulebook_rule(rulebook, i, rule)
 
     def del_rulebook_rule(self, rulebook, i):
-        self._real.db.rulebook_del(rulebook, i)
+        self._real.rule.db.rulebook_del(rulebook, i)
 
     def get_character_rulebook(self, character):
         return self._real.db.get_rulebook_char(
