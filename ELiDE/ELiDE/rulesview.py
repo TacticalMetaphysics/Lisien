@@ -68,10 +68,6 @@ class RulesList(ListView):
             return
         self.adapter.data = list(self.rulebook)
 
-        @self.rulebook.listener
-        def upd_adapter_data(rb):
-            self.adapter.data = list(rb)
-
     def set_rule(self, rule):
         self.rulesview.rule = rule
 
