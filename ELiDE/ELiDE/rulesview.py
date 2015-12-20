@@ -104,13 +104,9 @@ class RulesView(FloatLayout):
         bind=('rulebook',)
     )
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.finalize()
-
-    def finalize(self, *args):
+    def on_canvas(self, *args):
         if self.canvas is None:
-            Clock.schedule_once(self.finalize, 0)
+            Clock.schedule_once(self.on_canvas, 0)
             return
 
         deck_builder_kwargs = {
