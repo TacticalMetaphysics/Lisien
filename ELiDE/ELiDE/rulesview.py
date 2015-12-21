@@ -164,19 +164,19 @@ class RulesView(FloatLayout):
             deckidx=1,
             scroll_min=0
         )
-        self._action_layout = FloatLayout()
-        self._action_tab.add_widget(self._action_layout)
-        self._action_layout.add_widget(self._action_builder)
-        self._action_layout.add_widget(self._scroll_left_action)
-        self._action_layout.add_widget(self._scroll_right_action)
-        self._action_layout.add_widget(
+        self._actions_layout = FloatLayout()
+        self._action_tab.add_widget(self._actions_layout)
+        self._actions_layout.add_widget(self._action_builder)
+        self._actions_layout.add_widget(self._scroll_left_action)
+        self._actions_layout.add_widget(self._scroll_right_action)
+        self._actions_layout.add_widget(
             Label(
                 text='Used',
                 pos_hint={'center_x': 0.1, 'center_y': 0.98},
                 size_hint=(None, None)
             )
         )
-        self._action_layout.add_widget(
+        self._actions_layout.add_widget(
             Label(
                 text='Unused',
                 pos_hint={'center_x': 0.5, 'center_y': 0.98},
@@ -199,25 +199,25 @@ class RulesView(FloatLayout):
             deckbuilder=self._trigger_builder,
             deckidx=1
         )
-        self._trigger_layout = FloatLayout()
-        self._trigger_tab.add_widget(self._trigger_layout)
-        self._trigger_layout.add_widget(self._trigger_builder)
-        self._trigger_layout.add_widget(self._scroll_left_trigger)
-        self._trigger_layout.add_widget(
+        self._triggers_layout = FloatLayout()
+        self._trigger_tab.add_widget(self._triggers_layout)
+        self._triggers_layout.add_widget(self._trigger_builder)
+        self._triggers_layout.add_widget(self._scroll_left_trigger)
+        self._triggers_layout.add_widget(
             Label(
                 text='Used',
                 pos_hint={'center_x': 0.1, 'center_y': 0.98},
                 size_hint=(None, None)
             )
         )
-        self._trigger_layout.add_widget(
+        self._triggers_layout.add_widget(
             Label(
                 text='Unused',
                 pos_hint={'center_x': 0.5, 'center_y': 0.98},
                 size_hint=(None, None)
             )
         )
-        self._trigger_layout.add_widget(self._scroll_right_trigger)
+        self._triggers_layout.add_widget(self._scroll_right_trigger)
 
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
@@ -234,19 +234,19 @@ class RulesView(FloatLayout):
             deckbuilder=self._prereq_builder,
             deckidx=1
         )
-        self._prereq_layout = FloatLayout()
-        self._prereq_tab.add_widget(self._prereq_layout)
-        self._prereq_layout.add_widget(self._prereq_builder)
-        self._prereq_layout.add_widget(self._scroll_left_prereq)
-        self._prereq_layout.add_widget(self._scroll_right_prereq)
-        self._prereq_layout.add_widget(
+        self._prereqs_layout = FloatLayout()
+        self._prereq_tab.add_widget(self._prereqs_layout)
+        self._prereqs_layout.add_widget(self._prereq_builder)
+        self._prereqs_layout.add_widget(self._scroll_left_prereq)
+        self._prereqs_layout.add_widget(self._scroll_right_prereq)
+        self._prereqs_layout.add_widget(
             Label(
                 text='Used',
                 pos_hint={'center_x': 0.1, 'center_y': 0.98},
                 size_hint=(None, None)
             )
         )
-        self._prereq_layout.add_widget(
+        self._prereqs_layout.add_widget(
             Label(
                 text='Unused',
                 pos_hint={'center_x': 0.5, 'center_y': 0.98},
