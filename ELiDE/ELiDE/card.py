@@ -15,12 +15,15 @@ from kivy.properties import (
     StringProperty,
     BoundedNumericProperty
 )
+from kivy.graphics import Color, Rectangle, Line
+from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
 from kivy.uix.stencilview import StencilView
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
+from .util import trigger
 
 
 """Widget that looks like a trading card, and a layout within which it
@@ -94,6 +97,235 @@ class ColorTextureBox(Widget):
     color = ListProperty([1, 1, 1, 1])
     outline_color = ListProperty([0, 0, 0, 0])
     texture = ObjectProperty(None, allownone=True)
+
+
+class CardBackground(Widget):
+    color = ListProperty([.7, .7, .7, 1])
+    texture = ObjectProperty(None, allownone=True)
+    source = StringProperty(None, allownone=True)
+    image = ObjectProperty(None, allownone=True)
+    outline_color = ListProperty([0, 0, 0, 1])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas:
+            self._bgc = Color(rgba=self.color)
+            self._bgrect = Rectangle(
+                texture=self.texture,
+                pos=self.pos,
+                size=self.size
+            )
+            self._outc = Color(rgba=self.outline_color)
+            self._line = Line(points=self._get_line_points())
+            Color(rgba=[1, 1, 1, 1])
+
+    def on_source(self, *args):
+        if self.source:
+            self.image = Image(source=self.source)
+
+    def on_image(self, *args):
+        if self.image:
+            self.texture = self.image.texture
+
+    def on_color(self, *args):
+        if not hasattr(self, '_bgc'):
+            return
+        self._bgc.rgba = self.background_color
+
+    def on_texture(self, *args):
+        if not hasattr(self, '_bgrect'):
+            return
+        self._bgrect.texture = self.background_texture
+
+    def on_outline_color(self, *args):
+        if not hasattr(self, '_outc'):
+            return
+        self._outc.rgba = self.outline_color
+
+    def on_pos(self, *args):
+        if not hasattr(self, '_bgrect'):
+            return
+        self._bgrect.pos = self.pos
+        self._line.points = self._get_line_points()
+
+    def on_size(self, *args):
+        if not hasattr(self, '_bgrect'):
+            return
+        self._bgrect.size = self.size
+        self._line.points = self._get_line_points()
+
+    def _get_line_points(self, *args):
+        return [self.x, self.y, self.right, self.y,
+                self.right, self.top, self.x, self.top, self.x, self.y]
+
+
+class CardContent(BoxLayout):
+    outline_color = ListProperty([0, 0, 0, 0])
+    headline_text = StringProperty('')
+    headline_markup = BooleanProperty(False)
+    headline_font_name = StringProperty('Roboto-Regular')
+    headline_font_size = NumericProperty(18)
+    headline_color = ListProperty([0, 0, 0, 1])
+    midline_text = StringProperty('')
+    midline_markup = BooleanProperty(False)
+    midline_font_name = StringProperty('Roboto-Regular')
+    midline_font_size = NumericProperty(12)
+    midline_color = ListProperty([0, 0, 0, 1])
+    text = StringProperty('')
+    text_color = ListProperty([0, 0, 0, 1])
+    markup = BooleanProperty(True)
+    font_name = StringProperty('Roboto-Regular')
+    font_size = NumericProperty(12)
+    foreground_source = StringProperty(None, allownone=True)
+    foreground_color = ListProperty([1, 1, 1, 1])
+    foreground_outline_color = ListProperty([0, 0, 0, 1])
+    foreground_image = ObjectProperty(None, allownone=True)
+    foreground_texture = ObjectProperty(None, allownone=True)
+    footer_text = StringProperty('')
+    footer_markup = BooleanProperty(False)
+    footer_font_name = StringProperty('Roboto-Regular')
+    footer_font_size = NumericProperty(12)
+    footer_color = ListProperty([0, 0, 0, 1])
+    art_color = ListProperty([1, 1, 1, 1])
+    art_outline_color = ListProperty([0, 0, 0, 1])
+    art_source = StringProperty()
+    art_image = ObjectProperty(None, allownone=True)
+    art_texture = ObjectProperty(None, allownone=True)
+    show_art = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas:
+            self._bgc = Color(rgba=self.outline_color)
+            self._line = Line(points=self._get_line_points())
+            Color(rgba=[1, 1, 1, 1])
+        self.populate()
+
+    @trigger
+    def populate(self, *args):
+        self.clear_widgets()
+        self.headline = Label(
+            text=self.headline_text,
+            markup=self.headline_markup,
+            font_name=self.headline_font_name,
+            font_size=self.headline_font_size,
+            color=self.headline_color,
+            size_hint=(None, None)
+        )
+        self.headline.size = self.headline.texture_size
+        self.headline.bind(texture_size=self.headline.setter('size'))
+        self.bind(
+            headline_text=self.headline.setter('text'),
+            headline_markup=self.headline.setter('markup'),
+            headline_font_name=self.headline.setter('font_name'),
+            headline_font_size=self.headline.setter('font_size'),
+            headline_color=self.headline.setter('color')
+        )
+        self.add_widget(self.headline)
+        if self.show_art:
+            self.art = ColorTextureBox(
+                color=self.art_color,
+                texture=self.art_texture,
+                outline_color=self.art_outline_color
+            )
+            self.bind(
+                art_color=self.art.setter('color'),
+                art_texture=self.art.setter('texture'),
+                art_outline_color=self.art.setter('outline_color')
+            )
+            self.add_widget(self.art)
+        self.midline = Label(
+            text=self.midline_text,
+            markup=self.midline_markup,
+            font_name=self.midline_font_name,
+            font_size=self.midline_font_size,
+            color=self.midline_color,
+            size_hint=(None, None)
+        )
+        self.midline.size = self.midline.texture_size
+        self.midline.bind(texture_size=self.midline.setter('size'))
+        self.bind(
+            midline_text=self.midline.setter('text'),
+            midline_markup=self.midline.setter('markup'),
+            midline_font_name=self.midline.setter('font_name'),
+            midline_font_size=self.midline.setter('font_size'),
+            midline_color=self.midline.setter('color')
+        )
+        self.add_widget(self.midline)
+        self.textbox = ColorTextureBox(
+            color=self.foreground_color,
+            outline_color=self.foreground_outline_color,
+            texture=self.foreground_texture
+        )
+        self.bind(
+            foreground_color=self.textbox.setter('color'),
+            foreground_outline_color=self.textbox.setter('outline_color'),
+            foreground_texture=self.textbox.setter('texture')
+        )
+        self.textlabel = Label(
+            text=self.text,
+            color=self.text_color,
+            markup=self.markup,
+            font_name=self.font_name,
+            font_size=self.font_size,
+            text_size=self.textbox.size,
+            size_hint=(None, None),
+            pos=self.textbox.pos,
+            valign='top'
+        )
+        self.textlabel.size = self.textlabel.texture_size
+        self.textlabel.bind(texture_size=self.textlabel.setter('size'))
+        self.bind(
+            text=self.textlabel.setter('text'),
+            text_color=self.textlabel.setter('color'),
+            markup=self.textlabel.setter('markup'),
+            font_name=self.textlabel.setter('font_name'),
+            font_size=self.textlabel.setter('font_size')
+        )
+        self.textbox.bind(
+            size=self.textlabel.setter('size'),
+            pos=self.textlabel.setter('pos')
+        )
+        self.textbox.add_widget(self.textlabel)
+        self.add_widget(self.textbox)
+        self.footer = Label(
+            text=self.footer_text,
+            markup=self.footer_markup,
+            font_name=self.footer_font_name,
+            font_size=self.footer_font_size,
+            color=self.footer_color,
+            size_hint=(None, None)
+        )
+        self.footer.size = self.footer.texture_size
+        self.footer.bind(texture_size=self.footer.setter('size'))
+        self.bind(
+            footer_text=self.footer.setter('text'),
+            footer_markup=self.footer.setter('markup'),
+            footer_font_name=self.footer.setter('font_name'),
+            footer_font_size=self.footer.setter('font_size'),
+            footer_color=self.footer.setter('color')
+        )
+
+    def on_foreground_source(self, *args):
+        if self.foreground_source:
+            self.foreground_image = Image(source=self.foreground_source)
+
+    def on_foreground_image(self, *args):
+        if self.foreground_image:
+            self.foreground_texture = self.foreground_image.texture
+
+    def on_outline_color(self, *args):
+        self._bgc.rgba = self.outline_color
+
+    def on_size(self, *args):
+        self._line.points = self._get_line_points()
+
+    def on_pos(self, *args):
+        self._line.points = self._get_line_points()
+
+    def _get_line_points(self, *args):
+        return [self.x, self.y, self.right, self.y,
+                self.right, self.top, self.x, self.top, self.x, self.y]
 
 
 class Card(FloatLayout):
@@ -1055,19 +1287,6 @@ kv = """
     footer: footer
     art: art
     foreground: foreground
-    canvas:
-        Color:
-            rgba: root.background_color
-        Rectangle:
-            texture: root.background_texture
-            pos: root.pos
-            size: root.size
-        Color:
-            rgba: root.outline_color
-        Line:
-            points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-        Color:
-            rgba: [1, 1, 1, 1]
     BoxLayout:
         size_hint: 0.9, 0.9
         pos_hint: {'x': 0.05, 'y': 0.05}
