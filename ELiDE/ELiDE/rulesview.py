@@ -348,7 +348,7 @@ class RulesView(FloatLayout):
         for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
             if not hasattr(self, attrn):
                 dbg('RulesView: no {}'.format(attrn))
-                Clock.schedule_once(self.on_rule, 0)
+                Clock.schedule_once(self.update_builders, 0)
                 return
         self._trigger_builder.clear_widgets()
         self._prereq_builder.clear_widgets()
