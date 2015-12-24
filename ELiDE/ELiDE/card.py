@@ -800,14 +800,6 @@ class ScrollBarBar(ColorTextureBox):
             self.parent.bar_touched(self, touch)
 
 
-def dist(x1, x2):
-    """Convenience function for computing the distance between two
-    numbers.
-
-    """
-    return x1 - x2 if x1 > x2 else x2 - x1
-
-
 class DeckBuilderScrollBar(FloatLayout):
     """A widget that looks a lot like one of the scrollbars on the sides
     of eg. :class:`kivy.uix.ScrollView`, which moves a single deck
@@ -842,7 +834,7 @@ class DeckBuilderScrollBar(FloatLayout):
     """
 
     scroll_hint = AliasProperty(
-        lambda self: dist(self.scroll_max, self.scroll_min),
+        lambda self: abs(self.scroll_max-self.scroll_min),
         lambda self, v: None,
         bind=('scroll_min', 'scroll_max')
     )
