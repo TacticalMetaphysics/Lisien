@@ -15,6 +15,7 @@ from kivy.properties import (
     StringProperty,
     BoundedNumericProperty
 )
+from kivy.graphics import InstructionGroup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
@@ -623,8 +624,9 @@ class DeckBuilderLayout(Layout):
                 touch.ud['layout'] == self and
                 not hasattr(touch.ud['card'], '_topdecked')
         ):
-            self.canvas.after.add(touch.ud['card'].canvas)
-            touch.ud['card']._topdecked = True
+            touch.ud['card']._topdecked = InstructionGroup()
+            touch.ud['card']._topdecked.add(touch.ud['card'].canvas)
+            self.canvas.after.add(touch.ud['card']._topdecked)
         i = 0
         for deck in self.decks:
             cards = [card for card in deck if not card.dragging]
@@ -694,7 +696,7 @@ class DeckBuilderLayout(Layout):
         ):
             return
         if hasattr(touch.ud['card'], '_topdecked'):
-            self.canvas.after.remove(touch.ud['card'].canvas)
+            self.canvas.after.remove(touch.ud['card']._topdecked)
             del touch.ud['card']._topdecked
         if None not in (self.insertion_deck, self.insertion_card):
             # need to sync to adapter.data??
