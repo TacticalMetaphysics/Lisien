@@ -255,7 +255,7 @@ class RulesView(FloatLayout):
         )
         self.bind(rule=self._trigger_update_builders)
 
-    def update_triggers(self, *args):
+    def pull_triggers(self, *args):
         unused_triggers = [
             Card(
                 ud={
@@ -284,9 +284,9 @@ class RulesView(FloatLayout):
             for trig in self.rule.triggers
         ]
         self._trigger_builder.decks = [used_triggers, unused_triggers]
-    _trigger_update_triggers = trigger(update_triggers)
+    _trigger_pull_triggers = trigger(pull_triggers)
 
-    def update_prereqs(self, *args):
+    def pull_prereqs(self, *args):
         unused_prereqs = [
             Card(
                 ud={
@@ -315,9 +315,9 @@ class RulesView(FloatLayout):
             for prereq in self.rule.prereqs
         ]
         self._prereq_builder.decks = [used_prereqs, unused_prereqs]
-    _trigger_update_prereqs = trigger(update_prereqs)
+    _trigger_pull_prereqs = trigger(pull_prereqs)
 
-    def update_actions(self, *args):
+    def pull_actions(self, *args):
         unused_actions = [
             Card(
                 ud={
@@ -346,7 +346,7 @@ class RulesView(FloatLayout):
             for action in self.rule.actions
         ]
         self._action_builder.decks = [used_actions, unused_actions]
-    _trigger_update_actions = trigger(update_actions)
+    _trigger_pull_actions = trigger(pull_actions)
 
     def update_builders(self, *args):
         for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
@@ -362,19 +362,19 @@ class RulesView(FloatLayout):
             return
         if hasattr(self, '_list'):
             self._list.adapter.data = list(self._list.rulebook)
-        self.update_triggers()
-        self.update_prereqs()
-        self.update_actions()
+        self.pull_triggers()
+        self.pull_prereqs()
+        self.pull_actions()
     _trigger_update_builders = trigger(update_builders)
 
-    def upd_rule_actions(self, *args):
+    def push_actions(self, *args):
         actions = [
             card.ud['funcname'] for card in
             self._action_builder.decks[0]
         ]
         if self.rule.actions != actions:
             self.rule.actions = actions
-    _trigger_upd_rule_actions = trigger(upd_rule_actions)
+    _trigger_push_actions = trigger(push_actions)
 
     def upd_unused_actions(self, *args):
         """Make sure to have exactly one copy of every valid action in the
@@ -398,14 +398,14 @@ class RulesView(FloatLayout):
         self._action_builder.bind(decks=self._trigger_upd_unused_actions)
     _trigger_upd_unused_actions = trigger(upd_unused_actions)
 
-    def upd_rule_prereqs(self, *args):
+    def push_prereqs(self, *args):
         prereqs = [
             card.ud['funcname'] for card in
             self._prereq_builder.decks[0]
         ]
         if self.rule.prereqs != prereqs:
             self.rule.prereqs = prereqs
-    _trigger_upd_rule_prereqs = trigger(upd_rule_prereqs)
+    _trigger_push_prereqs = trigger(push_prereqs)
 
     def upd_unused_prereqs(self, *args):
         """Make sure to have exactly one copy of every valid prereq in the
@@ -429,14 +429,14 @@ class RulesView(FloatLayout):
         self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
     _trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
 
-    def upd_rule_triggers(self, att, *args):
+    def push_triggers(self, att, *args):
         triggers = [
             card.ud['funcname'] for card in
             self._trigger_builder.decks[0]
         ]
         if self.rule.triggers != triggers:
             self.rule.triggers = triggers
-    _trigger_upd_rule_triggers = trigger(upd_rule_triggers)
+    _trigger_push_triggers = trigger(push_triggers)
 
     def upd_unused_triggers(self, *args):
         """Make sure to have exactly one copy of every valid prereq in the
