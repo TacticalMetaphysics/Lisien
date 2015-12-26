@@ -150,6 +150,7 @@ class RulesView(FloatLayout):
         self._action_tab = TabbedPanelItem(text='Actions')
         self._tabs.add_widget(self._action_tab)
         self._action_builder = DeckBuilderView(**deck_builder_kwargs)
+        self._action_builder.bind(decks=self._trigger_push_actions)
         self._scroll_left_action = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
@@ -187,6 +188,7 @@ class RulesView(FloatLayout):
         self._trigger_tab = TabbedPanelItem(text='Triggers')
         self._tabs.add_widget(self._trigger_tab)
         self._trigger_builder = DeckBuilderView(**deck_builder_kwargs)
+        self._trigger_builder.bind(decks=self._trigger_push_triggers)
         self._scroll_left_trigger = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
@@ -222,6 +224,7 @@ class RulesView(FloatLayout):
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
         self._prereq_builder = DeckBuilderView(**deck_builder_kwargs)
+        self._prereq_builder.bind(decks=self._trigger_push_prereqs)
         self._scroll_left_prereq = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
