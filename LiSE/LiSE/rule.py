@@ -38,17 +38,14 @@ class RuleFuncList(MutableSequence):
     def __init__(self, rule):
         self.rule = rule
         self._listeners = []
+        if self.rule.engine.caching:
+            self._cache = list(self._loader(self.rule.name))
 
     def listener(self, f):
         return listener(self._listeners, f)
 
     def unlisten(self, f):
         return unlistener(self._listeners, f)
-
-    @reify
-    def _cache(self):
-        self._cache_reified = True
-        return list(self._loader(self.rule.name))
 
     def _nominate(self, v):
         if callable(v):
@@ -96,14 +93,14 @@ class RuleFuncList(MutableSequence):
             i += len(self)
         v = self._nominate(v)
         self._replacer(self.rule.name, i, v)
-        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+        if self.rule.engine.caching:
             self._cache[i] = v
 
     def __delitem__(self, i):
         while i < 0:
             i += len(self)
         self._deleter(self.rule.name, i)
-        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+        if self.rule.engine.caching:
             del self._cache[i]
 
     def insert(self, i, v):
@@ -111,13 +108,13 @@ class RuleFuncList(MutableSequence):
             i += len(self)
         v = self._nominate(v)
         self._inserter(self.rule.name, i, v)
-        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+        if self.rule.engine.caching:
             self._cache.insert(i, v)
 
     def append(self, v):
         v = self._nominate(v)
         self._appender(self.rule.name, v)
-        if self.rule.engine.caching and hasattr(self, '_cache_reified'):
+        if self.rule.engine.caching:
             self._cache.append(v)
 
 
@@ -146,6 +143,9 @@ class TriggerList(RuleFuncList):
     def _appender(self):
         return self.funcstore.db.append_rule_trigger
 
+    def _setall(self, l):
+        self.funcstore.db.replace_all_rule_triggers(self.rule.name, l)
+
 
 class PrereqList(RuleFuncList):
     @reify
@@ -171,6 +171,9 @@ class PrereqList(RuleFuncList):
     @reify
     def _appender(self):
         return self.funcstore.db.append_rule_prereq
+
+    def _setall(self, l):
+        self.funcstore.db.replace_all_rule_prereqs(self.rule.name, l)
 
 
 class ActionList(RuleFuncList):
@@ -198,6 +201,34 @@ class ActionList(RuleFuncList):
     def _appender(self):
         return self.funcstore.db.append_rule_action
 
+    def _setall(self, l):
+        self.funcstore.db.replace_all_rule_actions(self.rule.name, l)
+
+
+class RuleFuncListDescriptor(object):
+    def __init__(self, cls):
+        self.cls = cls
+
+    @property
+    def flid(self):
+        return '_funclist' + str(id(self))
+
+    def __get__(self, obj, type=None):
+        if not hasattr(obj, self.flid):
+            setattr(obj, self.flid, self.cls(obj))
+        return getattr(obj, self.flid)
+
+    def __set__(self, obj, value):
+        if not hasattr(obj, self.flid):
+            setattr(obj, self.flid, self.cls(obj))
+        flist = getattr(obj, self.flid)
+        namey_value = [flist._nominate(v) for v in value]
+        flist._setall(namey_value)
+        flist._cache = namey_value
+
+    def __delete__(self, obj):
+        raise TypeError("Rules must have their function lists")
+
 
 class Rule(object):
     """A collection of actions, being functions that enact some change on
@@ -206,17 +237,9 @@ class Rule(object):
     change the world.
 
     """
-    @reify
-    def _triggers(self):
-        return TriggerList(self)
-
-    @reify
-    def _prereqs(self):
-        return PrereqList(self)
-
-    @reify
-    def _actions(self):
-        return ActionList(self)
+    triggers = RuleFuncListDescriptor(TriggerList)
+    prereqs = RuleFuncListDescriptor(PrereqList)
+    actions = RuleFuncListDescriptor(ActionList)
 
     def __init__(
             self,
@@ -262,16 +285,6 @@ class Rule(object):
             self.name == other.name
         )
 
-    def __getattr__(self, attrn):
-        if attrn == 'triggers':
-            return self._triggers
-        elif attrn == 'prereqs':
-            return self._prereqs
-        elif attrn == 'actions':
-            return self._actions
-        else:
-            raise AttributeError("No attribute: {}".format(attrn))
-
     def _fun_names_iter(self, functyp, val):
         """Iterate over the names of the functions in ``val``,
         adding them to ``funcstore`` if they are missing;
@@ -304,22 +317,6 @@ class Rule(object):
             else:
                 yield v
 
-    def __setattr__(self, attrn, val):
-        if attrn == 'triggers':
-            self.engine.trigger.db.replace_all_rule_triggers(
-                self.name, list(self._fun_names_iter('trigger', val))
-            )
-        elif attrn == 'prereqs':
-            self.engine.prereq.db.replace_all_rule_prereqs(
-                self.name, list(self._fun_names_iter('prereq', val))
-            )
-        elif attrn == 'actions':
-            self.engine.action.db.replace_all_rule_actions(
-                self.name, list(self._fun_names_iter('action', val))
-            )
-        else:
-            super().__setattr__(attrn, val)
-
     def __call__(self, engine, *args):
         """If at least one trigger fires, check the prereqs. If all the
         prereqs pass, perform the actions.
@@ -341,17 +338,17 @@ class Rule(object):
 
     def trigger(self, fun):
         """Decorator to append the function to my triggers list."""
-        self._triggers.append(fun)
+        self.triggers.append(fun)
         return fun
 
     def prereq(self, fun):
         """Decorator to append the function to my prereqs list."""
-        self._prereqs.append(fun)
+        self.prereqs.append(fun)
         return fun
 
     def action(self, fun):
         """Decorator to append the function to my actions list."""
-        self._actions.append(fun)
+        self.actions.append(fun)
         return fun
 
     def duplicate(self, newname):

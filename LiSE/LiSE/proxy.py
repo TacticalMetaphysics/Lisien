@@ -634,19 +634,19 @@ class EngineHandle(object):
         return self._real.rule[rule].actions._cache
 
     def set_rule_actions(self, rule, l):
-        self._real.rule.db.set_rule_actions(rule, l)
+        self._real.rule[rule].actions = l
 
     def get_rule_triggers(self, rule):
         return self._real.rule[rule].triggers._cache
 
     def set_rule_triggers(self, rule, l):
-        self._real.rule.db.set_rule_triggers(rule, l)
+        self._real.rule[rule].triggers = l
 
     def get_rule_prereqs(self, rule):
         return self._real.rule[rule].prereqs._cache
 
     def set_rule_prereqs(self, rule, l):
-        self._real.rule.db.set_rule_prereqs(rule, l)
+        self._real.rule[rule].prereqs = l
 
     def list_all_rules(self):
         return list(self._real.rule.keys())
