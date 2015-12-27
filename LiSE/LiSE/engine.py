@@ -692,6 +692,18 @@ class Engine(AbstractEngine, gORM):
             for time_listener in self._time_listeners:
                 time_listener(b, t, v, t)
 
+    @reify
+    def _branch_parents(self):
+        return {}
+
+    @reify
+    def _branches(self):
+        return defaultdict(dict)
+
+    @reify
+    def _branches_start(self):
+        return {}
+
     @property
     def tick(self):
         return self.rev
