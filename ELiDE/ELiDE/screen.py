@@ -120,6 +120,23 @@ class TimePanel(BoxLayout):
             cb=self.screen._update_from_chardiff
         )
 
+    def _upd_branch_hint(self, *args):
+        self.ids.branchfield.hint_text = self.screen.app.branch
+
+    def _upd_tick_hint(self, *args):
+        self.ids.tickfield.hint_text = str(self.screen.app.tick)
+
+    def on_screen(self, *args):
+        if 'branchfield' not in self.ids or 'tickfield' not in self.ids:
+            Clock.schedule_once(self.on_screen, 0)
+            return
+        self.ids.branchfield.hint_text = self.screen.app.branch
+        self.ids.tickfield.hint_text = str(self.screen.app.tick)
+        self.screen.app.bind(
+            branch=self._upd_branch_hint,
+            tick=self._upd_tick_hint
+        )
+
 
 class MainScreen(Screen):
     """A master layout that contains one board and some menus.
@@ -526,7 +543,7 @@ class MainScreen(Screen):
             char, chardiff
         ))
         self.board.trigger_update_from_diff(chardiff)
-        self.ids.statpanel.stat_list.mirror = dict(self.selected_remote)
+        self.ids.statpanel.stat_list.mirror = dict(self.app.selected_remote)
         self.app.pull_time()
 
     def play(self, *args):
@@ -534,12 +551,12 @@ class MainScreen(Screen):
         if self.playbut.state == 'normal':
             return
         elif not hasattr(self, '_old_time'):
-            self._old_time = tuple(self.time)
-            self.engine.next_tick(
+            self._old_time = tuple(self.app.time)
+            self.app.engine.next_tick(
                 char=self.app.character_name,
                 cb=self._update_from_chardiff
             )
-        elif self._old_time == self.time:
+        elif self._old_time == self.app.time:
             return
         else:
             del self._old_time
@@ -590,6 +607,7 @@ Builder.load_string(
         Label:
             text: 'Branch'
         MenuTextInput:
+            id: branchfield
             setter: root.set_branch
             hint_text: root.screen.app.branch if root.screen else ''
     BoxLayout:
