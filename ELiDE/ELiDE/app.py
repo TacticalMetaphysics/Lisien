@@ -69,17 +69,25 @@ class ELiDEApp(App):
     pull_time = trigger(_pull_time)
 
     def on_time(self, *args):
-        local_time = tuple(self.time)
+        local_time = (branch, tick) = tuple(self.time)
         if local_time != self.engine.time:
             self.engine.time = local_time
+        if self.branch != branch:
+            self.branch = branch
+        if self.tick != tick:
+            self.tick = tick
 
     def set_branch(self, b):
         """Set my branch to the given value."""
         self.branch = b
+        if self.time[0] != b:
+            self.time[0] = b
 
     def set_tick(self, t):
         """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
+        if self.time[1] != int(t):
+            self.time[1] = int(t)
 
     def set_time(self, b, t=None):
         if t is None:
