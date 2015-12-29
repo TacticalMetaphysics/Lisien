@@ -51,24 +51,24 @@ def inittest(
         thing.travel_to(engine.choice(shrub_places))
 
     @shrubsprint.trigger
-    def always(engine, character, thing):
-        assert(thing['shrub_places'])
-        return True
-
-    @shrubsprint.trigger
     def uncovered(engine, character, thing):
         for shrub_candidate in thing.location.contents():
             if shrub_candidate.name[:5] == "shrub":
                 return False
+        engine.info("kobold uncovered")
         return True
 
     @shrubsprint.trigger
     def breakcover(engine, character, thing):
-        return engine.random() < thing['sprint_chance']
+        if engine.random() < thing['sprint_chance']:
+            engine.info("kobold breaking cover")
+            return True
 
     @shrubsprint.prereq
     def not_traveling(engine, character, thing):
-        return thing['next_arrival_time'] is None
+        if thing['next_location'] is not None:
+            engine.info("kobold already travelling to {}".format(thing['next_location']))
+        return thing['next_location'] is None
 
     @dwarf.rule
     def kill(engine, character, thing):
