@@ -538,7 +538,7 @@ class MainScreen(Screen):
             )
         )
 
-    def _update_from_chardiff(self, char, chardiff):
+    def _update_from_chardiff(self, char, chardiff, **kwargs):
         Logger.debug("{}: updating from diff {}".format(
             char, chardiff
         ))

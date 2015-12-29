@@ -313,15 +313,18 @@ class ArrowWidget(Widget):
         ):
             pawn.pos = self.pos_along(1)
             return
-        pawn.pos = self.pos_along(
-            (
-                self.app.tick -
-                pawn.thing['arrival_time']
-            ) / (
-                pawn.thing['next_arrival_time'] -
-                pawn.thing['arrival_time']
+        try:
+            pawn.pos = self.pos_along(
+                (
+                    self.app.tick -
+                    pawn.thing['arrival_time']
+                ) / (
+                    pawn.thing['next_arrival_time'] -
+                    pawn.thing['arrival_time']
+                )
             )
-        )
+        except ZeroDivisionError:
+            pawn.pos = self.pos_along(0)
 
     def _get_points(self):
         """Return the coordinates of the points that describe my shape."""

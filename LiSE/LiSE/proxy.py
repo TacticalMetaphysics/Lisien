@@ -119,6 +119,11 @@ class EngineHandle(object):
         if char:
             return self.character_diff(char)
 
+    def time_travel(self, branch, tick, char=None):
+        self._real.time = (branch, tick)
+        if char:
+            return self.character_diff(char)
+
     def add_character(self, name, data, kwargs):
         self._real.add_character(name, data, **kwargs)
 
@@ -2296,16 +2301,20 @@ class EngineProxy(AbstractEngine):
     def json_load(self, s):
         return self.json_rewrap(super().json_load(s))
 
-    def _call_with_recv(self, char, *cbs):
+    def _call_with_recv(self, char, *cbs, **kwargs):
         received = self.json_load(self._handle_in.recv())
         for cb in cbs:
-            cb(char, received)
+            cb(char, received, **kwargs)
 
-    def _upd_char_cache(self, char, chardiff):
+    def _upd_char_cache(self, char, chardiff, **kwargs):
         self.character[char]._apply_diff(chardiff)
 
     def _inc_tick(self, char, chardiff):
         self._tick += 1
+
+    def _set_time(self, char, chardiff, **kwargs):
+        self._branch = kwargs['branch']
+        self._tick = kwargs['tick']
 
     def next_tick(self, char=None, cb=None):
         if cb and not char:
@@ -2319,6 +2328,20 @@ class EngineProxy(AbstractEngine):
             ).start()
         else:
             self.handle('next_tick', (char,), silent=True)
+
+    def time_travel(self, branch, tick, char=None, cb=None):
+        if cb and not char:
+            raise TypeError("Callbacks require char name")
+        if char:
+            self._handle_out.send(self.json_dump((False, 'time_travel', [branch, tick, char])))
+            Thread(
+                target=self._call_with_recv,
+                args=(char, self._set_time, self._upd_char_cache, cb) if cb else
+                (char, self._set_time, self._upd_char_cache),
+                kwargs={'branch': branch, 'tick': tick}
+            ).start()
+        else:
+            self.handle('time_travel', (branch, tick, char), silent=True)
 
     def add_character(self, name, data=None, **kwargs):
         self.handle('add_character', (name, data, kwargs))

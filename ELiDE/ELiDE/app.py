@@ -82,12 +82,24 @@ class ELiDEApp(App):
         self.branch = b
         if self.time[0] != b:
             self.time[0] = b
+        if self.engine.time != self.time:
+            self.engine.time_travel(
+                *self.time,
+                char=self.character.name,
+                cb=self.mainscreen._update_from_chardiff
+            )
 
     def set_tick(self, t):
         """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
-        if self.time[1] != int(t):
-            self.time[1] = int(t)
+        if self.time[1] != self.tick:
+            self.time[1] = self.tick
+        if self.engine.time != self.time:
+            self.engine.time_travel(
+                *self.time,
+                char=self.character.name,
+                cb=self.mainscreen._update_from_chardiff
+            )
 
     def set_time(self, b, t=None):
         if t is None:
