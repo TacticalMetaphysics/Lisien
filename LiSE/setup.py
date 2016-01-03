@@ -12,7 +12,7 @@ from setuptools import setup
 
 setup(
     name="LiSE",
-    version="5a",
+    version="a5",
     description="Rules engine for life simulation games",
     author="Zachary Spector",
     author_email="zacharyspector@gmail.com",
