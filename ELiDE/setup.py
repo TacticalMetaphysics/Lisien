@@ -11,6 +11,7 @@ from Cython.Distutils import build_ext
 
 setup(
     name="ELiDE",
+    version="5a",
     packages=[
         "ELiDE",
         "ELiDE.board",
