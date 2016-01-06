@@ -15,7 +15,6 @@ else
         rm -rf "$LISE_PATH";
     fi;
     if [ -n "`uname -v | grep Ubuntu`" ]; then
-        # on Ubuntu-derived distros, install from PPA
         mkfifo announce;
         mkfifo addapt;
         echo '
