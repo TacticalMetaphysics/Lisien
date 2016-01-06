@@ -64,7 +64,7 @@ Releases tab, please use Ubuntu.
 
 ## Laziest method
 
-Download and run ``ELiDE.bash``. It should set everything up for you.
+Download and run [ELiDE.bash](https://raw.githubusercontent.com/LogicalDash/LiSE/master/ELiDE.bash). It should set everything up for you.
 
 Run it again later to pull the latest version and launch the graphical
 frontend.
