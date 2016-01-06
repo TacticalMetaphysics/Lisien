@@ -19,11 +19,9 @@ else
         mkfifo announce;
         mkfifo addapt;
         echo '
-echo "About to install dependencies. This involves setting up two PPAs.";
-echo "ppa:thopiekar/pygame";
-sudo add-apt-repository -y ppa:thopiekar/pygame;
-echo "ppa:kivy-team/kivy-daily";
-sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+echo "About to install dependencies. This involves setting up the kivy-stable PPA.";
+echo "ppa:kivy-team/kivy-stable";
+sudo add-apt-repository -y ppa:kivy-team/kivy-stable;
 echo "Updating package lists.";
 sudo apt-get -y update;
 echo "Installing dependencies.";
