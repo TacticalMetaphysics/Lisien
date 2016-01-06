@@ -1,3 +1,14 @@
+=== Alpha 5 | 2016-01-03 ===
+* A whole new approach to interprocess communication resulting in much more acceptable performance within ELiDE.
+* LiSE caches the whole world state.
+* ELiDE has a new caching scheme as well. This is invisible to the user but rules out some aliasing bugs.
+* Fixed some rules not being polled.
+* A new example, college.py, and some fixes to kobold.py where it hadn't kept up with API changes.
+* The first sprouts of a world generation API, currently undocumented since I myself don't know how to work with it. Observe its methods within the class AbstractCharacter in the LiSE.character module. Chain the methods together and play around with the order to the best effect.
+* Lots of refactoring.
+* Some new graphics from Marsh Davies for Procjam 2015. And it's easier to include your own now, with an atlas and a change in elide.ini (though undocumented).
+* Real version numbers in the Python packages.
+
 === Alpha 4 | 2015-08-26 ===
 * The rules editor is now usable under normal conditions. After you've made Actions and Triggers, check this out by selecting something and pressing the Rules button.
 * The big > button will cause time to pass for so long as it is toggled, as it was always meant to.
