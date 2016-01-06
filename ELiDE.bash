@@ -19,9 +19,9 @@ else
         mkfifo announce;
         mkfifo addapt;
         echo '
-echo "About to install dependencies. This involves setting up the kivy-stable PPA.";
+echo "About to install dependencies. This involves setting up the kivy-daily PPA.";
 echo "ppa:kivy-team/kivy-stable";
-sudo add-apt-repository -y ppa:kivy-team/kivy-stable;
+sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
 echo "Updating package lists.";
 sudo apt-get -y update;
 echo "Installing dependencies.";
