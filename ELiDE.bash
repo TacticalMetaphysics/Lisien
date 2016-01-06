@@ -91,7 +91,7 @@ exit;' >addapt &
     cd "$LISE_PATH";
     git submodule init;
     git submodule update;
-    python3 -mpip install --user;
+    python3 -mpip install --user LiSE/ ELiDE/;
 
     mkdir -p $HOME/.local/share/applications;
     echo "[Desktop Entry]
