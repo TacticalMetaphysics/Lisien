@@ -7,7 +7,7 @@ if [ -e "$LISE_PATH" ] && [ -f "$LISE_PATH/.installed" ]; then
     cd "$LISE_PATH";
     git pull;
     git submodule update;
-    python3 setup.py install --user --upgrade;
+    python3 -mpip install --user --upgrade LiSE/ ELiDE/;
     python3 -m ELiDE;
 else
     if [ -e "$LISE_PATH" ]; then
@@ -71,7 +71,8 @@ exit;' >addapt &
         echo "Activating LiSE-virtualenv";
         source LiSE-virtualenv/bin/activate;
         echo "Installing Cython";
-        pip3 install cython;
+        python3 -mensurepip
+        python3 -mpip install --user cython;
         echo "Getting latest Kivy master";
         git clone https://github.com/kivy/kivy.git kivy;
         WORKINGDIR=$PWD;
@@ -82,7 +83,7 @@ exit;' >addapt &
         echo "libsdl2-ttf";
         echo "libsdl2-image";
         echo "libsdl2-mixer";
-        USE_SDL2=1 python3 setup.py install;
+        USE_SDL2=1 python3 -mpip install --user .;
         cd $WORKINGDIR;
     fi;
 
@@ -90,7 +91,7 @@ exit;' >addapt &
     cd "$LISE_PATH";
     git submodule init;
     git submodule update;
-    python3 setup.py install --user;
+    python3 -mpip install --user;
 
     mkdir -p $HOME/.local/share/applications;
     echo "[Desktop Entry]
