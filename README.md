@@ -62,7 +62,7 @@ that one, and not write that code yourself, after all.
 If you want to run the latest code, and not one of the devkits under the
 Releases tab, please use Linux, and preferably Ubuntu.
 
-Download and run ``ELiDE_bootstrap.sh``. It should set everything up for you.
+Download and run ``ELiDE.bash``. It should set everything up for you.
 
 # License Information
 
