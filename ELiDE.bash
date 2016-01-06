@@ -20,7 +20,7 @@ else
         mkfifo addapt;
         echo '
 echo "About to install dependencies. This involves setting up the kivy-daily PPA.";
-echo "ppa:kivy-team/kivy-stable";
+echo "ppa:kivy-team/kivy-daily";
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
 echo "Updating package lists.";
 sudo apt-get -y update;
