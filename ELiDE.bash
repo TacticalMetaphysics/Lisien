@@ -19,13 +19,11 @@ else
         mkfifo announce;
         mkfifo addapt;
         echo '
-echo "About to install dependencies. This involves setting up the kivy-daily PPA.";
-echo "ppa:kivy-team/kivy-daily";
-sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+echo "About to install dependencies."
 echo "Updating package lists.";
 sudo apt-get -y update;
 echo "Installing dependencies.";
-sudo apt-get -y install git cython3 python3-dev python3-setuptools python3-kivy;
+sudo apt-get -y install git cython3 python3-dev python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev;
 echo "All dependencies installed." >announce;
 sleep 1;
 exit;' >addapt &
