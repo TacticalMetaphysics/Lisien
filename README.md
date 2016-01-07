@@ -72,7 +72,7 @@ frontend.
 ## By hand
 
 ```
-git clone git@github.com:LogicalDash/LiSE.git
+git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
 git submodule init
 git submodule update
