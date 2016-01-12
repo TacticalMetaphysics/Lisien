@@ -1,3 +1,8 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""Some utility functions I found useful in testing."""
+
+
 from LiSE import Engine
 from os import remove
 

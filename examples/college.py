@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """A simulation of students and teachers, both living on campus,
 attending classes and teaching or learning, as appropriate.
 
