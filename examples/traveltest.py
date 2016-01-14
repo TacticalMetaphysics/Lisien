@@ -1,3 +1,8 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""A command-line-only test to make sure that travel works."""
+
+
 import networkx as nx
 from LiSE import Engine
 from os import remove
