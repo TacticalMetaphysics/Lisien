@@ -75,14 +75,12 @@ class QueryEngine(gorm.query.QueryEngine):
         )
 
     def func_table_get_plain(self, tbl, key):
-        row = self.sql('func_{}_get'.format(tbl), key).fetchone()
-        if row is None:
-            raise KeyError("No such row")
-        return row[6]
+        return self.func_table_get_all(tbl, key)['plaincode']
 
     def func_table_get_all(self, tbl, key):
         (
             bytecode,
+            base,
             keywords,
             date,
             creator,
@@ -95,6 +93,7 @@ class QueryEngine(gorm.query.QueryEngine):
         ).fetchone()
         return {
             'bytecode': bytecode,
+            'base': base,
             'keywords': self.json_load(keywords),
             'date': date,
             'creator': creator,
