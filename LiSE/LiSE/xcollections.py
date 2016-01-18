@@ -250,7 +250,7 @@ class FunctionStore(MutableMapping):
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
-        self.db.func_table_set(self._tbl, fun.__name__, fun)
+        self.db.func_table_set(self._tab, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
 
