@@ -232,6 +232,13 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
             if thing['locations'] == (self._origin, self._destination):
                 yield thing
 
+    def new_thing(self, name, statdict={}, **kwargs):
+        """Create and return a thing located in my origin and travelling to my
+        destination."""
+        return self.character.new_thing(
+            name, self._origin, self._destination, statdict, **kwargs
+        )
+
     def update(self, d):
         """Works like regular update, but only actually updates when the new
         value and the old value differ. This is necessary to prevent
