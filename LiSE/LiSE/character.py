@@ -1943,8 +1943,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """Take a series of place names and add the lot."""
         super().add_nodes_from(seq)
 
-    def new_place(self, name, **kwargs):
-        self.add_place(name, **kwargs)
+    def new_place(self, name, statdict={}, **kwargs):
+        kwargs.update(statdict)
+        if name not in self.node:
+            self.add_place(name, **kwargs)
+            return self.place[name]
+        n = 0
+        while name + str(n) in self.node:
+            n += 1
+        self.add_place(name + str(n), **kwargs)
         return self.place[name]
 
     def new_node(self, name, **kwargs):
@@ -1971,8 +1978,17 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             kwargs = tup[3] if len(tup) > 3 else {}
             self.add_thing(name, location, next_loc, **kwargs)
 
-    def new_thing(self, name, location, next_location=None, **kwargs):
-        self.add_thing(name, location, next_location, **kwargs)
+    def new_thing(
+            self, name, location, next_location=None, statdict={}, **kwargs
+    ):
+        kwargs.update(statdict)
+        if name not in self.node:
+            self.add_thing(name, location, next_location, **kwargs)
+            return self.thing[name]
+        n = 0
+        while name + str(n) in self.node:
+            n += 1
+        self.add_thing(name + str(n), location, next_location, **kwargs)
         return self.thing[name]
 
     def place2thing(self, name, location, next_location=None):
