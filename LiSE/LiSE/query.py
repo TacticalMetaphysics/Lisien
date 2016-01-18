@@ -78,7 +78,31 @@ class QueryEngine(gorm.query.QueryEngine):
         row = self.sql('func_{}_get'.format(tbl), key).fetchone()
         if row is None:
             raise KeyError("No such row")
-        return row[5]
+        return row[6]
+
+    def func_table_get_all(self, tbl, key):
+        (
+            bytecode,
+            keywords,
+            date,
+            creator,
+            contributor,
+            description,
+            plaincode,
+            version
+        ) = self.sql(
+            'func_{}_get'.format(tbl), key
+        ).fetchone()
+        return {
+            'bytecode': bytecode,
+            'keywords': self.json_load(keywords),
+            'date': date,
+            'creator': creator,
+            'contributor': contributor,
+            'description': description,
+            'plaincode': plaincode,
+            'version': version
+        }
 
     def func_table_set(self, tbl, key, fun, keywords=[]):
         try:
