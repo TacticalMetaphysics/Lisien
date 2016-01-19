@@ -71,48 +71,9 @@ Builder.load_string("""
     data: funcs_ed.data if funcs_ed else []
     BoxLayout:
         orientation: 'vertical'
-        BoxLayout:
-            id: subj_type_sel
-            size_hint_y: 0.05
-            BoxLayout:
-                CheckBox:
-                    id: char
-                    group: 'subj_type'
-                    size_hint_x: 0.05
-                    on_active: root.setchar(self.active)
-                Label:
-                    text: 'Character'
-                    size_hint_x: 0.95
-            BoxLayout:
-                CheckBox:
-                    id: thing
-                    group: 'subj_type'
-                    size_hint_x: 0.05
-                    on_active: root.setthing(self.active)
-                Label:
-                    text: 'Thing'
-                    size_hint_x: 0.95
-            BoxLayout:
-                CheckBox:
-                    id: place
-                    group: 'subj_type'
-                    size_hint_x: 0.05
-                    on_active: root.setplace(self.active)
-                Label:
-                    text: 'Place'
-                    size_hint_y: 0.95
-            BoxLayout:
-                CheckBox:
-                    id: port
-                    group: 'subj_type'
-                    size_hint_x: 0.05
-                    on_active: root.setport(self.active)
-                Label:
-                    text: 'Portal'
-                    size_hint_y: 0.95
         FuncsEditor:
             id: funcs_ed
-            size_hint_y: 0.9
+            size_hint_y: 0.95
             table: root.table
             store: root.store
             font_name: root.font_name
@@ -120,13 +81,74 @@ Builder.load_string("""
             on_subject_type: root.subjtyp(self.subject_type)
         BoxLayout:
             size_hint_y: 0.05
-            TextInput:
-                id: newfuncname
-                hint_text: 'New function name'
             Button:
                 text: '+'
                 on_press: root.add_func()
+                size_hint_x: 0.2
+            TextInput:
+                id: newfuncname
+                size_hint_x: 0.2
+                hint_text: 'New function name'
+            BoxLayout:
+                size_hint_x: 0.4
+                Widget:
+                    id: spacer
+                    size_hint_x: 0.05
+                BoxLayout:
+                    size_hint_x: 0.3
+                    CheckBox:
+                        id: char
+                        group: 'subj_type'
+                        size_hint_x: 0.2
+                        active: True
+                        on_active: root.setchar(self.active)
+                    Label:
+                        text: 'Character'
+                        size_hint_x: 0.8
+                        text_size: self.size
+                        halign: 'left'
+                        valign: 'middle'
+                BoxLayout:
+                    size_hint_x: 0.23
+                    CheckBox:
+                        id: thing
+                        group: 'subj_type'
+                        size_hint_x: 0.25
+                        on_active: root.setthing(self.active)
+                    Label:
+                        text: 'Thing'
+                        size_hint_x: 0.75
+                        text_size: self.size
+                        halign: 'left'
+                        valign: 'middle'
+                BoxLayout:
+                    size_hint_x: 0.23
+                    CheckBox:
+                        id: place
+                        group: 'subj_type'
+                        size_hint_x: 0.25
+                        on_active: root.setplace(self.active)
+                    Label:
+                        text: 'Place'
+                        size_hint_x: 0.75
+                        text_size: self.size
+                        halign: 'left'
+                        valign: 'middle'
+                BoxLayout:
+                    size_hint_x: 0.24
+                    CheckBox:
+                        id: port
+                        group: 'subj_type'
+                        size_hint_x: 0.25
+                        on_active: root.setport(self.active)
+                    Label:
+                        text: 'Portal'
+                        size_hint_x: 0.75
+                        text_size: self.size
+                        halign: 'left'
+                        valign: 'middle'
             Button:
                 text: 'Close'
                 on_press: root.dismiss()
+                size_hint_x: 0.2
 """)
