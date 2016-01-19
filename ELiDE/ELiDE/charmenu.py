@@ -26,6 +26,11 @@ class CharMenu(BoxLayout):
         lambda self, v: None,
         bind=('screen',)
     )
+    engine = AliasProperty(
+        lambda self: self.screen.app.engine if self.screen else None,
+        lambda self, v: None,
+        bind=('screen',)
+    )
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
