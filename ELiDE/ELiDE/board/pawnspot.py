@@ -49,20 +49,14 @@ class PawnSpot(ImageStack):
         self.offxs = self.remote.get('_offxs', zeroes)
         self.offys = self.remote.get('_offys', zeroes)
         self.stackhs = self.remote.get('_stackhs', zeroes)
+
+    def finalize(self):
         self.bind(
             paths=self._trigger_push_image_paths,
             offxs=self._trigger_push_offxs,
             offys=self._trigger_push_offys,
             stackhs=self._trigger_push_stackhs
         )
-        if '_image_paths' not in self.remote:
-            self.remote['_image_paths'] = list(self.paths)
-        if '_offxs' not in self.remote:
-            self.remote['_offxs'] = zeroes
-        if '_offys' not in self.remote:
-            self.remote['_offys'] = zeroes
-        if '_stackhs' not in self.remote:
-            self.remote['_stackhs'] = zeroes
 
     def push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)

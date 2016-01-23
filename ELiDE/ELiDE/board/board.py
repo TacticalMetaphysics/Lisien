@@ -356,11 +356,31 @@ class Board(RelativeLayout):
             )
         )
         spots_added = []
+        nodes_patch = {}
         for place_name in self.app.character.place:
             if place_name not in self.spot:
-                spot = self.make_spot(self.app.character.place[place_name])
+                place = self.app.character.place[place_name]
+                spot = self.make_spot(place)
+                patch = {}
+                if '_image_paths' in place:
+                    zeroes = [0] * len(place['_image_paths'])
+                else:
+                    patch['_image_paths'] = spot.default_image_paths
+                    zeroes = [0]
+                if '_offxs' not in place:
+                    patch['_offxs'] = zeroes
+                if '_offys' not in place:
+                    patch['_offys'] = zeroes
+                if '_stackhs' not in place:
+                    patch['_stackhs'] = zeroes
+                nodes_patch[place_name] = patch
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
+        self.app.engine.handle(
+            'update_nodes', (self.app.character.name, nodes_patch)
+        )
+        for spot in spots_added:
+            spot.finalize()
         self.new_spots = spots_added
 
     def add_arrow(self, orign, destn, *args):
@@ -421,9 +441,25 @@ class Board(RelativeLayout):
                 self.app.character.name
             )
         )
+        nodes_patch = {}
+        pawns_added = []
         for thing_name in self.app.character.thing:
             if thing_name not in self.pawn:
-                pwn = self.make_pawn(self.app.character.thing[thing_name])
+                thing = self.app.character.thing[thing_name]
+                pwn = self.make_pawn(thing)
+                pawns_added.append(pwn)
+                patch = {}
+                if '_image_paths' in thing:
+                    zeroes = [0] * len(thing['_image_paths'])
+                else:
+                    patch['_image_paths'] = thing.default_image_paths
+                if '_offxs' not in thing:
+                    patch['_offxs'] = zeroes
+                if '_offys' not in thing:
+                    patch['_offys'] = zeroes
+                if '_stackhs' not in thing:
+                    patch['_stackhs'] = zeroes
+                nodes_patch[thing_name] = patch
                 try:
                     whereat = self.arrow[
                         pwn.thing['location']
@@ -434,6 +470,11 @@ class Board(RelativeLayout):
                     whereat = self.spot[pwn.thing['location']]
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
+        self.app.engine.handle(
+            'update_nodes', (self.app.character.name, nodes_patch)
+        )
+        for pwn in pawns_added:
+            pwn.finalize()
 
     @trigger
     def trigger_update(self, *args):
@@ -528,18 +569,22 @@ class Board(RelativeLayout):
             del spots_only.thing[thing]
         l = self.grid_layout(spots_only)
 
+        node_upd = {}
+
         def position_spot(spot, x, y, *args):
             if not (spot.name and spot.remote):
                 Clock.schedule_once(partial(position_spot, spot, x, y), 0)
                 return
-            spot.remote['_x'] = x
-            spot.remote['_y'] = y
+            node_upd[spot.remote.name] = {'_x': x, '_y': y}
             spot.pos = (
                 int(x * self.width),
                 int(y * self.height)
             )
         for spot in self.new_spots:
             position_spot(spot, *l[spot.name])
+        self.app.engine.handle(
+            'update_nodes', (self.app.character.name, node_upd)
+        )
         self.new_spots = self.spots_unposd = []
 
     def arrows(self):
