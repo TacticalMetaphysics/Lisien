@@ -53,6 +53,7 @@ from .util import getatt
 
 
 class AbstractCharacter(object):
+    """The Character API, with all requisite mappings and graph generators."""
     @reify
     def thing(self):
         return self.ThingMapping(self)
@@ -215,6 +216,7 @@ class AbstractCharacter(object):
         return self
 
     def copy_from(self, g):
+        """Copy all nodes and edges from the given graph into this."""
         renamed = {}
         for k, v in g.node.items():
             ok = k
@@ -235,6 +237,8 @@ class AbstractCharacter(object):
         return self
 
     def become(self, g):
+        """Erase all my nodes and edges. Replace them with a copy of the graph
+        provided."""
         self.clear()
         self.copy_from(g)
         return self

@@ -162,6 +162,8 @@ def fire_time_travel_triggers(
 
 
 def stat_validity(k, cache, branch, tick):
+    """Return the tick when a stat took its current value, and when it'll
+    change."""
     lo = window_left(cache[k][branch].keys(), tick)
     try:
         hi = window_right(cache[k][branch].keys(), tick)
