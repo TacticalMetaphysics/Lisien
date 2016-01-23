@@ -232,11 +232,10 @@ class ELiDEApp(App):
         )
 
         self.funcs = ELiDE.funcsed.FuncsEdScreen(
-            table='trigger',
-            store=self.engine.trigger,
+            app=self,
+            name='funcs',
             toggle=toggler('funcs')
         )
-        self.funcs.bind(data=self.rules.rulesview._trigger_update_builders)
 
         self.select_character(
             self.engine.character[

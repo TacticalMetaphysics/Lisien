@@ -26,6 +26,11 @@ class CharMenu(BoxLayout):
         lambda self, v: None,
         bind=('screen',)
     )
+    engine = AliasProperty(
+        lambda self: self.screen.app.engine if self.screen else None,
+        lambda self, v: None,
+        bind=('screen',)
+    )
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
@@ -74,11 +79,8 @@ class CharMenu(BoxLayout):
                 self.app.rules.rulebook = self.app.selected_remote.rulebook
         self.app.rules.toggle()
 
-    def toggle_funcs_editor(self, functyp):
+    def toggle_funcs_editor(self):
         """Display or hide the text editing window for functions."""
-        if self.app.manager.current != 'funcs':
-            self.app.funcs.store = getattr(self.engine, functyp)
-            self.app.funcs.table = functyp
         self.app.funcs.toggle()
 
     def toggle_spot_cfg(self):
@@ -175,14 +177,8 @@ Builder.load_string("""
         text: 'Strings'
         on_press: root.toggle_strings_editor()
     Button:
-        text: 'Triggers'
-        on_press: root.toggle_funcs_editor('trigger')
-    Button:
-        text: 'Prereqs'
-        on_press: root.toggle_funcs_editor('prereq')
-    Button:
-        text: 'Actions'
-        on_press: root.toggle_funcs_editor('action')
+        text: 'Functions'
+        on_press: root.toggle_funcs_editor()
     Button:
         text: 'Rules'
         on_press: root.toggle_rules()

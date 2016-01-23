@@ -259,6 +259,8 @@ class RulesView(FloatLayout):
         self.bind(rule=self._trigger_update_builders)
 
     def pull_triggers(self, *args):
+        if not self.rule:
+            return
         unused_triggers = [
             Card(
                 ud={
@@ -290,6 +292,8 @@ class RulesView(FloatLayout):
     _trigger_pull_triggers = trigger(pull_triggers)
 
     def pull_prereqs(self, *args):
+        if not self.rule:
+            return
         unused_prereqs = [
             Card(
                 ud={
@@ -321,6 +325,8 @@ class RulesView(FloatLayout):
     _trigger_pull_prereqs = trigger(pull_prereqs)
 
     def pull_actions(self, *args):
+        if not self.rule:
+            return
         unused_actions = [
             Card(
                 ud={
