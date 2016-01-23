@@ -116,3 +116,9 @@ def install(engine):
                 ) for thingd in thing_dicts_to_add
             ] + material_destroyers
         )
+
+
+if __name__ == '__main__':
+    import LiSE
+    engine = LiSE.Engine('LiSEworld.db', 'LiSEcode.db')
+    install(engine)
