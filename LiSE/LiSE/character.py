@@ -1234,17 +1234,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             **d
         )
         if engine.caching:
-            self.engine._characters_rulebooks_cache[self.name] = {
-                'character': d.get('character', (self.name, 'character')),
-                'avatar': d.get('avatar', (self.name, 'avatar')),
-                'character_thing': d.get('thing',
-                                         (self.name, 'character_thing')),
-                'character_place': d.get('place',
-                                         (self.name, 'character_place')),
-                'character_node': d.get('node', (self.name, 'character_node')),
-                'character_portal': d.get('portal',
-                                          (self.name, 'character_portal'))
-            }
+            crc = self.engine._characters_rulebooks_cache[self.name]
+            for rulebook in (
+                    'character', 'avatar', 'character_thing',
+                    'character_place', 'character_node', 'character_portal'
+            ):
+                if rulebook in d:
+                    crc[rulebook] = d[rulebook]
+                elif rulebook not in crc:
+                    crc[rulebook] = (self.name, rulebook)
 
     class ThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         """:class:`Thing` objects that are in a :class:`Character`"""
