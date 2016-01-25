@@ -21,6 +21,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from .stores import StoreAdapter, StoreDataItem, StoreEditor, StoreList
 from .codeinput import FunctionInput
+from .util import trigger
 
 
 class FuncStoreAdapter(StoreAdapter):
@@ -78,6 +79,7 @@ class FuncsEditor(StoreEditor):
         self._editor.bind(params=self.setter('params'))
         self.add_widget(self._editor)
 
+    @trigger
     def save(self, *args):
         if '' in (self._editor.name, self._editor.source):
             return
