@@ -1,14 +1,102 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""Widgets for editing the smallish functions you make in ELiDE.
+
+Contains ``FuncsEditor``, a fancied-up ``CodeEditor``;
+``FuncsEdBox``, a ``FuncsEditor`` with flair;
+and a ``FuncsEdScreen`` for it to go in.
+
+"""
+from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.logger import Logger
 from kivy.properties import (
     NumericProperty,
     ObjectProperty,
+    OptionProperty,
     StringProperty,
     ListProperty
 )
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
+from .stores import StoreAdapter, StoreDataItem, StoreEditor, StoreList
+from .codeinput import FunctionInput
+
+
+class FuncStoreAdapter(StoreAdapter):
+    """:class:`StoreAdapter` that wraps a function store. Gets function
+    names paired with their source code in plaintext.
+
+    """
+
+    def get_data(self, *args):
+        """Get data from
+        ``LiSE.query.QueryEngine.func_table_name_plaincode``.
+
+        """
+        return [
+            StoreDataItem(name=k, source=v) for (k, v) in
+            self.store.iterplain()
+        ]
+
+
+class FuncStoreList(StoreList):
+    adapter_cls = FuncStoreAdapter
+
+
+class FuncsEditor(StoreEditor):
+    params = ListProperty(['engine', 'character'])
+    subject_type_params = {
+        'character': ['engine', 'character'],
+        'thing': ['engine', 'character', 'thing'],
+        'place': ['engine', 'character', 'place'],
+        'portal': ['engine', 'character', 'origin', 'destination']
+    }
+    subject_type = OptionProperty(
+        'character', options=list(subject_type_params.keys())
+    )
+    list_cls = FuncStoreList
+
+    def on_subject_type(self, *args):
+        self.params = self.subject_type_params[self.subject_type]
+
+    def add_editor(self, *args):
+        if None in (self.selection, self.params):
+            Clock.schedule_once(self.add_editor, 0)
+            return
+        self._editor = FunctionInput(
+            font_name=self.font_name,
+            font_size=self.font_size,
+            params=self.params,
+        )
+        self.bind(
+            font_name=self._editor.setter('font_name'),
+            font_size=self._editor.setter('font_size'),
+            name=self._editor.setter('name'),
+            source=self._editor.setter('source')
+        )
+        self._editor.bind(params=self.setter('params'))
+        self.add_widget(self._editor)
+
+    def save(self, *args):
+        if '' in (self._editor.name, self._editor.source):
+            return
+        if (
+                self.name == self._editor.name and
+                self.source == self._editor.source
+        ):
+            return
+        if self.name != self._editor.name:
+            del self.store[self.name]
+        self.name = self._editor.name
+        self.source = self._editor.source
+        Logger.debug(
+            'saving function {}={}'.format(
+                self.name,
+                self.source
+            )
+        )
+        self.store.set_source(self.name, self.source)
 
 
 class FuncsEdBox(BoxLayout):
