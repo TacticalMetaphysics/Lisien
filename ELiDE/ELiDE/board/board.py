@@ -564,6 +564,10 @@ class Board(RelativeLayout):
         go, and move them there.
 
         """
+        for spot in self.new_spots:
+            if not (spot.name and spot.remote):
+                Clock.schedule_once(self.nx_layout, 0)
+                return
         spots_only = self.app.character.facade()
         for thing in list(spots_only.thing.keys()):
             del spots_only.thing[thing]
@@ -571,17 +575,13 @@ class Board(RelativeLayout):
 
         node_upd = {}
 
-        def position_spot(spot, x, y, *args):
-            if not (spot.name and spot.remote):
-                Clock.schedule_once(partial(position_spot, spot, x, y), 0)
-                return
+        for spot in self.new_spots:
+            (x, y) = l[spot.name]
             node_upd[spot.remote.name] = {'_x': x, '_y': y}
             spot.pos = (
                 int(x * self.width),
                 int(y * self.height)
             )
-        for spot in self.new_spots:
-            position_spot(spot, *l[spot.name])
         self.app.engine.handle(
             'update_nodes', (self.app.character.name, node_upd)
         )
