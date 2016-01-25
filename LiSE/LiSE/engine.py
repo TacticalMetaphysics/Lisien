@@ -430,8 +430,8 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            worlddb,
-            codedb,
+            worlddb='LiSEworld.db',
+            codedb='LiSEcode.db',
             connect_args={},
             alchemy=False,
             caching=True,
