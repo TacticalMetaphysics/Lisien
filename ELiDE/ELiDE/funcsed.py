@@ -109,6 +109,8 @@ class FuncsEdBox(BoxLayout):
     toggle = ObjectProperty()
 
     def add_func(self, *args):
+        if not self.ids.newfuncname.text:
+            return
         newname = self.ids.newfuncname.text
         self.ids.newfuncname.text = ''
         self.funcs_ed.save()
