@@ -863,6 +863,17 @@ def queries(table, view):
         characters.c.character_portal_rulebook
     ])
 
+    r['character_rulebooks'] = select([
+        characters.c.character_rulebook,
+        characters.c.avatar_rulebook,
+        characters.c.character_thing_rulebook,
+        characters.c.character_place_rulebook,
+        characters.c.character_node_rulebook,
+        characters.c.character_portal_rulebook
+    ]).where(
+        table['characters'].c.character == bindparam('character')
+    )
+
     r['ct_characters'] = select([func.COUNT(table['characters'].c.character)])
 
     r['ct_character'] = select(
