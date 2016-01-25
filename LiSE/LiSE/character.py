@@ -586,15 +586,6 @@ class CharRuleMapping(RuleMapping):
         self.character = character
         self._table = booktyp + "_rules"
 
-    def __iter__(self):
-        """Use a query specialized to the character-rule tables."""
-        return self.engine.db.active_rules_char(
-            self._table,
-            self.character.name,
-            self.rulebook.name,
-            *self.engine.time
-        )
-
 
 class RuleFollower(BaseRuleFollower):
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
