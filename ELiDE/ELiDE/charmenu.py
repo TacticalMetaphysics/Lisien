@@ -83,6 +83,9 @@ class CharMenu(BoxLayout):
         """Display or hide the text editing window for functions."""
         self.app.funcs.toggle()
 
+    def toggle_strings_editor(self):
+        self.app.strings.toggle()
+
     def toggle_spot_cfg(self):
         """Show the dialog where you select graphics and a name for a place,
         or hide it if already showing.
