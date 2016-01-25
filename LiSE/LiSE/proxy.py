@@ -705,14 +705,13 @@ class EngineHandle(object):
         return self._real.rulebook[rulebook]._cache
 
     def set_rulebook_rule(self, rulebook, i, rule):
-        self._real.rule.db.rulebook_set(rulebook, i, rule)
+        self._real.rulebook[rulebook][i] = rule
 
     def ins_rulebook_rule(self, rulebook, i, rule):
-        self._real.rule.db.rulebook_decr(rulebook, i)
-        self.set_rulebook_rule(rulebook, i, rule)
+        self._real.rulebook[rulebook].insert(i, rule)
 
     def del_rulebook_rule(self, rulebook, i):
-        self._real.rule.db.rulebook_del(rulebook, i)
+        del self._real.rulebook[rulebook][i]
 
     def get_character_rulebook(self, character):
         return self._real.db.get_rulebook_char(
