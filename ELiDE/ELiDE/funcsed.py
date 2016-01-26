@@ -124,8 +124,11 @@ class FuncsEdBox(BoxLayout):
         self.funcs_ed._trigger_redata_reselect()
 
     def dismiss(self, *args):
-        self.funcs_ed._trigger_save()
+        self.funcs_ed.save()
         self.toggle()
+
+    def save(self, *args):
+        self.funcs_ed.save()
 
     def subjtyp(self, val):
         if val == 'character':
