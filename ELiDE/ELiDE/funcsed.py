@@ -254,7 +254,9 @@ Builder.load_string("""
         TabbedPanelItem:
             id: trigger
             text: 'Trigger'
+            on_state: triggers.save()
             FuncsEdBox:
+                id: triggers
                 toggle: root.toggle
                 table: 'triggers'
                 store: root.app.engine.trigger
@@ -262,7 +264,9 @@ Builder.load_string("""
         TabbedPanelItem:
             id: prereq
             text: 'Prereq'
+            on_state: prereqs.save()
             FuncsEdBox:
+                id: prereqs
                 toggle: root.toggle
                 table: 'prereqs'
                 store: root.app.engine.prereq
@@ -270,7 +274,9 @@ Builder.load_string("""
         TabbedPanelItem:
             id: action
             text: 'Action'
+            on_state: actions.save()
             FuncsEdBox:
+                id: actions
                 toggle: root.toggle
                 table: 'actions'
                 store: root.app.engine.action
@@ -278,7 +284,9 @@ Builder.load_string("""
         TabbedPanelItem:
             id: other
             text: 'Other'
+            on_state: others.save()
             FuncsEdBox:
+                id: others
                 toggle: root.toggle
                 table: 'functions'
                 store: root.app.engine.function
