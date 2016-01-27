@@ -81,6 +81,8 @@ class FuncsEditor(StoreEditor):
 
     @trigger
     def save(self, *args):
+        if not hasattr(self, '_editor'):
+            return
         if '' in (self._editor.name, self._editor.source):
             return
         if (
