@@ -1,5 +1,16 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""The sort of node that is ultimately located in a Place.
+
+Things may be located in other Things as well, but eventually must be
+recursively located in a Place.
+
+There's a subtle distinction between "location" and "containment": a
+Thing may be contained by a Portal, but cannot be located there --
+only in one of the Portal's endpoints. Things are both located in and
+contained by Places, or possibly other Things.
+
+"""
 import networkx as nx
 from .node import Node
 from .util import path_len
