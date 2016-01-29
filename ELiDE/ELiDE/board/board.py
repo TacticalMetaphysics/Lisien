@@ -144,6 +144,11 @@ class Board(RelativeLayout):
             place=place
         )
         self.spot[place["name"]] = r
+        if '_x' in place and '_y' in place:
+            r.pos = (
+                self.width * place['_x'],
+                self.height * place['_y']
+            )
         return r
 
     def make_arrow(self, portal):
@@ -505,8 +510,10 @@ class Board(RelativeLayout):
         for (place, extant) in chardiff['places'].items():
             if extant and place not in self.spot:
                 self.add_spot(place)
-                self.new_spots.append(self.spot[place])
-                self.spots_unposd.append(self.spot[place])
+                spot = self.spot[place]
+                if '_x' not in spot.place or '_y' not in spot.place:
+                    self.new_spots.append(spot)
+                    self.spots_unposd.append(spot)
             elif not extant and place in self.spot:
                 self.rm_spot(place)
         for (thing, extant) in chardiff['things'].items():
