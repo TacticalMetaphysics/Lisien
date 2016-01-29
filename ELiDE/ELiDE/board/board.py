@@ -4,7 +4,6 @@ from functools import partial
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
-    StringProperty,
     ReferenceListProperty,
     DictProperty,
     ObjectProperty,
