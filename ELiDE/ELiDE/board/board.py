@@ -260,34 +260,69 @@ class Board(RelativeLayout):
         del self.arrow[orig][dest]
 
     def _trigger_rm_arrow(self, orig, dest):
-        Clock.schedule_once(partial(self.rm_arrow, orig, dest), 0)
+        part = partial(self.rm_arrow, orig, dest)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
-    def grid_layout(self, graph):
-        from math import floor, ceil, sqrt
-        ns = list(graph.nodes())
-        side = sqrt(len(ns))
-        width = int(ceil(side))
-        height = int(floor(side))
-        xs = [0] + list(1 / x for x in range(1, width))
-        ys = [0] + list(1 / y for y in range(1, height))
-        r = {}
-        while ns:
-            for y in ys:
-                for x in xs:
-                    n = ns.pop()
-                    r[n] = (x * 0.9 + 0.05, y * 0.9 + 0.05)
-                    if not ns:
-                        break
-                if not ns:
-                    break
-        return r
+    def graph_layout(self, graph):
+        # TODO: a real layout algorithm
+        # TODO: integral grid, not this floating point stuff
+        from networkx.drawing.layout import spring_layout
+        layout = spring_layout(graph)
+        minx = miny = maxx = maxy = minkx = maxkx = minky = maxky = None
+        for (k, (x, y)) in layout.items():
+            if minx is None or x < minx:
+                minx = x
+            if maxx is None or x > maxx:
+                maxx = x
+            if miny is None or y < miny:
+                miny = y
+            if maxy is None or y > maxy:
+                maxy = y
+            if (
+                    (isinstance(k, tuple) or isinstance(k, list)) and
+                    len(k) >= 2 and
+                    isinstance(k[0], int) and
+                    isinstance(k[1], int)
+            ):
+                kx = k[0]
+                ky = k[1]
+                if minkx is None or kx < minkx:
+                    minkx = kx
+                if maxkx is None or kx > maxkx:
+                    maxkx = kx
+                if minky is None or ky < minky:
+                    minky = ky
+                if maxky is None or ky > maxky:
+                    maxky = ky
+        w = maxy - miny
+        h = maxx - minx
+        wk = maxky - minky
+        hk = maxkx - minkx
+        for k in list(layout.keys()):
+            if (
+                    isinstance(k, tuple) or isinstance(k, list)
+            ) and len(k) >= 2:
+                layout[k] = (
+                    (k[0] - minkx) / wk,
+                    (k[1] - minky) / hk
+                )
+            else:
+                (x, y) = layout[k]
+                layout[k] = (
+                    (x - minx) / w,
+                    (y - miny) / h
+                )
+        return layout
 
     def discard_pawn(self, thingn, *args):
         if thingn in self.pawn:
             self.rm_pawn(thingn)
 
     def _trigger_discard_pawn(self, thing):
-        Clock.schedule_once(partial(self.discard_pawn, thing), 0)
+        part = partial(self.discard_pawn, thing)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def remove_absent_pawns(self, *args):
         Logger.debug(
@@ -579,13 +614,20 @@ class Board(RelativeLayout):
         spots_only = self.app.character.facade()
         for thing in list(spots_only.thing.keys()):
             del spots_only.thing[thing]
-        l = self.grid_layout(spots_only)
+        l = self.graph_layout(spots_only)
 
         node_upd = {}
 
         for spot in self.new_spots:
             (x, y) = l[spot.name]
-            node_upd[spot.remote.name] = {'_x': x, '_y': y}
+            assert 0 <= x <= 1
+            assert 0 <= y <= 1
+            x = min((0.98, x))
+            y = min((0.98, y))
+            node_upd[spot.remote.name] = {
+                '_x': x,
+                '_y': y
+            }
             spot.pos = (
                 int(x * self.width),
                 int(y * self.height)
