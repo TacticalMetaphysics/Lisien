@@ -98,7 +98,7 @@ class Board(RelativeLayout):
     @trigger
     def handle_character(self, *args):
         if self.screen.app.character is None:
-            Clock.schedule_once(self.handle_character, 0)
+            self.handle_character()
             return
 
         character = self.screen.app.character
