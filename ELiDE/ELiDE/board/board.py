@@ -247,7 +247,9 @@ class Board(RelativeLayout):
             self.rm_pawn(pawn.name)
 
     def _trigger_rm_spot(self, name):
-        Clock.schedule_once(partial(self.rm_spot, name), 0)
+        part = partial(self.rm_spot, name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def rm_arrow(self, orig, dest, *args):
         """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
@@ -472,7 +474,9 @@ class Board(RelativeLayout):
             self.pawn[thingn] = pwn
 
     def _trigger_add_pawn(self, thingn):
-        Clock.schedule_once(partial(self.add_pawn, thingn), 0)
+        part = partial(self.add_pawn, thingn)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def add_new_pawns(self, *args):
         Logger.debug(
