@@ -239,10 +239,22 @@ class Engine(AbstractEngine, gORM):
             r[rulebook].append(rule)
         return r
 
+    class crc_default_dict(defaultdict):
+        def __missing__(self, k):
+            self[k] = value = {
+                'character': (k, 'character'),
+                'avatar': (k, 'avatar'),
+                'character_thing': (k, 'character_thing'),
+                'character_place': (k, 'character_place'),
+                'character_node': (k, 'character_node'),
+                'character_portal': (k, 'character_portal')
+            }
+            return value
+
     @reify
     def _characters_rulebooks_cache(self):
         assert(self.caching)
-        r = {}
+        r = self.crc_default_dict()
         for (
                 character,
                 character_rulebook,
