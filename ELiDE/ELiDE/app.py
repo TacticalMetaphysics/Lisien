@@ -1,5 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) Zachary Spector, ZacharySpector@gmail.com
+"""Object to configure, start, and stop ELiDE."""
+
 import json
 
 from kivy.logger import Logger
@@ -28,8 +30,6 @@ import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
 from .util import trigger
-
-"""Object to configure, start, and stop ELiDE."""
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")

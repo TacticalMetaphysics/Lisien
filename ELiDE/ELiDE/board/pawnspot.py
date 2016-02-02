@@ -5,9 +5,6 @@ from kivy.properties import (
     ObjectProperty,
     BooleanProperty,
     ListProperty,
-    StringProperty,
-    NumericProperty,
-    ReferenceListProperty
 )
 from kivy.graphics import (
     InstructionGroup,

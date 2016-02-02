@@ -1,5 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) Zachary Spector, ZacharySpector@gmail.com
+"""Widget that looks like a trading card, and a layout within which it
+can be dragged and dropped to some particular position within stacks
+of other cards.
+
+"""
+
+
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -22,13 +29,6 @@ from kivy.uix.layout import Layout
 from kivy.uix.stencilview import StencilView
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
-
-
-"""Widget that looks like a trading card, and a layout within which it
-can be dragged and dropped to some particular position within stacks
-of other cards.
-
-"""
 
 
 dbg = Logger.debug
