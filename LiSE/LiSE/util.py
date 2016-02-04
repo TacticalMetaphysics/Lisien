@@ -1,8 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
-"""Common utility functions and data structures.
-
-"""
+"""Common utility functions and data structures."""
 from operator import attrgetter
 
 

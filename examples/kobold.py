@@ -1,3 +1,14 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""A dwarf hunting a kobold that hides in the bushes.
+
+This script will initialize LiSEworld.db and LiSEcode.db to run the
+simulation described. To view it, run ELiDE from the same directory
+as you ran this script from.
+
+"""
+
+
 import networkx as nx
 
 

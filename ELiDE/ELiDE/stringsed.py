@@ -12,10 +12,62 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-from .stores import StringsEditor
+from .stores import (
+    StoreAdapter,
+    StoreDataItem,
+    StoreEditor,
+    StoreList,
+    StringInput
+)
 
 
-Factory.register('StringsEditor', cls=StringsEditor)
+class StringStoreAdapter(StoreAdapter):
+    """:class:`StoreAdapter` that wraps a string store. Gets string names
+    paired with their plaintext.
+
+    """
+
+    def get_data(self, *args):
+        """Get data from ``LiSE.query.QueryEngine.string_table_lang_items``.
+
+        """
+        return [
+            StoreDataItem(name=k, source=v) for (k, v) in
+            self.store.lang_items()
+        ]
+
+
+class StringStoreList(StoreList):
+    adapter_cls = StringStoreAdapter
+
+
+class StringsEditor(StoreEditor):
+    list_cls = StringStoreList
+
+    def add_editor(self, *args):
+        if self.selection is None:
+            Clock.schedule_once(self.add_editor, 0)
+            return
+        self._editor = StringInput(
+            font_name=self.font_name,
+            font_size=self.font_size,
+            name=self.name,
+            source=self.source
+        )
+        self.bind(
+            font_name=self._editor.setter('font_name'),
+            font_size=self._editor.setter('font_size'),
+            name=self._editor.setter('name'),
+            source=self._editor.setter('source')
+        )
+        self.add_widget(self._editor)
+
+    def save(self, *args):
+        self.source = self._editor.source
+        if self.name != self._editor.name:
+            del self.store[self.name]
+            self.name = self._editor.name
+        self.store[self.name] = self.source
 
 
 class StringsEdScreen(Screen):

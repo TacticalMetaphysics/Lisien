@@ -291,10 +291,10 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         """Connect these nodes with a two-way portal and return it."""
         return self.two_way_portal(other, **stats)
 
-    def new_thing(self, name, **stats):
+    def new_thing(self, name, statdict={}, **stats):
         """Create a new thing, located here, and return it."""
         return self.character.new_thing(
-            name, self.name, None, **stats
+            name, self.name, None, statdict, **stats
         )
 
     def __bool__(self):

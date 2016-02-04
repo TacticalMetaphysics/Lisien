@@ -53,6 +53,7 @@ from .util import getatt
 
 
 class AbstractCharacter(object):
+    """The Character API, with all requisite mappings and graph generators."""
     @reify
     def thing(self):
         return self.ThingMapping(self)
@@ -215,6 +216,7 @@ class AbstractCharacter(object):
         return self
 
     def copy_from(self, g):
+        """Copy all nodes and edges from the given graph into this."""
         renamed = {}
         for k, v in g.node.items():
             ok = k
@@ -235,6 +237,8 @@ class AbstractCharacter(object):
         return self
 
     def become(self, g):
+        """Erase all my nodes and edges. Replace them with a copy of the graph
+        provided."""
         self.clear()
         self.copy_from(g)
         return self
@@ -581,15 +585,6 @@ class CharRuleMapping(RuleMapping):
         super().__init__(rulebook.engine, rulebook)
         self.character = character
         self._table = booktyp + "_rules"
-
-    def __iter__(self):
-        """Use a query specialized to the character-rule tables."""
-        return self.engine.db.active_rules_char(
-            self._table,
-            self.character.name,
-            self.rulebook.name,
-            *self.engine.time
-        )
 
 
 class RuleFollower(BaseRuleFollower):
@@ -1230,17 +1225,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             **d
         )
         if engine.caching:
-            self.engine._characters_rulebooks_cache[self.name] = {
-                'character': d.get('character', (self.name, 'character')),
-                'avatar': d.get('avatar', (self.name, 'avatar')),
-                'character_thing': d.get('thing',
-                                         (self.name, 'character_thing')),
-                'character_place': d.get('place',
-                                         (self.name, 'character_place')),
-                'character_node': d.get('node', (self.name, 'character_node')),
-                'character_portal': d.get('portal',
-                                          (self.name, 'character_portal'))
-            }
+            crc = self.engine._characters_rulebooks_cache[self.name]
+            for rulebook in (
+                    'character', 'avatar', 'character_thing',
+                    'character_place', 'character_node', 'character_portal'
+            ):
+                if rulebook in d:
+                    crc[rulebook] = d[rulebook]
 
     class ThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         """:class:`Thing` objects that are in a :class:`Character`"""
@@ -1950,8 +1941,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """Take a series of place names and add the lot."""
         super().add_nodes_from(seq)
 
-    def new_place(self, name, **kwargs):
-        self.add_place(name, **kwargs)
+    def new_place(self, name, statdict={}, **kwargs):
+        kwargs.update(statdict)
+        if name not in self.node:
+            self.add_place(name, **kwargs)
+            return self.place[name]
+        n = 0
+        while name + str(n) in self.node:
+            n += 1
+        self.add_place(name + str(n), **kwargs)
         return self.place[name]
 
     def new_node(self, name, **kwargs):
@@ -1978,8 +1976,17 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             kwargs = tup[3] if len(tup) > 3 else {}
             self.add_thing(name, location, next_loc, **kwargs)
 
-    def new_thing(self, name, location, next_location=None, **kwargs):
-        self.add_thing(name, location, next_location, **kwargs)
+    def new_thing(
+            self, name, location, next_location=None, statdict={}, **kwargs
+    ):
+        kwargs.update(statdict)
+        if name not in self.node:
+            self.add_thing(name, location, next_location, **kwargs)
+            return self.thing[name]
+        n = 0
+        while name + str(n) in self.node:
+            n += 1
+        self.add_thing(name + str(n), location, next_location, **kwargs)
         return self.thing[name]
 
     def place2thing(self, name, location, next_location=None):

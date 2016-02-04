@@ -8,7 +8,6 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty
 )
-from kivy.logger import Logger
 from .pawnspot import PawnSpot
 from ..util import trigger
 

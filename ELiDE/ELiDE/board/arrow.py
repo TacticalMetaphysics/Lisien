@@ -22,7 +22,7 @@ from kivy.lang import Builder
 from kivy.clock import Clock
 
 from ..kivygarden.collider import Collide2DPoly
-from ..util import get_thin_rect_vertices, ninety, fortyfive
+from ..util import get_thin_rect_vertices, fortyfive
 
 
 def get_points(ox, oy, ro, dx, dy, rd, taillen):

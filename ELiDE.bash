@@ -7,7 +7,7 @@ if [ -e "$LISE_PATH" ] && [ -f "$LISE_PATH/.installed" ]; then
     cd "$LISE_PATH";
     git pull;
     git submodule update;
-    python3 setup.py install --user --upgrade;
+    python3 -mpip install --user --upgrade LiSE/ ELiDE/;
     python3 -m ELiDE;
 else
     if [ -e "$LISE_PATH" ]; then
@@ -15,19 +15,14 @@ else
         rm -rf "$LISE_PATH";
     fi;
     if [ -n "`uname -v | grep Ubuntu`" ]; then
-        # on Ubuntu-derived distros, install from PPA
         mkfifo announce;
         mkfifo addapt;
         echo '
-echo "About to install dependencies. This involves setting up two PPAs.";
-echo "ppa:thopiekar/pygame";
-sudo add-apt-repository -y ppa:thopiekar/pygame;
-echo "ppa:kivy-team/kivy-daily";
-sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+echo "About to install dependencies."
 echo "Updating package lists.";
 sudo apt-get -y update;
 echo "Installing dependencies.";
-sudo apt-get -y install git cython3 python3-dev python3-setuptools python3-kivy;
+sudo apt-get -y install git cython3 python3-dev python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev;
 echo "All dependencies installed." >announce;
 sleep 1;
 exit;' >addapt &
@@ -73,7 +68,8 @@ exit;' >addapt &
         echo "Activating LiSE-virtualenv";
         source LiSE-virtualenv/bin/activate;
         echo "Installing Cython";
-        pip3 install cython;
+        python3 -mensurepip
+        python3 -mpip install --user cython;
         echo "Getting latest Kivy master";
         git clone https://github.com/kivy/kivy.git kivy;
         WORKINGDIR=$PWD;
@@ -84,7 +80,7 @@ exit;' >addapt &
         echo "libsdl2-ttf";
         echo "libsdl2-image";
         echo "libsdl2-mixer";
-        USE_SDL2=1 python3 setup.py install;
+        USE_SDL2=1 python3 -mpip install --user .;
         cd $WORKINGDIR;
     fi;
 
@@ -92,7 +88,7 @@ exit;' >addapt &
     cd "$LISE_PATH";
     git submodule init;
     git submodule update;
-    python3 setup.py install --user;
+    python3 -mpip install --user LiSE/ ELiDE/;
 
     mkdir -p $HOME/.local/share/applications;
     echo "[Desktop Entry]

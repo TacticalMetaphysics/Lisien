@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """A simulation of students and teachers, both living on campus,
 attending classes and teaching or learning, as appropriate.
 
@@ -30,14 +32,6 @@ def time_passes(engine, character):
     character.stat['hour'] = (character.stat['hour'] + 1) % 24
 
 
-def chktp():
-    assert (len(time_passes.triggers) == 1)
-    assert (len(time_passes.prereqs) == 0)
-    assert (len(time_passes.actions) == 1)
-
-
-chktp()
-
 # There's a character with all of the students in it, to make it easy to apply rules to all students.
 student_body = eng.new_character('student_body')
 
@@ -51,31 +45,14 @@ def go_to_class(engine, character, node):
     node.travel_to(engine.character['physical'].place['classroom'])
 
 
-chktp()
-assert (len(go_to_class.triggers) == 0)
-assert (len(go_to_class.prereqs) == 0)
-assert (len(go_to_class.actions) == 1)
-
 @go_to_class.trigger
 def absent(engine, character, node):
     return node.location != engine.character['physical'].place['classroom']
 
 
-chktp()
-assert (len(go_to_class.triggers) == 1)
-assert (len(go_to_class.prereqs) == 0)
-assert (len(go_to_class.actions) == 1)
-
-
 @go_to_class.prereq
 def class_in_session(engine, *args):
     return 8 <= engine.character['physical'].stat['hour'] < 15
-
-
-chktp()
-assert (len(go_to_class.triggers) == 1)
-assert (len(go_to_class.prereqs) == 1)
-assert (len(go_to_class.actions) == 1)
 
 
 @go_to_class.prereq
@@ -93,17 +70,6 @@ def be_timely(engine, character, node):
         if user.name not in (character, 'student_body'):
             return not user.stat['lazy'] or engine.coinflip()
 
-
-chktp()
-
-
-def chk2cls():
-    assert (len(go_to_class.triggers) == 1)
-    assert (len(go_to_class.prereqs) == 2)
-    assert (len(go_to_class.actions) == 1)
-
-
-chk2cls()
 
 @student_body.avatar.rule
 def leave_class(engine, character, node):

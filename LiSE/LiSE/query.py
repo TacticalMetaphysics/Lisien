@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""The query engine provides Pythonic methods to access the database."""
 from inspect import getsource
 from types import FunctionType
 from marshal import loads as unmarshalled
@@ -441,32 +442,6 @@ class QueryEngine(gorm.query.QueryEngine):
                 tick,
                 bool(active)
             )
-
-    def active_rules_char(self, tbl, character, rulebook, branch, tick):
-        (character, rulebook) = map(self.json_dump, (character, rulebook))
-        seen = set()
-        for (b, t) in self.active_branches(branch, tick):
-            for (rule, active) in self.sql(
-                    'active_rules_char_fmt', character, rulebook, b, t, tbl=tbl
-            ):
-                if active and rule not in seen:
-                    yield self.json_load(rule)
-                seen.add(rule)
-
-    def active_rule_char(self, tbl, character, rulebook, rule, branch, tick):
-        (character, rulebook) = map(self.json_dump, (character, rulebook))
-        for (b, t) in self.active_branches(branch, tick):
-            for (active,) in self.sql(
-                    'active_rule_char_fmt',
-                    character,
-                    rulebook,
-                    rule,
-                    b,
-                    t,
-                    tbl=tbl
-            ):
-                return bool(active)
-        return False
 
     def character_rulebook(self, character):
         character = self.json_dump(character)

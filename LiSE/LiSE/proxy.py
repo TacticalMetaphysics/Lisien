@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""Tools for observing and controlling LiSE from another process."""
 import sys
 import logging
 from collections import (
@@ -276,6 +277,14 @@ class EngineHandle(object):
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
 
+    def update_character_stats(self, char, patch):
+        self._real.character[char].stat.update(patch)
+
+    def update_character(self, char, patch):
+        self.update_character_stats(char, patch['character'])
+        self.update_nodes(char, patch['node'])
+        self.update_portals(char, patch['portal'])
+
     def character_stats(self, char):
         return list(self._real.character[char].stat.keys())
 
@@ -348,6 +357,20 @@ class EngineHandle(object):
 
     def node_has_stat(self, char, node, k):
         return k in self._real.character[char].node[node]
+
+    def update_node(self, char, node, patch):
+        character = self._real.character[char]
+        if patch is None:
+            del character.node[node]
+        elif node not in character.node:
+            character.node[node] = patch
+            return
+        else:
+            character.node[node].update(patch)
+
+    def update_nodes(self, char, patch):
+        for (n, npatch) in patch.items():
+            self.update_node(char, n, npatch)
 
     def del_node(self, char, node):
         del self._real.character[char].node[node]
@@ -627,6 +650,19 @@ class EngineHandle(object):
     def portal_has_stat(self, char, o, d, k):
         return k in self._real.character[char][o][d]
 
+    def update_portal(self, char, o, d, patch):
+        character = self._real.character[char]
+        if patch is None:
+            del character.portal[o][d]
+        elif o not in character.portal or d not in character.portal[o]:
+            character.portal[o][d] = patch
+        else:
+            character.portal[o][d].update(patch)
+
+    def update_portals(self, char, patch):
+        for ((o, d), ppatch) in patch.items():
+            self.update_portal(char, o, d, ppatch)
+
     def character_avatars(self, char):
         return list(self._real.character[char].avatars())
 
@@ -670,14 +706,13 @@ class EngineHandle(object):
         return self._real.rulebook[rulebook]._cache
 
     def set_rulebook_rule(self, rulebook, i, rule):
-        self._real.rule.db.rulebook_set(rulebook, i, rule)
+        self._real.rulebook[rulebook][i] = rule
 
     def ins_rulebook_rule(self, rulebook, i, rule):
-        self._real.rule.db.rulebook_decr(rulebook, i)
-        self.set_rulebook_rule(rulebook, i, rule)
+        self._real.rulebook[rulebook].insert(i, rule)
 
     def del_rulebook_rule(self, rulebook, i):
-        self._real.rule.db.rulebook_del(rulebook, i)
+        del self._real.rulebook[rulebook][i]
 
     def get_character_rulebook(self, character):
         return self._real.db.get_rulebook_char(

@@ -57,6 +57,31 @@ that one, and not write that code yourself, after all.
 * *Rule constructor*: Build rules out of functions represented as cards. Looks like deckbuilding in a card game like Magic.
 * *Autosave*. Actually, anything you do gets put in a transaction that gets committed when you quit. In any case you never need to save
 
+# Testing
+
+If you want to run the latest code, and not one of the devkits under the
+Releases tab, please use Ubuntu.
+
+## Laziest method
+
+Download and run [ELiDE.bash](https://raw.githubusercontent.com/LogicalDash/LiSE/master/ELiDE.bash). It should set everything up for you.
+
+Run it again later to pull the latest version and launch the graphical
+frontend.
+
+## By hand
+
+```
+git clone https://github.com/LogicalDash/LiSE.git
+cd LiSE
+git submodule init
+git submodule update
+sudo apt-get install cython3 python3-dev python3-pip python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+pip3 install --user LiSE/ ELiDE/
+```
+
+Thereafter you may run the graphical frontend as ``python3 -m ELiDE``.
+
 # License Information
 
 ELiDE uses third-party graphics sets:

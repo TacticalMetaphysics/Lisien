@@ -32,10 +32,8 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty,
-    OptionProperty,
     StringProperty
 )
-from .codeinput import FunctionInput
 from .util import trigger
 
 
@@ -106,39 +104,6 @@ class StoreAdapter(ListAdapter):
         raise NotImplementedError
 
 
-class FuncStoreAdapter(StoreAdapter):
-    """:class:`StoreAdapter` that wraps a function store. Gets function
-    names paired with their source code in plaintext.
-
-    """
-
-    def get_data(self, *args):
-        """Get data from
-        ``LiSE.query.QueryEngine.func_table_name_plaincode``.
-
-        """
-        return [
-            StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.iterplain()
-        ]
-
-
-class StringStoreAdapter(StoreAdapter):
-    """:class:`StoreAdapter` that wraps a string store. Gets string names
-    paired with their plaintext.
-
-    """
-
-    def get_data(self, *args):
-        """Get data from ``LiSE.query.QueryEngine.string_table_lang_items``.
-
-        """
-        return [
-            StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.lang_items()
-        ]
-
-
 class StoreList(FloatLayout):
     """Holder for a :class:`kivy.uix.listview.ListView` that shows what's
     in a store, using one of the StoreAdapter classes.
@@ -191,14 +156,6 @@ class StoreList(FloatLayout):
 
     def redata(self, *args):
         self.adapter.data = self.adapter.get_data()
-
-
-class FuncStoreList(StoreList):
-    adapter_cls = FuncStoreAdapter
-
-
-class StringStoreList(StoreList):
-    adapter_cls = StringStoreAdapter
 
 
 class StoreEditor(BoxLayout):
@@ -319,87 +276,3 @@ class StringInput(BoxLayout):
         self.ids.string.text = v
 
     source = AliasProperty(_get_source, _set_source)
-
-
-class StringsEditor(StoreEditor):
-    list_cls = StringStoreList
-
-    def add_editor(self, *args):
-        if self.selection is None:
-            Clock.schedule_once(self.add_editor, 0)
-            return
-        self._editor = StringInput(
-            font_name=self.font_name,
-            font_size=self.font_size,
-            name=self.name,
-            source=self.source
-        )
-        self.bind(
-            font_name=self._editor.setter('font_name'),
-            font_size=self._editor.setter('font_size'),
-            name=self._editor.setter('name'),
-            source=self._editor.setter('source')
-        )
-        self.add_widget(self._editor)
-
-    def save(self, *args):
-        self.source = self._editor.source
-        if self.name != self._editor.name:
-            del self.store[self.name]
-            self.name = self._editor.name
-        self.store[self.name] = self.source
-
-
-class FuncsEditor(StoreEditor):
-    params = ListProperty(['engine', 'character'])
-    subject_type_params = {
-        'character': ['engine', 'character'],
-        'thing': ['engine', 'character', 'thing'],
-        'place': ['engine', 'character', 'place'],
-        'portal': ['engine', 'character', 'origin', 'destination']
-    }
-    subject_type = OptionProperty(
-        'character', options=list(subject_type_params.keys())
-    )
-    list_cls = FuncStoreList
-
-    def on_subject_type(self, *args):
-        self.params = self.subject_type_params[self.subject_type]
-
-    def add_editor(self, *args):
-        if None in (self.selection, self.params):
-            Clock.schedule_once(self.add_editor, 0)
-            return
-        self._editor = FunctionInput(
-            font_name=self.font_name,
-            font_size=self.font_size,
-            params=self.params,
-        )
-        self.bind(
-            font_name=self._editor.setter('font_name'),
-            font_size=self._editor.setter('font_size'),
-            name=self._editor.setter('name'),
-            source=self._editor.setter('source')
-        )
-        self._editor.bind(params=self.setter('params'))
-        self.add_widget(self._editor)
-
-    def save(self, *args):
-        if '' in (self._editor.name, self._editor.source):
-            return
-        if (
-                self.name == self._editor.name and
-                self.source == self._editor.source
-        ):
-            return
-        if self.name != self._editor.name:
-            del self.store[self.name]
-        self.name = self._editor.name
-        self.source = self._editor.source
-        Logger.debug(
-            'saving function {}={}'.format(
-                self.name,
-                self.source
-            )
-        )
-        self.store.set_source(self.name, self.source)

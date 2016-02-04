@@ -1,3 +1,14 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""Sickle cell anemia vs. malaria, a classic example of population genetics.
+
+This script will initialize LiSEworld.db and LiSEcode.db to run the
+simulation described. To view it, run ELiDE from the same directory
+as you ran this script from.
+
+"""
+
+
 import networkx as nx
 from LiSE import Engine
 from os import remove

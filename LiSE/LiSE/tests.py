@@ -1,3 +1,4 @@
+"""Unit tests for the LiSE engine."""
 import unittest
 from unittest.mock import MagicMock
 from networkx import DiGraph

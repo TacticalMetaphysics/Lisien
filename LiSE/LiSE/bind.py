@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""Utilities for binding functions to values."""
 from gorm.reify import reify
 from collections import defaultdict, Mapping, MutableSequence
 from gorm.window import window_left, window_right
@@ -162,6 +163,8 @@ def fire_time_travel_triggers(
 
 
 def stat_validity(k, cache, branch, tick):
+    """Return the tick when a stat took its current value, and when it'll
+    change."""
     lo = window_left(cache[k][branch].keys(), tick)
     try:
         hi = window_right(cache[k][branch].keys(), tick)

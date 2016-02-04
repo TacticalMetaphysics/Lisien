@@ -42,29 +42,33 @@ import gorm.alchemy
 
 TEXT = String(50)
 
-# Names of the different function tables, which are otherwise
-# identical.
-#
-# Function tables hold marshalled bytecode, and usually plain source code,
-# for user defined functions.
 functyps = (
     'actions',
     'prereqs',
     'triggers',
     'functions'
 )
+"""Names of the different function tables, which are otherwise
+identical.
+
+Function tables hold marshalled bytecode, and usually plain source code,
+for user defined functions.
+
+"""
 
 
-# Names of the different string tables, currently just 'strings'.
-#
-# String tables store text to be used in the game, probably displayed to the
-# player. There's accommodation for more than one such table in case it
-# becomes useful to handle different kinds of text differently,
-# such as text meant to be used in format strings vs. text meant to be
-# displayed as written.
 strtyps = (
     'strings',
 )
+"""Names of the different string tables, currently just 'strings'.
+
+String tables store text to be used in the game, probably displayed to the
+player. There's accommodation for more than one such table in case it
+becomes useful to handle different kinds of text differently,
+such as text meant to be used in format strings vs. text meant to be
+displayed as written.
+
+"""
 
 
 def tables_for_meta(meta):
@@ -858,6 +862,17 @@ def queries(table, view):
         characters.c.character_node_rulebook,
         characters.c.character_portal_rulebook
     ])
+
+    r['character_rulebooks'] = select([
+        characters.c.character_rulebook,
+        characters.c.avatar_rulebook,
+        characters.c.character_thing_rulebook,
+        characters.c.character_place_rulebook,
+        characters.c.character_node_rulebook,
+        characters.c.character_portal_rulebook
+    ]).where(
+        table['characters'].c.character == bindparam('character')
+    )
 
     r['ct_characters'] = select([func.COUNT(table['characters'].c.character)])
 
