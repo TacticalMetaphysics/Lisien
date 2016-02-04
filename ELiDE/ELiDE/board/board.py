@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""The big widget that shows the graph of the selected Character."""
 from functools import partial
 from kivy.properties import (
     AliasProperty,
@@ -22,10 +23,20 @@ from ..util import trigger
 
 
 class KvLayoutBack(FloatLayout):
+    """What to show behind the graph.
+
+    By default, shows a static image.
+
+    """
     character = ObjectProperty()
 
 
 class KvLayoutFront(FloatLayout):
+    """What to show in front of the graph.
+
+    By default, shows nothing.
+
+    """
     pass
 
 
@@ -495,7 +506,8 @@ class Board(RelativeLayout):
                 if '_image_paths' in thing:
                     zeroes = [0] * len(thing['_image_paths'])
                 else:
-                    patch['_image_paths'] = thing.default_image_paths
+                    patch['_image_paths'] = Pawn.default_image_paths
+                    zeroes = [0] * len(Pawn.default_image_paths)
                 if '_offxs' not in thing:
                     patch['_offxs'] = zeroes
                 if '_offys' not in thing:

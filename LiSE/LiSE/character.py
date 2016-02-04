@@ -1232,8 +1232,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             ):
                 if rulebook in d:
                     crc[rulebook] = d[rulebook]
-                elif rulebook not in crc:
-                    crc[rulebook] = (self.name, rulebook)
 
     class ThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         """:class:`Thing` objects that are in a :class:`Character`"""

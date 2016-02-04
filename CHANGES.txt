@@ -1,3 +1,10 @@
+=== Alpha 6 | 2016-02-01 ===
+* Opening a functions editor no longer crashes the app.
+* All the function editors are now in tabs of one screen.
+* Nicer auto layout of spots.
+* Various smaller fixes.
+
+
 === Alpha 5 | 2016-01-03 ===
 * A whole new approach to interprocess communication resulting in much more acceptable performance within ELiDE.
 * LiSE caches the whole world state.

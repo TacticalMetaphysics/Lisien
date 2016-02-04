@@ -1,7 +1,10 @@
 # -*- mode: python -*-
-from kivy.tools.packaging.pyinstaller_hooks import install_hooks
+from kivy.tools.packaging.pyinstaller_hooks import (
+    get_deps_minimal, 
+    hookspath,
+    runtime_hooks
+)
 import os
-install_hooks(globals())
 a = Analysis(['start.py'],
              pathex=['/home/sanotehu/src/LiSE'],
              hiddenimports=[
@@ -21,8 +24,10 @@ a = Analysis(['start.py'],
                  'ELiDE.kivygarden.texturestack',
                  'ELiDE.kivygarden.stiffscroll'
              ],
-             hookspath=None,
-             runtime_hooks=None)
+             hookspath=hookspath(),
+             runtime_hooks=runtime_hooks(),
+             **get_deps_minimal(video=None, audio=None)
+             )
 collider_built = os.listdir('ELiDE/kivygarden/collider/build')
 for fn in collider_built:
     if fn.startswith('lib'):
