@@ -1193,8 +1193,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     """
     _book = "character"
 
-    adj = succ = getatt('portal')
-
     @property
     def character(self):
         return self
