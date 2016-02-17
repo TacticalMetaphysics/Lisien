@@ -53,7 +53,17 @@ from .util import getatt
 
 
 class AbstractCharacter(object):
-    """The Character API, with all requisite mappings and graph generators."""
+    """The Character API, with all requisite mappings and graph generators.
+
+    Mappings resemble those of a NetworkX digraph:
+
+    * ``thing`` and ``place`` are subsets of ``node``
+    * ``edge``, ``adj``, and ``succ`` are aliases of ``portal``
+    * ``pred`` is an alias to ``preportal``
+    * ``stat`` is a dict-like mapping of data that changes over game-time,
+    to be used in place of graph attributes
+
+    """
     @reify
     def thing(self):
         return self.ThingMapping(self)
@@ -216,7 +226,11 @@ class AbstractCharacter(object):
         return self
 
     def copy_from(self, g):
-        """Copy all nodes and edges from the given graph into this."""
+        """Copy all nodes and edges from the given graph into this.
+
+        Return myself.
+
+        """
         renamed = {}
         for k, v in g.node.items():
             ok = k
@@ -238,7 +252,11 @@ class AbstractCharacter(object):
 
     def become(self, g):
         """Erase all my nodes and edges. Replace them with a copy of the graph
-        provided."""
+        provided.
+
+        Return myself.
+
+        """
         self.clear()
         self.copy_from(g)
         return self
@@ -1189,6 +1207,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     spend some time contained by a Portal (i.e. an edge specialized
     for Character). If a Thing is not contained by a Portal, it's
     contained by whatever it's located in.
+
+    Characters may have avatars in other Characters. These are just
+    nodes. You can apply rules to a Character's avatars, and thus to
+    any collection of nodes you want, perhaps in many different
+    Characters. But you may want a Character to have exactly one
+    avatar, representing their location in physical space -- the
+    Character named 'physical'. So when a Character has only one
+    avatar, you can treat the ``avatar`` property as an alias of the
+    avatar.
 
     """
     _book = "character"
