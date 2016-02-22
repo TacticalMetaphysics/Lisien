@@ -4,11 +4,11 @@ from LiSE.rule import Rule
 
 
 def install(engine):
-    @engine.function
-    def taking_action(engine, character, action):
-        return character.stat.get('action', None) == action
+    @engine.trigger
+    def verbing(engine, character, verb):
+        return character.stat.get('verb', None) == verb
 
-    @engine.function
+    @engine.action
     def craft_thing_dict(engine, character, thing_dict):
         d = thing_dict
         body = character.avatar.physical
@@ -19,7 +19,8 @@ def install(engine):
         name = d['kind'] + str(num_of_kind)
         body.new_thing(name, **d)
 
-    @engine.function
+    @engine.trigger
+    @engine.prereq
     def have_number_of_kind(engine, character, number, kind):
         body = character.avatar.physical
         return len(
@@ -27,7 +28,7 @@ def install(engine):
             if thing.get('kind', None) == kind
         ) >= number
 
-    @engine.function
+    @engine.action
     def destroy_number_of_kind(engine, character, number, kind):
         body = character.avatar.physical
         n = 0
@@ -39,18 +40,18 @@ def install(engine):
             thing.delete()
             n += 1
 
-    @engine.function
+    @engine.prereq
     def have_skill(engine, character, skill, level=None):
         if level:
             return character.skills[skill] >= level
         else:
             return skill in character.skills
 
-    @engine.function
+    @engine.prereq
     def have_energy(engine, character, energy):
         return character.stat['energy'] >= energy
 
-    @engine.function
+    @engine.action
     def deduct_energy(engine, character, energy):
         character.stat['energy'] -= energy
 
@@ -68,17 +69,17 @@ def install(engine):
                         isinstance(req[1], str)
                 ):
                     raise ValueError("Illegal material req: {}".format(req))
-                material_prereqs.append(engine.function.partial(
+                material_prereqs.append(engine.prereq.partial(
                     'have_number_of_kind', number=req[0], kind=req[1]
                 ))
-                material_destroyers.append(engine.function.partial(
+                material_destroyers.append(engine.action.partial(
                     'destroy_number_of_kind', number=req[0], kind=req[1]
                 ))
             elif isinstance(req, str):
-                material_prereqs.append(engine.function.partial(
+                material_prereqs.append(engine.prereq.partial(
                     'have_number_of_kind', number=1, kind=req
                 ))
-                material_destroyers.append(engine.function.partial(
+                material_destroyers.append(engine.action.partial(
                     'destroy_number_of_kind', number=1, kind=req
                 ))
             else:
@@ -92,11 +93,11 @@ def install(engine):
                         isinstance(req[1], str)
                 ):
                     raise ValueError("Illegal skill req: {}".format(req))
-                skill_prereqs.append(engine.function.partial(
+                skill_prereqs.append(engine.prereq.partial(
                     'have_skill', level=req[0], skill=req[1]
                 ))
             elif isinstance(req, str):
-                skill_prereqs.append(engine.function.partial(
+                skill_prereqs.append(engine.prereq.partial(
                     'have_skill', skill=req
                 ))
             else:
@@ -105,13 +106,13 @@ def install(engine):
             engine,
             name,
             triggers=[
-                engine.function.partial(
-                    'taking_action', action=name
+                engine.trigger.partial(
+                    'verbing', action=name
                 )
             ],
             prereqs=material_prereqs + skill_prereqs,
             actions=[
-                engine.function_partial(
+                engine.action.partial(
                     'craft_thing_dict', thing_dict=thingd
                 ) for thingd in thing_dicts_to_add
             ] + material_destroyers
