@@ -253,6 +253,7 @@ class FunctionStore(MutableMapping):
         self.db.func_table_set(self._tab, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
+        return fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
