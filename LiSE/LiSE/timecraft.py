@@ -56,6 +56,7 @@ def install(engine):
     def deduct_energy(engine, character, energy):
         character.stat['energy'] -= energy
 
+    @engine.function
     def make_timecraft_rule(
             engine, name,
             energy=10, thing_dicts_to_add=[], material_reqs=[], skill_reqs=[]
@@ -178,6 +179,37 @@ class recipe(tuple):
     geological = iget(12)
     weight = iget(13)
     turns_into = iget(14)
+
+
+header = (
+    'Id',
+    'Action',
+    'Item Id',
+    'Name',
+    'Type',
+    'Tech',
+    'Skill',
+    'Consumes',
+    'Time',
+    'Needs',
+    'Byproducts',
+    'Effect',
+    'Geological',
+    'Weight',
+    'Turns into'
+)
+
+
+def parse_timecraft(f: "file-like object") -> dict:
+    from csv import reader
+    from collections import defaultdict
+    out = defaultdict(set)
+    for line in reader(f):
+        if line == header:
+            continue
+        out[line[0]] = recipe(line)
+    return out
+
 if __name__ == '__main__':
     import LiSE
     engine = LiSE.Engine('LiSEworld.db', 'LiSEcode.db')
