@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 from LiSE.rule import Rule
+from operator import itemgetter
 
 
 def install(engine):
@@ -119,6 +120,64 @@ def install(engine):
         )
 
 
+def iget(i):
+    return property(itemgetter(i))
+
+
+class recipe(tuple):
+    def __new__(cls, *args):
+        if len(args) == 1:
+            args = args[0]
+        (
+            key,
+            action,
+            item_id,
+            name,
+            kind,
+            tech,
+            skill,
+            consumes,
+            time,
+            needs,
+            byproducts,
+            effect,
+            geological,
+            weight,
+            turns_into
+        ) = args
+        return tuple.__new__(cls, (
+            int(key),
+            action,
+            int(item_id),
+            name,
+            kind,
+            int(tech),
+            skill,
+            frozenset(consumes),
+            int(time) if time else None,
+            frozenset(needs.split(', ')),
+            frozenset(byproducts.split(', ')),
+            effect,
+            frozenset(geological.split(', ')),
+            float(weight) if weight else None,
+            turns_into
+        ))
+
+    key = iget(0)
+    action = iget(1)
+    item_id = iget(2)
+    name = iget(3)
+    kind = iget(4)
+    tech = iget(5)
+    skill = iget(6)
+    consumes = iget(7)
+    time = iget(8)
+    needs = iget(9)
+    byproducts = iget(10)
+    effect = iget(11)
+    geological = iget(12)
+    weight = iget(13)
+    turns_into = iget(14)
 if __name__ == '__main__':
     import LiSE
     engine = LiSE.Engine('LiSEworld.db', 'LiSEcode.db')
