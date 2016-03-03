@@ -20,6 +20,108 @@ string_defaults = {
 }
 
 
+def windows_union(windows) -> list:
+    def fix_overlap(left, right):
+        if left == right:
+            return [left]
+        assert left[0] < right[0]
+        if left[1] >= right[0]:
+            if right[1] > left[1]:
+                return [(left[0], right[1])]
+            else:
+                return [left]
+        return [left, right]
+
+    if len(windows) == 1:
+        yield windows[0]
+        return
+    none_left = []
+    otherwise = []
+    for window in windows:
+        if window[0] is None:
+            none_left.append(window)
+        else:
+            otherwise.append(window)
+
+    res = []
+    otherwise.sort()
+    for window in none_left:
+        if not res:
+            res.append(window)
+            continue
+        res.extend(fix_overlap(res.pop(), window))
+    while otherwise:
+        window = otherwise.pop(0)
+        if not res:
+            res.append(window)
+            continue
+        res.extend(fix_overlap(res.pop(), window))
+    return res
+
+
+def windows_intersection(windows) -> list:
+    def intersect2(left, right):
+        if left == right:
+            return left
+        elif left is (None, None):
+            return right
+        elif right is (None, None):
+            return left
+        elif left[0] is None:
+            if right[0] is None:
+                return None, min((left[1], right[1]))
+            elif right[1] is None:
+                if left[1] <= right[0]:
+                    return left[1], right[0]
+                else:
+                    return None
+            elif right[0] <= left[1]:
+                return right[0], left[1]
+            else:
+                return None
+        elif left[1] is None:
+            if right[0] is None:
+                return left[0], right[1]
+            else:
+                return right  # assumes left[0] <= right[0]
+        # None not in left
+        elif right[0] is None:
+            return left[0], min((left[1], right[1]))
+        elif right[1] is None:
+            if left[1] >= right[0]:
+                return right[0], left[1]
+            else:
+                return None
+        assert None not in left and None not in right and left[0] < right[1]
+        if left[1] >= right[0]:
+            if right[1] > left[1]:
+                return right[0], left[1]
+            else:
+                return right
+        return None
+
+    if len(windows) == 1:
+        return windows
+    left_none = []
+    otherwise = []
+    for window in windows:
+        if window[0] is None:
+            left_none.append(window)
+        else:
+            otherwise.append(window)
+
+    done = []
+    todo = left_none + sorted(otherwise)
+    for window in todo:
+        if not done:
+            done.append(window)
+            continue
+        res = intersect2(done.pop(), window)
+        if res:
+            done.append(res)
+    return done
+
+
 class QueryEngine(gorm.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
