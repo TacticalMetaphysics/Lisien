@@ -122,6 +122,83 @@ def windows_intersection(windows) -> list:
     return done
 
 
+class Query(object):
+    def __new__(cls, leftside, rightside, **kwargs):
+        me = super().__new__(cls)
+        me.branch = kwargs.get('branch', 'master')
+        me.windows = kwargs.get('windows', [])
+        me.leftside = leftside
+        me.rightside = rightside
+        return me
+
+    def and_before(self, end):
+        if self.windows:
+            new_windows = windows_intersection(
+                sorted(self.windows + [(None, end)])
+            )
+        else:
+            new_windows = [(0, end)]
+        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+    before = and_before
+
+    def or_before(self, end):
+        if self.windows:
+            new_windows = windows_union(self.windows + [(None, end)])
+        else:
+            new_windows = [(None, end)]
+        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+
+    def and_after(self, start):
+        if self.windows:
+            new_windows = windows_intersection(self.windows + [(start, None)])
+        else:
+            new_windows = [(start, None)]
+        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+    after = and_after
+
+    def or_between(self, start, end):
+        if self.windows:
+            new_windows = windows_union(self.windows + [(start, end)])
+        else:
+            new_windows = [(start, end)]
+        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+
+    def and_between(self, start, end):
+        if self.windows:
+            new_windows = windows_intersection(self.windows + [(start, end)])
+        else:
+            new_windows = [(start, end)]
+        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+
+
+class Union(Query):
+    pass
+
+
+class ComparisonQuery(Query):
+    pass
+
+
+class EqQuery(ComparisonQuery):
+    pass
+
+
+class GtQuery(ComparisonQuery):
+    pass
+
+
+class LtQuery(ComparisonQuery):
+    pass
+
+
+class GeQuery(ComparisonQuery):
+    pass
+
+
+class LeQuery(ComparisonQuery):
+    pass
+
+
 class QueryEngine(gorm.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
