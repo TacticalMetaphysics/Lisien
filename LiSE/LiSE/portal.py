@@ -4,7 +4,7 @@
 
 from gorm.graph import Edge
 
-from .util import getatt
+from .util import getatt, EntityStatAccessor
 from .bind import TimeDispatcher
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -222,6 +222,12 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
             return self.character.portal[self._destination][self._origin]
         except KeyError:
             raise KeyError("This portal has no reciprocal")
+
+    def status(self, stat):
+        return EntityStatAccessor(
+            entity=self,
+            stat=stat
+        )
 
     def contents(self):
         """Iterate over Thing instances that are presently travelling through

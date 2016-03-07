@@ -4,6 +4,7 @@ from inspect import getsource
 from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
+from operator import gt, lt, eq, ne, le, ge
 
 import gorm.query
 
@@ -13,6 +14,7 @@ from .exc import (
     RedundantRuleError,
     UserFunctionError
 )
+from .util import EntityStatAccessor
 import LiSE
 
 string_defaults = {
@@ -125,7 +127,7 @@ def windows_intersection(windows) -> list:
 class Query(object):
     def __new__(cls, leftside, rightside, **kwargs):
         me = super().__new__(cls)
-        me.branch = kwargs.get('branch', 'master')
+        me.branches = kwargs.get('branches', None) or [kwargs.get('branch', 'master')]
         me.windows = kwargs.get('windows', [])
         me.leftside = leftside
         me.rightside = rightside
@@ -180,29 +182,137 @@ class ComparisonQuery(Query):
 
 
 class EqQuery(ComparisonQuery):
-    pass
+    oper = eq
+
+
+class NeQuery(ComparisonQuery):
+    oper = ne
 
 
 class GtQuery(ComparisonQuery):
-    pass
+    oper = gt
 
 
 class LtQuery(ComparisonQuery):
-    pass
+    oper = lt
 
 
 class GeQuery(ComparisonQuery):
-    pass
+    oper = ge
 
 
 class LeQuery(ComparisonQuery):
-    pass
+    oper = le
+
+
+comparisons = {
+    'eq': EqQuery,
+    'ne': NeQuery,
+    'gt': GtQuery,
+    'lt': LtQuery,
+    'ge': GeQuery,
+    'le': LeQuery
+}
+
+
+def intersect_qry(qry: Query):
+    windows = []
+    windowses = 0
+    if hasattr(qry.leftside, 'windows'):
+        windows.extend(qry.leftside.windows)
+        windowses += 1
+    if hasattr(qry.rightside, 'windows'):
+        windows.extend(qry.rightside.windows)
+        windowses += 1
+    if windowses > 1:
+        windows = windows_intersection(windowses)
+    return windows
+
+
+def iter_intersection_ticks2check(ticks, windows):
+    windows = windows_intersection(windows)
+    if not windows:
+        yield from ticks
+        return
+    for tick in sorted(ticks):
+        (left, right) = windows.pop(0)
+        if left is None:
+            if tick <= right:
+                yield tick
+                windows.insert(0, (left, right))
+        elif right is None:
+            if tick >= right:
+                yield from ticks
+                return
+            windows.insert(0, (left, right))
+        elif left <= tick <= right:
+            yield tick
+            windows.insert(0, (left, right))
+        elif tick < left:
+            windows.insert(0, (left, right))
+
+
+class QueryResults(object):
+    def __init__(self, iter):
+        self.iter = iter
+        try:
+            self.next = next(self.iter)
+        except StopIteration:
+            return
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            r = self.next
+        except AttributeError:
+            raise StopIteration
+        try:
+            self.next = next(self.iter)
+        except StopIteration:
+            del self.next
+        return r
+
+    def __bool__(self):
+        return hasattr(self, 'next')
+
+
+def eval_qry(qry: Query):
+    if isinstance(qry, ComparisonQuery):
+        return QueryResults(iter_eval_cmp(qry, qry.oper))
+    raise NotImplementedError("Only comparison queries for now, sorry")
+
+
+def iter_eval_cmp(qry: EqQuery, oper):
+    def mungeside(side):
+        if isinstance(side, Query):
+            return eval_qry(side)
+        elif isinstance(side, EntityStatAccessor):
+            return side
+        else:
+            return lambda b, t: side
+    leftside = mungeside(qry.leftside)
+    rightside = mungeside(qry.rightside)
+    for branch in qry.branches:
+        ticks = frozenset(leftside._cache[branch].keys()).union(rightside._cache[branch].keys())
+        for tick in iter_intersection_ticks2check(ticks, qry.windows):
+            if oper(leftside(branch, tick), rightside(branch, tick)):
+                yield branch, tick
 
 
 class QueryEngine(gorm.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
+
+    def times_when(self, entity0, stat0, entity1, stat1=None, oper='eq', branches=None, windows=[]):
+        engine = entity0.engine
+        stat1 = stat1 or stat0
+        branches = branches or [engine.branch]
+        return eval_qry(comparisons[oper](
+            leftside=entity0.status(stat0), rightside=entity1.status(stat1), branches=branches, windows=windows
+        ))
 
     def count_all_table(self, tbl):
         return self.sql('count_all_{}'.format(tbl)).fetchone()[0]

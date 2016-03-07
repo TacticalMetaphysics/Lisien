@@ -85,12 +85,12 @@ class EntityStatAccessor(object):
         self.tick = tick
         self.mungers = mungers
 
-    def get(self):
+    def __call__(self, branch=None, tick=None):
         if self.current:
             res = self.entity[self.stat]
         else:
             time = self.engine.time
-            self.engine.time = (self.branch, self.tick)
+            self.engine.time = (branch or self.branch, tick or self.tick)
             res = self.entity[self.stat]
             self.engine.time = time
         for munger in self.mungers:
@@ -98,13 +98,13 @@ class EntityStatAccessor(object):
         return res
 
     def __hash__(self):
-        return hash(self.get())
+        return hash(self())
 
     def __ne__(self, other):
-        return self.get() != other
+        return self() != other
 
     def __str__(self):
-        return str(self.get())
+        return str(self())
 
     def __repr__(self):
         return "EntityStatAccessor({}[{}]{}), {} mungers".format(
@@ -115,19 +115,19 @@ class EntityStatAccessor(object):
         )
 
     def __gt__(self, other):
-        return self.get() > other
+        return self() > other
 
     def __ge__(self, other):
-        return self.get() >= other
+        return self >= other
 
     def __lt__(self, other):
-        return self.get() < other
+        return self < other
 
     def __le__(self, other):
-        return self.get() <= other
+        return self <= other
 
     def __eq__(self, other):
-        return self.get() == other
+        return self == other
 
     def munge(self, munger):
         return EntityStatAccessor(

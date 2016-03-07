@@ -49,7 +49,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt
+from .util import getatt, EntityStatAccessor
 
 
 class AbstractCharacter(object):
@@ -83,6 +83,12 @@ class AbstractCharacter(object):
 
     pred = getatt('preportal')
     adj = succ = edge = getatt('portal')
+
+    def status(self, stat):
+        return EntityStatAccessor(
+            entity=self.stat,
+            stat=stat
+        )
 
     def do(self, func, *args, **kwargs):
         """Apply the function to myself, and return myself.
@@ -1902,6 +1908,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """Caching dict-alike for character stats"""
         @property
         def _dispatch_cache(self):
+            return self.engine._graph_val_cache[
+                self.character.name
+            ]
+
+        @property
+        def _cache(self):
             return self.engine._graph_val_cache[
                 self.character.name
             ]

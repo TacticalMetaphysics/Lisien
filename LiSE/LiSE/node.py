@@ -11,7 +11,7 @@ from collections import Mapping
 import gorm.graph
 from gorm.reify import reify
 
-from .util import getatt
+from .util import getatt, EntityStatAccessor
 from .bind import TimeDispatcher
 from . import rule
 
@@ -73,6 +73,10 @@ class UserMapping(Mapping):
 
 class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     """Superclass for both Thing and Place"""
+    @property
+    def _cache(self):
+        return self._dispatch_cache
+
     def _rule_names_activeness(self):
         if self.engine.caching:
             cache = self.engine._active_rules_cache[self._get_rulebook_name()]
@@ -295,6 +299,12 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         """Create a new thing, located here, and return it."""
         return self.character.new_thing(
             name, self.name, None, statdict, **stats
+        )
+
+    def status(self, stat):
+        return EntityStatAccessor(
+            entity=self,
+            stat=stat
         )
 
     def __bool__(self):
