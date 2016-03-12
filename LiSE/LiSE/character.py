@@ -49,7 +49,8 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, EntityStatAccessor
+from .util import getatt
+from .query import StatusAlias
 
 
 class AbstractCharacter(object):
@@ -84,8 +85,8 @@ class AbstractCharacter(object):
     pred = getatt('preportal')
     adj = succ = edge = getatt('portal')
 
-    def status(self, stat):
-        return EntityStatAccessor(
+    def historical(self, stat):
+        return StatusAlias(
             entity=self.stat,
             stat=stat
         )

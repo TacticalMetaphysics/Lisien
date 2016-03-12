@@ -11,7 +11,8 @@ from collections import Mapping
 import gorm.graph
 from gorm.reify import reify
 
-from .util import getatt, EntityStatAccessor
+from .util import getatt
+from .query import StatusAlias
 from .bind import TimeDispatcher
 from . import rule
 
@@ -301,8 +302,8 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
             name, self.name, None, statdict, **stats
         )
 
-    def status(self, stat):
-        return EntityStatAccessor(
+    def historical(self, stat):
+        return StatusAlias(
             entity=self,
             stat=stat
         )

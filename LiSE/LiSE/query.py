@@ -62,6 +62,11 @@ def windows_union(windows) -> list:
 
 
 def windows_intersection(windows) -> list:
+    """
+
+    :rtype: list
+    """
+
     def intersect2(left, right):
         if left == right:
             return left
@@ -133,6 +138,9 @@ class Query(object):
         me.rightside = rightside
         return me
 
+    def __call__(self):
+        raise NotImplementedError("Query is abstract")
+
     def and_before(self, end):
         if self.windows:
             new_windows = windows_intersection(
@@ -140,7 +148,7 @@ class Query(object):
             )
         else:
             new_windows = [(0, end)]
-        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
     before = and_before
 
     def or_before(self, end):
@@ -148,14 +156,14 @@ class Query(object):
             new_windows = windows_union(self.windows + [(None, end)])
         else:
             new_windows = [(None, end)]
-        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
 
     def and_after(self, start):
         if self.windows:
             new_windows = windows_intersection(self.windows + [(start, None)])
         else:
             new_windows = [(start, None)]
-        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
     after = and_after
 
     def or_between(self, start, end):
@@ -163,14 +171,22 @@ class Query(object):
             new_windows = windows_union(self.windows + [(start, end)])
         else:
             new_windows = [(start, end)]
-        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
 
     def and_between(self, start, end):
         if self.windows:
             new_windows = windows_intersection(self.windows + [(start, end)])
         else:
             new_windows = [(start, end)]
-        return self.__class__(self.leftside, self.rightside, branch=self.branch, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+    between = and_between
+
+    def or_during(self, tick):
+        return self.or_between(tick, tick)
+
+    def and_during(self, tick):
+        return self.and_between(tick, tick)
+    during = and_during
 
 
 class Union(Query):
@@ -178,7 +194,10 @@ class Union(Query):
 
 
 class ComparisonQuery(Query):
-    pass
+    oper = lambda x, y: NotImplemented
+
+    def __call__(self):
+        return QueryResults(iter_eval_cmp(self, self.oper))
 
 
 class EqQuery(ComparisonQuery):
@@ -213,6 +232,26 @@ comparisons = {
     'ge': GeQuery,
     'le': LeQuery
 }
+
+
+class StatusAlias(EntityStatAccessor):
+    def __eq__(self, other):
+        return EqQuery(self, other)
+
+    def __ne__(self, other):
+        return NeQuery(self, other)
+
+    def __gt__(self, other):
+        return GtQuery(self, other)
+
+    def __lt__(self, other):
+        return LtQuery(self, other)
+
+    def __ge__(self, other):
+        return GeQuery(self, other)
+
+    def __le__(self, other):
+        return LeQuery(self, other)
 
 
 def intersect_qry(qry: Query):
@@ -278,16 +317,14 @@ class QueryResults(object):
         return hasattr(self, 'next')
 
 
-def eval_qry(qry: Query):
-    if isinstance(qry, ComparisonQuery):
-        return QueryResults(iter_eval_cmp(qry, qry.oper))
-    raise NotImplementedError("Only comparison queries for now, sorry")
-
-
 def iter_eval_cmp(qry: EqQuery, oper):
     def mungeside(side):
         if isinstance(side, Query):
-            return eval_qry(side)
+            return side()
+        elif isinstance(side, StatusAlias):
+            return EntityStatAccessor(
+                side.entity, side.stat, side.engine, side.branch, side.tick, side.current, side.mungers
+            )
         elif isinstance(side, EntityStatAccessor):
             return side
         else:
@@ -310,9 +347,9 @@ class QueryEngine(gorm.query.QueryEngine):
         engine = entity0.engine
         stat1 = stat1 or stat0
         branches = branches or [engine.branch]
-        return eval_qry(comparisons[oper](
+        return comparisons[oper](
             leftside=entity0.status(stat0), rightside=entity1.status(stat1), branches=branches, windows=windows
-        ))
+        )()
 
     def count_all_table(self, tbl):
         return self.sql('count_all_{}'.format(tbl)).fetchone()[0]

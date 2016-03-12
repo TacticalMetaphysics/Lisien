@@ -4,7 +4,8 @@
 
 from gorm.graph import Edge
 
-from .util import getatt, EntityStatAccessor
+from .util import getatt
+from .query import StatusAlias
 from .bind import TimeDispatcher
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -223,8 +224,8 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         except KeyError:
             raise KeyError("This portal has no reciprocal")
 
-    def status(self, stat):
-        return EntityStatAccessor(
+    def historical(self, stat):
+        return StatusAlias(
             entity=self,
             stat=stat
         )
