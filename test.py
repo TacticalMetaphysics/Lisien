@@ -6,13 +6,15 @@ from examples import college as sim
 
 class LiSETest(unittest.TestCase):
     def setUp(self):
-        """Start an engine and install the sim module.
+        """Start an engine, install the sim module, and run it a while.
 
         This gives us some world-state to test upon.
 
         """
         self.engine = LiSE.Engine(":memory:")
         sim.install(self.engine)
+        for i in range(72):
+            self.engine.next_tick()
 
     def tearDown(self):
         """Close my engine."""
