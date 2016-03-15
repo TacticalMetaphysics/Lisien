@@ -368,8 +368,11 @@ class Rule(object):
 
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
-        def truth(*args):
-            return True
+        if 'truth' in self.engine.trigger:
+            truth = self.engine.trigger['truth']
+        else:
+            def truth(*args):
+                return True
         self.triggers = [truth]
 
     def check_triggers(self, engine, *args):
