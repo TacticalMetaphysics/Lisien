@@ -1680,10 +1680,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 seen = False
                 for avatar in cache:
                     if seen:
+                        seen = False
                         continue
                     for node in cache[avatar]:
                         if seen:
-                            seen = False
                             break
                         for (branch, tick) in self.engine._active_branches():
                             try:
