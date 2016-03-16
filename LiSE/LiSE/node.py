@@ -72,7 +72,14 @@ class UserMapping(Mapping):
 
 
 class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
-    """Superclass for both Thing and Place"""
+    """The fundamental graph component, which edges (in LiSE, "portals")
+    go between.
+
+    Every LiSE node is either a thing or a place. They share in common
+    the abilities to follow rules; to be connected by portals; and to
+    contain things.
+
+    """
     def _rule_names_activeness(self):
         if self.engine.caching:
             cache = self.engine._active_rules_cache[self._get_rulebook_name()]
