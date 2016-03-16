@@ -656,6 +656,8 @@ def queries(table, view):
         """Get all columns for a given function (except ``name``).
 
         * ``bytecode``
+        * ``base``
+        * ``keywords``
         * ``date``
         * ``creator``
         * ``contributor``
@@ -667,6 +669,8 @@ def queries(table, view):
         return select(
             [
                 t.c.bytecode,
+                t.c.base,
+                t.c.keywords,
                 t.c.date,
                 t.c.creator,
                 t.c.contributor,

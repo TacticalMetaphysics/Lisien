@@ -5,6 +5,7 @@ from inspect import getsource
 from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
+from operator import gt, lt, eq, ne, le, ge
 
 import gorm.query
 
@@ -14,6 +15,7 @@ from .exc import (
     RedundantRuleError,
     UserFunctionError
 )
+from .util import EntityStatAccessor
 import LiSE
 
 string_defaults = {
@@ -21,10 +23,334 @@ string_defaults = {
 }
 
 
+def windows_union(windows) -> list:
+    def fix_overlap(left, right):
+        if left == right:
+            return [left]
+        assert left[0] < right[0]
+        if left[1] >= right[0]:
+            if right[1] > left[1]:
+                return [(left[0], right[1])]
+            else:
+                return [left]
+        return [left, right]
+
+    if len(windows) == 1:
+        yield windows[0]
+        return
+    none_left = []
+    otherwise = []
+    for window in windows:
+        if window[0] is None:
+            none_left.append(window)
+        else:
+            otherwise.append(window)
+
+    res = []
+    otherwise.sort()
+    for window in none_left:
+        if not res:
+            res.append(window)
+            continue
+        res.extend(fix_overlap(res.pop(), window))
+    while otherwise:
+        window = otherwise.pop(0)
+        if not res:
+            res.append(window)
+            continue
+        res.extend(fix_overlap(res.pop(), window))
+    return res
+
+
+def windows_intersection(windows) -> list:
+    """
+
+    :rtype: list
+    """
+
+    def intersect2(left, right):
+        if left == right:
+            return left
+        elif left is (None, None):
+            return right
+        elif right is (None, None):
+            return left
+        elif left[0] is None:
+            if right[0] is None:
+                return None, min((left[1], right[1]))
+            elif right[1] is None:
+                if left[1] <= right[0]:
+                    return left[1], right[0]
+                else:
+                    return None
+            elif right[0] <= left[1]:
+                return right[0], left[1]
+            else:
+                return None
+        elif left[1] is None:
+            if right[0] is None:
+                return left[0], right[1]
+            else:
+                return right  # assumes left[0] <= right[0]
+        # None not in left
+        elif right[0] is None:
+            return left[0], min((left[1], right[1]))
+        elif right[1] is None:
+            if left[1] >= right[0]:
+                return right[0], left[1]
+            else:
+                return None
+        assert None not in left and None not in right and left[0] < right[1]
+        if left[1] >= right[0]:
+            if right[1] > left[1]:
+                return right[0], left[1]
+            else:
+                return right
+        return None
+
+    if len(windows) == 1:
+        return windows
+    left_none = []
+    otherwise = []
+    for window in windows:
+        if window[0] is None:
+            left_none.append(window)
+        else:
+            otherwise.append(window)
+
+    done = []
+    todo = left_none + sorted(otherwise)
+    for window in todo:
+        if not done:
+            done.append(window)
+            continue
+        res = intersect2(done.pop(), window)
+        if res:
+            done.append(res)
+    return done
+
+
+class Query(object):
+    def __new__(cls, leftside, rightside, **kwargs):
+        me = super().__new__(cls)
+        me.branches = kwargs.get('branches', None) or [kwargs.get('branch', 'master')]
+        me.windows = kwargs.get('windows', [])
+        me.leftside = leftside
+        me.rightside = rightside
+        return me
+
+    def __call__(self):
+        raise NotImplementedError("Query is abstract")
+
+    def and_before(self, end):
+        if self.windows:
+            new_windows = windows_intersection(
+                sorted(self.windows + [(None, end)])
+            )
+        else:
+            new_windows = [(0, end)]
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+    before = and_before
+
+    def or_before(self, end):
+        if self.windows:
+            new_windows = windows_union(self.windows + [(None, end)])
+        else:
+            new_windows = [(None, end)]
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+
+    def and_after(self, start):
+        if self.windows:
+            new_windows = windows_intersection(self.windows + [(start, None)])
+        else:
+            new_windows = [(start, None)]
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+    after = and_after
+
+    def or_between(self, start, end):
+        if self.windows:
+            new_windows = windows_union(self.windows + [(start, end)])
+        else:
+            new_windows = [(start, end)]
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+
+    def and_between(self, start, end):
+        if self.windows:
+            new_windows = windows_intersection(self.windows + [(start, end)])
+        else:
+            new_windows = [(start, end)]
+        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+    between = and_between
+
+    def or_during(self, tick):
+        return self.or_between(tick, tick)
+
+    def and_during(self, tick):
+        return self.and_between(tick, tick)
+    during = and_during
+
+
+class Union(Query):
+    pass
+
+
+class ComparisonQuery(Query):
+    oper = lambda x, y: NotImplemented
+
+    def __call__(self):
+        return QueryResults(iter_eval_cmp(self, self.oper))
+
+
+class EqQuery(ComparisonQuery):
+    oper = eq
+
+
+class NeQuery(ComparisonQuery):
+    oper = ne
+
+
+class GtQuery(ComparisonQuery):
+    oper = gt
+
+
+class LtQuery(ComparisonQuery):
+    oper = lt
+
+
+class GeQuery(ComparisonQuery):
+    oper = ge
+
+
+class LeQuery(ComparisonQuery):
+    oper = le
+
+
+comparisons = {
+    'eq': EqQuery,
+    'ne': NeQuery,
+    'gt': GtQuery,
+    'lt': LtQuery,
+    'ge': GeQuery,
+    'le': LeQuery
+}
+
+
+class StatusAlias(EntityStatAccessor):
+    def __eq__(self, other):
+        return EqQuery(self, other)
+
+    def __ne__(self, other):
+        return NeQuery(self, other)
+
+    def __gt__(self, other):
+        return GtQuery(self, other)
+
+    def __lt__(self, other):
+        return LtQuery(self, other)
+
+    def __ge__(self, other):
+        return GeQuery(self, other)
+
+    def __le__(self, other):
+        return LeQuery(self, other)
+
+
+def intersect_qry(qry: Query):
+    windows = []
+    windowses = 0
+    if hasattr(qry.leftside, 'windows'):
+        windows.extend(qry.leftside.windows)
+        windowses += 1
+    if hasattr(qry.rightside, 'windows'):
+        windows.extend(qry.rightside.windows)
+        windowses += 1
+    if windowses > 1:
+        windows = windows_intersection(windowses)
+    return windows
+
+
+def iter_intersection_ticks2check(ticks, windows):
+    windows = windows_intersection(windows)
+    if not windows:
+        yield from ticks
+        return
+    for tick in sorted(ticks):
+        (left, right) = windows.pop(0)
+        if left is None:
+            if tick <= right:
+                yield tick
+                windows.insert(0, (left, right))
+        elif right is None:
+            if tick >= right:
+                yield from ticks
+                return
+            windows.insert(0, (left, right))
+        elif left <= tick <= right:
+            yield tick
+            windows.insert(0, (left, right))
+        elif tick < left:
+            windows.insert(0, (left, right))
+
+
+class QueryResults(object):
+    def __init__(self, iter):
+        self.iter = iter
+        try:
+            self.next = next(self.iter)
+        except StopIteration:
+            return
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            r = self.next
+        except AttributeError:
+            raise StopIteration
+        try:
+            self.next = next(self.iter)
+        except StopIteration:
+            del self.next
+        return r
+
+    def __bool__(self):
+        return hasattr(self, 'next')
+
+
+def iter_eval_cmp(qry: EqQuery, oper):
+    def mungeside(side):
+        if isinstance(side, Query):
+            return side()
+        elif isinstance(side, StatusAlias):
+            return EntityStatAccessor(
+                side.entity, side.stat, side.engine, side.branch, side.tick, side.current, side.mungers
+            )
+        elif isinstance(side, EntityStatAccessor):
+            return side
+        else:
+            return lambda b, t: side
+    leftside = mungeside(qry.leftside)
+    rightside = mungeside(qry.rightside)
+    for branch in qry.branches:
+        ticks = frozenset(leftside._cache[branch].keys()).union(rightside._cache[branch].keys())
+        for tick in iter_intersection_ticks2check(ticks, qry.windows):
+            if oper(leftside(branch, tick), rightside(branch, tick)):
+                yield branch, tick
+
+
 class QueryEngine(gorm.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
+
+    def times_when(self, entity0, stat0, entity1, stat1=None, oper='eq', branches=None, windows=[]):
+        engine = entity0.engine
+        stat1 = stat1 or stat0
+        branches = branches or [engine.branch]
+        return comparisons[oper](
+            leftside=entity0.status(stat0), rightside=entity1.status(stat1), branches=branches, windows=windows
+        )()
 
     def count_all_table(self, tbl):
         return self.sql('count_all_{}'.format(tbl)).fetchone()[0]
@@ -76,10 +402,33 @@ class QueryEngine(gorm.query.QueryEngine):
         )
 
     def func_table_get_plain(self, tbl, key):
-        row = self.sql('func_{}_get'.format(tbl), key).fetchone()
-        if row is None:
-            raise KeyError("No such row")
-        return row[5]
+        return self.func_table_get_all(tbl, key)['plaincode']
+
+    def func_table_get_all(self, tbl, key):
+        (
+            bytecode,
+            base,
+            keywords,
+            date,
+            creator,
+            contributor,
+            description,
+            plaincode,
+            version
+        ) = self.sql(
+            'func_{}_get'.format(tbl), key
+        ).fetchone()
+        return {
+            'bytecode': bytecode,
+            'base': base,
+            'keywords': self.json_load(keywords),
+            'date': date,
+            'creator': creator,
+            'contributor': contributor,
+            'description': description,
+            'plaincode': plaincode,
+            'version': version
+        }
 
     def func_table_set(self, tbl, key, fun, keywords=[]):
         try:
