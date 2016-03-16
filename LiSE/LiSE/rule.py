@@ -55,7 +55,7 @@ class RuleFuncList(MutableSequence):
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "
                         "engine.{typ}[{n}]".format(
-                            typ=self.typ,
+                            typ=self.funcstore._tab,
                             n=v.__name__
                         )
                     )
@@ -368,8 +368,11 @@ class Rule(object):
 
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
-        def truth(*args):
-            return True
+        if 'truth' in self.engine.trigger:
+            truth = self.engine.trigger['truth']
+        else:
+            def truth(*args):
+                return True
         self.triggers = [truth]
 
     def check_triggers(self, engine, *args):

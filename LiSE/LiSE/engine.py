@@ -444,6 +444,8 @@ class Engine(AbstractEngine, gORM):
             self,
             worlddb='LiSEworld.db',
             codedb='LiSEcode.db',
+            worlddb,
+            codedb=None,
             connect_args={},
             alchemy=False,
             caching=True,
@@ -475,10 +477,13 @@ class Engine(AbstractEngine, gORM):
         self._sql_polling = sql_rule_polling
         self.commit_modulus = commit_modulus
         self.random_seed = random_seed
-        self._code_qe = QueryEngine(
-            codedb, connect_args, alchemy, self.json_dump, self.json_load
-        )
-        self._code_qe.initdb()
+        if codedb:
+            self._code_qe = QueryEngine(
+                codedb, connect_args, alchemy, self.json_dump, self.json_load
+            )
+            self._code_qe.initdb()
+        else:
+            self._code_qe = self.db
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()

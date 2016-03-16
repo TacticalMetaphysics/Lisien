@@ -50,6 +50,7 @@ from .thing import Thing
 from .place import Place
 from .portal import Portal
 from .util import getatt
+from .query import StatusAlias
 
 
 class AbstractCharacter(object):
@@ -94,6 +95,12 @@ class AbstractCharacter(object):
 
     pred = getatt('preportal')
     adj = succ = edge = getatt('portal')
+
+    def historical(self, stat):
+        return StatusAlias(
+            entity=self.stat,
+            stat=stat
+        )
 
     def do(self, func, *args, **kwargs):
         """Apply the function to myself, and return myself.
@@ -1689,10 +1696,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 seen = False
                 for avatar in cache:
                     if seen:
+                        seen = False
                         continue
                     for node in cache[avatar]:
                         if seen:
-                            seen = False
                             break
                         for (branch, tick) in self.engine._active_branches():
                             try:
@@ -1918,6 +1925,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """Caching dict-alike for character stats"""
         @property
         def _dispatch_cache(self):
+            return self.engine._graph_val_cache[
+                self.character.name
+            ]
+
+        @property
+        def _cache(self):
             return self.engine._graph_val_cache[
                 self.character.name
             ]

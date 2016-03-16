@@ -158,6 +158,22 @@ class StringStore(MutableMapping):
         )
 
 
+class StoredPartial(object):
+    @property
+    def engine(self):
+        return self.store.engine
+
+    def __init__(self, store, name, **kwargs):
+        self._funcname = name
+        self.store = store
+        self.keywords = list(kwargs.keys())
+        self.kwargs = kwargs
+        self.name = name + self.engine.json_dump(kwargs)
+
+    def __call__(self, *args):
+        return self.store[self._funcname](*args, **self.kwargs)
+
+
 class FunctionStore(MutableMapping):
     """Store functions in a SQL database"""
     def __init__(self, engine, db, table):
@@ -214,7 +230,14 @@ class FunctionStore(MutableMapping):
 
         """
         if name not in self.cache:
-            self.cache[name] = self.db.func_table_get(self._tab, name)
+            try:
+                self.cache[name] = self.db.func_table_get(self._tab, name)
+            except KeyError:
+                d = self.db.func_table_get_all(self._tab, name)
+                if d['base'] not in self.cache:
+                    self.cache[name] = self.db.func_table_get(self._tab, name)
+                kwargs = self.engine.json_load(name[len(d['base']):])
+                self.cache[name] = StoredPartial(self, d['base'], **kwargs)
         return self.cache[name]
 
     def __call__(self, fun):
@@ -228,9 +251,10 @@ class FunctionStore(MutableMapping):
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
-        self.db.func_table_set(self._tbl, fun.__name__, fun)
+        self.db.func_table_set(self._tab, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
+        return fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
@@ -274,6 +298,11 @@ class FunctionStore(MutableMapping):
             func_name,
             source
         )
+
+    def partial(self, funcname, **kwargs):
+        part = StoredPartial(self, funcname, **kwargs)
+        self.cache[funcname + self.engine.json_dump(kwargs)] = part
+        return part
 
 
 class GlobalVarMapping(MutableMapping):
