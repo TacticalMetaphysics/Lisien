@@ -38,8 +38,7 @@ class RuleFuncList(MutableSequence):
     def __init__(self, rule):
         self.rule = rule
         self._listeners = []
-        if self.rule.engine.caching:
-            self._cache = list(self._loader(self.rule.name))
+        self._cache = list(self._loader(self.rule.name))
 
     def listener(self, f):
         return listener(self._listeners, f)
@@ -69,53 +68,39 @@ class RuleFuncList(MutableSequence):
         return v
 
     def __iter__(self):
-        if self.rule.engine.caching:
-            inner = self._cache
-        else:
-            inner = self._loader(self.rule.name)
-        for funcname in inner:
+        for funcname in self._cache:
             yield self.funcstore[funcname]
 
     def __len__(self):
-        if self.rule.engine.caching:
-            return len(self._cache)
-        else:
-            return len(list(self._loader(self.rule.name)))
+        return len(self._cache)
 
     def __getitem__(self, i):
-        if self.rule.engine.caching:
-            return self._cache[i]
-        else:
-            return self._loader(self.rule.name)[i]
+        return self._cache[i]
 
     def __setitem__(self, i, v):
         while i < 0:
             i += len(self)
         v = self._nominate(v)
         self._replacer(self.rule.name, i, v)
-        if self.rule.engine.caching:
-            self._cache[i] = v
+        self._cache[i] = v
 
     def __delitem__(self, i):
         while i < 0:
             i += len(self)
         self._deleter(self.rule.name, i)
-        if self.rule.engine.caching:
-            del self._cache[i]
+        del self._cache[i]
 
     def insert(self, i, v):
         while i < 0:
             i += len(self)
         v = self._nominate(v)
         self._inserter(self.rule.name, i, v)
-        if self.rule.engine.caching:
-            self._cache.insert(i, v)
+        self._cache.insert(i, v)
 
     def append(self, v):
         v = self._nominate(v)
         self._appender(self.rule.name, v)
-        if self.rule.engine.caching:
-            self._cache.append(v)
+        self._cache.append(v)
 
 
 class TriggerList(RuleFuncList):
@@ -447,36 +432,19 @@ class RuleBook(MutableSequence):
         self._listeners = []
 
     def __contains__(self, v):
-        if self.engine.caching:
-            cache = self._cache
-        else:
-            cache = list(self.engine.rule.db.rulebook_rules(self.name))
         if isinstance(v, Rule):
             v = v.name
-        return v in cache
+        return v in self._cache
 
     def __iter__(self):
-        if self.engine.caching:
-            for rulen in self._cache:
-                yield self.engine.rule[rulen]
-            return
-        for rule in self.engine.db.rulebook_rules(self.name):
-            yield self.engine.rule[rule]
+        for rulen in self._cache:
+            yield self.engine.rule[rulen]
 
     def __len__(self):
-        if self.engine.caching:
-            return len(self._cache)
-        return self.engine.rule.db.ct_rulebook_rules(self.name)
+        return len(self._cache)
 
     def __getitem__(self, i):
-        if self.engine.caching:
-            return self.engine.rule[self._cache[i]]
-        return self.engine.rule[
-            self.engine.rule.db.rulebook_get(
-                self.name,
-                i
-            )
-        ]
+        return self.engine.rule[self._cache[i]]
 
     def _dispatch(self):
         self.engine.rulebook.dispatch(self)
@@ -500,10 +468,9 @@ class RuleBook(MutableSequence):
             rule = Rule(self.engine, v)
         self.engine.rule.db.rulebook_set(self.name, i, rule.name)
         self._activate_rule(rule)
-        if self.engine.caching:
-            while len(self._cache) <= i:
-                self._cache.append(None)
-            self._cache[i] = rule.name
+        while len(self._cache) <= i:
+            self._cache.append(None)
+        self._cache[i] = rule.name
         self._dispatch()
 
     def insert(self, i, v):
@@ -527,8 +494,7 @@ class RuleBook(MutableSequence):
 
     def __delitem__(self, i):
         self.engine.db.rulebook_del(self.name, i)
-        if self.engine.caching:
-            del self._cache[i]
+        del self._cache[i]
         self._dispatch()
 
     def listener(self, fun):

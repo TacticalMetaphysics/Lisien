@@ -74,8 +74,6 @@ class Thing(Node):
         elif key == 'location':
             return self['locations'][0]
         elif key == 'arrival_time':
-            if not self.engine.caching:
-                return self._get_arrival_time()
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
@@ -87,8 +85,6 @@ class Thing(Node):
         elif key == 'next_location':
             return self['locations'][1]
         elif key == 'next_arrival_time':
-            if not self.engine.caching:
-                return self._get_next_arrival_time()
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
@@ -98,8 +94,6 @@ class Thing(Node):
                         continue
             return None
         elif key == 'locations':
-            if not self.engine.caching:
-                return self._loc_and_next()
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
@@ -124,8 +118,6 @@ class Thing(Node):
             raise ValueError("Read-only")
         elif key == 'locations':
             self._set_loc_and_next(*value)
-            if not self.engine.caching:
-                return
             (branch, tick) = self.engine.time
             self.engine._things_cache\
                 [self.character.name][self.name][branch][tick] = value
@@ -156,44 +148,25 @@ class Thing(Node):
 
     def _get_arrival_time(self):
         """Query the database for when I arrive at my present location."""
-        if self.engine.caching:
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                try:
-                    return window_left(cache[branch].keys(), tick)
-                except (KeyError, ValueError):
-                    continue
-            raise CacheError("Thing seems never to have arrived where it is")
-        loc = self['location']
-        return self.engine.db.arrival_time_get(
-            self.character.name,
-            self.name,
-            loc,
-            *self.engine.time
-        )
+        cache = self.engine._things_cache[self.character.name][self.name]
+        for (branch, tick) in self.engine._active_branches():
+            try:
+                return window_left(cache[branch].keys(), tick)
+            except (KeyError, ValueError):
+                continue
+        raise CacheError("Thing seems never to have arrived where it is")
 
     def _get_next_arrival_time(self):
         """Query the database for when I will arrive at my next location, or
         ``None`` if I'm not traveling.
 
         """
-        if self.engine.caching:
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                try:
-                    return min(t for t in cache[branch] if t > tick)
-                except (KeyError, ValueError):
-                    continue
-            return None
-        nextloc = self['next_location']
-        if nextloc is None:
-            return None
-        return self.engine.db.next_arrival_time_get(
-            self.character.name,
-            self.name,
-            nextloc,
-            *self.engine.time
-        )
+        cache = self.engine._things_cache[self.character.name][self.name]
+        for (branch, tick) in self.engine._active_branches():
+            try:
+                return min(t for t in cache[branch] if t > tick)
+            except (KeyError, ValueError):
+                continue
 
     def delete(self, nochar=False):
         super().delete()
@@ -208,8 +181,7 @@ class Thing(Node):
             None,
             None
         )
-        if self.engine.caching:
-            self.engine._things_cache[self.character.name][self.name][branch][tick] = (None, None)
+        self.engine._things_cache[self.character.name][self.name][branch][tick] = (None, None)
 
     def clear(self):
         """Unset everything."""
@@ -270,19 +242,13 @@ class Thing(Node):
         to which I am presently travelling.
 
         """
-        if self.engine.caching:
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                try:
-                    return cache[branch][tick]
-                except (KeyError, ValueError):
-                    continue
-            raise CacheError("Thing loc and next weren't cached right")
-        return self.engine.db.thing_loc_and_next_get(
-            self.character.name,
-            self.name,
-            *self.engine.time
-        )
+        cache = self.engine._things_cache[self.character.name][self.name]
+        for (branch, tick) in self.engine._active_branches():
+            try:
+                return cache[branch][tick]
+            except (KeyError, ValueError):
+                continue
+        raise CacheError("Thing loc and next weren't cached right")
 
     def _set_loc_and_next(self, loc, nextloc):
         """Private method to simultaneously set ``location`` and
@@ -298,8 +264,7 @@ class Thing(Node):
             loc,
             nextloc
         )
-        if self.engine.caching:
-            self.engine._things_cache[self.character.name][self.name][branch][tick] = (loc, nextloc)
+        self.engine._things_cache[self.character.name][self.name][branch][tick] = (loc, nextloc)
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct

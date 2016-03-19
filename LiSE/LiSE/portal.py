@@ -23,17 +23,9 @@ class RuleMapping(BaseRuleMapping):
     destn = getatt('portal._destn')
 
     def __iter__(self):
-        if self.engine.caching:
-            for (rule, active) in self.portal._rule_names_activeness():
-                if active:
-                    yield rule
-            return
-        return self.engine.db.portal_rules(
-            self.character.name,
-            self.orign,
-            self.destn,
-            *self.engine.time
-        )
+        for (rule, active) in self.portal._rule_names_activeness():
+            if active:
+                yield rule
 
 
 class Portal(Edge, RuleFollower, TimeDispatcher):
@@ -52,24 +44,17 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         return self._dispatch_cache
 
     def _rule_name_activeness(self):
-        if self.engine.caching:
-            cache = self.engine._active_rules_cache[self._get_rulebook_name()]
-            for rule in cache:
-                for (branch, tick) in self.engine._active_branches():
-                    if branch not in cache[rule]:
-                        continue
-                    try:
-                        yield (rule, cache[rule][branch][tick])
-                        break
-                    except ValueError:
-                        continue
-            raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
-        return self.engine.db.current_rules_portal(
-            self.character.name,
-            self._origin,
-            self._destination,
-            *self.engine.time
-        )
+        cache = self.engine._active_rules_cache[self._get_rulebook_name()]
+        for rule in cache:
+            for (branch, tick) in self.engine._active_branches():
+                if branch not in cache[rule]:
+                    continue
+                try:
+                    yield (rule, cache[rule][branch][tick])
+                    break
+                except ValueError:
+                    continue
+        raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
 
     def _get_rulebook_name(self):
         return self.engine.db.portal_rulebook(
@@ -90,10 +75,9 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         self._keycache = {}
         self._existence = {}
 
-        if self.engine.caching:
-            (branch, tick) = self.engine.time
-            self._dispatch_cache = self.engine._edge_val_cache[
-                self.character.name][self._origin][self._destination][0]
+        (branch, tick) = self.engine.time
+        self._dispatch_cache = self.engine._edge_val_cache[
+            self.character.name][self._origin][self._destination][0]
 
         super().__init__(character, self._origin, self._destination)
 
@@ -165,17 +149,12 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
             except KeyError:
                 pass
             return
-        if not self.engine.caching:
-            super().__setitem__(key, value)
-            return
         super().__setitem__(key, value)
         self.dispatch(key, value)
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
-        if not self.engine.caching:
-            super().__delitem__(key)
-            return
+        super().__delitem__(key)
         self.dispatch(key, None)
 
     def __repr__(self):
@@ -280,6 +259,5 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
 
         """
         del self.character.portal[self.origin.name][self.destination.name]
-        if self.engine.caching:
-            (branch, tick) = self.engine.time
-            self.engine._edges_cache[self.character.name][self.origin.name][self.destination.name][branch][tick] = False
+        (branch, tick) = self.engine.time
+        self.engine._edges_cache[self.character.name][self.origin.name][self.destination.name][branch][tick] = False
