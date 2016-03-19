@@ -65,17 +65,6 @@ class LiSETest(unittest.TestCase):
                 phys.name][phys._book]
         )
 
-    def test_active_rule_char(self):
-        phys = self.engine.character['physical']
-        for rule in phys.rule:
-            self.assertTrue(self.engine.db.active_rule_char(
-                phys._table,
-                phys.name,
-                phys.rulebook.name,
-                rule,
-                *self.engine.time
-            ))
-
     def test_nodes_existence(self):
         phys = self.engine.character['physical']
         for node in phys.node:
