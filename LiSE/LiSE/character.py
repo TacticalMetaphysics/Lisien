@@ -1764,7 +1764,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                         return False
                     for node in ac[av]:
                         try:
-                            if ac[av][branch][rev]:
+                            if ac[av][branch][tick]:
                                 return True
                         except KeyError:
                             continue
