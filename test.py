@@ -86,32 +86,32 @@ class LiSETest(unittest.TestCase):
             ))
 
     def test_avatarness(self):
-        dorm = self.engine.character['dorm0']
-        self.assertEqual(
-            list(dorm.avatar.keys()),
-            self.engine.db.avatarness(
-                dorm.name,
-                *self.engine.time
-            )
-        )
-        for graph in dorm.avatar:
-            for av in dorm.avatar[graph]:
-                self.assertTrue(self.engine.db.is_avatar_of(
-                    dorm.name,
-                    graph,
-                    av,
+        for char in self.engine.character.values():
+            self.assertEqual(
+                self.engine._avatarness_cache.db_order[char.name],
+                self.engine.db.avatarness(
+                    char.name,
                     *self.engine.time
-                ))
-        for (g, n, a) in self.engine.db.avatars_now(
-                dorm.name,
-                *self.engine.time
-        ):
-            if a:
-                self.assertIn(g, dorm.avatar)
-                self.assertIn(n, dorm.avatar[g])
-            else:
-                if g in dorm.avatar:
-                    self.assertNotIn(n, dorm.avatar[g])
+                )
+            )
+            for graph in char.avatar:
+                for av in char.avatar[graph]:
+                    self.assertTrue(self.engine.db.is_avatar_of(
+                        char.name,
+                        graph,
+                        av,
+                        *self.engine.time
+                    ))
+            for (g, n, a) in self.engine.db.avatars_now(
+                    char.name,
+                    *self.engine.time
+            ):
+                if a:
+                    self.assertIn(g, char.avatar)
+                    self.assertIn(n, char.avatar[g])
+                else:
+                    if g in char.avatar:
+                        self.assertNotIn(n, char.avatar[g])
 
     def test_avatarness_branchdata(self):
         for character in self.engine.character.values():
