@@ -15,6 +15,7 @@ class LiSETest(unittest.TestCase):
         sim.install(self.engine)
         for i in range(72):
             self.engine.next_tick()
+        self.engine.commit()
 
     def tearDown(self):
         """Close my engine."""
@@ -33,12 +34,177 @@ class LiSETest(unittest.TestCase):
             other_student = 1 if student == 0 else 0
             student = chara
             other_student = self.engine.character['dorm{}room{}student{}'.format(dorm, room, other_student)]
-            self.assertTrue(
-                student.avatar.historical('location') == other_student.avatar.historical('location'),
+            self.assertEqual(
+                student.avatar.historical('location'),
+                other_student.avatar.historical('location'),
                 "Roommates don't seem to share a room: {}, {}".format(student, other_student)
             )
             done.add(student.name)
             done.add(other_student.name)
+
+    def test_rule_names_activeness(self):
+        # TODO: test this for all RuleMapping subclasses
+        phys = self.engine.character['physical']
+        self.assertEqual(
+            set(phys._rule_names_activeness()),
+            set(
+                getattr(self.engine.db, 'current_rules_' + phys.book)(
+                    phys.name, *self.engine.time
+                )
+            )
+        )
+
+    def test_rulebook_name(self):
+        # TODO: test this for all RuleMapping subclasses
+        phys = self.engine.character['physical']
+        self.assertEqual(
+            self.engine.db.get_rulebook_char(
+                phys._book,
+                phys.name
+            ), self.engine._characters_rulebooks_cache[
+                phys.name][phys._book]
+        )
+
+    def test_active_rule_char(self):
+        phys = self.engine.character['physical']
+        for rule in phys.rule:
+            self.assertTrue(self.engine.db.active_rule_char(
+                phys._table,
+                phys.name,
+                phys.rulebook.name,
+                rule,
+                *self.engine.time
+            ))
+
+    def test_nodes_existence(self):
+        phys = self.engine.character['physical']
+        for node in phys.node:
+            self.assertTrue(self.engine.db.node_exists(
+                phys.name,
+                node,
+                *self.engine.time
+            ))
+
+    def test_avatarness(self):
+        dorm = self.engine.character['dorm0']
+        self.assertEqual(
+            list(dorm.avatar.keys()),
+            self.engine.db.avatarness(
+                dorm.name,
+                *self.engine.time
+            )
+        )
+        for graph in dorm.avatar:
+            for av in dorm.avatar[graph]:
+                self.assertTrue(self.engine.db.is_avatar_of(
+                    dorm.name,
+                    graph,
+                    av,
+                    *self.engine.time
+                ))
+        for (g, n, a) in self.engine.db.avatars_now(
+                dorm.name,
+                *self.engine.time
+        ):
+            if a:
+                self.assertIn(g, dorm.avatar)
+                self.assertIn(n, dorm.avatar[g])
+            else:
+                if g in dorm.avatar:
+                    self.assertNotIn(n, dorm.avatar[g])
+
+    def test_avatarness_branchdata(self):
+        dorm = self.engine.character['dorm0']
+        avvy = next(dorm.avatar.values())
+        self.assertEqual(
+            avvy._branchdata(*self.engine.time),
+            self.engine.db.avatar_branch_data(
+                dorm.name, avvy.graph, *self.engine.time
+            )
+        )
+
+    def test_thingness(self):
+        phys = self.engine.character['physical']
+        for thing in phys.thing:
+            self.assertTrue(self.engine.db.node_is_thing(
+                phys.name,
+                thing,
+                *self.engine.time
+            ))
+        for place in phys.place:
+            self.assertFalse(self.engine.db.node_is_thing(
+                phys.name,
+                place,
+                *self.engine.time
+            ))
+
+    def test_rule_mapping(self):
+        # TODO: every type of rule mapping
+        for char in self.engine.character.values():
+            self.assertEqual(
+                list(char.rule),
+                list(self.engine.db.rulebook_rules(char.rule.rulebook))
+            )
+            self.assertEqual(
+                list(char.avatar.rule),
+                list(self.engine.db.rulebook_rules(char.avatar.rule.rulebook))
+            )
+            self.assertEqual(
+                list(char.thing.rule),
+                list(self.engine.db.rulebook_rules(char.thing.rule.rulebook))
+            )
+            self.assertEqual(
+                list(char.place.rule),
+                list(self.engine.db.rulebook_rules(char.place.rule.rulebook))
+            )
+            self.assertEqual(
+                list(char.node.rule),
+                list(self.engine.db.rulebook_rules(char.node.rule.rulebook))
+            )
+            self.assertEqual(
+                list(char.portal.rule),
+                list(self.engine.db.rulebook_rules(char.portal.rule.rulebook))
+            )
+            for node in char.node:
+                self.assertEqual(
+                    list(node.rule),
+                    list(self.engine.db.node_rules(
+                        char.name,
+                        node.name,
+                        *self.engine.time
+                    ))
+                )
+            for portal in char.portals():
+                self.assertEqual(
+                    list(portal.rule),
+                    list(self.engine.db.portal_rules(
+                        char.name,
+                        portal['origin'],
+                        portal['destination'],
+                        *self.engine.time
+                    ))
+                )
+            for av in char.avatar:
+                chara = self.engine.character[av]
+                for node in chara.node:
+                    self.assertEqual(
+                        list(node.rule),
+                        list(self.engine.db.node_rules(
+                            chara.name,
+                            node.name,
+                            *self.engine.time
+                        ))
+                    )
+                for port in chara.portals():
+                    self.assertEqual(
+                        list(port.rule),
+                        list(self.engine.db.portal_rules(
+                            chara.name,
+                            port['origin'],
+                            port['destination'],
+                            *self.engine.time
+                        ))
+                    )
 
 
 if __name__ == '__main__':
