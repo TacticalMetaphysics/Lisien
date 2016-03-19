@@ -114,14 +114,20 @@ class LiSETest(unittest.TestCase):
                     self.assertNotIn(n, dorm.avatar[g])
 
     def test_avatarness_branchdata(self):
-        dorm = self.engine.character['dorm0']
-        avvy = next(dorm.avatar.values())
-        self.assertEqual(
-            avvy._branchdata(*self.engine.time),
-            self.engine.db.avatar_branch_data(
-                dorm.name, avvy.graph, *self.engine.time
-            )
-        )
+        for character in self.engine.character.values():
+            if len(character.avatar) == 1:
+                valueiter = iter([character.avatar])
+            else:
+                valueiter = iter(character.avatar.values())
+            for avmap in valueiter:
+                self.assertEqual(
+                    list(avmap._branchdata(*self.engine.time)),
+                    list(self.engine.db.avatar_branch_data(
+                        character.name,
+                        avmap.graph,
+                        *self.engine.time
+                    ))
+                )
 
     def test_thingness(self):
         phys = self.engine.character['physical']
