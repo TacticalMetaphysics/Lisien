@@ -143,27 +143,27 @@ class LiSETest(unittest.TestCase):
         for char in self.engine.character.values():
             self.assertEqual(
                 list(char.rule),
-                list(self.engine.db.rulebook_rules(char.rule.rulebook))
+                list(self.engine.db.rulebook_rules(char.rule.rulebook.name))
             )
             self.assertEqual(
                 list(char.avatar.rule),
-                list(self.engine.db.rulebook_rules(char.avatar.rule.rulebook))
+                list(self.engine.db.rulebook_rules(char.avatar.rule.rulebook.name))
             )
             self.assertEqual(
                 list(char.thing.rule),
-                list(self.engine.db.rulebook_rules(char.thing.rule.rulebook))
+                list(self.engine.db.rulebook_rules(char.thing.rule.rulebook.name))
             )
             self.assertEqual(
                 list(char.place.rule),
-                list(self.engine.db.rulebook_rules(char.place.rule.rulebook))
+                list(self.engine.db.rulebook_rules(char.place.rule.rulebook.name))
             )
             self.assertEqual(
                 list(char.node.rule),
-                list(self.engine.db.rulebook_rules(char.node.rule.rulebook))
+                list(self.engine.db.rulebook_rules(char.node.rule.rulebook.name))
             )
             self.assertEqual(
                 list(char.portal.rule),
-                list(self.engine.db.rulebook_rules(char.portal.rule.rulebook))
+                list(self.engine.db.rulebook_rules(char.portal.rule.rulebook.name))
             )
             for node in char.node:
                 self.assertEqual(
