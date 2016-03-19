@@ -42,29 +42,6 @@ class LiSETest(unittest.TestCase):
             done.add(student.name)
             done.add(other_student.name)
 
-    def test_rule_names_activeness(self):
-        # TODO: test this for all RuleMapping subclasses
-        phys = self.engine.character['physical']
-        self.assertEqual(
-            set(phys._rule_names_activeness()),
-            set(
-                getattr(self.engine.db, 'current_rules_' + phys.book)(
-                    phys.name, *self.engine.time
-                )
-            )
-        )
-
-    def test_rulebook_name(self):
-        # TODO: test this for all RuleMapping subclasses
-        phys = self.engine.character['physical']
-        self.assertEqual(
-            self.engine.db.get_rulebook_char(
-                phys._book,
-                phys.name
-            ), self.engine._characters_rulebooks_cache[
-                phys.name][phys._book]
-        )
-
     def test_nodes_existence(self):
         phys = self.engine.character['physical']
         for node in phys.node:
