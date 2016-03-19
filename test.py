@@ -43,13 +43,13 @@ class LiSETest(unittest.TestCase):
             done.add(other_student.name)
 
     def test_nodes_existence(self):
-        phys = self.engine.character['physical']
-        for node in phys.node:
-            self.assertTrue(self.engine.db.node_exists(
-                phys.name,
-                node,
-                *self.engine.time
-            ))
+        for char in self.engine.character.values():
+            for node in char.node:
+                self.assertTrue(self.engine.db.node_exists(
+                    char.name,
+                    node,
+                    *self.engine.time
+                ))
 
     def test_avatarness(self):
         for char in self.engine.character.values():
