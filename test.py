@@ -119,7 +119,7 @@ class LiSETest(unittest.TestCase):
             self.engine._active_rules_cache
         )
 
-    def testRulesHandledCaches(self):
+    def testNodeRulesHandledCache(self):
         node_rules_handled_ticks = defaultdict(  # character:
             lambda: defaultdict(  # node:
                 lambda: defaultdict(  # rulebook:
@@ -139,6 +139,8 @@ class LiSETest(unittest.TestCase):
             self.engine._node_rules_handled_cache,
             node_rules_handled_ticks
         )
+
+    def testPortalRulesHandledCache(self):
         portal_rules_handled_ticks = defaultdict(  # character:
             lambda: defaultdict(  # nodeA:
                 lambda: defaultdict(  # nodeB:
@@ -160,6 +162,8 @@ class LiSETest(unittest.TestCase):
             self.engine._portal_rules_handled_cache,
             portal_rules_handled_ticks
         )
+
+    def testCharRulesHandledCaches(self):
         for rulemap in [
                 'character',
                 'avatar',
@@ -176,6 +180,8 @@ class LiSETest(unittest.TestCase):
                 handled_ticks,
                 getattr(self.engine, '_{}_rules_handled_cache'.format(rulemap))
             )
+
+    def testThingsCache(self):
         things = defaultdict(  # character:
             lambda: defaultdict(  # thing:
                 lambda: defaultdict(  # branch:
