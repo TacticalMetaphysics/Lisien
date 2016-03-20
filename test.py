@@ -29,7 +29,7 @@ class LiSETest(unittest.TestCase):
         rulebooks = defaultdict(list)
         for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
             rulebooks[rulebook].append(rule)
-        self.assertEqual(rulebooks, self.engine._rulebooks_cache)
+        self.assertDictEqual(rulebooks, self.engine._rulebooks_cache)
         charrb = {}
         for (
                 character,
@@ -48,7 +48,7 @@ class LiSETest(unittest.TestCase):
                 'character_node': character_node_rulebook,
                 'character_portal': character_portal_rulebook
             }
-        self.assertEqual(
+        self.assertDictEqual(
             charrb,
             self.engine._characters_rulebooks_cache
         )
@@ -57,7 +57,7 @@ class LiSETest(unittest.TestCase):
         noderb = defaultdict(dict)
         for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
             noderb[character][node] = rulebook
-        self.assertEqual(
+        self.assertDictEqual(
             self.engine._nodes_rulebooks_cache[character][node],
             noderb
         )
@@ -68,7 +68,7 @@ class LiSETest(unittest.TestCase):
         )
         for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
             portrb[character][nodeA][nodeB] = rulebook
-        self.assertEqual(
+        self.assertDictEqual(
             self.engine._portals_rulebooks_cache[character][nodeA][nodeB],
             portrb
         )
@@ -95,11 +95,11 @@ class LiSETest(unittest.TestCase):
         for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
             db_avatarness[character][graph][node][branch][tick] = is_avatar
             user_avatarness[graph][node][character][branch][tick] = is_avatar
-        self.assertEqual(
+        self.assertDictEqual(
             db_avatarness,
             self.engine._avatarness_cache.db_order
         )
-        self.assertEqual(
+        self.assertDictEqual(
             user_avatarness,
             self.engine._avatarness_cache.db_order
         )
@@ -114,7 +114,7 @@ class LiSETest(unittest.TestCase):
         )
         for rulebook, rule, branch, tick, active in self.engine.db.dump_active_rules():
             actrules[rulebook][rule][branch][tick] = active
-        self.assertEqual(
+        self.assertDictEqual(
             actrules,
             self.engine._active_rules_cache
         )
@@ -135,7 +135,7 @@ class LiSETest(unittest.TestCase):
                 self.engine.db.dump_node_rules_handled():
             node_rules_handled_ticks[
                 character][node][rulebook][rule][branch].add(tick)
-        self.assertEqual(
+        self.assertDictEqual(
             self.engine._node_rules_handled_cache,
             node_rules_handled_ticks
         )
@@ -158,7 +158,7 @@ class LiSETest(unittest.TestCase):
                 in self.engine.db.dump_portal_rules_handled():
             portal_rules_handled_ticks[
                 character][nodeA][nodeB][rulebook][rule][branch].add(tick)
-        self.assertEqual(
+        self.assertDictEqual(
             self.engine._portal_rules_handled_cache,
             portal_rules_handled_ticks
         )
@@ -176,7 +176,7 @@ class LiSETest(unittest.TestCase):
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
             ):
                 handled_ticks[character][rulebook][rule][branch].add(tick)
-            self.assertEqual(
+            self.assertDictEqual(
                 handled_ticks,
                 getattr(self.engine, '_{}_rules_handled_cache'.format(rulemap))
             )
@@ -192,7 +192,7 @@ class LiSETest(unittest.TestCase):
         for (character, thing, branch, tick, loc, nextloc) in \
                 self.engine.db.things_dump():
             things[character][thing][branch][tick] = (loc, nextloc)
-        self.assertEqual(
+        self.assertDictEqual(
             things,
             self.engine._things_cache
         )
