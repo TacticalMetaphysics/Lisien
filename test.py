@@ -219,8 +219,8 @@ class LiSETest(unittest.TestCase):
                 self.engine.db.things_dump():
             things[character][thing][branch][tick] = (loc, nextloc)
         self.assertDictEqual(
-            things,
-            self.engine._things_cache
+            self.engine._things_cache,
+            things
         )
 
     def testRoommateCollisions(self):
