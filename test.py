@@ -140,8 +140,8 @@ class LiSETest(unittest.TestCase):
         for rulebook, rule, branch, tick, active in self.engine.db.dump_active_rules():
             actrules[rulebook][rule][branch][tick] = active
         self.assertDictEqual(
-            actrules,
             self.engine._active_rules_cache
+            actrules,
         )
 
     def testNodeRulesHandledCache(self):
@@ -199,7 +199,7 @@ class LiSETest(unittest.TestCase):
             handled_ticks = crhandled_defaultdict()
             for character, rulebook, rule, branch, tick in getattr(
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
-            ):
+            )():
                 handled_ticks[character][rulebook][rule][branch].add(tick)
             self.assertDictEqual(
                 handled_ticks,
