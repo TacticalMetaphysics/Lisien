@@ -17,11 +17,13 @@ Existing games that LiSE seeks to imitate include:
 * The Sims
 * Redshirt
 * Animal Crossing
+* Princess Maker
 * Monster Rancher
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
 * The King of Dragon Pass
+* Cart Life
 
 To demonstrate the capabilities of the engine, I will develop the game
 [Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
@@ -57,19 +59,7 @@ that one, and not write that code yourself, after all.
 * *Rule constructor*: Build rules out of functions represented as cards. Looks like deckbuilding in a card game like Magic.
 * *Autosave*. Actually, anything you do gets put in a transaction that gets committed when you quit. In any case you never need to save
 
-# Testing
-
-If you want to run the latest code, and not one of the devkits under the
-Releases tab, please use Ubuntu.
-
-## Laziest method
-
-Download and run [ELiDE.bash](https://raw.githubusercontent.com/LogicalDash/LiSE/master/ELiDE.bash). It should set everything up for you.
-
-Run it again later to pull the latest version and launch the graphical
-frontend.
-
-## By hand
+# Getting started
 
 ```
 git clone https://github.com/LogicalDash/LiSE.git
@@ -104,5 +94,3 @@ Douros, in the public domain.
 The LiSE source files themselves are licensed under the terms of the
 GNU General Public License version 3. See the text of the license in
 the file gpl-3.0.txt
-
-Copyright (C) 2013-2014 Zachary Spector. Email: zacharyspector@gmail.com
