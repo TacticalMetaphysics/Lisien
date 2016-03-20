@@ -203,7 +203,8 @@ class LiSETest(unittest.TestCase):
                 handled_ticks[character][rulebook][rule][branch].add(tick)
             self.assertDictEqual(
                 handled_ticks,
-                getattr(self.engine, '_{}_rules_handled_cache'.format(rulemap))
+                getattr(self.engine, '_{}_rules_handled_cache'.format(rulemap)),
+                "{} cache differs from DB".format(rulemap)
             )
 
     def testThingsCache(self):
