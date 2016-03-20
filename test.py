@@ -1,10 +1,14 @@
 import unittest
 import LiSE
 import re
+from collections import defaultdict
+from LiSE.engine import crhandled_defaultdict
 from examples import college as sim
 
 
 class LiSETest(unittest.TestCase):
+    maxDiff = None
+
     def setUp(self):
         """Start an engine, install the sim module, and run it a while.
 
@@ -20,6 +24,162 @@ class LiSETest(unittest.TestCase):
     def tearDown(self):
         """Close my engine."""
         self.engine.close()
+
+    def testRulebooksCaches(self):
+        rulebooks = defaultdict(list)
+        for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
+            rulebooks[rulebook].append(rule)
+        self.assertEqual(rulebooks, self.engine._rulebooks_cache)
+        charrb = {}
+        for (
+                character,
+                character_rulebook,
+                avatar_rulebook,
+                character_thing_rulebook,
+                character_place_rulebook,
+                character_node_rulebook,
+                character_portal_rulebook
+        ) in self.engine.db.characters_rulebooks():
+            charrb[character] = {
+                'character': character_rulebook,
+                'avatar': avatar_rulebook,
+                'character_thing': character_thing_rulebook,
+                'character_place': character_place_rulebook,
+                'character_node': character_node_rulebook,
+                'character_portal': character_portal_rulebook
+            }
+        self.assertEqual(
+            charrb,
+            self.engine._characters_rulebooks_cache
+        )
+        noderb = defaultdict(dict)
+        for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
+            noderb[character][node] = rulebook
+        self.assertEqual(
+            self.engine._nodes_rulebooks_cache[character][node],
+            noderb
+        )
+        portrb = defaultdict(
+            lambda: defaultdict(dict)
+        )
+        for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
+            portrb[character][nodeA][nodeB] = rulebook
+        self.assertEqual(
+            self.engine._portals_rulebooks_cache[character][nodeA][nodeB],
+            portrb
+        )
+        db_avatarness = defaultdict(  # character:
+            lambda: defaultdict(  # graph:
+                lambda: defaultdict(  # node:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+        user_avatarness = defaultdict(  # graph:
+            lambda: defaultdict(  # node:
+                lambda: defaultdict(  # character:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+        for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
+            db_avatarness[character][graph][node][branch][tick] = is_avatar
+            user_avatarness[graph][node][character][branch][tick] = is_avatar
+        self.assertEqual(
+            db_avatarness,
+            self.engine._avatarness_cache.db_order
+        )
+        self.assertEqual(
+            user_avatarness,
+            self.engine._avatarness_cache.db_order
+        )
+        actrules = defaultdict(  # rulebook:
+            lambda: defaultdict(  # rule:
+                lambda: defaultdict(  # branch:
+                    dict  # tick: active
+                )
+            )
+        )
+        for rulebook, rule, branch, tick, active in self.engine.db.dump_active_rules():
+            actrules[rulebook][rule][branch][tick] = active
+        self.assertEqual(
+            actrules,
+            self.engine._active_rules_cache
+        )
+        node_rules_handled_ticks = defaultdict(  # character:
+            lambda: defaultdict(  # node:
+                lambda: defaultdict(  # rulebook:
+                    lambda: defaultdict(  # rule:
+                        lambda: defaultdict(  # branch:
+                            set  # ticks handled
+                        )
+                    )
+                )
+            )
+        )
+        for character, node, rulebook, rule, branch, tick in \
+                self.engine.db.dump_node_rules_handled():
+            node_rules_handled_ticks[
+                character][node][rulebook][rule][branch].add(tick)
+        self.assertEqual(
+            self.engine._node_rules_handled_cache,
+            node_rules_handled_ticks
+        )
+        portal_rules_handled_ticks = defaultdict(  # character:
+            lambda: defaultdict(  # nodeA:
+                lambda: defaultdict(  # nodeB:
+                    lambda: defaultdict(  # rulebook:
+                        lambda: defaultdict(  # rule:
+                            lambda: defaultdict(  # branch:
+                                set  # ticks handled
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
+                in self.engine.db.dump_portal_rules_handled():
+            portal_rules_handled_ticks[
+                character][nodeA][nodeB][rulebook][rule][branch].add(tick)
+        self.assertEqual(
+            self.engine._portal_rules_handled_cache,
+            portal_rules_handled_ticks
+        )
+        for rulemap in [
+                'character',
+                'avatar',
+                'character_thing',
+                'character_place',
+                'character_portal'
+        ]:
+            handled_ticks = crhandled_defaultdict()
+            for character, rulebook, rule, branch, tick in getattr(
+                    self.engine.db, 'handled_{}_rules'.format(rulemap)
+            ):
+                handled_ticks[character][rulebook][rule][branch].add(tick)
+            self.assertEqual(
+                handled_ticks,
+                getattr(self.engine, '_{}_rules_handled_cache'.format(rulemap))
+            )
+        things = defaultdict(  # character:
+            lambda: defaultdict(  # thing:
+                lambda: defaultdict(  # branch:
+                    dict  # tick: (location, next_location)
+                )
+            )
+        )
+        for (character, thing, branch, tick, loc, nextloc) in \
+                self.engine.db.things_dump():
+            things[character][thing][branch][tick] = (loc, nextloc)
+        self.assertEqual(
+            things,
+            self.engine._things_cache
+        )
 
     def test_roommate_collisions(self):
         """Test queries' ability to tell that all of the students that share rooms have been in the same place."""
@@ -41,142 +201,6 @@ class LiSETest(unittest.TestCase):
             )
             done.add(student.name)
             done.add(other_student.name)
-
-    def test_nodes_existence(self):
-        for char in self.engine.character.values():
-            for node in char.node:
-                self.assertTrue(self.engine.db.node_exists(
-                    char.name,
-                    node,
-                    *self.engine.time
-                ))
-
-    def test_avatarness(self):
-        for char in self.engine.character.values():
-            self.assertEqual(
-                self.engine._avatarness_cache.db_order[char.name],
-                self.engine.db.avatarness(
-                    char.name,
-                    *self.engine.time
-                )
-            )
-            for graph in char.avatar:
-                for av in char.avatar[graph]:
-                    self.assertTrue(self.engine.db.is_avatar_of(
-                        char.name,
-                        graph,
-                        av,
-                        *self.engine.time
-                    ))
-            for (g, n, a) in self.engine.db.avatars_now(
-                    char.name,
-                    *self.engine.time
-            ):
-                if a:
-                    self.assertIn(g, char.avatar)
-                    self.assertIn(n, char.avatar[g])
-                else:
-                    if g in char.avatar:
-                        self.assertNotIn(n, char.avatar[g])
-
-    def test_avatarness_branchdata(self):
-        for character in self.engine.character.values():
-            if len(character.avatar) == 1:
-                valueiter = iter([character.avatar])
-            else:
-                valueiter = iter(character.avatar.values())
-            for avmap in valueiter:
-                self.assertEqual(
-                    list(avmap._branchdata(*self.engine.time)),
-                    list(self.engine.db.avatar_branch_data(
-                        character.name,
-                        avmap.graph,
-                        *self.engine.time
-                    ))
-                )
-
-    def test_thingness(self):
-        phys = self.engine.character['physical']
-        for thing in phys.thing:
-            self.assertTrue(self.engine.db.node_is_thing(
-                phys.name,
-                thing,
-                *self.engine.time
-            ))
-        for place in phys.place:
-            self.assertFalse(self.engine.db.node_is_thing(
-                phys.name,
-                place,
-                *self.engine.time
-            ))
-
-    def test_rule_mapping(self):
-        # TODO: every type of rule mapping
-        for char in self.engine.character.values():
-            self.assertEqual(
-                list(char.rule),
-                list(self.engine.db.rulebook_rules(char.rule.rulebook.name))
-            )
-            self.assertEqual(
-                list(char.avatar.rule),
-                list(self.engine.db.rulebook_rules(char.avatar.rule.rulebook.name))
-            )
-            self.assertEqual(
-                list(char.thing.rule),
-                list(self.engine.db.rulebook_rules(char.thing.rule.rulebook.name))
-            )
-            self.assertEqual(
-                list(char.place.rule),
-                list(self.engine.db.rulebook_rules(char.place.rule.rulebook.name))
-            )
-            self.assertEqual(
-                list(char.node.rule),
-                list(self.engine.db.rulebook_rules(char.node.rule.rulebook.name))
-            )
-            self.assertEqual(
-                list(char.portal.rule),
-                list(self.engine.db.rulebook_rules(char.portal.rule.rulebook.name))
-            )
-            for node in char.node:
-                self.assertEqual(
-                    list(node.rule),
-                    list(self.engine.db.node_rules(
-                        char.name,
-                        node.name,
-                        *self.engine.time
-                    ))
-                )
-            for portal in char.portals():
-                self.assertEqual(
-                    list(portal.rule),
-                    list(self.engine.db.portal_rules(
-                        char.name,
-                        portal['origin'],
-                        portal['destination'],
-                        *self.engine.time
-                    ))
-                )
-            for av in char.avatar:
-                chara = self.engine.character[av]
-                for node in chara.node:
-                    self.assertEqual(
-                        list(node.rule),
-                        list(self.engine.db.node_rules(
-                            chara.name,
-                            node.name,
-                            *self.engine.time
-                        ))
-                    )
-                for port in chara.portals():
-                    self.assertEqual(
-                        list(port.rule),
-                        list(self.engine.db.portal_rules(
-                            chara.name,
-                            port['origin'],
-                            port['destination'],
-                            *self.engine.time
-                        ))
-                    )
 
 
 if __name__ == '__main__':
