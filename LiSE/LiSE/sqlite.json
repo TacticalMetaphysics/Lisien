@@ -270,6 +270,7 @@
     "rule_triggers_ins": "INSERT INTO rule_triggers (rule, idx, \"trigger\") VALUES (?, ?, ?)",
     "rulebook_dec": "UPDATE rulebooks SET idx=(rulebooks.idx - 1) WHERE rulebooks.rulebook = ? AND rulebooks.idx > ?",
     "rulebook_del": "DELETE FROM rulebooks WHERE rulebooks.rulebook = ? AND rulebooks.idx = ?",
+    "rulebook_del_all": "DELETE FROM rulebooks WHERE rulebooks.rulebook = ?",
     "rulebook_get": "SELECT rulebooks.rule \nFROM rulebooks \nWHERE rulebooks.rulebook = ? AND rulebooks.idx = ?",
     "rulebook_get_avatar": "SELECT characters.avatar_rulebook \nFROM characters \nWHERE characters.character = ?",
     "rulebook_get_character": "SELECT characters.character_rulebook \nFROM characters \nWHERE characters.character = ?",
