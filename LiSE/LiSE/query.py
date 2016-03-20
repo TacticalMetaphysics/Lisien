@@ -1401,6 +1401,8 @@ class QueryEngine(gorm.query.QueryEngine):
                 'avatar_upd', isav, character, graph, node, branch, tick
             )
 
+
+
     def rulebook_set(self, rulebook, idx, rule):
         (rulebook, rule) = map(self.json_dump, (rulebook, rule))
         try:

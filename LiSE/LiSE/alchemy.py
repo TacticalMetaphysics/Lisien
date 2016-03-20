@@ -2322,6 +2322,8 @@ def queries(table, view):
         )
     )
 
+    r['rulebook_del_all'] = rulebooks.delete().where(rulebooks.c.rulebook == bindparam('rulebook'))
+
     rules = table['rules']
 
     r['allrules'] = select([rules.c.rule])

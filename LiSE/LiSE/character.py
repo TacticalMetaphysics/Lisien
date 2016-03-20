@@ -644,9 +644,7 @@ class RuleFollower(BaseRuleFollower):
             self.character.name][self._book]
 
     def _set_rulebook_name(self, n):
-        self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
-        self.engine._characters_rulebooks_cache[
-            self.character.name][self._book] = n
+        self.engine._set_character_rulebook(self.character.name, self._book, n)
 
     def __contains__(self, k):
         rulebook_name = self._get_rulebook_name()
@@ -1306,23 +1304,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if 'location' not in val:
                 raise ValueError('Thing needs location')
             (branch, tick) = self.engine.time
-            self.engine.db.exist_node(
-                self.character.name,
-                thing,
-                branch,
-                tick,
-                True
-            )
+            self.engine._exist_node(self.character.name, thing)
             location = val['location']
             next_location = val.get('next_location', None)
             th = Thing(self.character, thing)
             th.clear()
             th.update(val)
-            self.engine._nodes_cache[
-                self.character.name][thing][branch][tick] = True
-            self.engine._things_cache[
-                self.character.name][thing][branch][tick] \
-                = (location, next_location)
             self.dispatch(thing, th)
 
         def __delitem__(self, thing):
@@ -2019,29 +2006,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 )
             else:
                 n = b
-        (branch, tick) = self.engine.time
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
-        self.engine.db.exist_node(
+        self.engine._exist_node(
             g,
             n,
-            branch,
-            tick,
             True
         )
         # Declare that the node is my avatar
-        self.engine.db.avatar_set(
-            self.character.name,
-            g,
-            n,
-            branch,
-            tick,
-            True
-        )
-        self.engine._nodes_cache[g][n][branch][tick] = True
-        self.engine._avatarness_cache.remember(
-            self.name, g, n, branch, tick, True
-        )
+        self.engine._remember_avatarness(self.name, g, n)
 
     def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own"""
@@ -2057,18 +2030,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         else:
             g = a.name if isinstance(a, Character) else a
             n = b.name if isinstance(b, Node) else b
-        (branch, tick) = self.engine.time
-        self.engine.db.avatar_set(
-            self.character.name,
-            g,
-            n,
-            branch,
-            tick,
-            False
-        )
-        assert not self.engine.db.is_avatar_of(self.name, g, n, branch, tick)
-        self.engine._avatarness_cache.remember(
-            self.character.name, g, n, branch, tick, False
+        self.engine._remember_avatarness(
+            self.character.name, g, n, False
         )
 
     def portals(self):

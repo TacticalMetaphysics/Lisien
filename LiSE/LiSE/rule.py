@@ -487,7 +487,7 @@ class RuleBook(MutableSequence):
         return super().index(v)
 
     def __delitem__(self, i):
-        self.engine._rulebook_del(self.name, i)
+        self.engine._rulebook_del_rule(self.name, i)
         self._dispatch()
 
     def listener(self, fun):
@@ -814,7 +814,7 @@ class AllRules(MutableMapping):
         if k not in self:
             raise KeyError("No such rule")
         old = self[k]
-        self.db.ruledel(k)
+        self.engine._rulebook_del_rule(self.name, self.index(k))
         self.dispatch(old, False)
 
     def __call__(self, v=None, name=None):

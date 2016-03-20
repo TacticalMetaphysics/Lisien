@@ -4,6 +4,7 @@
 
 from gorm.graph import Edge
 
+from .exc import CacheError
 from .util import getatt
 from .query import StatusAlias
 from .bind import TimeDispatcher
@@ -57,11 +58,13 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
 
     def _get_rulebook_name(self):
-        return self.engine.db.portal_rulebook(
-            self.character.name,
-            self._origin,
-            self._destination
-        )
+        cache = self.engine._portals_rulebooks_cache[self.character.name][self._origin][self._destination]
+        for (branch, tick) in self.engine._active_branches():
+            if branch in cache:
+                return cache[branch][tick]
+        raise CacheError("Rulebook for portal {}->{} in character {} is not cached.".format(
+            self._origin, self._destination, self.character.name
+        ))
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -75,7 +78,6 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         self._keycache = {}
         self._existence = {}
 
-        (branch, tick) = self.engine.time
         self._dispatch_cache = self.engine._edge_val_cache[
             self.character.name][self._origin][self._destination][0]
 

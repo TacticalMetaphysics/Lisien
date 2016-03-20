@@ -140,8 +140,8 @@ class LiSETest(unittest.TestCase):
         for rulebook, rule, branch, tick, active in self.engine.db.dump_active_rules():
             actrules[rulebook][rule][branch][tick] = active
         self.assertDictEqual(
-            self.engine._active_rules_cache
-            actrules,
+            self.engine._active_rules_cache,
+            actrules
         )
 
     def testNodeRulesHandledCache(self):

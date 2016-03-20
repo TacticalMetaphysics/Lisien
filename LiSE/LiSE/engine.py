@@ -43,6 +43,7 @@ def crhandled_defaultdict():
 class AvatarnessCache(object):
     """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, db):
+        self.db = db
         self.db_order = defaultdict(  # character:
             lambda: defaultdict(  # graph:
                 lambda: defaultdict(  # node:
@@ -69,20 +70,6 @@ class AvatarnessCache(object):
         """
         for row in db.avatarness_dump():
             self.remember(*row)
-
-    def remember(self, character, graph, node, branch, tick, is_avatar):
-        """Use this to record a change in avatarness.
-
-        Should be called whenever a node that wasn't an avatar of a
-        character now is, and whenever a node that was an avatar of a
-        character now isn't.
-
-        ``character`` is the one using the node as an avatar,
-        ``graph`` is the character the node is in.
-
-        """
-        self.db_order[character][graph][node][branch][tick] = is_avatar
-        self.user_order[graph][node][character][branch][tick] = is_avatar
 
 
 class LiSEncoder(JSONEncoder):
@@ -245,9 +232,34 @@ class Engine(AbstractEngine, gORM):
             cache.append(None)
         cache[i] = rule
 
-    def _rulebook_del(self, rulebook, i):
+    def _rulebook_del_rule(self, rulebook, i):
         self.rule.db.rulebook_del(rulebook, i)
         del self._rulebooks_cache[rulebook][i]
+
+    def _del_rulebook(self, rulebook):
+        for (character, character_rulebooks) in self._characters_rulebooks_cache.items():
+            if rulebook not in character_rulebooks.values():
+                continue
+            for (which, rb) in character_rulebooks.items():
+                if rb == rulebook:
+                    raise ValueError("Rulebook still in use by {} as {}".format(character, which))
+        for (character, nodes) in self._nodes_rulebooks_cache.items():
+            if rulebook not in nodes.values():
+                continue
+            for (node, rb) in nodes.items():
+                if rb == rulebook:
+                    raise ValueError("Rulebook still in use by node {} in character {}".format(node, character))
+        for (character, origins) in self._portals_rulebooks_cache.items():
+            for (origin, destinations) in origins.items():
+                if rulebook not in destinations.values():
+                    continue
+                for (destination, rb) in destinations:
+                    if rb == rulebook:
+                        raise ValueError("Rulebook still in use by portal {}->{} in character {}".format(
+                            origin, destination, character
+                        ))
+        self.rule.db.rulebook_del_all(rulebook)
+        del self._rulebooks_cache[rulebook]
 
     class crc_default_dict(defaultdict):
         def __missing__(self, k):
@@ -283,6 +295,19 @@ class Engine(AbstractEngine, gORM):
             }
         return r
 
+    def _set_character_rulebook(self, character, which, rulebook):
+        if which not in (
+                'character',
+                'avatar',
+                'character_thing',
+                'character_place',
+                'character_node',
+                'character_portal'
+        ):
+            raise ValueError("Not a character rulebook: {}".format(which))
+        self.db.upd_rulebook_char(which, rulebook, character)
+        self._characters_rulebooks_cache[character][which] = rulebook
+
     @reify
     def _nodes_rulebooks_cache(self):
         r = defaultdict(dict)
@@ -302,6 +327,30 @@ class Engine(AbstractEngine, gORM):
     @reify
     def _avatarness_cache(self):
         return AvatarnessCache(self.db)
+
+    def _remember_avatarness(self, character, graph, node, is_avatar=True, branch=None, tick=None):
+        """Use this to record a change in avatarness.
+
+        Should be called whenever a node that wasn't an avatar of a
+        character now is, and whenever a node that was an avatar of a
+        character now isn't.
+
+        ``character`` is the one using the node as an avatar,
+        ``graph`` is the character the node is in.
+
+        """
+        branch = branch or self.branch
+        tick = tick or self.tick
+        self._avatarness_cache.db_order[character][graph][node][branch][tick] = is_avatar
+        self._avatarness_cache.user_order[graph][node][character][branch][tick] = is_avatar
+        self.db.avatar_set(
+            character,
+            graph,
+            node,
+            branch,
+            tick,
+            is_avatar
+        )
 
     @reify
     def _active_rules_cache(self):
@@ -864,10 +913,10 @@ class Engine(AbstractEngine, gORM):
                     for rule in self._rulebooks_cache[rulebook]:
                         if (
                             self._rule_active(rulebook, rule) and not
-                            handled(char, nodeA, nodeB, rulebook, rule)
+                            handled(chara, nodeA, nodeB, rulebook, rule)
                         ):
                             yield (
-                                char,
+                                chara,
                                 nodeA,
                                 nodeB,
                                 rulebook,
@@ -1107,6 +1156,20 @@ class Engine(AbstractEngine, gORM):
                 continue
         return False
 
+    def _set_thing_loc_and_next(self, character, node, loc, nextloc=None, branch=None, tick=None):
+        branch = branch or self.branch
+        tick = tick or self.tick
+        self.db.thing_loc_and_next_set(
+            character,
+            node,
+            branch,
+            tick,
+            loc,
+            nextloc
+        )
+        self._things_cache[character][node][branch][tick] = (loc, nextloc)
+
+
     def _node_exists(self, character, node):
         try:
             cache = self._nodes_cache[character][node]
@@ -1118,3 +1181,15 @@ class Engine(AbstractEngine, gORM):
             except KeyError:
                 continue
         return False
+
+    def _exist_node(self, character, node, exist=True, branch=None, tick=None):
+        branch = branch or self.branch
+        tick = tick or self.tick
+        self.db.exist_node(
+            character,
+            node,
+            branch,
+            tick,
+            exist
+        )
+        self._nodes_cache[character][node][branch][tick] = exist

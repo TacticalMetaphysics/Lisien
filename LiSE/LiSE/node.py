@@ -218,16 +218,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
             contained.delete()
         for user in list(self.user.values()):
             user.del_avatar(self.character.name, self.name)
-        (branch, tick) = self.engine.time
-        self.engine.db.exist_node(
-            self.character.name,
-            self.name,
-            branch,
-            tick,
-            False
-        )
-        self.engine._nodes_cache[self.character.name][
-            self.name][branch][tick] = False
+        self.engine._exist_node(self.character.name, self.name, False)
 
     def one_way_portal(self, other, **stats):
         """Connect a portal from here to another node, and return it."""

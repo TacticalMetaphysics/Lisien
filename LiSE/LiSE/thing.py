@@ -173,15 +173,7 @@ class Thing(Node):
         if not nochar:
             del self.character.thing[self.name]
         (branch, tick) = self.engine.time
-        self.engine.db.thing_loc_and_next_set(
-            self.character.name,
-            self.name,
-            branch,
-            tick,
-            None,
-            None
-        )
-        self.engine._things_cache[self.character.name][self.name][branch][tick] = (None, None)
+        self._set_loc_and_next(None, None)
 
     def clear(self):
         """Unset everything."""
@@ -250,21 +242,17 @@ class Thing(Node):
                 continue
         raise CacheError("Thing loc and next weren't cached right")
 
-    def _set_loc_and_next(self, loc, nextloc):
+    def _set_loc_and_next(self, loc, nextloc=None):
         """Private method to simultaneously set ``location`` and
         ``next_location``
 
         """
-        (branch, tick) = self.engine.time
-        self.engine.db.thing_loc_and_next_set(
+        self.engine._set_thing_loc_and_next(
             self.character.name,
             self.name,
-            branch,
-            tick,
             loc,
             nextloc
         )
-        self.engine._things_cache[self.character.name][self.name][branch][tick] = (loc, nextloc)
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
