@@ -37,10 +37,10 @@ problems. Though you will still need to write some Python code for
 your game, it should only be the code that describes how your game's
 world works. If you don't want to worry about the data structure that
 represents the world, LiSE gives you one that will work. If you don't
-want to write a user interface, you can play the game with the same
-program you drew its map in. And then again, if your game is similar
-enough to one that's been freely released, you can import rules from
-that one, and not write that code yourself, after all.
+want to write a user interface, you can play the game in the IDE. And 
+then again, if your game is similar enough to one that's been freely
+released, you can import rules from that one, and not write that code
+yourself, after all.
 
 # Features
 
