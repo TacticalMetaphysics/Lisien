@@ -25,7 +25,7 @@ class LiSETest(unittest.TestCase):
         """Close my engine."""
         self.engine.close()
 
-    def testRulebooksCaches(self):
+    def testCaches(self):
         rulebooks = defaultdict(list)
         for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
             rulebooks[rulebook].append(rule)
