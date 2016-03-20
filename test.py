@@ -83,7 +83,7 @@ class LiSETest(unittest.TestCase):
         for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
             noderb[character][node] = rulebook
         self.assertDictEqual(
-            self.engine._nodes_rulebooks_cache[character][node],
+            self.engine._nodes_rulebooks_cache,
             noderb
         )
 
@@ -94,7 +94,7 @@ class LiSETest(unittest.TestCase):
         for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
             portrb[character][nodeA][nodeB] = rulebook
         self.assertDictEqual(
-            self.engine._portals_rulebooks_cache[character][nodeA][nodeB],
+            self.engine._portals_rulebooks_cache,
             portrb
         )
 
