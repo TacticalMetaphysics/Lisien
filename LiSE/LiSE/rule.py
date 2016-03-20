@@ -543,10 +543,16 @@ class RuleMapping(MutableMapping):
         return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
-        return self.engine.db.active_rules_rulebook(
-            self.rulebook.name,
-            *self.engine.time
-        )
+        cache = self.engine._active_rules_cache[self.rulebook.name]
+        seen = set()
+        for rule in cache:
+            if rule in seen:
+                continue
+            for (branch, tick) in self.engine._active_branches():
+                if branch in cache[rule]:
+                    yield cache[rule][branch][tick]
+                    seen.add(rule)
+                    break
 
     def __len__(self):
         n = 0
