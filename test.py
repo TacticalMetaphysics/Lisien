@@ -25,7 +25,7 @@ class LiSETest(unittest.TestCase):
         """Close my engine."""
         self.engine.close()
 
-    def testCaches(self):
+    def testCharRulebooksCaches(self):
         rulebooks = defaultdict(list)
         for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
             rulebooks[rulebook].append(rule)
@@ -68,6 +68,8 @@ class LiSETest(unittest.TestCase):
             self.engine._portals_rulebooks_cache[character][nodeA][nodeB],
             portrb
         )
+
+    def testAvatarnessCaches(self):
         db_avatarness = defaultdict(  # character:
             lambda: defaultdict(  # graph:
                 lambda: defaultdict(  # node:
@@ -97,6 +99,8 @@ class LiSETest(unittest.TestCase):
             user_avatarness,
             self.engine._avatarness_cache.db_order
         )
+
+    def testActiveRulesCache(self):
         actrules = defaultdict(  # rulebook:
             lambda: defaultdict(  # rule:
                 lambda: defaultdict(  # branch:
@@ -110,6 +114,8 @@ class LiSETest(unittest.TestCase):
             actrules,
             self.engine._active_rules_cache
         )
+
+    def testRulesHandledCaches(self):
         node_rules_handled_ticks = defaultdict(  # character:
             lambda: defaultdict(  # node:
                 lambda: defaultdict(  # rulebook:
