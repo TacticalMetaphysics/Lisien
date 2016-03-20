@@ -561,11 +561,14 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
-        return self.engine.db.active_rule_rulebook(
-            self.rulebook.name,
-            k,
-            *self.engine.time
-        )
+        cache = self.engine._active_rules_cache[self.rulebook.name]
+        if k not in cache:
+            return False
+        cache = cache[k]
+        for (branch, tick) in self.engine._active_branches():
+            if branch in cache:
+                return cache[branch][tick]
+        return False
 
     def __getitem__(self, k):
         if k not in self:
