@@ -181,7 +181,7 @@ class LiSETest(unittest.TestCase):
             self.engine._things_cache
         )
 
-    def test_roommate_collisions(self):
+    def testRoommateCollisions(self):
         """Test queries' ability to tell that all of the students that share rooms have been in the same place."""
         done = set()
         for chara in self.engine.character.values():
