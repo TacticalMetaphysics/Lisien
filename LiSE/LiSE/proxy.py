@@ -4,7 +4,6 @@
 import sys
 import logging
 from collections import (
-    Callable,
     defaultdict,
     Mapping,
     MutableMapping,
@@ -14,6 +13,7 @@ from threading import Thread
 from multiprocessing import Process, Pipe, Queue
 from queue import Empty
 
+from .engine import AbstractEngine
 from .character import Facade
 from gorm.xjson import (
     JSONReWrapper,
@@ -21,10 +21,6 @@ from gorm.xjson import (
     json_deepcopy
 )
 from gorm.reify import reify
-from .util import (
-    dict_diff,
-    list_diff
-)
 from .handle import EngineHandle
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
@@ -32,6 +28,165 @@ and a manager class to launch it thus.
 
 """
 
+
+class CachingProxy(MutableMapping):
+    def __init__(self, engine_proxy):
+        self.engine = engine_proxy
+        self.exists = True
+
+    def __bool__(self):
+        return bool(self.exists)
+
+    def __iter__(self):
+        yield from self._cache
+
+    def __len__(self):
+        return len(self._cache)
+
+    def __contains__(self, k):
+        return k in self._cache
+
+    def __getitem__(self, k):
+        if k not in self:
+            raise KeyError("No such key: {}".format(k))
+        return self._cache[k]
+
+    def __setitem__(self, k, v):
+        self._set_item(k, v)
+        self._cache[k] = self._cache_munge(k, v)
+
+    def __delitem__(self, k):
+        if k not in self:
+            raise KeyError("No such key: {}".format(k))
+        self._del_item(k)
+        del self._cache[k]
+
+    def _apply_diff(self, diff):
+        for (k, v) in diff.items():
+            if v is None:
+                if k in self._cache:
+                    del self._cache[k]
+            elif k in self._cache and self._cache[k] != v:
+                self._cache[k] = v
+
+    def update_cache(self):
+        diff = self._get_diff()
+        self.exists = diff is not None
+        if not self.exists:
+            self._cache = {}
+            return
+        self._apply_diff(diff)
+
+    def _get_diff(self):
+        raise NotImplementedError("Abstract method")
+
+    def _cache_munge(self, k, v):
+        raise NotImplementedError("Abstract method")
+
+    def _set_item(self, k, v):
+        raise NotImplementedError("Abstract method")
+
+    def _del_item(self, k):
+        raise NotImplementedError("Abstract method")
+
+
+class CachingEntityProxy(CachingProxy):
+    def _cache_munge(self, k, v):
+        return self.engine.json_rewrap(v)
+
+
+class NodeProxy(CachingEntityProxy):
+    @reify
+    def character(self):
+        return CharacterProxy(self.engine, self._charname)
+
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._rulebook = self._get_rulebook()
+        return self._rulebook
+
+    def _get_rulebook(self):
+        return RuleBookProxy(self.engine, self._get_rulebook_name())
+
+    def _get_rulebook_name(self):
+        r = self.engine.handle(
+            'get_node_rulebook',
+            (self._charname, self.name)
+        )
+        if r is None:
+            self.engine.handle(
+                'set_node_rulebook',
+                (
+                    self._charname,
+                    self.name,
+                    (self._charname, self.name)
+                ),
+                silent=True
+            )
+            return (self._charname, self.name)
+        return r
+
+    @property
+    def _cache(self):
+        return self.engine._node_stat_cache[self._charname][self.name]
+
+    def __init__(self, engine_proxy, charname, nodename):
+        self._charname = charname
+        self.name = nodename
+        super().__init__(engine_proxy)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, NodeProxy) and
+            self._charname == other._charname and
+            self.name == other.name
+        )
+
+    def __contains__(self, k):
+        if k in ('character', 'name'):
+            return True
+        return super().__contains__(k)
+
+    def __getitem__(self, k):
+        if k == 'character':
+            return self._charname
+        elif k == 'name':
+            return self.name
+        return super().__getitem__(k)
+
+    def _get_state(self):
+        return self.engine.handle(
+            'node_stat_copy',
+            (self._charname, self.name)
+        )
+
+    def _get_diff(self):
+        return self.engine.handle(
+            'node_stat_diff',
+            (self._charname, self.name)
+        )
+
+    def _set_item(self, k, v):
+        if k == 'name':
+            raise KeyError("Nodes can't be renamed")
+        self.engine.handle(
+            'set_node_stat',
+            (self._charname, self.name, k, v),
+            silent=True
+        )
+
+    def _del_item(self, k):
+        if k == 'name':
+            raise KeyError("Nodes need names")
+        self.engine.handle(
+            'del_node_stat',
+            (self._charname, self.name, k),
+            silent=True
+        )
+
+    def delete(self):
+        self.engine.del_node(self._charname, self.name)
 
 class PlaceProxy(NodeProxy):
     def __repr__(self):
