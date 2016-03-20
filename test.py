@@ -52,6 +52,8 @@ class LiSETest(unittest.TestCase):
             charrb,
             self.engine._characters_rulebooks_cache
         )
+
+    def testNodeRulebooksCache(self):
         noderb = defaultdict(dict)
         for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
             noderb[character][node] = rulebook
@@ -59,6 +61,8 @@ class LiSETest(unittest.TestCase):
             self.engine._nodes_rulebooks_cache[character][node],
             noderb
         )
+
+    def testPortalRulebooksCache(self):
         portrb = defaultdict(
             lambda: defaultdict(dict)
         )
