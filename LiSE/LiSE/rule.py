@@ -729,15 +729,13 @@ class AllRuleBooks(Mapping):
         self._listeners = defaultdict(list)
 
     def __iter__(self):
-        yield from self.db.rulebooks()
+        return iter(self.engine._rulebooks_cache.keys())
 
     def __len__(self):
-        return self.db.ct_rulebooks()
+        return len(self.engine._rulebooks_cache)
 
     def __contains__(self, k):
-        if k in self._cache:
-            return self._cache[k]
-        return self.db.ct_rulebook_rules(k) > 0
+        return k in self.engine._rulebooks_cache
 
     def __getitem__(self, k):
         if k not in self._cache:
