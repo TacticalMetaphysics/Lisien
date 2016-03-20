@@ -450,12 +450,9 @@ class RuleBook(MutableSequence):
         self.engine.rulebook.dispatch(self)
 
     def _activate_rule(self, rule, active=True):
-        (branch, tick) = self.engine.time
-        self.engine.db.set_rule_activeness(  # world DB, not code DB
+        self.engine._set_rule_activeness(
             self.name,
             rule.name,
-            branch,
-            tick,
             active
         )
 
@@ -466,11 +463,8 @@ class RuleBook(MutableSequence):
             rule = self.engine.rule[v]
         else:
             rule = Rule(self.engine, v)
-        self.engine.rule.db.rulebook_set(self.name, i, rule.name)
+        self.engine._rulebook_set(self.name, i, rule)
         self._activate_rule(rule)
-        while len(self._cache) <= i:
-            self._cache.append(None)
-        self._cache[i] = rule.name
         self._dispatch()
 
     def insert(self, i, v):
@@ -493,8 +487,7 @@ class RuleBook(MutableSequence):
         return super().index(v)
 
     def __delitem__(self, i):
-        self.engine.db.rulebook_del(self.name, i)
-        del self._cache[i]
+        self.engine._rulebook_del(self.name, i)
         self._dispatch()
 
     def listener(self, fun):

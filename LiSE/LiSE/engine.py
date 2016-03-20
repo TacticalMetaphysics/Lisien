@@ -238,6 +238,17 @@ class Engine(AbstractEngine, gORM):
             r[rulebook].append(rule)
         return r
 
+    def _rulebook_set(self, rulebook, i, rule):
+        self.rule.db.rulebook_set(rulebook, i, rule)
+        cache = self._rulebooks_cache[i]
+        while len(cache) <= i:
+            cache.append(None)
+        cache[i] = rule
+
+    def _rulebook_del(self, rulebook, i):
+        self.rule.db.rulebook_del(rulebook, i)
+        del self._rulebooks_cache[rulebook][i]
+
     class crc_default_dict(defaultdict):
         def __missing__(self, k):
             self[k] = value = {
@@ -305,6 +316,15 @@ class Engine(AbstractEngine, gORM):
                 self.db.dump_active_rules():
             r[rulebook][rule][branch][tick] = active
         return r
+
+    def _set_rule_activeness(
+            self, rulebook, rule, active, branch=None, tick=None
+    ):
+        branch = branch or self.branch
+        tick = tick or self.tick
+        self._active_rules_cache[rulebook][rule][branch][tick] = active
+        # note the use of the world DB, not the code DB
+        self.db.set_rule_activeness(rulebook, rule, branch, tick, active)
 
     @reify
     def _node_rules_handled_cache(self):
