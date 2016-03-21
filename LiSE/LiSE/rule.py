@@ -463,7 +463,7 @@ class RuleBook(MutableSequence):
             rule = self.engine.rule[v]
         else:
             rule = Rule(self.engine, v)
-        self.engine._rulebook_set(self.name, i, rule)
+        self.engine._rulebook_set(self.name, i, rule.name)
         self._activate_rule(rule)
         self._dispatch()
 
