@@ -20,10 +20,10 @@ def deepDictDiffIter(d0, d1, lvl=0):
     for k in set(d0.keys()).intersection(d1.keys()):
         if d0[k] != d1[k]:
             if isinstance(d0[k], dict) and isinstance(d1[k], dict):
-                yield tabs + k + ":"
+                yield "{}{}:".format(tabs, k)
                 yield from deepDictDiffIter(d0[k], d1[k], lvl+1)
             else:
-                yield tabs + k + ": {} != {}".format(d0[k], d1[k])
+                yield "{}{}: {} != {}".format(tabs, k, d0[k], d1[k])
 
 
 class LiSETest(unittest.TestCase):
