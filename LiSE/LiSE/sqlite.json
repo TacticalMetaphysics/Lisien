@@ -278,7 +278,7 @@
     "rulebook_get_character_place": "SELECT characters.character_place_rulebook \nFROM characters \nWHERE characters.character = ?",
     "rulebook_get_character_portal": "SELECT characters.character_portal_rulebook \nFROM characters \nWHERE characters.character = ?",
     "rulebook_get_character_thing": "SELECT characters.character_thing_rulebook \nFROM characters \nWHERE characters.character = ?",
-    "rulebook_inc": "UPDATE rulebooks SET idx=(rulebooks.idx + ?) WHERE rulebooks.rulebook = ? AND rulebooks.idx >= ?",
+    "rulebook_inc": "UPDATE rulebooks SET idx=(rulebooks.idx + 1) WHERE rulebooks.rulebook = ? AND rulebooks.idx >= ?",
     "rulebook_ins": "INSERT INTO rulebooks (rulebook, idx, rule) VALUES (?, ?, ?)",
     "rulebook_rules": "SELECT rulebooks.rule \nFROM rulebooks \nWHERE rulebooks.rulebook = ? ORDER BY rulebooks.idx",
     "rulebook_upd": "UPDATE rulebooks SET rule=? WHERE rulebooks.rulebook = ? AND rulebooks.idx = ?",

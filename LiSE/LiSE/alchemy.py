@@ -2298,7 +2298,7 @@ def queries(table, view):
     )
 
     r['rulebook_inc'] = rulebooks.update().values(
-        idx=rulebooks.c.idx+1  # not sure if legal
+        idx=rulebooks.c.idx+column('1', is_literal=True)
     ).where(
         and_(
             rulebooks.c.rulebook == bindparam('rulebook'),

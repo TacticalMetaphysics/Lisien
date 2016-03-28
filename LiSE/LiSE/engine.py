@@ -25,6 +25,7 @@ from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
 from .util import getatt
+import re
 
 
 def crhandled_defaultdict():
@@ -70,6 +71,10 @@ class AvatarnessCache(object):
         """
         for row in db.avatarness_dump():
             self.remember(*row)
+
+    def remember(self, character, graph, node, branch, tick, is_avatar):
+        self.db_order[character][graph][node][branch][tick] = is_avatar
+        self.user_order[graph][node][character][branch][tick] = is_avatar
 
 
 class LiSEncoder(JSONEncoder):
@@ -227,37 +232,51 @@ class Engine(AbstractEngine, gORM):
 
     def _rulebook_set(self, rulebook, i, rule):
         self.rule.db.rulebook_set(rulebook, i, rule)
-        cache = self._rulebooks_cache[i]
+        cache = self._rulebooks_cache[rulebook]
         while len(cache) <= i:
             cache.append(None)
         cache[i] = rule
+
+    def _rulebook_insert(self, rulebook, i, rule):
+        self._rulebooks_cache[rulebook].insert(i, rule)
+        self.db.rulebook_ins(rulebook, i, rule)
 
     def _rulebook_del_rule(self, rulebook, i):
         self.rule.db.rulebook_del(rulebook, i)
         del self._rulebooks_cache[rulebook][i]
 
     def _del_rulebook(self, rulebook):
-        for (character, character_rulebooks) in self._characters_rulebooks_cache.items():
+        for (character, character_rulebooks) in \
+             self._characters_rulebooks_cache.items():
             if rulebook not in character_rulebooks.values():
                 continue
             for (which, rb) in character_rulebooks.items():
                 if rb == rulebook:
-                    raise ValueError("Rulebook still in use by {} as {}".format(character, which))
+                    raise ValueError(
+                        "Rulebook still in use by {} as {}".format(
+                            character, which
+                        ))
         for (character, nodes) in self._nodes_rulebooks_cache.items():
             if rulebook not in nodes.values():
                 continue
             for (node, rb) in nodes.items():
                 if rb == rulebook:
-                    raise ValueError("Rulebook still in use by node {} in character {}".format(node, character))
+                    raise ValueError(
+                        "Rulebook still in use by node "
+                        "{} in character {}".format(
+                            node, character
+                        ))
         for (character, origins) in self._portals_rulebooks_cache.items():
             for (origin, destinations) in origins.items():
                 if rulebook not in destinations.values():
                     continue
                 for (destination, rb) in destinations:
                     if rb == rulebook:
-                        raise ValueError("Rulebook still in use by portal {}->{} in character {}".format(
-                            origin, destination, character
-                        ))
+                        raise ValueError(
+                            "Rulebook still in use by portal "
+                            "{}->{} in character {}".format(
+                                origin, destination, character
+                            ))
         self.rule.db.rulebook_del_all(rulebook)
         del self._rulebooks_cache[rulebook]
 
@@ -315,6 +334,10 @@ class Engine(AbstractEngine, gORM):
             r[character][node] = rulebook
         return r
 
+    def _set_node_rulebook(self, character, node, rulebook):
+        self._nodes_rulebooks_cache[character][node] = rulebook
+        self.engine.db.set_node_rulebook(character, node, rulebook)
+
     @reify
     def _portals_rulebooks_cache(self):
         r = defaultdict(
@@ -323,6 +346,10 @@ class Engine(AbstractEngine, gORM):
         for (character, nodeA, nodeB, rulebook) in self.db.portals_rulebooks():
             r[character][nodeA][nodeB] = rulebook
         return r
+
+    def _set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
+        self._portals_rulebooks_cache[character][nodeA][nodeB] = rulebook
+        self.db.set_portal_rulebook(character, nodeA, nodeB, rulebook)
 
     @reify
     def _avatarness_cache(self):
@@ -341,8 +368,14 @@ class Engine(AbstractEngine, gORM):
         """
         branch = branch or self.branch
         tick = tick or self.tick
-        self._avatarness_cache.db_order[character][graph][node][branch][tick] = is_avatar
-        self._avatarness_cache.user_order[graph][node][character][branch][tick] = is_avatar
+        self._avatarness_cache.remember(
+            character,
+            graph,
+            node,
+            branch,
+            tick,
+            is_avatar
+        )
         self.db.avatar_set(
             character,
             graph,
@@ -834,7 +867,7 @@ class Engine(AbstractEngine, gORM):
                 self.tick in cache[rulebook][rule][self.branch]
             )
 
-        for char in self._characters_rulebooks_cache:
+        for char in self.character:
             for (
                     rulemap,
                     rulebook
@@ -1145,18 +1178,18 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        try:
-            cache = self._things_cache[character][node]
-        except KeyError:
+        if character not in self._things_cache or \
+           node not in self._things_cache[character]:
             return False
+        cache = self._things_cache[character][node]
         for (branch, tick) in self._active_branches():
-            try:
+            if branch in cache:
                 return cache[branch][tick]
-            except KeyError:
-                continue
         return False
 
-    def _set_thing_loc_and_next(self, character, node, loc, nextloc=None, branch=None, tick=None):
+    def _set_thing_loc_and_next(
+            self, character, node, loc, nextloc=None, branch=None, tick=None
+    ):
         branch = branch or self.branch
         tick = tick or self.tick
         self.db.thing_loc_and_next_set(
@@ -1169,17 +1202,14 @@ class Engine(AbstractEngine, gORM):
         )
         self._things_cache[character][node][branch][tick] = (loc, nextloc)
 
-
     def _node_exists(self, character, node):
-        try:
-            cache = self._nodes_cache[character][node]
-        except KeyError:
+        if character not in self._nodes_cache or \
+           node not in self._nodes_cache[character]:
             return False
+        cache = self._nodes_cache[character][node]
         for (branch, tick) in self._active_branches():
-            try:
+            if branch in cache:
                 return cache[branch][tick]
-            except KeyError:
-                continue
         return False
 
     def _exist_node(self, character, node, exist=True, branch=None, tick=None):
@@ -1193,3 +1223,17 @@ class Engine(AbstractEngine, gORM):
             exist
         )
         self._nodes_cache[character][node][branch][tick] = exist
+
+    def _exist_edge(self, character, nodeA, nodeB, exist=True, branch=None, tick=None):
+        branch = branch or self.branch
+        tick = tick or self.tick
+        self.db.exist_edge(
+            character,
+            nodeA,
+            nodeB,
+            0,
+            branch,
+            tick,
+            exist
+        )
+        self._edges_cache[character][nodeA][nodeB][0][branch][tick] = exist

@@ -1401,7 +1401,13 @@ class QueryEngine(gorm.query.QueryEngine):
                 'avatar_upd', isav, character, graph, node, branch, tick
             )
 
-
+    def rulebook_ins(self, rulebook, idx, rule):
+        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
+        self.sql('rulebook_inc', rulebook, idx)
+        try:
+            return self.sql('rulebook_ins', rulebook, idx, rule)
+        except IntegrityError:
+            return self.sql('rulebook_upd', rule, rulebook, idx)
 
     def rulebook_set(self, rulebook, idx, rule):
         (rulebook, rule) = map(self.json_dump, (rulebook, rule))

@@ -456,20 +456,25 @@ class RuleBook(MutableSequence):
             active
         )
 
-    def __setitem__(self, i, v):
+    def _coerce_rule(self, v):
         if isinstance(v, Rule):
-            rule = v
+            return v
         elif isinstance(v, str):
-            rule = self.engine.rule[v]
+            return self.engine.rule[v]
         else:
-            rule = Rule(self.engine, v)
+            return Rule(self.engine, v)
+
+    def __setitem__(self, i, v):
+        rule = self._coerce_rule(v)
         self.engine._rulebook_set(self.name, i, rule.name)
         self._activate_rule(rule)
         self._dispatch()
 
     def insert(self, i, v):
-        self.engine.rule.db.rulebook_decr(self.name, i)
-        self[i] = v
+        rule = self._coerce_rule(v)
+        self.engine._rulebook_insert(self.name, i, rule.name)
+        self._activate_rule(rule)
+        self._dispatch()
 
     def index(self, v):
         if isinstance(v, str):
@@ -522,7 +527,7 @@ class RuleMapping(MutableMapping):
         if isinstance(rulebook, RuleBook):
             self.rulebook = rulebook
         else:
-            self.rulebook = RuleBook(engine, rulebook)
+            self.rulebook = self.engine.rulebook[rulebook]
         self._listeners = defaultdict(list)
         self._rule_cache = {}
 
@@ -533,10 +538,10 @@ class RuleMapping(MutableMapping):
         dispatch(self._listeners, rule.name, self, rule, active)
 
     def _activate_rule(self, rule, active=True):
-        if rule not in self.rulebook:
-            self.rulebook.append(rule)
-        else:
+        if rule in self.rulebook:
             self.rulebook._activate_rule(rule, active)
+        else:
+            self.rulebook.append(rule)
         self._dispatch(rule, active)
 
     def __repr__(self):
@@ -544,14 +549,10 @@ class RuleMapping(MutableMapping):
 
     def __iter__(self):
         cache = self.engine._active_rules_cache[self.rulebook.name]
-        seen = set()
         for rule in cache:
-            if rule in seen:
-                continue
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache[rule]:
                     yield cache[rule][branch][tick]
-                    seen.add(rule)
                     break
 
     def __len__(self):
@@ -561,6 +562,8 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
+        if self.rulebook.name not in self.engine._active_rules_cache:
+            return False
         cache = self.engine._active_rules_cache[self.rulebook.name]
         if k not in cache:
             return False
@@ -675,10 +678,7 @@ class RuleFollower(object):
             f(self, self._rulebook)
 
     def _get_rulebook(self):
-        return RuleBook(
-            self.engine,
-            self._get_rulebook_name()
-        )
+        return self.engine.rulebook[self._get_rulebook_name()]
 
     def rules(self):
         if not hasattr(self, 'engine'):

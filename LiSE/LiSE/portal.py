@@ -45,7 +45,11 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         return self._dispatch_cache
 
     def _rule_name_activeness(self):
-        cache = self.engine._active_rules_cache[self._get_rulebook_name()]
+        rulebook_name = self._get_rulebook_name()
+        cache = self.engine._active_rules_cache
+        if rulebook_name not in cache:
+            return
+        cache = cache[rulebook_name]
         for rule in cache:
             for (branch, tick) in self.engine._active_branches():
                 if branch not in cache[rule]:
@@ -58,7 +62,12 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
 
     def _get_rulebook_name(self):
-        cache = self.engine._portals_rulebooks_cache[self.character.name][self._origin][self._destination]
+        cache = self.engine._portals_rulebooks_cache
+        if self.character.name not in cache or \
+            self._origin not in cache[self.character.name] or \
+            self._destination not in cache[self.character.name][self._origin]:
+            return
+        cache = cache[self.character.name][self._origin][self._destination]
         for (branch, tick) in self.engine._active_branches():
             if branch in cache:
                 return cache[branch][tick]

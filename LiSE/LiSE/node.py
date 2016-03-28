@@ -112,22 +112,28 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         )
 
     def _set_rulebook_name(self, v):
-        self.engine.db.set_node_rulebook(
+        self.engine._set_node_rulebook(
             self.character.name,
             self.name,
             v
         )
 
     def _user_names(self):
-        cache = self.engine._avatarness_cache.user_order[self.character.name][self.name]
+        cache = self.engine._avatarness_cache.user_order
+        if self.character.name not in cache or \
+           self.name not in cache[self.character.name]:
+            return
+        cache = cache[self.character.name][self.name]
+        seen = set()
         for user in cache:
+            if user in seen:
+                continue
             for (branch, tick) in self.engine._active_branches():
-                try:
+                if branch in cache[user]:
                     if cache[user][branch][tick]:
                         yield user
+                    seen.add(user)
                     break
-                except KeyError:
-                    continue
 
     @reify
     def user(self):

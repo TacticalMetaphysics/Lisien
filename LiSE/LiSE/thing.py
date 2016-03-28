@@ -18,7 +18,6 @@ from .exc import(
     CacheError,
     TravelException
 )
-from gorm.window import window_left
 
 
 class Thing(Node):
@@ -77,10 +76,7 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
-                    try:
-                        return window_left(cache[branch].keys(), tick)
-                    except ValueError:
-                        continue
+                    return cache[branch][tick]
             raise CacheError("Locations not cached correctly")
         elif key == 'next_location':
             return self['locations'][1]
@@ -88,10 +84,7 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
-                    try:
-                        return window_left(cache[branch].keys(), tick)
-                    except ValueError:
-                        continue
+                    return cache[branch][tick]
             return None
         elif key == 'locations':
             cache = self.engine._things_cache[self.character.name][self.name]
@@ -118,9 +111,6 @@ class Thing(Node):
             raise ValueError("Read-only")
         elif key == 'locations':
             self._set_loc_and_next(*value)
-            (branch, tick) = self.engine.time
-            self.engine._things_cache\
-                [self.character.name][self.name][branch][tick] = value
             self.dispatch('locations', value)
         else:
             super().__setitem__(key, value)
@@ -150,10 +140,8 @@ class Thing(Node):
         """Query the database for when I arrive at my present location."""
         cache = self.engine._things_cache[self.character.name][self.name]
         for (branch, tick) in self.engine._active_branches():
-            try:
-                return window_left(cache[branch].keys(), tick)
-            except (KeyError, ValueError):
-                continue
+            if branch in cache:
+                return cache[branch][tick]
         raise CacheError("Thing seems never to have arrived where it is")
 
     def _get_next_arrival_time(self):
@@ -214,6 +202,12 @@ class Thing(Node):
             return None
         return self.character.node[self['location']]
 
+    @location.setter
+    def location(self, v):
+        if hasattr(v, 'name'):
+            v = v.name
+        self['location'] = v
+
     @property
     def next_location(self):
         """If I'm not in transit, this is None. If I am, it's where I'm
@@ -228,6 +222,12 @@ class Thing(Node):
         except KeyError:
             return self.character.place[locn]
 
+    @next_location.setter
+    def next_location(self, v):
+        if hasattr(v, 'name'):
+            v = v.name
+        self['next_location'] = v
+
     def _loc_and_next(self):
         """Private method that returns a pair in which the first item is my
         present ``location`` and the second is my ``next_location``,
@@ -236,10 +236,8 @@ class Thing(Node):
         """
         cache = self.engine._things_cache[self.character.name][self.name]
         for (branch, tick) in self.engine._active_branches():
-            try:
+            if branch in cache:
                 return cache[branch][tick]
-            except (KeyError, ValueError):
-                continue
         raise CacheError("Thing loc and next weren't cached right")
 
     def _set_loc_and_next(self, loc, nextloc=None):
