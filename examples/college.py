@@ -210,5 +210,5 @@ def install(eng):
 
 if __name__ == "__main__":
     import LiSE
-    with LiSE.Engine() as eng:
+    with LiSE.Engine("collegeWorld.db", "collegeCode.db") as eng:
         install(eng)
