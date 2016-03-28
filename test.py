@@ -86,8 +86,8 @@ class LiSETest(unittest.TestCase):
                 'character_portal': character_portal_rulebook
             }
         self.assertDictEqual(
-            charrb,
-            self.engine._characters_rulebooks_cache
+            self.engine._characters_rulebooks_cache,
+            charrb
         )
 
     def testNodeRulebooksCache(self):
