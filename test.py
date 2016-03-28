@@ -43,18 +43,30 @@ class LiSETest(unittest.TestCase):
         if d0 != d1:
             self.fail(self._formatMessage(
                 msg,
-                "Dicts not equal\n" + "\n".join(deepDictDiffIter(d0, d1))
+                self._truncateMessage(
+                    "Dicts not equal. Sizes {}, {}\n".format(
+                        len(d0), len(d1)
+                    ), "\n".join(deepDictDiffIter(d0, d1))
+                )
             ))
 
     def tearDown(self):
         """Close my engine."""
         self.engine.close()
 
-    def testCharRulebooksCaches(self):
+    def testRulebooksCache(self):
         rulebooks = defaultdict(list)
         for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
             rulebooks[rulebook].append(rule)
-        self.assertDictEqual(rulebooks, self.engine._rulebooks_cache)
+        # Ignoring empty rulebooks because those only exist
+        # implicitly, they don't have database records
+        oldrulebooks = {}
+        for (k, v) in self.engine._rulebooks_cache.items():
+            if v:
+                oldrulebooks[k] = v
+        self.assertDictEqual(oldrulebooks, rulebooks)
+
+    def testCharRulebooksCaches(self):
         charrb = {}
         for (
                 character,
@@ -201,10 +213,19 @@ class LiSETest(unittest.TestCase):
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
             )():
                 handled_ticks[character][rulebook][rule][branch].add(tick)
+            old_handled_ticks = crhandled_defaultdict()
+            live = getattr(
+                self.engine, '_{}_rules_handled_cache'.format(rulemap)
+            )
+            for character in live:
+                for rulebook in live[character]:
+                    if live[character][rulebook]:
+                        old_handled_ticks[character][rulebook] \
+                            = live[character][rulebook]
             self.assertDictEqual(
+                old_handled_ticks,
                 handled_ticks,
-                getattr(self.engine, '_{}_rules_handled_cache'.format(rulemap)),
-                "{} cache differs from DB".format(rulemap)
+                "\n{} cache differs from DB".format(rulemap)
             )
 
     def testThingsCache(self):
