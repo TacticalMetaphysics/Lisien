@@ -12,12 +12,12 @@ def deepDictDiffIter(d0, d1, lvl=0):
         deld = set(d0.keys()) - set(d1.keys())
         addd = set(d1.keys()) - set(d0.keys())
         if deld:
-            for k in deld:
+            for k in sorted(deld):
                 yield tabs + str(k) + " deleted"
         if addd:
-            for k in addd:
+            for k in sorted(addd):
                 yield tabs + str(k) + " added"
-    for k in set(d0.keys()).intersection(d1.keys()):
+    for k in sorted(set(d0.keys()).intersection(d1.keys())):
         if d0[k] != d1[k]:
             if isinstance(d0[k], dict) and isinstance(d1[k], dict):
                 yield "{}{}:".format(tabs, k)
@@ -26,7 +26,20 @@ def deepDictDiffIter(d0, d1, lvl=0):
                 yield "{}{}: {} != {}".format(tabs, k, d0[k], d1[k])
 
 
-class LiSETest(unittest.TestCase):
+class TestCase(unittest.TestCase):
+    def assertDictEqual(self, d0, d1, msg=None):
+        if d0 != d1:
+            self.fail(self._formatMessage(
+                msg,
+                self._truncateMessage(
+                    "Dicts not equal. Sizes {}, {}\n".format(
+                        len(d0), len(d1)
+                    ), "\n".join(deepDictDiffIter(d0, d1))
+                )
+            ))
+
+
+class LiSETest(TestCase):
     def setUp(self):
         """Start an engine, install the sim module, and run it a while.
 
@@ -38,17 +51,6 @@ class LiSETest(unittest.TestCase):
         for i in range(72):
             self.engine.next_tick()
         self.engine.commit()
-
-    def assertDictEqual(self, d0, d1, msg=None):
-        if d0 != d1:
-            self.fail(self._formatMessage(
-                msg,
-                self._truncateMessage(
-                    "Dicts not equal. Sizes {}, {}\n".format(
-                        len(d0), len(d1)
-                    ), "\n".join(deepDictDiffIter(d0, d1))
-                )
-            ))
 
     def tearDown(self):
         """Close my engine."""
