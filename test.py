@@ -134,13 +134,45 @@ class LiSETest(TestCase):
         for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
             db_avatarness[character][graph][node][branch][tick] = is_avatar
             user_avatarness[graph][node][character][branch][tick] = is_avatar
+        new_db_avatarness = defaultdict(  # character:
+            lambda: defaultdict(  # graph:
+                lambda: defaultdict(  # node:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+        db = self.engine._avatarness_cache.db_order
+        for char in db:
+            for graph in db[char]:
+                for node in db[char][graph]:
+                    if db[char][graph][node]:
+                        new_db_avatarness[char][graph][node] \
+                            = db[char][graph][node]
+        new_user_avatarness = defaultdict(  # graph:
+            lambda: defaultdict(  # node:
+                lambda: defaultdict(  # character:
+                    lambda: defaultdict(  # branch:
+                        dict  # tick: is_avatar
+                    )
+                )
+            )
+        )
+        usr = self.engine._avatarness_cache.user_order
+        for graph in usr:
+            for node in usr[graph]:
+                for char in usr[graph][node]:
+                    if usr[graph][node][char]:
+                        new_user_avatarness[graph][node][char] \
+                            = usr[graph][node][char]
         self.assertDictEqual(
             db_avatarness,
-            self.engine._avatarness_cache.db_order
+            new_db_avatarness
         )
         self.assertDictEqual(
             user_avatarness,
-            self.engine._avatarness_cache.db_order
+            new_user_avatarness
         )
 
     def testActiveRulesCache(self):
