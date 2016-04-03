@@ -2,6 +2,7 @@ import unittest
 import LiSE
 import re
 from collections import defaultdict
+from functools import reduce
 from LiSE.engine import crhandled_defaultdict
 from examples import college as sim
 
@@ -349,6 +350,27 @@ class LiSETest(TestCase):
             )
             done.add(student.name)
             done.add(other_student.name)
+
+    def testSoberCollisions(self):
+        """Students that are neither lazy nor drunkards should all have been
+        in class together at least once.
+
+        """
+        students = [
+            stu for stu in
+            self.engine.character['student_body'].stat['characters']
+            if not (stu.stat['drunkard'] or stu.stat['lazy'])
+        ]
+
+        def sameClasstime(stu0, stu1):
+            self.assertTrue(
+                stu0.avatar.historical('location') ==
+                stu1.avatar.historical('location') ==
+                'classroom'
+            )
+            return stu1
+
+        reduce(sameClasstime, students)
 
 
 if __name__ == '__main__':
