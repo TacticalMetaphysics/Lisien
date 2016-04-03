@@ -185,7 +185,9 @@ class LiSETest(TestCase):
             for rule in cache[rulebook]:
                 if cache[rulebook][rule]:
                     newactrules[rulebook][rule] = cache[rulebook][rule]
-        for rulebook, rule, branch, tick, active in self.engine.db.dump_active_rules():
+        for (
+                rulebook, rule, branch, tick, active)
+        in self.engine.db.dump_active_rules():
             actrules[rulebook][rule][branch][tick] = active
         self.assertDictEqual(
             actrules,
@@ -321,7 +323,10 @@ class LiSETest(TestCase):
         )
 
     def testRoommateCollisions(self):
-        """Test queries' ability to tell that all of the students that share rooms have been in the same place."""
+        """Test queries' ability to tell that all of the students that share
+        rooms have been in the same place.
+
+        """
         done = set()
         for chara in self.engine.character.values():
             if chara.name in done:
@@ -332,11 +337,15 @@ class LiSETest(TestCase):
             dorm, room, student = match.groups()
             other_student = 1 if student == 0 else 0
             student = chara
-            other_student = self.engine.character['dorm{}room{}student{}'.format(dorm, room, other_student)]
+            other_student = self.engine.character[
+                'dorm{}room{}student{}'.format(dorm, room, other_student)
+            ]
             self.assertEqual(
                 student.avatar.historical('location'),
                 other_student.avatar.historical('location'),
-                "Roommates don't seem to share a room: {}, {}".format(student, other_student)
+                "Roommates don't seem to share a room: {}, {}".format(
+                    student, other_student
+                )
             )
             done.add(student.name)
             done.add(other_student.name)
