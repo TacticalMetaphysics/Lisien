@@ -1144,22 +1144,28 @@ def queries(table, view):
 
     characters = table['characters']
 
-    def handled_char_rules(prefix):
-        tabn = '{}_rules_handled'.format(prefix)
-        rules_handled = table[tabn]
-        return select([
+    def handled_char_rules(typ=None):
+        rules_handled = table['character_rules_handled']
+        r = select([
             rules_handled.c.character,
             rules_handled.c.rulebook,
             rules_handled.c.rule,
             rules_handled.c.branch,
             rules_handled.c.tick
         ])
+        if typ is None:
+            return r
+        return r.select_from(
+            rules_handled.join(
+                characters,
+                characters.c['{}_rulebook'.format(typ)] == rules_handled.c.rulebook
+            )
+        )
 
     def poll_char_rules(prefix):
         """Return query to get all a character's rules yet to be handled."""
         _rulebook = '{}_rulebook'.format(prefix)
-        tabn = '{}_rules_handled'.format(prefix)
-        rules_handled = table[tabn]
+        rules_handled = table['character_rules_handled']
         crhandle = select(
             [
                 rules_handled.c.character,
