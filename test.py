@@ -179,11 +179,17 @@ class LiSETest(TestCase):
                 )
             )
         )
+        newactrules = defaultdict(dict)
+        cache = self.engine._active_rules_cache
+        for rulebook in cache:
+            for rule in cache[rulebook]:
+                if cache[rulebook][rule]:
+                    newactrules[rulebook][rule] = cache[rulebook][rule]
         for rulebook, rule, branch, tick, active in self.engine.db.dump_active_rules():
             actrules[rulebook][rule][branch][tick] = active
         self.assertDictEqual(
-            self.engine._active_rules_cache,
-            actrules
+            actrules,
+            newactrules
         )
 
     def testNodeRulesHandledCache(self):
@@ -198,13 +204,31 @@ class LiSETest(TestCase):
                 )
             )
         )
+        new_node_rules_handled_ticks = defaultdict(  # character:
+            lambda: defaultdict(  # node:
+                lambda: defaultdict(  # rulebook:
+                    lambda: defaultdict(  # rule:
+                        dict
+                    )
+                )
+            )
+        )
+        cache = self.engine._node_rules_handled_cache
+        for char in cache:
+            for node in cache[char]:
+                for rulebook in cache[char][node]:
+                    for rule in cache[char][node][rulebook]:
+                        if cache[char][node][rulebook][rule]:
+                            new_node_rules_handled_ticks[
+                                char][node][rulebook][rule] \
+                                = cache[char][node][rulebook][rule]
         for character, node, rulebook, rule, branch, tick in \
                 self.engine.db.dump_node_rules_handled():
             node_rules_handled_ticks[
                 character][node][rulebook][rule][branch].add(tick)
         self.assertDictEqual(
-            self.engine._node_rules_handled_cache,
-            node_rules_handled_ticks
+            node_rules_handled_ticks,
+            new_node_rules_handled_ticks
         )
 
     def testPortalRulesHandledCache(self):
@@ -221,13 +245,35 @@ class LiSETest(TestCase):
                 )
             )
         )
+        new_portal_rules_handled_ticks = defaultdict(  # character:
+            lambda: defaultdict(  # nodeA:
+                lambda: defaultdict(  # nodeB:
+                    lambda: defaultdict(  # rulebook:
+                        lambda: defaultdict(  # rule:
+                            dict
+                        )
+                    )
+                )
+            )
+        )
+        cache = self.engine._portal_rules_handled_cache
+        for character in cache:
+            for nodeA in cache[character]:
+                for nodeB in cache[character][nodeA]:
+                    for rulebook in cache[character][nodeA][nodeB]:
+                        for rule in cache[character][nodeA][nodeB][rulebook]:
+                            if cache[character][nodeA][nodeB][rulebook][rule]:
+                                new_portal_rules_handled_ticks[
+                                    character][nodeA][nodeB][rulebook][rule] \
+                                    = cache[character][nodeA][nodeB][
+                                        rulebook][rule]
         for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
                 in self.engine.db.dump_portal_rules_handled():
             portal_rules_handled_ticks[
                 character][nodeA][nodeB][rulebook][rule][branch].add(tick)
         self.assertDictEqual(
-            self.engine._portal_rules_handled_cache,
-            portal_rules_handled_ticks
+            portal_rules_handled_ticks,
+            new_portal_rules_handled_ticks
         )
 
     def testCharRulesHandledCaches(self):
