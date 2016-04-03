@@ -88,8 +88,8 @@ class LiSETest(TestCase):
                 'character_portal': character_portal_rulebook
             }
         self.assertDictEqual(
-            self.engine._characters_rulebooks_cache,
-            charrb
+            charrb,
+            self.engine._characters_rulebooks_cache
         )
 
     def testNodeRulebooksCache(self):
@@ -97,8 +97,8 @@ class LiSETest(TestCase):
         for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
             noderb[character][node] = rulebook
         self.assertDictEqual(
-            self.engine._nodes_rulebooks_cache,
-            noderb
+            noderb,
+            self.engine._nodes_rulebooks_cache
         )
 
     def testPortalRulebooksCache(self):
@@ -108,8 +108,8 @@ class LiSETest(TestCase):
         for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
             portrb[character][nodeA][nodeB] = rulebook
         self.assertDictEqual(
-            self.engine._portals_rulebooks_cache,
-            portrb
+            portrb,
+            self.engine._portals_rulebooks_cache
         )
 
     def testAvatarnessCaches(self):
@@ -274,8 +274,8 @@ class LiSETest(TestCase):
                 self.engine.db.things_dump():
             things[character][thing][branch][tick] = (loc, nextloc)
         self.assertDictEqual(
-            self.engine._things_cache,
-            things
+            things,
+            self.engine._things_cache
         )
 
     def testRoommateCollisions(self):
