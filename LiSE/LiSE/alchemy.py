@@ -1210,19 +1210,39 @@ def queries(table, view):
             rulebooks.c.idx
         )
 
+    def char_rule_handled(typ):
+        """Return query to check whether a character rule has been handled."""
+        rules_handled = table['character_rules_handled']
+        return select([func.count()]).select_from(
+            rules_handled.join(
+                characters,
+                characters.c['{}_rulebook'.format(typ)] == rules_handled.c.rulebook
+            )).where(and_(
+                rules_handled.c.character == bindparam('character'),
+                rules_handled.c.rule == bindparam('rule'),
+                rules_handled.c.branch == bindparam('branch'),
+                rules_handled.c.tick == bindparam('tick')
+            ))
+
     r['poll_character_rules'] = poll_char_rules('character')
     r['handled_character_rules'] = handled_char_rules('character')
+    r['character_rule_handled'] = char_rule_handled('character')
     r['poll_avatar_rules'] = poll_char_rules('avatar')
     r['handled_avatar_rules'] = handled_char_rules('avatar')
+    r['avatar_rule_handled'] = char_rule_handled('avatar')
     r['poll_character_node_rules'] = poll_char_rules('character_node')
     r['handled_character_node_rules'] = handled_char_rules('character_node')
+    r['character_node_rule_handled'] = char_rule_handled('character_node')
     r['poll_character_thing_rules'] = poll_char_rules('character_thing')
     r['handled_character_thing_rules'] = handled_char_rules('character_thing')
+    r['character_thing_rule_handled'] = char_rule_handled('character_thing')
     r['poll_character_place_rules'] = poll_char_rules('character_place')
     r['handled_character_place_rules'] = handled_char_rules('character_place')
+    r['character_place_rule_handled'] = char_rule_handled('character_place')
     r['poll_character_portal_rules'] = poll_char_rules('character_portal')
     r['handled_character_portal_rules'] \
         = handled_char_rules('character_portal')
+    r['character_portal_rule_handled'] = char_rule_handled('character_portal')
 
     def handled_character_ruletyp(typ):
         """Return query to declare that a rule of this type was handled."""

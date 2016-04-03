@@ -1001,6 +1001,29 @@ class QueryEngine(gorm.query.QueryEngine):
                 )
             )
 
+    def character_rule_handled(
+            self, ruletyp, character, rule, branch, tick
+    ):
+        (character, rule) = map(self.json_dump, (character, rule))
+        return bool(self.sql(
+            {
+                'character': 'character_rule_handled',
+                'avatar': 'avatar_rule_handled',
+                'node': 'character_node_rule_handled',
+                'character_node': 'character_node_rule_handled',
+                'thing': 'character_thing_rule_handled',
+                'character_thing': 'character_thing_rule_handled',
+                'place': 'character_place_rule_handled',
+                'character_place': 'character_place_rule_handled',
+                'portal': 'character_portal_rule_handled',
+                'character_portal': 'character_portal_rule_handled'
+            }[ruletyp],
+            character,
+            rule,
+            branch,
+            tick
+        ))
+
     def handled_thing_rule(
             self, character, thing, rulebook, rule, branch, tick
     ):
