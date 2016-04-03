@@ -137,9 +137,7 @@ class LiSETest(TestCase):
         new_db_avatarness = defaultdict(  # character:
             lambda: defaultdict(  # graph:
                 lambda: defaultdict(  # node:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
+                    dict
                 )
             )
         )
@@ -153,9 +151,7 @@ class LiSETest(TestCase):
         new_user_avatarness = defaultdict(  # graph:
             lambda: defaultdict(  # node:
                 lambda: defaultdict(  # character:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
+                    dict
                 )
             )
         )
