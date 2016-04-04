@@ -366,9 +366,20 @@ class LiSETest(TestCase):
 
         def sameClasstime(stu0, stu1):
             self.assertTrue(
-                stu0.avatar.historical('location') ==
-                stu1.avatar.historical('location') ==
-                'classroom'
+                self.engine.ticks_when(
+                    stu0.avatar.historical('location') ==
+                    stu1.avatar.historical('location') ==
+                    self.engine.alias('classroom')
+                ),
+                "{stu0} seems not to have been in the classroom "
+                "at the same time as {stu1}.\n"
+                "{stu0} was there at ticks {ticks0}\n"
+                "{stu1} was there at ticks {ticks1}".format(
+                    stu0=stu0.name,
+                    stu1=stu1.name,
+                    ticks0=list(self.engine.ticks_when(stu0.avatar.historical('location') == self.engine.alias('classroom'))),
+                    ticks1=list(self.engine.ticks_when(stu1.avatar.historical('location') == self.engine.alias('classroom')))
+                )
             )
             return stu1
 
