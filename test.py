@@ -187,8 +187,8 @@ class LiSETest(TestCase):
                 if cache[rulebook][rule]:
                     newactrules[rulebook][rule] = cache[rulebook][rule]
         for (
-                rulebook, rule, branch, tick, active)
-        in self.engine.db.dump_active_rules():
+                rulebook, rule, branch, tick, active
+        ) in self.engine.db.dump_active_rules():
             actrules[rulebook][rule][branch][tick] = active
         self.assertDictEqual(
             actrules,
