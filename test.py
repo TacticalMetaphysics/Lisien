@@ -362,6 +362,8 @@ class LiSETest(TestCase):
             if not (stu.stat['drunkard'] or stu.stat['lazy'])
         ]
 
+        assert students
+
         def sameClasstime(stu0, stu1):
             self.assertTrue(
                 stu0.avatar.historical('location') ==
