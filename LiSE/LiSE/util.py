@@ -73,9 +73,9 @@ class EntityStatAccessor(object):
     def __init__(self, entity, stat, engine=None, branch=None, tick=None, current=False, mungers=[]):
         if engine is None:
             engine = entity.engine
-        if branch is None:
+        if branch is None and engine is not None:
             branch = engine.branch
-        if tick is None:
+        if tick is None and engine is not None:
             tick = engine.tick
         self.current = current
         self.engine = engine

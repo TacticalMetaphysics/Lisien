@@ -165,6 +165,7 @@ def install(eng):
     # 3 dorms of 12 students each.
     # Each dorm has 6 rooms.
     # Modeling the teachers would be a logical way to extend this.
+    student_body.stat['characters'] = []
     for n in range(0, 3):
         dorm = eng.new_character('dorm{}'.format(n))
         common = phys.new_place('common{}'.format(n))  # A common room for students to meet in
@@ -190,6 +191,8 @@ def install(eng):
             student0.stat['roommate'] = student1
             student1.stat['roommate'] = student0
             for student in (student0, student1):
+                if student not in student_body.stat['characters']:
+                    student_body.stat['characters'].append(student)
                 # Students' nodes are their brain cells.
                 # They are useless if drunk or slow, but recover from both conditions a bit every hour.
                 for k in range(0, 100):

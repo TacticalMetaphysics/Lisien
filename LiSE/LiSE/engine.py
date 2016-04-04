@@ -23,9 +23,14 @@ from .character import Character
 from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
-from .query import QueryEngine
-from .util import getatt
+from .query import Query, QueryEngine
+from .util import getatt, EntityStatAccessor
 import re
+
+
+class DummyEntity(dict):
+    def __init__(self, engine):
+        self.engine = engine
 
 
 def crhandled_defaultdict():
@@ -1237,3 +1242,21 @@ class Engine(AbstractEngine, gORM):
             exist
         )
         self._edges_cache[character][nodeA][nodeB][0][branch][tick] = exist
+
+    def alias(self, v, stat='dummy'):
+        r = DummyEntity(self)
+        r[stat] = v
+        return EntityStatAccessor(r, stat, engine=self)
+
+    def entityfy(self, v, stat='dummy'):
+        if (
+                isinstance(v, Node) or
+                isinstance(v, Portal) or
+                isinstance(v, Query) or
+                isinstance(v, EntityStatAccessor)
+        ):
+            return v
+        return self.alias(v, stat)
+
+    def ticks_when(self, query):
+        return query()

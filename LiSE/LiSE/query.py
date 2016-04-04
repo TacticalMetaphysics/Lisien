@@ -131,16 +131,40 @@ def windows_intersection(windows) -> list:
 
 
 class Query(object):
-    def __new__(cls, leftside, rightside, **kwargs):
-        me = super().__new__(cls)
+    def __new__(cls, engine, leftside, rightside=None, **kwargs):
+        if rightside is None:
+            if not isinstance(leftside, cls):
+                raise TypeError("You can't make a query with only one side")
+            me = leftside
+        else:
+            me = super().__new__(cls)
+            me.leftside = leftside
+            me.rightside = rightside
+        me.engine = engine
         me.branches = kwargs.get('branches', None) or [kwargs.get('branch', 'master')]
         me.windows = kwargs.get('windows', [])
-        me.leftside = leftside
-        me.rightside = rightside
         return me
 
     def __call__(self):
         raise NotImplementedError("Query is abstract")
+
+    def __eq__(self, other):
+        return EqQuery(self.engine, self, self.engine.entityfy(other))
+
+    def __gt__(self, other):
+        return GtQuery(self.engine, self, self.engine.entityfy(other))
+
+    def __ge__(self, other):
+        return GeQuery(self.engine, self, self.engine.entityfy(other))
+
+    def __lt__(self, other):
+        return LtQuery(self.engine, self, self.engine.entityfy(other))
+
+    def __le__(self, other):
+        return LeQuery(self.engine, self, self.engine.entityfy(other))
+
+    def __ne__(self, other):
+        return NeQuery(self.engine, self, self.engine.entityfy(other))
 
     def and_before(self, end):
         if self.windows:
@@ -198,7 +222,7 @@ class ComparisonQuery(Query):
     oper = lambda x, y: NotImplemented
 
     def __call__(self):
-        return QueryResults(iter_eval_cmp(self, self.oper))
+        return QueryResults(iter_eval_cmp(self, self.oper, self.engine))
 
 
 class EqQuery(ComparisonQuery):
@@ -237,22 +261,22 @@ comparisons = {
 
 class StatusAlias(EntityStatAccessor):
     def __eq__(self, other):
-        return EqQuery(self, other)
+        return EqQuery(self.engine, self, other)
 
     def __ne__(self, other):
-        return NeQuery(self, other)
+        return NeQuery(self.engine, self, other)
 
     def __gt__(self, other):
-        return GtQuery(self, other)
+        return GtQuery(self.engine, self, other)
 
     def __lt__(self, other):
-        return LtQuery(self, other)
+        return LtQuery(self.engine, self, other)
 
     def __ge__(self, other):
-        return GeQuery(self, other)
+        return GeQuery(self.engine, self, other)
 
     def __le__(self, other):
-        return LeQuery(self, other)
+        return LeQuery(self.engine, self, other)
 
 
 def intersect_qry(qry: Query):
@@ -281,7 +305,7 @@ def iter_intersection_ticks2check(ticks, windows):
                 yield tick
                 windows.insert(0, (left, right))
         elif right is None:
-            if tick >= right:
+            if tick >= left:
                 yield from ticks
                 return
             windows.insert(0, (left, right))
@@ -318,7 +342,7 @@ class QueryResults(object):
         return hasattr(self, 'next')
 
 
-def iter_eval_cmp(qry: EqQuery, oper):
+def iter_eval_cmp(qry: EqQuery, oper, engine=None):
     def mungeside(side):
         if isinstance(side, Query):
             return side()
@@ -330,13 +354,53 @@ def iter_eval_cmp(qry: EqQuery, oper):
             return side
         else:
             return lambda b, t: side
+
+    def getcache(side):
+        if hasattr(side, 'cache'):
+            return side.cache
+        if hasattr(side, 'entity'):
+            if side.stat in (
+                    'location', 'next_location', 'locations', 'arrival_time', 'next_arrival_time'
+            ):
+                return engine._things_cache[side.entity.character.name][side.entity.name]
+            if side.stat in side.entity._cache:
+                return side.entity._cache[side.stat]
+
     leftside = mungeside(qry.leftside)
     rightside = mungeside(qry.rightside)
-    for branch in qry.branches:
-        ticks = frozenset(leftside._cache[branch].keys()).union(rightside._cache[branch].keys())
-        for tick in iter_intersection_ticks2check(ticks, qry.windows):
-            if oper(leftside(branch, tick), rightside(branch, tick)):
-                yield branch, tick
+    branches = qry.branches
+    windows = qry.windows or [(0, None)]
+    if not branches:
+        if leftside.engine:
+            branches = [leftside.engine.branch]
+            engine = engine or leftside.engine
+        elif rightside.engine:
+            branches = [rightside.engine.branch]
+            engine = engine or rightside.engine
+        else:
+            branches = ['master']
+    for branch in branches:
+        try:
+            lkeys = frozenset(getcache(leftside)[branch].keys())
+        except AttributeError:
+            lkeys = frozenset()
+        try:
+            rkeys = getcache(rightside)[branch].keys()
+        except AttributeError:
+            rkeys = frozenset()
+        ticks = lkeys.union(rkeys)
+        if ticks:
+            yield from (
+                (branch, tick) for tick in
+                iter_intersection_ticks2check(ticks, windows)
+                if oper(leftside(branch, tick), rightside(branch, tick))
+            )
+        else:
+            yield from (
+                (branch, tick) for tick in
+                range(engine._branch_start.get(branch, 0), engine.tick+1)
+                if oper(leftside(branch, tick), rightside(branch, tick))
+            )
 
 
 class QueryEngine(gorm.query.QueryEngine):
