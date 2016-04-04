@@ -385,6 +385,47 @@ class LiSETest(TestCase):
 
         reduce(sameClasstime, students)
 
+    def testNoncollision(self):
+        """Make sure students *not* from the same room never go there together"""
+        dorm = defaultdict(lambda: defaultdict(dict))
+        for character in self.engine.character.values():
+            match = re.match('dorm(\d)room(\d)student(\d)', character.name)
+            if not match:
+                continue
+            d, r, s = match.groups()
+            dorm[d][r][s] = character
+        for d in dorm:
+            other_dorms = [dd for dd in dorm if dd != d]
+            for r in dorm[d]:
+                other_rooms = [rr for rr in dorm[d] if rr != r]
+                for stu0 in dorm[d][r].values():
+                    for rr in other_rooms:
+                        for stu1 in dorm[d][rr].values():
+                            self.assertFalse(
+                                self.engine.ticks_when(
+                                    stu0.avatar.historical('location') ==
+                                    stu1.avatar.historical('location') ==
+                                    self.engine.alias('dorm{}room{}'.format(d, r))
+                                ),
+                                "{} seems to share a room with {}".format(
+                                    stu0.name, stu1.name
+                                )
+                            )
+                    common = 'common{}'.format(d)
+                    for dd in other_dorms:
+                        for rr in dorm[dd]:
+                            for stu1 in dorm[dd][rr].values():
+                                self.assertFalse(
+                                    self.engine.ticks_when(
+                                        stu0.avatar.historical('location') ==
+                                        stu1.avatar.historical('location') ==
+                                        self.engine.alias(common)
+                                    ),
+                                    "{} seems to have been in the same"
+                                    "common room  as {}".format(
+                                        stu0.name, stu1.name
+                                    )
+                                )
 
 if __name__ == '__main__':
     unittest.main()
