@@ -408,13 +408,13 @@ class QueryEngine(gorm.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
-    def times_when(self, entity0, stat0, entity1, stat1=None, oper='eq', branches=None, windows=[]):
+    def comparison(self, entity0, stat0, entity1, stat1=None, oper='eq', branches=None, windows=[]):
         engine = entity0.engine
         stat1 = stat1 or stat0
         branches = branches or [engine.branch]
         return comparisons[oper](
             leftside=entity0.status(stat0), rightside=entity1.status(stat1), branches=branches, windows=windows
-        )()
+        )
 
     def count_all_table(self, tbl):
         return self.sql('count_all_{}'.format(tbl)).fetchone()[0]
