@@ -141,7 +141,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     @property
     def portal(self):
-        """Return a mapping of portals to other nodes."""
+        """Return a mapping of portals connecting this node to its neighbors."""
         return self.character.portal[self.name]
 
     def __init__(self, character, name):
@@ -260,6 +260,13 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         )
 
     def historical(self, stat):
+        """Return a reference to the values that a stat has had in the past.
+
+        You can use the reference in comparisons to make a history
+        query, and execute the query by calling it, or passing it to
+        ``self.engine.ticks_when``.
+
+        """
         return StatusAlias(
             entity=self,
             stat=stat
