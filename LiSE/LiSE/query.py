@@ -23,7 +23,7 @@ string_defaults = {
 }
 
 
-def windows_union(windows) -> list:
+def windows_union(windows):
     def fix_overlap(left, right):
         if left == right:
             return [left]
@@ -62,7 +62,7 @@ def windows_union(windows) -> list:
     return res
 
 
-def windows_intersection(windows) -> list:
+def windows_intersection(windows):
     """
 
     :rtype: list
@@ -279,7 +279,7 @@ class StatusAlias(EntityStatAccessor):
         return LeQuery(self.engine, self, other)
 
 
-def intersect_qry(qry: Query):
+def intersect_qry(qry):
     windows = []
     windowses = 0
     if hasattr(qry.leftside, 'windows'):
@@ -342,7 +342,7 @@ class QueryResults(object):
         return hasattr(self, 'next')
 
 
-def iter_eval_cmp(qry: EqQuery, oper, engine=None):
+def iter_eval_cmp(qry, oper, engine=None):
     def mungeside(side):
         if isinstance(side, Query):
             return side()
