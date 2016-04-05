@@ -141,7 +141,6 @@ class Query(object):
             me.leftside = leftside
             me.rightside = rightside
         me.engine = engine
-        me.branches = kwargs.get('branches', None) or [kwargs.get('branch', 'master')]
         me.windows = kwargs.get('windows', [])
         return me
 
@@ -173,7 +172,7 @@ class Query(object):
             )
         else:
             new_windows = [(0, end)]
-        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, windows=new_windows)
     before = and_before
 
     def or_before(self, end):
@@ -181,14 +180,14 @@ class Query(object):
             new_windows = windows_union(self.windows + [(None, end)])
         else:
             new_windows = [(None, end)]
-        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, windows=new_windows)
 
     def and_after(self, start):
         if self.windows:
             new_windows = windows_intersection(self.windows + [(start, None)])
         else:
             new_windows = [(start, None)]
-        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, windows=new_windows)
     after = and_after
 
     def or_between(self, start, end):
@@ -196,14 +195,14 @@ class Query(object):
             new_windows = windows_union(self.windows + [(start, end)])
         else:
             new_windows = [(start, end)]
-        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, windows=new_windows)
 
     def and_between(self, start, end):
         if self.windows:
             new_windows = windows_intersection(self.windows + [(start, end)])
         else:
             new_windows = [(start, end)]
-        return type(self)(self.leftside, self.rightside, branches=self.branches, windows=new_windows)
+        return type(self)(self.leftside, self.rightside, windows=new_windows)
     between = and_between
 
     def or_during(self, tick):
@@ -222,7 +221,7 @@ class ComparisonQuery(Query):
     oper = lambda x, y: NotImplemented
 
     def __call__(self):
-        return QueryResults(iter_eval_cmp(self, self.oper, self.engine))
+        return QueryResults(iter_eval_cmp(self, self.oper, engine=self.engine))
 
 
 class EqQuery(ComparisonQuery):
@@ -342,7 +341,7 @@ class QueryResults(object):
         return hasattr(self, 'next')
 
 
-def iter_eval_cmp(qry, oper, engine=None):
+def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
     def mungeside(side):
         if isinstance(side, Query):
             return side()
@@ -368,18 +367,9 @@ def iter_eval_cmp(qry, oper, engine=None):
 
     leftside = mungeside(qry.leftside)
     rightside = mungeside(qry.rightside)
-    branches = qry.branches
     windows = qry.windows or [(0, None)]
-    if not branches:
-        if leftside.engine:
-            branches = [leftside.engine.branch]
-            engine = engine or leftside.engine
-        elif rightside.engine:
-            branches = [rightside.engine.branch]
-            engine = engine or rightside.engine
-        else:
-            branches = ['master']
-    for branch in branches:
+    engine = engine or leftside.engine or rightside.engine
+    for (branch, _) in engine._active_branches(start_branch):
         try:
             lkeys = frozenset(getcache(leftside)[branch].keys())
         except AttributeError:
@@ -408,12 +398,13 @@ class QueryEngine(gorm.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
-    def comparison(self, entity0, stat0, entity1, stat1=None, oper='eq', branches=None, windows=[]):
+    def comparison(self, entity0, stat0, entity1, stat1=None, oper='eq', windows=[]):
         engine = entity0.engine
         stat1 = stat1 or stat0
-        branches = branches or [engine.branch]
         return comparisons[oper](
-            leftside=entity0.status(stat0), rightside=entity1.status(stat1), branches=branches, windows=windows
+            leftside=entity0.status(stat0),
+            rightside=entity1.status(stat1),
+            windows=windows
         )
 
     def count_all_table(self, tbl):
