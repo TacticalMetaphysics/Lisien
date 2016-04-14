@@ -8,7 +8,7 @@ thing. This module is for what they have in common.
 """
 from collections import Mapping
 
-from networkx import has_path, shortest_path, shortest_path_length
+from networkx import shortest_path, shortest_path_length
 
 import gorm.graph
 from gorm.reify import reify
@@ -253,19 +253,23 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
         """
         return shortest_path(
-            self.character, self.name, self._sane_dest_name(dest)
+            self.character, self.name, self._sane_dest_name(dest), weight
         )
 
-    def path_exists(self, dest):
+    def path_exists(self, dest, weight=None):
         """Return whether there is a path leading from me to ``dest``.
+
+        With ``weight``, only consider edges that have a stat by the
+        given name.
 
         Raise ``ValueError`` if ``dest`` is not a node in my character
         or the name of one.
 
         """
-        return has_path(
-            self.character, self.name, self._sane_dest_name(dest)
-        )
+        try:
+            return bool(self.shortest_path_length(dest, weight))
+        except KeyError:
+            return False
 
     def contents(self):
         """Iterate over :class:`Thing` objects located in me"""
