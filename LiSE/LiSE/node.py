@@ -8,6 +8,8 @@ thing. This module is for what they have in common.
 """
 from collections import Mapping
 
+from networkx import has_path, shortest_path, shortest_path_length
+
 import gorm.graph
 from gorm.reify import reify
 
@@ -218,6 +220,52 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         """Iterate over nodes with edges leading here from there."""
         for orign in self._portal_origs():
             yield self.character.node[orign]
+
+    def _sane_dest_name(self, dest):
+        if isinstance(dest, Node):
+            if dest.character != self.character:
+                raise ValueError(
+                    "{} not in {}".format(dest.name, self.character.name)
+                )
+            return dest.name
+        else:
+            if dest in self.character.node:
+                return dest
+            raise ValueError("{} not in {}".format(dest, self.character.name))
+
+    def shortest_path_length(self, dest):
+        """Return the length of the path from me to ``dest``.
+
+        Raise ``ValueError`` if ``dest`` is not a node in my character
+        or the name of one.
+
+        """
+
+        return shortest_path_length(
+            self.character, self.name, self._sane_dest_name(dest)
+        )
+
+    def shortest_path(self, dest):
+        """Return a list of node names leading from me to ``dest``.
+
+        Raise ``ValueError`` if ``dest`` is not a node in my character
+        or the name of one.
+
+        """
+        return shortest_path(
+            self.character, self.name, self._sane_dest_name(dest)
+        )
+
+    def path_exists(self, dest):
+        """Return whether there is a path leading from me to ``dest``.
+
+        Raise ``ValueError`` if ``dest`` is not a node in my character
+        or the name of one.
+
+        """
+        return has_path(
+            self.character, self.name, self._sane_dest_name(dest)
+        )
 
     def contents(self):
         """Iterate over :class:`Thing` objects located in me"""
