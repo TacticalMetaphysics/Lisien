@@ -233,7 +233,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
                 return dest
             raise ValueError("{} not in {}".format(dest, self.character.name))
 
-    def shortest_path_length(self, dest):
+    def shortest_path_length(self, dest, weight=None):
         """Return the length of the path from me to ``dest``.
 
         Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -242,10 +242,10 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         """
 
         return shortest_path_length(
-            self.character, self.name, self._sane_dest_name(dest)
+            self.character, self.name, self._sane_dest_name(dest), weight
         )
 
-    def shortest_path(self, dest):
+    def shortest_path(self, dest, weight=None):
         """Return a list of node names leading from me to ``dest``.
 
         Raise ``ValueError`` if ``dest`` is not a node in my character
