@@ -204,10 +204,20 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         for destn in self._portal_dests():
             yield self.character.portal[self.name][destn]
 
+    def successors(self):
+        """Iterate over nodes with edges leading from here to there."""
+        for destn in self._portal_dests():
+            yield self.character.node[destn]
+
     def preportals(self):
         """Iterate over :class:`Portal` objects that lead to me"""
         for orign in self._portal_origs():
             yield self.character.preportal[self.name][orign]
+
+    def predecessors(self):
+        """Iterate over nodes with edges leading here from there."""
+        for orign in self._portal_origs():
+            yield self.character.node[orign]
 
     def contents(self):
         """Iterate over :class:`Thing` objects located in me"""
