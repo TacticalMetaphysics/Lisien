@@ -45,12 +45,9 @@ class Board(RelativeLayout):
     board.
 
     """
+    engine = ObjectProperty()
+    character = ObjectProperty()
     screen = ObjectProperty()
-    app = AliasProperty(
-        lambda self: self.screen.app if self.screen else None,
-        lambda self, v: None,
-        bind=('screen',)
-    )
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
@@ -87,10 +84,10 @@ class Board(RelativeLayout):
             return
         self._parented = True
         self.kvlayoutback = KvLayoutBack(
-            character=self.app.character,
+            character=self.character,
             pos=(0, 0)
         )
-        self.app.bind(character=self.kvlayoutback.setter('character'))
+        self.bind(character=self.kvlayoutback.setter('character'))
         self.size = self.kvlayoutback.size
         self.kvlayoutback.bind(size=self.setter('size'))
         self.arrowlayout = FloatLayout(**self.widkwargs)
@@ -101,21 +98,19 @@ class Board(RelativeLayout):
             if wid != self.kvlayoutback:
                 self.bind(size=wid.setter('size'))
             self.add_widget(wid)
-        self.app.bind(character=self.handle_character)
         self.parent.effect_x.bind(velocity=self.track_vel)
         self.parent.effect_y.bind(velocity=self.track_vel)
         self.trigger_update()
 
-    @trigger
-    def handle_character(self, *args):
-        if self.screen.app.character is None:
-            self.handle_character()
+    def on_character(self, *args):
+        if self.character is None:
+            return
+        if self.parent is None:
+            Clock.schedule_once(self.on_character, 0)
             return
 
-        character = self.screen.app.character
-
-        self.parent.scroll_x = character.stat.get('_scroll_x', 0.0)
-        self.parent.scroll_y = character.stat.get('_scroll_y', 0.0)
+        self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
+        self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
 
     @trigger
     def kv_updated(self, *args):
@@ -206,8 +201,8 @@ class Board(RelativeLayout):
         """Wait for the scroll to stop, then store where it ended."""
         if self.parent.effect_x.velocity \
            == self.parent.effect_y.velocity == 0:
-            self.app.character.stat['_scroll_x'] = self.parent.scroll_x
-            self.app.character.stat['_scroll_y'] = self.parent.scroll_y
+            self.character.stat['_scroll_x'] = self.parent.scroll_x
+            self.character.stat['_scroll_y'] = self.parent.scroll_y
             self.tracking_vel = False
             return
         Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
@@ -340,11 +335,11 @@ class Board(RelativeLayout):
     def remove_absent_pawns(self, *args):
         Logger.debug(
             "Board: removing pawns absent from {}".format(
-                self.app.character.name
+                self.character.name
             )
         )
         for pawn_name in list(self.pawn.keys()):
-            if pawn_name not in self.app.character.thing:
+            if pawn_name not in self.character.thing:
                 self.rm_pawn(pawn_name)
 
     def discard_spot(self, placen, *args):
@@ -357,11 +352,11 @@ class Board(RelativeLayout):
     def remove_absent_spots(self, *args):
         Logger.debug(
             "Board: removing spots absent from {}".format(
-                self.app.character.name
+                self.character.name
             )
         )
         for spot_name in list(self.spot.keys()):
-            if spot_name not in self.app.character.place:
+            if spot_name not in self.character.place:
                 self.rm_spot(spot_name)
 
     def discard_arrow(self, orign, destn, *args):
@@ -377,25 +372,25 @@ class Board(RelativeLayout):
     def remove_absent_arrows(self, *args):
         Logger.debug(
             "Board: removing arrows absent from {}".format(
-                self.app.character.name
+                self.character.name
             )
         )
         for arrow_origin in list(self.arrow.keys()):
             for arrow_destination in list(self.arrow[arrow_origin].keys()):
                 if (
-                        arrow_origin not in self.app.character.portal or
+                        arrow_origin not in self.character.portal or
                         arrow_destination not in
-                        self.app.character.portal[arrow_origin]
+                        self.character.portal[arrow_origin]
                 ):
                     self.rm_arrow(arrow_origin, arrow_destination)
 
     def add_spot(self, placen, *args):
         if (
-            placen in self.app.character.place and
+            placen in self.character.place and
             placen not in self.spot
         ):
             self.spotlayout.add_widget(
-                self.make_spot(self.app.character.place[placen])
+                self.make_spot(self.character.place[placen])
             )
 
     def _trigger_add_spot(self, placen):
@@ -404,14 +399,14 @@ class Board(RelativeLayout):
     def add_new_spots(self, *args):
         Logger.debug(
             "Board: adding new spots to {}".format(
-                self.app.character.name
+                self.character.name
             )
         )
         spots_added = []
         nodes_patch = {}
-        for place_name in self.app.character.place:
+        for place_name in self.character.place:
             if place_name not in self.spot:
-                place = self.app.character.place[place_name]
+                place = self.character.place[place_name]
                 spot = self.make_spot(place)
                 patch = {}
                 if '_image_paths' in place:
@@ -428,8 +423,8 @@ class Board(RelativeLayout):
                 nodes_patch[place_name] = patch
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
-        self.app.engine.handle(
-            'update_nodes', (self.app.character.name, nodes_patch)
+        self.engine.handle(
+            'update_nodes', (self.character.name, nodes_patch)
         )
         for spot in spots_added:
             spot.finalize()
@@ -442,7 +437,7 @@ class Board(RelativeLayout):
         ):
             self.arrowlayout.add_widget(
                 self.make_arrow(
-                    self.app.character.portal[orign][destn]
+                    self.character.portal[orign][destn]
                 )
             )
 
@@ -452,27 +447,27 @@ class Board(RelativeLayout):
     def add_new_arrows(self, *args):
         Logger.debug(
             "Board: adding new arrows to {}".format(
-                self.app.character.name
+                self.character.name
             )
         )
-        for arrow_orig in self.app.character.portal:
-            for arrow_dest in self.app.character.portal[arrow_orig]:
+        for arrow_orig in self.character.portal:
+            for arrow_dest in self.character.portal[arrow_orig]:
                 if (
                         arrow_orig not in self.arrow or
                         arrow_dest not in self.arrow[arrow_orig]
                 ):
                     self.arrowlayout.add_widget(
                         self.make_arrow(
-                            self.app.character.portal[arrow_orig][arrow_dest]
+                            self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
 
     def add_pawn(self, thingn, *args):
         if (
-            thingn in self.app.character.thing and
+            thingn in self.character.thing and
             thingn not in self.pawn
         ):
-            pwn = self.make_pawn(self.app.character.thing[thingn])
+            pwn = self.make_pawn(self.character.thing[thingn])
             locn = pwn.thing['location']
             nextlocn = pwn.thing['next_location']
             if nextlocn is None:
@@ -492,14 +487,14 @@ class Board(RelativeLayout):
     def add_new_pawns(self, *args):
         Logger.debug(
             "Board: adding new pawns to {}".format(
-                self.app.character.name
+                self.character.name
             )
         )
         nodes_patch = {}
         pawns_added = []
-        for thing_name in self.app.character.thing:
+        for thing_name in self.character.thing:
             if thing_name not in self.pawn:
-                thing = self.app.character.thing[thing_name]
+                thing = self.character.thing[thing_name]
                 pwn = self.make_pawn(thing)
                 pawns_added.append(pwn)
                 patch = {}
@@ -525,8 +520,8 @@ class Board(RelativeLayout):
                     whereat = self.spot[pwn.thing['location']]
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
-        self.app.engine.handle(
-            'update_nodes', (self.app.character.name, nodes_patch)
+        self.engine.handle(
+            'update_nodes', (self.character.name, nodes_patch)
         )
         for pwn in pawns_added:
             pwn.finalize()
@@ -627,7 +622,7 @@ class Board(RelativeLayout):
             if not (spot.name and spot.remote):
                 Clock.schedule_once(self.nx_layout, 0)
                 return
-        spots_only = self.app.character.facade()
+        spots_only = self.character.facade()
         for thing in list(spots_only.thing.keys()):
             del spots_only.thing[thing]
         l = self.graph_layout(spots_only)
@@ -648,8 +643,8 @@ class Board(RelativeLayout):
                 int(x * self.width),
                 int(y * self.height)
             )
-        self.app.engine.handle(
-            'update_nodes', (self.app.character.name, node_upd)
+        self.engine.handle(
+            'update_nodes', (self.character.name, node_upd)
         )
         self.new_spots = self.spots_unposd = []
 

@@ -190,7 +190,6 @@ Builder.load_string("""
         TextInput:
             id: newfuncname
             size_hint_x: 0.2
-            hint_text: 'New function name'
         BoxLayout:
             size_hint_x: 0.4
             Widget:

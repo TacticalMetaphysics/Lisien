@@ -341,11 +341,22 @@ class LiSETest(TestCase):
             other_student = self.engine.character[
                 'dorm{}room{}student{}'.format(dorm, room, other_student)
             ]
-            self.assertEqual(
-                student.avatar.historical('location'),
-                other_student.avatar.historical('location'),
-                "Roommates don't seem to share a room: {}, {}".format(
-                    student, other_student
+            
+            same_loc_ticks = list(self.engine.ticks_when(
+                student.avatar.historical('location')
+                == other_student.avatar.historical('location')
+            ))
+            self.assertTrue(
+                same_loc_ticks,
+                "{} and {} don't seem to share a room".format(
+                    student.name, other_student.name
+                )
+            )
+            self.assertGreaterThan(
+                len(same_loc_ticks),
+                6,
+                "{} and {} share their room for less than 6 ticks".format(
+                    student.name, other_student.name
                 )
             )
             done.add(student.name)

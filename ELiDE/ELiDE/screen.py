@@ -47,6 +47,8 @@ class BoardView(ScrollView):
 
     """
     screen = ObjectProperty()
+    engine = ObjectProperty()
+    character = ObjectProperty()
     board = ObjectProperty()
 
 
@@ -573,6 +575,8 @@ Builder.load_string(
     Board:
         id: board
         screen: root.screen
+        engine: root.engine
+        character: root.character
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
@@ -635,6 +639,8 @@ Builder.load_string(
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.height
         screen: root
+        engine: root.app.engine
+        character: root.app.character
     StatListPanel:
         id: statpanel
         app: root.app
