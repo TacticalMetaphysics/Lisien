@@ -1,0 +1,75 @@
+User stories for LiSE and ELiDE.
+
+* My workflow for Dungeon University
+
+** Minimal playable prototype
+
+*** Player UI
+    I'll be content to write it in Kv, presumably subclassing the
+    ELiDE widgets
+
+*** Simple static world
+    I'll just draw this
+
+*** Teacher
+
+*** NPC students
+
+** One mechanic at a time
+
+*** Add some rules
+
+*** Test them myself
+    I want a way to easily toggle rules without having to hunt down
+    the thing that has them.
+
+*** Get other people to test
+    I'll need to write instructions for them. T'would be convenient to have
+    those visible on the game UI.
+
+    Also this means I really need to be able to export the game.
+
+** And then, prototype the world generator
+   I think the GUI for worldgen should be a lot like the one for
+   assembling rules. They should both have some way of specifying
+   extra variables.
+
+   If you have a world generation chain set up, and you click Restart,
+   what happens? A new world or a copy of tick 0?
+
+* Talented beginner
+
+** Open ELiDE
+
+** Draw a map of the sim
+   Let's say they're a kid and they want to simulate recess on a
+   playground with swings, a jungle gym, and one of those
+   vertical labyrinthine structures.
+
+   The swings are things in a single place. The jungle gym is a matrix
+   of places. The labyrinth has a few routes through it, some of which
+   have slides that you can only go down.
+
+** Apply some rules
+   Kids get dropped off and picked up by their parents.
+
+   Some prefer to stay in one play structure, others wander.
+
+   5 or more kids together in the same place might start a game. Let's
+   start with just Tag.
+
+   Am I assuming the kid knows Python? Maybe, but only the parts you
+   can learn one click from Google.
+
+** Run it a few times with different seeds
+   I think there should be a Restart button that delivers you to tick
+   0 of a new branch, with the map copied in from tick 0 in your
+   current branch, and a newly randomized seed
+
+** Apply some rules, repeat
+   Maybe add Hide-and-Seek?
+
+** Send it to a friend, validate the sim
+   Export feature! Even if you haven't made a game interface yet
+
+** Turn it into a game
