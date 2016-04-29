@@ -60,11 +60,30 @@ class UserMapping(Mapping):
         return len(self.node._user_names())
 
     def __getitem__(self, k):
+        if len(self) == 1:
+            me = self.engine.character[next(self.node._user_names())]
+            if k in me:
+                return me[k]
         if k not in self.node._user_names():
             raise KeyError("{} not used by {}".format(
                 self.node.name, k
             ))
         return self.engine.character[k]
+
+    def __setitem__(self, k, v):
+        if len(self) != 1:
+            raise KeyError(
+                "More than one user. "
+                "Look up the one you want to set a stat on."
+            )
+        me = self.engine.character[next(self.node._user_names())]
+        me[k] = v
+
+    def __getattr__(self, attr):
+        if len(self) == 1:
+            me = self.engine.character[next(self.node._user_names())]
+            if hasattr(me, attr):
+                return getattr(me, attr)
 
 
 class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
