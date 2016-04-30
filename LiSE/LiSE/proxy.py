@@ -10,7 +10,7 @@ from collections import (
     MutableSequence
 )
 from threading import Thread
-from multiprocessing import Process, Pipe, Queue
+from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
 
 from .engine import AbstractEngine
@@ -1720,8 +1720,17 @@ def subprocess(
         handle_in_pipe.send(engine_handle._real.json_dump(r))
 
 
+class RedundantProcessError(ProcessError):
+    """Raised when EngineProcessManager is asked to start a process that
+    has already started.
+
+    """
+
+
 class EngineProcessManager(object):
     def start(self, *args, **kwargs):
+        if hasattr(self, 'engine_proxy'):
+            raise RedundantProcessError("Already started")
         (handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
         (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
         self.logq = Queue()
