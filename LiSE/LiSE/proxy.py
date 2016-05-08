@@ -1159,10 +1159,13 @@ class CharacterProxy(MutableMapping):
 class CharacterMapProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = {}
+        self._cache = {
+            charn: CharacterProxy(self.engine, charn)
+            for charn in self.engine.handle('characters')
+        }
 
     def __iter__(self):
-        yield from self.engine.handle('characters')
+        return iter(self.engine.handle('characters'))
 
     def __contains__(self, k):
         if k in self._cache:
@@ -1172,7 +1175,7 @@ class CharacterMapProxy(MutableMapping):
         )
 
     def __len__(self):
-        return self.engine.handle('characters_len')
+        return len(self._cache)
 
     def __getitem__(self, k):
         if k not in self:
