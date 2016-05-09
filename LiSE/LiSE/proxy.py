@@ -1595,7 +1595,7 @@ class EngineProxy(AbstractEngine):
                     try:
                         node = self.character[char].node[node]
                     except KeyError:
-                        if self.engine.handle('character_has_thing', (char, node)):
+                        if self.handle('character_has_thing', (char, node)):
                             node = ThingProxy(self, char, node)
                         else:
                             node = PlaceProxy(self, char, node)
