@@ -4,6 +4,7 @@ from kivy.properties import (
     AliasProperty,
     ObjectProperty
 )
+from kivy.resources import resource_find
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -30,12 +31,20 @@ class Screens(Widget):
 class GameApp(App):
     modules = []
     engine = ObjectProperty()
+
+    def _get_worlddb(self):
+        filen = self.name + 'World.db' if self.name else 'LiSEWorld.db'
+        return resource_find(filen) or filen
     worlddb = AliasProperty(
-        lambda self: self.name + 'World.db' if self.name else 'LiSEWorld.db',
+        _get_worlddb,
         lambda self, v: None
     )
+
+    def _get_codedb(self):
+        filen = self.name + 'Code.db' if self.name else 'LiSECode.db'
+        return resource_find(filen) or filen
     codedb = AliasProperty(
-        lambda self: self.name + 'Code.db' if self.name else 'LiSECode.db',
+        _get_codedb,
         lambda self, v: None
     )
     screens = ObjectProperty()
