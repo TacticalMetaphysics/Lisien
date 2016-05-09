@@ -1107,13 +1107,7 @@ class CharacterProxy(MutableMapping):
             'add_portal',
             (self.name, origin, destination, symmetrical, kwargs)
         )
-        if origin not in self.portal._cache:
-            self.portal._cache[origin] = SuccessorsProxy(
-                self.engine,
-                self.name,
-                origin
-            )
-        self.portal[origin]._cache[destination] = PortalProxy(
+        self.portal._cache[origin][destination] = PortalProxy(
             self.engine,
             self.name,
             origin,
