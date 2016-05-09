@@ -75,7 +75,7 @@ class GameApp(App):
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)
-        self.pull_screens()
+        self._pull_screens()
         return self.screen_manager
 
     @trigger
