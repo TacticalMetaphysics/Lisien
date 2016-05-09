@@ -76,6 +76,10 @@ class GameApp(App):
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)
         self._pull_screens()
+        if hasattr(self, 'inspector'):
+            from kivy.core.window import Window
+            from kivy.modules import inspector
+            inspector.create_inspector(Window, self.screen_manager)
         return self.screen_manager
 
     @trigger
