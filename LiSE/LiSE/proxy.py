@@ -615,7 +615,7 @@ class SuccessorsProxy(CachingProxy):
     def _set_item(self, nodeB, value):
         self.engine.handle(
             'set_portal',
-            (self._character, self._nodeA, nodeB, value),
+            (self._charname, self._nodeA, nodeB, value),
             silent=True
         )
 
