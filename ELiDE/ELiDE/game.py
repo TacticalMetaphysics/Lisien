@@ -10,6 +10,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
 from LiSE.engine import Engine
 import LiSE.proxy
+from .util import trigger
 
 
 class GameScreen(Screen):
@@ -73,11 +74,12 @@ class GameApp(App):
         self.engine = self.procman.start(self.worlddb, self.codedb)
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
-        self.screens.bind(children=self.pull_screens)
+        self.screens.bind(children=self._pull_screens)
         self.pull_screens()
         return self.screen_manager
 
-    def pull_screens(self, *args):
+    @trigger
+    def _pull_screens(self, *args):
         for screen in reversed(self.screens.children):
             print('pulling screen ' + screen.name)
             self.screens.remove_widget(screen)
