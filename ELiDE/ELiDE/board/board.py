@@ -3,13 +3,13 @@
 """The big widget that shows the graph of the selected Character."""
 from functools import partial
 from kivy.properties import (
-    AliasProperty,
     BooleanProperty,
     ReferenceListProperty,
     DictProperty,
     ObjectProperty,
     NumericProperty,
-    ListProperty
+    ListProperty,
+    StringProperty
 )
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -47,7 +47,6 @@ class Board(RelativeLayout):
     """
     engine = ObjectProperty()
     character = ObjectProperty()
-    screen = ObjectProperty()
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
@@ -67,6 +66,8 @@ class Board(RelativeLayout):
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
     tracking_vel = BooleanProperty(False)
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
 
     @property
     def widkwargs(self):
@@ -78,9 +79,6 @@ class Board(RelativeLayout):
 
     def on_parent(self, *args):
         if not self.parent or hasattr(self, '_parented'):
-            return
-        if not self.screen:
-            Clock.schedule_once(self.on_parent, 0)
             return
         self._parented = True
         self.kvlayoutback = KvLayoutBack(
@@ -109,8 +107,11 @@ class Board(RelativeLayout):
             Clock.schedule_once(self.on_character, 0)
             return
 
+        currently = tuple(self.engine.time)
+        self.engine.time = (self.branch, self.tick)
         self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
         self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
+        self.engine.time = currently
 
     @trigger
     def kv_updated(self, *args):
@@ -201,8 +202,11 @@ class Board(RelativeLayout):
         """Wait for the scroll to stop, then store where it ended."""
         if self.parent.effect_x.velocity \
            == self.parent.effect_y.velocity == 0:
+            currently = tuple(self.engine.time)
+            self.engine.time = (self.branch, self.tick)
             self.character.stat['_scroll_x'] = self.parent.scroll_x
             self.character.stat['_scroll_y'] = self.parent.scroll_y
+            self.engine.time = currently
             self.tracking_vel = False
             return
         Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
@@ -273,8 +277,6 @@ class Board(RelativeLayout):
         Clock.schedule_once(part, 0)
 
     def graph_layout(self, graph):
-        # TODO: a real layout algorithm
-        # TODO: integral grid, not this floating point stuff
         from networkx.drawing.layout import spring_layout
         layout = spring_layout(graph)
         minx = miny = maxx = maxy = minkx = maxkx = minky = maxky = None
@@ -538,6 +540,8 @@ class Board(RelativeLayout):
 
         # remove widgets that don't represent anything anymore
         Logger.debug("Board: updating")
+        currently = tuple(self.engine.time)
+        self.engine.time = (self.branch, self.tick)
         self.remove_absent_pawns()
         self.remove_absent_spots()
         self.remove_absent_arrows()
@@ -549,6 +553,7 @@ class Board(RelativeLayout):
             spot for spot in self.spot.values()
             if not ('_x' in spot.remote and '_y' in spot.remote)
         ]
+        self.engine.time = currently
 
     def update_from_diff(self, chardiff, *args):
         """Apply the changes described in the dict ``chardiff``."""
@@ -684,7 +689,5 @@ Builder.load_string(
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
-<Board>:
-    size_hint: (None, None)
 """
 )

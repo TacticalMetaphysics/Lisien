@@ -195,7 +195,7 @@ Builder.load_string("""
                 id: dummyplace
                 center: placetab.center
                 prefix: 'place'
-                on_pos_up: root.spot_from_dummy(self)
+                on_pos_up: root.screen.spot_from_dummy(self)
         Button:
             text: 'cfg'
             on_press: root.toggle_spot_cfg()

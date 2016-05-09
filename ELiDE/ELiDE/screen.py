@@ -50,6 +50,8 @@ class BoardView(ScrollView):
     engine = ObjectProperty()
     character = ObjectProperty()
     board = ObjectProperty()
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
 
 
 class StatListPanel(BoxLayout):
@@ -263,7 +265,6 @@ class MainScreen(Screen):
                     size=(0, 0)
                 )
                 self.board.add_widget(self.protodest)
-                self.app.selection = self.protodest
                 # why do I need this next?
                 self.protodest.on_touch_down(touch)
                 self.protoportal = ArrowWidget(
@@ -573,8 +574,10 @@ Builder.load_string(
     effect_cls: StiffScrollEffect
     board: board
     Board:
+        size_hint: None, None
         id: board
-        screen: root.screen
+        branch: root.branch
+        tick: root.tick
         engine: root.engine
         character: root.character
 <StatListPanel>:
@@ -641,6 +644,8 @@ Builder.load_string(
         screen: root
         engine: root.app.engine
         character: root.app.character
+        branch: root.app.branch
+        tick: root.app.tick
     StatListPanel:
         id: statpanel
         app: root.app
