@@ -327,7 +327,7 @@ class PortalProxy(CachingEntityProxy):
     def _get_rulebook_name(self):
         return self.engine.handle(
             'get_portal_rulebook',
-            (self._charname, self._nodeA, self._nodeB)
+            (self._charname, self._origin, self._destination)
         )
 
     def _get_rulebook(self):
@@ -336,32 +336,44 @@ class PortalProxy(CachingEntityProxy):
     @property
     def _cache(self):
         return self.engine._portal_stat_cache[self._charname][
-            self._nodeA][self._nodeB]
+            self._origin][self._destination]
+
+    @property
+    def character(self):
+        return self.engine.character[self._charname]
+
+    @property
+    def origin(self):
+        return self.character.node[self._origin]
+
+    @property
+    def destination(self):
+        return self.character.node[self._destination]
 
     def _get_diff(self):
         return self.engine.handle(
             'portal_stat_diff',
-            (self._charname, self._nodeA, self._nodeB)
+            (self._charname, self._origin, self._destination)
         )
 
     def _set_item(self, k, v):
         self.engine.handle(
             'set_portal_stat',
-            (self._charname, self._nodeA, self._nodeB, k, v),
+            (self._charname, self._origin, self._destination, k, v),
             silent=True
         )
 
     def _del_item(self, k):
         self.engine_handle(
             'del_portal_stat',
-            (self._charname, self._nodeA, self._nodeB, k),
+            (self._charname, self._origin, self._destination, k),
             silent=True
         )
 
     def __init__(self, engine_proxy, charname, nodeAname, nodeBname):
         self._charname = charname
-        self._nodeA = nodeAname
-        self._nodeB = nodeBname
+        self._origin = nodeAname
+        self._destination = nodeBname
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
@@ -381,15 +393,15 @@ class PortalProxy(CachingEntityProxy):
     def __repr__(self):
         return "proxy to {}.portal[{}][{}]".format(
             self._charname,
-            self._nodeA,
-            self._nodeB
+            self._origin,
+            self._destination
         )
 
     def __getitem__(self, k):
         if k == 'origin':
-            return self._nodeA
+            return self._origin
         elif k == 'destination':
-            return self._nodeB
+            return self._destination
         elif k == 'character':
             return self._charname
         return super().__getitem__(k)
@@ -397,8 +409,8 @@ class PortalProxy(CachingEntityProxy):
     def delete(self):
         self.engine.del_portal(
             self._charname,
-            self._nodeA,
-            self._nodeB
+            self._origin,
+            self._destination
         )
 
 
@@ -589,6 +601,10 @@ class SuccessorsProxy(CachingProxy):
         )
 
     def _cache_munge(self, k, v):
+        if isinstance(v, PortalProxy):
+            assert v._origin == self._nodeA
+            assert v._destination == k
+            return v
         return PortalProxy(
             self.engine,
             self._charname,

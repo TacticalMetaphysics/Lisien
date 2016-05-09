@@ -117,7 +117,7 @@ class AbstractEngine(object):
         elif isinstance(obj, self.node_cls):
             return ['node', obj.character.name, obj.name]
         elif isinstance(obj, self.portal_cls):
-            return ['portal', obj.character.name, obj.nodeA.name, obj.nodeB.name]
+            return ['portal', obj.character.name, obj._origin, obj._destination]
         else:
             return obj
 
