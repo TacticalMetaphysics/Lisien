@@ -591,7 +591,10 @@ Builder.load_string(
     StatListView:
         id: stat_list
         size_hint_y: 0.95
-        app: root.app
+        engine: root.app.engine if root.app else None
+        branch: root.app.branch if root.app else 'master'
+        tick: root.app.tick if root.app else 0
+        remote: root.app.selected_remote if root.app else None
     Button:
         id: cfgstatbut
         size_hint_y: 0.05

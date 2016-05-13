@@ -114,7 +114,6 @@ class ControlTypePicker(ListItemButton):
 
 
 class StatListViewConfigurator(StatListView):
-    app = ObjectProperty()
     stat_list = ObjectProperty()
 
     def set_config(self, key, option, value):
@@ -127,7 +126,7 @@ class StatListViewConfigurator(StatListView):
 
     def del_key(self, key):
         if key in self.mirror:
-            del self.app.selected_remote[key]
+            del self.remote[key]
 
     def get_adapter(self):
         return DictAdapter(
@@ -284,9 +283,13 @@ class StatListViewConfigurator(StatListView):
 
 
 class StatScreen(Screen):
-    app = ObjectProperty()
     stat_list = ObjectProperty()
     toggle = ObjectProperty()
+    engine = ObjectProperty()
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    time = ReferenceListProperty(branch, tick)
+    remote = ObjectProperty()
 
     def new_stat(self):
         """Look at the key and value that the user has entered into the stat
@@ -301,9 +304,9 @@ class StatScreen(Screen):
             # you need to enter things
             return
         try:
-            self.app.selected_remote[key] = self.app.engine.json_load(value)
+            self.remote[key] = self.engine.json_load(value)
         except (TypeError, ValueError):
-            self.app.selected_remote[key] = value
+            self.remote[key] = value
         self.ids.newstatkey.text = ''
         self.ids.newstatval.text = ''
 
@@ -317,7 +320,10 @@ Builder.load_string("""
         orientation: 'vertical'
         StatListViewConfigurator:
             id: cfg
-            app: root.app
+            engine: root.engine
+            remote: root.remote
+            branch: root.branch
+            tick: root.tick
             stat_list: root.stat_list
             size_hint_y: 0.95
         BoxLayout:

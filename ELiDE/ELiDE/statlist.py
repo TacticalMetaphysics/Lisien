@@ -8,7 +8,10 @@ from functools import partial
 from kivy.properties import (
     BooleanProperty,
     DictProperty,
-    ObjectProperty
+    NumericProperty,
+    ObjectProperty,
+    ReferenceListProperty,
+    StringProperty,
 )
 from kivy.logger import Logger
 from kivy.clock import Clock
@@ -148,39 +151,43 @@ default_cfg = {
 
 
 class StatListView(ListView):
-    app = ObjectProperty()
     control = DictProperty({})
     config = DictProperty({})
     mirror = DictProperty({})
+    remote = ObjectProperty()
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    time = ReferenceListProperty(branch, tick)
+    engine = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
         self._listeners = {}
         super().__init__(**kwargs)
 
-    @trigger
-    def pull_remote(self, *args):
-        if self.app.selected_remote is not None:
-            self.mirror = dict(self.app.selected_remote)
-
-    def on_app(self, *args):
-        self.app.bind(
-            selected_remote=self.pull_remote,
-            time=self._trigger_upd_data
-        )
-        self.pull_remote()
+    def on_remote(self, *args):
+        if self.remote is not None:
+            self.mirror = dict(self.remote)
 
     def set_value(self, k, v):
+        if self.engine is None or self.remote is None:
+            self._trigger_set_value(k, v)
+            return
         if v is None:
-            del self.app.selected_remote[k]
+            del self.remote[k]
             del self.mirror[k]
         else:
             try:
-                vv = self.app.engine.json_load(v)
+                vv = self.engine.json_load(v)
             except (TypeError, ValueError):
                 vv = v
-            self.app.selected_remote[k] = vv
+            self.remote[k] = vv
             self.mirror[k] = vv
+
+    def _trigger_set_value(self, k, v, *args):
+        todo = partial(self.set_value, k, v)
+        Clock.unschedule(todo)
+        Clock.schedule_once(todo, 0)
 
     def on_time(self, *args):
         super().on_time(*args)
@@ -196,13 +203,13 @@ class StatListView(ListView):
         if key not in self.config:
             cfgd = dict(self.config)
             cfgd[key] = default_cfg
-            self.app.selected_remote['_config'] = cfgd
+            self.remote['_config'] = cfgd
         else:
             cfgd = dict(self.config)
             for option in default_cfg:
                 if option not in cfgd[key]:
                     cfgd[key][option] = default_cfg[option]
-            self.app.selected_remote['_config'] = cfgd
+            self.remote['_config'] = cfgd
 
     def get_adapter(self):
         return DictAdapter(
@@ -213,7 +220,7 @@ class StatListView(ListView):
                 'value': kv[1],
                 'reg': self._reg_widget,
                 'unreg': self._unreg_widget,
-                'setter': self.set_value,
+                'setter': self._trigger_set_value,
                 'cls_dicts': self.get_cls_dicts(*kv)
             },
             selection_mode='multiple',
@@ -226,23 +233,23 @@ class StatListView(ListView):
         else:
             ctrld = dict(self.control)
             ctrld[key] = control
-        self.app.selected_remote['_control'] = self.control = ctrld
+        self.remote['_control'] = self.control = ctrld
         self.canvas.after.clear()
         self._trigger_sync()
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
-            self.app.selected_remote['_config'] \
+            self.remote['_config'] \
                 = self.config \
                 = {key: {option: value}}
         elif key in self.config:
             newcfg = dict(self.config)
             newcfg[key][option] = value
-            self.app.selected_remote['_config'] = self.config = newcfg
+            self.remote['_config'] = self.config = newcfg
         else:
             newcfg = dict(default_cfg)
             newcfg[option] = value
-            self.app.selected_remote['_config'][key] = self.config = newcfg
+            self.remote['_config'][key] = self.config = newcfg
         self._trigger_sync()
 
     def get_cls_dicts(self, key, value):

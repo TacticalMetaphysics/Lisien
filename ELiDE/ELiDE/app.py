@@ -244,10 +244,16 @@ class ELiDEApp(App):
         )
 
         self.statcfg = ELiDE.statcfg.StatScreen(
-            app=self,
-            toggle=toggler('statcfg')
+            toggle=toggler('statcfg'),
+            branch=self.branch,
+            tick=self.tick,
+            engine=self.engine
         )
-        self.bind(time=self.statcfg.setter('time'))
+        self.bind(
+            selected_remote=self.statcfg.setter('remote'),
+            branch=self.statcfg.setter('branch'),
+            tick=self.statcfg.setter('tick')
+        )
 
         self.mainscreen = ELiDE.screen.MainScreen(
             app=self,
