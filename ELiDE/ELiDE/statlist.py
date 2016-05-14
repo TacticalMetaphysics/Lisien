@@ -37,14 +37,15 @@ class StatRowTextInput(TextInput, SelectableView):
 
         def lost_focus(self, *args):
             if not self.focus:
-                self._trigger_upd_value()
+                self.upd_value()
 
         self.bind(
-            on_enter=self._trigger_upd_value,
-            on_text_validate=self._trigger_upd_value,
+            on_enter=self._upd_value,
+            on_text_validate=self.upd_value,
             on_focus=lost_focus
         )
 
+    @trigger
     def upd_value(self, *args):
         if self.text == '':
             self.parent.value = None
@@ -52,11 +53,10 @@ class StatRowTextInput(TextInput, SelectableView):
             self.parent.value = self.text
         self.parent.set_value()
         self.text = ''
-    _trigger_upd_value = trigger(upd_value)
 
 
 class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
-    def upd_value(self, *args):
+    def on_touch_up(self, *args):
         if self.parent is None:
             return
         if (
@@ -70,10 +70,6 @@ class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
         else:
             self.parent.value = 1
         self.parent.set_value()
-    _trigger_upd_value = trigger(upd_value)
-
-    def on_touch_up(self, touch):
-        self._trigger_upd_value()
 
 
 class StatRowSlider(Slider, SelectableView):
@@ -87,15 +83,11 @@ class StatRowSlider(Slider, SelectableView):
     def on_value(self, *args):
         self.need_set = True
 
-    def maybe_set(self, *args):
+    def on_touch_up(self, *args):
         if self.need_set:
             self.parent.value = self.value
             self.parent.set_value()
             self.need_set = False
-    _trigger_maybe_set = trigger(maybe_set)
-
-    def on_touch_up(self, touch):
-        self._trigger_maybe_set()
 
 
 class StatRowListItem(CompositeListItem):
@@ -191,11 +183,11 @@ class StatListView(ListView):
 
     def on_time(self, *args):
         super().on_time(*args)
-        self._trigger_upd_data()
+        self.upd_data()
 
     def on_mirror(self, *args):
-        self._trigger_upd_data()
-        self._trigger_sortkeys()
+        self.upd_data()
+        self.sortkeys()
 
     def init_control_config(self, key):
         if key not in self.control:
@@ -235,7 +227,6 @@ class StatListView(ListView):
             ctrld[key] = control
         self.remote['_control'] = self.control = ctrld
         self.canvas.after.clear()
-        self._trigger_sync()
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
@@ -250,7 +241,6 @@ class StatListView(ListView):
             newcfg = dict(default_cfg)
             newcfg[option] = value
             self.remote['_config'][key] = self.config = newcfg
-        self._trigger_sync()
 
     def get_cls_dicts(self, key, value):
         control_type = self.control.get(key, 'readout')
@@ -286,10 +276,11 @@ class StatListView(ListView):
             )
         }
 
+    @trigger
     def refresh_adapter(self, *args):
         self.adapter = self.get_adapter()
-    _trigger_refresh_adapter = trigger(refresh_adapter)
 
+    @trigger
     def upd_data(self, *args):
         if (
                 '_control' in self.mirror
@@ -300,8 +291,8 @@ class StatListView(ListView):
         ):
             self.config = dict(self.mirror['_config'])
         self.adapter.data = self.get_data()
-    _trigger_upd_data = trigger(upd_data)
 
+    @trigger
     def sortkeys(self, *args):
         for key in self.mirror.keys():
             if key not in self.adapter.sorted_keys:
@@ -312,7 +303,6 @@ class StatListView(ListView):
             if k not in seen and k not in self.mirror:
                 self.adapter.sorted_keys.remove(k)
             seen.add(k)
-    _trigger_sortkeys = trigger(sortkeys)
 
     def _reg_widget(self, w, *args):
         if not self.mirror:
