@@ -281,6 +281,10 @@ class StatListView(ListView):
         self.adapter = self.get_adapter()
 
     @trigger
+    def refresh_mirror(self, *args):
+        self.mirror = dict(self.remote)
+        self.upd_data()
+
     def upd_data(self, *args):
         if (
                 '_control' in self.mirror
@@ -291,8 +295,8 @@ class StatListView(ListView):
         ):
             self.config = dict(self.mirror['_config'])
         self.adapter.data = self.get_data()
+    _trigger_upd_data = trigger(upd_data)
 
-    @trigger
     def sortkeys(self, *args):
         for key in self.mirror.keys():
             if key not in self.adapter.sorted_keys:
@@ -303,6 +307,7 @@ class StatListView(ListView):
             if k not in seen and k not in self.mirror:
                 self.adapter.sorted_keys.remove(k)
             seen.add(k)
+    _trigger_sortkeys = trigger(sortkeys)
 
     def _reg_widget(self, w, *args):
         if not self.mirror:
