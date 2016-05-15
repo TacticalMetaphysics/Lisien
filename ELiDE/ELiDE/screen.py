@@ -64,32 +64,29 @@ class StatListPanel(BoxLayout):
     in the StatListPanel.
 
     """
-    app = ObjectProperty()
     selection_name = StringProperty()
     button_text = StringProperty('cfg')
     cfgstatbut = ObjectProperty()
     stat_list = ObjectProperty()
+    engine = ObjectProperty()
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    remote = ObjectProperty()
+    toggle_stat_cfg = ObjectProperty()
 
-    def on_app(self, *args):
-        self.app.bind(selected_remote=self.pull_selection_name)
-        self.pull_selection_name()
-
-    def pull_selection_name(self, *args):
-        if hasattr(self.app.selected_remote, 'name'):
-            self.selection_name = str(self.app.selected_remote.name)
+    def on_remote(self, *args):
+        if hasattr(self.remote, 'name'):
+            self.selection_name = str(self.remote.name)
 
     def set_value(self, k, v):
         if v is None:
-            del self.app.selected_remote[k]
+            del self.remote[k]
         else:
             try:
-                vv = self.app.engine.json_load(v)
+                vv = self.engine.json_load(v)
             except (TypeError, ValueError):
                 vv = v
-            self.app.selected_remote[k] = vv
-
-    def toggle_stat_cfg(self, *args):
-        self.app.statcfg.toggle()
+            self.remote[k] = vv
 
 
 class TimePanel(BoxLayout):
@@ -591,10 +588,10 @@ Builder.load_string(
     StatListView:
         id: stat_list
         size_hint_y: 0.95
-        engine: root.app.engine if root.app else None
-        branch: root.app.branch if root.app else 'master'
-        tick: root.app.tick if root.app else 0
-        remote: root.app.selected_remote if root.app else None
+        engine: root.engine
+        branch: root.branch
+        tick: root.tick
+        remote: root.remote
     Button:
         id: cfgstatbut
         size_hint_y: 0.05
@@ -651,7 +648,11 @@ Builder.load_string(
         tick: root.app.tick
     StatListPanel:
         id: statpanel
-        app: root.app
+        engine: root.app.engine
+        branch: root.app.branch
+        tick: root.app.tick
+        remote: root.app.selected_remote
+        toggle_stat_cfg: root.app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
     TimePanel:

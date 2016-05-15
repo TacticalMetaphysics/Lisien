@@ -155,11 +155,14 @@ class StatListView(ListView):
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
         self._listeners = {}
+        self.bind(
+            branch=self.refresh_mirror,
+            tick=self.refresh_mirror,
+            remote=self.refresh_mirror,
+            control=self.refresh_adapter,
+            config=self.refresh_adapter
+        )
         super().__init__(**kwargs)
-
-    def on_remote(self, *args):
-        if self.remote is not None:
-            self.mirror = dict(self.remote)
 
     def set_value(self, k, v):
         if self.engine is None or self.remote is None:
@@ -173,21 +176,15 @@ class StatListView(ListView):
                 vv = self.engine.json_load(v)
             except (TypeError, ValueError):
                 vv = v
-            self.remote[k] = vv
-            self.mirror[k] = vv
+            self.remote[k] = self.mirror[k] = vv
 
     def _trigger_set_value(self, k, v, *args):
         todo = partial(self.set_value, k, v)
         Clock.unschedule(todo)
         Clock.schedule_once(todo, 0)
 
-    def on_time(self, *args):
-        super().on_time(*args)
-        self.upd_data()
-
     def on_mirror(self, *args):
         self.upd_data()
-        self.sortkeys()
 
     def init_control_config(self, key):
         if key not in self.control:
@@ -282,8 +279,12 @@ class StatListView(ListView):
 
     @trigger
     def refresh_mirror(self, *args):
-        self.mirror = dict(self.remote)
-        self.upd_data()
+        Logger.debug('{}: refreshing mirror'.format(type(self)))
+        if self.remote is None:
+            return
+        new = dict(self.remote)
+        if self.mirror != new:
+            self.mirror = new
 
     def upd_data(self, *args):
         if (
@@ -296,18 +297,6 @@ class StatListView(ListView):
             self.config = dict(self.mirror['_config'])
         self.adapter.data = self.get_data()
     _trigger_upd_data = trigger(upd_data)
-
-    def sortkeys(self, *args):
-        for key in self.mirror.keys():
-            if key not in self.adapter.sorted_keys:
-                self.adapter.sorted_keys = sorted(self.mirror.keys())
-                return
-        seen = set()
-        for k in self.adapter.sorted_keys:
-            if k not in seen and k not in self.mirror:
-                self.adapter.sorted_keys.remove(k)
-            seen.add(k)
-    _trigger_sortkeys = trigger(sortkeys)
 
     def _reg_widget(self, w, *args):
         if not self.mirror:
