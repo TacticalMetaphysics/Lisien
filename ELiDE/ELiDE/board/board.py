@@ -96,8 +96,10 @@ class Board(RelativeLayout):
             if wid != self.kvlayoutback:
                 self.bind(size=wid.setter('size'))
             self.add_widget(wid)
-        self.parent.effect_x.bind(velocity=self.track_vel)
-        self.parent.effect_y.bind(velocity=self.track_vel)
+        if hasattr(self.parent, 'effect_x'):
+            self.parent.effect_x.bind(velocity=self.track_vel)
+        if hasattr(self.parent, 'effect_y'):
+            self.parent.effect_y.bind(velocity=self.track_vel)
         self.trigger_update()
 
     def on_character(self, *args):
