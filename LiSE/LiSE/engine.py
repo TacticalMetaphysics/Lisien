@@ -25,7 +25,6 @@ from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import Query, QueryEngine
 from .util import getatt, EntityStatAccessor
-import re
 
 
 class DummyEntity(dict):
