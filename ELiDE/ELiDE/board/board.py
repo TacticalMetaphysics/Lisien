@@ -682,6 +682,7 @@ class Board(RelativeLayout):
 
 Builder.load_string(
     """
+#: import resource_find kivy.resources.resource_find
 <KvLayoutBack>:
     size: wallpaper.size
     size_hint: (None, None)
