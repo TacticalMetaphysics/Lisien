@@ -111,8 +111,10 @@ class Board(RelativeLayout):
 
         currently = tuple(self.engine.time)
         self.engine.time = (self.branch, self.tick)
-        self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
-        self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
+        if hasattr(self.parent, 'scroll_x'):
+            self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
+        if hasattr(self.parent, 'scroll_y'):
+            self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
         self.engine.time = currently
 
     @trigger
