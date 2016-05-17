@@ -7,6 +7,7 @@ flow of time.
 """
 from random import Random
 from collections import defaultdict
+from functools import partial
 from sqlite3 import connect
 from json import dumps, loads, JSONEncoder
 from numpy import sctypes
@@ -100,6 +101,10 @@ class AbstractEngine(object):
     @reify
     def json_load_hints(self):
         return {}
+
+    def __getattr__(self, att):
+        if hasattr(self, 'method') and att in self.method:
+            return partial(self.method[att], self)
 
     def _enc_tuple(self, obj):
         if isinstance(obj, list):
@@ -580,6 +585,8 @@ class Engine(AbstractEngine, gORM):
         else:
             self.rando.seed(self.random_seed)
             self.universal['rando_state'] = self.rando.getstate()
+        if '__init__' in self.method:
+            self.method['__init__'](self)
 
     betavariate = getatt('rando.betavariate')
     choice = getatt('rando.choice')
@@ -615,6 +622,10 @@ class Engine(AbstractEngine, gORM):
     @reify
     def function(self):
         return FunctionStore(self, self._code_qe, 'functions')
+
+    @reify
+    def method(self):
+        return FunctionStore(self, self._code_qe, 'methods')
 
     @property
     def stores(self):

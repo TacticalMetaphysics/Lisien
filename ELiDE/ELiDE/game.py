@@ -68,7 +68,7 @@ class GameApp(App):
                 for module in self.modules:
                     import_module(module).install(engine)
             if not have_world:
-                engine.function['__init__'](engine)
+                engine.method['game_start'](engine)
             engine.close()
         self.procman = LiSE.proxy.EngineProcessManager()
         self.engine = self.procman.start(self.worlddb, self.codedb)

@@ -46,7 +46,8 @@ functyps = (
     'actions',
     'prereqs',
     'triggers',
-    'functions'
+    'functions',
+    'methods'
 )
 """Names of the different function tables, which are otherwise
 identical.

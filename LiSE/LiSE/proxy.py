@@ -1467,6 +1467,10 @@ class EngineProxy(AbstractEngine):
         return FuncStoreProxy(self, 'function')
 
     @reify
+    def method(self):
+        return FuncStoreProxy(self, 'method')
+
+    @reify
     def _node_stat_cache(self):
         r = defaultdict(  # character
             lambda: defaultdict(  # node
