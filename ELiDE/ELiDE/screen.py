@@ -295,8 +295,9 @@ class MainScreen(Screen):
         touch.apply_transform_2d(self.ids.boardview.to_local)
         if self.app.selection in self.selection_candidates:
             self.selection_candidates.remove(self.app.selection)
-        if self.app.selection and not self.selection_candidates:
-            self.keep_selection = True
+        if self.app.selection:
+            if not self.selection_candidates:
+                self.keep_selection = True
             self.app.selection.dispatch('on_touch_move', touch)
         elif self.selection_candidates:
             for cand in self.selection_candidates:
