@@ -228,7 +228,7 @@ Builder.load_string("""
                 id: dummything
                 center: thingtab.center
                 prefix: 'thing'
-                on_pos_up: root.pawn_from_dummy(self)
+                on_pos_up: root.screen.pawn_from_dummy(self)
         Button:
             text: 'cfg'
             on_press: root.toggle_pawn_cfg()

@@ -75,7 +75,10 @@ class Pawn(PawnSpot):
         try:
             location = self.board.arrow[self.loc_name][self.next_loc_name]
         except KeyError:
-            location = self.board.spot[self.loc_name]
+            try:
+                location = self.board.spot[self.loc_name]
+            except KeyError:
+                return
         if location != self.parent:
             self.parent.remove_widget(self)
             location.add_widget(self)
