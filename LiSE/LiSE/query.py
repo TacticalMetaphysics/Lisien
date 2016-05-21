@@ -460,6 +460,11 @@ class QueryEngine(gorm.query.QueryEngine):
         return self.func_table_get_all(tbl, key)['plaincode']
 
     def func_table_get_all(self, tbl, key):
+        data = self.sql(
+            'func_{}_get'.format(tbl), key
+        ).fetchone()
+        if not data:
+            raise KeyError("No such function: " + key)
         (
             bytecode,
             base,
@@ -470,9 +475,7 @@ class QueryEngine(gorm.query.QueryEngine):
             description,
             plaincode,
             version
-        ) = self.sql(
-            'func_{}_get'.format(tbl), key
-        ).fetchone()
+        ) = data
         return {
             'bytecode': bytecode,
             'base': base,
