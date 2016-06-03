@@ -132,8 +132,8 @@ class CharMenu(BoxLayout):
         fact.
 
         """
-        self.screen.reciprocal_portal = not self.screen.reciprocal_portal
-        if self.screen.reciprocal_portal:
+        self.screen.board.reciprocal_portal = not self.screen.board.reciprocal_portal
+        if self.screen.board.reciprocal_portal:
             assert(self.revarrow is None)
             self.revarrow = ArrowWidget(
                 board=self.screen.board,
@@ -195,7 +195,7 @@ Builder.load_string("""
                 id: dummyplace
                 center: placetab.center
                 prefix: 'place'
-                on_pos_up: root.screen.spot_from_dummy(self)
+                on_pos_up: root.ids.boardview.spot_from_dummy(self)
         Button:
             text: 'cfg'
             on_press: root.toggle_spot_cfg()
@@ -219,7 +219,7 @@ Builder.load_string("""
                 destination: emptyright
         Button:
             id: portaldirbut
-            text: 'One-way' if root.screen and root.screen.reciprocal_portal else 'Two-way'
+            text: 'One-way' if root.screen and root.screen.ids.boardview.reciprocal_portal else 'Two-way'
             on_press: root.toggle_reciprocal()
     BoxLayout:
         Widget:
@@ -228,7 +228,7 @@ Builder.load_string("""
                 id: dummything
                 center: thingtab.center
                 prefix: 'thing'
-                on_pos_up: root.screen.pawn_from_dummy(self)
+                on_pos_up: root.ids.boardview.pawn_from_dummy(self)
         Button:
             text: 'cfg'
             on_press: root.toggle_pawn_cfg()

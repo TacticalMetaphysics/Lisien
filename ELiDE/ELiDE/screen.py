@@ -29,9 +29,7 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
-from .dummy import Dummy
 from .charmenu import CharMenu
-from .board.arrow import ArrowWidget
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -39,19 +37,6 @@ Factory.register('CharMenu', cls=CharMenu)
 
 class KvLayout(FloatLayout):
     pass
-
-
-class BoardView(ScrollView):
-    """A ScrollView that contains the Board for the character being
-    viewed.
-
-    """
-    screen = ObjectProperty()
-    engine = ObjectProperty()
-    character = ObjectProperty()
-    board = ObjectProperty()
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
 
 
 class StatListPanel(BoxLayout):
@@ -162,11 +147,6 @@ class MainScreen(Screen):
     dummies = ReferenceListProperty(dummyplace, dummything)
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
-    grabbing = BooleanProperty(True)
-    reciprocal_portal = BooleanProperty(False)
-    grabbed = ObjectProperty(None, allownone=True)
-    selection_candidates = ListProperty([])
-    keep_selection = BooleanProperty(False)
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
 
@@ -220,10 +200,6 @@ class MainScreen(Screen):
     _trigger_remake_display = trigger(remake_display)
 
     def on_touch_down(self, touch):
-        """Dispatch the touch to the board, then its :class:`ScrollView`, then
-        the dummies, then the menus.
-
-        """
         if self.visible:
             touch.grab(self)
         for interceptor in (
@@ -235,203 +211,18 @@ class MainScreen(Screen):
         ):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
-                self.keep_selection = True
+                self.board.keep_selection = True
                 return True
-        if not self.ids.boardview.collide_point(*touch.pos):
-            return
-        touch.push()
-        touch.apply_transform_2d(self.ids.boardview.to_local)
-        if self.app.selection:
-            self.app.selection.hit = self.app.selection.collide_point(*touch.pos)
-            if self.app.selection.hit:
-                touch.grab(self.app.selection)
-        pawns = list(self.board.pawns_at(*touch.pos))
-        if pawns:
-            self.selection_candidates = pawns
-            if self.app.selection in self.selection_candidates:
-                self.selection_candidates.remove(self.app.selection)
-            return True
-        spots = list(self.board.spots_at(*touch.pos))
-        if spots:
-            self.selection_candidates = spots
-            if self.portaladdbut.state == 'down':
-                self.origspot = self.selection_candidates.pop(0)
-                self.protodest = Dummy(
-                    name="protodest",
-                    pos=touch.pos,
-                    size=(0, 0)
-                )
-                self.board.add_widget(self.protodest)
-                # why do I need this next?
-                self.protodest.on_touch_down(touch)
-                self.protoportal = ArrowWidget(
-                    origin=self.origspot,
-                    destination=self.protodest
-                )
-                self.board.add_widget(self.protoportal)
-                if self.reciprocal_portal:
-                    self.protoportal2 = ArrowWidget(
-                        destination=self.origspot,
-                        origin=self.protodest
-                    )
-                    self.board.add_widget(self.protoportal2)
-            return True
-        if self.selection_candidates == []:
-            arrows = list(self.board.arrows_at(*touch.pos))
-            if arrows:
-                self.selection_candidates = arrows
-                return True
-        # the board did not handle the touch, so let the view scroll
-        touch.pop()
         return self.ids.boardview.dispatch('on_touch_down', touch)
 
-    def on_touch_move(self, touch):
-        """If something's selected, it's on the board, so transform the touch
-        to the boardview's space before dispatching it to the
-        selection. Otherwise dispatch normally.
-
-        """
-        touch.push()
-        touch.apply_transform_2d(self.ids.boardview.to_local)
-        if self.app.selection in self.selection_candidates:
-            self.selection_candidates.remove(self.app.selection)
-        if self.app.selection:
-            if not self.selection_candidates:
-                self.keep_selection = True
-            self.app.selection.dispatch('on_touch_move', touch)
-        elif self.selection_candidates:
-            for cand in self.selection_candidates:
-                if cand.collide_point(*touch.pos):
-                    if hasattr(self.app.selection, 'selected'):
-                        self.app.selection.selected = False
-                    if hasattr(self.app.selection, 'hit'):
-                        self.app.selection.hit = False
-                    self.app.selection = cand
-                    cand.hit = cand.selected = True
-                    touch.grab(cand)
-                    cand.dispatch('on_touch_move', touch)
-        touch.pop()
-        return super().on_touch_move(touch)
-
-    def _portal_touch_up(self, touch):
-            touch.push()
-            touch.apply_transform_2d(self.ids.boardview.to_local)
-            try:
-                # If the touch ended upon a spot, and there isn't
-                # already a portal between the origin and this
-                # destination, create one.
-                destspot = next(self.board.spots_at(*touch.pos))
-                orig = self.origspot.remote
-                dest = destspot.remote
-                if not (
-                    orig.name in self.board.character.portal and
-                    dest.name in self.board.character.portal[orig.name]
-                ):
-                    port = self.board.character.new_portal(
-                        orig.name,
-                        dest.name
-                    )
-                    Logger.debug(
-                        "ELiDELayout: new arrow for {}->{}".format(
-                            orig.name,
-                            dest.name
-                        )
-                    )
-                    self.board.arrowlayout.add_widget(
-                        self.board.make_arrow(port)
-                    )
-                # And another in the opposite direction, if the user
-                # asked for that.
-                if (
-                    hasattr(self, 'protoportal2') and not (
-                        orig.name in self.board.character.preportal and
-                        dest.name in
-                        self.board.character.preportal[orig.name]
-                    )
-                ):
-                    deport = self.board.character.new_portal(
-                        dest.name,
-                        orig.name
-                    )
-                    Logger.debug(
-                        "ELiDELayout: new arrow for {}<-{}".format(
-                            orig.name,
-                            dest.name
-                        )
-                    )
-                    self.board.arrowlayout.add_widget(
-                        self.board.make_arrow(deport)
-                    )
-            except StopIteration:
-                pass
-            self.board.remove_widget(self.protoportal)
-            if hasattr(self, 'protoportal2'):
-                self.board.remove_widget(self.protoportal2)
-                del self.protoportal2
-            self.board.remove_widget(self.protodest)
-            del self.protoportal
-            del self.protodest
-            touch.pop()
-
-    def _selection_touch_up(self, touch):
-        touch.push()
-        touch.apply_transform_2d(self.ids.boardview.to_local)
-        while self.selection_candidates:
-            candidate = self.selection_candidates.pop(0)
-            if candidate.collide_point(*touch.pos):
-                if hasattr(self.app.selection, 'selected'):
-                    self.app.selection.selected = False
-                if hasattr(self.app.selection, '_start'):
-                    self.app.selection.pos = self.app.selection._start
-                    del self.app.selection._start
-                self.app.selection = candidate
-                self.app.selection.selected = True
-                if (
-                        hasattr(self.app.selection, 'thing') and not
-                        hasattr(self.app.selection, '_start')
-                ):
-                    self.app.selection._start = tuple(self.app.selection.pos)
-                touch.pop()
-                self.keep_selection = True
-                return True
-        touch.pop()
-
     def on_touch_up(self, touch):
-        """If there's a selection, dispatch the touch to it. Then, if there
-        are selection candidates, select the next one that collides
-        the touch. Otherwise, if something is selected, unselect
-        it.
-
-        """
-        if hasattr(self, 'protodest'):
-            # We're finishing the process of drawing an arrow to
-            # create a new portal.
-            self._portal_touch_up(touch)
-            return True
-        elif self.ids.timepanel.collide_point(*touch.pos):
+        if self.ids.timepanel.collide_point(*touch.pos):
             self.ids.timepanel.dispatch('on_touch_up', touch)
-            return True
         elif self.ids.charmenu.collide_point(*touch.pos):
             self.ids.charmenu.dispatch('on_touch_up', touch)
-            return True
         elif self.ids.statpanel.collide_point(*touch.pos):
             self.ids.statpanel.dispatch('on_touch_up', touch)
-            return True
-        elif hasattr(self.app.selection, 'on_touch_up'):
-            self.app.selection.dispatch('on_touch_up', touch)
-        # If we're not making a portal, and the touch hasn't landed
-        # anywhere that would demand special treatment, but the
-        # touch_down hit some selectable items, select the first of
-        # those that also collides this touch_up.
-        if self.selection_candidates:
-            self._selection_touch_up(touch)
-        if not self.keep_selection:
-            if hasattr(self.app.selection, 'selected'):
-                self.app.selection.selected = False
-            self.app.selection = None
-        self.keep_selection = False
-        touch.ungrab(self)
-        return True
+        return self.ids.boardview.dispatch('on_touch_up', touch)
 
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
@@ -462,83 +253,6 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def spot_from_dummy(self, dummy):
-        """Create a new :class:`board.Spot` instance, along with the
-        underlying :class:`LiSE.Place` instance, and give it the name,
-        position, and imagery of the provided dummy.
-
-        """
-        Logger.debug(
-            "ELiDELayout: Making spot from dummy {} ({} #{})".format(
-                dummy.name,
-                dummy.prefix,
-                dummy.num
-            )
-        )
-        (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
-        x /= self.board.width
-        y /= self.board.height
-        self.board.spotlayout.add_widget(
-            self.board.make_spot(
-                self.board.character.new_place(
-                    dummy.name,
-                    _x=x,
-                    _y=y,
-                    _image_paths=list(dummy.paths)
-                )
-            )
-        )
-        dummy.num += 1
-
-    def pawn_from_dummy(self, dummy):
-        """Create a new :class:`board.Pawn` instance, along with the
-        underlying :class:`LiSE.Place` instance, and give it the name,
-        location, and imagery of the provided dummy.
-
-        """
-        dummy.pos = self.ids.boardview.to_local(*dummy.pos)
-        for spot in self.board.spotlayout.children:
-            if spot.collide_widget(dummy):
-                whereat = spot
-                break
-        else:
-            return
-        whereat.add_widget(
-            self.board.make_pawn(
-                self.board.character.new_thing(
-                    dummy.name,
-                    whereat.place.name,
-                    _image_paths=list(dummy.paths)
-                )
-            )
-        )
-        dummy.num += 1
-
-    def arrow_from_wid(self, wid):
-        """When the user has released touch after dragging to make an arrow,
-        check whether they've drawn a valid one, and if so, make it.
-
-        This doesn't handle touch events. It takes a widget as its
-        argument: the one the user has been dragging to indicate where
-        they want the arrow to go. Said widget ought to be invisible.
-
-        """
-        for spot in self.board.spotlayout.children:
-            if spot.collide_widget(wid):
-                whereto = spot
-                break
-        else:
-            return
-        self.board.arrowlayout.add_widget(
-            self.board.make_arrow(
-                self.board.character.new_portal(
-                    self.grabbed.place.name,
-                    whereto.place.name,
-                    reciprocal=self.reciprocal_portal
-                )
-            )
-        )
-
     def _update_from_chardiff(self, char, chardiff, **kwargs):
         Logger.debug("{}: updating from diff {}".format(
             char, chardiff
@@ -565,19 +279,8 @@ class MainScreen(Screen):
 
 Builder.load_string(
     """
-#: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
 #: import resource_find kivy.resources.resource_find
 #: import remote_setter ELiDE.util.remote_setter
-<BoardView>:
-    effect_cls: StiffScrollEffect
-    board: board
-    Board:
-        size_hint: None, None
-        id: board
-        branch: root.branch
-        tick: root.tick
-        engine: root.engine
-        character: root.character
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
@@ -630,7 +333,6 @@ Builder.load_string(
     name: 'main'
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
-    grabbing: self.grabbed is None
     board: boardview.board
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
@@ -647,6 +349,7 @@ Builder.load_string(
         character: root.app.character
         branch: root.app.branch
         tick: root.app.tick
+        adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
         engine: root.app.engine

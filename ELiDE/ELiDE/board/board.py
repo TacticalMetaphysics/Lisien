@@ -16,9 +16,11 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scrollview import ScrollView
 from .spot import Spot
-from .arrow import Arrow
+from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
+from ..dummy import Dummy
 from ..util import trigger
 
 
@@ -68,6 +70,13 @@ class Board(RelativeLayout):
     tracking_vel = BooleanProperty(False)
     branch = StringProperty('master')
     tick = NumericProperty(0)
+    selection_candidates = ListProperty([])
+    selection = ObjectProperty(allownone=True)
+    keep_selection = ObjectProperty(False)
+    adding_portal = BooleanProperty(False)
+    reciprocal_portal = BooleanProperty(False)
+    grabbing = BooleanProperty(True)
+    grabbed = ObjectProperty(None, allownone=True)
 
     @property
     def widkwargs(self):
@@ -76,6 +85,142 @@ class Board(RelativeLayout):
             'size': self.size,
             'pos': (0, 0)
         }
+
+    def on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos):
+            return
+        if self.selection:
+            self.selection.hit = self.selection.collide_point(*touch.pos)
+            if self.selection.hit:
+                touch.grab(self.selection)
+        pawns = list(self.spots_at(*touch.pos))
+        if pawns:
+            self.selection_candidates = pawns
+            if self.selection in self.selection_candidates:
+                self.selection_candidates.remove(self.selection)
+            return True
+        spots = list(self.spots_at(*touch.pos))
+        if spots:
+            self.selection_candidates = spots
+            if self.adding_portal:
+                self.origspot = self.selection_candidates.pop(0)
+                self.protodest = Dummy(
+                    name='protodest',
+                    pos=touch.pos,
+                    size=(0, 0)
+                )
+                self.add_widget(self.protodest)
+                self.protodest.on_touch_down(touch)
+                self.protoportal = ArrowWidget(
+                    origin=self.origspot,
+                    destination=self.protodest
+                )
+                self.add_widget(self.protoportal)
+                if self.reciprocal_portal:
+                    self.protoportal2 = ArrowWidget(
+                        destination=self.origspot,
+                        origin=self.protodest
+                    )
+                    self.add_widget(self.protoportal2)
+            return True
+        if not self.selection_candidates:
+            arrows = list(self.arrows_at(*touch.pos))
+            if arrows:
+                self.selection_candidates = arrows
+                return True
+
+    def on_touch_move(self, touch):
+        if self.selection in self.selection_candidates:
+            self.selection_candidates.remove(self.selection)
+        if self.selection:
+            if not self.selection_candidates:
+                self.keep_selection = True
+            return self.selection.dispatch('on_touch_move', touch)
+        elif self.selection_candidates:
+            for cand in self.selection_candidates:
+                if cand.collide_point(*touch.pos):
+                    if hasattr(self.selection, 'selected'):
+                        self.selection.selected = False
+                    if hasattr(self.selection, 'hit'):
+                        self.selection.hit = False
+                    self.selection = cand
+                    cand.hit = cand.selected = True
+                    touch.grab(cand)
+                    return cand.dispatch('on_touch_move', touch)
+
+    def portal_touch_up(self, touch):
+        try:
+            # If the touch ended upon a spot, and there isn't
+            # already a portal between the origin and this
+            # destination, create one.
+            destspot = next(self.spots_at(*touch.pos))
+            orig = self.origspot.remote
+            dest = destspot.remote
+            if not(
+                orig.name in self.character.portal and
+                dest.name in self.character.portal[orig.name]
+            ):
+                port = self.character.new_portal(
+                    orig.name,
+                    dest.name
+                )
+                self.arrowlayout.add_widget(
+                    self.make_arrow(port)
+                )
+            # And another in the opposite direction if needed
+                if (
+                    hasattr(self, 'protoportal2') and not(
+                            orig.name in self.character.preportal and
+                            dest.name in self.character.preportal[orig.name]
+                        )
+                ):
+                    deport = self.character.new_portal(
+                        dest.name,
+                        orig.name
+                    )
+                    self.arrowlayout.add_widget(
+                        self.make_arrow(deport)
+                    )
+        except StopIteration:
+            pass
+        self.remove_widget(self.protoportal)
+        if hasattr(self, 'protoportal2'):
+            self.remove_widget(self.protoportal2)
+            del self.protoportal2
+        self.remove_widget(self.protodest)
+        del self.protoportal
+        del self.protodest
+
+    def on_touch_up(self, touch):
+        if hasattr(self, 'protodest'):
+            self.portal_touch_up(touch)
+            touch.ungrab(self)
+            return
+        if hasattr(self.selection, 'on_touch_up'):
+            self.selection.dispatch('on_touch_up', touch)
+        while self.selection_candidates:
+            candidate = self.selection_candidates.pop(0)
+            if candidate.collide_point(*touch.pos):
+                if hasattr(self.selection, 'selected'):
+                    self.selection.selected = False
+                if hasattr(self.selection, '_start'):
+                    self.selection.pos = self.selection._start
+                    del self.selection._start
+                self.selection = candidate
+                self.selection.selected = True
+                if (
+                    hasattr(self.selection, 'thing') and not
+                    hasattr(self.selection, '_start')
+                ):
+                    self.selection._start = tuple(self.selection.pos)
+                self.keep_selection = True
+        if not self.keep_selection:
+            if hasattr(self.selection, 'selected'):
+                self.selection.selected = False
+            self.selection = None
+        self.keep_selection = False
+        touch.ungrab(self)
+        return True
 
     def on_parent(self, *args):
         if not self.parent or hasattr(self, '_parented'):
@@ -682,8 +827,113 @@ class Board(RelativeLayout):
                 yield arrow
 
 
+
+
+class BoardView(ScrollView):
+    """A ScrollView that contains the Board for the character being
+    viewed.
+
+    """
+    screen = ObjectProperty()
+    engine = ObjectProperty()
+    character = ObjectProperty()
+    board = ObjectProperty()
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    selection_candidates = ListProperty([])
+    selection = ObjectProperty(allownone=True)
+    keep_selection = BooleanProperty(False)
+    adding_portal = BooleanProperty(False)
+    reciprocal_portal = BooleanProperty(False)
+
+    def on_touch_down(self, touch):
+        if self.board and self.board.dispatch('on_touch_down', touch):
+            return True
+        return super().on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if self.board and self.board.dispatch('on_touch_move', touch):
+            return True
+        return super().on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        if self.board and self.board.dispatch('on_touch_up', touch):
+            return True
+        return super().on_touch_up(touch)
+
+    def spot_from_dummy(self, dummy):
+        """Create a new :class:`board.Spot` instance, along with the
+        underlying :class:`LiSE.Place` instance, and give it the name,
+        position, and imagery of the provided dummy.
+
+        """
+        (x, y) = self.to_local(*dummy.pos_up)
+        x /= self.board.width
+        y /= self.board.height
+        self.board.spotlayout.add_widget(
+            self.board.make_spot(
+                self.board.character.new_place(
+                    dummy.name,
+                    x=x,
+                    y=y,
+                    _image_paths=list(dummy.paths)
+                )
+            )
+        )
+        dummy.num += 1
+
+    def pawn_from_dummy(self, dummy):
+        """Create a new :class:`board.Pawn` instance, along with the
+        underlying :class:`LiSE.Place` instance, and give it the name,
+        location, and imagery of the provided dummy.
+
+        """
+        dummy.pos = self.to_local(*dummy.pos)
+        for spot in self.board.spotlayout.children:
+            if spot.collide_widget(dummy):
+                whereat = spot
+                break
+        else:
+            return
+        whereat.add_widget(
+            self.board.make_pawn(
+                self.board.character.new_thing(
+                    dummy.name,
+                    whereat.place.name,
+                    _image_paths=list(dummy.paths)
+                )
+            )
+        )
+        dummy.num += 1
+
+    def arrow_from_wid(self, wid):
+        """When the user has released touch after dragging to make an arrow,
+        check whether they've drawn a valid one, and if so, make it.
+
+        This doesn't handle touch events. It takes a widget as its
+        argument: the one the user has been dragging to indicate where
+        they want the arrow to go. Said widget ought to be invisible.
+
+        """
+        for spot in self.board.spotlayout.children:
+            if spot.collide_widget(wid):
+                whereto = spot
+                break
+        else:
+            return
+        self.board.arrowlayout.add_widget(
+            self.board.make_arrow(
+                self.board.character.new_portal(
+                    self.board.grabbed.place.name,
+                    whereto.place.name,
+                    reciprocal=self.reciprocal_portal
+                )
+            )
+        )
+
 Builder.load_string(
     """
+#: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
 #: import resource_find kivy.resources.resource_find
 <KvLayoutBack>:
     size: wallpaper.size
@@ -694,5 +944,23 @@ Builder.load_string(
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
+<BoardView>:
+    effect_cls: StiffScrollEffect
+    board: board
+    selection_candidates: board.selection_candidates
+    selection: board.selection
+    keep_selection: board.keep_selection
+    adding_portal: board.adding_portal
+    reciprocal_portal: board.reciprocal_portal
+    Board:
+        size_hint: None, None
+        id: board
+        branch: root.branch
+        tick: root.tick
+        engine: root.engine
+        character: root.character
+        keep_selection: root.keep_selection
+        adding_portal: root.adding_portal
+        reciprocal_portal: root.reciprocal_portal
 """
 )
