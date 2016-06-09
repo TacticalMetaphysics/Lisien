@@ -649,6 +649,12 @@ class EngineHandle(object):
     def character_avatars(self, char):
         return list(self._real.character[char].avatars())
 
+    def character_has_avatar(self, char, av):
+        return av in self._real.character[char].avatar
+
+    def get_character_avatar(self, char, av):
+        return self._real.character[char].avatar[av].name
+
     def add_avatar(self, char, a, b):
         self._real.character[char].add_avatar(a, b)
 

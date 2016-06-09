@@ -961,12 +961,62 @@ class RuleBookProxy(MutableSequence):
         )
 
 
+class AvatarMapProxy(Mapping):
+    def __init__(self, character):
+        self.character = character
+
+    def __iter__(self):
+        yield from self.character.engine.handle(
+            'character_avatars',
+            (self.character.name,)
+        )
+
+    def __len__(self):
+        return self.character.engine.handle(
+            'count_character_avatars',
+            (self.character.name,)
+        )
+
+    def __contains__(self, k):
+        return self.character.engine.handle(
+            'character_has_avatar',
+            (self.character.name, k)
+        )
+
+    def __getitem__(self, k):
+        if k not in self:
+            raise KeyError("{} is not an avatar of {}".format(k, self.character.name))
+        return self.character.engine.character[k].node[
+            self.character.engine.handle(
+                'get_character_avatar',
+                (self.character.name, k)
+            )
+        ]
+
+    def __getattr__(self, attr):
+        it = iter(self)
+        try:
+            me = next(it)
+        except StopIteration:
+            raise AttributeError("No attribute {}, and no avatar to delegate to".format(attr))
+        try:
+            next(it)
+            raise AttributeError("No attribute {}, and more than one avatar".format(attr))
+        except StopIteration:
+            pass
+        return getattr(me, attr)
+
+
 class CharacterProxy(MutableMapping):
     @property
     def rulebook(self):
         if not hasattr(self, '_rulebook'):
             self._upd_rulebook()
         return self._rulebook
+
+    @reify
+    def avatar(self):
+        return AvatarMapProxy(self)
 
     def _upd_rulebook(self):
         self._rulebook = self._get_rulebook()
