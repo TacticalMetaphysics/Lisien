@@ -26,6 +26,6 @@ setup(
         'LiSE': ['sqlite.json']
     },
     install_requires=[
-        "gorm>=0.7.11",
+        "gorm>=0.7.13",
     ],
 )
