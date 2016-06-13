@@ -25,4 +25,3 @@ def mkengine(w='sqlite:///LiSEworld.db', *args, **kwargs):
 
 
 seed = 69105
-caching = True

@@ -136,9 +136,9 @@ def inittest(
 
 
 if __name__ == '__main__':
-    from utiltest import mkengine, clear_off, seed, caching
+    from utiltest import mkengine, clear_off, seed
     clear_off()
-    with mkengine(random_seed=seed, caching=caching) as engine:
+    with mkengine(random_seed=seed) as engine:
         inittest(engine)
         engine.commit()
         print('shrub_places beginning: {}'.format(
