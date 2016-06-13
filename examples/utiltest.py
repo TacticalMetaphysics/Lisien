@@ -3,7 +3,7 @@
 """Some utility functions I found useful in testing."""
 
 
-from LiSE import Engine
+from LiSE.engine import Engine
 from os import remove
 
 
