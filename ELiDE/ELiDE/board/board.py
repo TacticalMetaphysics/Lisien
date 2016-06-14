@@ -612,6 +612,7 @@ class Board(RelativeLayout):
                             self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
+                    assert arrow_orig in self.arrow and arrow_dest in self.arrow[arrow_orig]
 
     def add_pawn(self, thingn, *args):
         if (
@@ -772,6 +773,7 @@ class Board(RelativeLayout):
         go, and move them there.
 
         """
+        import numpy as np
         for spot in self.new_spots:
             if not (spot.name and spot.remote):
                 Clock.schedule_once(self.nx_layout, 0)
@@ -780,6 +782,31 @@ class Board(RelativeLayout):
         for thing in list(spots_only.thing.keys()):
             del spots_only.thing[thing]
         l = self.graph_layout(spots_only)
+        # Graph is laid out, but might have coords outside my range
+        # Normalize to within (0, 1)
+        xs = []
+        ys = []
+        ks = []
+        for (k, (x, y)) in l.items():
+            xs.append(x)
+            ys.append(y)
+            ks.append(k)
+        minx = np.min(xs)
+        maxx = np.max(xs)
+        try:
+            xco = 1 / (maxx - minx)
+            xnorm = np.multiply(xs, xco)
+        except ZeroDivisionError:
+            xnorm = np.array(xs)
+        miny = np.min(ys)
+        maxy = np.max(ys)
+        try:
+            yco = 1 / (maxy - miny)
+            ynorm = np.multiply(ys, yco)
+        except ZeroDivisionError:
+            ynorm = np.array(ys)
+        for i in range(len(ks)):
+            l[ks[i]] = (xnorm[i], ynorm[i])
 
         node_upd = {}
 
