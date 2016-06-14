@@ -32,9 +32,7 @@ def inittest(
     dwarf['_image_paths'] = ['atlas://rltiles/base.atlas/dwarf_m']
     # randomly place the shrubberies and add their locations to shrub_places
     n = 0
-    # these are sorted as a way to make them shuffle the same whether
-    # I'm using the cache or not
-    locs = sorted(list(phys.place.keys()))
+    locs = list(phys.place.keys())
     engine.shuffle(locs)
     shrub_places = []
     while n < shrubberies:
