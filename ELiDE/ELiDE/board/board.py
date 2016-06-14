@@ -612,6 +612,7 @@ class Board(RelativeLayout):
                             self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
+                    assert arrow_orig in self.arrow and arrow_dest in self.arrow[arrow_orig]
 
     def add_pawn(self, thingn, *args):
         if (
