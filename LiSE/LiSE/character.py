@@ -1256,7 +1256,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             cache = self.engine._things_cache[self.character.name]
             for thing in cache:
                 for (branch, tick) in self.engine._active_branches():
-                    if branch in cache:
+                    if branch in cache[thing]:
                         if cache[thing][branch][tick]:
                             yield thing
                         break
