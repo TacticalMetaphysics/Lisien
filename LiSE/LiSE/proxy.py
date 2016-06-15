@@ -1611,7 +1611,7 @@ class EngineProxy(AbstractEngine):
         return r
 
     @reify
-    def _character_things_cache(self):
+    def _things_cache(self):
         r = defaultdict(dict)
         for char in self.character:
             for (thing, ex) in self.handle(
