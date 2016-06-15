@@ -463,7 +463,7 @@ class ThingMapProxy(CachingProxy):
 
     @property
     def _cache(self):
-        return self.engine._character_things_cache[self.name]
+        return self.engine._things_cache[self.name]
 
     def __init__(self, engine_proxy, charname):
         self.name = charname
@@ -977,44 +977,80 @@ class AvatarMapProxy(Mapping):
 
     def __iter__(self):
         yield from self.character.engine.handle(
-            'character_avatars',
+            'character_avatar_graphs',
             (self.character.name,)
         )
 
     def __len__(self):
         return self.character.engine.handle(
-            'count_character_avatars',
+            'count_character_avatar_graphs',
             (self.character.name,)
         )
 
     def __contains__(self, k):
         return self.character.engine.handle(
-            'character_has_avatar',
+            'character_has_avatar_in',
             (self.character.name, k)
         )
+
+    class GraphAvatarsProxy(Mapping):
+        def __init__(self, character, graph):
+            self.character = character
+            self.graph = graph
+
+        def __iter__(self):
+            yield from self.character.engine.handle(
+                'character_avatars_in_graph',
+                (self.character.name, self.graph.name)
+            )
+
+        def __len__(self):
+            return self.character.engine.handle(
+                'count_character_avatars_in_graph',
+                (self.character.name, self.graph.name)
+            )
+
+        def __contains__(self, k):
+            return self.character.engine.handle(
+                'character_has_avatar',
+                (self.character.name, self.graph.name, k)
+            )
+
+        def __getitem__(self, k):
+            if k not in self:
+                raise KeyError("{} has no avatar {} in graph {}".format(self.character.name, k, self.graph.name))
+            return self.graph.node[k]
+
+        def __getattr__(self, attr):
+            it = iter(self.values())
+            try:
+                me = next(it)
+            except StopIteration:
+                raise AttributeError("No attribute {}, and no avatar to delegate to".format(attr))
+            try:
+                next(it)
+                raise AttributeError("No attribute {}, and more than one avatar".format(attr))
+            except StopIteration:
+                return getattr(me, attr)
+            raise AttributeError
 
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("{} is not an avatar of {}".format(k, self.character.name))
-        return self.character.engine.character[k].node[
-            self.character.engine.handle(
-                'get_character_avatar',
-                (self.character.name, k)
-            )
-        ]
+        return self.GraphAvatarsProxy(self.character, self.character.engine.character[k])
 
     def __getattr__(self, attr):
-        it = iter(self)
+        it = iter(self.values())
         try:
             me = next(it)
         except StopIteration:
-            raise AttributeError("No attribute {}, and no avatar to delegate to".format(attr))
+            raise AttributeError("No attribute {}, and no graph to delegate to".format(attr))
         try:
             next(it)
-            raise AttributeError("No attribute {}, and more than one avatar".format(attr))
+            raise AttributeError("No attribute {}, and more than one graph".format(attr))
         except StopIteration:
-            pass
-        return getattr(me, attr)
+            return getattr(me, attr)
+        raise AttributeError
 
 
 class CharacterProxy(MutableMapping):

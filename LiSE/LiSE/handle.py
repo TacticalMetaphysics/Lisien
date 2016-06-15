@@ -652,8 +652,24 @@ class EngineHandle(object):
     def character_avatars(self, char):
         return list(self._real.character[char].avatars())
 
-    def character_has_avatar(self, char, av):
-        return av in self._real.character[char].avatar
+    def character_avatar_graphs(self, char):
+        return list(self._real.character[char].avatar.keys())
+
+    def character_avatars_in_graph(self, char, graph):
+        return list(self._real.character[char].avatar[graph].keys())
+
+    def count_character_avatar_graphs(self, char):
+        return len(self._real.character[char].avatar)
+
+    def count_character_avatars_in_graph(self, char, graph):
+        return len(self._real.character[char].avatar[graph])
+
+    def character_has_avatar_in(self, char, graph):
+        return graph in self._real.character[char].avatar
+
+    def character_has_avatar(self, char, graph, node):
+        av = self._real.character[char].avatar
+        return graph in av and node in av[graph]
 
     def get_character_avatar(self, char, av):
         return self._real.character[char].avatar[av].name
