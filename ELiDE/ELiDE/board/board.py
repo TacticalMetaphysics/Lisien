@@ -24,6 +24,35 @@ from ..dummy import Dummy
 from ..util import trigger
 
 
+def normalize_layout(l):
+    import numpy as np
+    xs = []
+    ys = []
+    ks = []
+    for (k, (x, y)) in l.items():
+        xs.append(x)
+        ys.append(y)
+        ks.append(k)
+    minx = np.min(xs)
+    maxx = np.max(xs)
+    try:
+        xco = 1 / (maxx - minx)
+        xnorm = np.multiply(xs, xco)
+    except ZeroDivisionError:
+        xnorm = np.array(xs)
+    miny = np.min(ys)
+    maxy = np.max(ys)
+    try:
+        yco = 1 / (maxy - miny)
+        ynorm = np.multiply(ys, yco)
+    except ZeroDivisionError:
+        ynorm = np.array(ys)
+    o = {}
+    for i in range(len(ks)):
+        o[ks[i]] = (xnorm[i], ynorm[i])
+    return o
+
+
 class KvLayoutBack(FloatLayout):
     """What to show behind the graph.
 
@@ -427,52 +456,7 @@ class Board(RelativeLayout):
 
     def graph_layout(self, graph):
         from networkx.drawing.layout import spring_layout
-        layout = spring_layout(graph)
-        minx = miny = maxx = maxy = minkx = maxkx = minky = maxky = None
-        for (k, (x, y)) in layout.items():
-            if minx is None or x < minx:
-                minx = x
-            if maxx is None or x > maxx:
-                maxx = x
-            if miny is None or y < miny:
-                miny = y
-            if maxy is None or y > maxy:
-                maxy = y
-            if (
-                    (isinstance(k, tuple) or isinstance(k, list)) and
-                    len(k) >= 2 and
-                    isinstance(k[0], int) and
-                    isinstance(k[1], int)
-            ):
-                kx = k[0]
-                ky = k[1]
-                if minkx is None or kx < minkx:
-                    minkx = kx
-                if maxkx is None or kx > maxkx:
-                    maxkx = kx
-                if minky is None or ky < minky:
-                    minky = ky
-                if maxky is None or ky > maxky:
-                    maxky = ky
-        w = maxy - miny
-        h = maxx - minx
-        wk = maxky - minky
-        hk = maxkx - minkx
-        for k in list(layout.keys()):
-            if (
-                    isinstance(k, tuple) or isinstance(k, list)
-            ) and len(k) >= 2:
-                layout[k] = (
-                    (k[0] - minkx) / wk,
-                    (k[1] - minky) / hk
-                )
-            else:
-                (x, y) = layout[k]
-                layout[k] = (
-                    (x - minx) / w,
-                    (y - miny) / h
-                )
-        return layout
+        return normalize_layout(spring_layout(graph))
 
     def discard_pawn(self, thingn, *args):
         if thingn in self.pawn:
@@ -773,7 +757,6 @@ class Board(RelativeLayout):
         go, and move them there.
 
         """
-        import numpy as np
         for spot in self.new_spots:
             if not (spot.name and spot.remote):
                 Clock.schedule_once(self.nx_layout, 0)
@@ -782,31 +765,6 @@ class Board(RelativeLayout):
         for thing in list(spots_only.thing.keys()):
             del spots_only.thing[thing]
         l = self.graph_layout(spots_only)
-        # Graph is laid out, but might have coords outside my range
-        # Normalize to within (0, 1)
-        xs = []
-        ys = []
-        ks = []
-        for (k, (x, y)) in l.items():
-            xs.append(x)
-            ys.append(y)
-            ks.append(k)
-        minx = np.min(xs)
-        maxx = np.max(xs)
-        try:
-            xco = 1 / (maxx - minx)
-            xnorm = np.multiply(xs, xco)
-        except ZeroDivisionError:
-            xnorm = np.array(xs)
-        miny = np.min(ys)
-        maxy = np.max(ys)
-        try:
-            yco = 1 / (maxy - miny)
-            ynorm = np.multiply(ys, yco)
-        except ZeroDivisionError:
-            ynorm = np.array(ys)
-        for i in range(len(ks)):
-            l[ks[i]] = (xnorm[i], ynorm[i])
 
         node_upd = {}
 
