@@ -557,7 +557,6 @@ class Engine(AbstractEngine, gORM):
             query_engine_class=QueryEngine,
             connect_args=connect_args,
             alchemy=alchemy,
-            caching=True,
             json_dump=self.json_dump,
             json_load=self.json_load,
         )
