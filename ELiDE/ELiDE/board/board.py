@@ -36,14 +36,14 @@ def normalize_layout(l):
     minx = np.min(xs)
     maxx = np.max(xs)
     try:
-        xco = 1 / (maxx - minx)
+        xco = 0.98 / (maxx - minx)
         xnorm = np.multiply(xs, xco)
     except ZeroDivisionError:
         xnorm = np.array(xs)
     miny = np.min(ys)
     maxy = np.max(ys)
     try:
-        yco = 1 / (maxy - miny)
+        yco = 0.98 / (maxy - miny)
         ynorm = np.multiply(ys, yco)
     except ZeroDivisionError:
         ynorm = np.array(ys)
@@ -770,10 +770,8 @@ class Board(RelativeLayout):
 
         for spot in self.new_spots:
             (x, y) = l[spot.name]
-            assert 0 <= x <= 1
-            assert 0 <= y <= 1
-            x = min((0.98, x))
-            y = min((0.98, y))
+            assert 0 <= x <= 0.98
+            assert 0 <= y <= 0.98
             node_upd[spot.remote.name] = {
                 '_x': x,
                 '_y': y
