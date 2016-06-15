@@ -295,7 +295,9 @@ class ThingProxy(NodeProxy):
             silent=True
         )
 
-    def go_to_place(self, place, weight=''):
+    def go_to_place(self, place, weight=None):
+        if hasattr(place, 'name'):
+            place = place.name
         self.engine.handle(
             'thing_go_to_place',
             (self._charname, self.name, place, weight),
@@ -303,6 +305,10 @@ class ThingProxy(NodeProxy):
         )
 
     def travel_to(self, dest, weight=None, graph=None):
+        if hasattr(dest, 'name'):
+            dest = dest.name
+        if hasattr(graph, 'name'):
+            graph = graph.name
         self.engine.handle(
             'thing_travel_to',
             (self._charname, self.name, dest, weight, graph),
@@ -310,6 +316,10 @@ class ThingProxy(NodeProxy):
         )
 
     def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
+        if hasattr(dest, 'name'):
+            dest = dest.name
+        if hasattr(graph, 'name'):
+            graph = graph.name
         self.engine.handle(
             'thing_travel_to_by',
             (self._charname, self.name, dest, arrival_tick, weight, graph),
