@@ -828,8 +828,6 @@ class Board(RelativeLayout):
                 yield arrow
 
 
-
-
 class BoardView(ScrollView):
     """A ScrollView that contains the Board for the character being
     viewed.
