@@ -579,6 +579,11 @@ class Board(RelativeLayout):
 
     def add_arrow(self, orign, destn, *args):
         if not (
+            orign in self.character.portal and
+            destn in self.character.portal[orign]
+        ):
+            raise ValueError("No portal for arrow {}->{}".format(orign, destn))
+        if not (
                 orign in self.arrow and
                 destn in self.arrow[orign]
         ):
