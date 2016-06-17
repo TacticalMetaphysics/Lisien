@@ -258,7 +258,7 @@ class Board(RelativeLayout):
             self.selection = None
         self.keep_selection = False
         touch.ungrab(self)
-        return True
+        return
 
     def on_parent(self, *args):
         if not self.parent or hasattr(self, '_parented'):
