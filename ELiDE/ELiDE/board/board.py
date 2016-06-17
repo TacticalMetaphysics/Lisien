@@ -230,10 +230,9 @@ class Board(RelativeLayout):
 
     def on_touch_up(self, touch):
         if hasattr(self, 'protodest'):
-            self.portal_touch_up(touch)
             Logger.debug("Board: on_touch_up making a portal")
             touch.ungrab(self)
-            return
+            return self.portal_touch_up(touch)
         Logger.debug("Board: on_touch_up")
         if hasattr(self.selection, 'on_touch_up'):
             Logger.debug("Board: dispatching on_touch_up to selection")
