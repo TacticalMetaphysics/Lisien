@@ -118,18 +118,22 @@ class Board(RelativeLayout):
     def on_touch_down(self, touch):
         if not self.collide_point(*touch.pos):
             return
+        Logger.debug("Board: on_touch_down")
         if self.selection:
             self.selection.hit = self.selection.collide_point(*touch.pos)
             if self.selection.hit:
+                Logger.debug("Board: hit selection")
                 touch.grab(self.selection)
         pawns = list(self.spots_at(*touch.pos))
         if pawns:
+            Logger.debug("Board: hit {} pawns".format(len(pawns)))
             self.selection_candidates = pawns
             if self.selection in self.selection_candidates:
                 self.selection_candidates.remove(self.selection)
             return True
         spots = list(self.spots_at(*touch.pos))
         if spots:
+            Logger.debug("Board: hit {} spots".format(len(spots)))
             self.selection_candidates = spots
             if self.adding_portal:
                 self.origspot = self.selection_candidates.pop(0)
@@ -155,19 +159,23 @@ class Board(RelativeLayout):
         if not self.selection_candidates:
             arrows = list(self.arrows_at(*touch.pos))
             if arrows:
+                Logger.debug("Board: hit {} arrows".format(len(arrows)))
                 self.selection_candidates = arrows
                 return True
 
     def on_touch_move(self, touch):
+        Logger.debug("Board: on_touch_move")
         if self.selection in self.selection_candidates:
             self.selection_candidates.remove(self.selection)
         if self.selection:
             if not self.selection_candidates:
                 self.keep_selection = True
+            Logger.debug("Board: dispatching on_touch_move to selection")
             return self.selection.dispatch('on_touch_move', touch)
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
+                    Logger.debug("Board: dispatching on_touch_move to candidate")
                     if hasattr(self.selection, 'selected'):
                         self.selection.selected = False
                     if hasattr(self.selection, 'hit'):
@@ -223,13 +231,17 @@ class Board(RelativeLayout):
     def on_touch_up(self, touch):
         if hasattr(self, 'protodest'):
             self.portal_touch_up(touch)
+            Logger.debug("Board: on_touch_up making a portal")
             touch.ungrab(self)
             return
+        Logger.debug("Board: on_touch_up")
         if hasattr(self.selection, 'on_touch_up'):
+            Logger.debug("Board: dispatching on_touch_up to selection")
             self.selection.dispatch('on_touch_up', touch)
         while self.selection_candidates:
             candidate = self.selection_candidates.pop(0)
             if candidate.collide_point(*touch.pos):
+                Logger.debug("Board: selecting " + repr(candidate))
                 if hasattr(self.selection, 'selected'):
                     self.selection.selected = False
                 if hasattr(self.selection, '_start'):
@@ -244,6 +256,7 @@ class Board(RelativeLayout):
                     self.selection._start = tuple(self.selection.pos)
                 self.keep_selection = True
         if not self.keep_selection:
+            Logger.debug("Board: deselecting " + repr(self.selection))
             if hasattr(self.selection, 'selected'):
                 self.selection.selected = False
             self.selection = None
@@ -830,18 +843,24 @@ class BoardView(ScrollView):
     reciprocal_portal = BooleanProperty(False)
 
     def on_touch_down(self, touch):
+        Logger.debug("BoardView: on_touch_down")
         if self.board and self.board.dispatch('on_touch_down', touch):
             return True
+        Logger.debug("BoardView: delegating on_touch_down")
         return super().on_touch_down(touch)
 
     def on_touch_move(self, touch):
+        Logger.debug("BoardView: on_touch_move")
         if self.board and self.board.dispatch('on_touch_move', touch):
             return True
+        Logger.debug("BoardView: delegating on_touch_move")
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
+        Logger.debug("BoardView: on_touch_up")
         if self.board and self.board.dispatch('on_touch_up', touch):
             return True
+        Logger.debug("BoardView: delegating on_touch_up")
         return super().on_touch_up(touch)
 
     def spot_from_dummy(self, dummy):
