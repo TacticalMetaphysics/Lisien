@@ -592,6 +592,7 @@ class Board(RelativeLayout):
                     self.character.portal[orign][destn]
                 )
             )
+        assert self.arrow[orign][destn] in self.arrowlayout.children
 
     def _trigger_add_arrow(self, orign, destn):
         Clock.schedule_once(partial(self.add_arrow, orign, destn), 0)
