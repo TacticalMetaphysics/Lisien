@@ -52,7 +52,7 @@ class StatListPanel(BoxLayout):
     selection_name = StringProperty()
     button_text = StringProperty('cfg')
     cfgstatbut = ObjectProperty()
-    stat_list = ObjectProperty()
+    statlist = ObjectProperty()
     engine = ObjectProperty()
     branch = StringProperty('master')
     tick = NumericProperty(0)
@@ -258,7 +258,7 @@ class MainScreen(Screen):
             char, chardiff
         ))
         self.board.trigger_update_from_diff(chardiff)
-        self.ids.statpanel.stat_list.mirror = dict(self.app.selected_remote)
+        self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.pull_time()
 
     def play(self, *args):
@@ -284,13 +284,13 @@ Builder.load_string(
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
-    stat_list: stat_list
+    statlist: statlist
     id: statpanel
     Label:
         size_hint_y: 0.05
         text: root.selection_name
     StatListView:
-        id: stat_list
+        id: statlist
         size_hint_y: 0.95
         engine: root.engine
         branch: root.branch
@@ -336,7 +336,7 @@ Builder.load_string(
     board: boardview.board
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
-    stat_list: statpanel.stat_list
+    statlist: statpanel.statlist
     BoardView:
         id: boardview
         x: statpanel.right

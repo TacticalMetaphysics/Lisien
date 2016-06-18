@@ -114,15 +114,15 @@ class ControlTypePicker(ListItemButton):
 
 
 class StatListViewConfigurator(StatListView):
-    stat_list = ObjectProperty()
+    statlist = ObjectProperty()
 
     def set_config(self, key, option, value):
         super().set_config(key, option, value)
-        self.stat_list.set_config(key, option, value)
+        self.statlist.set_config(key, option, value)
 
     def set_control(self, key, control):
         super().set_control(key, control)
-        self.stat_list.set_control(key, control)
+        self.statlist.set_control(key, control)
 
     def del_key(self, key):
         if key in self.mirror:
@@ -283,7 +283,7 @@ class StatListViewConfigurator(StatListView):
 
 
 class StatScreen(Screen):
-    stat_list = ObjectProperty()
+    statlist = ObjectProperty()
     toggle = ObjectProperty()
     engine = ObjectProperty()
     branch = StringProperty('master')
@@ -324,7 +324,7 @@ Builder.load_string("""
             remote: root.remote
             branch: root.branch
             tick: root.tick
-            stat_list: root.stat_list
+            statlist: root.statlist
             size_hint_y: 0.95
         BoxLayout:
             orientation: 'horizontal'

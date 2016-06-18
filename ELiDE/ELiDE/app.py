@@ -260,9 +260,9 @@ class ELiDEApp(App):
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed'])
         )
-        if self.mainscreen.stat_list:
-            self.statcfg.stat_list = self.mainscreen.stat_list
-        self.mainscreen.bind(stat_list=self.statcfg.setter('stat_list'))
+        if self.mainscreen.statlist:
+            self.statcfg.statlist = self.mainscreen.statlist
+        self.mainscreen.bind(statlist=self.statcfg.setter('statlist'))
         self.bind(selection=self.reremote)
         self.selected_remote = self._get_selected_remote()
         for wid in (
