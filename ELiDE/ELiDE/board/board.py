@@ -872,8 +872,8 @@ class BoardView(ScrollView):
             self.board.make_spot(
                 self.board.character.new_place(
                     dummy.name,
-                    x=x,
-                    y=y,
+                    _x=x,
+                    _y=y,
                     _image_paths=list(dummy.paths)
                 )
             )
