@@ -6,12 +6,9 @@ from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
 
 from kivy.properties import (
-    AliasProperty,
     BooleanProperty,
     ObjectProperty,
-    NumericProperty,
-    ReferenceListProperty,
-    StringProperty
+    ReferenceListProperty
 )
 from .board.spot import Spot
 from .board.pawn import Pawn
@@ -21,20 +18,34 @@ from .util import try_load, dummynum
 
 class CharMenu(BoxLayout):
     screen = ObjectProperty()
-    app = AliasProperty(
-        lambda self: self.screen.app if self.screen else None,
-        lambda self, v: None,
-        bind=('screen',)
-    )
-    engine = AliasProperty(
-        lambda self: self.screen.app.engine if self.screen else None,
-        lambda self, v: None,
-        bind=('screen',)
-    )
+    app = ObjectProperty()
+    engine = ObjectProperty()
+    reciprocal_portal = BooleanProperty()
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
+
+    def on_screen(self, *args):
+        if not (
+            self.screen and
+            self.screen.boardview and
+            self.screen.app
+        ):
+            Clock.schedule_once(self.on_screen, 0)
+            return
+        self.app = self.screen.app
+        self.engine = self.screen.app.engine
+        self.reciprocal_portal = self.screen.boardview.reciprocal_portal
+        self.screen.boardview.bind(
+            reciprocal_portal=self.setter('reciprocal_portal')
+        )
+
+    def spot_from_dummy(self, dummy):
+        self.screen.boardview.spot_from_dummy(dummy)
+
+    def pawn_from_dummy(self, dummy):
+        self.screen.boardview.pawn_from_dummy(dummy)
 
     def delete_selection(self):
         """Delete both the selected widget and whatever it represents."""
@@ -195,7 +206,7 @@ Builder.load_string("""
                 id: dummyplace
                 center: placetab.center
                 prefix: 'place'
-                on_pos_up: root.ids.boardview.spot_from_dummy(self)
+                on_pos_up: root.spot_from_dummy(self)
         Button:
             text: 'cfg'
             on_press: root.toggle_spot_cfg()
@@ -219,7 +230,7 @@ Builder.load_string("""
                 destination: emptyright
         Button:
             id: portaldirbut
-            text: 'One-way' if root.screen and root.screen.ids.boardview.reciprocal_portal else 'Two-way'
+            text: 'One-way' if root.reciprocal_portal else 'Two-way'
             on_press: root.toggle_reciprocal()
     BoxLayout:
         Widget:
@@ -228,7 +239,7 @@ Builder.load_string("""
                 id: dummything
                 center: thingtab.center
                 prefix: 'thing'
-                on_pos_up: root.ids.boardview.pawn_from_dummy(self)
+                on_pos_up: root.pawn_from_dummy(self)
         Button:
             text: 'cfg'
             on_press: root.toggle_pawn_cfg()

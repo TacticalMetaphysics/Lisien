@@ -136,6 +136,11 @@ class MainScreen(Screen):
     """
 
     board = ObjectProperty()
+    boardview = ObjectProperty()
+    charmenu = ObjectProperty()
+    statlist = ObjectProperty()
+    statpanel = ObjectProperty()
+    timepanel = ObjectProperty()
     kv = StringProperty()
     use_kv = BooleanProperty()
     play_speed = NumericProperty()
@@ -203,9 +208,9 @@ class MainScreen(Screen):
         if self.visible:
             touch.grab(self)
         for interceptor in (
-            self.ids.timepanel,
-            self.ids.charmenu,
-            self.ids.statpanel,
+            self.timepanel,
+            self.charmenu,
+            self.statpanel,
             self.dummyplace,
             self.dummything
         ):
@@ -213,16 +218,16 @@ class MainScreen(Screen):
                 interceptor.dispatch('on_touch_down', touch)
                 self.board.keep_selection = True
                 return True
-        return self.ids.boardview.dispatch('on_touch_down', touch)
+        return self.boardview.dispatch('on_touch_down', touch)
 
     def on_touch_up(self, touch):
-        if self.ids.timepanel.collide_point(*touch.pos):
-            self.ids.timepanel.dispatch('on_touch_up', touch)
-        elif self.ids.charmenu.collide_point(*touch.pos):
-            self.ids.charmenu.dispatch('on_touch_up', touch)
-        elif self.ids.statpanel.collide_point(*touch.pos):
-            self.ids.statpanel.dispatch('on_touch_up', touch)
-        return self.ids.boardview.dispatch('on_touch_up', touch)
+        if self.timepanel.collide_point(*touch.pos):
+            self.timepanel.dispatch('on_touch_up', touch)
+        elif self.charmenu.collide_point(*touch.pos):
+            self.charmenu.dispatch('on_touch_up', touch)
+        elif self.statpanel.collide_point(*touch.pos):
+            self.statpanel.dispatch('on_touch_up', touch)
+        return self.boardview.dispatch('on_touch_up', touch)
 
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
@@ -334,9 +339,13 @@ Builder.load_string(
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     board: boardview.board
+    boardview: boardview
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
+    charmenu: charmenu
     statlist: statpanel.statlist
+    statpanel: statpanel
+    timepanel: timepanel
     BoardView:
         id: boardview
         x: statpanel.right
