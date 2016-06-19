@@ -123,7 +123,7 @@ class Board(RelativeLayout):
             if self.selection.hit:
                 Logger.debug("Board: hit selection")
                 touch.grab(self.selection)
-        pawns = list(self.spots_at(*touch.pos))
+        pawns = list(self.pawns_at(*touch.pos))
         if pawns:
             Logger.debug("Board: hit {} pawns".format(len(pawns)))
             self.selection_candidates = pawns
