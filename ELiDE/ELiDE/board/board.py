@@ -244,11 +244,16 @@ class Board(RelativeLayout):
                 Logger.debug("Board: selecting " + repr(candidate))
                 if hasattr(self.selection, 'selected'):
                     self.selection.selected = False
+                if hasattr(self.selection, 'hit'):
+                    self.selection.hit = False
                 if hasattr(self.selection, '_start'):
                     self.selection.pos = self.selection._start
                     del self.selection._start
                 self.selection = candidate
-                self.selection.selected = True
+                if hasattr(self.selection, 'selected'):
+                    self.selection.selected = True
+                if hasattr(self.selection, 'hit'):
+                    self.selection.hit = True
                 if (
                     hasattr(self.selection, 'thing') and not
                     hasattr(self.selection, '_start')
@@ -259,6 +264,8 @@ class Board(RelativeLayout):
             Logger.debug("Board: deselecting " + repr(self.selection))
             if hasattr(self.selection, 'selected'):
                 self.selection.selected = False
+            if hasattr(self.selection, 'hit'):
+                self.selection.hit = False
             self.selection = None
         self.keep_selection = False
         touch.ungrab(self)
