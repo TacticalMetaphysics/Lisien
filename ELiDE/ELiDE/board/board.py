@@ -116,6 +116,8 @@ class Board(RelativeLayout):
         }
 
     def on_touch_down(self, touch):
+        if hasattr(self, '_lasttouch') and self._lasttouch == touch:
+            return
         if not self.collide_point(*touch.pos):
             return
         if self.selection:
@@ -163,6 +165,8 @@ class Board(RelativeLayout):
                 return True
 
     def on_touch_move(self, touch):
+        if hasattr(self, '_lasttouch') and self._lasttouch == touch:
+            return
         if self.selection in self.selection_candidates:
             self.selection_candidates.remove(self.selection)
         if self.selection:
@@ -227,6 +231,9 @@ class Board(RelativeLayout):
         del self.protodest
 
     def on_touch_up(self, touch):
+        if hasattr(self, '_lasttouch') and self._lasttouch == touch:
+            return
+        self._lasttouch = touch
         if hasattr(self, 'protodest'):
             Logger.debug("Board: on_touch_up making a portal")
             touch.ungrab(self)
