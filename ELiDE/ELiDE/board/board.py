@@ -854,18 +854,30 @@ class BoardView(ScrollView):
     reciprocal_portal = BooleanProperty(False)
 
     def on_touch_down(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_down', touch):
+            touch.pop()
             return True
+        touch.pop()
         return super().on_touch_down(touch)
 
     def on_touch_move(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_move', touch):
+            touch.pop()
             return True
+        touch.pop()
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_up', touch):
+            touch.pop()
             return True
+        touch.pop()
         return super().on_touch_up(touch)
 
     def spot_from_dummy(self, dummy):
