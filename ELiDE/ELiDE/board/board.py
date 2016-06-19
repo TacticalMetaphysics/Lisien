@@ -172,12 +172,10 @@ class Board(RelativeLayout):
         if self.selection:
             if not self.selection_candidates:
                 self.keep_selection = True
-            Logger.debug("Board: dispatching on_touch_move to selection")
             return self.selection.dispatch('on_touch_move', touch)
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
-                    Logger.debug("Board: dispatching on_touch_move to candidate")
                     if hasattr(self.selection, 'selected'):
                         self.selection.selected = False
                     if hasattr(self.selection, 'hit'):
@@ -239,7 +237,6 @@ class Board(RelativeLayout):
             touch.ungrab(self)
             return self.portal_touch_up(touch)
         if hasattr(self.selection, 'on_touch_up'):
-            Logger.debug("Board: dispatching on_touch_up to selection")
             self.selection.dispatch('on_touch_up', touch)
         while self.selection_candidates:
             candidate = self.selection_candidates.pop(0)
@@ -852,7 +849,6 @@ class BoardView(ScrollView):
     def on_touch_down(self, touch):
         if self.board and self.board.dispatch('on_touch_down', touch):
             return True
-        Logger.debug("BoardView: delegating on_touch_down")
         return super().on_touch_down(touch)
 
     def on_touch_move(self, touch):
@@ -863,7 +859,6 @@ class BoardView(ScrollView):
     def on_touch_up(self, touch):
         if self.board and self.board.dispatch('on_touch_up', touch):
             return True
-        Logger.debug("BoardView: delegating on_touch_up")
         return super().on_touch_up(touch)
 
     def spot_from_dummy(self, dummy):
