@@ -1895,6 +1895,12 @@ class EngineProcessManager(object):
         )
         self._p.daemon = True
         self._p.start()
+        self._logthread = Thread(
+            target=self.sync_log_forever,
+            name='log',
+            daemon=True
+        )
+        self._logthread.start()
         self.engine_proxy = EngineProxy(
             self._handle_out_pipe_send,
             handle_in_pipe_recv,
@@ -1913,6 +1919,10 @@ class EngineProcessManager(object):
                 n += 1
             except Empty:
                 return
+
+    def sync_log_forever(self):
+        while True:
+            self.sync_log()
 
     def shutdown(self):
         self.engine_proxy.close()

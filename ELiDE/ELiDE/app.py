@@ -190,8 +190,6 @@ class ELiDEApp(App):
         )
         self.pull_time()
 
-        #Clock.schedule_interval(self.procman.sync_log, 0.01)
-
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             self.engine.add_character(char)
