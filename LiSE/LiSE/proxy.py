@@ -3,6 +3,7 @@
 """Proxy objects to access LiSE entities from another process."""
 import sys
 import logging
+from time import sleep
 from collections import (
     defaultdict,
     Mapping,
@@ -1922,7 +1923,8 @@ class EngineProcessManager(object):
 
     def sync_log_forever(self):
         while True:
-            self.sync_log()
+            self.sync_log(1)
+            sleep(0.01)
 
     def shutdown(self):
         self.engine_proxy.close()
