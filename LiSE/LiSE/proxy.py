@@ -10,7 +10,7 @@ from collections import (
     MutableMapping,
     MutableSequence
 )
-from threading import Thread
+from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
 
@@ -1660,9 +1660,22 @@ class EngineProxy(AbstractEngine):
 
     def __init__(self, handle_out, handle_in, logger):
         self._handle_out = handle_out
+        self._handle_out_lock = Lock()
         self._handle_in = handle_in
+        self._handle_in_lock = Lock()
         self.logger = logger
         (self._branch, self._tick) = self.handle('get_watched_time')
+
+    def send(self, obj, blocking=True, timeout=-1):
+        self._handle_out_lock.acquire(blocking, timeout)
+        self._handle_out.send(obj)
+        self._handle_out_lock.release()
+
+    def recv(self, blocking=True, timeout=-1):
+        self._handle_in_lock.acquire(blocking, timeout)
+        data = self._handle_in.recv()
+        self._handle_in_lock.release()
+        return data
 
     def debug(self, msg):
         self.logger.debug(msg)
@@ -1680,9 +1693,9 @@ class EngineProxy(AbstractEngine):
         self.logger.critical(msg)
 
     def handle(self, func_name, args=[], silent=False):
-        self._handle_out.send(self.json_dump((silent, func_name, args)))
+        self.send(self.json_dump((silent, func_name, args)))
         if not silent:
-            return self.json_load(self._handle_in.recv())
+            return self.json_load(self.recv())
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
@@ -1718,7 +1731,7 @@ class EngineProxy(AbstractEngine):
         return self.json_rewrap(super().json_load(s))
 
     def _call_with_recv(self, char, *cbs, **kwargs):
-        received = self.json_load(self._handle_in.recv())
+        received = self.json_load(self.recv())
         for cb in cbs:
             cb(char, received, **kwargs)
 
@@ -1736,7 +1749,7 @@ class EngineProxy(AbstractEngine):
         if cb and not char:
             raise TypeError("Callbacks require char name")
         if char:
-            self._handle_out.send(self.json_dump((False, 'next_tick', [char])))
+            self.send(self.json_dump((False, 'next_tick', [char])))
             Thread(
                 target=self._call_with_recv,
                 args=(char, self._inc_tick, self._upd_char_cache, cb) if cb else
@@ -1749,7 +1762,7 @@ class EngineProxy(AbstractEngine):
         if cb and not char:
             raise TypeError("Callbacks require char name")
         if char:
-            self._handle_out.send(self.json_dump((False, 'time_travel', [branch, tick, char])))
+            self.send(self.json_dump((False, 'time_travel', [branch, tick, char])))
             Thread(
                 target=self._call_with_recv,
                 args=(char, self._set_time, self._upd_char_cache, cb) if cb else
