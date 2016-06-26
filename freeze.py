@@ -43,5 +43,5 @@ setup(
     version="0.0.0.3",
     description="Standalone package containing the core Life Simulator Engine and the Extensible LiSE Development Environment ELiDE.",
     options={"build_exe": build_exe_options},
-    executables=[Executable("start.py", base=base)]
+    executables=[Executable("main.py", base=base)]
 )

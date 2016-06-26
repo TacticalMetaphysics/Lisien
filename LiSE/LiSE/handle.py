@@ -25,7 +25,7 @@ class EngineHandle(object):
     developing your own API.
 
     """
-    def __init__(self, args, kwargs={}, logq=None):
+    def __init__(self, args, kwargs={}, logq=None, logfile=None):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
 
@@ -33,9 +33,6 @@ class EngineHandle(object):
         ``(loglevel, message)``.
 
         """
-        if logq is None:
-            from queue import Queue
-            logq = Queue()
         self._real = Engine(*args, logfun=self.log, **kwargs)
         self._logq = logq
         self._muted_chars = set()
@@ -53,7 +50,8 @@ class EngineHandle(object):
         self._node_successors_cache = defaultdict(dict)
 
     def log(self, level, message):
-        self._logq.put((level, message))
+        if self._logq:
+            self._logq.put((level, message))
 
     def debug(self, message):
         self.log('debug', message)
@@ -318,7 +316,8 @@ class EngineHandle(object):
         """Return a dictionary describing changes to a node's stats since the
         last time you looked at it.
 
-        Deleted keys have the value ``None``.
+        Deleted keys have the value ``None``. If the node's been deleted, this
+        returns ``None``.
 
         """
         try:
@@ -331,6 +330,7 @@ class EngineHandle(object):
             return None
 
     def character_nodes_stat_diff(self, char):
+        """Return a dictionary of ``node_stat_diff`` output for each node in a character."""
         r = {}
         for node in self._real.character[char].node:
             diff = self.node_stat_diff(char, node)
@@ -339,12 +339,20 @@ class EngineHandle(object):
         return r
 
     def node_stat_len(self, char, node):
+        """Return the number of stats a node has."""
         return len(self._real.character[char].node[node])
 
     def node_has_stat(self, char, node, k):
+        """Return whether a stat is presently set for a node."""
         return k in self._real.character[char].node[node]
 
     def update_node(self, char, node, patch):
+        """Change a node's stats according to a dictionary.
+
+        The ``patch`` dictionary should hold the new values of stats, keyed by the stats' names; a value of
+        ``None`` deletes the stat.
+
+        """
         character = self._real.character[char]
         if patch is None:
             del character.node[node]
@@ -355,16 +363,22 @@ class EngineHandle(object):
             character.node[node].update(patch)
 
     def update_nodes(self, char, patch):
+        """Change the stats of nodes in a character according to a dictionary."""
         for (n, npatch) in patch.items():
             self.update_node(char, n, npatch)
 
     def del_node(self, char, node):
+        """Remove a node from a character."""
         del self._real.character[char].node[node]
 
     def character_things(self, char):
+        """Return a list of names of every Thing in a Character."""
         return list(self._real.character[char].thing)
 
     def character_things_diff(self, char):
+        """Return a dictionary describing added and deleted things.
+
+        Returns ``None`` if the character doesn't exist."""
         try:
             new = self.character_things(char)
             old = self._char_things_cache.get(char, [])
@@ -374,9 +388,11 @@ class EngineHandle(object):
             return None
 
     def character_things_len(self, char):
+        """How many things are in this character?"""
         return len(self._real.character[char].thing)
 
     def character_has_thing(self, char, thing):
+        """Does this character have this thing?"""
         return thing in self._real.character[char].thing
 
     def character_places(self, char):
