@@ -178,7 +178,7 @@ class ELiDEApp(App):
             import pdb
             pdb.set_trace()
         self.procman = EngineProcessManager()
-        enkw = {}
+        enkw = {'logger': Logger}
         if 'logfile' in config['LiSE']:
             enkw['logfile'] = config['LiSE']['logfile']
         if 'loglevel' in config['LiSE']:
