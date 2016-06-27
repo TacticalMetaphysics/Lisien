@@ -1810,6 +1810,7 @@ class EngineProxy(AbstractEngine):
 
     def close(self):
         self.handle('close')
+        self.send('shutdown')
 
 
 def subprocess(
@@ -1942,6 +1943,5 @@ class EngineProcessManager(object):
 
     def shutdown(self):
         self.engine_proxy.close()
-        self._handle_out_pipe_send.send('shutdown')
         self._p.join()
         del self.engine_proxy
