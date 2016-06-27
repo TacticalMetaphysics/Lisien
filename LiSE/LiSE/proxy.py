@@ -3,7 +3,7 @@
 """Proxy objects to access LiSE entities from another process."""
 import sys
 import logging
-from time import sleep
+from os import getpid
 from collections import (
     defaultdict,
     Mapping,
@@ -1821,7 +1821,8 @@ def subprocess(
             (cmd, args) = data
             logq.put((
                 'debug',
-                "calling {}{}".format(
+                "LiSE proc {}: calling {}{}".format(
+                    getpid(),
                     cmd,
                     tuple(args)
                 )
@@ -1829,7 +1830,10 @@ def subprocess(
         else:
             logq.put((
                 'debug',
-                "returning {} (of type {})".format(data, repr(type(data)))
+                "LiSE proc {}: returning {} (of type {})".format(
+                    getpid(),
+                    data,
+                    repr(type(data)))
             ))
     engine_handle = EngineHandle(args, kwargs, logq)
 
@@ -1863,16 +1867,6 @@ class EngineProcessManager(object):
         (handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
         (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
         self.logq = Queue()
-        if 'logger' in kwargs:
-            self.logger = kwargs['logger']
-            del kwargs['logger']
-        else:
-            self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            fmt='[{levelname}] LiSE.proxy({process})\t{message}',
-            style='{'
-        )
         handlers = []
         logl = {
             'debug': logging.DEBUG,
@@ -1881,24 +1875,34 @@ class EngineProcessManager(object):
             'error': logging.ERROR,
             'critical': logging.CRITICAL
         }
-        loglevel = None
+        loglevel = logging.INFO
         if 'loglevel' in kwargs:
             if kwargs['loglevel'] in logl:
                 loglevel = logl[kwargs['loglevel']]
+            else:
+                loglevel = kwargs['loglevel']
             del kwargs['loglevel']
-        stdout = logging.StreamHandler(sys.stdout)
-        stdout.set_name('stdout')
-        handlers.append(stdout)
-        handlers[0].setLevel(loglevel or logging.DEBUG)
+        if 'logger' in kwargs:
+            self.logger = kwargs['logger']
+            del kwargs['logger']
+        else:
+            self.logger = logging.getLogger(__name__)
+            stdout = logging.StreamHandler(sys.stdout)
+            stdout.set_name('stdout')
+            handlers.append(stdout)
+            handlers[0].setLevel(loglevel)
         if 'logfile' in kwargs:
             try:
                 fh = logging.FileHandler(kwargs['logfile'])
                 handlers.append(fh)
-                handlers[-1].setLevel(loglevel or logging.INFO)
+                handlers[-1].setLevel(loglevel)
             except OSError:
                 pass
             del kwargs['logfile']
-
+        formatter = logging.Formatter(
+            fmt='[{levelname}] LiSE.proxy({process})\t{message}',
+            style='{'
+        )
         for handler in handlers:
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
