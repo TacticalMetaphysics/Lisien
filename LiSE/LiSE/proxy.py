@@ -1863,7 +1863,11 @@ class EngineProcessManager(object):
         (handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
         (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
         self.logq = Queue()
-        self.logger = logging.getLogger(__name__)
+        if 'logger' in kwargs:
+            self.logger = kwargs['logger']
+            del kwargs['logger']
+        else:
+            self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
             fmt='[{levelname}] LiSE.proxy({process})\t{message}',
