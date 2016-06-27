@@ -303,7 +303,7 @@ class ArrowWidget(Widget):
             return
         elif (
                 pawn.thing['next_arrival_time'] and
-                self.app.tick >= pawn.thing['next_arrival_time']
+                self.board.tick >= pawn.thing['next_arrival_time']
         ):
             pawn.pos = self.pos_along(1)
             return
