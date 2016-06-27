@@ -1925,13 +1925,11 @@ class EngineProcessManager(object):
         return self.engine_proxy
 
     def sync_log(self, limit=None, block=True):
-        def log_once():
-            (level, message) = self.logq.get(block=block)
-            getattr(self.logger, level)(message)
         n = 0
         while limit is None or n < limit:
             try:
-                log_once()
+                (level, message) = self.logq.get(block=block)
+                getattr(self.logger, level)(message)
                 n += 1
             except Empty:
                 return
