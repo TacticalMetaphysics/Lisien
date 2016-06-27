@@ -59,6 +59,9 @@ class Spot(PawnSpot):
             pos=self._trigger_upd_collider
         )
 
+    def on_board(self, *args):
+        self.board.bind(size=self._upd_pos)
+
     def _upd_collider(self, *args):
         rx = self.width / 2
         ry = self.height / 2
