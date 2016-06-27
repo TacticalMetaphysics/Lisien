@@ -1,5 +1,6 @@
 import os
 from importlib import import_module
+from kivy.logger import Logger
 from kivy.properties import (
     AliasProperty,
     ObjectProperty
@@ -71,7 +72,7 @@ class GameApp(App):
                 engine.method['game_start'](engine)
             engine.close()
         self.procman = LiSE.proxy.EngineProcessManager()
-        self.engine = self.procman.start(self.worlddb, self.codedb)
+        self.engine = self.procman.start(self.worlddb, self.codedb, logger=Logger)
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)
