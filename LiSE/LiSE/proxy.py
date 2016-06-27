@@ -1924,9 +1924,9 @@ class EngineProcessManager(object):
         )
         return self.engine_proxy
 
-    def sync_log(self, limit=None):
+    def sync_log(self, limit=None, block=True):
         def log_once():
-            (level, message) = self.logq.get(block=False)
+            (level, message) = self.logq.get(block=block)
             getattr(self.logger, level)(message)
         n = 0
         while limit is None or n < limit:
@@ -1939,7 +1939,6 @@ class EngineProcessManager(object):
     def sync_log_forever(self):
         while True:
             self.sync_log(1)
-            sleep(0.01)
 
     def shutdown(self):
         self.engine_proxy.close()
