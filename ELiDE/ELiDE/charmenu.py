@@ -71,7 +71,7 @@ class CharMenu(BoxLayout):
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""
-        if self.app.current != 'chars':
+        if self.app.manager.current != 'chars':
             adapter = self.app.chars.charsview.adapter
             adapter.data = list(self.app.character)
             adapter.select_list(
@@ -119,7 +119,7 @@ class CharMenu(BoxLayout):
 
     def toggle_pawn_cfg(self):
         """Show or hide the pop-over where you can configure the dummy pawn"""
-        if self.app.current == 'pawncfg':
+        if self.app.manager.current == 'pawncfg':
             dummything = self.app.dummything
             self.ids.thingtab.remove_widget(dummything)
             dummything.clear()
