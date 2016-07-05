@@ -55,21 +55,21 @@ class PawnSpot(ImageStack):
             stackhs=self._trigger_push_stackhs
         )
 
-    def push_image_paths(self, *args):
+    @trigger
+    def _trigger_push_image_paths(self, *args):
         self.remote['_image_paths'] = list(self.paths)
-    _trigger_push_image_paths = trigger(push_image_paths)
 
-    def push_offxs(self, *args):
+    @trigger
+    def _trigger_push_offxs(self, *args):
         self.remote['_offxs'] = list(self.offxs)
-    _trigger_push_offxs = trigger(push_offxs)
 
-    def push_offys(self, *args):
+    @trigger
+    def _trigger_push_offys(self, *args):
         self.remote['_offys'] = list(self.offys)
-    _trigger_push_offys = trigger(push_offys)
 
-    def push_stackhs(self, *args):
+    @trigger
+    def _trigger_push_stackhs(self, *args):
         self.remote['_stackhs'] = list(self.stackhs)
-    _trigger_push_stackhs = trigger(push_stackhs)
 
     def on_linecolor(self, *args):
         """If I don't yet have the instructions for drawing the selection box

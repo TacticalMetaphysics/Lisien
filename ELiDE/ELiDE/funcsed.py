@@ -164,7 +164,6 @@ class FuncsEdBox(BoxLayout):
 
 
 class FuncsEdScreen(Screen):
-    app = ObjectProperty()
     toggle = ObjectProperty()
 
 
@@ -263,8 +262,8 @@ Builder.load_string("""
                 id: triggers
                 toggle: root.toggle
                 table: 'triggers'
-                store: root.app.engine.trigger
-                on_data: root.app.rules.rulesview._trigger_pull_triggers()
+                store: app.engine.trigger
+                on_data: app.rules.rulesview._trigger_pull_triggers()
         TabbedPanelItem:
             id: prereq
             text: 'Prereq'
@@ -273,8 +272,8 @@ Builder.load_string("""
                 id: prereqs
                 toggle: root.toggle
                 table: 'prereqs'
-                store: root.app.engine.prereq
-                on_data: root.app.rules.rulesview._trigger_pull_prereqs()
+                store: app.engine.prereq
+                on_data: app.rules.rulesview._trigger_pull_prereqs()
         TabbedPanelItem:
             id: action
             text: 'Action'
@@ -283,8 +282,8 @@ Builder.load_string("""
                 id: actions
                 toggle: root.toggle
                 table: 'actions'
-                store: root.app.engine.action
-                on_data: root.app.rules.rulesview._trigger_pull_actions()
+                store: app.engine.action
+                on_data: app.rules.rulesview._trigger_pull_actions()
         TabbedPanelItem:
             id: other
             text: 'Other'
@@ -293,5 +292,5 @@ Builder.load_string("""
                 id: others
                 toggle: root.toggle
                 table: 'functions'
-                store: root.app.engine.function
+                store: app.engine.function
 """)

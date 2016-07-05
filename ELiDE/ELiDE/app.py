@@ -29,6 +29,9 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
+from ELiDE.board.arrow import ArrowWidget
+from ELiDE.board.spot import Spot
+from ELiDE.board.pawn import Pawn
 from .util import trigger
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
@@ -230,7 +233,6 @@ class ELiDEApp(App):
         )
 
         self.funcs = ELiDE.funcsed.FuncsEdScreen(
-            app=self,
             name='funcs',
             toggle=toggler('funcs')
         )
@@ -254,7 +256,6 @@ class ELiDEApp(App):
         )
 
         self.mainscreen = ELiDE.screen.MainScreen(
-            app=self,
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed'])
         )
@@ -314,6 +315,29 @@ class ELiDEApp(App):
 
     def on_selection(self, *args):
         Logger.debug("ELiDEApp: selection {}".format(self.selection))
+
+
+    def delete_selection(self):
+        """Delete both the selected widget and whatever it represents."""
+        selection = self.selection
+        if selection is None:
+            return
+        if isinstance(selection, ArrowWidget):
+            self.selection = None
+            self.screen.board.rm_arrow(
+                selection.origin.name,
+                selection.destination.name
+            )
+            selection.portal.delete()
+        elif isinstance(selection, Spot):
+            self.selection = None
+            self.screen.board.rm_spot(selection.name)
+            selection.remote.delete()
+        else:
+            assert isinstance(selection, Pawn)
+            self.selection = None
+            self.screen.board.rm_pawn(selection.name)
+            selection.remote.delete()
 
 
 kv = """

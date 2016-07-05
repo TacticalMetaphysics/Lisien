@@ -134,7 +134,7 @@ class MainScreen(Screen):
     own.
 
     """
-
+    manager = ObjectProperty()
     board = ObjectProperty()
     boardview = ObjectProperty()
     charmenu = ObjectProperty()
@@ -156,11 +156,11 @@ class MainScreen(Screen):
     app = ObjectProperty()
 
     def pull_visibility(self, *args):
-        self.visible = self.app.manager.current == 'main'
+        self.visible = self.manager.current == 'main'
 
-    def on_app(self, *args):
+    def on_manager(self, *args):
         self.pull_visibility()
-        self.app.manager.bind(current=self.pull_visibility)
+        self.manager.bind(current=self.pull_visibility)
 
     def on_play_speed(self, *args):
         """Change the interval at which ``self.play`` is called to match my
@@ -336,6 +336,7 @@ Builder.load_string(
             hint_text: str(root.screen.app.tick) if root.screen else ''
 <MainScreen>:
     name: 'main'
+    app: app
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     board: boardview.board
@@ -354,18 +355,18 @@ Builder.load_string(
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.height
         screen: root
-        engine: root.app.engine
-        character: root.app.character
-        branch: root.app.branch
-        tick: root.app.tick
+        engine: app.engine
+        character: app.character
+        branch: app.branch
+        tick: app.tick
         adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
-        engine: root.app.engine
-        branch: root.app.branch
-        tick: root.app.tick
-        remote: root.app.selected_remote
-        toggle_stat_cfg: root.app.statcfg.toggle
+        engine: app.engine
+        branch: app.branch
+        tick: app.tick
+        remote: app.selected_remote
+        toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
     TimePanel:

@@ -18,7 +18,6 @@ from .util import try_load, dummynum
 
 class CharMenu(BoxLayout):
     screen = ObjectProperty()
-    app = ObjectProperty()
     engine = ObjectProperty()
     reciprocal_portal = BooleanProperty()
     revarrow = ObjectProperty(None, allownone=True)
@@ -34,7 +33,6 @@ class CharMenu(BoxLayout):
         ):
             Clock.schedule_once(self.on_screen, 0)
             return
-        self.app = self.screen.app
         self.engine = self.screen.app.engine
         self.reciprocal_portal = self.screen.boardview.reciprocal_portal
         self.screen.boardview.bind(
@@ -46,28 +44,6 @@ class CharMenu(BoxLayout):
 
     def pawn_from_dummy(self, dummy):
         self.screen.boardview.pawn_from_dummy(dummy)
-
-    def delete_selection(self):
-        """Delete both the selected widget and whatever it represents."""
-        selection = self.app.selection
-        if selection is None:
-            return
-        if isinstance(selection, ArrowWidget):
-            self.app.selection = None
-            self.screen.board.rm_arrow(
-                selection.origin.name,
-                selection.destination.name
-            )
-            selection.portal.delete()
-        elif isinstance(selection, Spot):
-            self.app.selection = None
-            self.screen.board.rm_spot(selection.name)
-            selection.remote.delete()
-        else:
-            assert isinstance(selection, Pawn)
-            self.app.selection = None
-            self.screen.board.rm_pawn(selection.name)
-            selection.remote.delete()
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""
@@ -198,7 +174,7 @@ Builder.load_string("""
         on_press: root.toggle_rules()
     Button:
         text: 'Delete'
-        on_press: root.delete_selection()
+        on_press: app.delete_selection()
     BoxLayout:
         Widget:
             id: placetab
