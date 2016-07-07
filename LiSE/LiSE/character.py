@@ -51,6 +51,7 @@ from .place import Place
 from .portal import Portal
 from .util import getatt
 from .query import StatusAlias
+from .exc import AmbiguousAvatarError
 
 
 class AbstractCharacter(object):
@@ -1753,6 +1754,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     k = list(self.keys())[0]
                     return self.engine.character[self.graph].node[k]
                 raise KeyError("No such avatar")
+
+            def __setitem__(self, k, v):
+                ks = list(self.keys())
+                if len(ks) != 1:
+                    raise AmbiguousAvatarError("More than one avatar in {}; be more specific to set the stats of one.".format(self.graph))
+                self.engine.character[self.graph].node[ks[0]][k] = v
 
             def __repr__(self):
                 """Represent myself like a dictionary"""

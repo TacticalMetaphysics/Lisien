@@ -672,7 +672,9 @@ class EngineHandle(object):
         return list(self._real.character[char].avatar.keys())
 
     def character_avatars_in_graph(self, char, graph):
-        return list(self._real.character[char].avatar[graph].keys())
+        r = list(self._real.character[char].avatar[graph].keys())
+        self.debug(repr(r))
+        return r
 
     def count_character_avatar_graphs(self, char):
         return len(self._real.character[char].avatar)

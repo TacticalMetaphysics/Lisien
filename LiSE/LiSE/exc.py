@@ -17,7 +17,20 @@ except ImportError:
     from sqlite3 import IntegrityError
 
 
-class RedundantRuleError(ValueError):
+class AvatarError(ValueError):
+    pass
+
+
+class AmbiguousAvatarError(AvatarError):
+     """Error condition for when an AvatarMapping can't decide what you want."""
+     pass
+
+
+class RuleError(ValueError):
+    pass
+
+
+class RedundantRuleError(RuleError):
     """Error condition for when you try to run a rule on a (branch,
     tick) it's already been executed.
 
