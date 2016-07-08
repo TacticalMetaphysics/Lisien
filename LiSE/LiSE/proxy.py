@@ -1146,10 +1146,10 @@ class CharacterProxy(MutableMapping):
                 # really it shouldn't send the stat changes anyway,
                 # but let's be safe
                 self.node[node]._apply_diff(nodediff)
-        for (od, portdiff) in diff['portal_stat'].items():
-            (o, d) = od
-            if o in self.portal and d in self.portal[o]:
-                self.portal[o][d]._apply_diff(diff['portal_stat'])
+        for (orig, destdiff) in diff['portal_stat'].items():
+            for (dest, portdiff) in destdiff.items():
+               if orig in self.portal and dest in self.portal[orig]:
+                    self.portal[orig][dest]._apply_diff(portdiff)
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
