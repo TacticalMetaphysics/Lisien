@@ -18,12 +18,23 @@ from .util import try_load, dummynum
 
 class CharMenu(BoxLayout):
     screen = ObjectProperty()
-    engine = ObjectProperty()
     reciprocal_portal = BooleanProperty()
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
+
+    @property
+    def app(self):
+        if not self.screen:
+            raise AttributeError("No screen, therefore no app")
+        return self.screen.app
+
+    @property
+    def engine(self):
+        if not self.screen or not self.screen.app:
+            raise AttributeError("Can't get engine from screen")
+        return self.screen.app.engine
 
     def on_screen(self, *args):
         if not (
@@ -33,7 +44,6 @@ class CharMenu(BoxLayout):
         ):
             Clock.schedule_once(self.on_screen, 0)
             return
-        self.engine = self.screen.app.engine
         self.reciprocal_portal = self.screen.boardview.reciprocal_portal
         self.screen.boardview.bind(
             reciprocal_portal=self.setter('reciprocal_portal')
