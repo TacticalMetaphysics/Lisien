@@ -1844,13 +1844,13 @@ def subprocess(
             handle_in_pipe.close()
             logq.close()
             return 0
-        (silent, cmd, args) = engine_handle._real.json_load(inst)
+        (silent, cmd, args) = engine_handle.json_load(inst)
         log('command', (cmd, args))
         r = getattr(engine_handle, cmd)(*args)
         if silent:
             continue
         log('result', r)
-        handle_in_pipe.send(engine_handle._real.json_dump(r))
+        handle_in_pipe.send(engine_handle.json_dump(r))
 
 
 class RedundantProcessError(ProcessError):

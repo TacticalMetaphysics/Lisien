@@ -68,6 +68,12 @@ class EngineHandle(object):
     def critical(self, message):
         self.log('critical', message)
 
+    def json_load(self, s):
+        return self._real.json_load(s)
+
+    def json_dump(self, o):
+        return self._real.json_dump(o)
+
     def unwrap_character_stat(self, char, k, v):
         if isinstance(v, JSONReWrapper):
             return ('JSONReWrapper', 'character', char, k, v._v)
