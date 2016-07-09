@@ -26,6 +26,7 @@ class LiSEHandleWebService(object):
         cmdq = kwargs.pop('cmdq')
         outq = kwargs.pop('outq')
         logger = kwargs.pop('logger')
+        setup = kwargs.pop('setup', None)
         logq = Queue()
 
         def log(typ, data):
@@ -52,6 +53,8 @@ class LiSEHandleWebService(object):
             getattr(logger, level)(data)
 
         engine_handle = EngineHandle(args, kwargs, logq)
+        if setup:
+            setup(engine_handle._real)
         handle_log_thread = threading.Thread(
             target=get_log_forever, args=(logq,), daemon=True
         )
