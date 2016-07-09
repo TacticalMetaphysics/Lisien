@@ -21,6 +21,7 @@ setup(
     url="https://github.com/LogicalDash/LiSE",
     packages=[
         "LiSE",
+        "LiSE.server"
     ],
     package_data={
         'LiSE': ['sqlite.json']
