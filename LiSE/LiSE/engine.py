@@ -82,17 +82,6 @@ class AvatarnessCache(object):
         self.user_order[graph][node][character][branch][tick] = is_avatar
 
 
-class LiSEncoder(JSONEncoder):
-    def default(self, o):
-        t = type(o)
-        if t in sctypes['int']:
-            return int(o)
-        elif t in sctypes['float']:
-            return float(o)
-        else:
-            return super().default(o)
-
-
 class AbstractEngine(object):
     @reify
     def json_dump_hints(self):
@@ -107,26 +96,27 @@ class AbstractEngine(object):
             return partial(self.method[att], self)
         raise AttributeError
 
-    def _enc_tuple(self, obj):
+    @classmethod
+    def listify(cls, obj):
         if isinstance(obj, list):
-            return ["list"] + [self._enc_tuple(v) for v in obj]
+            return ["list"] + [cls.listify(v) for v in obj]
         elif isinstance(obj, tuple):
-            return ["tuple"] + [self._enc_tuple(v) for v in obj]
+            return ["tuple"] + [cls.listify(v) for v in obj]
         elif isinstance(obj, dict):
             return ["dict"] + [
-                [self._enc_tuple(k), self._enc_tuple(v)]
+                [cls.listify(k), cls.listify(v)]
                 for (k, v) in obj.items()
             ]
-        elif isinstance(obj, self.char_cls):
+        elif isinstance(obj, cls.char_cls):
             return ['character', obj.name]
-        elif isinstance(obj, self.node_cls):
+        elif isinstance(obj, cls.node_cls):
             return ['node', obj.character.name, obj.name]
-        elif isinstance(obj, self.portal_cls):
+        elif isinstance(obj, cls.portal_cls):
             return ['portal', obj.character.name, obj._origin, obj._destination]
         else:
             return obj
 
-    def _dec_tuple(self, obj):
+    def delistify(self, obj):
         if isinstance(obj, list) or isinstance(obj, tuple):
             if obj == [] or obj == ["list"]:
                 return []
@@ -135,46 +125,56 @@ class AbstractEngine(object):
             elif obj == ['dict']:
                 return {}
             elif obj[0] == 'list':
-                return [self._dec_tuple(p) for p in obj[1:]]
+                return [self.delistify(p) for p in obj[1:]]
             elif obj[0] == 'tuple':
-                return tuple(self._dec_tuple(p) for p in obj[1:])
+                return tuple(self.delistify(p) for p in obj[1:])
             elif obj[0] == 'dict':
                 return {
-                    self._dec_tuple(k): self._dec_tuple(v)
+                    self.delistify(k): self.delistify(v)
                     for (k, v) in obj[1:]
                 }
             elif obj[0] == 'character':
-                return self.character[self._dec_tuple(obj[1])]
+                return self.character[self.delistify(obj[1])]
             elif obj[0] == 'node':
-                return self.character[self._dec_tuple(obj[1])].node[self._dec_tuple(obj[2])]
+                return self.character[self.delistify(obj[1])].node[self.delistify(obj[2])]
             elif obj[0] == 'portal':
-                return self.character[self._dec_tuple(obj[1])].portal[self._dec_tuple(obj[2])][self._dec_tuple(obj[3])]
+                return self.character[self.delistify(obj[1])].portal[self.delistify(obj[2])][self.delistify(obj[3])]
             else:
                 raise ValueError("Unknown sequence type: {}".format(obj[0]))
         else:
             return obj
 
-    def json_dump(self, obj):
-        """JSON dumper that distinguishes lists from tuples, and handles
-        pointers to Node, Portal, and Character.
+    @classmethod
+    def get_encoder(cls):
+        if not hasattr(cls, '_json_encoder'):
+            class Encoder(JSONEncoder):
+                def encode(self, o):
+                    return super().encode(cls.listify(o))
 
-        """
-        if isinstance(obj, self.node_cls):
-            return dumps(["node", obj.character.name, obj.name])
-        if isinstance(obj, self.portal_cls):
-            return dumps(["portal", obj.character.name, obj.orign, obj.destn])
-        if isinstance(obj, self.char_cls):
-            return dumps(["character", obj.name])
-        k = str(obj)
-        if k not in self.json_dump_hints:
-            self.json_dump_hints[k] = dumps(self._enc_tuple(obj), cls=LiSEncoder)
-        return self.json_dump_hints[k]
+                def default(self, o):
+                    t = type(o)
+                    if t in sctypes['int']:
+                        return int(o)
+                    elif t in sctypes['float']:
+                        return float(o)
+                    else:
+                        return super().default(o)
+            cls._json_encoder = Encoder
+        return cls._json_encoder
+
+    def json_dump(self, obj):
+        try:
+            if obj not in self.json_dump_hints:
+                self.json_dump_hints[obj] = dumps(obj, cls=self.get_encoder())
+            return self.json_dump_hints[obj]
+        except TypeError:
+            return dumps(obj, cls=self.get_encoder())
 
     def json_load(self, s):
         if s is None:
             return None
         if s not in self.json_load_hints:
-            self.json_load_hints[s] = self._dec_tuple(loads(s))
+            self.json_load_hints[s] = self.delistify(loads(s))
         return self.json_load_hints[s]
 
 
