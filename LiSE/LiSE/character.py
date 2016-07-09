@@ -51,7 +51,7 @@ from .place import Place
 from .portal import Portal
 from .util import getatt
 from .query import StatusAlias
-from .exc import AmbiguousAvatarError
+from .exc import AmbiguousAvatarError, WorldIntegrityError
 
 
 class AbstractCharacter(object):
@@ -1846,6 +1846,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         any).
 
         """
+        if name in self.thing:
+            raise WorldIntegrityError(
+                "Already have a Thing named {}".format(name)
+            )
         super().add_node(name, **kwargs)
         if isinstance(location, Node):
             location = location.name

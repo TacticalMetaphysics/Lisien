@@ -46,6 +46,13 @@ class UserFunctionError(SyntaxError):
     pass
 
 
+class WorldIntegrityError(ValueError):
+    """Error condition for when something breaks the world model, even if
+    it might be allowed by the database schema.
+
+    """
+
+
 class CacheError(ValueError):
     """Error condition for something going wrong with a cache"""
     pass
