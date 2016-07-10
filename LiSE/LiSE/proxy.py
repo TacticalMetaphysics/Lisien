@@ -12,6 +12,7 @@ from collections import (
 )
 from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
+from multiprocessing import Lock as mpLock
 from queue import Empty
 
 from .engine import AbstractEngine
@@ -1659,11 +1660,12 @@ class EngineProxy(AbstractEngine):
                     )
         return r
 
-    def __init__(self, handle_out, handle_in, logger):
+    def __init__(self, handle_out, handle_in, cmdlock, logger):
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
+        self._cmd_lock = cmdlock
         self.logger = logger
         (self._branch, self._tick) = self.handle('get_watched_time')
 
@@ -1696,7 +1698,10 @@ class EngineProxy(AbstractEngine):
     def handle(self, func_name, args=[], silent=False):
         self.send(self.json_dump((silent, func_name, args)))
         if not silent:
-            return self.json_load(self.recv())
+            self._cmd_lock.acquire()
+            result = self.json_load(self.recv())
+            self._cmd_lock.release()
+            return result
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
@@ -1814,7 +1819,7 @@ class EngineProxy(AbstractEngine):
 
 
 def subprocess(
-    args, kwargs, handle_out_pipe, handle_in_pipe, logq
+    args, kwargs, handle_out_pipe, handle_in_pipe, cmdlock, logq
 ):
     def log(typ, data):
         if typ == 'command':
@@ -1835,10 +1840,11 @@ def subprocess(
                     data,
                     repr(type(data)))
             ))
-    engine_handle = EngineHandle(args, kwargs, logq)
+    engine_handle = EngineHandle(args, kwargs, cmdlock, logq)
 
     while True:
         inst = handle_out_pipe.recv()
+        cmdlock.acquire()
         if inst == 'shutdown':
             handle_out_pipe.close()
             handle_in_pipe.close()
@@ -1851,6 +1857,7 @@ def subprocess(
             continue
         log('result', r)
         handle_in_pipe.send(engine_handle.json_dump(r))
+        cmdlock.release()
 
 
 class RedundantProcessError(ProcessError):
@@ -1906,6 +1913,7 @@ class EngineProcessManager(object):
         for handler in handlers:
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
+        cmdlock = mpLock()
         self._p = Process(
             name='LiSE Life Simulator Engine (core)',
             target=subprocess,
@@ -1914,6 +1922,7 @@ class EngineProcessManager(object):
                 kwargs,
                 handle_out_pipe_recv,
                 handle_in_pipe_send,
+                cmdlock,
                 self.logq
             )
         )
@@ -1928,6 +1937,7 @@ class EngineProcessManager(object):
         self.engine_proxy = EngineProxy(
             self._handle_out_pipe_send,
             handle_in_pipe_recv,
+            cmdlock,
             self.logger,
         )
         return self.engine_proxy
