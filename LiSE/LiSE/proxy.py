@@ -1811,10 +1811,10 @@ class EngineProxy(AbstractEngine):
             del self.character[charname].portal[orig]._cache[dest]
 
     def commit(self):
-        self.handle('commit')
+        self.handle('commit', silent=True)
 
     def close(self):
-        self.handle('close')
+        self.handle('close', silent=True)
         self.send('shutdown')
 
 
