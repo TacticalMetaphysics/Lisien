@@ -319,24 +319,26 @@ class EngineHandle(object):
         }
 
     def node_stat_diff(self, char, node):
-        """Return a dictionary describing changes to a node's stats since the
-        last time you looked at it.
+        """Return a dict of changes to a node's stats.
 
-        Deleted keys have the value ``None``. If the node's been deleted, this
-        returns ``None``.
+        Keys will be stats; values will be the most recent value for the stat,
+        or None if it's been deleted. Stats that haven't changed won't be in
+        the dictionary. If the node doesn't exist, returns None.
+
+        Changes are with respect to the last time you called this method on
+        the same node. If you never have, you'll get all its current stats.
 
         """
         try:
             old = self._node_stat_cache[char].get(node, {})
             new = self.node_stat_copy(char, node)
             self._node_stat_cache[char][node] = new
-            r = dict_diff(old, new)
-            return r
+            return dict_diff(old, new)
         except KeyError:
             return None
 
     def character_nodes_stat_diff(self, char):
-        """Return a dictionary of ``node_stat_diff`` output for each node in a character."""
+        """Return a dict of ``node_stat_diff`` for each node in ``char``."""
         r = {}
         for node in self._real.character[char].node:
             diff = self.node_stat_diff(char, node)
@@ -384,7 +386,9 @@ class EngineHandle(object):
     def character_things_diff(self, char):
         """Return a dictionary describing added and deleted things.
 
-        Returns ``None`` if the character doesn't exist."""
+        Returns ``None`` if the character doesn't exist.
+
+        """
         try:
             new = self.character_things(char)
             old = self._char_things_cache.get(char, [])
@@ -402,9 +406,15 @@ class EngineHandle(object):
         return thing in self._real.character[char].thing
 
     def character_places(self, char):
+        """Return a list of all the places in a character."""
         return list(self._real.character[char].place)
 
     def character_places_diff(self, char):
+        """Return a dictionary describing added and deleted places.
+
+        Returns ``None`` if the character doesn't exist.
+
+        """
         try:
             old = self._char_places_cache.get(char, [])
             new = self.character_places(char)
@@ -414,18 +424,23 @@ class EngineHandle(object):
             return None
 
     def character_places_len(self, char):
+        """How many places are in this character?"""
         return len(self._real.character[char].place)
 
     def character_has_place(self, char, place):
+        """Does this character have a place by this name?"""
         return place in self._real.character[char].place
 
     def character_nodes(self, char):
+        """Return a list of all the nodes in the character."""
         return list(self._real.character[char].node.keys())
 
     def character_predecessor_nodes(self, char):
+        """What nodes in this character have at least one outgoing portal?"""
         return list(self._real.character[char].adj.keys())
 
     def node_has_predecessor(self, char, node):
+        """Is this node pointed-to by at least one portal?"""
         return node in self._real.character[char].pred.keys()
 
     def node_predecessors_len(self, char, node):
@@ -630,6 +645,13 @@ class EngineHandle(object):
         }
 
     def portal_stat_diff(self, char, o, d):
+        """Return a dict describing changes in the specified portal.
+
+        Keys will be stats; values will be the most recent value for the stat,
+        or None if it's been deleted. Stats that haven't changed won't be in
+        the dictionary.
+
+        """
         try:
             old = self._portal_stat_cache[char][o].get(d, {})
             new = self.portal_stat_copy(char, o, d)

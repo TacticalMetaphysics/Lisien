@@ -1868,6 +1868,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def new_thing(
             self, name, location, next_location=None, statdict={}, **kwargs
     ):
+        """Create and return a Thing.
+
+        If there's already a Thing by the same name, this will append a number
+        to the name provided.
+        """
         kwargs.update(statdict)
         if name not in self.node:
             self.add_thing(name, location, next_location, **kwargs)
@@ -1943,8 +1948,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.add_portal(orig, dest, **kwargs)
 
     def add_avatar(self, a, b=None):
-        """Start keeping track of a :class:`Thing` or :class:`Place` in a
+        """Make an avatar of a :class:`Thing` or :class:`Place` in a
         different :class:`Character`.
+
+        It will appear in my ``avatar`` mapping, and any rules applied to that
+        will apply to this new avatar.
 
         """
         if b is None:
