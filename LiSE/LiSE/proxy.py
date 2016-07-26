@@ -1949,7 +1949,7 @@ def subprocess(
             logq.close()
             return 0
         instruction = engine_handle.json_load(inst)
-        silent = instruction.pop('silent')
+        silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
         log('command', (cmd, instruction))
         r = getattr(engine_handle, cmd)(**instruction)
