@@ -1746,22 +1746,26 @@ class EngineProxy(AbstractEngine):
             return
         self.character[char]._apply_diff(chardiff)
 
-    def _inc_tick(self, char, chardiff):
+    def _inc_tick(self, *args):
         self._tick += 1
 
-    def _set_time(self, char, chardiff, **kwargs):
+    def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
         self._tick = kwargs['tick']
 
     def next_tick(self, char=None, cb=None):
         if cb and not char:
             raise TypeError("Callbacks require char name")
+
+        def upon_next_tick(func_name,  args,  result):
+            self._inc_tick()
+            self._upd_char_cache(args[0],  result)
+            if cb:
+                cb(func_name,  args,  result)
         if char:
-            self.send(self.json_dump((False, 'next_tick', [char])))
             Thread(
-                target=self._call_with_recv,
-                args=(char, self._inc_tick, self._upd_char_cache, cb) if cb else
-                (char, self._inc_tick, self._upd_char_cache,)
+                target=self.handle, 
+                args=('next_tick',  (char,),  upon_next_tick)
             ).start()
         else:
             self.handle('next_tick', (char,), silent=True)
