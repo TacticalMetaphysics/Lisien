@@ -1692,11 +1692,15 @@ class EngineProxy(AbstractEngine):
     def critical(self, msg):
         self.logger.critical(msg)
 
-    def handle(self, func_name, args=[], silent=False):
+    def handle(self, func_name, args=[], cb=None, silent=False):
+        if silent and cb:
+            raise ValueError("Silent callbacks make no sense")
         self.send(self.json_dump((silent, func_name, args)))
         if not silent:
             self._cmd_barrier.wait()
             result = self.json_load(self.recv())
+            if cb:
+                cb(func_name,  args,  result)
             return result
 
     def json_rewrap(self, r):
