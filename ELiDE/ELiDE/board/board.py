@@ -580,7 +580,7 @@ class Board(RelativeLayout):
                 spots_added.append(spot)
         self.engine.handle(
             'update_nodes',
-            char=self.character.name,
+            char=self.character.name, 
             patch=nodes_patch
         )
         for spot in spots_added:

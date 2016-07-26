@@ -163,19 +163,21 @@ class AbstractEngine(object):
         return cls._json_encoder
 
     def json_dump(self, obj):
-        try:
-            if obj not in self.json_dump_hints:
-                self.json_dump_hints[obj] = dumps(obj, cls=self.get_encoder())
-            return self.json_dump_hints[obj]
-        except TypeError:
-            return dumps(obj, cls=self.get_encoder())
+        return dumps(obj,  cls=self.get_encoder())
+#        try:
+#            if obj not in self.json_dump_hints:
+#                self.json_dump_hints[obj] = dumps(obj, cls=self.get_encoder())
+#            return self.json_dump_hints[obj]
+#        except TypeError:
+#            return dumps(obj, cls=self.get_encoder())
 
     def json_load(self, s):
         if s is None:
             return None
-        if s not in self.json_load_hints:
-            self.json_load_hints[s] = self.delistify(loads(s))
-        return self.json_load_hints[s]
+        return self.delistify(loads(s))
+#        if s not in self.json_load_hints:
+#            self.json_load_hints[s] = self.delistify(loads(s))
+#        return self.json_load_hints[s]
 
 
 class Engine(AbstractEngine, gORM):
