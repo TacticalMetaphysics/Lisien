@@ -1772,10 +1772,12 @@ class EngineProxy(AbstractEngine):
             raise ValueError("No command")
         if 'silent' not in kwargs:
             kwargs['silent'] = False
+        cmd = kwargs['command']
         self.send(self.json_dump(kwargs))
         if not kwargs['silent']:
             self._cmd_barrier.wait()
             result = self.json_load(self.recv())
+            assert result['command'] == cmd
             return result
 
     def json_rewrap(self, r):
@@ -1951,6 +1953,7 @@ def subprocess(
         if silent:
             continue
         log('result', r)
+        r['command'] = cmd
         handle_in_pipe.send(engine_handle.json_dump(r))
         cmd_barrier.wait()
 
