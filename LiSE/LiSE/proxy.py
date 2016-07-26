@@ -1767,12 +1767,15 @@ class EngineProxy(AbstractEngine):
     def critical(self, msg):
         self.logger.critical(msg)
 
-    def handle(self, **kwargs):
-        if 'command' not in kwargs:
-            raise ValueError("No command")
+    def handle(self, cmd=None, **kwargs):
+        if 'command' in kwargs:
+            cmd = kwargs['command']
+        elif cmd:
+            kwargs['command'] = cmd
+        else:
+            raise TypeError("No command")
         if 'silent' not in kwargs:
             kwargs['silent'] = False
-        cmd = kwargs['command']
         self.send(self.json_dump(kwargs))
         if not kwargs['silent']:
             self._cmd_barrier.wait()
