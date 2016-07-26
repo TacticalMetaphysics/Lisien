@@ -11,7 +11,7 @@ from collections import (
     MutableSequence
 )
 from threading import Thread, Lock
-from multiprocessing import Process, Pipe, Queue, ProcessError, Barrier
+from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
 
 from .engine import AbstractEngine
@@ -1657,12 +1657,11 @@ class EngineProxy(AbstractEngine):
                     )
         return r
 
-    def __init__(self, handle_out, handle_in, cmd_barrier, logger):
+    def __init__(self, handle_out, handle_in, logger):
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
-        self._cmd_barrier = cmd_barrier
         self.logger = logger
         (self._branch, self._tick) = self.handle('get_watched_time')
 
@@ -1697,7 +1696,6 @@ class EngineProxy(AbstractEngine):
             raise ValueError("Silent callbacks make no sense")
         self.send(self.json_dump((silent, func_name, args)))
         if not silent:
-            self._cmd_barrier.wait()
             result = self.json_load(self.recv())
             if cb:
                 cb(func_name,  args,  result)
@@ -1827,7 +1825,7 @@ class EngineProxy(AbstractEngine):
 
 
 def subprocess(
-    args, kwargs, handle_out_pipe, handle_in_pipe, cmd_barrier, logq
+    args, kwargs, handle_out_pipe, handle_in_pipe,  logq
 ):
     def log(typ, data):
         if typ == 'command':
@@ -1873,7 +1871,6 @@ def subprocess(
             continue
         log('result', r)
         handle_in_pipe.send(engine_handle.json_dump(r))
-        cmd_barrier.wait()
 
 
 class RedundantProcessError(ProcessError):
@@ -1929,7 +1926,6 @@ class EngineProcessManager(object):
         for handler in handlers:
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
-        cmd_barrier = Barrier(parties=2)
         self._p = Process(
             name='LiSE Life Simulator Engine (core)',
             target=subprocess,
@@ -1938,7 +1934,6 @@ class EngineProcessManager(object):
                 kwargs,
                 handle_out_pipe_recv,
                 handle_in_pipe_send,
-                cmd_barrier,
                 self.logq
             )
         )
