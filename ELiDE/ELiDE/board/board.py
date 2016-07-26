@@ -579,7 +579,9 @@ class Board(RelativeLayout):
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
         self.engine.handle(
-            'update_nodes', (self.character.name, nodes_patch)
+            'update_nodes',
+            char=self.character.name,
+            patch=nodes_patch
         )
         for spot in spots_added:
             spot.finalize()
@@ -683,7 +685,9 @@ class Board(RelativeLayout):
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
         self.engine.handle(
-            'update_nodes', (self.character.name, nodes_patch)
+            'update_nodes',
+            char=self.character.name,
+            patch=nodes_patch
         )
         for pwn in pawns_added:
             pwn.finalize()
