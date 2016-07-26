@@ -19,7 +19,6 @@ from .character import Facade
 from gorm.xjson import (
     JSONReWrapper,
     JSONListReWrapper,
-    json_deepcopy
 )
 from gorm.reify import reify
 from .handle import EngineHandle
