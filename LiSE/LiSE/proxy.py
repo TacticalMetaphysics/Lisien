@@ -1037,7 +1037,7 @@ class AvatarMapProxy(Mapping):
     def __contains__(self, k):
         return self.character.engine.handle(
             command='character_has_avatar_in',
-            character=self.character.name,
+            char=self.character.name,
             graph=k
         )
 
