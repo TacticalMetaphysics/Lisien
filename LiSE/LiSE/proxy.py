@@ -1779,9 +1779,9 @@ class EngineProxy(AbstractEngine):
         self.send(self.json_dump(kwargs))
         if not kwargs['silent']:
             self._cmd_barrier.wait()
-            command,  result = self.json_load(self.recv())
+            command,  result = self.recv()
             assert cmd == command
-            return result
+            return self.json_load(result)
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
