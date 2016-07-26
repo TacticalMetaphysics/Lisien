@@ -1587,7 +1587,7 @@ class EngineProxy(AbstractEngine):
 
     @tick.setter
     def tick(self, v):
-        self.handle('set_tick', tick=, silent=True)
+        self.handle('set_tick', tick=v, silent=True)
         self._tick = v
 
     @property
