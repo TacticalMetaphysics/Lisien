@@ -1768,6 +1768,8 @@ class EngineProxy(AbstractEngine):
                 args=('next_tick',  (char,),  upon_next_tick)
             ).start()
         else:
+            # If you don't listen to some specific character you don't get updated
+            # on anything. This is bad.
             self.handle('next_tick', (char,), silent=True)
 
     def time_travel(self, branch, tick, char=None, cb=None):
