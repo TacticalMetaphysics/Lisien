@@ -1742,6 +1742,8 @@ class EngineProxy(AbstractEngine):
             cb(char, received, **kwargs)
 
     def _upd_char_cache(self, char, chardiff, **kwargs):
+        if not chardiff:
+            return
         self.character[char]._apply_diff(chardiff)
 
     def _inc_tick(self, char, chardiff):
