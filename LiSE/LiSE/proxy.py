@@ -1953,16 +1953,15 @@ class EngineProcessManager(object):
         self.engine_proxy = EngineProxy(
             self._handle_out_pipe_send,
             handle_in_pipe_recv,
-            cmd_barrier,
             self.logger,
         )
         return self.engine_proxy
 
-    def sync_log(self, limit=None, block=True):
+    def sync_log(self, limit=None):
         n = 0
         while limit is None or n < limit:
             try:
-                (level, message) = self.logq.get(block=block)
+                (level, message) = self.logq.get()
                 getattr(self.logger, level)(message)
                 n += 1
             except Empty:
