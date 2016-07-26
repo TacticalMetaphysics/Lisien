@@ -1023,17 +1023,12 @@ class AvatarMapProxy(Mapping):
             return self.graph.node[k]
 
         def __getattr__(self, attr):
-            it = iter(self.values())
-            try:
-                me = next(it)
-            except StopIteration:
-                raise AttributeError("No attribute {}, and no avatar to delegate to".format(attr))
-            try:
-                next(it)
-                raise AttributeError("No attribute {}, and more than one avatar".format(attr))
-            except StopIteration:
-                return getattr(me, attr)
-            raise AttributeError
+            vals = list(self.values())
+            if not vals:
+                raise AttributeError("No attribute {},  and no avatar to delegate to".format(attr))
+            if len(vals) > 1:
+                raise AttributeError("No attribute {},  and more than one avatar".format(attr))
+            return getattr(vals[0],  attr)
 
     def __getitem__(self, k):
         if k not in self:
