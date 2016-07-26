@@ -1840,13 +1840,22 @@ def subprocess(
                     tuple(args)
                 )
             ))
-        else:
+        elif typ == 'result':
             logq.put((
                 'debug',
                 "LiSE proc {}: returning {} (of type {})".format(
                     getpid(),
                     data,
                     repr(type(data)))
+            ))
+        else:
+            logq.put((
+                'debug',
+                'LiSE proc {}: {}, {}'.format(
+                    getpid(),
+                    typ,
+                    data
+                )
             ))
     engine_handle = EngineHandle(args, kwargs, logq)
 
