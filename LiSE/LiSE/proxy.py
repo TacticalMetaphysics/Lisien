@@ -387,10 +387,6 @@ class PortalProxy(CachingEntityProxy):
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
-        if hasattr(other, 'engine'):
-            oe = other.engine
-        else:
-            return False
         return (
             hasattr(other, 'character') and
             hasattr(other, 'origin') and
