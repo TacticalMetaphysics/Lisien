@@ -1819,13 +1819,14 @@ class EngineProxy(AbstractEngine):
     def json_load(self, s):
         return self.json_rewrap(super().json_load(s))
 
-    def _call_with_recv(self, char, *cbs, **kwargs):
+    def _call_with_recv(self, *cbs, **kwargs):
         received = self.json_load(self.recv())
         for cb in cbs:
-            cb(char, received, **kwargs)
+            cb(received, **kwargs)
 
-    def _upd_char_cache(self, char, chardiff, **kwargs):
-        self.character[char]._apply_diff(chardiff)
+    def _upd_chars_caches(self, chardiffs, **kwargs):
+        for (char, chardiff) in chardiffs.items():
+            self.character[char]._apply_diff(chardiff)
 
     def _inc_tick(self, char, chardiff):
         self._tick += 1
@@ -1834,18 +1835,28 @@ class EngineProxy(AbstractEngine):
         self._branch = kwargs['branch']
         self._tick = kwargs['tick']
 
-    def next_tick(self, char=None, cb=None):
-        if cb and not char:
-            raise TypeError("Callbacks require char name")
-        if char:
-            self.send(self.json_dump((False, 'next_tick', [char])))
+    def next_tick(self, chars=[], cb=None, silent=False):
+        if cb and not chars:
+            raise TypeError("Callback requires chars")
+        if cb and silent:
+            raise TypeError("Callback can't be called if I'm silenced")
+        if chars and silent:
+            raise TypeError("Character diff can't be applied when silenced")
+        if chars:
+            self.send(self.json_dump({
+                'silent': False,
+                'command': 'next_tick',
+                'chars': chars
+            }))
             Thread(
                 target=self._call_with_recv,
-                args=(char, self._inc_tick, self._upd_char_cache, cb) if cb else
-                (char, self._inc_tick, self._upd_char_cache,)
+                args=(self._inc_tick, self._upd_chars_caches, cb) if cb else
+                (self._inc_tick, self._upd_chars_caches,)
             ).start()
+        elif silent:
+            self.handle(command='next_tick', chars=[], silent=True)
         else:
-            self.handle(command='next_tick', char=char, silent=True)
+            return self.handle(command='next_tick', chars='all')
 
     def time_travel(self, branch, tick, char=None, cb=None):
         if cb and not char:
