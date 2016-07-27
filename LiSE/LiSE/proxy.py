@@ -1820,7 +1820,7 @@ class EngineProxy(AbstractEngine):
         return self.json_rewrap(super().json_load(s))
 
     def _call_with_recv(self, *cbs, **kwargs):
-        received = self.json_load(self.recv())
+        received = self.json_load(self.recv()[1])
         for cb in cbs:
             cb(received, **kwargs)
 
@@ -1828,10 +1828,10 @@ class EngineProxy(AbstractEngine):
         for (char, chardiff) in chardiffs.items():
             self.character[char]._apply_diff(chardiff)
 
-    def _inc_tick(self, char, chardiff):
+    def _inc_tick(self, *args):
         self._tick += 1
 
-    def _set_time(self, char, chardiff, **kwargs):
+    def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
         self._tick = kwargs['tick']
 
