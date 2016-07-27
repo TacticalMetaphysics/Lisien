@@ -1647,99 +1647,48 @@ class EngineProxy(AbstractEngine):
     def method(self):
         return FuncStoreProxy(self, 'method')
 
-    @reify
-    def _node_stat_cache(self):
-        r = defaultdict(  # character
-            lambda: defaultdict(  # node
-                dict  # stat: value
-            )
-        )
-        for char in self.character:
-            for (node, stats) in self.handle(
-                    command='character_nodes_stat_diff', char=char
-            ).items():
-                r[char][node] = stats
-        return r
-
-    @reify
-    def _portal_stat_cache(self):
-        r = defaultdict(  # character
-            lambda: defaultdict(  # origin
-                lambda: defaultdict(  # destination
-                    dict  # stat: value
-                )
-            )
-        )
-        for char in self.character:
-            diff = self.handle(
-                command='character_portals_stat_diff', char=char
-            )
-            for orig in diff:
-                for dest in diff[orig]:
-                    r[char][orig][dest] = diff[orig][dest]
-        return r
-
-    @reify
-    def _char_stat_cache(self):
-        r = defaultdict(dict)
-        for char in self.character:
-            r[char] = self.handle(
-                command='character_stat_diff', char=char
-            )
-        return r
-
-    @reify
-    def _things_cache(self):
-        r = defaultdict(dict)
-        for char in self.character:
-            for (thing, ex) in self.handle(
-                    command='character_things_diff', char=char
-            ).items():
-                if ex:
-                    r[char][thing] = ThingProxy(
-                        self, char, thing
-                    )
-        return r
-
-    @reify
-    def _character_places_cache(self):
-        r = defaultdict(dict)
-        for char in self.character:
-            for (place, ex) in self.handle(
-                    command='character_places_diff', char=char
-            ).items():
-                if ex:
-                    r[char][place] = PlaceProxy(
-                        self, char, place
-                    )
-        return r
-
-    @reify
-    def _character_portals_cache(self):
-        r = defaultdict(
-            lambda: defaultdict(dict)
-        )
-        for char in self.character:
-            for ((orig, dest), ex) in self.handle(
-                command='character_portals_diff', char=char
-            ).items():
-                if ex:
-                    r[char][orig][dest] = PortalProxy(
-                        self,
-                        char,
-                        orig,
-                        dest
-                    )
-        return r
-
     def __init__(self, handle_out, handle_in, cmd_barrier, logger):
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
+        self._handle_lock = Lock()
         self._cmd_barrier = cmd_barrier
         self.logger = logger
         (self._branch, self._tick) = self.handle(command='get_watched_time')
+        self._portal_stat_cache = {}
+        self._node_stat_cache = {}
+        self._char_stat_cache = defaultdict(dict)
+        self._things_cache = defaultdict(dict)
+        self._character_places_cache = defaultdict(dict)
+        self._character_portals_cache = defaultdict(lambda: defaultdict(dict))
+        charsdiffs = self.handle('get_chardiffs', chars='all')
+        for char in charsdiffs:
+            self._char_stat_cache[char] = charsdiffs[char]['character_stat']
+            self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
+            self._node_stat_cache[char] = charsdiffs[char]['node_stat']
+            for (thing, ex) in charsdiffs[char]['things'].items():
+                if ex:
+                    self._things_cache[char][thing] = ThingProxy(self, char, thing)
+            for (place, ex) in charsdiffs[char]['places'].items():
+                if ex:
+                    self._character_places_cache[char][place] = PlaceProxy(self, char, place)
+            for (orig, dest), ex in charsdiffs[char]['portals'].items():
+                if ex:
+                    self._character_portals_cache[char][orig][dest] = PortalProxy(self, char, orig, dest)
+
+    def delistify(self, obj):
+        try:
+            return super().delistify(obj)
+        except KeyError:
+            if obj[0] == 'character':
+                return CharacterProxy(self, self.delistify(obj[1]))
+            elif obj[0] == 'node':
+                return NodeProxy(self, self.delistify(obj[1]), self.delistify(obj[2]))
+            elif obj[0] == 'portal':
+                return PortalProxy(self, self.delistify(obj[1]), self.delistify(obj[2]), self.delistify(obj[3]))
+            else:
+                raise ValueError("Couldn't delistify: {}".format(obj))
 
     def send(self, obj, blocking=True, timeout=-1):
         self._handle_out_lock.acquire(blocking, timeout)
