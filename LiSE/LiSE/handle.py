@@ -104,7 +104,7 @@ class EngineHandle(object):
     def advance(self):
         self._real.advance()
 
-    def _get_chardiffs(self, chars):
+    def get_chardiffs(self, chars):
         if chars == 'all':
             return {
                 char: self.character_diff(char)
@@ -120,12 +120,12 @@ class EngineHandle(object):
         self._real.next_tick()
         self.tick += 1
         if chars:
-            return self._get_chardiffs(chars)
+            return self.get_chardiffs(chars)
 
     def time_travel(self, branch, tick, chars=[]):
         self._real.time = (branch, tick)
         if chars:
-            return self._get_chardiffs(chars)
+            return self.get_chardiffs(chars)
 
     def add_character(self, char, data, attr):
         self._real.add_character(char, data, **attr)
