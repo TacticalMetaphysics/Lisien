@@ -104,16 +104,28 @@ class EngineHandle(object):
     def advance(self):
         self._real.advance()
 
-    def next_tick(self, char=None):
+    def _get_chardiffs(self, chars):
+        if chars == 'all':
+            return {
+                char: self.character_diff(char)
+                for char in self._real.character.keys()
+            }
+        else:
+            return {
+                char: self.character_diff(char)
+                for char in chars
+            }
+
+    def next_tick(self, chars=[]):
         self._real.next_tick()
         self.tick += 1
-        if char:
-            return self.character_diff(char)
+        if chars:
+            return self._get_chardiffs(chars)
 
-    def time_travel(self, branch, tick, char=None):
+    def time_travel(self, branch, tick, chars=[]):
         self._real.time = (branch, tick)
-        if char:
-            return self.character_diff(char)
+        if chars:
+            return self._get_chardiffs(chars)
 
     def add_character(self, char, data, attr):
         self._real.add_character(char, data, **attr)
