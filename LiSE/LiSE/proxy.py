@@ -1922,13 +1922,13 @@ def subprocess(
 ):
     def log(typ, data):
         if typ == 'command':
-            (cmd, args) = data
+            (cmd, kvs) = data
             logq.put((
                 'debug',
-                "LiSE proc {}: calling {}{}".format(
+                "LiSE proc {}: calling {}({})".format(
                     getpid(),
                     cmd,
-                    tuple(args)
+                    ",  ".join("{}={}".format(k,  v) for k,  v in kvs.items())
                 )
             ))
         else:
