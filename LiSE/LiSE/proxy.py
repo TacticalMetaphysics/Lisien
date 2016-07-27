@@ -1049,7 +1049,7 @@ class AvatarMapProxy(Mapping):
         def __iter__(self):
             yield from self.character.engine.handle(
                 command='character_avatars_in_graph',
-                character=self.character.name,
+                char=self.character.name,
                 graph=self.graph.name
             )
 
