@@ -1704,6 +1704,7 @@ class EngineProxy(AbstractEngine):
         self.logger.critical(msg)
 
     def handle(self, cmd=None, **kwargs):
+        self._handle_lock.acquire()
         if 'command' in kwargs:
             cmd = kwargs['command']
         elif cmd:
@@ -1716,7 +1717,9 @@ class EngineProxy(AbstractEngine):
         if not kwargs['silent']:
             command,  result = self.recv()
             assert cmd == command
+            self._handle_lock.release()
             return self.json_load(result)
+        self._handle_lock.release()
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
