@@ -43,6 +43,7 @@ class EngineHandle(object):
             lambda: defaultdict(dict)
         )
         self._char_stat_cache = {}
+        self._char_av_cache = {}
         self._char_things_cache = {}
         self._char_places_cache = {}
         self._char_portals_cache = {}
@@ -261,6 +262,20 @@ class EngineHandle(object):
         except KeyError:
             return None
 
+    def character_avatars_copy(self, char):
+        return {
+            graph: list(nodes.keys()) for (graph, nodes) in
+            self._real.character[char].avatar.items()
+        }
+
+    def character_avatars_diff(self, char):
+        try:
+            old = self._char_av_cache.get(char, {})
+            self._char_av_cache[char] = new = self.character_avatars_copy(char)
+            return dict_diff(old, new)
+        except KeyError:
+            return None
+
     def character_diff(self, char):
         """Return a dictionary of changes to ``char`` since previous call."""
         return {
@@ -269,7 +284,8 @@ class EngineHandle(object):
             'things': self.character_things_diff(char),
             'places': self.character_places_diff(char),
             'portal_stat': self.character_portals_stat_diff(char),
-            'portals': self.character_portals_diff(char)
+            'portals': self.character_portals_diff(char),
+            'avatars': self.character_avatars_diff(char)
         }
 
     def set_character_stat(self, char, k, v):

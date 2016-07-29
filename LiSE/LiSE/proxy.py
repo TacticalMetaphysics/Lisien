@@ -1019,23 +1019,13 @@ class AvatarMapProxy(Mapping):
         self.character = character
 
     def __iter__(self):
-        yield from self.character.engine.handle(
-            command='character_avatar_graphs',
-            char=self.character.name
-        )
+        yield from self.character.engine._character_avatars_cache[self.character.name]
 
     def __len__(self):
-        return self.character.engine.handle(
-            command='count_character_avatar_graphs',
-            char=self.character.name
-        )
+        return len(self.character.engine._character_avatars_cache[self.character.name])
 
     def __contains__(self, k):
-        return self.character.engine.handle(
-            command='character_has_avatar_in',
-            char=self.character.name,
-            graph=k
-        )
+        return k in self.character.engine._character_avatars_cache[self.character.name]
 
     def __getitem__(self, k):
         if k not in self:
@@ -1057,26 +1047,14 @@ class AvatarMapProxy(Mapping):
             self.graph = graph
 
         def __iter__(self):
-            yield from self.character.engine.handle(
-                command='character_avatars_in_graph',
-                char=self.character.name,
-                graph=self.graph.name
-            )
+            yield from self.character.engine._character_avatars_cache[self.character.name][self.graph.name]
 
         def __len__(self):
-            return self.character.engine.handle(
-                command='count_character_avatars_in_graph',
-                char=self.character.name,
-                graph=self.graph.name
-            )
+            return len(self.character.engine._character_avatars_cache[self.character.name][self.graph.name])
 
         def __contains__(self, k):
-            return self.character.engine.handle(
-                command='character_has_avatar',
-                char=self.character.name,
-                graph=self.graph.name,
-                node=k
-            )
+            cache = self.character.engine._character_avatars_cache[self.character.name]
+            return self.graph.name in cache and k in cache[self.graph.name]
 
         def __getitem__(self, k):
             if k not in self:
@@ -1649,11 +1627,13 @@ class EngineProxy(AbstractEngine):
         self._things_cache = defaultdict(dict)
         self._character_places_cache = defaultdict(dict)
         self._character_portals_cache = defaultdict(lambda: defaultdict(dict))
+        self._character_avatars_cache = defaultdict(dict)
         charsdiffs = self.handle('get_chardiffs', chars='all')
         for char in charsdiffs:
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
             self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
             self._node_stat_cache[char] = charsdiffs[char]['node_stat']
+            self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             for (thing, ex) in charsdiffs[char]['things'].items():
                 if ex:
                     self._things_cache[char][thing] = ThingProxy(self, char, thing)
