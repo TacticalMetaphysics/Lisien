@@ -1037,6 +1037,20 @@ class AvatarMapProxy(Mapping):
             graph=k
         )
 
+    def __getitem__(self, k):
+        if k not in self:
+            raise KeyError("{} is not an avatar of {}".format(k, self.character.name))
+        return self.GraphAvatarsProxy(self.character, self.character.engine.character[k])
+
+    def __getattr__(self, attr):
+        vals = self.values()
+        if not vals:
+            raise AttributeError("No attribute {}, and no graph to delegate to".format(attr))
+        elif len(vals) > 1:
+            raise AttributeError("No attribute {}, and more than one graph".format(attr))
+        else:
+            return getattr(next(iter(vals)), attr)
+
     class GraphAvatarsProxy(Mapping):
         def __init__(self, character, graph):
             self.character = character
@@ -1070,35 +1084,13 @@ class AvatarMapProxy(Mapping):
             return self.graph.node[k]
 
         def __getattr__(self, attr):
-            it = iter(self.values())
-            try:
-                me = next(it)
-            except StopIteration:
+            vals = self.values()
+            if not vals:
                 raise AttributeError("No attribute {}, and no avatar to delegate to".format(attr))
-            try:
-                next(it)
-                raise AttributeError("No attribute {}, and more than one avatar".format(attr))
-            except StopIteration:
-                return getattr(me, attr)
-            raise AttributeError
-
-    def __getitem__(self, k):
-        if k not in self:
-            raise KeyError("{} is not an avatar of {}".format(k, self.character.name))
-        return self.GraphAvatarsProxy(self.character, self.character.engine.character[k])
-
-    def __getattr__(self, attr):
-        it = iter(self.values())
-        try:
-            me = next(it)
-        except StopIteration:
-            raise AttributeError("No attribute {}, and no graph to delegate to".format(attr))
-        try:
-            next(it)
-            raise AttributeError("No attribute {}, and more than one graph".format(attr))
-        except StopIteration:
-            return getattr(me, attr)
-        raise AttributeError
+            elif len(vals) > 1:
+                raise AttributeError("No attribute {}, and more than one avatar")
+            else:
+                return getattr(next(iter(vals)), attr)
 
 
 class CharacterProxy(MutableMapping):
