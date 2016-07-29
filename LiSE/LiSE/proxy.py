@@ -16,11 +16,7 @@ from queue import Empty
 
 from .engine import AbstractEngine
 from .character import Facade
-from gorm.xjson import (
-    JSONReWrapper,
-    JSONListReWrapper,
-    json_deepcopy
-)
+from gorm.xjson import JSONReWrapper, JSONListReWrapper
 from gorm.reify import reify
 from .handle import EngineHandle
 
