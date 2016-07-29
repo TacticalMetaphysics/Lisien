@@ -1716,7 +1716,7 @@ class EngineProxy(AbstractEngine):
         self.send(self.json_dump(kwargs))
         if not kwargs['silent']:
             command,  result = self.recv()
-            assert cmd == command
+            assert cmd == command, "Sent command {} but received results for {}".format(cmd, command)
             self._handle_lock.release()
             return self.json_load(result)
         self._handle_lock.release()
