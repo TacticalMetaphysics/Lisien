@@ -478,6 +478,13 @@ class NodeMapProxy(MutableMapping):
 
 class ThingMapProxy(CachingProxy):
     @property
+    def rulebook(self):
+        rbname = self.engine._character_rulebooks_cache[self.name]['thing']
+        if not hasattr(self, '_rb') or self._rb.name != rbname:
+            self._rb = RuleBookProxy(self.engine, rbname)
+        return self._rb
+
+    @property
     def character(self):
         return self.engine.character[self.name]
 
@@ -537,6 +544,13 @@ class ThingMapProxy(CachingProxy):
 
 
 class PlaceMapProxy(CachingProxy):
+    @property
+    def rulebook(self):
+        rbname = self.engine._character_rulebooks_cache[self.name]['place']
+        if not hasattr(self, '_rb') or self._rb.name != rbname:
+            self._rb = RuleBookProxy(self.engine, rbname)
+        return self._rb
+
     @property
     def character(self):
         return self.engine.character[self.name]
@@ -664,6 +678,12 @@ class SuccessorsProxy(CachingProxy):
 
 
 class CharSuccessorsMappingProxy(CachingProxy):
+    @property
+    def rulebook(self):
+        rbname = self.engine._character_rulebooks_cache[self._charname]['portal']
+        if not hasattr(self, '_rb') or self._rb.name != rbname:
+            self._rb = RuleBookProxy(self.engine, rbname)
+
     @property
     def character(self):
         return self.engine.character[self._charname]
@@ -802,6 +822,10 @@ class PredecessorsProxy(MutableMapping):
 
 
 class CharPredecessorsMappingProxy(MutableMapping):
+    @property
+    def rulebook(self):
+        return self.character.portal.rulebook
+
     def __init__(self, engine_proxy, charname):
         self.engine = engine_proxy
         self.name = charname
@@ -1015,6 +1039,13 @@ class RuleBookProxy(MutableSequence):
 
 
 class AvatarMapProxy(Mapping):
+    @property
+    def rulebook(self):
+        rbname = self.engine._character_rulebooks_cache[self.character.name]['avatar']
+        if not hasattr(self, '_rb') or self._rb.name != rbname:
+            self._rb = RuleBookProxy(self.engine, rbname)
+        return self._rb
+
     def __init__(self, character):
         self.character = character
 
@@ -1074,25 +1105,14 @@ class AvatarMapProxy(Mapping):
 class CharacterProxy(MutableMapping):
     @property
     def rulebook(self):
-        if not hasattr(self, '_rulebook'):
-            self._upd_rulebook()
-        return self._rulebook
+        rbname = self.engine._character_rulebooks_cache[self.name]['character']
+        if not hasattr(self, '_rb') or self._rb.name != rbname:
+            self._rb = RuleBookProxy(self.engine, rbname)
+        return self._rb
 
     @reify
     def avatar(self):
         return AvatarMapProxy(self)
-
-    def _upd_rulebook(self):
-        self._rulebook = self._get_rulebook()
-
-    def _get_rulebook(self):
-        return RuleBookProxy(
-            self.engine,
-            self.engine.handle(
-                command='get_character_rulebook',
-                character=self.name
-            )
-        )
 
     def __init__(self, engine_proxy, charname):
         self.engine = engine_proxy
@@ -1626,6 +1646,7 @@ class EngineProxy(AbstractEngine):
         self._char_stat_cache = defaultdict(dict)
         self._things_cache = defaultdict(dict)
         self._character_places_cache = defaultdict(dict)
+        self._character_rulebooks_cache = defaultdict(dict)
         self._character_portals_cache = defaultdict(lambda: defaultdict(dict))
         self._character_avatars_cache = defaultdict(dict)
         charsdiffs = self.handle('get_chardiffs', chars='all')
@@ -1634,6 +1655,7 @@ class EngineProxy(AbstractEngine):
             self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
             self._node_stat_cache[char] = charsdiffs[char]['node_stat']
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
+            self._character_rulebooks_cache[char] = charsdiffs[char]['rulebooks']
             for (thing, ex) in charsdiffs[char]['things'].items():
                 if ex:
                     self._things_cache[char][thing] = ThingProxy(self, char, thing)

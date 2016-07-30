@@ -44,6 +44,7 @@ class EngineHandle(object):
         )
         self._char_stat_cache = {}
         self._char_av_cache = {}
+        self._char_rulebooks_cache = {}
         self._char_things_cache = {}
         self._char_places_cache = {}
         self._char_portals_cache = {}
@@ -276,6 +277,25 @@ class EngineHandle(object):
         except KeyError:
             return None
 
+    def character_rulebooks_copy(self, char):
+        chara = self._real.character[char]
+        return {
+            'character': chara.rulebook.name,
+            'avatar': chara.avatar.rulebook.name,
+            'thing': chara.thing.rulebook.name,
+            'place': chara.place.rulebook.name,
+            'portal': chara.portal.rulebook.name,
+            'node': chara.node.rulebook.name
+        }
+
+    def character_rulebooks_diff(self, char):
+        try:
+            old = self._char_rulebooks_cache.get(char, {})
+            self._char_rulebooks_cache[char] = new = self.character_rulebooks_copy(char)
+            return dict_diff(old, new)
+        except KeyError:
+            return None
+
     def character_diff(self, char):
         """Return a dictionary of changes to ``char`` since previous call."""
         return {
@@ -285,7 +305,8 @@ class EngineHandle(object):
             'places': self.character_places_diff(char),
             'portal_stat': self.character_portals_stat_diff(char),
             'portals': self.character_portals_diff(char),
-            'avatars': self.character_avatars_diff(char)
+            'avatars': self.character_avatars_diff(char),
+            'rulebooks': self.character_rulebooks_diff(char)
         }
 
     def set_character_stat(self, char, k, v):
