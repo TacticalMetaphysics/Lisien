@@ -254,14 +254,17 @@ class EngineHandle(object):
             for (k, v) in self._real.character[char].stat.items()
         }
 
-    def character_stat_diff(self, char):
+    @staticmethod
+    def _character_something_diff(char, cache, copier, *args):
         try:
-            old = self._char_stat_cache.get(char, {})
-            new = self.character_stat_copy(char)
-            self._char_stat_cache[char] = new
+            old = cache.get(char, {})
+            new = cache[char] = copier(char, *args)
             return dict_diff(old, new)
         except KeyError:
             return None
+
+    def character_stat_diff(self, char):
+        return self._character_something_diff(char, self._char_stat_cache, self.character_stat_copy)
 
     def character_avatars_copy(self, char):
         return {
@@ -270,12 +273,7 @@ class EngineHandle(object):
         }
 
     def character_avatars_diff(self, char):
-        try:
-            old = self._char_av_cache.get(char, {})
-            self._char_av_cache[char] = new = self.character_avatars_copy(char)
-            return dict_diff(old, new)
-        except KeyError:
-            return None
+        return self._character_something_diff(char, self._char_av_cache, self.character_avatars_copy)
 
     def character_rulebooks_copy(self, char):
         chara = self._real.character[char]
@@ -289,6 +287,8 @@ class EngineHandle(object):
         }
 
     def character_rulebooks_diff(self, char):
+        return self._character_something_diff(char, self._char_rulebooks_cache, self.character_rulebooks_copy)
+
         try:
             old = self._char_rulebooks_cache.get(char, {})
             self._char_rulebooks_cache[char] = new = self.character_rulebooks_copy(char)
