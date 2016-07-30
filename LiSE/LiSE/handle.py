@@ -45,6 +45,8 @@ class EngineHandle(object):
         self._char_stat_cache = {}
         self._char_av_cache = {}
         self._char_rulebooks_cache = {}
+        self._char_nodes_rulebooks_cache = defaultdict(dict)
+        self._char_portals_rulebooks_cache = defaultdict(lambda: defaultdict(dict))
         self._char_things_cache = {}
         self._char_places_cache = {}
         self._char_portals_cache = {}
@@ -289,10 +291,42 @@ class EngineHandle(object):
     def character_rulebooks_diff(self, char):
         return self._character_something_diff(char, self._char_rulebooks_cache, self.character_rulebooks_copy)
 
+    def character_nodes_rulebooks_copy(self, char, nodes='all'):
+        chara = self._real.character[char]
+        if nodes == 'all':
+            nodeiter = iter(chara.node.values())
+        else:
+            nodeiter = (chara.node[k] for k in nodes)
+        return {node.name: node.rulebook.name for node in nodeiter}
+
+    def character_nodes_rulebooks_diff(self, char, nodes='all'):
+        return self._character_something_diff(char, self._char_nodes_rulebooks_cache, self.character_nodes_rulebooks_copy, nodes)
+
+    def character_portals_rulebooks_copy(self, char, portals='all'):
+        chara = self._real.character[char]
+        result = defaultdict(dict)
+        if portals == 'all':
+            portiter = chara.portals()
+        else:
+            portiter = (chara.portal[orig][dest] for (orig, dest) in portals)
+        for portal in portiter:
+            result[portal['origin']][portal['destination']] = portal.rulebook.name
+        return result
+
+    def character_portals_rulebooks_diff(self, char, portals='all'):
         try:
-            old = self._char_rulebooks_cache.get(char, {})
-            self._char_rulebooks_cache[char] = new = self.character_rulebooks_copy(char)
-            return dict_diff(old, new)
+            old = self._character_portals_rulebooks.get(char, defaultdict(dict))
+            new = self._character_portals_rulebooks[char] = self.character_portals_rulebooks_copy(char, portals)
+            result = {}
+            for origin in old:
+                if origin in new:
+                    result[origin] = dict_diff(old[origin], new[origin])
+                else:
+                    result[origin] = None
+            for origin in new:
+                if origin not in result:
+                    result[origin] = new[origin]
+            return result
         except KeyError:
             return None
 
@@ -306,7 +340,9 @@ class EngineHandle(object):
             'portal_stat': self.character_portals_stat_diff(char),
             'portals': self.character_portals_diff(char),
             'avatars': self.character_avatars_diff(char),
-            'rulebooks': self.character_rulebooks_diff(char)
+            'rulebooks': self.character_rulebooks_diff(char),
+            'node_rulebooks': self.character_nodes_rulebooks_diff(char),
+            'portal_rulebooks': self.character_portals_rulebooks_diff(char)
         }
 
     def set_character_stat(self, char, k, v):
