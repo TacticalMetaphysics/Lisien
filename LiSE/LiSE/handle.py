@@ -53,6 +53,8 @@ class EngineHandle(object):
         self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
         self._strings_cache = defaultdict(dict)
+        self._eternal_cache = {}
+        self._universal_cache = {}
 
     def log(self, level, message):
         if self._logq:
@@ -227,6 +229,14 @@ class EngineHandle(object):
     def have_eternal(self, k):
         return k in self._real.eternal
 
+    def eternal_copy(self):
+        return dict(self._real.eternal)
+
+    def eternal_diff(self):
+        old = self._eternal_cache
+        new = self.eternal_copy()
+        return dict_diff(old, new)
+
     def get_universal(self, k):
         return self._real.universal[k]
 
@@ -241,6 +251,14 @@ class EngineHandle(object):
 
     def universal_len(self):
         return len(self._real.universal)
+
+    def universal_copy(self):
+        return dict(self._real.universal)
+
+    def universal_diff(self):
+        old = self._universal_cache
+        new = self.universal_copy()
+        return dict_diff(old, new)
 
     def init_character(self, char, statdict={}):
         if char in self._real.character:

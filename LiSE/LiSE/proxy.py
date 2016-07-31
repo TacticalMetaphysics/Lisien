@@ -1416,11 +1416,10 @@ class StringStoreProxy(MutableMapping):
 class EternalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
+        self._cache = self.engine.handle('eternal_diff')
 
     def __contains__(self, k):
-        return self.engine.handle(
-            command='have_eternal', k=k
-        )
+        return k in self._cache
 
     def __iter__(self):
         yield from self.engine.handle(command='eternal_keys')
@@ -1432,6 +1431,7 @@ class EternalVarProxy(MutableMapping):
         return self.engine.handle(command='get_eternal', k=k)
 
     def __setitem__(self, k, v):
+        self._cache[k] = v
         self.engine.handle(
             'set_eternal',
             k=k, v=v,
@@ -1439,6 +1439,7 @@ class EternalVarProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
+        del self._cache[k]
         self.engine.handle(
             command='del_eternal',
             k=k,
@@ -1448,19 +1449,20 @@ class EternalVarProxy(MutableMapping):
 
 class GlobalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
-        self._proxy = engine_proxy
+        self.engine = engine_proxy
+        self._cache = self.engine.handle('universal_diff')
 
     def __iter__(self):
-        yield from self._proxy.universal_keys()
+        return iter(self._cache)
 
     def __len__(self):
-        return self._proxy.universal_len()
+        return len(self._cache)
 
     def __getitem__(self, k):
-        return self._proxy.get_universal(k)
+        return self._cache[k]
 
     def __setitem__(self, k, v):
-        self._proxy.set_universal(k, v)
+        self.engine.handle('set_universal', k=k, v=v)
 
     def __delitem__(self, k):
         self._proxy.del_universal(k)
