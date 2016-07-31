@@ -1411,10 +1411,10 @@ class StringStoreProxy(MutableMapping):
     def lang_items(self, lang=None):
         if lang is None or lang == self.language:
             yield from self._cache.items()
-            return
-        yield from self._proxy.handle(
-            command='get_string_lang_items', lang=lang
-        )
+        else:
+            yield from self._proxy.handle(
+                command='get_string_lang_items', lang=lang
+            )
 
 
 class EternalVarProxy(MutableMapping):
@@ -1656,6 +1656,7 @@ class EngineProxy(AbstractEngine):
         self._character_portals_cache = defaultdict(lambda: defaultdict(dict))
         self._character_avatars_cache = defaultdict(dict)
         charsdiffs = self.handle('get_chardiffs', chars='all')
+        self._char_cache = set(charsdiffs.keys())
         for char in charsdiffs:
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
             self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
