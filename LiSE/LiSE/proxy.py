@@ -1332,19 +1332,14 @@ class CharacterMapProxy(MutableMapping):
         self.engine = engine_proxy
         self._cache = {
             charn: CharacterProxy(self.engine, charn)
-            for charn in self.engine.handle('characters')
+            for charn in self.engine._char_cache
         }
 
     def __iter__(self):
-        return iter(self.engine.handle('characters'))
+        return iter(self._cache.keys())
 
     def __contains__(self, k):
-        if k in self._cache:
-            return True
-        return self.engine.handle(
-            command='have_character',
-            char=k
-        )
+        return k in self._cache
 
     def __len__(self):
         return len(self._cache)
@@ -1380,34 +1375,43 @@ class CharacterMapProxy(MutableMapping):
 class StringStoreProxy(MutableMapping):
     @property
     def language(self):
-        return self._proxy.handle(command='get_language')
+        if not hasattr(self, '_l'):
+            self._l = self.engine.handle(command='get_language')
+        return self._l
 
     @language.setter
     def language(self, v):
-        self._proxy.handle(command='set_language', lang=v)
+        self.engine.handle(command='set_language', lang=v)
+        self._l = v
 
     def __init__(self, engine_proxy):
-        self._proxy = engine_proxy
+        self.engine = engine_proxy
+        self._cache = self.engine.handle('strings_diff')
 
     def __iter__(self):
-        yield from self._proxy.handle(command='get_string_ids')
+        yield from self._cache
 
     def __contains__(self, k):
-        return self._proxy.handle(command='have_string', k=k)
+        return k in self._cache
 
     def __len__(self):
-        return self._proxy.handle(command='count_strings')
+        return len(self._cache)
 
     def __getitem__(self, k):
-        return self._proxy.handle(command='get_string', k=k)
+        return self._cache[k]
 
     def __setitem__(self, k, v):
+        self._cache[k] = v
         self._proxy.handle(command='set_string', k=k, v=v, silent=True)
 
     def __delitem__(self, k):
+        del self._cache[k]
         self._proxy.handle(command='del_string', k=k, silent=True)
 
     def lang_items(self, lang=None):
+        if lang is None or lang == self.language:
+            yield from self._cache.items()
+            return
         yield from self._proxy.handle(
             command='get_string_lang_items', lang=lang
         )

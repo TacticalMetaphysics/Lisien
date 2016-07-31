@@ -52,6 +52,7 @@ class EngineHandle(object):
         self._char_portals_cache = {}
         self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
+        self._strings_cache = defaultdict(dict)
 
     def log(self, level, message):
         if self._logq:
@@ -180,6 +181,18 @@ class EngineHandle(object):
 
     def get_string_lang_items(self, lang):
         return list(self._real.string.lang_items(lang))
+
+    def strings_copy(self, lang=None):
+        if lang is None:
+            lang = self._real.string.language
+        return dict(self._real.string.lang_items(lang))
+
+    def strings_diff(self, lang=None):
+        if lang is None:
+            lang = self._real.string.language
+        old = self._strings_cache.get(lang, {})
+        new = self._strings_cache[lang] = self.strings_copy(lang)
+        return dict_diff(old, new)
 
     def count_strings(self):
         return len(self._real.string)
