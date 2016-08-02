@@ -259,8 +259,7 @@ class ThingProxy(NodeProxy):
         return "proxy to {}.thing[{}]@{}".format(
             self._charname,
             self.name,
-            self['location'],
-            self['next_location']
+            self['location']
         )
 
     def update_cache(self):
