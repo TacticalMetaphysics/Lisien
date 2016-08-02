@@ -201,13 +201,7 @@ class PlaceProxy(NodeProxy):
 class ThingProxy(NodeProxy):
     @property
     def location(self):
-        ln = self['location']
-        if ln in self.engine.handle(
-                command='character_things', char=self._charname
-        ):
-            return ThingProxy(self.engine, self._charname, ln)
-        else:
-            return PlaceProxy(self.engine, self._charname, ln)
+        return self.engine.character[self._charname].node[self['location']]
 
     @location.setter
     def location(self, v):
@@ -218,12 +212,7 @@ class ThingProxy(NodeProxy):
         ln = self['next_location']
         if ln is None:
             return None
-        if ln in self.engine.handle(
-                command='character_things', char=self._charname
-        ):
-            return ThingProxy(self.engine, self._charname, ln)
-        else:
-            return PlaceProxy(self.engine, self._charname, ln)
+        return self.engine.character[self._charname].node[ln]
 
     @next_location.setter
     def next_location(self, v):
