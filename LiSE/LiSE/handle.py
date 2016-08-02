@@ -55,6 +55,8 @@ class EngineHandle(object):
         self._strings_cache = defaultdict(dict)
         self._eternal_cache = {}
         self._universal_cache = {}
+        self._rule_cache = {}
+        self._rulebook_cache = defaultdict(list)
 
     def log(self, level, message):
         if self._logq:
@@ -855,8 +857,16 @@ class EngineHandle(object):
     def new_empty_rule(self, rule):
         self._real.rule.new_empty(rule)
 
-    def get_rulebook_rules(self, rulebook):
-        return self._real.rulebook[rulebook]._cache
+    def rulebook_copy(self, rulebook):
+        return list(self._real.rulebook[rulebook]._cache)
+
+    def rulebook_diff(self, rulebook):
+        old = self._rulebook_cache[rulebook]
+        new = self._rulebook_cache[rulebook] = self.rulebook_copy(rulebook)
+        return list_diff(old, new)
+
+    def all_rulebooks_diff(self):
+        return {rulebook: self.rulebook_diff(rulebook) for rulebook in self._real.rulebook.keys()}
 
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
@@ -866,6 +876,27 @@ class EngineHandle(object):
 
     def del_rulebook_rule(self, rulebook, i):
         del self._real.rulebook[rulebook][i]
+
+    def rule_copy(self, rule):
+        if not hasattr(rule, 'actions'):
+            rule = self._real.rule[rule]
+        return {
+            'triggers': list(rule.triggers._cache),
+            'prereqs': list(rule.prereqs._cache),
+            'actions': list(rule.actions._cache)
+        }
+
+    def rule_diff(self, rule):
+        old = self._rule_cache.get(rule, {})
+        new = self._rule_cache[rule] = self.rule_copy(rule)
+        return {
+            'triggers': list_diff(old['triggers'], new['triggers']),
+            'prereqs': list_diff(old['prereqs'], new['prereqs']),
+            'actions': list_diff(old['actions'], new['actions'])
+        }
+
+    def all_rules_diff(self):
+        return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}
 
     def get_character_rulebook(self, char):
         return self._real.db.get_rulebook_char(
