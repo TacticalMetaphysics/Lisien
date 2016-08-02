@@ -225,7 +225,7 @@ class ThingProxy(NodeProxy):
         )
 
     def __iter__(self):
-        already = set(k for k in super().__iter__())
+        already = set(super().__iter__())
         yield from already
         for k in {
                 'name',
