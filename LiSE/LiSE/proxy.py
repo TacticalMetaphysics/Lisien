@@ -1649,7 +1649,7 @@ class EngineProxy(AbstractEngine):
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             self._character_rulebooks_cache[char] = charsdiffs[char]['rulebooks']
             self._char_node_rulebooks_cache[char] = charsdiffs[char]['node_rulebooks']
-            self._char_port_rulebooks_cache[char] = charsdiff[char]['portal_rulebooks']
+            self._char_port_rulebooks_cache[char] = charsdiffs[char]['portal_rulebooks']
             for (thing, ex) in charsdiffs[char]['things'].items():
                 if ex:
                     self._things_cache[char][thing] = ThingProxy(self, char, thing)
