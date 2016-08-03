@@ -1812,7 +1812,14 @@ class EngineProxy(AbstractEngine):
                 silent=True
             )
 
-    def add_character(self, char, data=None, **attr):
+    def add_character(self, char, data={}, **attr):
+        if char in self._chars_cache:
+            raise KeyError("Character already exists")
+        self._chars_cache[char] = CharacterProxy(self, char)
+        self._char_stats_cache[char] = attr
+        self._character_places_cache[char] = data.get('place', data.get('node', {}))
+        self._things_cache[char] = data.get('thing', {})
+        self._character_portals_cache[char] = data.get('edge', data.get('portal', {}))
         self.handle(
             command='add_character', char=char, data=data, attr=attr,
             silent=True
@@ -1820,26 +1827,41 @@ class EngineProxy(AbstractEngine):
 
     def new_character(self, char, **attr):
         self.add_character(char, **attr)
-        return CharacterProxy(self, char)
+        return self._chars_cache[char]
 
     def del_character(self, char):
+        if char not in self._chars_cache:
+            raise KeyError("No such character")
+        del self._chars_cache[char]
+        del self._char_stats_cache[char]
+        del self._character_places_cache[char]
+        del self._things_cache[char]
+        del self._character_portals_cache[char]
         self.handle(command='del_character', char=char, silent=True)
 
     def del_node(self, char, node):
+        if char not in self._chars_cache:
+            raise KeyError("No such character")
+        if node not in self._character_places_cache[char] and node not in self._things_cache[char]:
+            raise KeyError("No such node")
+        if node in self._things_cache[char]:
+            del self._things_cache[char][node]
+        if node in self._character_places_cache[char]:  # just to be safe
+            del self._character_places_cache[char][node]
         self.handle(
             command='del_node',
             char=char,
             node=node,
             silent=True
         )
-        if char in self.character._cache:
-            char = self.character[char]
-            if node in char.thing._cache:
-                del char.thing._cache[node]
-            if node in char.place._cache:
-                del char.place._cache[node]
 
     def del_portal(self, char, orig, dest):
+        if char not in self._chars_cache:
+            raise KeyError("No such character")
+        cache = self._character_portals_cache[char]
+        if orig not in cache or dest not in cache[orig]:
+            raise KeyError("No such portal")
+        del cache[orig][dest]
         self.handle(
             command='del_portal',
             char=char,
@@ -1847,12 +1869,6 @@ class EngineProxy(AbstractEngine):
             dest=dest,
             silent=True
         )
-        if (
-                char in self.character._cache and
-                orig in self.character[char].portal._cache and
-                dest in self.character[char].portal[orig]._cache
-        ):
-            del self.character[char].portal[orig]._cache[dest]
 
     def commit(self):
         self.handle('commit', silent=True)
