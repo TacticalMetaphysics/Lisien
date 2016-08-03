@@ -779,6 +779,8 @@ class PredecessorsProxy(MutableMapping):
         return self.character.portal._cache[k][self.name]
 
     def __setitem__(self, k, v):
+        self.engine._place_stat_cache[self._charname][k] = v
+        self.engine._character_portals_cache[self._charname][k][self.name] = PortalProxy(self.engine, self._charname, k, self.name)
         self.engine.handle(
             command='set_place',
             char=self._charname,
@@ -793,6 +795,8 @@ class PredecessorsProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
+        del self.engine._place_stat_cache[self._charname][k]
+        self.engine._character_portals_cache[self._charname][k][self.name].delete()
         self.engine.del_portal(self._charname, k, self.name)
 
 
