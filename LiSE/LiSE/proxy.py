@@ -748,31 +748,22 @@ class PredecessorsProxy(MutableMapping):
         self.name = nodeBname
 
     def __iter__(self):
-        yield from self.engine.handle(
-            command='node_predecessors',
-            char=self._charname,
-            node=self.name
-        )
+        cache = self.engine._character_portals_cache[self._charname]
+        for orig in cache:
+            for dest in cache[orig]:
+                if dest == self.name:
+                    yield orig
+                    break
 
     def __len__(self):
-        return self.engine.handle(
-            command='node_predecessors_len',
-            char=self._charname,
-            node=self.name
-        )
+        n = 0
+        for orig in self:
+            n += 1
+        return n
 
     def __contains__(self, k):
-        if (
-            k in self.character.portal._cache and
-            self.name in self.character.portal._cache[k]
-        ):
-            return True
-        return self.engine.handle(
-            command='node_precedes',
-            char=self._charname,
-            dest=self._name,
-            orig=k
-        )
+        cache = self.engine._character_portals_cache[self._charname]
+        return k in cache and self.name in cache[k]
 
     def __getitem__(self, k):
         if k not in self:
