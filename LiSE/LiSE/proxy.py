@@ -1445,10 +1445,12 @@ class GlobalVarProxy(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
+        self._cache[k] = v
         self.engine.handle('set_universal', k=k, v=v)
 
     def __delitem__(self, k):
-        self._proxy.del_universal(k)
+        del self._cache[k]
+        self.engine.handle('del_universal', k=k)
 
 
 class AllRuleBooksProxy(Mapping):
