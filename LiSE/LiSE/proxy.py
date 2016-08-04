@@ -1757,7 +1757,8 @@ class EngineProxy(AbstractEngine):
                     except KeyError:
                         if self.handle(
                             command='character_has_thing',
-                            char=char, node=node
+                            char=char,
+                            thing=node
                         ):
                             node = ThingProxy(self, char, node)
                         else:
