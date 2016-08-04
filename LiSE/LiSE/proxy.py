@@ -1338,26 +1338,22 @@ class CharacterProxy(MutableMapping):
 class CharacterMapProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = {
-            charn: CharacterProxy(self.engine, charn)
-            for charn in self.engine._char_cache
-        }
 
     def __iter__(self):
-        return iter(self._cache.keys())
+        return iter(self.engine._char_cache.keys())
 
     def __contains__(self, k):
-        return k in self._cache
+        return k in self.engine._char_cache
 
     def __len__(self):
-        return len(self._cache)
+        return len(self.engine._char_cache)
 
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("No character: {}".format(k))
-        if k not in self._cache:
-            self._cache[k] = CharacterProxy(self.engine, k)
-        return self._cache[k]
+        if k not in self.engine._char_cache:
+            self.engine._char_cache[k] = CharacterProxy(self.engine, k)
+        return self.engine._char_cache[k]
 
     def __setitem__(self, k, v):
         if isinstance(v, CharacterProxy):
@@ -1368,7 +1364,7 @@ class CharacterMapProxy(MutableMapping):
             data=v,
             silent=True
         )
-        self._cache[k] = CharacterProxy(self.engine, k)
+        self.engine._char_cache[k] = CharacterProxy(self.engine, k)
 
     def __delitem__(self, k):
         self.engine.handle(
@@ -1376,8 +1372,8 @@ class CharacterMapProxy(MutableMapping):
             char=k,
             silent=True
         )
-        if k in self._cache:
-            del self._cache[k]
+        if k in self.engine._char_cache:
+            del self.engine._char_cache[k]
 
 
 class StringStoreProxy(MutableMapping):
@@ -1670,8 +1666,9 @@ class EngineProxy(AbstractEngine):
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
         charsdiffs = self.handle('get_chardiffs', chars='all')
-        self._char_cache = {name: CharacterProxy(self, name) for name in charsdiffs}
+        self._char_cache = {}
         for char in charsdiffs:
+            self._char_cache[char] = CharacterProxy(self, char)
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
             self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
             self._node_stat_cache[char] = charsdiffs[char]['node_stat']
