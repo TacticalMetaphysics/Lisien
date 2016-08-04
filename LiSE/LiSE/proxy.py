@@ -1842,9 +1842,9 @@ class EngineProxy(AbstractEngine):
             )
 
     def add_character(self, char, data={}, **attr):
-        if char in self._chars_cache:
+        if char in self._char_cache:
             raise KeyError("Character already exists")
-        self._chars_cache[char] = CharacterProxy(self, char)
+        self._char_cache[char] = CharacterProxy(self, char)
         self._char_stats_cache[char] = attr
         self._character_places_cache[char] = data.get('place', data.get('node', {}))
         self._things_cache[char] = data.get('thing', {})
