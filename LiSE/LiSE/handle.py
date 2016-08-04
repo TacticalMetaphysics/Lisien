@@ -348,8 +348,8 @@ class EngineHandle(object):
 
     def character_portals_rulebooks_diff(self, char, portals='all'):
         try:
-            old = self._character_portals_rulebooks.get(char, defaultdict(dict))
-            new = self._character_portals_rulebooks[char] = self.character_portals_rulebooks_copy(char, portals)
+            old = self._char_portals_rulebooks_cache.get(char, defaultdict(dict))
+            new = self._char_portals_rulebooks_cache[char] = self.character_portals_rulebooks_copy(char, portals)
             result = {}
             for origin in old:
                 if origin in new:
