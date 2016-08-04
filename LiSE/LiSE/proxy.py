@@ -1663,10 +1663,10 @@ class EngineProxy(AbstractEngine):
         self._char_port_rulebooks_cache = defaultdict(lambda: defaultdict(dict))
         self._character_portals_cache = defaultdict(lambda: defaultdict(dict))
         self._character_avatars_cache = defaultdict(dict)
+        self._char_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
         charsdiffs = self.handle('get_chardiffs', chars='all')
-        self._char_cache = {}
         for char in charsdiffs:
             self._char_cache[char] = CharacterProxy(self, char)
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
