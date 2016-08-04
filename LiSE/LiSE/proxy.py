@@ -205,7 +205,14 @@ class ThingProxy(NodeProxy):
 
     @location.setter
     def location(self, v):
-        self['location'] = v
+        self._cache['location'] = v.name
+        self.engine.handle(
+            command='set_thing_location',
+            char=self._charname,
+            thing=self.name,
+            loc=v.name,
+            silent=True
+        )
 
     @property
     def next_location(self):
@@ -216,6 +223,7 @@ class ThingProxy(NodeProxy):
 
     @next_location.setter
     def next_location(self, v):
+        self._cache['next_location'] = v.name
         self.engine.handle(
             command='set_thing_next_location',
             char=self._charname,
