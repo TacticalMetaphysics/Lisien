@@ -785,7 +785,7 @@ class EngineHandle(object):
         character = self._real.character[char]
         if patch is None:
             del character.portal[orig][dest]
-        elif orig not in character.portal or dest not in character.portal[o]:
+        elif orig not in character.portal or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
         else:
             character.portal[orig][dest].update(patch)
@@ -899,10 +899,7 @@ class EngineHandle(object):
         return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}
 
     def get_character_rulebook(self, char):
-        return self._real.db.get_rulebook_char(
-            "character",
-            char
-        )
+        return self._real.character[char].rulebook.name
 
     def get_node_rulebook(self, char, node):
         try:
@@ -911,14 +908,10 @@ class EngineHandle(object):
             return None
 
     def set_node_rulebook(self, char, node, rulebook):
-        self._real.db.set_node_rulebook(
-            char, node, rulebook
-        )
+        self._real.character[char].node[node].rulebook = rulebook
 
     def get_portal_rulebook(self, char, orig, dest):
-        return self._real.db.portal_rulebook(
-            char, orig, dest, 0
-        )
+        return self._real.character[char].portal[orig][dest].rulebook.name
 
     def rulebooks(self):
         return list(self._real.rulebook.keys())
