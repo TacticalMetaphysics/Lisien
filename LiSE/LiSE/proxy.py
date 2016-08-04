@@ -256,6 +256,28 @@ class ThingProxy(NodeProxy):
             return None
         return super().__getitem__(k)
 
+    def __setitem__(self, k, v):
+        if k == 'location':
+            self._cache['location'] = v
+            self.engine.handle(
+                command='set_thing_location',
+                char=self.character.name,
+                thing=self.name,
+                loc=v
+            )
+        elif k == 'next_location':
+            self._cache['next_location'] = v
+            self.engine.handle(
+                command='set_thing_next_location',
+                char=self.character.name,
+                thing=self.name,
+                loc=v
+            )
+        elif k in {'arrival_time', 'next_arrival_time'}:
+            raise ValueError("Read-only")
+        else:
+            super().__setitem__(k, v)
+
     def __repr__(self):
         if self['next_location'] is not None:
             return "proxy to {}.thing[{}]@{}->{}".format(
