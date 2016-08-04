@@ -336,6 +336,19 @@ class PortalProxy(CachingEntityProxy):
             self._rulebook = self._get_rulebook()
         return self._rulebook
 
+    @rulebook.setter
+    def rulebook(self, v):
+        rb = v.name if hasattr(v, 'name') else v
+        self.engine.handle(
+            command='set_portal_rulebook',
+            char=self._charname,
+            orig=self._origin,
+            dest=self._destination,
+            rulebook=rb,
+            silent=True
+        )
+        self._rulebook = v if isinstance(v, RuleBookProxy) else RuleBookProxy(self.engine, rb)
+
     def _get_rulebook_name(self):
         return self.engine.handle(
             command='get_portal_rulebook',

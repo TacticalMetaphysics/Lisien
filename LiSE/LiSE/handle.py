@@ -913,6 +913,9 @@ class EngineHandle(object):
     def get_portal_rulebook(self, char, orig, dest):
         return self._real.character[char].portal[orig][dest].rulebook.name
 
+    def set_portal_rulebook(self, char, orig, dest, rulebook):
+        self._real.character[char].portal[orig][dest].rulebook = rulebook
+
     def rulebooks(self):
         return list(self._real.rulebook.keys())
 
