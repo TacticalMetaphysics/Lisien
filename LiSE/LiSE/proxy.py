@@ -1068,7 +1068,7 @@ class AvatarMapProxy(Mapping):
 
     def __getitem__(self, k):
         if k not in self:
-            raise KeyError("{} has no avatar in {}".format(k, self.character.name))
+            raise KeyError("{} has no avatar in {}".format(self.character.name, k))
         return self.GraphAvatarsProxy(self.character, self.character.engine.character[k])
 
     def __getattr__(self, attr):
