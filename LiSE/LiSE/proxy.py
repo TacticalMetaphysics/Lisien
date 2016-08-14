@@ -1843,7 +1843,7 @@ class EngineProxy(AbstractEngine):
         if char in self._char_cache:
             raise KeyError("Character already exists")
         self._char_cache[char] = CharacterProxy(self, char)
-        self._char_stats_cache[char] = attr
+        self._char_stat_cache[char] = attr
         self._character_places_cache[char] = data.get('place', data.get('node', {}))
         self._things_cache[char] = data.get('thing', {})
         self._character_portals_cache[char] = data.get('edge', data.get('portal', {}))
@@ -1860,7 +1860,7 @@ class EngineProxy(AbstractEngine):
         if char not in self._chars_cache:
             raise KeyError("No such character")
         del self._chars_cache[char]
-        del self._char_stats_cache[char]
+        del self._char_stat_cache[char]
         del self._character_places_cache[char]
         del self._things_cache[char]
         del self._character_portals_cache[char]
