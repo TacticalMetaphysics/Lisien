@@ -18,7 +18,6 @@ from .exc import(
     CacheError,
     TravelException
 )
-from gorm.window import window_left, window_right
 
 
 class Thing(Node):
@@ -77,7 +76,7 @@ class Thing(Node):
             cache = self.engine._things_cache[self.character.name][self.name]
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
-                    return window_left(cache[branch].keys(), tick)
+                    return cache[branch].rev_before(tick)
             raise CacheError("Locations not cached correctly")
         elif key == 'next_location':
             return self['locations'][1]
@@ -86,7 +85,7 @@ class Thing(Node):
             for (branch, tick) in self.engine._active_branches():
                 if branch in cache:
                     try:
-                        return window_right(cache[branch].keys(), tick)
+                        return cache[branch].rev_after(tick)
                     except KeyError:
                         return None
             return None

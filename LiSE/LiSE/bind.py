@@ -3,7 +3,6 @@
 """Utilities for binding functions to values."""
 from gorm.reify import reify
 from collections import defaultdict, Mapping, MutableSequence
-from gorm.window import window_left, window_right
 
 
 def dispatch(d, key, v, *args):
@@ -165,10 +164,10 @@ def fire_time_travel_triggers(
 def stat_validity(k, cache, branch, tick):
     """Return the tick when a stat took its current value, and when it'll
     change."""
-    lo = window_left(cache[k][branch].keys(), tick)
+    lo = cache[k][branch]._past[-1][0]
     try:
-        hi = window_right(cache[k][branch].keys(), tick)
-    except ValueError:
+        hi = cache[k][branch]._future[0][0]
+    except IndexError:
         hi = None
     return (lo, hi)
 
