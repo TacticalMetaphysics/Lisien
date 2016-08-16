@@ -890,9 +890,9 @@ class EngineHandle(object):
         old = self._rule_cache.get(rule, {})
         new = self._rule_cache[rule] = self.rule_copy(rule)
         return {
-            'triggers': list_diff(old['triggers'], new['triggers']),
-            'prereqs': list_diff(old['prereqs'], new['prereqs']),
-            'actions': list_diff(old['actions'], new['actions'])
+            'triggers': list_diff(old.get('triggers', {}), new.get('triggers', {})),
+            'prereqs': list_diff(old.get('prereqs', {}), new.get('prereqs', {})),
+            'actions': list_diff(old.get('actions', {}), new.get('actions', {}))
         }
 
     def all_rules_diff(self):
