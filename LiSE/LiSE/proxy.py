@@ -1557,7 +1557,7 @@ class FuncStoreProxy(object):
 
     def set_source(self, func_name, source):
         self.engine.handle(
-            command='store_set_source', k=func_name, v=source
+            command='store_set_source', store=self._store, k=func_name, v=source
         )
 
 
