@@ -1406,17 +1406,17 @@ class StringStoreProxy(MutableMapping):
 
     def __setitem__(self, k, v):
         self._cache[k] = v
-        self._proxy.handle(command='set_string', k=k, v=v, silent=True)
+        self.engine.handle(command='set_string', k=k, v=v, silent=True)
 
     def __delitem__(self, k):
         del self._cache[k]
-        self._proxy.handle(command='del_string', k=k, silent=True)
+        self.engine.handle(command='del_string', k=k, silent=True)
 
     def lang_items(self, lang=None):
         if lang is None or lang == self.language:
             yield from self._cache.items()
         else:
-            yield from self._proxy.handle(
+            yield from self.engine.handle(
                 command='get_string_lang_items', lang=lang
             )
 
