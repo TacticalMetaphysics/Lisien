@@ -811,7 +811,9 @@ class Board(RelativeLayout):
                 int(y * self.height)
             )
         self.engine.handle(
-            'update_nodes', (self.character.name, node_upd)
+            'update_nodes',
+            char=self.character.name,
+            patch=node_upd
         )
         self.new_spots = self.spots_unposd = []
 
