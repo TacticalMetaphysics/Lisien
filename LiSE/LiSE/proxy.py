@@ -1784,6 +1784,7 @@ class EngineProxy(AbstractEngine):
         received = self.json_load(self.recv()[1])
         for cb in cbs:
             cb(received, **kwargs)
+        return received
 
     def _upd_chars_caches(self, chardiffs, **kwargs):
         for (char, chardiff) in chardiffs.items():
@@ -1809,11 +1810,16 @@ class EngineProxy(AbstractEngine):
                 'command': 'next_tick',
                 'chars': chars
             }))
-            Thread(
-                target=self._call_with_recv,
-                args=(self._inc_tick, self._upd_chars_caches, cb) if cb else
-                (self._inc_tick, self._upd_chars_caches,)
-            ).start()
+            args = [self._inc_tick, self._upd_chars_caches]
+            if cb:
+                args.append(cb)
+            if silent:
+                Thread(
+                    target=self._call_with_recv,
+                    args=args
+                ).start()
+            else:
+                return self._call_with_recv(*args)
         elif silent:
             self.handle(command='next_tick', chars=[], silent=True)
         else:
