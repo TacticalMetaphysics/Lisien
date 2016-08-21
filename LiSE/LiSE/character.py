@@ -1572,13 +1572,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if self.character.name not in cache:
                 return
             cache = cache[self.character.name]
-            seen = False
             for avatar in cache:
-                if seen:
-                    seen = False
-                    continue
+                seen = False
                 for node in cache[avatar]:
                     if seen:
+                        seen = False
                         break
                     for (branch, tick) in self.engine._active_branches():
                         if branch in cache[avatar][node]:
