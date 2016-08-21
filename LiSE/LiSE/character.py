@@ -1572,19 +1572,18 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if self.character.name not in cache:
                 return
             cache = cache[self.character.name]
-            for avatar in cache:
+            for graph in cache:
                 seen = False
-                for node in cache[avatar]:
+                for node in cache[graph]:
                     if seen:
                         seen = False
                         break
                     for (branch, tick) in self.engine._active_branches():
-                        if branch in cache[avatar][node]:
-                            if cache[avatar][node][branch][tick]:
-                                yield avatar
+                        if branch in cache[graph][node]:
+                            if cache[graph][node][branch][tick]:
+                                yield graph
                             seen = True
                             break
-            return
 
         def __len__(self):
             """Number of graphs in which I have an avatar"""
