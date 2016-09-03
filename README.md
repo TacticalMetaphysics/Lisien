@@ -24,6 +24,7 @@ Existing games that LiSE seeks to imitate include:
 * Crusader Kings
 * The King of Dragon Pass
 * Cart Life
+* [Galimulator](https://snoddasmannen.itch.io/galimulator)
 
 To demonstrate the capabilities of the engine, I will develop the game
 [Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
