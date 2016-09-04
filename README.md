@@ -52,6 +52,7 @@ yourself, after all.
 * *Journaling* to allow world state changes to be rewound and replayed.
 * Integration with [NetworkX](http://networkx.github.io) for convenient access to various *graph algorithms*, particularly pathfinding.
 * *Rules engine*: define your game's behavior in terms of actions that are performed in response to triggers. Change the connection from trigger to action without effort. Copy triggers and actions between games easily.
+* Can be run as a *web server*, so that you can control LiSE and query its world state from any other game engine you please.
 
 ## IDE
 
