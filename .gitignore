@@ -7,3 +7,6 @@ wheelhouse/
 *.db
 *.egg-info
 *.log
+.eric6project
+.ropeproject
+*.e4p
