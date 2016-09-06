@@ -33,9 +33,11 @@ class Screens(Widget):
 class GameApp(App):
     modules = []
     engine = ObjectProperty()
+    world_file = None
+    code_file = None
 
     def _get_worlddb(self):
-        filen = self.name + 'World.db' if self.name else 'LiSEWorld.db'
+        filen = self.world_file or self.name + 'World.db' if self.name else 'LiSEWorld.db'
         return resource_find(filen) or filen
     worlddb = AliasProperty(
         _get_worlddb,
@@ -43,7 +45,7 @@ class GameApp(App):
     )
 
     def _get_codedb(self):
-        filen = self.name + 'Code.db' if self.name else 'LiSECode.db'
+        filen = self.code_file or self.name + 'Code.db' if self.name else 'LiSECode.db'
         return resource_find(filen) or filen
     codedb = AliasProperty(
         _get_codedb,
