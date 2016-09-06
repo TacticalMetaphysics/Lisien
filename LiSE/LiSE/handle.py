@@ -5,6 +5,7 @@ ordinary method calls.
 
 """
 from collections import defaultdict
+from importlib import import_module
 from gorm.xjson import (
     JSONReWrapper,
     JSONListReWrapper
@@ -939,3 +940,9 @@ class EngineHandle(object):
 
     def store_set_source(self, store, k, v):
         getattr(self._real, store).set_source(k, v)
+
+    def install_module(self, module):
+        import_module(module).install(self._real)
+
+    def do_game_start(self):
+        self._real.game_start()
