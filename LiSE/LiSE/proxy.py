@@ -1850,10 +1850,6 @@ class EngineProxy(AbstractEngine):
     def next_tick(self, chars=[], cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
-        if cb and silent:
-            raise TypeError("Callback can't be called if I'm silenced")
-        if chars and silent:
-            raise TypeError("Character diff can't be applied when silenced")
         if chars:
             self.send(self.json_dump({
                 'silent': False,
