@@ -1807,8 +1807,14 @@ class EngineProxy(AbstractEngine):
         return received
 
     def _upd_chars_caches(self, chardiffs, **kwargs):
+        deleted = set(self.character.keys())
         for (char, chardiff) in chardiffs.items():
+            if char not in self._char_cache:
+                self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)
+            deleted.discard(char)
+        for char in deleted:
+            del self._char_cache[char]
 
     def _inc_tick(self, *args):
         self._tick += 1
