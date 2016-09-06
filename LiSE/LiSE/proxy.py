@@ -1685,17 +1685,39 @@ class EngineProxy(AbstractEngine):
                     self._character_portals_cache[char][orig][dest] = PortalProxy(self, char, orig, dest)
 
     def delistify(self, obj):
-        try:
-            return super().delistify(obj)
-        except KeyError:
-            if obj[0] == 'character':
-                return CharacterProxy(self, self.delistify(obj[1]))
-            elif obj[0] == 'node':
-                return NodeProxy(self, self.delistify(obj[1]), self.delistify(obj[2]))
-            elif obj[0] == 'portal':
-                return PortalProxy(self, self.delistify(obj[1]), self.delistify(obj[2]), self.delistify(obj[3]))
+        if not (isinstance(obj, list) or isinstance(obj, tuple)):
+            return obj
+        if obj[0] == 'character':
+            name = self.delistify(obj[1])
+            if name not in self._chars_cache:
+                self._chars_cache[name] = CharacterProxy(self, name)
+            return self._chars_cache[name]
+        elif obj[0] == 'node':
+            charname = self.delistify(obj[1])
+            nodename = self.delistify(obj[2])
+            if charname in self._things_cache and nodename in self._things_cache[charname]:
+                return self._things_cache[charname][nodename]
+            if charname in self._character_places_cache and nodename in self._character_places_cache[charname]:
+                return self._character_places_cache[charname][nodename]
+            # I hate that I have to ask the subprocess about this.
+            # Maybe change the serialization to always reflect
+            # the distinction between place and thing
+            if self.handle('character_has_thing', char=charname, thing=nodename):
+                self._things_cache[charname][nodename] = ThingProxy(self, charname, nodename)
+                return self._things_cache[charname][nodename]
             else:
-                raise ValueError("Couldn't delistify: {}".format(obj))
+                self._character_places_cache[charname][nodename] = PlaceProxy(self, charname, nodename)
+                self._character_places_cache[charname][nodename]
+        elif obj[0] == 'portal':
+            charname = self.delistify(obj[1])
+            origname = self.delistify(obj[2])
+            destname = self.delistify(obj[3])
+            cache = self._character_portals_cache
+            if not (charname in cache and origname in cache[charname] and destname in cache[charname][origname]):
+                cache[charname][origname][destname] = PortalProxy(self, charname, origname, destname)
+            return cache[charname][origname][destname]
+        else:
+            return super().delistify(obj)
 
     def send(self, obj, blocking=True, timeout=-1):
         self._handle_out_lock.acquire(blocking, timeout)
