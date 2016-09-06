@@ -63,7 +63,7 @@ class CachingProxy(MutableMapping):
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
-            elif k in self._cache and self._cache[k] != v:
+            elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
 
     def update_cache(self):
