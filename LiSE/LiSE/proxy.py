@@ -1823,6 +1823,30 @@ class EngineProxy(AbstractEngine):
         self._branch = kwargs['branch']
         self._tick = kwargs['tick']
 
+    def _pull_async(self, chars, cb):
+        self.send(self.json_dump({
+            'silent': False,
+            'command': 'get_chardiffs',
+            'chars': chars
+        }))
+        cbs = [self._upd_chars_caches]
+        if cb:
+            cbs.append(cb)
+        self._call_with_recv(cbs)
+
+    def pull(self, chars='all', cb=None, sync=True):
+        """Update the state of all my proxy objects to match that of the real objects."""
+        if sync:
+            diffs = self.handle('get_chardiffs', chars=chars)
+            self._upd_chars_caches(diffs)
+            if cb:
+                cb(diffs)
+        else:
+            Thread(
+                target=self._pull_async,
+                args=(chars, cb)
+            ).start()
+
     def next_tick(self, chars=[], cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
