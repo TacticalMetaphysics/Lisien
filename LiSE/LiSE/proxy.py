@@ -1351,8 +1351,6 @@ class CharacterMapProxy(MutableMapping):
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("No character: {}".format(k))
-        if k not in self.engine._char_cache:
-            self.engine._char_cache[k] = CharacterProxy(self.engine, k)
         return self.engine._char_cache[k]
 
     def __setitem__(self, k, v):
