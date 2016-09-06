@@ -65,16 +65,15 @@ class GameApp(App):
             have_code = True
         except FileNotFoundError:
             pass
-        if not (have_world and have_code):
-            engine = Engine(self.worlddb, self.codedb)
-            if not have_code:
-                for module in self.modules:
-                    import_module(module).install(engine)
-            if not have_world:
-                engine.method['game_start'](engine)
-            engine.close()
         self.procman = LiSE.proxy.EngineProcessManager()
         self.engine = self.procman.start(self.worlddb, self.codedb, logger=Logger)
+        if not have_code:
+            for module in self.modules:
+                self.engine.handle(command='install_module', module=module)
+        if not have_world:
+            self.engine.handle(command='do_game_start')
+        if not (have_world and have_code):
+            self.engine.pull()
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)
