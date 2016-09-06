@@ -1651,8 +1651,8 @@ class EngineProxy(AbstractEngine):
         self._handle_lock = Lock()
         self.logger = logger
         (self._branch, self._tick) = self.handle(command='get_watched_time')
-        self._portal_stat_cache = {}
-        self._node_stat_cache = {}
+        self._portal_stat_cache = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        self._node_stat_cache = defaultdict(lambda: defaultdict(dict))
         self._char_stat_cache = defaultdict(dict)
         self._things_cache = defaultdict(dict)
         self._character_places_cache = defaultdict(dict)
