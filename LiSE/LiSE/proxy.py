@@ -1186,7 +1186,7 @@ class CharacterProxy(MutableMapping):
         self.portal._apply_diff(diff['portals'])
         for (node, nodediff) in diff['node_stat'].items():
             if node not in self.engine._node_stat_cache[self.name]:
-                self.engine._node_stat_cache[self.name] = nodediff
+                self.engine._node_stat_cache[self.name][node] = nodediff
             else:
                 self.node[node]._apply_diff(nodediff)
         for (orig, destdiff) in diff['portal_stat'].items():
