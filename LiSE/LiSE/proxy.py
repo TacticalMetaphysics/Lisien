@@ -527,10 +527,7 @@ class NodeMapProxy(MutableMapping):
 class ThingMapProxy(CachingProxy):
     @property
     def rulebook(self):
-        rbname = self.engine._character_rulebooks_cache[self.name]['thing']
-        if not hasattr(self, '_rb') or self._rb.name != rbname:
-            self._rb = RuleBookProxy(self.engine, rbname)
-        return self._rb
+        return self.engine._character_rulebooks_cache[self.name]['thing']
 
     @property
     def character(self):
@@ -598,16 +595,14 @@ class ThingMapProxy(CachingProxy):
             node=k,
             silent=True
         )
+        del self._cache[k]
         del self.engine._node_stat_cache[self.name][k]
 
 
 class PlaceMapProxy(CachingProxy):
     @property
     def rulebook(self):
-        rbname = self.engine._character_rulebooks_cache[self.name]['place']
-        if not hasattr(self, '_rb') or self._rb.name != rbname:
-            self._rb = RuleBookProxy(self.engine, rbname)
-        return self._rb
+        return self.engine._character_rulebooks_cache[self.name]['place']
 
     @property
     def character(self):
@@ -738,9 +733,7 @@ class SuccessorsProxy(CachingProxy):
 class CharSuccessorsMappingProxy(CachingProxy):
     @property
     def rulebook(self):
-        rbname = self.engine._character_rulebooks_cache[self._charname]['portal']
-        if not hasattr(self, '_rb') or self._rb.name != rbname:
-            self._rb = RuleBookProxy(self.engine, rbname)
+        return self.engine._character_rulebooks_cache[self._charname]['portal']
 
     @property
     def character(self):
@@ -1094,10 +1087,7 @@ class RuleBookProxy(MutableSequence):
 class AvatarMapProxy(Mapping):
     @property
     def rulebook(self):
-        rbname = self.engine._character_rulebooks_cache[self.character.name]['avatar']
-        if not hasattr(self, '_rb') or self._rb.name != rbname:
-            self._rb = RuleBookProxy(self.engine, rbname)
-        return self._rb
+        return self.engine._character_rulebooks_cache[self.character.name]['avatar']
 
     def __init__(self, character):
         self.character = character
@@ -1158,10 +1148,7 @@ class AvatarMapProxy(Mapping):
 class CharacterProxy(MutableMapping):
     @property
     def rulebook(self):
-        rbname = self.engine._character_rulebooks_cache[self.name]['character']
-        if not hasattr(self, '_rb') or self._rb.name != rbname:
-            self._rb = RuleBookProxy(self.engine, rbname)
-        return self._rb
+        return self.engine._character_rulebooks_cache[self.name]['character']
 
     @reify
     def avatar(self):
@@ -1716,9 +1703,13 @@ class EngineProxy(AbstractEngine):
             self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
             self._node_stat_cache[char] = charsdiffs[char]['node_stat']
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
-            self._character_rulebooks_cache[char] = charsdiffs[char]['rulebooks']
-            self._char_node_rulebooks_cache[char] = charsdiffs[char]['node_rulebooks']
-            self._char_port_rulebooks_cache[char] = charsdiffs[char]['portal_rulebooks']
+            self._character_rulebooks_cache[char] = {rb: RuleBookProxy(self, v) for rb, v in charsdiffs[char]['rulebooks'].items()}
+            self._char_node_rulebooks_cache[char] = {node: RuleBookProxy(self, rb) for node, rb in charsdiffs[char]['node_rulebooks']}
+            self._char_port_rulebooks_cache[char] = {
+                origin: {
+                    destination: RuleBookProxy(self, rb) for destination, rb in charsdiffs[char]['portal_rulebooks'][origin].items()
+                } for origin in charsdiffs[char]['portal_rulebooks']
+            }
             for (thing, (loc, nxloc, arrt, nxarrt)) in charsdiffs[char]['things'].items():
                 if loc:
                     self._things_cache[char][thing] = ThingProxy(self, char, thing, loc, nxloc, arrt, nxarrt)
