@@ -1223,10 +1223,10 @@ class CharacterProxy(MutableMapping):
                 self.node[node]._apply_diff(nodediff)
         for (orig, destdiff) in diff['portal_stat'].items():
             for (dest, portdiff) in destdiff.items():
-               if orig in self.portal and dest in self.portal[orig]:
+                if orig in self.portal and dest in self.portal[orig]:
                     self.portal[orig][dest]._apply_diff(portdiff)
-               else:
-                   self.engine._portal_stat_cache[self.name][orig][dest] = portdiff
+                else:
+                    self.engine._portal_stat_cache[self.name][orig][dest] = portdiff
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
