@@ -682,9 +682,8 @@ class Board(RelativeLayout):
         )
         nodes_patch = {}
         pawns_added = []
-        for thing_name in self.character.thing:
+        for (thing_name, thing) in self.character.thing.items():
             if thing_name not in self.pawn:
-                thing = self.character.thing[thing_name]
                 pwn = self.make_pawn(thing)
                 pawns_added.append(pwn)
                 patch = {}
