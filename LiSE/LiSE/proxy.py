@@ -132,6 +132,11 @@ class NodeProxy(CachingEntityProxy):
         self.name = nodename
         super().__init__(engine_proxy)
 
+    def __iter__(self):
+        yield from super().__iter__()
+        yield 'character'
+        yield 'name'
+
     def __eq__(self, other):
         return (
             isinstance(other, NodeProxy) and
