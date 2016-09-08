@@ -1815,7 +1815,7 @@ class EngineProxy(AbstractEngine):
                 return self._things_cache[charname][nodename]
             else:
                 self._character_places_cache[charname][nodename] = PlaceProxy(self, charname, nodename)
-                self._character_places_cache[charname][nodename]
+                return self._character_places_cache[charname][nodename]
         elif obj[0] == 'portal':
             charname = self.delistify(obj[1])
             origname = self.delistify(obj[2])
