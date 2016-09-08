@@ -627,7 +627,10 @@ class Board(RelativeLayout):
 
     def _pop_new_arrow(self, *args):
         notyet = set()
-        (orig, dest) = self._new_arrows_todo.pop()
+        try:
+            (orig, dest) = self._new_arrows_todo.pop()
+        except KeyError:
+            return
         while not (orig in self.spot and dest in self.spot):
             notyet.add((orig, dest))
             try:
