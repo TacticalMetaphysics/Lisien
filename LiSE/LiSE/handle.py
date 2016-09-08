@@ -434,6 +434,7 @@ class EngineHandle(object):
         return {
             k: self.unwrap_node_stat(char, node, k, v)
             for (k, v) in self._real.character[char].node[node].items()
+            if k not in {'location', 'next_location', 'arrival_time', 'next_arrival_time'}
         }
 
     def node_stat_diff(self, char, node):
@@ -496,18 +497,24 @@ class EngineHandle(object):
         del self._real.character[char].node[node]
 
     def character_things(self, char):
-        """Return a list of names of every Thing in a Character."""
-        return list(self._real.character[char].thing)
+        return {
+            name: (thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'])
+            for (name, thing) in self._real.character[char].thing.items()
+        }
 
     def character_things_diff(self, char):
-        """Return a dictionary describing added and deleted things.
+        """Return a dictionary of char's things and their locations.
 
-        Returns ``None`` if the character doesn't exist."""
+        Location of ``None`` means the thing doesn't exist anymore.
+
+        Returns ``None`` if the character doesn't exist.
+
+        """
         try:
             new = self.character_things(char)
-            old = self._char_things_cache.get(char, [])
+            old = self._char_things_cache.get(char, {})
             self._char_things_cache[char] = new
-            return list_diff(old, new)
+            return dict_diff(old, new)
         except KeyError:
             return None
 
@@ -658,6 +665,13 @@ class EngineHandle(object):
             return self._real.character[char].thing[thing]._loc_and_next()
         except KeyError:
             return (None, None)
+
+    def get_thing_special_stats(self, char, thing):
+        try:
+            thing = self._real.character[char].thing[thing]
+        except KeyError:
+            return (None, None, None, None)
+        return (thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'])
 
     def set_thing_next_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['next_location'] = loc

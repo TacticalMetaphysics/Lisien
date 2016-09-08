@@ -201,36 +201,55 @@ class PlaceProxy(NodeProxy):
 class ThingProxy(NodeProxy):
     @property
     def location(self):
-        return self.engine.character[self._charname].node[self['location']]
+        return self.engine.character[self._charname].node[self._location]
 
     @location.setter
     def location(self, v):
-        self['location'] = v.name
+        if isinstance(v, NodeProxy):
+            if v.character != self.character:
+                raise ValueError("Things can only be located in their character. Maybe you want an avatar?")
+            locn = v.name
+        elif v in self.character.node:
+            locn = v
+        else:
+            raise TypeError("Location must be a node or the name of one")
+        self._set_location(locn)
 
     @property
     def next_location(self):
-        ln = self['next_location']
-        if ln is None:
+        if self._next_location is None:
             return None
-        return self.engine.character[self._charname].node[ln]
+        return self.engine.character[self._charname].node[self._next_location]
 
     @next_location.setter
     def next_location(self, v):
-        self['next_location'] = v.name
+        if isinstance(v, NodeProxy):
+            if v.character != self.character:
+                raise ValueError("Things can only be located in their character. Maybe you want an avatar?")
+            locn = v.name
+        elif v in self.character.node:
+            locn = v
+        else:
+            raise TypeError("Location must be a node or the name of one")
+        self._set_next_location(locn)
+
+    def __init__(self, engine, character, name, location, next_location, arrival_time, next_arrival_time):
+        if location is None:
+            raise TypeError("Things must have locations")
+        super().__init__(engine, character, name)
+        self._location = location
+        self._next_location = next_location
+        self._arrival_time = arrival_time
+        self._next_arrival_time = next_arrival_time
 
     def __iter__(self):
-        already = set(super().__iter__())
-        yield from already
-        for k in {
-                'name',
-                'character',
-                'location',
+        yield from super().__iter__()
+        yield from {
+            'location',
                 'next_location',
                 'arrival_time',
                 'next_arrival_time'
-        }:
-            if k not in already:
-                yield k
+        }
 
     def __getitem__(self, k):
         if k in {
@@ -238,57 +257,65 @@ class ThingProxy(NodeProxy):
                 'next_location',
                 'arrival_time',
                 'next_arrival_time'
-        } and not super().__contains__(k):
-            return None
+        }:
+            return getattr(self, '_' + k)
         return super().__getitem__(k)
+
+    def _set_location(self, v):
+        self._location = v
+        self.engine.handle(
+            command='set_thing_location',
+            char=self.character.name,
+            thing=self.name,
+            loc=v
+        )
+
+    def _set_next_location(self, v):
+        self._next_location = v
+        self.engine.handle(
+            command='set_thing_next_location',
+            char=self.character.name,
+            thing=self.name,
+            loc=v
+        )
 
     def __setitem__(self, k, v):
         if k == 'location':
-            self._cache['location'] = v
-            self.engine.handle(
-                command='set_thing_location',
-                char=self.character.name,
-                thing=self.name,
-                loc=v
-            )
+            self._set_location(v)
         elif k == 'next_location':
-            self._cache['next_location'] = v
-            self.engine.handle(
-                command='set_thing_next_location',
-                char=self.character.name,
-                thing=self.name,
-                loc=v
-            )
+            self._set_next_location(v)
         elif k in {'arrival_time', 'next_arrival_time'}:
             raise ValueError("Read-only")
         else:
             super().__setitem__(k, v)
 
     def __repr__(self):
-        if self['next_location'] is not None:
+        if self._next_location is not None:
             return "proxy to {}.thing[{}]@{}->{}".format(
                 self._charname,
                 self.name,
-                self['location'],
-                self['next_location']
+                self._location,
+                self._next_location
             )
         return "proxy to {}.thing[{}]@{}".format(
             self._charname,
             self.name,
-            self['location']
+            self._location
         )
 
     def update_cache(self):
-        (loc, next_loc) = self.engine.handle(
-            command='get_thing_loc_and_next',
+        (loc, next_loc, arrt, next_arrt) = self.engine.handle(
+            command='get_thing_special_stats',
             char=self._charname, thing=self.name
         )
         if loc is None:
             self.exists = False
             self._cache = {}
             return
-        self._cache['location'] = loc
-        self._cache['next_location'] = next_loc
+        self._location = loc
+        self._next_location = next_loc
+        self._arrival_time = arrt
+        self._next_arrival_time = next_arrt
         super().update_cache()
 
     def follow_path(self, path, weight=None):
@@ -513,17 +540,26 @@ class ThingMapProxy(CachingProxy):
         return self is other
 
     def _apply_diff(self, diff):
-        for (thing, ex) in diff.items():
-            if ex:
-                if thing not in self._cache:
+        for (thing, (location, next_location, arrival_time, next_arrival_time)) in diff.items():
+            if location:
+                if thing in self._cache:
+                    thisthing = self._cache[thing]
+                    thisthing._location = location
+                    thisthing._next_location = next_location
+                    thisthing._arrival_time = arrival_time
+                    thisthing._next_arrival_time = next_arrival_time
+                else:
                     self._cache[thing] = ThingProxy(
                         self.engine,
                         self.name,
-                        thing
+                        thing,
+                        location,
+                        next_location,
+                        arrival_time,
+                        next_arrival_time
                     )
-            else:
-                if thing in self._cache:
-                    del self._cache[thing]
+            elif thing in self._cache:
+                del self._cache[thing]
 
     def _get_diff(self):
         return self.engine.handle(
@@ -533,7 +569,7 @@ class ThingMapProxy(CachingProxy):
 
     def _cache_munge(self, k, v):
         return ThingProxy(
-            self.engine, self.name, k
+            self.engine, self.name, *self.engine.handle('get_thing_special_stats', char=self.name, thing=k)
         )
 
     def _set_item(self, k, v):
@@ -544,6 +580,7 @@ class ThingMapProxy(CachingProxy):
             statdict=v,
             silent=True
         )
+        self._cache[k] = ThingProxy(self.engine, self.name, v.pop('location'), v.pop('next_location', None), v.pop('arrival_time', None), v.pop('next_arrival_time', None))
         self.engine._node_stat_cache[self.name][k] = v
 
     def _del_item(self, k):
@@ -1674,9 +1711,9 @@ class EngineProxy(AbstractEngine):
             self._character_rulebooks_cache[char] = charsdiffs[char]['rulebooks']
             self._char_node_rulebooks_cache[char] = charsdiffs[char]['node_rulebooks']
             self._char_port_rulebooks_cache[char] = charsdiffs[char]['portal_rulebooks']
-            for (thing, ex) in charsdiffs[char]['things'].items():
-                if ex:
-                    self._things_cache[char][thing] = ThingProxy(self, char, thing)
+            for (thing, (loc, nxloc, arrt, nxarrt)) in charsdiffs[char]['things'].items():
+                if loc:
+                    self._things_cache[char][thing] = ThingProxy(self, char, thing, loc, nxloc, arrt, nxarrt)
             for (place, ex) in charsdiffs[char]['places'].items():
                 if ex:
                     self._character_places_cache[char][place] = PlaceProxy(self, char, place)
@@ -1702,8 +1739,9 @@ class EngineProxy(AbstractEngine):
             # I hate that I have to ask the subprocess about this.
             # Maybe change the serialization to always reflect
             # the distinction between place and thing
-            if self.handle('character_has_thing', char=charname, thing=nodename):
-                self._things_cache[charname][nodename] = ThingProxy(self, charname, nodename)
+            (loc, nextloc, arrt, nextarrt) = self.handle('get_thing_special_stats', char=charname, thing=nodename)
+            if loc is not None:
+                self._things_cache[charname][nodename] = ThingProxy(self, charname, nodename, loc, nextloc, arrt, nextarrt)
                 return self._things_cache[charname][nodename]
             else:
                 self._character_places_cache[charname][nodename] = PlaceProxy(self, charname, nodename)
@@ -1771,18 +1809,19 @@ class EngineProxy(AbstractEngine):
                     (charn, k, v) = r[2:]
                     return cls(CharacterProxy(self, charn), k, v)
                 elif r[1] == 'node':
-                    (char, node, k, v) = r[2:]
+                    (char, noden, k, v) = r[2:]
                     try:
-                        node = self.character[char].node[node]
+                        node = self.character[char].node[noden]
                     except KeyError:
-                        if self.handle(
-                            command='character_has_thing',
+                        (loc, nxtloc, arrt, nxtarrt) = self.handle(
+                            'get_thing_special_stats',
                             char=char,
-                            thing=node
-                        ):
-                            node = ThingProxy(self, char, node)
+                            thing=noden
+                        )
+                        if loc is not None:
+                            node = self._things_cache[char][noden] = ThingProxy(self, char, noden, loc, nxtloc, arrt, nxtarrt)
                         else:
-                            node = PlaceProxy(self, char, node)
+                            node = self._character_places_cache[char][noden] = PlaceProxy(self, char, noden)
                     return cls(node, k, v)
                 else:
                     assert (r[1] == 'portal')
