@@ -1683,16 +1683,87 @@ class EngineProxy(AbstractEngine):
         self._handle_lock = Lock()
         self.logger = logger
         (self._branch, self._tick) = self.handle(command='get_watched_time')
-        self._portal_stat_cache = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        self._node_stat_cache = defaultdict(lambda: defaultdict(dict))
-        self._char_stat_cache = defaultdict(dict)
-        self._things_cache = defaultdict(dict)
-        self._character_places_cache = defaultdict(dict)
-        self._character_rulebooks_cache = defaultdict(dict)
-        self._char_node_rulebooks_cache = defaultdict(dict)
-        self._char_port_rulebooks_cache = defaultdict(lambda: defaultdict(dict))
-        self._character_portals_cache = defaultdict(lambda: defaultdict(dict))
-        self._character_avatars_cache = defaultdict(dict)
+
+        class innermostDD(dict):
+            def __init__(self, typ):
+                self._type = typ
+                super().__init__()
+
+            def __setitem__(self, k, v):
+                if not (
+                    isinstance(k, str) or
+                    isinstance(k, tuple) or
+                    isinstance(k, list)
+                ):
+                    raise TypeError("Illegal key type: " + repr(type(k)))
+                if not isinstance(v, self._type):
+                    raise TypeError("I only accept " + repr(self._type))
+                super().__setitem__(k, v)
+
+            def __getitem__(self, k):
+                if k in self:
+                    return super().__getitem__(k)
+                try:
+                    newbie = self[k] = self._type()
+                    return newbie
+                except TypeError:
+                    raise KeyError("No {} for key {} and can't instantiate a default".format(self._type, k))
+
+        class dd3lvl2(dict):
+            def __init__(self, typ):
+                self._type = typ
+                super().__init__()
+
+            def __setitem__(self, k, v):
+                raise TypeError("Can't set this level")
+
+            def __getitem__(self, k):
+                if k in self:
+                    return super().__getitem__(k)
+                newbie = innermostDD(self._type)
+                super().__setitem__(k, newbie)
+                return newbie
+
+        class TripleDefaultDict(dict):
+            def __init__(self, typ):
+                self._type = typ
+                super().__init__()
+
+            def __setitem__(self, k, v):
+                raise TypeError("Can't set this level")
+
+            def __getitem__(self, k):
+                if k in self:
+                    return super().__getitem__(k)
+                newbie = dd3lvl2(self._type)
+                super().__setitem__(k, newbie)
+                return newbie
+        self._portal_stat_cache = TripleDefaultDict(dict)
+
+        class DoubleDefaultDict(dict):
+            def __init__(self, typ):
+                self._type = typ
+                super().__init__()
+
+            def __setitem__(self, k, v):
+                raise TypeError("Can't set this level")
+
+            def __getitem__(self, k):
+                if k in self:
+                    return super().__getitem__(k)
+                newbie = innermostDD(self._type)
+                super().__setitem__(k, newbie)
+                return newbie
+
+        self._node_stat_cache = DoubleDefaultDict(dict)
+        self._char_stat_cache = innermostDD(dict)
+        self._things_cache = DoubleDefaultDict(ThingProxy)
+        self._character_places_cache = DoubleDefaultDict(PlaceProxy)
+        self._character_rulebooks_cache = TripleDefaultDict(RuleBookProxy)
+        self._char_node_rulebooks_cache = DoubleDefaultDict(RuleBookProxy)
+        self._char_port_rulebooks_cache = TripleDefaultDict(RuleBookProxy)
+        self._character_portals_cache = TripleDefaultDict(PortalProxy)
+        self._character_avatars_cache = innermostDD(dict)
         self._char_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
