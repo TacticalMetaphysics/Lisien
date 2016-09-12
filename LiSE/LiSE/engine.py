@@ -10,7 +10,6 @@ from collections import defaultdict
 from functools import partial
 from sqlite3 import connect
 from json import dumps, loads, JSONEncoder
-from numpy import sctypes
 from gorm import ORM as gORM
 from gorm.window import WindowDict
 from gorm.reify import reify
@@ -152,6 +151,10 @@ class AbstractEngine(object):
                     return super().encode(cls.listify(o))
 
                 def default(self, o):
+                    try:
+                        from numpy import sctypes
+                    except ImportError:
+                        return super().default(o)
                     t = type(o)
                     if t in sctypes['int']:
                         return int(o)
