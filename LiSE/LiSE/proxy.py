@@ -1746,8 +1746,11 @@ class EngineProxy(AbstractEngine):
         for char in charsdiffs:
             self._char_cache[char] = CharacterProxy(self, char)
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
-            self._portal_stat_cache[char] = charsdiffs[char]['portal_stat']
-            self._node_stat_cache[char] = charsdiffs[char]['node_stat']
+            for origin,  destinations in charsdiffs[char]['portal_stat'].items():
+                for destination,  stats in destinations.items():
+                    self._portal_stat_cache[origin][destination] = stats
+            for node,  stats in charsdiffs[char]['node_stat'].items():
+                self._node_stat_cache[char][node] = stats
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             self._character_rulebooks_cache[char] = {rb: RuleBookProxy(self, v) for rb, v in charsdiffs[char]['rulebooks'].items()}
             self._char_node_rulebooks_cache[char] = {node: RuleBookProxy(self, rb) for node, rb in charsdiffs[char]['node_rulebooks']}
