@@ -5,7 +5,6 @@ import sys
 import logging
 from os import getpid
 from collections import (
-    defaultdict,
     Mapping,
     MutableMapping,
     MutableSequence
