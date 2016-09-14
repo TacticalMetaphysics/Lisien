@@ -1713,7 +1713,6 @@ class EngineProxy(AbstractEngine):
                 newbie = dd3lvl2(self._type)
                 super().__setitem__(k, newbie)
                 return newbie
-        self._portal_stat_cache = TripleDefaultDict(dict)
 
         class DoubleDefaultDict(dict):
             def __init__(self, typ):
@@ -1731,6 +1730,7 @@ class EngineProxy(AbstractEngine):
                 return newbie
 
         self._node_stat_cache = DoubleDefaultDict(dict)
+        self._portal_stat_cache = TripleDefaultDict(dict)
         self._char_stat_cache = innermostDD(dict)
         self._things_cache = DoubleDefaultDict(ThingProxy)
         self._character_places_cache = DoubleDefaultDict(PlaceProxy)
