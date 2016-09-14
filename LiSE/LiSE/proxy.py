@@ -1981,11 +1981,36 @@ class EngineProxy(AbstractEngine):
     def add_character(self, char, data={}, **attr):
         if char in self._char_cache:
             raise KeyError("Character already exists")
+        assert char not in self._char_stat_cache
         self._char_cache[char] = CharacterProxy(self, char)
         self._char_stat_cache[char] = attr
-        self._character_places_cache[char] = data.get('place', data.get('node', {}))
-        self._things_cache[char] = data.get('thing', {})
-        self._character_portals_cache[char] = data.get('edge', data.get('portal', {}))
+        placedata = data.get('place', data.get('node', {}))
+        for place, stats in  placedata.items():
+            assert place not in self._character_places_cache[char]
+            assert place not in self._node_stat_cache[char]
+            self._character_places_cache[char][place] = PlaceProxy(self.engine,  char,  place)
+            self._node_stat_cache[char][place] = stats
+        thingdata = data.get('thing',  {})
+        for thing, stats in thingdata.items():
+            assert thing not in self._things_cache[char]
+            assert thing not in self._node_stat_cache[char]
+            if 'location' not in stats:
+                raise ValueError('Things must always have locations')
+            if 'arrival_time' in stats or 'next_arrival_time' in stats:
+                raise ValueError('The arrival_time stats are read-only')
+            loc = stats.pop('location')
+            nxtloc = stats.pop('next_location') if 'next_location' in stats else None
+            self._things_cache[char][thing] = ThingProxy(loc, nxtloc, self.engine.rev, None)
+            self._node_stat_cache[char][thing] = stats
+        portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
+        for orig, dests in portdata.items():
+            assert orig not in self._character_portals_cache[char]
+            assert orig not in self._portal_stat_cache[char]
+            for dest, stats in portdata.items():
+                assert dest not in self._character_portals_cache[char][orig]
+                assert dest not in self._portal_stat_cache[char][orig]
+                self._character_portals_cache[char][orig][dest] = PortalProxy(self.engine, char, orig, dest)
+                self._portal_stat_cache[char][orig][dest] = stats
         self.handle(
             command='add_character', char=char, data=data, attr=attr,
             silent=True
