@@ -967,54 +967,31 @@ class CharStatProxy(CachingEntityProxy):
 class RuleProxy(object):
     @property
     def triggers(self):
-        return self.engine.handle(
-            command='get_rule_triggers',
-            rule=self.name
-        )
+        return self.all_rules._cache[self.name]['triggers']
 
     @triggers.setter
     def triggers(self, v):
-        self.engine.handle(
-            command='set_rule_triggers',
-            rule=self.name,
-            triggers=v,
-            silent=True
-        )
+        self.all_rules._cache[self.name]['triggers'] = v
 
     @property
     def prereqs(self):
-        return self.engine.handle(
-            command='get_rule_prereqs',
-            rule=self.name
-        )
+        return self.all_rules._cache[self.name]['prereqs']
 
     @prereqs.setter
     def prereqs(self, v):
-        self.engine.handle(
-            command='set_rule_prereqs',
-            rule=self.name,
-            prereqs=v,
-            silent=True
-        )
+        self.all_rules._cache[self.name]['prereqs'] = v
 
     @property
     def actions(self):
-        return self.engine.handle(
-            command='get_rule_actions',
-            rule=self.name
-        )
+        return self.all_rules._cache[self.name]['actions']
 
     @actions.setter
     def actions(self, v):
-        self.engine.handle(
-            command='set_rule_actions',
-            rule=self.name,
-            actions=v,
-            silent=True
-        )
+        self.all_rules._cache[self.name]['actions'] = v
 
-    def __init__(self, engine_proxy, rulename):
-        self.engine = engine_proxy
+    def __init__(self, all_rules, rulename):
+        self.all_rules = all_rules
+        self.engine = all_rules.engine
         self.name = self._name = rulename
 
     def __eq__(self, other):
@@ -1025,13 +1002,14 @@ class RuleProxy(object):
 
 
 class RuleBookProxy(MutableSequence):
-    def __init__(self, engine_proxy, bookname):
-        self.engine = engine_proxy
+    @property
+    def _cache(self):
+        return self.all_rulebooks._cache[self.name]
+
+    def __init__(self, all_rulebooks,  bookname):
+        self.all_rulebooks = all_rulebooks
+        self.engine = all_rulebooks.engine
         self.name = bookname
-        self._cache = self.engine.handle(
-            command='get_rulebook_rules',
-            rulebook=self.name
-        )
         self._proxy_cache = {}
 
     def __iter__(self):
@@ -1510,52 +1488,50 @@ class GlobalVarProxy(MutableMapping):
 class AllRuleBooksProxy(Mapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = {}
+        self._cache = self.engine.handle('all_rulebooks_diff')
 
     def __iter__(self):
-        yield from self.engine.handle(command='rulebooks')
+        yield from self._cache
 
     def __len__(self):
-        return self.engine.handle(command='len_rulebooks')
+        return len(self._cache)
 
     def __contains__(self, k):
-        if k in self._cache:
-            return True
-        return self.engine.handle(command='have_rulebook', rulebook=k)
+        return k in self._cache
 
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("No rulebook: {}".format(k))
-        if k not in self._cache:
-            self._cache[k] = RuleBookProxy(self.engine, k)
         return self._cache[k]
 
 
 class AllRulesProxy(Mapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = {}
+        self._cache = self.engine.handle('all_rules_diff')
+        self._proxy_cache = {}
 
     def __iter__(self):
-        yield from self.engine.handle(command='list_all_rules')
+        return iter(self._cache)
 
     def __len__(self):
-        return self.engine.handle(command='count_all_rules')
+        return len(self._cache)
 
     def __contains__(self, k):
-        return self.engine.handle(command='have_rule', rule=k)
+        return k in self._cache
 
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("No rule: {}".format(k))
-        if k not in self._cache:
-            self._cache[k] = RuleProxy(self.engine, k)
-        return self._cache[k]
+        if k not in self._proxy_cache:
+            self._proxy_cache[k] = RuleProxy(self, k)
+        return self._proxy_cache[k]
 
     def new_empty(self, k):
         self.engine.handle(command='new_empty_rule', rule=k, silent=True)
-        self._cache[k] = RuleProxy(self.engine, k)
-        return self._cache[k]
+        self._cache[k] = []
+        self._proxy_cache[k] = RuleProxy(self, k)
+        return self._proxy_cache[k]
 
 
 class FuncStoreProxy(object):
