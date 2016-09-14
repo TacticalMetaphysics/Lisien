@@ -57,7 +57,10 @@ class UserMapping(Mapping):
         yield from self.node._user_names()
 
     def __len__(self):
-        return len(self.node._user_names())
+        n = 0
+        for user in self.node._user_names():
+            n += 1
+        return n
 
     def __getitem__(self, k):
         if len(self) == 1:
