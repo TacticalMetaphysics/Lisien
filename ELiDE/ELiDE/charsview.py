@@ -1,8 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 from kivy.lang import Builder
-from kivy.adapters.listadapter import ListAdapter
-from kivy.uix.listview import ListView, ListItemButton
+from kivy.uix.recycleview import RecycleView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 
@@ -12,24 +11,9 @@ from kivy.properties import AliasProperty, ObjectProperty, StringProperty
 # TODO: Visual preview
 # TODO: Background image chooser
 
-class CharListView(ListView):
+class CharListView(RecycleView):
     character_name = StringProperty()
     set_char = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        if 'adapter' not in kwargs:
-            kwargs['adapter'] = ListAdapter(
-                data=[],
-                selection_mode='single',
-                allow_empty_selection=True,
-                cls=ListItemButton,
-                args_converter=lambda i, char: {
-                    'size_hint_y': None,
-                    'height': 30,
-                    'text': char
-                }
-            )
-        super().__init__(**kwargs)
 
     def on_adapter(self, *args):
         def selchange(*args):
@@ -79,6 +63,16 @@ class CharactersScreen(Screen):
 
 
 Builder.load_string("""
+<CharButton@Button>:
+    on_press: self.parent.set_char(self.text)
+<CharListView>:
+    viewclass: 'CharButton'
+    RecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
 <CharactersScreen>:
     name: 'chars'
     charsview: charsview
