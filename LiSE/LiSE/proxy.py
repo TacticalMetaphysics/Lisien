@@ -1739,7 +1739,7 @@ class EngineProxy(AbstractEngine):
         self._char_stat_cache = innermostDD(dict)
         self._things_cache = DoubleDefaultDict(ThingProxy)
         self._character_places_cache = DoubleDefaultDict(PlaceProxy)
-        self._character_rulebooks_cache = TripleDefaultDict(RuleBookProxy)
+        self._character_rulebooks_cache = DoubleDefaultDict(RuleBookProxy)
         self._char_node_rulebooks_cache = DoubleDefaultDict(RuleBookProxy)
         self._char_port_rulebooks_cache = TripleDefaultDict(RuleBookProxy)
         self._character_portals_cache = TripleDefaultDict(PortalProxy)
@@ -1753,17 +1753,17 @@ class EngineProxy(AbstractEngine):
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
             for origin,  destinations in charsdiffs[char]['portal_stat'].items():
                 for destination,  stats in destinations.items():
-                    self._portal_stat_cache[origin][destination] = stats
+                    self._portal_stat_cache[char][origin][destination] = stats
             for node,  stats in charsdiffs[char]['node_stat'].items():
                 self._node_stat_cache[char][node] = stats
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
-            self._character_rulebooks_cache[char] = {rb: RuleBookProxy(self, v) for rb, v in charsdiffs[char]['rulebooks'].items()}
-            self._char_node_rulebooks_cache[char] = {node: RuleBookProxy(self, rb) for node, rb in charsdiffs[char]['node_rulebooks']}
-            self._char_port_rulebooks_cache[char] = {
-                origin: {
-                    destination: RuleBookProxy(self, rb) for destination, rb in charsdiffs[char]['portal_rulebooks'][origin].items()
-                } for origin in charsdiffs[char]['portal_rulebooks']
-            }
+            for rbtype, rb in charsdiffs[char]['rulebooks'].items():
+                self._character_rulebooks_cache[char][rbtype] = RuleBookProxy(self.rulebook, rb)
+            for node, rb in charsdiffs[char]['node_rulebooks'].items():
+                self._char_node_rulebooks_cache[char][node] = RuleBookProxy(self.rulebook, rb)
+            for origin, destinations in charsdiffs[char]['portal_rulebooks'].items():
+                for destination, rulebook in destinations.items():
+                    self._char_port_rulebooks_cache[char][origin][destination] = RuleBookProxy(self.rulebook, rulebook)
             for (thing, (loc, nxloc, arrt, nxarrt)) in charsdiffs[char]['things'].items():
                 if loc:
                     self._things_cache[char][thing] = ThingProxy(self, char, thing, loc, nxloc, arrt, nxarrt)
