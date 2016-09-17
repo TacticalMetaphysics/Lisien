@@ -11,6 +11,7 @@ from functools import partial
 from sqlite3 import connect
 from json import dumps, loads, JSONEncoder
 from gorm import ORM as gORM
+from gorm.pickydict import StructuredDefaultDict
 from gorm.window import WindowDict
 from gorm.reify import reify
 from .xcollections import (
@@ -32,42 +33,15 @@ class DummyEntity(dict):
         self.engine = engine
 
 
-def crhandled_defaultdict():
-    """Return a defaultdict for recording when a rule's been handled."""
-    return defaultdict(  # character:
-        lambda: defaultdict(  # rulebook:
-            lambda: defaultdict(  # rule:
-                lambda: defaultdict(  # branch:
-                    set  # ticks handled
-                )
-            )
-        )
-    )
-
-
 class AvatarnessCache(object):
     """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, db):
         self.db = db
-        self.db_order = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    lambda: defaultdict(  # branch:
-                        WindowDict  # tick: is_avatar
-                    )
-                )
-            )
-        )
+        # character: graph: node: branch: tick: is_avatar
+        self.db_order = StructuredDefaultDict(3, WindowDict)
         """Avatarness cached in the way it's stored in the database."""
-        self.user_order = defaultdict(  # graph:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # character:
-                    lambda: defaultdict(  # branch:
-                        WindowDict  # tick: is_avatar
-                    )
-                )
-            )
-        )
+        # graph: node: character: branch: tick: is_avatar
+        self.user_order = StructuredDefaultDict(3, WindowDict)
         """Avatarness cached for iterating over the users of a node.
 
         That is, characters that have a particular node as an avatar.
@@ -355,9 +329,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _portals_rulebooks_cache(self):
-        r = defaultdict(
-            lambda: defaultdict(dict)
-        )
+        r = StructuredDefaultDict(2, dict)
         for (character, nodeA, nodeB, rulebook) in self.db.portals_rulebooks():
             r[character][nodeA][nodeB] = rulebook
         return r
@@ -402,13 +374,8 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _active_rules_cache(self):
-        r = defaultdict(  # rulebook:
-            lambda: defaultdict(  # rule:
-                lambda: defaultdict(  # branch:
-                    WindowDict  # tick: active
-                )
-            )
-        )
+        # rulebook: rule: branch: tick: active
+        r = StructuredDefaultDict(3, WindowDict)
         for (rulebook, rule, branch, tick, active) in \
                 self.db.dump_active_rules():
             r[rulebook][rule][branch][tick] = active
@@ -425,17 +392,8 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _node_rules_handled_cache(self):
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # rulebook:
-                    lambda: defaultdict(  # rule:
-                        lambda: defaultdict(  # branch:
-                            set  # ticks handled
-                        )
-                    )
-                )
-            )
-        )
+        # character: node: rulebook: rule: branch: ticks handled
+        r = StructuredDefaultDict(5, set)
         for (character, node, rulebook, rule, branch, tick) \
                 in self.db.dump_node_rules_handled():
             r[character][node][rulebook][rule][branch].add(tick)
@@ -443,19 +401,8 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _portal_rules_handled_cache(self):
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # nodeA:
-                lambda: defaultdict(  # nodeB:
-                    lambda: defaultdict(  # rulebook:
-                        lambda: defaultdict(  # rule:
-                            lambda: defaultdict(  # branch:
-                                set  # ticks handled
-                            )
-                        )
-                    )
-                )
-            )
-        )
+        # character: nodeA: nodeB: rulebook: rule: branch: ticks handled
+        r = StructuredDefaultDict(6, set)
         for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
                 in self.db.dump_portal_rules_handled():
             r[character][nodeA][nodeB][rulebook][rule][branch].add(tick)
@@ -463,7 +410,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_rules_handled_cache(self):
-        r = crhandled_defaultdict()
+        r = StructuredDefaultDict(4, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -471,7 +418,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _avatar_rules_handled_cache(self):
-        r = crhandled_defaultdict()
+        r = StructuredDefaultDict(4, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_avatar_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -479,7 +426,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_thing_rules_handled_cache(self):
-        r = crhandled_defaultdict()
+        r = StructuredDefaultDict(4, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_thing_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -487,7 +434,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_place_rules_handled_cache(self):
-        r = crhandled_defaultdict()
+        r = StructuredDefaultDict(4, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_place_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -495,7 +442,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_node_rules_handled_cache(self):
-        r = crhandled_defaultdict()
+        r = StructuredDefaultDict(4, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_node_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -503,7 +450,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_portal_rules_handled_cache(self):
-        r = crhandled_defaultdict()
+        r = StructuredDefaultDict(4, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_portal_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -511,13 +458,8 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _things_cache(self):
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # thing:
-                lambda: defaultdict(  # branch:
-                    WindowDict  # tick: (location, next_location)
-                )
-            )
-        )
+        # character: thing: branch: tick: (location, next_location)
+        r = StructuredDefaultDict(2, WindowDict)
         for (character, thing, branch, tick, loc, nextloc) in \
                 self.db.things_dump():
             r[character][thing][branch][tick] = (loc, nextloc)

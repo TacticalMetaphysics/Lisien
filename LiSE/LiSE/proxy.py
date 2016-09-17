@@ -17,6 +17,7 @@ from .engine import AbstractEngine
 from .character import Facade
 from gorm.xjson import JSONReWrapper, JSONListReWrapper
 from gorm.reify import reify
+from gorm.pickydict import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
@@ -1664,86 +1665,16 @@ class EngineProxy(AbstractEngine):
         if do_game_start:
             self.handle('do_game_start')  # not silenced; mustn't do anything before the game has started
 
-        class innermostDD(dict):
-            def __init__(self, typ):
-                self._type = typ
-                super().__init__()
-
-            def __setitem__(self, k, v):
-                if not (
-                    isinstance(k, str) or
-                    isinstance(k, tuple) or
-                    isinstance(k, list)
-                ):
-                    raise TypeError("Illegal key type: " + repr(type(k)))
-                if not isinstance(v, self._type):
-                    raise TypeError("I only accept " + repr(self._type))
-                super().__setitem__(k, v)
-
-            def __getitem__(self, k):
-                if k in self:
-                    return super().__getitem__(k)
-                try:
-                    newbie = self[k] = self._type()
-                    return newbie
-                except TypeError:
-                    raise KeyError("No {} for key {} and can't instantiate a default".format(self._type, k))
-
-        class dd3lvl2(dict):
-            def __init__(self, typ):
-                self._type = typ
-                super().__init__()
-
-            def __setitem__(self, k, v):
-                raise TypeError("Can't set this level")
-
-            def __getitem__(self, k):
-                if k in self:
-                    return super().__getitem__(k)
-                newbie = innermostDD(self._type)
-                super().__setitem__(k, newbie)
-                return newbie
-
-        class TripleDefaultDict(dict):
-            def __init__(self, typ):
-                self._type = typ
-                super().__init__()
-
-            def __setitem__(self, k, v):
-                raise TypeError("Can't set this level")
-
-            def __getitem__(self, k):
-                if k in self:
-                    return super().__getitem__(k)
-                newbie = dd3lvl2(self._type)
-                super().__setitem__(k, newbie)
-                return newbie
-
-        class DoubleDefaultDict(dict):
-            def __init__(self, typ):
-                self._type = typ
-                super().__init__()
-
-            def __setitem__(self, k, v):
-                raise TypeError("Can't set this level")
-
-            def __getitem__(self, k):
-                if k in self:
-                    return super().__getitem__(k)
-                newbie = innermostDD(self._type)
-                super().__setitem__(k, newbie)
-                return newbie
-
-        self._node_stat_cache = DoubleDefaultDict(dict)
-        self._portal_stat_cache = TripleDefaultDict(dict)
-        self._char_stat_cache = innermostDD(dict)
-        self._things_cache = DoubleDefaultDict(ThingProxy)
-        self._character_places_cache = DoubleDefaultDict(PlaceProxy)
-        self._character_rulebooks_cache = DoubleDefaultDict(RuleBookProxy)
-        self._char_node_rulebooks_cache = DoubleDefaultDict(RuleBookProxy)
-        self._char_port_rulebooks_cache = TripleDefaultDict(RuleBookProxy)
-        self._character_portals_cache = TripleDefaultDict(PortalProxy)
-        self._character_avatars_cache = innermostDD(dict)
+        self._node_stat_cache = StructuredDefaultDict(1, dict)
+        self._portal_stat_cache = StructuredDefaultDict(2, dict)
+        self._char_stat_cache = PickyDefaultDict(dict)
+        self._things_cache = StructuredDefaultDict(1, ThingProxy)
+        self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
+        self._character_rulebooks_cache = StructuredDefaultDict(1, RuleBookProxy)
+        self._char_node_rulebooks_cache = StructuredDefaultDict(1, RuleBookProxy)
+        self._char_port_rulebooks_cache = StructuredDefaultDict(2, RuleBookProxy)
+        self._character_portals_cache = StructuredDefaultDict(2, PortalProxy)
+        self._character_avatars_cache = PickyDefaultDict(dict)
         self._char_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
