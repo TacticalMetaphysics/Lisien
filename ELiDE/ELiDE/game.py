@@ -1,5 +1,4 @@
 import os
-from importlib import import_module
 from kivy.logger import Logger
 from kivy.properties import (
     AliasProperty,
@@ -9,7 +8,6 @@ from kivy.resources import resource_find
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
-from LiSE.engine import Engine
 import LiSE.proxy
 from .util import trigger
 
