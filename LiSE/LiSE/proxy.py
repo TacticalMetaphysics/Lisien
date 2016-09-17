@@ -1650,7 +1650,7 @@ class EngineProxy(AbstractEngine):
     def method(self):
         return FuncStoreProxy(self, 'method')
 
-    def __init__(self, handle_out, handle_in, logger):
+    def __init__(self, handle_out, handle_in, logger, do_game_start=False,  install_modules=[]):
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
@@ -1658,6 +1658,11 @@ class EngineProxy(AbstractEngine):
         self._handle_lock = Lock()
         self.logger = logger
         (self._branch, self._tick) = self.handle(command='get_watched_time')
+
+        for module in install_modules:
+            self.handle('install_module',  module=module)  # not silenced
+        if do_game_start:
+            self.handle('do_game_start')  # not silenced; mustn't do anything before the game has started
 
         class innermostDD(dict):
             def __init__(self, typ):
@@ -2157,6 +2162,8 @@ class EngineProcessManager(object):
             except OSError:
                 pass
             del kwargs['logfile']
+        do_game_start = kwargs.pop('do_game_start') if 'do_game_start' in kwargs else False
+        install_modules = kwargs.pop('install_modules') if 'install_modules' in kwargs else []
         formatter = logging.Formatter(
             fmt='[{levelname}] LiSE.proxy({process})\t{message}',
             style='{'
@@ -2187,6 +2194,8 @@ class EngineProcessManager(object):
             self._handle_out_pipe_send,
             handle_in_pipe_recv,
             self.logger,
+            do_game_start,
+            install_modules
         )
         return self.engine_proxy
 
