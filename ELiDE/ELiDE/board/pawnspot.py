@@ -46,6 +46,7 @@ class PawnSpot(ImageStack):
         self.offxs = self.remote.get('_offxs', zeroes)
         self.offys = self.remote.get('_offys', zeroes)
         self.stackhs = self.remote.get('_stackhs', zeroes)
+        self.remote.listener(self._trigger_pull_from_remote)
 
     def finalize(self):
         self.bind(
@@ -54,6 +55,30 @@ class PawnSpot(ImageStack):
             offys=self._trigger_push_offys,
             stackhs=self._trigger_push_stackhs
         )
+
+    def unfinalize(self):
+        self.unbind(
+            paths=self._trigger_push_image_paths,
+            offxs=self._trigger_push_offxs,
+            offys=self._trigger_push_offys,
+            stackhs=self._trigger_push_stackhs
+        )
+
+    def pull_from_remote(self):
+        if self.remote['_image_paths'] != self.paths:
+            self.paths = list(self.remote['_image_paths'])
+        if self.remote['_offxs'] != self.offxs:
+            self.offxs = list(self.remote['_offxs'])
+        if self.remote['_offys'] != self.offys:
+            self.offys = list(self.remote['_offys'])
+        if self.remote['_stackhs'] != self.stackhs:
+            self.stackhs = list(self.remote['_stackhs'])
+
+    @trigger
+    def _trigger_pull_from_remote(self, *args):
+        self.unfinalize()
+        self.pull_from_remote()
+        self.finalize()
 
     @trigger
     def _trigger_push_image_paths(self, *args):
