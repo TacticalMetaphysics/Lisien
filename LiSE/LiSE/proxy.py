@@ -27,6 +27,19 @@ and a manager class to launch it thus.
 
 
 class CachingProxy(MutableMapping):
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._rulebook = self._get_rulebook()
+        return self._rulebook
+
+    @rulebook.setter
+    def rulebook(self, v):
+        rb = v.name if hasattr(v, 'name') else v
+        self.dispatch('rulebook', rb)
+        self._rulebook = v if isinstance(v, RuleBookProxy) else RuleBookProxy(self.engine, rb)
+        self._set_rulebook(rb)
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
         self.exists = True
@@ -98,10 +111,8 @@ class NodeProxy(CachingEntityProxy):
         return CharacterProxy(self.engine, self._charname)
 
     @property
-    def rulebook(self):
-        if not hasattr(self, '_rulebook'):
-            self._rulebook = self._get_rulebook()
-        return self._rulebook
+    def _cache(self):
+        return self.engine._node_stat_cache[self._charname][self.name]
 
     def _get_rulebook(self):
         return RuleBookProxy(self.engine, self._get_rulebook_name())
@@ -123,9 +134,8 @@ class NodeProxy(CachingEntityProxy):
             return (self._charname, self.name)
         return r
 
-    @property
-    def _cache(self):
-        return self.engine._node_stat_cache[self._charname][self.name]
+    def _set_rulebook(self, rb):
+        self.engine.handle('set_node_rulebook', char=self._charname, node=self.name, rulebook=rb)
 
     def __init__(self, engine_proxy, charname, nodename):
         self._charname = charname
@@ -381,15 +391,7 @@ class ThingProxy(NodeProxy):
 
 
 class PortalProxy(CachingEntityProxy):
-    @property
-    def rulebook(self):
-        if not hasattr(self, '_rulebook'):
-            self._rulebook = self._get_rulebook()
-        return self._rulebook
-
-    @rulebook.setter
-    def rulebook(self, v):
-        rb = v.name if hasattr(v, 'name') else v
+    def _set_rulebook(self, rb):
         self.engine.handle(
             command='set_portal_rulebook',
             char=self._charname,
@@ -398,7 +400,6 @@ class PortalProxy(CachingEntityProxy):
             rulebook=rb,
             silent=True
         )
-        self._rulebook = v if isinstance(v, RuleBookProxy) else RuleBookProxy(self.engine, rb)
 
     def _get_rulebook_name(self):
         return self.engine.handle(
