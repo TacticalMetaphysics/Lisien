@@ -36,9 +36,9 @@ class CachingProxy(MutableMapping):
     @rulebook.setter
     def rulebook(self, v):
         rb = v.name if hasattr(v, 'name') else v
-        self.dispatch('rulebook', rb)
         self._rulebook = v if isinstance(v, RuleBookProxy) else RuleBookProxy(self.engine, rb)
         self._set_rulebook(rb)
+        self.dispatch('rulebook', rb)
 
     def __init__(self, engine_proxy):
         self._listeners = []
@@ -63,33 +63,33 @@ class CachingProxy(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        self.dispatch('setitem', k, v)
         self._set_item(k, v)
         self._cache[k] = self._cache_munge(k, v)
+        self.dispatch('setitem', k, v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
-        self.dispatch('delitem', k)
         self._del_item(k)
         del self._cache[k]
+        self.dispatch('delitem', k)
 
     def _apply_diff(self, diff):
         for (k, v) in diff.items():
             if v is None:
                 if k in self._cache:
-                    self.dispatch('delitem', k)
                     del self._cache[k]
+                    self.dispatch('delitem', k)
             elif k not in self._cache or self._cache[k] != v:
-                self.dispatch('setitem', k, v)
                 self._cache[k] = v
+                self.dispatch('setitem', k, v)
 
     def update_cache(self):
         diff = self._get_diff()
         self.exists = diff is not None
         if not self.exists:
-            self.dispatch('deleted')
             self._cache = {}
+            self.dispatch('deleted')
             return
         self._apply_diff(diff)
 
@@ -298,7 +298,6 @@ class ThingProxy(NodeProxy):
         return super().__getitem__(k)
 
     def _set_location(self, v):
-        self.dispatch('location', v)
         self._location = v
         self.engine.handle(
             command='set_thing_location',
@@ -306,9 +305,9 @@ class ThingProxy(NodeProxy):
             thing=self.name,
             loc=v
         )
+        self.dispatch('location', v)
 
     def _set_next_location(self, v):
-        self.dispatch('next_location', v)
         self._next_location = v
         self.engine.handle(
             command='set_thing_next_location',
@@ -316,6 +315,7 @@ class ThingProxy(NodeProxy):
             thing=self.name,
             loc=v
         )
+        self.dispatch('next_location', v)
 
     def __setitem__(self, k, v):
         if k == 'location':
@@ -351,17 +351,17 @@ class ThingProxy(NodeProxy):
             self._cache = {}
             return
         if loc != self._location:
-            self.dispatch('location', loc)
             self._location = loc
+            self.dispatch('location', loc)
         if next_loc != self._next_location:
-            self.dispatch('next_location', next_loc)
             self._next_location = next_loc
+            self.dispatch('next_location', next_loc)
         if arrt != self._arrival_time:
-            self.dispatch('arrival_time', arrt)
             self._arrival_time = arrt
+            self.dispatch('arrival_time', arrt)
         if next_arrt != self._next_arrival_time:
-            self.dispatch('next_arrival_time', next_arrt)
             self._next_arrival_time = next_arrt
+            self.dispatch('next_arrival_time', next_arrt)
         super().update_cache()
 
     def follow_path(self, path, weight=None):
@@ -579,17 +579,17 @@ class ThingMapProxy(CachingProxy):
                 if thing in self._cache:
                     thisthing = self._cache[thing]
                     if thisthing._location != location:
-                        thisthing.dispatch('location', location)
                         thisthing._location = location
+                        thisthing.dispatch('location', location)
                     if thisthing._next_location != next_location:
-                        thisthing.dispatch('next_location', next_location)
                         thisthing._next_location = next_location
+                        thisthing.dispatch('next_location', next_location)
                     if thisthing._arrival_time != arrival_time:
-                        thisthing.dispatch('arrival_time', arrival_time)
                         thisthing._arrival_time = arrival_time
+                        thisthing.dispatch('arrival_time', arrival_time)
                     if thisthing._next_arrival_time != next_arrival_time:
-                        thisthing.dispatch('next_arrival_time', next_arrival_time)
                         thisthing._next_arrival_time = next_arrival_time
+                        thisthing.dispatch('next_arrival_time', next_arrival_time)
                 else:
                     self._cache[thing] = ThingProxy(
                         self.engine,
