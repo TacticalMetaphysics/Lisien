@@ -1,10 +1,11 @@
 import unittest
-import LiSE
 import re
-from collections import defaultdict
 from functools import reduce
-from LiSE.engine import crhandled_defaultdict
-from examples import college as sim
+from collections import defaultdict
+from gorm.pickydict import StructuredDefaultDict
+from gorm.window import WindowDict
+from .engine import Engine
+from .examples import college as sim
 
 
 def deepDictDiffIter(d0, d1, lvl=0):
@@ -47,7 +48,7 @@ class LiSETest(TestCase):
         This gives us some world-state to test upon.
 
         """
-        self.engine = LiSE.Engine(":memory:")
+        self.engine = Engine(":memory:")
         sim.install(self.engine)
         for i in range(72):
             self.engine.next_tick()
@@ -103,9 +104,7 @@ class LiSETest(TestCase):
         )
 
     def testPortalRulebooksCache(self):
-        portrb = defaultdict(
-            lambda: defaultdict(dict)
-        )
+        portrb = StructuredDefaultDict(1, dict)
         for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
             portrb[character][nodeA][nodeB] = rulebook
         self.assertDictEqual(
@@ -114,55 +113,29 @@ class LiSETest(TestCase):
         )
 
     def testAvatarnessCaches(self):
-        db_avatarness = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
-                )
-            )
-        )
-        user_avatarness = defaultdict(  # graph:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # character:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
-                )
-            )
-        )
+        db_avatarness = StructuredDefaultDict(3, WindowDict)
+        user_avatarness = StructuredDefaultDict(3, WindowDict)
         for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
             db_avatarness[character][graph][node][branch][tick] = is_avatar
             user_avatarness[graph][node][character][branch][tick] = is_avatar
-        new_db_avatarness = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    dict
-                )
-            )
-        )
+        new_db_avatarness = StructuredDefaultDict(3, WindowDict)
         db = self.engine._avatarness_cache.db_order
         for char in db:
             for graph in db[char]:
                 for node in db[char][graph]:
                     if db[char][graph][node]:
-                        new_db_avatarness[char][graph][node] \
-                            = db[char][graph][node]
-        new_user_avatarness = defaultdict(  # graph:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # character:
-                    dict
-                )
-            )
-        )
+                        for branch in db[char][graph][node]:
+                            for tick, is_avatar in db[char][graph][node][branch].items():
+                                new_db_avatarness[char][graph][node][branch][tick] = is_avatar
+        new_user_avatarness = StructuredDefaultDict(3, WindowDict)
         usr = self.engine._avatarness_cache.user_order
         for graph in usr:
             for node in usr[graph]:
                 for char in usr[graph][node]:
                     if usr[graph][node][char]:
-                        new_user_avatarness[graph][node][char] \
-                            = usr[graph][node][char]
+                        for branch in usr[graph][node][char]:
+                            for tick, is_avatar in usr[graph][node][char][branch].items():
+                                new_user_avatarness[graph][node][char][branch][tick] = is_avatar
         self.assertDictEqual(
             db_avatarness,
             new_db_avatarness
@@ -287,20 +260,21 @@ class LiSETest(TestCase):
                 'character_place',
                 'character_portal'
         ]:
-            handled_ticks = crhandled_defaultdict()
+            handled_ticks = StructuredDefaultDict(3, set)
             for character, rulebook, rule, branch, tick in getattr(
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
             )():
                 handled_ticks[character][rulebook][rule][branch].add(tick)
-            old_handled_ticks = crhandled_defaultdict()
+            old_handled_ticks = StructuredDefaultDict(3, set)
             live = getattr(
                 self.engine, '_{}_rules_handled_cache'.format(rulemap)
             )
             for character in live:
                 for rulebook in live[character]:
                     if live[character][rulebook]:
-                        old_handled_ticks[character][rulebook] \
-                            = live[character][rulebook]
+                        for rule in live[character][rulebook]:
+                            for branch, ticks in live[character][rulebook][rule].items():
+                                old_handled_ticks[character][rulebook][rule][branch] = ticks
             self.assertDictEqual(
                 old_handled_ticks,
                 handled_ticks,
@@ -308,13 +282,7 @@ class LiSETest(TestCase):
             )
 
     def testThingsCache(self):
-        things = defaultdict(  # character:
-            lambda: defaultdict(  # thing:
-                lambda: defaultdict(  # branch:
-                    dict  # tick: (location, next_location)
-                )
-            )
-        )
+        things = StructuredDefaultDict(3, tuple)
         for (character, thing, branch, tick, loc, nextloc) in \
                 self.engine.db.things_dump():
             things[character][thing][branch][tick] = (loc, nextloc)
@@ -352,7 +320,7 @@ class LiSETest(TestCase):
                     student.name, other_student.name
                 )
             )
-            self.assertGreaterThan(
+            self.assertGreater(
                 len(same_loc_ticks),
                 6,
                 "{} and {} share their room for less than 6 ticks".format(
