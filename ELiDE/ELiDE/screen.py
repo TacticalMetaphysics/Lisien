@@ -12,18 +12,13 @@ from functools import partial
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from kivy.logger import Logger
-
 from kivy.properties import (
-    AliasProperty,
     BooleanProperty,
     BoundedNumericProperty,
-    DictProperty,
-    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
