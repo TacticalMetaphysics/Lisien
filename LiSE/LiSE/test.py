@@ -41,7 +41,7 @@ class TestCase(unittest.TestCase):
             ))
 
 
-class LiSETest(TestCase):
+class SimTest(TestCase):
     def setUp(self):
         """Start an engine, install the sim module, and run it a while.
 
