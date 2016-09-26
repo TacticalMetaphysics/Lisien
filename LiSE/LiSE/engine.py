@@ -375,7 +375,7 @@ class Engine(AbstractEngine, gORM):
     @reify
     def _active_rules_cache(self):
         # rulebook: rule: branch: tick: active
-        r = StructuredDefaultDict(3, WindowDict)
+        r = StructuredDefaultDict(2, WindowDict)
         for (rulebook, rule, branch, tick, active) in \
                 self.db.dump_active_rules():
             r[rulebook][rule][branch][tick] = active
@@ -393,7 +393,7 @@ class Engine(AbstractEngine, gORM):
     @reify
     def _node_rules_handled_cache(self):
         # character: node: rulebook: rule: branch: ticks handled
-        r = StructuredDefaultDict(5, set)
+        r = StructuredDefaultDict(4, set)
         for (character, node, rulebook, rule, branch, tick) \
                 in self.db.dump_node_rules_handled():
             r[character][node][rulebook][rule][branch].add(tick)
@@ -402,7 +402,7 @@ class Engine(AbstractEngine, gORM):
     @reify
     def _portal_rules_handled_cache(self):
         # character: nodeA: nodeB: rulebook: rule: branch: ticks handled
-        r = StructuredDefaultDict(6, set)
+        r = StructuredDefaultDict(5, set)
         for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
                 in self.db.dump_portal_rules_handled():
             r[character][nodeA][nodeB][rulebook][rule][branch].add(tick)
@@ -410,7 +410,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_rules_handled_cache(self):
-        r = StructuredDefaultDict(4, set)
+        r = StructuredDefaultDict(3, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -418,7 +418,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _avatar_rules_handled_cache(self):
-        r = StructuredDefaultDict(4, set)
+        r = StructuredDefaultDict(3, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_avatar_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -426,7 +426,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_thing_rules_handled_cache(self):
-        r = StructuredDefaultDict(4, set)
+        r = StructuredDefaultDict(3, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_thing_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -434,7 +434,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_place_rules_handled_cache(self):
-        r = StructuredDefaultDict(4, set)
+        r = StructuredDefaultDict(3, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_place_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -442,7 +442,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_node_rules_handled_cache(self):
-        r = StructuredDefaultDict(4, set)
+        r = StructuredDefaultDict(3, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_node_rules():
             r[character][rulebook][rule][branch].add(tick)
@@ -450,7 +450,7 @@ class Engine(AbstractEngine, gORM):
 
     @reify
     def _character_portal_rules_handled_cache(self):
-        r = StructuredDefaultDict(4, set)
+        r = StructuredDefaultDict(3, set)
         for (character, rulebook, rule, branch, tick) in \
                 self.db.handled_character_portal_rules():
             r[character][rulebook][rule][branch].add(tick)
