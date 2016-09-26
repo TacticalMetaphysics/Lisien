@@ -40,6 +40,8 @@ from gorm.graph import (
     DiGraphPredecessorsMapping
 )
 from gorm.reify import reify
+from gorm.window import WindowDict
+from gorrm.pickydict import StructuredDefaultDict
 
 from .xcollections import CompositeDict
 from .bind import TimeDispatcher
@@ -1213,6 +1215,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         """
         super().__init__(engine, name, data, **attr)
+        self._avatars_cache = StructuredDefaultDict(1, WindowDict)
         self.engine = engine
         d = {}
         for mapp in (
@@ -1939,6 +1942,17 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 kwargs['symmetrical'] = True
             self.add_portal(orig, dest, **kwargs)
 
+    def _get_latest_avatars_cache(self):
+        for branch, tick in self.engine._active_branches():
+            if branch in self._avatars_cache:
+                if tick in self._avatars_cache[branch]:
+                    return self._avatars_cache[branch][tick]
+                try:
+                    ret = self._avatars_cache[self.engine.branch][self.engine.tick] = list(self._avatars_cache[branch][tick])
+                    return ret
+                except KeyError:
+                    continue
+
     def add_avatar(self, a, b=None):
         """Start keeping track of a :class:`Thing` or :class:`Place` in a
         different :class:`Character`.
@@ -1983,6 +1997,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         )
         # Declare that the node is my avatar
         self.engine._remember_avatarness(self.name, g, n)
+        cache = self._get_latest_avatars_cache()
+        if cache:
+            cache.append((g, n))
 
     def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own"""
@@ -2001,6 +2018,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         self.engine._remember_avatarness(
             self.character.name, g, n, False
         )
+        cache = self._get_latest_avatars_cache()
+        if cache:
+            cache.remove((g, n))
 
     def portals(self):
         """Iterate over all portals"""
@@ -2016,6 +2036,14 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         ac = self.engine._avatarness_cache.db_order[self.name]
         seen = set()
         for (branch, tick) in self.engine._active_branches():
+            if branch in self._avatars_cache:
+                try:
+                    for g, n in self._avatars_cache[branch][tick]:
+                        yield self.engine.character[g].node[n]
+                    return
+                except KeyError:
+                    pass
+            self._avatars_cache[branch][tick] = cache = []
             for g in ac:
                 for n in ac[g]:
                     if (
@@ -2032,4 +2060,5 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                                     g in self.engine.character and
                                     n in self.engine.character[g]
                             ):
+                                cache.append((g, n))
                                 yield self.engine.character[g].node[n]
