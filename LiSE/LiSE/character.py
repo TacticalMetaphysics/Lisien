@@ -41,7 +41,7 @@ from gorm.graph import (
 )
 from gorm.reify import reify
 from gorm.window import WindowDict
-from gorrm.pickydict import StructuredDefaultDict
+from gorm.pickydict import PickyDefaultDict
 
 from .xcollections import CompositeDict
 from .bind import TimeDispatcher
@@ -1215,7 +1215,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         """
         super().__init__(engine, name, data, **attr)
-        self._avatars_cache = StructuredDefaultDict(1, WindowDict)
+        self._avatars_cache = PickyDefaultDict(WindowDict)
         self.engine = engine
         d = {}
         for mapp in (
