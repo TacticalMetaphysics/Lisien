@@ -251,7 +251,7 @@ class TimeDispatcher(object):
         return unlistener(self._listeners, fun, key)
 
     def dispatch(self, k, v):
-        if k in self and self[k] == v:
+        if k in self and self[k] is v:
             return
         (branch, tick) = self.engine.time
         d = self._listeners
