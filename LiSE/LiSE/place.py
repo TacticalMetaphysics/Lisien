@@ -58,3 +58,6 @@ class Place(Node):
         super().delete()
         if not nochar:
             del self.character.place[self.name]
+
+    def __eq__(self, other):
+        return isinstance(other, Place) and self.character.name == other.character.name and self.name == other.name

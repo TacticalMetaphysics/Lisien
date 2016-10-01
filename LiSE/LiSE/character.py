@@ -68,6 +68,12 @@ class AbstractCharacter(object):
     to be used in place of graph attributes
 
     """
+    def __eq__(self, other):
+        return isinstance(other, AbstractCharacter) and self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     @reify
     def thing(self):
         return self.ThingMapping(self)

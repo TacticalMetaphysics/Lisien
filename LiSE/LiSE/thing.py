@@ -417,3 +417,6 @@ class Thing(Node):
 
         """
         return self.engine.json_dump(self._get_json_dict())
+
+    def __eq__(self, other):
+        return isinstance(other, Thing) and self.character.name == other.character.name and self.name == other.name
