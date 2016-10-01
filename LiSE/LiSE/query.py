@@ -1249,7 +1249,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 branch,
                 tick,
                 self.json_load(loc),
-                self.json_load(nextloc)
+                self.json_load(nextloc) if nextloc else None
             )
 
     def thing_loc_and_next_set(
