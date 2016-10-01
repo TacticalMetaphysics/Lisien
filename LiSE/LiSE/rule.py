@@ -367,14 +367,7 @@ class Rule(object):
         """
         curtime = (branch, tick) = engine.time
         for trigger in self.triggers:
-            if not (
-                trigger.__name__ in self._trigger_results_cache and
-                branch in self._trigger_results_cache[trigger.__name__] and
-                tick in self._trigger_results_cache[trigger.__name__][branch] and
-                args in self._trigger_results_cache[trigger.__name__][branch][tick]
-            ):
-                self._trigger_results_cache[trigger.__name__][branch][tick][args] = trigger(engine, *args)
-            result = self._trigger_results_cache[trigger.__name__][branch][tick][args]
+            result = trigger(engine, *args)
             if engine.time != curtime:
                 engine.time = curtime
             if result:
@@ -388,14 +381,7 @@ class Rule(object):
         """
         curtime = (branch, tick) = engine.time
         for prereq in self.prereqs:
-            if not(
-                prereq.__name__ in self._prereq_results_cache and
-                branch in self._prereq_results_cache[prereq.__name__] and
-                tick in self._prereq_results_cache[prereq.__name__][branch] and
-                args in self._prereq_results_cache[prereq.__name__][branch][tick]
-            ):
-                self._prereq_results_cache[prereq.__name__][branch][tick][args] = prereq(self.engine, *args)
-            result = self._prereq_results_cache[prereq.__name__][branch][tick][args]
+            result = prereq(self.engine, *args)
             engine.time = curtime
             if not result:
                 return False
