@@ -174,6 +174,8 @@ def stat_validity(k, cache, branch, tick):
 
 class SessionList(MutableSequence):
     """List that calls listeners on first item set and last delete."""
+    __slots__ = ['_real', '_listeners']
+
     def __init__(self, listeners=[]):
         self._real = []
         self._listeners = listeners

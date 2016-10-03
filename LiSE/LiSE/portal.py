@@ -14,6 +14,7 @@ from .rule import RuleMapping as BaseRuleMapping
 
 class RuleMapping(BaseRuleMapping):
     """Mapping to get rules followed by a portal."""
+    __slots__ = 'portal',
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)

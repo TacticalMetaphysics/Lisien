@@ -29,12 +29,16 @@ from .util import getatt, EntityStatAccessor
 
 
 class DummyEntity(dict):
+    __slots__ = ['engine']
+
     def __init__(self, engine):
         self.engine = engine
 
 
 class AvatarnessCache(object):
     """A cache for remembering when a node is an avatar of a character."""
+    __slots__ = ['db', 'db_order', 'user_order']
+
     def __init__(self, db):
         self.db = db
         # character: graph: node: branch: tick: is_avatar

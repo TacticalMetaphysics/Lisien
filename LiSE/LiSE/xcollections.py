@@ -7,6 +7,8 @@ from .bind import dispatch, listen, listener, unlisten, unlistener
 
 class NotThatMap(Mapping):
     """Wraps another mapping and conceals exactly one of its keys."""
+    __slots__ = ['inner', 'k']
+
     def __init__(self, inner, k):
         """Store the inner mapping and the key to hide."""
         self.inner = inner
@@ -39,6 +41,7 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
+    __slots__ = ['db', 'table', '_language', '_lang_listeners', 'cache', '_str_listeners']
 
     def __init__(self, qe, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
@@ -159,6 +162,8 @@ class StringStore(MutableMapping):
 
 
 class StoredPartial(object):
+    __slots__ = ['_funcname', 'store', 'keywords', 'kwargs', 'name']
+
     @property
     def engine(self):
         return self.store.engine
@@ -176,6 +181,8 @@ class StoredPartial(object):
 
 class FunctionStore(MutableMapping):
     """Store functions in a SQL database"""
+    __slots__ = ['engine', 'db', '_tab', '_listeners', 'cache']
+
     def __init__(self, engine, db, table):
         """Use ``codedb`` as a connection object. Connect to it, and
         initialize the schema if needed.
@@ -307,6 +314,8 @@ class FunctionStore(MutableMapping):
 
 class GlobalVarMapping(MutableMapping):
     """Mapping for variables that are global but which I keep history for"""
+    __slots__ = ['engine', '_listeners']
+
     def __init__(self, engine):
         """Store the engine and initialize my private dictionary of
         listeners.
@@ -374,6 +383,8 @@ class CharacterMapping(MutableMapping):
     anything useful anymore.
 
     """
+    __slots__ = ['engine', '_listeners', '_cache']
+
     def __init__(self, engine):
         """Store the engine, initialize caches"""
         self.engine = engine
@@ -453,6 +464,8 @@ class CompositeDict(Mapping):
     Assumes the dicts have no overlap.
 
     """
+    __slots__ = ['d1', 'd2']
+
     def __init__(self, d1, d2):
         """Store dictionaries"""
         self.d1 = d1

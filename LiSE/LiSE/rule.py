@@ -35,6 +35,8 @@ from .bind import (
 
 
 class RuleFuncList(MutableSequence):
+    __slots__ = ['rule', '_listeners', '_cache']
+
     def __init__(self, rule):
         self.rule = rule
         self._listeners = []
@@ -191,6 +193,8 @@ class ActionList(RuleFuncList):
 
 
 class RuleFuncListDescriptor(object):
+    __slots__ = ['cls']
+
     def __init__(self, cls):
         self.cls = cls
 
@@ -222,6 +226,7 @@ class Rule(object):
     change the world.
 
     """
+
     triggers = RuleFuncListDescriptor(TriggerList)
     prereqs = RuleFuncListDescriptor(PrereqList)
     actions = RuleFuncListDescriptor(ActionList)
@@ -390,6 +395,7 @@ class RuleBook(MutableSequence):
     anyway.
 
     """
+
     @reify
     def _cache(self):
         if self.name not in self.engine._rulebooks_cache:
@@ -494,6 +500,7 @@ class RuleMapping(MutableMapping):
     the rulebook, but won't be followed.
 
     """
+
     def __init__(self, engine, rulebook):
         self.engine = engine
         if isinstance(rulebook, RuleBook):
@@ -693,6 +700,8 @@ class RuleFollower(object):
 
 
 class AllRuleBooks(Mapping):
+    __slots__ = ['engine', 'db', '_cache', '_listeners']
+
     def __init__(self, engine, db):
         self.engine = engine
         self.db = db

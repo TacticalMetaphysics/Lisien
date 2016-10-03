@@ -24,6 +24,8 @@ class RuleMapping(rule.RuleMapping):
     with a node.
 
     """
+    __slots__ = ['node']
+
     def __init__(self, node):
         """Initialize with node's engine, character, and rulebook."""
         super().__init__(node.engine, node.rulebook)
@@ -47,6 +49,8 @@ class UserMapping(Mapping):
     the keys; and so on.
 
     """
+    __slots__ = ['node']
+
     def __init__(self, node):
         """Store the node"""
         self.node = node

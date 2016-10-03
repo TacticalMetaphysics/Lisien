@@ -70,6 +70,8 @@ def keycache_iter(keycache, branch, tick, get_iterator):
 
 
 class EntityStatAccessor(object):
+    __slots__ = ['engine', 'entity', 'branch', 'tick', 'stat', 'current', 'mungers']
+
     def __init__(self, entity, stat, engine=None, branch=None, tick=None, current=False, mungers=[]):
         if engine is None:
             engine = entity.engine
