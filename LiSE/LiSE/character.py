@@ -1411,9 +1411,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     if self.engine._is_thing(
                         self.character.name, k
                     ):
-                        return self.character.thing._cache[k]
+                        if k not in self.character.thing._cache:
+                            self.character.thing._cache = Thing(self.character, k)
+                        return self.character.thing[k]
                     else:
-                        return self.character.place._cache[k]
+                        if k not in self.character.place._cache:
+                            self.character.place._cache = Place(self.character, k)
+                        return self.character.place[k]
                 else:
                     raise KeyError
             raise KeyError
