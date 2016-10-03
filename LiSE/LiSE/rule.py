@@ -249,20 +249,6 @@ class Rule(object):
             self.prereqs.extend(prereqs)
         if actions:
             self.actions.extend(actions)
-        self._trigger_results_cache = defaultdict(  # trigger
-            lambda: defaultdict(  # branch
-                lambda: defaultdict(  # tick
-                    dict  # args: result
-                )
-            )
-        )
-        self._prereq_results_cache = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    dict
-                )
-            )
-        )
 
     def __eq__(self, other):
         return (
