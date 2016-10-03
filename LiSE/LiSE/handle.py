@@ -302,12 +302,9 @@ class EngineHandle(object):
 
     @staticmethod
     def _character_something_diff(char, cache, copier, *args):
-        try:
-            old = cache.get(char, {})
-            new = cache[char] = copier(char, *args)
-            return dict_diff(old, new)
-        except KeyError:
-            return None
+        old = cache.get(char, {})
+        new = cache[char] = copier(char, *args)
+        return dict_diff(old, new)
 
     def character_stat_diff(self, char):
         return self._character_something_diff(char, self._char_stat_cache, self.character_stat_copy)
