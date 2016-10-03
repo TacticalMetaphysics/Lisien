@@ -102,6 +102,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
+
     @property
     def _cache(self):
         return self._dispatch_cache
@@ -172,13 +173,23 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         """Return a mapping of portals connecting this node to its neighbors."""
         return self.character.portal[self.name]
 
+    @property
+    def engine(self):
+        return self.gorm
+
+    @property
+    def character(self):
+        return self.graph
+
+    @property
+    def name(self):
+        return self.node
+
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
-        self.character = character
-        self.engine = character.engine
-        self.gorm = self.engine
-        self.graph = self.character
-        self.name = self.node = name
+        self.graph = character
+        self.gorm = character.engine
+        self.node = name
         (branch, tick) = self.engine.time
         self._dispatch_cache = self.engine._node_val_cache[
             self.character.name][self.name]

@@ -79,19 +79,25 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
     def _get_rule_mapping(self):
         return RuleMapping(self)
 
-    def __init__(self, character, origin, destination):
-        """Remember what portal I am, and initialize caches."""
-        self._origin = origin
-        self._destination = destination
-        self.character = character
-        self.engine = character.engine
-        self._keycache = {}
-        self._existence = {}
+    @property
+    def _origin(self):
+        return self.nodeA
 
-        self._dispatch_cache = self.engine._edge_val_cache[
-            self.character.name][self._origin][self._destination][0]
+    @property
+    def _destination(self):
+        return self.nodeB
 
-        super().__init__(character, self._origin, self._destination)
+    @property
+    def _dispatch_cache(self):
+        return self.gorm._edge_val_cache[self.character.name][self.nodeA][self.nodeB][0]
+
+    @property
+    def character(self):
+        return self.graph
+
+    @property
+    def engine(self):
+        return self.gorm
 
     def __getitem__(self, key):
         """Get the present value of the key.
