@@ -1334,7 +1334,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self._cache = {}
 
         def __iter__(self):
-            things = set(self.character.thing.keys())
+            things = self.character.thing.keys()
             for node in self.character.nodes():
                 if node not in things:
                     yield node
