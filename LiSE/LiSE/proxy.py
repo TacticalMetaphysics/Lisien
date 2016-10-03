@@ -685,7 +685,7 @@ class PlaceMapProxy(CachingProxy):
         self.engine.handle(
             command='set_place',
             char=self.name,
-            k=k, v=v,
+            place=k, statdict=v,
             silent=True
         )
         self.engine._node_stat_cache[self.name][k] = v
@@ -1309,6 +1309,7 @@ class CharacterProxy(MutableMapping):
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         self.engine.handle(
             command='add_portal',
+            char=self.name,
             orig=origin,
             dest=destination,
             symmetrical=symmetrical,
