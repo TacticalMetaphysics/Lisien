@@ -1358,6 +1358,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     return not self.engine._is_thing(
                         self.character.name, place
                     )
+                else:
+                    return False
             return False
 
         def __getitem__(self, place):
@@ -1370,8 +1372,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __setitem__(self, place, v):
             if place not in self._cache:
                 self._cache[place] = Place(self.character, place)
+                self.engine._exist_node(self.character.name, place)
             pl = self._cache[place]
-            self.engine._exist_node(self.character.name, place)
             pl.clear()
             pl.update(v)
             self.dispatch(place, v)
@@ -1397,21 +1399,51 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.character = character
 
         def __getitem__(self, k):
-            try:
-                return self.character.place[k]
-            except KeyError:
-                return self.character.thing[k]
+            if self.character.name not in self.engine._nodes_cache or \
+               k not in self.engine._nodes_cache[self.character.name]:
+                raise KeyError
+            cache = self.engine._nodes_cache[
+                self.character.name][k]
+            for (branch, tick) in self.engine._active_branches():
+                if branch not in cache:
+                    continue
+                if cache[branch][tick]:
+                    if self.engine._is_thing(
+                        self.character.name, k
+                    ):
+                        return self.character.thing._cache[k]
+                    else:
+                        return self.character.place._cache[k]
+                else:
+                    raise KeyError
+            raise KeyError
 
         def __setitem__(self, k, v):
             self.character.place[k] = v
 
         def __delitem__(self, k):
-            if k in self.character.thing:
-                del self.character.thing[k]
-            elif k in self.character.place:
-                del self.character.place[k]
-            else:
-                raise KeyError("No such thing or place: {}".format(k))
+            if self.character.name not in self.engine._nodes_cache or \
+               k not in self.engine._nodes_cache[self.character.name]:
+                raise KeyError
+            cache = self.engine._nodes_cache[
+                self.character.name][k]
+            for (branch, tick) in self.engine._active_branches():
+                if branch not in cache:
+                    continue
+                if cache[branch][tick]:
+                    if self.engine._is_thing(
+                        self.character.name, k
+                    ):
+                        self.character.thing._cache[k].delete(nochar=True)
+                        del self.character.thing._cache[k]
+                        self.character.thing.dispatch(k, None)
+                    else:
+                        self.character.place._cache[k].delete(nochar=True)
+                        del self.character.place._cache[k]
+                        self.character.place.dispatch(k, None)
+                else:
+                    raise KeyError
+            raise KeyError
 
     class PortalSuccessorsMapping(
             GraphSuccessorsMapping, RuleFollower, TimeDispatcher
