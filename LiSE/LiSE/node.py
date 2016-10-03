@@ -103,10 +103,6 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     """
 
-    @property
-    def _cache(self):
-        return self._dispatch_cache
-
     def _rule_names_activeness(self):
         cache = self.engine._active_rules_cache[self._get_rulebook_name()]
         for rule in cache:
@@ -190,9 +186,6 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         self.graph = character
         self.gorm = character.engine
         self.node = name
-        (branch, tick) = self.engine.time
-        self._dispatch_cache = self.engine._node_val_cache[
-            self.character.name][self.name]
 
     def __iter__(self):
         yield from super().__iter__()
