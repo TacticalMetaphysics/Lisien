@@ -138,7 +138,17 @@ class EngineHandle(object):
             return self.get_chardiffs(chars)
 
     def add_character(self, char, data, attr):
-        self._real.add_character(char, data, **attr)
+        character = self._real.new_character(char, **attr)
+        placedata = data.get('place', data.get('node', {}))
+        for place, stats in placedata.items():
+            character.add_place(place, **stats)
+        thingdata = data.get('thing',  {})
+        for thing, stats in thingdata.items():
+            character.add_thing(thing, **stats)
+        portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
+        for orig, dests in portdata.items():
+            for dest, stats in dests.items():
+                character.add_portal(orig, dest, **stats)
 
     def commit(self):
         self._real.commit()
