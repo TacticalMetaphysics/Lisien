@@ -1273,7 +1273,7 @@ class CharacterProxy(MutableMapping):
             silent=True
         )
         self.thing._cache[name] = ThingProxy(
-            self.engine, self.name, name
+            self.engine, self.name, name, location, next_location, self.engine.tick, None
         )
 
     def add_things_from(self, seq):
