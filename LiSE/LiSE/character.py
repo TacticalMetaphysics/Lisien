@@ -1254,11 +1254,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         engine = getatt('character.engine')
         name = getatt('character.name')
-        _cache = getatt('_dispatch_cache')
 
         def __init__(self, character):
             """Store the character and initialize cache"""
             self.character = character
+            self._cache = {}
 
         def __iter__(self):
             if self.character.name not in self.engine._things_cache:
@@ -1325,13 +1325,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """:class:`Place` objects that are in a :class:`Character`"""
         _book = "character_place"
 
-        _cache = getatt('_dispatch_cache')
         engine = getatt('character.engine')
         name = getatt('character.name')
 
         def __init__(self, character):
             """Store the character."""
             self.character = character
+            self._cache = {}
 
         def __iter__(self):
             things = set(self.character.thing.keys())
