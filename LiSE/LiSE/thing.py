@@ -201,7 +201,7 @@ class Thing(Node):
         started.
 
         """
-        if not self['location']:
+        if self['location'] is None:
             return None
         return self.character.node[self['location']]
 
