@@ -1981,7 +1981,7 @@ class EngineProxy(AbstractEngine):
         for orig, dests in portdata.items():
             assert orig not in self._character_portals_cache[char]
             assert orig not in self._portal_stat_cache[char]
-            for dest, stats in portdata.items():
+            for dest, stats in dests.items():
                 assert dest not in self._character_portals_cache[char][orig]
                 assert dest not in self._portal_stat_cache[char][orig]
                 self._character_portals_cache[char][orig][dest] = PortalProxy(self.engine, char, orig, dest)
