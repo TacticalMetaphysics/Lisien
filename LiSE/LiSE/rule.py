@@ -618,25 +618,38 @@ class RuleMapping(MutableMapping):
         del self.rulebook[i]
         self._dispatch(k, None)
 
+rule_mappings = {}
+rulebook_listeners = defaultdict(list)
+rulebooks = {}
 
 class RuleFollower(object):
     """Interface for that which has a rulebook associated, which you can
     get a :class:`RuleMapping` into
 
     """
-    @reify
+    @property
     def _rule_mapping(self):
-        return self._get_rule_mapping()
+        if id(self) not in rule_mappings:
+            rule_mappings[id(self)] = self._get_rule_mapping()
+        return rule_mappings[id(self)]
+
+    @property
+    def _rulebook_listeners(self):
+        return rulebook_listeners[id(self)]
+
+    @property
+    def _rulebooks(self):
+        return rulebooks[id(self)]
+
+    @_rulebooks.setter
+    def _rulebooks(self, v):
+        rulebooks[id(self)] = v
 
     @property
     def rule(self, v=None, name=None):
         if v is not None:
             return self._rule_mapping(v, name)
         return self._rule_mapping
-
-    @reify
-    def _rulebook_listeners(self):
-        return []
 
     @property
     def rulebook(self):

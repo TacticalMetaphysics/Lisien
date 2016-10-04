@@ -102,6 +102,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
+    __slots__ = ['user', 'graph', 'gorm', 'node']
 
     def _rule_names_activeness(self):
         cache = self.engine._active_rules_cache[self._get_rulebook_name()]
@@ -160,10 +161,6 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
                     seen.add(user)
                     break
 
-    @reify
-    def user(self):
-        return UserMapping(self)
-
     @property
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
@@ -183,6 +180,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
+        self.user = UserMapping(self)
         self.graph = character
         self.gorm = character.engine
         self.node = name

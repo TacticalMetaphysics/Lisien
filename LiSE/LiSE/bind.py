@@ -219,6 +219,9 @@ class SessionList(MutableSequence):
     def __repr__(self):
         return repr(self._real)
 
+time_dispatcher_listeners = {}
+time_dispatcher_validity = defaultdict(dict)
+time_dispatch_cache = {}
 
 class TimeDispatcher(object):
     """Mixin class for sim-time-sensitive objects with callback functions.
@@ -230,21 +233,27 @@ class TimeDispatcher(object):
     passed so that the future is now the present.
 
     """
-    @reify
+    @property
     def _listeners(self):
-        return defaultdict(lambda: SessionList([
-            self._listen_to_time_if
-        ]))
+        me = id(self)
+        if me not in time_dispatcher_listeners:
+            time_dispatcher_listeners[me] = defaultdict(lambda: SessionList([
+                self._listen_to_time_if
+            ]))
+        return time_dispatcher_listeners[me]
 
-    @reify
+    @property
     def _dispatch_validity(self):
-        return {}
+        return time_dispatcher_validity[id(self)]
 
-    @reify
+    @property
     def _dispatch_cache(self):
-        return defaultdict(lambda: SessionList([
-            self._listen_to_time_if
-        ]))
+        me = id(self)
+        if me not in time_dispatch_cache:
+            time_dispatch_cache[me] = defaultdict(lambda: SessionList([
+                self._listen_to_time_if
+            ]))
+        return time_dispatch_cache[me]
 
     def listener(self, fun=None, key=None):
         return listener(self._listeners, fun, key)
