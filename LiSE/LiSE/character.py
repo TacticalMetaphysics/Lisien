@@ -1601,6 +1601,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __init__(self, char):
             """Remember my character"""
             self.character = char
+            self._char_av_cache = {}
 
         def __call__(self, av):
             """Add the avatar. It must be an instance of Place or Thing."""
@@ -1637,6 +1638,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 n += 1
             return n
 
+        def _get_char_av_cache(self, g):
+            if g not in self._char_av_cache:
+                self._char_av_cache[g] = self.CharacterAvatarMapping(self, g)
+            return self._char_av_cache[g]
+
         def __getitem__(self, g):
             """Get the CharacterAvatarMapping for the given graph, if I have any
             avatars in it.
@@ -1657,13 +1663,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 for (branch, tick) in self.engine._active_branches():
                     try:
                         if cache[node][branch][tick]:
-                            return self.CharacterAvatarMapping(self, g)
+                            return self._get_char_av_cache(g)
                     except KeyError:
                         continue
             if len(self) == 1:
-                return self.CharacterAvatarMapping(
-                    self, next(iter(self))
-                )[g]
+                return self._get_char_av_cache(next(iter(self)))[g]
             raise KeyError("{} has no avatar in {}".format(
                 self.character.name, g
             ))
