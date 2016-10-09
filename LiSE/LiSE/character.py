@@ -1718,18 +1718,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 ac = self.engine._avatarness_cache.db_order
                 if self.character.name not in ac or \
                     self.graph not in ac[self.character.name]:
-                    return []
+                    return
                 ac = ac[self.character.name][self.graph]
-                r = []
                 for node in ac:
                     try:
-                        r.append((
-                            node,
-                            ac[node][branch][rev]
-                        ))
+                        yield (node, ac[node][branch][rev])
                     except KeyError:
                         continue
-                return r
 
             def __getattr__(self, attrn):
                 """If I don't have such an attribute, but I contain exactly one
