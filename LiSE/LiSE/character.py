@@ -994,11 +994,12 @@ class FacadeEntityMapping(MutableMapping, TimeDispatcher):
     being distorted views of entities of the type ``innercls``.
 
     """
-    @property
-    def _dispatch_cache(self):
-        return self
 
     engine = getatt('facade.engine')
+
+    @reify
+    def _cache(self):
+        return {}
 
     @reify
     def _patch(self):
@@ -1389,7 +1390,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
         _book = "character_node"
 
-        _cache = getatt('_dispatch_cache')
         graph = getatt('character')
         engine = gorm = getatt('character.engine')
         name = getatt('character.name')
@@ -1408,16 +1408,19 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 if branch not in cache:
                     continue
                 if cache[branch][tick]:
+                    # This test for thingness is pretty expensive.
+                    # It really shouldn't be, but since it is,
+                    # avoid doing it more than once for this lookup
                     if self.engine._is_thing(
                         self.character.name, k
                     ):
                         if k not in self.character.thing._cache:
-                            self.character.thing._cache = Thing(self.character, k)
-                        return self.character.thing[k]
+                            self.character.thing._cache[k] = Thing(self.character, k)
+                        return self.character.thing._cache[k]
                     else:
                         if k not in self.character.place._cache:
-                            self.character.place._cache = Place(self.character, k)
-                        return self.character.place[k]
+                            self.character.place._cache[k] = Place(self.character, k)
+                        return self.character.place._cache[k]
                 else:
                     raise KeyError
             raise KeyError
@@ -1462,7 +1465,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         character = getatt('graph')
         engine = getatt('graph.engine')
-        _cache = getatt('_dispatch_cache')
+        
+        @reify
+        def _cache(self):
+            return {}
 
         def __getitem__(self, nodeA):
             if self.engine._node_exists(
@@ -1489,8 +1495,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         class Successors(GraphSuccessorsMapping.Successors, TimeDispatcher):
             """Mapping for possible destinations from some node."""
 
-            _cache = getatt('_dispatch_cache')
             engine = getatt('graph.engine')
+            
+            @reify
+            def _cache(self):
+                return {}
 
             def dispatch(self, nodeB, portal):
                 """Call all listeners to ``nodeB`` and to my ``nodeA``."""
