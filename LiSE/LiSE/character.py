@@ -1735,14 +1735,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 seen = set()
                 counted = 0
                 for (branch, rev) in self.engine._active_branches():
-                    if counted > 1:
-                        break
                     for (n, extant) in self._branchdata(branch, rev):
-                        if counted > 1:
-                            break
                         x = bool(extant)
                         if x and n not in seen:
                             counted += 1
+                            if counted > 1:
+                                raise AttributeError
                         seen.add(n)
                 if counted == 1:
                     node = self.engine.character[self.graph].node[seen.pop()]
