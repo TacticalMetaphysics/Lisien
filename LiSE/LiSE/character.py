@@ -1713,6 +1713,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine = outer.engine
                 self.name = outer.name
                 self.graph = graphn
+                self._avsnow = {}
 
             def _branchdata(self, branch, rev):
                 ac = self.engine._avatarness_cache.db_order
@@ -1732,18 +1733,24 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 avatar's attribute.
 
                 """
+                if self.engine.time in self._avsnow:
+                    counted = self._avsnow[self.engine.time]
+                    if len(counted) == 1:
+                        node = self.engine.character[self.graph].node[next(iter(counted))]
+                        return getattr(node, attrn)
+                    raise AttributeError
                 seen = set()
-                counted = 0
+                counted = self._avsnow[self.engine.time] = set()
                 for (branch, rev) in self.engine._active_branches():
                     for (n, extant) in self._branchdata(branch, rev):
                         x = bool(extant)
                         if x and n not in seen:
-                            counted += 1
-                            if counted > 1:
+                            counted.add(n)
+                            if len(counted) > 1:
                                 raise AttributeError
                         seen.add(n)
-                if counted == 1:
-                    node = self.engine.character[self.graph].node[seen.pop()]
+                if len(counted) == 1:
+                    node = self.engine.character[self.graph].node[next(iter(counted))]
                     if hasattr(node, attrn):
                         return getattr(node, attrn)
                 raise AttributeError("No such attribute: " + attrn)
