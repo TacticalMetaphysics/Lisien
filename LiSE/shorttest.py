@@ -10,4 +10,4 @@ def test():
 
 if __name__ == '__main__':
     import cProfile
-    cProfile.run('test()', filename='profile')
+    cProfile.run('test()')
