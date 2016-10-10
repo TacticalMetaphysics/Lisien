@@ -37,7 +37,7 @@ class DummyEntity(dict):
 
 class AvatarnessCache(object):
     """A cache for remembering when a node is an avatar of a character."""
-    __slots__ = ['db', 'db_order', 'user_order']
+    __slots__ = ['db', 'db_order', 'user_order', 'sets', 'solos']
 
     def __init__(self, db):
         self.db = db
@@ -51,12 +51,31 @@ class AvatarnessCache(object):
         That is, characters that have a particular node as an avatar.
 
         """
+        self.sets = StructuredDefaultDict(2, WindowDict)
+        self.solos = StructuredDefaultDict(2, WindowDict)
+        """For nodes that are the only avatar of one character in another"""
         for row in db.avatarness_dump():
             self.remember(*row)
 
     def remember(self, character, graph, node, branch, tick, is_avatar):
         self.db_order[character][graph][node][branch][tick] = is_avatar
         self.user_order[graph][node][character][branch][tick] = is_avatar
+        try:
+            (yesnodes, nonodes) = self.sets[character][graph][branch][tick]
+            if is_avatar:
+                if node in nonodes:
+                    (yesnodes, nonodes) = self.sets[character][graph][branch][tick] = (set(), set(nonodes))
+                    nonodes.remove(node)
+                yesnodes.add(node)
+            else:
+                if node in yesnodes:
+                    (yesnodes, nonodes) = self.sets[character][graph][branch][tick] = (set(yesnodes), set())
+                    yesnodes.remove(node)
+                nonodes.add(node)
+            if len(yesnodes) != 1:
+                self.solos[character][graph][branch][tick] = None
+        except KeyError:
+            self.solos[character][graph][branch][tick] = None
 
 
 class AbstractEngine(object):

@@ -1713,7 +1713,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine = outer.engine
                 self.name = outer.name
                 self.graph = graphn
-                self._avsnow = {}
 
             def _branchdata(self, branch, rev):
                 ac = self.engine._avatarness_cache.db_order
@@ -1733,16 +1732,28 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 avatar's attribute.
 
                 """
-                if self.engine.time in self._avsnow:
-                    counted = self._avsnow[self.engine.time]
+                (branch, tick) = self.engine.time
+                try:
+                    node = self.engine._avatarness_cache.solos[self.character.name][self.graph][branch][tick]
+                    if node is not None:
+                        node = self.engine.character[self.graph].node[node]
+                        return getattr(node, attrn)
+                except KeyError:
+                    pass
+                seen = set()
+                try:
+                    counted = self.engine._avatarness_cache.sets[self.character.name][self.graph][branch][tick][0]
+                except KeyError:
+                    (counted, _) = self.engine._avatarness_cache.sets[
+                        self.character.name][self.graph][branch][tick] \
+                        = (set(), set())
+                if len(counted) != 0:
                     if len(counted) == 1:
-                        node = self.engine.character[self.graph].node[next(iter(counted))]
+                        node = self.engine.character[self.graph].node[node]
                         return getattr(node, attrn)
                     raise AttributeError
-                seen = set()
-                counted = self._avsnow[self.engine.time] = set()
-                for (branch, rev) in self.engine._active_branches():
-                    for (n, extant) in self._branchdata(branch, rev):
+                for (branc, rev) in self.engine._active_branches():
+                    for (n, extant) in self._branchdata(branc, rev):
                         x = bool(extant)
                         if x and n not in seen:
                             counted.add(n)
@@ -1750,9 +1761,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                                 raise AttributeError
                         seen.add(n)
                 if len(counted) == 1:
-                    node = self.engine.character[self.graph].node[next(iter(counted))]
-                    if hasattr(node, attrn):
-                        return getattr(node, attrn)
+                    node = next(iter(counted))
+                    self.engine._avatarness_cache.solos[self.character.name][self.graph][branch][tick] = node
+                    node = self.engine.character[self.graph].node[node]
+                    return getattr(node, attrn)
                 raise AttributeError("No such attribute: " + attrn)
 
             def __iter__(self):
@@ -1761,6 +1773,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
                 """
                 seen = set()
+                (branch, tick) = self.engine.time
+                (counted, decounted) = self.engine._avatarness_cache.sets[self.character.name][self.graph][branch].setdefault(tick, (set(), set()))
                 for (branch, rev) in self.engine._active_branches():
                     for (n, x) in self._branchdata(branch, rev):
                         if (
@@ -1768,8 +1782,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                                 n not in seen and
                                 self.engine._node_exists(self.graph, n)
                         ):
+                            counted.add(n)
                             yield n
+                        elif not x:
+                            decounted.add(n)
                         seen.add(n)
+                if len(counted) == 1:
+                    self.engine._avatarness_cache.solos[self.character.name][self.graph][branch][tick] = next(iter(counted))
+                else:
+                    self.engine._avatarness_cache.solos[self.character.name][self.graph][branch][tick] = None
 
             def __contains__(self, av):
                 ac = self.engine._avatarness_cache.db_order
