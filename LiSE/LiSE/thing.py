@@ -73,28 +73,16 @@ class Thing(Node):
         elif key == 'location':
             return self['locations'][0]
         elif key == 'arrival_time':
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache:
-                    return cache[branch].rev_before(tick)
-            raise CacheError("Locations not cached correctly")
+            return self.engine._things_cache.tick_before(self.character.name, self.name, *self.engine.time)
         elif key == 'next_location':
             return self['locations'][1]
         elif key == 'next_arrival_time':
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache:
-                    try:
-                        return cache[branch].rev_after(tick)
-                    except KeyError:
-                        return None
-            return None
+            try:
+                self.engine._things_cache.tick_after(self.character.name, self.name, *self.engine.time)
+            except KeyError:
+                return None
         elif key == 'locations':
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache:
-                    return cache[branch][tick]
-            raise CacheError("Locations not cached correctly")
+            return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
         else:
             return super().__getitem__(key)
 
@@ -237,11 +225,7 @@ class Thing(Node):
         to which I am presently travelling.
 
         """
-        cache = self.engine._things_cache[self.character.name][self.name]
-        for (branch, tick) in self.engine._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        raise CacheError("Thing loc and next weren't cached right")
+        return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
 
     def _set_loc_and_next(self, loc, nextloc=None):
         """Private method to simultaneously set ``location`` and
