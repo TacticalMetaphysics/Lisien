@@ -109,19 +109,30 @@ class NodeRulesHandledCache(object):
         self.engine = engine
         self._data = StructuredDefaultDict(4, set)
         self.shallow = {}
+        self.unhandled = StructuredDefaultDict(2, dict)
 
     def store(self, character, node, rulebook, rule, branch, tick):
         the_set = self.shallow[(character, node, rulebook, rule, branch)] = self._data[character][node][rulebook][rule][branch]
         the_set.add(tick)
+        if tick not in self.unhandled[(character, node)][branch]:
+            self.unhandled[(character, node)][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
+        self.unhandled[(character, node)][branch][tick].remove(rule)
 
     def retrieve(self, character, node, rulebook, rule, branch):
-        return self._data[character][node][rulebook][rule][branch]
+        return self.shallow[(character, node, rulebook, rule, branch)]
 
-    def handled(self, character, node, rulebook, rule, branch, tick):
+    def check_handled(self, character, node, rulebook, rule, branch, tick):
         try:
-            return tick in self.shallow[(character, node, rulebook, rule, branch)]
+            ret = tick in self.shallow[(character, node, rulebook, rule, branch)]
         except KeyError:
-            return False
+            ret = False
+        assert ret is rule not in self.unhandled[(character, node)][branch][tick]
+        return ret
+
+    def iter_unhandled_rules(self, character, node, rulebook, branch, tick):
+        if tick not in self.unhandled[(character, node)][branch]:
+            self.unhandled[(character, node)][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
+        yield from self.unhandled[(character, node)][branch][tick]
 
 
 class PortalRulesHandledCache(object):
@@ -129,19 +140,30 @@ class PortalRulesHandledCache(object):
         self.engine = engine
         self._data = StructuredDefaultDict(5, set)
         self.shallow = {}
+        self.unhandled = StructuredDefaultDict(1, dict)
 
     def store(self, character, nodeA, nodeB, rulebook, rule, branch, tick):
         the_set = self.shallow[(character, nodeA, nodeB, rulebook, rule, branch)] = self._data[character][nodeA][nodeB][rulebook][rule][branch]
         the_set.add(tick)
+        if tick not in self.unhandled[(character, nodeA, nodeB)][branch]:
+            self.unhandled[(character, nodeA, nodeB)][branch][tick] = set(self.engine._active_rules_cache[rulebook][branch][tick])
+        self.unhandled[(character, nodeA, nodeB)][branch][tick].remove(rule)
 
     def retrieve(self, character, nodeA, nodeB, rulebook, rule, branch):
         return self.shallow[(character, nodeA, nodeB, rulebook, rule, branch)]
 
-    def handled(self, character, nodeA, nodeB, rulebook, rule, branch, tick):
+    def check_handled(self, character, nodeA, nodeB, rulebook, rule, branch, tick):
         try:
-            return tick in self.shallow[(character, nodeA, nodeB, rulebook, rule, branch)]
+            ret = tick in self.shallow[(character, nodeA, nodeB, rulebook, rule, branch)]
         except KeyError:
-            return False
+            ret = False
+        assert ret is rule not in self.unhandled[(character, nodeA, nodeB)][branch][tick]
+        return ret
+
+    def iter_unhandled_rules(self, character, nodeA, nodeB, rulebook, branch, tick):
+        if tick not in self.unhandled[(character, nodeA, nodeB)][branch]:
+            self.unhandled[(character, nodeA, nodeB)][branch][tick] = set(self.engine._active_rules_cache[rulebook][branch][tick])
+        yield from self.unhandled[(character, nodeA, nodeB)][branch][tick]
 
 
 class NodeRulebookCache(object):
@@ -172,11 +194,22 @@ class PortalRulebookCache(object):
 
 class ActiveRulesCache(Cache):
     iter_rules = iter_active_rules = Cache.iter_keys
+    
+    def __init__(self, engine):
+        Cache.__init__(self, engine)
+        self.active_sets = StructuredDefaultDict(1, WindowDict)
 
     def store(self, rulebook, rule, branch, tick, active):
         if not active:
             active = None
         Cache.store(self, rulebook, rule, branch, tick, active)
+        auh = self.active_sets[rulebook][branch].setdefault(tick, set())
+        if self.active_sets[rulebook][branch].rev_before(tick) != tick:
+            auh = self.active_sets[branch][tick] = set(auh)
+        if active:
+            auh.add(rule)
+        else:
+            auh.discard(rule)
 
 
 class CharacterRulesHandledCache(object):
@@ -184,19 +217,30 @@ class CharacterRulesHandledCache(object):
         self.engine = engine
         self._data = StructuredDefaultDict(4, set)
         self.shallow = {}
+        self.unhandled = StructuredDefaultDict(1, dict)
 
     def store(self, character, ruletype, rulebook, rule, branch, tick):
         the_set = self.shallow[(character, ruletype, rulebook, rule, branch)] = self._data[character][ruletype][rulebook][rule][branch]
         the_set.add(tick)
+        if tick not in self.unhandled[character][ruletype][branch]:
+            self.unhandled[character][ruletype][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
+        self.unhandled[character][ruletype][branch][tick].remove(rule)
 
     def retrieve(self, character, ruletype, rulebook, rule, branch):
         return self.shallow[(character, ruletype, rulebook, rule, branch)]
 
-    def rule_handled(self, character, ruletype, rulebook, rule, branch, tick):
+    def check_rule_handled(self, character, ruletype, rulebook, rule, branch, tick):
         try:
-            return tick in self.shallow[(character, ruletype, rulebook, rule, branch)]
+            ret = tick in self.shallow[(character, ruletype, rulebook, rule, branch)]
         except KeyError:
-            return False
+            ret = False
+        assert ret is rule not in self.unhandled[character][ruletype][branch][tick]
+        return ret
+
+    def iter_unhandled_rules(self, character, ruletype, rulebook, branch, tick):
+        if tick not in self.unhandled[character][ruletype][branch]:
+            self.unhandled[character][ruletype][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
+        yield from self.unhandled[character][ruletype][branch][tick]
 
 
 class ThingsCache(Cache):
