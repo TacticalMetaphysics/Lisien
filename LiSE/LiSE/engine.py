@@ -407,10 +407,6 @@ class Engine(AbstractEngine, gORM):
     char_cls = Character
     node_cls = Node
     portal_cls = Portal
-    
-    # delete this
-    def log(self, level, message):
-        print(level + ': ' + message)
 
     def _del_rulebook(self, rulebook):
         for (character, character_rulebooks) in \
