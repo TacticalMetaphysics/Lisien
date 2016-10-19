@@ -851,14 +851,10 @@ class Engine(AbstractEngine, gORM):
                     rulemap,
                     rulebook
             ) in self._characters_rulebooks_cache.retrieve(char).items():
-                for rule in self._rulebooks_cache.retrieve(rulebook):
-                    if (
-                        self._rule_active(rulebook, rule) and not
-                        self._character_rules_handled_cache.rule_handled(
-                            char, rulemap, rulebook, rule.name, *self.time
-                        )
-                    ):
-                        yield (rulemap, char, rulebook, rule.name)
+                for rule in self._character_rules_handled_cache.iter_unhandled_rules(
+                    char, rulemap, rulebook, *self.time
+                ):
+                    yield (rulemap, char, rulebook, rule)
 
     def _poll_node_rules(self):
         if self._sql_polling:
@@ -872,14 +868,10 @@ class Engine(AbstractEngine, gORM):
                     rulebook = self._nodes_rulebooks_cache.retrieve(char, node)
                 except KeyError:
                     rulebook = (char, node)
-                for rule in self._rulebooks_cache.retrieve(rulebook):
-                    if (
-                        self._rule_active(rulebook, rule) and not
-                        self._node_rules_handled_cache.rule_handled(
-                            char, node, rulebook, rule, *self.time
-                        )
-                    ):
-                        yield (char, node, rulebook, rule)
+                for rule in self._node_rules_handled_cache.iter_unhandled_rules(
+                    char, node, rulebook, *self.time
+                ):
+                    yield (char, node, rulebook, rule)
 
     def _poll_portal_rules(self):
         if self._sql_polling:
@@ -891,18 +883,14 @@ class Engine(AbstractEngine, gORM):
             for nodeA in chara.portal:
                 for nodeB in chara.portal[nodeA]:
                     rulebook = cache.retrieve(chara.name, nodeA, nodeB)
-                    for rule in self._rulebooks_cache[rulebook]:
-                        if (
-                            self._rule_active(rulebook, rule) and not
-                            cache.rule_handled(chara, nodeA, nodeB, rulebook, rule)
-                        ):
-                            yield (
-                                chara,
-                                nodeA,
-                                nodeB,
-                                rulebook,
-                                rule
-                            )
+                    for rule in cache.iter_unhandled_rules(chara.name, nodeA, nodeB, rulebook, *self.time):
+                        yield (
+                            chara,
+                            nodeA,
+                            nodeB,
+                            rulebook,
+                            rule
+                        )
 
     def _poll_rules(self):
         """Iterate over tuples containing rules yet unresolved in the current tick.
