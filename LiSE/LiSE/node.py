@@ -194,28 +194,19 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        cache = self.engine._edges_cache[self.character.name][self.name]
-        (branch, tick) = self.engine.time
-        for nodeB in cache:
-            try:
-                if cache[nodeB][0][branch][tick]:
-                    yield nodeB
-            except (KeyError, ValueError):
-                continue
-            return
+        yield from self.engine._edges_cache.iter_entities(self.character.name, self.name, *self.engine.time)
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
-        cache = self.engine._edges_cache[self.character.name]
-        (branch, tick) = self.engine.time
-        for nodeA in cache:
-            if self.name not in cache[nodeA]:
-                continue
-            try:
-                if cache[nodeA][self.name][0][branch][tick]:
-                    yield nodeA
-            except (KeyError, ValueError):
-                continue
+        cache = self.engine._edges_cache.predecessors[self.character.name][self.name]
+        for nodeB in cache:
+            for (b, t) in self.engine._active_branches():
+                if b in cache[nodeB][0]:
+                    if b != self.engine.branch:
+                        self.engine._edges_cache.store(self.character.name, self.name, nodeB, 0, *self.engine.time)
+                    if cache[nodeB][0][b][t]:
+                        yield nodeB
+                        break
 
     def portals(self):
         """Iterate over :class:`Portal` objects that lead away from me"""
