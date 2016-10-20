@@ -11,7 +11,6 @@ from collections import Mapping
 from networkx import shortest_path, shortest_path_length
 
 import gorm.graph
-from gorm.reify import reify
 
 from .util import getatt
 from .query import StatusAlias
