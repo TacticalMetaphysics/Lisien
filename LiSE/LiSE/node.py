@@ -174,6 +174,10 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         yield from self.extrakeys
         return
 
+    def clear(self):
+        for key in super().__iter__():
+            del self[key]
+
     def __contains__(self, k):
         """Handle extra keys, then delegate."""
         if k in self.extrakeys:
