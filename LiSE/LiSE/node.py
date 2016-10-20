@@ -33,9 +33,9 @@ class RuleMapping(rule.RuleMapping):
     character = getatt('node.character')
 
     def __iter__(self):
-        for (rule, active) in self.node._rule_names_activeness():
+        for (rul, active) in self.node._rule_names_activeness():
             if active:
-                yield rule
+                yield rul
 
 
 class UserMapping(Mapping):
