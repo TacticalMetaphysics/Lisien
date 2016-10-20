@@ -103,21 +103,6 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     """
     __slots__ = ['user', 'graph', 'gorm', 'node']
 
-    def _rule_names_activeness(self):
-        cache = self.engine._active_rules_cache[self._get_rulebook_name()]
-        for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
-                if branch not in cache[rule]:
-                    continue
-                try:
-                    yield (
-                        rule,
-                        cache[rule][branch][tick]
-                    )
-                    break
-                except ValueError:
-                    continue
-
     def _get_rule_mapping(self):
         return RuleMapping(self)
 
