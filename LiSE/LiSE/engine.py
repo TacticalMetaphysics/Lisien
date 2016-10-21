@@ -215,7 +215,7 @@ class ActiveRulesCache(Cache):
         Cache.store(self, rulebook, rule, branch, tick, active)
         auh = self.active_sets[rulebook][branch].setdefault(tick, set())
         if self.active_sets[rulebook][branch].rev_before(tick) != tick:
-            auh = self.active_sets[branch][tick] = set(auh)
+            auh = self.active_sets[rulebook][branch][tick] = auh.copy()
         if active:
             auh.add(rule)
         else:
