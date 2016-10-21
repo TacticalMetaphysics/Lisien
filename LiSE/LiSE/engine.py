@@ -130,9 +130,14 @@ class NodeRulesHandledCache(object):
         return ret
 
     def iter_unhandled_rules(self, character, node, rulebook, branch, tick):
-        if tick not in self.unhandled[(character, node)][branch]:
-            self.unhandled[(character, node)][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
-        yield from self.unhandled[(character, node)][branch][tick]
+        try:
+            unhandl = self.unhandled[(character, node)][branch][tick]
+        except KeyError:
+            try:
+                unhandl = self.unhandled[(character, node)][branch][tick] = self.engine._active_rules_cache.active_sets[rulebook][branch][tick].copy()
+            except KeyError:
+                return
+        yield from unhandl
 
 
 class PortalRulesHandledCache(object):
@@ -161,9 +166,14 @@ class PortalRulesHandledCache(object):
         return ret
 
     def iter_unhandled_rules(self, character, nodeA, nodeB, rulebook, branch, tick):
-        if tick not in self.unhandled[(character, nodeA, nodeB)][branch]:
-            self.unhandled[(character, nodeA, nodeB)][branch][tick] = set(self.engine._active_rules_cache[rulebook][branch][tick])
-        yield from self.unhandled[(character, nodeA, nodeB)][branch][tick]
+        try:
+            unhandl = self.unhandled[(character, nodeA, nodeB)][branch][tick]
+        except KeyError:
+            try:
+                unhandl = self.unhandled[(character, nodeA, nodeB)][branch][tick] = self.engine._active_rules_cache[rulebook][branch][tick].copy()
+            except KeyError:
+                return
+        yield from unhandl
 
 
 class NodeRulebookCache(object):
@@ -238,9 +248,14 @@ class CharacterRulesHandledCache(object):
         return ret
 
     def iter_unhandled_rules(self, character, ruletype, rulebook, branch, tick):
-        if tick not in self.unhandled[character][ruletype][branch]:
-            self.unhandled[character][ruletype][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
-        yield from self.unhandled[character][ruletype][branch][tick]
+        try:
+            unhandl = self.unhandled[character][ruletype][branch][tick]
+        except KeyError:
+            try:
+                unhandl = self.unhandled[character][ruletype][branch][tick] = self.engine._active_rules_cache.active_sets[rulebook][branch][tick].copy()
+            except KeyError:
+                return
+        yield from unhandl
 
 
 class ThingsCache(Cache):
