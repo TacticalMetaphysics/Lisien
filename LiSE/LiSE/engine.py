@@ -12,7 +12,7 @@ from json import dumps, loads, JSONEncoder
 from gorm import ORM as gORM
 from gorm import Cache
 from gorm.pickydict import StructuredDefaultDict, PickyDefaultDict
-from gorm.window import WindowDict
+from gorm.window import FuturistWindowDict
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -38,8 +38,8 @@ class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, engine):
         Cache.__init__(self, engine)
-        self.user_order = StructuredDefaultDict(3, WindowDict)
-        self.user_shallow = PickyDefaultDict(WindowDict)
+        self.user_order = StructuredDefaultDict(3, FuturistWindowDict)
+        self.user_shallow = PickyDefaultDict(FuturistWindowDict)
 
     def store(self, character, graph, node, branch, tick, is_avatar):
         if not is_avatar:
@@ -207,7 +207,7 @@ class ActiveRulesCache(Cache):
     
     def __init__(self, engine):
         Cache.__init__(self, engine)
-        self.active_sets = StructuredDefaultDict(1, WindowDict)
+        self.active_sets = StructuredDefaultDict(1, FuturistWindowDict)
 
     def store(self, rulebook, rule, branch, tick, active):
         if not active:

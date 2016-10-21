@@ -41,7 +41,7 @@ from gorm.graph import (
     DiGraphPredecessorsMapping
 )
 from gorm.reify import reify
-from gorm.window import WindowDict
+from gorm.window import FuturistWindowDict
 from gorm.pickydict import PickyDefaultDict
 
 from .xcollections import CompositeDict
@@ -1201,7 +1201,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         """
         super().__init__(engine, name, data, **attr)
-        self._avatars_cache = PickyDefaultDict(WindowDict)
+        self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
         self.engine = engine
         d = {}
         for mapp in (
