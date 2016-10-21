@@ -82,7 +82,7 @@ class CharacterRulebooksCache(object):
         self.engine = engine
         self._data = {}
 
-    def store(self, char, character=None, avatar=None, character_thing=None, character_place=None, character_portal=None):
+    def store(self, char, character=None, avatar=None, character_thing=None, character_place=None, character_node=None, character_portal=None):
         if char in self._data:
             old = self._data[char]
             character = character or old['character']
@@ -90,12 +90,14 @@ class CharacterRulebooksCache(object):
             character_thing = character_thing or old['character_thing']
             character_place = character_place or old['character_place']
             character_portal = character_portal or old['character_portal']
+            character_node = character_node or old['character_node']
         self._data[char] = {
             'character': character or (char, 'character'),
             'avatar': avatar or (char, 'avatar'),
             'character_thing': character_thing or (char, 'character_thing'),
             'character_place': character_place or (char, 'character_place'),
-            'character_portal': character_portal or (char, 'character_portal')
+            'character_portal': character_portal or (char, 'character_portal'),
+            'character_node': character_node or (char, 'character_node')
         }
 
     def retrieve(self, char):
