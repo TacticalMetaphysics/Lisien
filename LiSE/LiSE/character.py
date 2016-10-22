@@ -1571,14 +1571,16 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             return self._char_av_cache[g]
 
         def __getitem__(self, g):
-            """Get the CharacterAvatarMapping for the given graph, if I have any
-            avatars in it.
+            """Conditionally return the CharacterAvatarMapping for a graph.
 
-            If I have avatars in only one graph, behave as a proxy to that
-            graph's CharacterAvatarMapping.
+            If I have only one avatar in any graph, pretend I'm that avatar;
+            return an item from it.
 
-            Unless I have only one avatar anywhere, in which case be a
-            proxy to that.
+            If I have more than one avatar, but they're all in the same graph,
+            pretend I'm the CharacterAvatarMapping for that graph; return
+            an avatar.
+
+            Otherwise, return the CharacterAvatarMapping for the given graph.
 
             """
             if len(self) == 1:
