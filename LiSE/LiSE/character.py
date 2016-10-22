@@ -1526,8 +1526,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     class AvatarGraphMapping(Mapping, RuleFollower):
         """A mapping of other characters in which one has an avatar.
 
-        Maps to a mapping of the avatars themselves, or if there's only
-        one, to that.
+        Maps to a mapping of the avatars themselves, unless there's
+        only one other character you have avatars in, in which case
+        this maps to those.
+
+        If you have only one avatar anywhere, you can pretend this
+        is that entity.
 
         """
         _book = "avatar"
