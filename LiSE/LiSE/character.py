@@ -1555,16 +1555,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             in it presently
 
             """
-            return self.engine._avatarness_cache.iter_entities(
+            return iter(self.engine._avatarness_cache.get_char_graphs(
                 self.character.name, *self.engine.time
-            )
+            ))
 
         def __len__(self):
             """Number of graphs in which I have an avatar"""
-            n = 0
-            for g in self:
-                n += 1
-            return n
+            return len(self.engine._avatarness_cache.get_char_graphs(
+                self.character.name, *self.engine.time
+            ))
 
         def _get_char_av_cache(self, g):
             if g not in self._char_av_cache:
@@ -1582,13 +1581,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             proxy to that.
 
             """
-            for node in self.engine._avatarness_cache.iter_entities(self.character.name, g, *self.engine.time):
-                return self.engine.character[g].node[node]
             if len(self) == 1:
-                return self._get_char_av_cache(next(iter(self)))[g]
-            raise KeyError("{} has no avatar in {}".format(
-                self.character.name, g
-            ))
+                ret = self._get_char_av_cache(next(iter(self)))
+                if len(ret) == 1:
+                    return next(iter(ret.values()))[g]
+                else:
+                    return ret[g]
+            return self._get_char_av_cache(g)
 
         def __getattr__(self, attr):
             """If I've got only one avatar, return its attribute"""
@@ -1623,82 +1622,36 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.name = outer.name
                 self.graph = graphn
 
-            def _branchdata(self, branch, rev):
-                ac = self.engine._avatarness_cache.db_order
-                if self.character.name not in ac or \
-                    self.graph not in ac[self.character.name]:
-                    return []
-                ac = ac[self.character.name][self.graph]
-                r = []
-                for node in ac:
-                    try:
-                        r.append((
-                            node,
-                            ac[node][branch][rev]
-                        ))
-                    except KeyError:
-                        continue
-                return r
-
             def __getattr__(self, attrn):
                 """If I don't have such an attribute, but I contain exactly one
                 avatar, and *it* has the attribute, return the
                 avatar's attribute.
 
                 """
-                seen = set()
-                counted = 0
-                for (branch, rev) in self.engine._active_branches():
-                    if counted > 1:
-                        break
-                    for (n, extant) in self._branchdata(branch, rev):
-                        if counted > 1:
-                            break
-                        x = bool(extant)
-                        if x and n not in seen:
-                            counted += 1
-                        seen.add(n)
-                if counted == 1:
-                    node = self.engine.character[self.graph].node[seen.pop()]
-                    if hasattr(node, attrn):
-                        return getattr(node, attrn)
-                raise AttributeError("No such attribute: " + attrn)
+                if len(self) == 1:
+                    return getattr(next(iter(self.values())), attrn)
+                raise AttributeError
 
             def __iter__(self):
                 """Iterate over the names of all the presently existing nodes in the
                 graph that are avatars of the character
 
                 """
-                seen = set()
-                for (branch, rev) in self.engine._active_branches():
-                    for (n, x) in self._branchdata(branch, rev):
-                        if (
-                                x and
-                                n not in seen and
-                                self.engine._node_exists(self.graph, n)
-                        ):
-                            yield n
-                        seen.add(n)
+                return iter(self.engine._avatarness_cache.get_char_graph_avs(
+                    self.name, self.graph, *self.engine.time
+                ))
 
             def __contains__(self, av):
-                ac = self.engine._avatarness_cache.db_order
-                if self.character.name not in ac or \
-                   self.graph not in ac[self.character.name] or \
-                   av not in ac[self.character.name][self.graph]:
-                    return False
-                ac = ac[self.character.name][self.graph][av]
-                for (branch, tick) in self.engine._active_branches():
-                    if branch in ac:
-                        return ac[branch][tick]
-                return False
+                return av in self.engine._avatarness_cache.get_char_graph_avs(
+                    self.name, self.graph, *self.engine.time
+                )
 
             def __len__(self):
                 """Number of presently existing nodes in the graph that are avatars of
                 the character"""
-                n = 0
-                for a in self:
-                    n += 1
-                return n
+                return len(self.engine._avatarness_cache.get_char_graph_avs(
+                    self.name, self.graph, *self.engine.time
+                ))
 
             def __getitem__(self, av):
                 """Return the Place or Thing by the given name in the graph, if it's

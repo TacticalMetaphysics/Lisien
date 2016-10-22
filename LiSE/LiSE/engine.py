@@ -40,6 +40,17 @@ class AvatarnessCache(Cache):
         Cache.__init__(self, engine)
         self.user_order = StructuredDefaultDict(3, FuturistWindowDict)
         self.user_shallow = PickyDefaultDict(FuturistWindowDict)
+        self.graphs = StructuredDefaultDict(1, FuturistWindowDict)
+        self.graphavs = StructuredDefaultDict(1, FuturistWindowDict)
+
+    def _forward_branch(self, map, key, branch, tick):
+        if branch not in map[key]:
+            for b, t in self.gorm._active_branches():
+                if b in map[key]:
+                    map[key][branch][tick] = map[key][b][t].copy()
+                    break
+            else:
+                map[key][branch][tick] = set()
 
     def store(self, character, graph, node, branch, tick, is_avatar):
         if not is_avatar:
@@ -47,6 +58,28 @@ class AvatarnessCache(Cache):
         Cache.store(self, character, graph, node, branch, tick, is_avatar)
         self.user_order[graph][node][character][branch][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][tick] = is_avatar
+        self._forward_branch(self.graphavs, (character, graph), branch, tick)
+        if not self.graphavs[(character, graph)][branch].has_exact_rev(tick):
+            self.graphavs[(character, graph)][branch][tick] = self.graphavs[(character, graph)][branch][tick].copy()
+        if is_avatar:
+            self.graphavs[(character, graph)][branch][tick].add(node)
+        else:
+            self.graphavs[(character, graph)][branch][tick].remove(node)
+        self._forward_branch(self.graphs, character, branch, tick)
+        if not self.graphs[character][branch].has_exact_rev(tick):
+            self.graphs[character][branch][tick] = self.graphs[character][branch][tick].copy()
+        if is_avatar:
+            self.graphs[character][branch][tick].add(graph)
+        elif not self.graphavs[(character, graph)][branch][tick]:
+            self.graphs[character][branch][tick].remove(graph)
+
+    def get_char_graph_avs(self, char, graph, branch, tick):
+        self._forward_branch(self.graphavs, (char, graph), branch, tick)
+        return self.graphavs[(char, graph)][branch][tick]
+
+    def get_char_graphs(self, char, branch, tick):
+        self._forward_branch(self.graphs, char, branch, tick)
+        return self.graphs[char][branch][tick]
 
     def iter_node_users(self, graph, node, branch, tick):
         if graph not in self.user_order:
