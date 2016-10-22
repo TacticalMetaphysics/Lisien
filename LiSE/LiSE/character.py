@@ -1593,16 +1593,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __getattr__(self, attr):
             """If I've got only one avatar, return its attribute"""
-            if len(self.keys()) == 1:
+            if len(self) == 1:
                 avs = self.CharacterAvatarMapping(
                     self, next(iter(self.keys()))
                 )
                 if len(avs) == 1:
-                    av = list(avs.keys())[0]
-                    if attr == av:
-                        return avs[attr]
-                    else:
-                        return getattr(avs[list(avs.keys())[0]], attr)
+                    av = next(iter(avs.values()))
+                    return getattr(av, attr)
             raise AttributeError
 
         def __repr__(self):
@@ -1669,16 +1666,16 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 """
                 if av in self:
                     return self.engine.character[self.graph].node[av]
-                if len(self.keys()) == 1:
-                    k = list(self.keys())[0]
-                    return self.engine.character[self.graph].node[k]
+                mykeys = self.keys()
+                if len(mykeys) == 1:
+                    return self.engine.character[self.graph].node[next(iter(mykeys))]
                 raise KeyError("No such avatar")
 
             def __setitem__(self, k, v):
-                ks = list(self.keys())
+                ks = self.keys()
                 if len(ks) != 1:
                     raise AmbiguousAvatarError("More than one avatar in {}; be more specific to set the stats of one.".format(self.graph))
-                self.engine.character[self.graph].node[ks[0]][k] = v
+                self.engine.character[self.graph].node[next(iter(ks))][k] = v
 
             def __repr__(self):
                 """Represent myself like a dictionary"""
