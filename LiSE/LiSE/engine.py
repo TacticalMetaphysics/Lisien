@@ -262,7 +262,7 @@ class CharacterRulesHandledCache(object):
         self.engine = engine
         self._data = StructuredDefaultDict(4, set)
         self.shallow = {}
-        self.unhandled = StructuredDefaultDict(1, dict)
+        self.unhandled = StructuredDefaultDict(2, dict)
 
     def store(self, character, ruletype, rulebook, rule, branch, tick):
         the_set = self.shallow[(character, ruletype, rulebook, rule, branch)] = self._data[character][ruletype][rulebook][rule][branch]
