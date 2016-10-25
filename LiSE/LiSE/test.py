@@ -72,9 +72,9 @@ class SimTest(TestCase):
         # Ignoring empty rulebooks because those only exist
         # implicitly, they don't have database records
         oldrulebooks = {}
-        for (k, v) in self.engine._rulebooks_cache.items():
+        for (k, v) in self.engine._rulebooks_cache._data.items():
             if v:
-                oldrulebooks[k] = v
+                oldrulebooks[k] = [rule.name for rule in v]
         self.assertDictEqual(oldrulebooks, rulebooks)
 
     def testCharRulebooksCaches(self):
@@ -98,7 +98,7 @@ class SimTest(TestCase):
             }
         self.assertDictEqual(
             charrb,
-            self.engine._characters_rulebooks_cache
+            self.engine._characters_rulebooks_cache._data
         )
 
     def testNodeRulebooksCache(self):
@@ -107,7 +107,7 @@ class SimTest(TestCase):
             noderb[character][node] = rulebook
         self.assertDictEqual(
             noderb,
-            self.engine._nodes_rulebooks_cache
+            self.engine._nodes_rulebooks_cache._data
         )
 
     def testPortalRulebooksCache(self):
@@ -116,7 +116,7 @@ class SimTest(TestCase):
             portrb[character][nodeA][nodeB] = rulebook
         self.assertDictEqual(
             portrb,
-            self.engine._portals_rulebooks_cache
+            self.engine._portals_rulebooks_cache._data
         )
 
     def testAvatarnessCaches(self):
@@ -196,7 +196,7 @@ class SimTest(TestCase):
                 )
             )
         )
-        cache = self.engine._node_rules_handled_cache
+        cache = self.engine._node_rules_handled_cache._data
         for char in cache:
             for node in cache[char]:
                 for rulebook in cache[char][node]:
@@ -239,7 +239,7 @@ class SimTest(TestCase):
                 )
             )
         )
-        cache = self.engine._portal_rules_handled_cache
+        cache = self.engine._portal_rules_handled_cache._data
         for character in cache:
             for nodeA in cache[character]:
                 for nodeB in cache[character][nodeA]:
@@ -267,7 +267,7 @@ class SimTest(TestCase):
                 'character_place',
                 'character_portal'
         ]:
-            handled_ticks = StructuredDefaultDict(3, set)
+            handled_ticks = StructuredDefaultDict(4, set)
             for character, rulebook, rule, branch, tick in getattr(
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
             )():
@@ -275,12 +275,13 @@ class SimTest(TestCase):
             old_handled_ticks = StructuredDefaultDict(3, set)
             live = getattr(
                 self.engine, '_{}_rules_handled_cache'.format(rulemap)
-            )
+            )._data
             for character in live:
                 for rulebook in live[character]:
                     if live[character][rulebook]:
                         for rule in live[character][rulebook]:
                             for branch, ticks in live[character][rulebook][rule].items():
+                                self.assertIsInstance(ticks, set)
                                 old_handled_ticks[character][rulebook][rule][branch] = ticks
             self.assertDictEqual(
                 old_handled_ticks,
@@ -292,10 +293,10 @@ class SimTest(TestCase):
         things = StructuredDefaultDict(3, tuple)
         for (character, thing, branch, tick, loc, nextloc) in \
                 self.engine.db.things_dump():
-            things[character][thing][branch][tick] = (loc, nextloc)
+            things[(character,)][thing][branch][tick] = (loc, nextloc)
         self.assertDictEqual(
             things,
-            self.engine._things_cache
+            self.engine._things_cache.keys
         )
 
     def testRoommateCollisions(self):
