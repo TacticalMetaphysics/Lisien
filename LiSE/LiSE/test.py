@@ -900,4 +900,13 @@ class BindingTestCase(TestCase):
         self.assertEqual(inert.call_count, 0)
 
 if __name__ == '__main__':
-    unittest.main()
+    from cProfile import Profile
+    from pstats import Stats
+    prof = Profile()
+    prof.run('unittest.main()')
+    with open('dump.prof', 'w') as outf:
+        prof.dump_stats(outf)
+    stats = Stats()
+    with open('dump.prof', 'r') as inf:
+        stats.load_stats(inff)
+    stats.sort_stats('cumtime', 'tottime').print_stats()
