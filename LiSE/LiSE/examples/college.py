@@ -28,9 +28,6 @@ def install(eng):
     @phys.rule(always=True)  # runs every tick regardless of the situation
     def time_passes(engine, character):
         character.stat['hour'] = (character.stat['hour'] + 1) % 24
-        engine.debug('randomstate hash {}'.format(hash(engine.universal['rando_state'])))
-        for av in engine.character['student_body'].avatars():
-            engine.debug('{} located in {}'.format(av.name, av['location']))
 
 
     # There's a character with all of the students in it, to make it easy to apply rules to all students.
