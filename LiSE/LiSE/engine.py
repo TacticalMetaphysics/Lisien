@@ -1024,7 +1024,7 @@ class Engine(AbstractEngine, gORM):
 
         """
         (branch, tick) = self.time
-        for (typ, character, entity, rulebook, rule) in self._poll_rules():
+        for (typ, character, entity, rulebook, rule) in list(self._poll_rules()):
             def follow(*args):
                 return (rule(self, *args), rule.name, typ, rulebook)
 
