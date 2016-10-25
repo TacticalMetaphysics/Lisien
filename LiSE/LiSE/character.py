@@ -1586,9 +1586,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if len(self) == 1:
                 ret = self._get_char_av_cache(next(iter(self)))
                 if len(ret) == 1:
-                    return next(iter(ret.values()))[g]
+                    try:
+                        return next(iter(ret.values()))[g]
+                    except KeyError:
+                        return self._get_char_av_cache(g)
                 else:
-                    return ret[g]
+                    try:
+                        return ret[g]
+                    except KeyError:
+                        return self._get_char_av_cache(g)
             return self._get_char_av_cache(g)
 
         def __getattr__(self, attr):
