@@ -120,20 +120,9 @@ class SimTest(TestCase):
         )
 
     def testAvatarnessCaches(self):
-        db_avatarness = StructuredDefaultDict(3, WindowDict)
         user_avatarness = StructuredDefaultDict(3, WindowDict)
         for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
-            db_avatarness[character][graph][node][branch][tick] = is_avatar
             user_avatarness[graph][node][character][branch][tick] = is_avatar
-        new_db_avatarness = StructuredDefaultDict(3, WindowDict)
-        db = self.engine._avatarness_cache.db_order
-        for char in db:
-            for graph in db[char]:
-                for node in db[char][graph]:
-                    if db[char][graph][node]:
-                        for branch in db[char][graph][node]:
-                            for tick, is_avatar in db[char][graph][node][branch].items():
-                                new_db_avatarness[char][graph][node][branch][tick] = is_avatar
         new_user_avatarness = StructuredDefaultDict(3, WindowDict)
         usr = self.engine._avatarness_cache.user_order
         for graph in usr:
@@ -144,35 +133,8 @@ class SimTest(TestCase):
                             for tick, is_avatar in usr[graph][node][char][branch].items():
                                 new_user_avatarness[graph][node][char][branch][tick] = is_avatar
         self.assertDictEqual(
-            db_avatarness,
-            new_db_avatarness
-        )
-        self.assertDictEqual(
             user_avatarness,
             new_user_avatarness
-        )
-
-    def testActiveRulesCache(self):
-        actrules = defaultdict(  # rulebook:
-            lambda: defaultdict(  # rule:
-                lambda: defaultdict(  # branch:
-                    dict  # tick: active
-                )
-            )
-        )
-        newactrules = defaultdict(dict)
-        cache = self.engine._active_rules_cache
-        for rulebook in cache:
-            for rule in cache[rulebook]:
-                if cache[rulebook][rule]:
-                    newactrules[rulebook][rule] = cache[rulebook][rule]
-        for (
-                rulebook, rule, branch, tick, active
-        ) in self.engine.db.dump_active_rules():
-            actrules[rulebook][rule][branch][tick] = active
-        self.assertDictEqual(
-            actrules,
-            newactrules
         )
 
     def testNodeRulesHandledCache(self):
