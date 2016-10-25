@@ -6,8 +6,8 @@ from collections import defaultdict
 from networkx import DiGraph
 from gorm.pickydict import StructuredDefaultDict
 from gorm.window import WindowDict
-from .engine import Engine
-from .examples import college as sim
+from LiSE.engine import Engine
+from LiSE.examples import college as sim
 
 
 def deepDictDiffIter(d0, d1, lvl=0):
