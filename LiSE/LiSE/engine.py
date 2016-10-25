@@ -652,7 +652,6 @@ class Engine(AbstractEngine, gORM):
             self._things_cache.store(*row)
         for row in self.db.avatarness_dump():
             self._avatarness_cache.store(*row)
-        self._last_ruling_char = None
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -1027,55 +1026,74 @@ class Engine(AbstractEngine, gORM):
         (branch, tick) = self.time
         for (typ, character, entity, rulebook, rule) in self._poll_rules():
             def follow(*args):
-                return rule(self, *args), rule.name, typ, rulebook, character, entity
+                return (rule(self, *args), rule.name, typ, rulebook)
 
             if typ in ('thing', 'place', 'portal'):
                 yield follow(character, entity)
-            elif typ == 'character':
-                yield follow(character)
-            elif typ == 'avatar':
-                for avatar in character.avatars():
-                    yield follow(character, avatar)
-            elif typ == 'character_thing':
-                for thing in character.thing.values():
-                    yield follow(character, thing)
-            elif typ == 'character_place':
-                for place in character.place.values():
-                    yield follow(character, place)
-            elif typ == 'character_node':
-                for node in character.node.values():
-                    yield follow(character, node)
-            elif typ == 'character_portal':
-                for portal in character.portal.values():
-                    yield follow(character, portal)
+                if typ == 'thing':
+                    self._handled_thing_rule(
+                        character.name,
+                        entity.name,
+                        rulebook,
+                        rule.name,
+                        branch,
+                        tick
+                    )
+                elif typ == 'place':
+                    self._handled_place_rule(
+                        character.name,
+                        entity.name,
+                        rulebook,
+                        rule.name,
+                        branch,
+                        tick
+                    )
+                else:
+                    self._handled_portal_rule(
+                        character.name,
+                        entity.origin.name,
+                        entity.destination.name,
+                        rulebook,
+                        rule.name,
+                        branch,
+                        tick
+                    )
             else:
-                raise ValueError('Unknown type of rule')
+                if typ == 'character':
+                    yield follow(character)
+                elif typ == 'avatar':
+                    for avatar in character.avatars():
+                        yield follow(character, avatar)
+                elif typ == 'character_thing':
+                    for thing in character.thing.values():
+                        yield follow(character, thing)
+                elif typ == 'character_place':
+                    for place in character.place.values():
+                        yield follow(character, place)
+                elif typ == 'character_node':
+                    for node in character.node.values():
+                        yield follow(character, node)
+                elif typ == 'character_portal':
+                    for portal in character.portal.values():
+                        yield follow(character, portal)
+                else:
+                    raise ValueError('Unknown type of rule')
+                self._handled_character_rule(
+                    typ, character.name, rulebook, rule.name, branch, tick
+                )
 
     def advance(self):
         """Follow the next rule if available, or advance to the next tick."""
         try:
-            result, rulename, typ, rulebook, character, entity = next(self._rules_iter)
-            nodeish = {
-                'thing': self._handled_thing_rule,
-                'place': self._handled_place_rule
-            }
-            if typ in nodeish:
-                nodeish[typ](character.name, entity.name, rulebook, rulename, *self.time)
-            elif typ == 'portal':
-                self._handled_portal_rule(character.name, entity['origin'], entity['destination'], rulebook, rulename, *self.time)
-            elif self._last_ruling_char and character is not self._last_ruling_char:
-                self._handled_character_rule(typ, character.name, rulebook, rulename, *self.time)
-                self._last_ruling_char = character
-            else:
-                self._last_ruling_char = character
+            r = next(self._rules_iter)
         except StopIteration:
             self.tick += 1
             self._rules_iter = self._follow_rules()
             self.universal['rando_state'] = self.rando.getstate()
             if self.commit_modulus and self.tick % self.commit_modulus == 0:
                 self.commit()
-            result = self._last_ruling_char = None
-        return result
+            r = None
+        return r
 
     def next_tick(self):
         """Make time move forward in the simulation.
