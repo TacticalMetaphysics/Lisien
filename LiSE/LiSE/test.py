@@ -44,13 +44,18 @@ class TestCase(unittest.TestCase):
 
 
 class SimTest(TestCase):
+    maxDiff = None
     def setUp(self):
         """Start an engine, install the sim module, and run it a while.
 
         This gives us some world-state to test upon.
 
         """
+        from logging import getLogger, FileHandler
         self.engine = Engine(":memory:")
+        logger = getLogger('LiSE.engine')
+        logger.setLevel('DEBUG')
+        logger.addHandler(FileHandler('test.log'))
         sim.install(self.engine)
         for i in range(72):
             self.engine.next_tick()
