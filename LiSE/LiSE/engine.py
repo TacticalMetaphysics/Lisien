@@ -981,7 +981,7 @@ class Engine(AbstractEngine, gORM):
         ) in self._poll_portal_rules():
             try:
                 c = self.character[character]
-                yield 'portal', c.portal[a][b], rulebook, self.rule[rule]
+                yield 'portal', c, c.portal[a][b], rulebook, self.rule[rule]
             except KeyError:
                 continue
 
