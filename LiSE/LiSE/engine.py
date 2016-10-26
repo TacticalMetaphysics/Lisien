@@ -1105,9 +1105,7 @@ class Engine(AbstractEngine, gORM):
         curtick = self.tick
         r = []
         while self.tick == curtick:
-            result = self.advance()
-            self.debug("[next_tick]: {}".format(result))
-            r.append(result)
+            r.append(self.advance())
         # The last element is always None, but is not a sentinel; any
         # rule may return None.
         for listener in self._next_tick_listeners:
