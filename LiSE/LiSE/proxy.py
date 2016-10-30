@@ -16,7 +16,7 @@ from queue import Empty
 from .engine import AbstractEngine
 from .character import Facade
 from gorm.xjson import JSONReWrapper, JSONListReWrapper
-from gorm.reify import reify
+from .util import reify
 from gorm.pickydict import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 

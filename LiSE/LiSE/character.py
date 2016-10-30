@@ -39,7 +39,6 @@ from gorm.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from gorm.reify import reify
 from gorm.window import FuturistWindowDict
 from gorm.pickydict import PickyDefaultDict
 
@@ -51,7 +50,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt
+from .util import getatt, reify
 from .query import StatusAlias
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 

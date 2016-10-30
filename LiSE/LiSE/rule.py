@@ -24,7 +24,7 @@ from collections import (
 )
 from functools import partial
 
-from gorm.reify import reify
+from .util import reify
 
 from .bind import (
     dispatch,
