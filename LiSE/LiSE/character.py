@@ -1530,6 +1530,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.character.name, *self.engine.time
             ))
 
+        def __contains__(self, k):
+            return k in self.engine._avatarness_cache.get_char_graphs(
+                self.character.name, *self.engine.time
+            )
+
         def __len__(self):
             """Number of graphs in which I have an avatar"""
             return len(self.engine._avatarness_cache.get_char_graphs(
@@ -1537,12 +1542,19 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             ))
 
         def _get_char_av_cache(self, g):
+            if g not in self:
+                raise KeyError
             if g not in self._char_av_cache:
                 self._char_av_cache[g] = self.CharacterAvatarMapping(self, g)
             return self._char_av_cache[g]
 
         def __getitem__(self, g):
             """Conditionally return the CharacterAvatarMapping for a graph.
+
+            If you ask for a graph that I have avatars in, I'll always give
+            you the mapping of avatars in that graph. But if I don't have
+            a graph by that name, I may be able to function as a proxy
+            to what you're really looking for.
 
             If I have only one avatar in any graph, pretend I'm that avatar;
             return an item from it.
@@ -1551,19 +1563,40 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             pretend I'm the CharacterAvatarMapping for that graph; return
             an avatar.
 
-            Otherwise, return the CharacterAvatarMapping for the given graph.
-
             """
             try:
-                graph, node = self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)
-                return self.engine.character[graph].node[node][g]
+                return self._get_char_av_cache(g)
             except KeyError:
                 pass
             try:
-                graph = self.engine._avatarness_cache.get_char_only_graph(self.character.name, *self.engine.time)
-                return self._get_char_av_cache(graph)[g]
+                return self.node[g]
             except KeyError:
-                return self._get_char_av_cache(g)
+                pass
+            return self.only[g]
+
+        @property
+        def node(self):
+            """If I have avatars in only one graph, return a map of them.
+
+            Otherwise, raise AttributeError.
+
+            """
+            try:
+                return self._get_char_av_cache(self.engine._avatarness_cache.get_char_only_graph(self.character.name, *self.engine.time))
+            except KeyError:
+                raise AttributeError("I have no avatar, or I have avatars in many graphs")
+
+        @property
+        def only(self):
+            """If I have only one avatar, return it.
+
+            Otherwise, raise AttributeError.
+
+            """
+            try:
+                return self.engine._node_objs[self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)]
+            except KeyError:
+                raise AttributeError("I have no avatar, or more than one avatar")
 
         def __getattr__(self, attr):
             """If I've got only one avatar, return its attribute"""
@@ -1598,11 +1631,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 avatar's attribute.
 
                 """
-                av = self.engine._avatarness_cache.get_char_graph_solo_av(
-                    self.character.name, self.graph, *self.engine.time
-                )
-                if av:
-                    return getattr(self.engine.character[self.graph].node[av], attrn)
+                try:
+                    av = self.engine._avatarness_cache.get_char_graph_solo_av(
+                        self.character.name, self.graph, *self.engine.time
+                    )
+                    return getattr(self.engine._node_objs[(self.graph, av)], attrn)
+                except KeyError:
+                    raise AttributeError("I have no avatar here, or more than one")
                 raise AttributeError
 
             def __iter__(self):
