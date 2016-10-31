@@ -47,6 +47,16 @@ def getatt(attribute_name):
     return property(attrgetter(attribute_name))
 
 
+def singleton_get(s):
+    """Take an iterable and return its only item, or None if that's impossible."""
+    it = None
+    for that in s:
+        if it is not None:
+            return None
+        it = that
+    return it
+
+
 def path_len(graph, path, weight=None):
     """Return the number of ticks it will take to follow ``path``,
     assuming the portals' ``weight`` attribute is how long it will
