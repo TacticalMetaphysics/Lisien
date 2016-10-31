@@ -657,13 +657,13 @@ class SenseFuncWrap(object):
         if needed.
 
         """
+        if not callable(fun):
+            raise TypeError("function is not callable")
         self.character = character
         if isinstance(fun, str):
             self.fun = self.engine.sense[fun]
         else:
             self.fun = fun
-        if not isinstance(self.fun, Callable):
-            raise TypeError("Function is not callable")
 
     def __call__(self, observed):
         """Call the function, prefilling the engine and observer arguments"""
