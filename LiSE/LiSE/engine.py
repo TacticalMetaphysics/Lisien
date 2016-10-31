@@ -913,7 +913,7 @@ class Engine(AbstractEngine, gORM):
     @property
     def time(self):
         """Return tuple of branch and tick"""
-        return (self.branch, self.tick)
+        return (self._obranch, self._orev)
 
     @time.setter
     def time(self, v):
