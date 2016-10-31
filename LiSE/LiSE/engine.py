@@ -34,6 +34,16 @@ class DummyEntity(dict):
         self.engine = engine
 
 
+def singleton_get(s):
+    """Take an iterable and return its only item, or None if that's impossible."""
+    it = None
+    for that in s:
+        if it is not None:
+            return None
+        it = that
+    return it
+
+
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, engine):
@@ -42,15 +52,19 @@ class AvatarnessCache(Cache):
         self.user_shallow = PickyDefaultDict(FuturistWindowDict)
         self.graphs = StructuredDefaultDict(1, FuturistWindowDict)
         self.graphavs = StructuredDefaultDict(1, FuturistWindowDict)
+        self.charavs = StructuredDefaultDict(1, FuturistWindowDict)
+        self.soloav = StructuredDefaultDict(1, FuturistWindowDict)
+        self.uniqav = StructuredDefaultDict(1, FuturistWindowDict)
+        self.uniqgraph = StructuredDefaultDict(1, FuturistWindowDict)
 
-    def _forward_branch(self, map, key, branch, tick):
+    def _forward_branch(self, map, key, branch, tick, copy=True):
         if branch not in map[key]:
             for b, t in self.gorm._active_branches():
                 if b in map[key]:
-                    map[key][branch][tick] = map[key][b][t].copy()
+                    map[key][branch][tick] = map[key][b][t].copy() if copy else map[key][b][t]
                     break
             else:
-                map[key][branch][tick] = set()
+                map[key][branch][tick] = set() if copy else None
 
     def store(self, character, graph, node, branch, tick, is_avatar):
         if not is_avatar:
@@ -58,24 +72,67 @@ class AvatarnessCache(Cache):
         Cache.store(self, character, graph, node, branch, tick, is_avatar)
         self.user_order[graph][node][character][branch][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][tick] = is_avatar
+        self._forward_branch(self.charavs, character, branch, tick)
         self._forward_branch(self.graphavs, (character, graph), branch, tick)
-        if not self.graphavs[(character, graph)][branch].has_exact_rev(tick):
-            self.graphavs[(character, graph)][branch][tick] = self.graphavs[(character, graph)][branch][tick].copy()
+        self._forward_branch(self.soloav, (character, graph), branch, tick, copy=False)
+        self._forward_branch(self.uniqav, character, branch, tick, copy=False)
+        self._forward_branch(self.uniqgraph, character, branch, tick, copy=False)
+        charavs = self.charavs[character][branch]
+        graphavs = self.graphavs[(character, graph)][branch]
+        uniqgraph = self.uniqgraph[character][branch]
+        soloav = self.soloav[(character, graph)][branch]
+        uniqav = self.uniqav[character][branch]
+        if not charavs.has_exact_rev(tick):
+            charavs[tick] = charavs[tick].copy()
+        if not graphavs.has_exact_rev(tick):
+            graphavs[tick] = graphavs[tick].copy()
         if is_avatar:
-            self.graphavs[(character, graph)][branch][tick].add(node)
+            if graphavs[tick]:
+                soloav[tick] = None
+            else:
+                soloav[tick] = node
+            if charavs[tick]:
+                uniqav[tick] = None
+            else:
+                uniqav[tick] = (graph, node)
+            graphavs[tick].add(node)
+            charavs[tick].add((graph, node))
         else:
-            self.graphavs[(character, graph)][branch][tick].remove(node)
+            graphavs[tick].remove(node)
+            charavs[tick].remove((graph, node))
+            soloav[tick] = singleton_get(graphavs[tick])
+            uniqav[tick] = singleton_get(charavs[tick])
         self._forward_branch(self.graphs, character, branch, tick)
         if not self.graphs[character][branch].has_exact_rev(tick):
             self.graphs[character][branch][tick] = self.graphs[character][branch][tick].copy()
         if is_avatar:
+            if self.graphs[character][branch][tick]:
+                uniqgraph[tick] = None
+            else:
+                uniqgraph[tick] = graph
             self.graphs[character][branch][tick].add(graph)
         elif not self.graphavs[(character, graph)][branch][tick]:
             self.graphs[character][branch][tick].remove(graph)
+            if len(self.graphs[character][branch][tick]) == 1:
+                uniqgraph[tick] = next(iter(self.graphs[character][branch][tick]))
+            else:
+                uniqgraph[tick] = None
 
     def get_char_graph_avs(self, char, graph, branch, tick):
         self._forward_branch(self.graphavs, (char, graph), branch, tick)
         return self.graphavs[(char, graph)][branch][tick]
+
+    def get_char_graph_solo_av(self, char, graph, branch, tick):
+        self._forward_branch(self.soloav, (char, graph), branch, tick, copy=False)
+        return self.soloav[(char, graph)][branch][tick]
+
+    def get_char_only_av(self, char, branch, tick):
+        self._forward_branch(self.uniqav, char, branch, tick, copy=False)
+        return self.uniqav[char][branch][tick]
+
+    def get_char_only_graph(self, char, branch, tick):
+        self._forward_branch(self.uniqgraph, char, branch, tick, copy=False)
+        return self.uniqgraph[char][branch][tick]
 
     def get_char_graphs(self, char, branch, tick):
         self._forward_branch(self.graphs, char, branch, tick)

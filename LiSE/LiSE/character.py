@@ -1582,30 +1582,24 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             Otherwise, return the CharacterAvatarMapping for the given graph.
 
             """
-            if len(self) == 1:
-                ret = self._get_char_av_cache(next(iter(self)))
-                if len(ret) == 1:
-                    try:
-                        return next(iter(ret.values()))[g]
-                    except KeyError:
-                        return self._get_char_av_cache(g)
-                else:
-                    try:
-                        return ret[g]
-                    except KeyError:
-                        return self._get_char_av_cache(g)
-            return self._get_char_av_cache(g)
+            try:
+                graph, node = self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)
+                return self.engine.character[graph].node[node][g]
+            except KeyError:
+                pass
+            try:
+                graph = self.engine._avatarness_cache.get_char_only_graph(self.character.name, *self.engine.time)
+                return self._get_char_av_cache(graph)[g]
+            except KeyError:
+                return self._get_char_av_cache(g)
 
         def __getattr__(self, attr):
             """If I've got only one avatar, return its attribute"""
-            if len(self) == 1:
-                avs = self.CharacterAvatarMapping(
-                    self, next(iter(self.keys()))
-                )
-                if len(avs) == 1:
-                    av = next(iter(avs.values()))
-                    return getattr(av, attr)
-            raise AttributeError
+            try:
+                graph, node = self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)
+                return getattr(self.engine.character[graph].node[node], attr)
+            except KeyError:
+                raise AttributeError
 
         def __repr__(self):
             """Represent myself like a dictionary"""
@@ -1632,8 +1626,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 avatar's attribute.
 
                 """
-                if len(self) == 1:
-                    return getattr(next(iter(self.values())), attrn)
+                av = self.engine._avatarness_cache.get_char_graph_solo_av(
+                    self.character.name, self.graph, *self.engine.time
+                )
+                if av:
+                    return getattr(self.engine.character[self.graph].node[av], attrn)
                 raise AttributeError
 
             def __iter__(self):
