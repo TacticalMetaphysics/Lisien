@@ -1236,24 +1236,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __init__(self, character):
             """Store the character and initialize cache"""
             self.character = character
-            self._cache = {}
 
         def __iter__(self):
-            if self.character.name not in self.engine._things_cache:
-                return
-            cache = self.engine._things_cache[self.character.name]
-            for thing in cache:
-                for (branch, tick) in self.engine._active_branches():
-                    if branch in cache[thing]:
-                        if cache[thing][branch][tick]:
-                            yield thing
-                        break
+            return self.engine._things_cache.iter_keys(self.character.name, *self.engine.time)
 
         def __contains__(self, thing):
-            return (
-                self.engine._node_exists(self.character.name, thing) and
-                self.engine._is_thing(self.character.name, thing)
-            )
+            return self.engine._things_cache.contains_key(self.character.name, *self.engine.time)
 
         def __len__(self):
             n = 0
