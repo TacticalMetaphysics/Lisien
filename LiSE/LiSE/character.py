@@ -1241,20 +1241,18 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             return self.engine._things_cache.iter_keys(self.character.name, *self.engine.time)
 
         def __contains__(self, thing):
-            return self.engine._things_cache.contains_key(self.character.name, *self.engine.time)
+            return self.engine._things_cache.contains_key(self.character.name, thing, *self.engine.time)
 
         def __len__(self):
-            n = 0
-            for th in self:
-                n += 1
-            return n
+            return self.engine._things_cache.count_keys(self.character.name, *self.engine.time)
 
         def __getitem__(self, thing):
             if thing not in self:
                 raise KeyError("No such thing: {}".format(thing))
-            if thing not in self._cache:
-                self._cache[thing] = Thing(self.character, thing)
-            return self._cache[thing]
+            cache = self.engine._node_objs
+            if (self.name, thing) not in cache or not isinstance(cache[(self.name, thing)], Thing):
+                cache[(self.name, thing)] = Thing(self.character, thing)
+            return cache[(self.name, thing)]
 
         def __setitem__(self, thing, val):
             if not isinstance(val, Mapping):
