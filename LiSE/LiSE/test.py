@@ -1,10 +1,8 @@
 import unittest
-from unittest.mock import MagicMock
 from argparse import ArgumentParser
 import re
 from functools import reduce
 from collections import defaultdict
-from networkx import DiGraph
 from gorm.pickydict import StructuredDefaultDict
 from gorm.window import WindowDict
 from LiSE.engine import Engine
