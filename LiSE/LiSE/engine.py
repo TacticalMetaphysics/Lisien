@@ -24,7 +24,7 @@ from .node import Node
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import Query, QueryEngine
-from .util import getatt, EntityStatAccessor
+from .util import getatt, singleton_get, EntityStatAccessor
 
 
 class DummyEntity(dict):
@@ -32,16 +32,6 @@ class DummyEntity(dict):
 
     def __init__(self, engine):
         self.engine = engine
-
-
-def singleton_get(s):
-    """Take an iterable and return its only item, or None if that's impossible."""
-    it = None
-    for that in s:
-        if it is not None:
-            return None
-        it = that
-    return it
 
 
 class AvatarnessCache(Cache):
@@ -663,6 +653,9 @@ class Engine(AbstractEngine, gORM):
         self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
         # set up caches
+        self._char_objs = {}
+        self._node_objs = {}
+        self._portal_objs = {}
         self._rulebooks_cache = RulebooksCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
         self._nodes_rulebooks_cache = NodeRulebookCache(self)

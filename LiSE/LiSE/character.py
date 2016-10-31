@@ -50,7 +50,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, reify
+from .util import getatt, reify, singleton_get
 from .query import StatusAlias
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 
@@ -1258,20 +1258,22 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 val['location'],
                 val.get('next_location', None)
             )
+            cache = self.engine._node_objs
             if isinstance(val, Thing):
                 th = val
-            elif thing in self._cache:
-                th = self._cache[thing]
+            elif (self.name, thing) in cache:
+                th = cache[(self.name, thing)]
             else:
-                th = self._cache[thing] = Thing(self.character, thing)
+                th = cache[(self.name, thing)] = Thing(self.character, thing)
             th.clear()
             th.update(val)
             self.dispatch(thing, th)
 
         def __delitem__(self, thing):
             self[thing].delete(nochar=True)
-            if thing in self._cache:
-                del self._cache[thing]
+            cache = self.engine._node_objs
+            if (self.name, thing) in cache:
+                del cache[(self.name, thing)]
             self.engine._things_cache.store(
                 self.character.name,
                 self.name,
@@ -1294,35 +1296,38 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __init__(self, character):
             """Store the character."""
             self.character = character
-            self._cache = {}
 
         def __iter__(self):
-            return self.engine._things_cache.iter_entities(self.character.name, *self.engine.time)
+            for node in self.engine._nodes_cache.iter_entities(self.character.name, *self.engine.time):
+                if not self.engine._things_cache.contains_entity(self.character.name, node, *self.engine.time):
+                    yield node
 
         def __len__(self):
-            n = 0
-            for place in self:
-                n += 1
-            return n
+            return self.engine._nodes_cache.count_entities(self.character.name, *self.engine.time) - \
+                self.engine._things_cache.count_entities(self.character.name, *self.engine.time)
 
         def __contains__(self, place):
+            # TODO: maybe a special cache just for places and not just nodes in general
             return (
-                self.engine._node_exists(self.character.name, place)
-                and not self.engine._is_thing(self.character.name, place)
+                self.engine._nodes_cache.contains_entity(self.character.name, place, *self.engine.time) and not
+                self.engine._things_cache.contains_entity(self.character.name, place, *self.engine.time)
             )
 
         def __getitem__(self, place):
             if place not in self:
                 raise KeyError("No such place: {}".format(place))
-            if place not in self._cache:
-                self._cache[place] = Place(self.character, place)
-            return self._cache[place]
+            cache = self.engine._node_objs
+            if (self.name, place) not in cache or not isinstance(cache[(self.name, place)], Place):
+                cache[(self.name, place)] = Place(self.character, place)
+            return cache[(self.name, place)]
 
         def __setitem__(self, place, v):
-            if place not in self._cache:
-                self._cache[place] = Place(self.character, place)
+            cache = self.engine._node_objs
+            if (self.name, place) not in cache or not isinstance(cache[(self.name, place)], Place):
+                cache[(self.name, place)] = Place(self.character, place)
+            if not self.engine._node_exists(self.character.name, place):
                 self.engine._exist_node(self.character.name, place)
-            pl = self._cache[place]
+            pl = cache[(self.name, place)]
             pl.clear()
             pl.update(v)
             self.dispatch(place, v)
@@ -1330,6 +1335,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __delitem__(self, place):
             self[place].delete(nochar=True)
             self.engine._exist_node(self.character.name, place, exist=False)
+            del self.engine._node_objs[(self.name, place)]
             self.dispatch(place, None)
 
         def __repr__(self):
@@ -1339,7 +1345,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
         _book = "character_node"
 
-        _cache = getatt('_dispatch_cache')
         graph = getatt('character')
         engine = gorm = getatt('character.engine')
         name = getatt('character.name')
@@ -1354,16 +1359,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __getitem__(self, k):
             if k not in self:
                 raise KeyError()
-            if self.engine._is_thing(
-                self.character.name, k
-            ):
-                if k not in self.character.thing._cache:
-                    self.character.thing._cache = Thing(self.character, k)
-                return self.character.thing._cache[k]
-            else:
-                if k not in self.character.place._cache:
-                    self.character.place._cache = Place(self.character, k)
-                return self.character.place._cache[k]
+            cache = self.engine._node_objs
+            if (self.name, k) not in cache:
+                if self.engine._is_thing(self.character.name, k):
+                    cache[(self.name, k)] = Thing(self.character, k)
+                else:
+                    cache[(self.name, k)] = Place(self.character, k)
+            return cache[(self.name, k)]
 
         def __setitem__(self, k, v):
             self.character.place[k] = v
@@ -1424,12 +1426,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.container.dispatch(self.nodeA, self)
 
             def __getitem__(self, nodeB):
+                key = (self.graph.name, self.nodeA, nodeB)
                 if nodeB in self:
-                    if nodeB not in self._cache:
-                        self._cache[nodeB] = Portal(
+                    if key not in self.engine._portal_objs:
+                        self.engine._portal_objs[key] = Portal(
                             self.graph, self.nodeA, nodeB
                         )
-                    return self._cache[nodeB]
+                    return self.engine._portal_objs[key]
                 raise KeyError("No such portal: {}->{}".format(
                     self.nodeA, nodeB
                 ))
@@ -1440,29 +1443,28 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     self.nodeA,
                     nodeB
                 )
-                if nodeB not in self._cache:
-                    self._cache[nodeB] = Portal(
+                key = (self.graph.name, self.nodeA, nodeB)
+                if key not in self.engine._portal_objs:
+                    self.engine._portal_objs[key] = Portal(
                         self.graph, self.nodeA, nodeB
                     )
-                p = self._cache[nodeB]
+                p = self.engine._portal_objs[key]
                 p.clear()
                 p.update(value)
                 self.dispatch(nodeB, p)
 
             def __delitem__(self, nodeB):
                 (branch, tick) = self.engine.time
-                if (
-                        nodeB in self._cache and
-                        branch in self._cache[nodeB] and
-                        tick in self._cache[nodeB][branch]
-                ):
-                    del self._cache[nodeB][branch][tick]
                 self.engine._exist_edge(
                     self.graph.name,
                     self.nodeA,
                     nodeB,
                     False
                 )
+                try:
+                    del self.engine._portal_objs[(self.graph.name, self.nodeA, nodeB)]
+                except KeyError:
+                    pass
                 self.dispatch(nodeB, None)
 
     class PortalPredecessorsMapping(
@@ -1480,14 +1482,14 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         class Predecessors(DiGraphPredecessorsMapping.Predecessors):
             """Mapping of possible origins from some destination."""
             def __setitem__(self, nodeA, value):
-                if nodeA in self.graph.portal:
-                    if self.nodeB not in self.graph.portal[nodeA]._cache:
-                        self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
-                            self.graph,
-                            nodeA,
-                            self.nodeB
-                        )
-                p = self.graph.portal[nodeA][self.nodeB]
+                key = (self.graph.name, nodeA, self.nodeB)
+                if key not in self.engine._portal_objs:
+                    self.engine._portal_objs[key] = Portal(
+                        self.graph,
+                        nodeA,
+                        self.nodeB
+                    )
+                p = self.engine._portal_objs[key]
                 p.clear()
                 p.update(value)
                 p.engine._exist_edge(self.graph.name, self.nodeB, nodeA)
@@ -1637,17 +1639,17 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
                 """
                 if av in self:
-                    return self.engine.character[self.graph].node[av]
-                mykeys = self.keys()
-                if len(mykeys) == 1:
-                    return self.engine.character[self.graph].node[next(iter(mykeys))]
+                    return self.engine._node_objs[(self.graph, av)]
+                mykey = singleton_get(self.keys())
+                if mykey is not None:
+                    return self.engine._node_objs[(self.graph, mykey)][av]
                 raise KeyError("No such avatar")
 
             def __setitem__(self, k, v):
-                ks = self.keys()
-                if len(ks) != 1:
+                mykey = singleton_get(self.keys())
+                if mykey is None:
                     raise AmbiguousAvatarError("More than one avatar in {}; be more specific to set the stats of one.".format(self.graph))
-                self.engine.character[self.graph].node[next(iter(ks))][k] = v
+                self.engine._node_objs[(self.graph, mykey)][k] = v
 
             def __repr__(self):
                 """Represent myself like a dictionary"""
@@ -1658,18 +1660,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
     class StatMapping(MutableMapping, TimeDispatcher):
         """Caching dict-alike for character stats"""
-        @property
-        def _dispatch_cache(self):
-            return self.engine._graph_val_cache[
-                self.character.name
-            ]
-
-        @property
-        def _cache(self):
-            return self.engine._graph_val_cache[
-                self.character.name
-            ]
-
         engine = getatt('character.engine')
         _real = getatt('character.graph')
 
@@ -1807,7 +1797,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         if isinstance(destination, Node):
             destination = destination.name
         self.add_portal(origin, destination, symmetrical, **kwargs)
-        return self.portal[origin][destination]
+        return self.engine._portal_objs[(self.name, origin, destination)]
 
     def add_portals_from(self, seq, symmetrical=False):
         """Take a sequence of (origin, destination) pairs and make a
@@ -1829,17 +1819,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if symmetrical:
                 kwargs['symmetrical'] = True
             self.add_portal(orig, dest, **kwargs)
-
-    def _get_latest_avatars_cache(self):
-        for branch, tick in self.engine._active_branches():
-            if branch in self._avatars_cache:
-                if tick in self._avatars_cache[branch]:
-                    return self._avatars_cache[branch][tick]
-                try:
-                    ret = self._avatars_cache[self.engine.branch][self.engine.tick] = list(self._avatars_cache[branch][tick])
-                    return ret
-                except KeyError:
-                    continue
 
     def add_avatar(self, a, b=None):
         """Start keeping track of a :class:`Thing` or :class:`Place` in a
@@ -1885,9 +1864,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         )
         # Declare that the node is my avatar
         self.engine._remember_avatarness(self.name, g, n)
-        cache = self._get_latest_avatars_cache()
-        if cache:
-            cache.append((g, n))
 
     def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own"""
@@ -1906,15 +1882,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         self.engine._remember_avatarness(
             self.character.name, g, n, False
         )
-        cache = self._get_latest_avatars_cache()
-        if cache:
-            cache.remove((g, n))
 
     def portals(self):
-        """Iterate over all portals"""
-        for o in self.portal:
-            for port in self.portal[o].values():
-                yield port
+        """Iterate over all portals."""
+        for (o, d) in self.engine._edges_cache.iter_keys(self.character.name, *self.engine.time):
+            yield self.engine._portal_objs[(self.character.name, o, d)]
 
     def avatars(self):
         """Iterate over all my avatars, regardless of what character they are
@@ -1924,6 +1896,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         for graph in self.engine._avatarness_cache.iter_entities(self.character.name, *self.engine.time):
             for node in self.engine._avatarness_cache.iter_entities(self.character.name, graph, *self.engine.time):
                 try:
-                    yield self.engine.character[graph].node[node]
+                    yield self.engine._node_objs[(graph, node)]
                 except KeyError:
                     continue

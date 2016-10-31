@@ -256,7 +256,7 @@ class Thing(Node):
         curloc = self["location"]
         orm = self.character.engine
         curtick = orm.tick
-        ticks = self.character.portal[curloc][placen].get(weight, 1)
+        ticks = self.engine._portal_objs[(self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
         orm.tick += ticks
         self['locations'] = (placen, None)
