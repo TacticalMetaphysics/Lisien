@@ -19,27 +19,27 @@ class reify(object):
 
     Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
     Modified for LiSE
-
+    
     '''
     __slots__ = ['func', 'reified']
 
     def __init__(self, func):
         self.func = func
-        self.reified = None
+        self.reified = {}
 
     def __get__(self, inst, cls):
         if inst is None:
             return self
-        if self.reified is not None:
-            return self.reified
-        self.reified = retval = self.func(inst)
+        if id(inst) in self.reified:
+            return self.reified[id(inst)]
+        self.reified[id(inst)] = retval = self.func(inst)
         return retval
 
     def __set__(self, inst, val):
-        if self.reified is None:
+        if id(inst) not in self.reified:
             # shouldn't happen, but it's easy to handle
-            self.reified = self.func(inst)
-        self.reified.update(val)
+            self.reified[id(inst)] = self.func(inst)
+        self.reified[id(inst)].update(val)
 
 
 def getatt(attribute_name):
