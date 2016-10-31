@@ -39,10 +39,34 @@ class Thing(Node):
         'next_arrival_time'
     }
 
+    def __init__(self, character, name):
+        self._getitem_dispatch = {
+            'name': lambda: self.name,
+            'character': lambda: self.character.name,
+            'location': lambda: self._get_locations()[0],
+            'next_location': lambda: self._get_locations()[1],
+            'locations': self._get_locations,
+            'arrival_time': self._get_arrival_time,
+            'next_arrival_time': self._get_next_arrival_time
+        }
+        super().__init__(character, name)
+
     def __contains__(self, key):
         if key in self.extrakeys:
             return True
         return super().__contains__(key)
+
+    def _get_arrival_time(self):
+        return self.engine._things_cache.tick_before(self.character.name, self.name, *self.engine.time)
+
+    def _get_next_arrival_time(self):
+        try:
+            return self.engine._things_cache.tick_after(self.character.name, self.name, *self.engine.time)
+        except KeyError:
+            return None
+
+    def _get_locations(self):
+        return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
@@ -66,24 +90,9 @@ class Thing(Node):
         ``locations``: return a pair of ``(location, next_location)``
 
         """
-        if key == 'name':
-            return self.name
-        elif key == 'character':
-            return self.character.name
-        elif key == 'location':
-            return self['locations'][0]
-        elif key == 'arrival_time':
-            return self.engine._things_cache.tick_before(self.character.name, self.name, *self.engine.time)
-        elif key == 'next_location':
-            return self['locations'][1]
-        elif key == 'next_arrival_time':
-            try:
-                self.engine._things_cache.tick_after(self.character.name, self.name, *self.engine.time)
-            except KeyError:
-                return None
-        elif key == 'locations':
-            return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
-        else:
+        try:
+            return self._getitem_dispatch[key]()
+        except KeyError:
             return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -126,26 +135,6 @@ class Thing(Node):
             self['name'],
             self['location']
         )
-
-    def _get_arrival_time(self):
-        """Query the database for when I arrive at my present location."""
-        cache = self.engine._things_cache[self.character.name][self.name]
-        for (branch, tick) in self.engine._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        raise CacheError("Thing seems never to have arrived where it is")
-
-    def _get_next_arrival_time(self):
-        """Query the database for when I will arrive at my next location, or
-        ``None`` if I'm not traveling.
-
-        """
-        cache = self.engine._things_cache[self.character.name][self.name]
-        for (branch, tick) in self.engine._active_branches():
-            try:
-                return min(t for t in cache[branch] if t > tick)
-            except (KeyError, ValueError):
-                continue
 
     def delete(self, nochar=False):
         super().delete()
