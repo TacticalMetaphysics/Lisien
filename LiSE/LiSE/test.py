@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
+from argparse import ArgumentParser
 import re
 from functools import reduce
 from collections import defaultdict
@@ -380,13 +381,20 @@ class SimTest(TestCase):
 
 
 if __name__ == '__main__':
-    from cProfile import Profile
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--profile', dest='prof', action='store_true')
+    args = parser.parse_args()
+    if not args.prof:
+        unittest.main()
+        exit()
+    from cProfile import run
     from pstats import Stats
-    prof = Profile()
-    prof.run('unittest.main()')
-    with open('dump.prof', 'w') as outf:
-        prof.dump_stats(outf)
+    import sys
+    if '-p' in sys.argv:
+        sys.argv.remove('-p')
+    if '--profile' in sys.argv:
+        sys.argv.remove('--profile')
+    run('unittest.main()', filename='dump.prof')
     stats = Stats()
-    with open('dump.prof', 'r') as inf:
-        stats.load_stats(inff)
-    stats.sort_stats('cumtime', 'tottime').print_stats()
+    stats.load_stats('dump.prof')
+    stats.sort_stats('cumtime', 'tottime').reverse_order().print_stats()
