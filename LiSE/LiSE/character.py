@@ -622,22 +622,6 @@ class CharRuleMapping(RuleMapping):
 
 class RuleFollower(BaseRuleFollower):
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
-    def _rule_names_activeness(self):
-        rulebook = self._get_rulebook_name()
-        if rulebook not in self.engine._active_rules_cache:
-            return
-        cache = self.engine._active_rules_cache[rulebook]
-        for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
-                if branch not in cache[rule]:
-                    continue
-                yield (
-                    rule,
-                    cache[rule][branch][tick]
-                )
-                break
-        return
-
     def _get_rule_mapping(self):
         return CharRuleMapping(
             self.character,
