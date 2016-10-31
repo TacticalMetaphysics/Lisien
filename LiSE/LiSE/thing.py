@@ -14,13 +14,11 @@ contained by Places, or possibly other Things.
 import networkx as nx
 from .node import Node
 from .util import path_len
-from .exc import(
-    CacheError,
-    TravelException
-)
+from .exc import TravelException
 
 
 class Thing(Node):
+
     """The sort of item that has a particular location at any given time.
 
     If a Thing is in a Place, it is standing still. If it is in a
@@ -30,6 +28,7 @@ class Thing(Node):
     same.
 
     """
+
     extrakeys = {
         'name',
         'character',
@@ -122,7 +121,7 @@ class Thing(Node):
         super().__delitem__(key)
 
     def __repr__(self):
-        """Return my character, name, and location"""
+        """Return my character, name, and location."""
         if self['next_location'] is not None:
             return "{}.thing[{}]@{}->{}".format(
                 self['character'],
@@ -146,15 +145,7 @@ class Thing(Node):
     def clear(self):
         """Unset everything."""
         for k in list(self.keys()):
-            if k not in (
-                    'name',
-                    'character',
-                    'location',
-                    'next_location',
-                    'arrival_time',
-                    'next_arrival_time',
-                    'locations'
-            ):
+            if k not in self.extrakeys:
                 del self[k]
 
     @property
@@ -207,14 +198,6 @@ class Thing(Node):
         if hasattr(v, 'name'):
             v = v.name
         self['next_location'] = v
-
-    def _loc_and_next(self):
-        """Private method that returns a pair in which the first item is my
-        present ``location`` and the second is my ``next_location``,
-        to which I am presently travelling.
-
-        """
-        return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
 
     def _set_loc_and_next(self, loc, nextloc=None):
         """Private method to simultaneously set ``location`` and
