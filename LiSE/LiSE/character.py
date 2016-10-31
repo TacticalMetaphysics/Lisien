@@ -56,6 +56,7 @@ from .exc import AmbiguousAvatarError, WorldIntegrityError
 
 
 class AbstractCharacter(object):
+
     """The Character API, with all requisite mappings and graph generators.
 
     Mappings resemble those of a NetworkX digraph:
@@ -67,6 +68,7 @@ class AbstractCharacter(object):
     to be used in place of graph attributes
 
     """
+
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
 
@@ -586,6 +588,7 @@ class AbstractCharacter(object):
 
 
 class CharRuleMapping(RuleMapping):
+
     """Wraps one of a character's rulebooks so you can get its rules by name.
 
     You can access the rules in this either dictionary-style or as
@@ -608,6 +611,7 @@ class CharRuleMapping(RuleMapping):
     the rulebook, but won't be followed.
 
     """
+
     def __init__(self, character, rulebook, booktyp):
         """Initialize as usual for the ``rulebook``, mostly.
 
@@ -621,7 +625,9 @@ class CharRuleMapping(RuleMapping):
 
 
 class RuleFollower(BaseRuleFollower):
+
     """Mixin class. Has a rulebook, which you can get a RuleMapping into."""
+
     def _get_rule_mapping(self):
         return CharRuleMapping(
             self.character,
@@ -644,10 +650,12 @@ class RuleFollower(BaseRuleFollower):
 
 
 class SenseFuncWrap(object):
+
     """Wrapper for a sense function that looks it up in the code store if
     provided with its name, and prefills the first two arguments.
 
     """
+
     engine = getatt('character.engine')
 
     def __init__(self, character, fun):
@@ -666,28 +674,30 @@ class SenseFuncWrap(object):
             self.fun = fun
 
     def __call__(self, observed):
-        """Call the function, prefilling the engine and observer arguments"""
+        """Call the function, prefilling the engine and observer arguments."""
         if isinstance(observed, str):
             observed = self.engine.character[observed]
         return self.fun(self.engine, self.character, Facade(observed))
 
 
 class CharacterSense(object):
+
     """Mapping for when you've selected a sense for a character to use
     but haven't yet specified what character to look at
 
     """
+
     engine = getatt('container.engine')
     observer = getatt('container.character')
 
     def __init__(self, container, sensename):
-        """Store the container and the name of the sense"""
+        """Store the container and the name of the sense."""
         self.container = container
         self.sensename = sensename
 
     @property
     def func(self):
-        """Return the function most recently associated with this sense"""
+        """Return the function most recently associated with this sense."""
         fn = self.engine.db.sense_func_get(
             self.observer.name,
             self.sensename,
@@ -713,31 +723,33 @@ class CharacterSense(object):
 
 
 class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
-    """Used to view other Characters as seen by one, via a particular sense"""
+
+    """Used to view other Characters as seen by one, via a particular sense."""
+
     # TODO: cache senses properly
     _book = "character"
 
     engine = getatt('character.engine')
 
     def __init__(self, character):
-        """Store the character"""
+        """Store the character."""
         self.character = character
 
     def __iter__(self):
-        """Iterate over active sense names"""
+        """Iterate over active sense names."""
         yield from self.engine.db.sense_active_items(
             self.character.name, *self.engine.time
         )
 
     def __len__(self):
-        """Count active senses"""
+        """Count active senses."""
         n = 0
         for sense in iter(self):
             n += 1
         return n
 
     def __getitem__(self, k):
-        """Get a :class:`CharacterSense` named ``k`` if it exists"""
+        """Get a :class:`CharacterSense` named ``k`` if it exists."""
         if not self.engine.db.sense_is_active(
                 self.character.name,
                 k,
@@ -747,7 +759,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
         return CharacterSense(self.character, k)
 
     def __setitem__(self, k, v):
-        """Use the function for the sense from here on out"""
+        """Use the function for the sense from here on out."""
         if isinstance(v, str):
             funn = v
         else:
@@ -768,7 +780,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.dispatch(k, v)
 
     def __delitem__(self, k):
-        """Stop having the given sense"""
+        """Stop having the given sense."""
         (branch, tick) = self.engine.time
         self.engine.db.sense_set(
             self.character.name,
@@ -780,7 +792,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self.dispatch(k, None)
 
     def __call__(self, fun, name=None):
-        """Decorate the function so it's mine now"""
+        """Decorate the function so it's mine now."""
         if not isinstance(fun, Callable):
             raise TypeError(
                 "I need a function here"
@@ -791,7 +803,9 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
 
 
 class FacadePlace(MutableMapping, TimeDispatcher):
-    """Lightweight analogue of Place for Facade use"""
+
+    """Lightweight analogue of Place for Facade use."""
+
     @property
     def name(self):
         return self['name']
@@ -801,12 +815,13 @@ class FacadePlace(MutableMapping, TimeDispatcher):
         return self
 
     def contents(self):
+        # TODO: cache this
         for thing in self.facade.thing.values():
             if thing.container is self:
                 yield thing
 
     def __init__(self, facade, real_or_name, **kwargs):
-        """Store ``facade``; store ``real_or_name`` if it's a Place
+        """Store ``facade``; store ``real_or_name`` if it's a Place.
 
         Otherwise use a plain dict for the underlying 'place'.
 
@@ -908,7 +923,9 @@ class FacadeThing(FacadePlace):
 
 
 class FacadePortal(FacadePlace):
-    """Lightweight analogue of Portal for Facade use"""
+
+    """Lightweight analogue of Portal for Facade use."""
+
     def __init__(self, real_or_origin, destination=None, **kwargs):
         if destination is None:
             if not (
@@ -955,13 +972,16 @@ class FacadePortal(FacadePlace):
 
 
 class FacadeEntityMapping(MutableMapping, TimeDispatcher):
+
     """Mapping that contains entities in a Facade.
 
     All the entities are of the same type, ``facadecls``, possibly
     being distorted views of entities of the type ``innercls``.
 
     """
+
     __slots__ = ['facade', '_patch', '_masked']
+
     @property
     def _dispatch_cache(self):
         return self
@@ -969,7 +989,7 @@ class FacadeEntityMapping(MutableMapping, TimeDispatcher):
     engine = getatt('facade.engine')
 
     def __init__(self, facade):
-        """Store the facade"""
+        """Store the facade."""
         self.facade = facade
         self._patch = {}
         self._masked = set()
@@ -1067,7 +1087,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
 
     def __init__(self, character):
-        """Store the character"""
+        """Store the character."""
         self.character = character
 
     class ThingMapping(FacadeEntityMapping):
@@ -1150,6 +1170,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
             self.dispatch(k, None)
 
 
+
 class Character(AbstractCharacter, DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
@@ -1169,6 +1190,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     Character named 'physical'. So when a Character has only one
     avatar, you can treat the ``avatar`` property as an alias of the
     avatar.
+
 
     """
     _book = "character"
@@ -1197,8 +1219,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if mapp + '_rulebook' in attr:
                 rulebook = attr[mapp + '_rulebook']
                 d[mapp] = rulebook.name \
-                          if isinstance(rulebook, RuleBook) \
-                          else rulebook
+                    if isinstance(rulebook, RuleBook) \
+                    else rulebook
         self.engine.db.init_character(
             self.name,
             **d
@@ -1218,7 +1240,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         name = getatt('character.name')
 
         def __init__(self, character):
-            """Store the character and initialize cache"""
+            """Store the character and initialize cache."""
             self.character = character
 
         def __iter__(self):
@@ -1511,7 +1533,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         name = getatt('character.name')
 
         def __init__(self, char):
-            """Remember my character"""
+            """Remember my character."""
             self.character = char
             self._char_av_cache = {}
 
@@ -1536,7 +1558,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             )
 
         def __len__(self):
-            """Number of graphs in which I have an avatar"""
+            """Number of graphs in which I have an avatar."""
             return len(self.engine._avatarness_cache.get_char_graphs(
                 self.character.name, *self.engine.time
             ))
@@ -1599,7 +1621,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 raise AttributeError("I have no avatar, or more than one avatar")
 
         def __getattr__(self, attr):
-            """If I've got only one avatar, return its attribute"""
+            """If I've got only one avatar, return its attribute."""
             try:
                 graph, node = self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)
                 return getattr(self.engine.character[graph].node[node], attr)
@@ -1607,7 +1629,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 raise AttributeError
 
         def __repr__(self):
-            """Represent myself like a dictionary"""
+            """Represent myself like a dictionary."""
             d = {}
             for k in self:
                 d[k] = dict(self[k])
@@ -1687,7 +1709,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine._node_objs[(self.graph, mykey)][k] = v
 
             def __repr__(self):
-                """Represent myself like a dictionary"""
+                """Represent myself like a dictionary."""
                 d = {}
                 for k in self:
                     d[k] = dict(self[k])
@@ -1699,7 +1721,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         _real = getatt('character.graph')
 
         def __init__(self, char):
-            """Store character"""
+            """Store character."""
             self.character = char
 
         def __iter__(self):
@@ -1901,7 +1923,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         self.engine._remember_avatarness(self.name, g, n)
 
     def del_avatar(self, a, b=None):
-        """This is no longer my avatar, though it still exists on its own"""
+        """This is no longer my avatar, though it still exists on its own."""
         if b is None:
             if not isinstance(a, Node):
                 raise TypeError(
