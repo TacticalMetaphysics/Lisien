@@ -230,7 +230,7 @@ class SimTest(TestCase):
                 'character_place',
                 'character_portal'
         ]:
-            handled_ticks = StructuredDefaultDict(4, set)
+            handled_ticks = StructuredDefaultDict(3, set)
             for character, rulebook, rule, branch, tick in getattr(
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
             )():
