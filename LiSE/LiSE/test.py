@@ -1,5 +1,4 @@
 import unittest
-from argparse import ArgumentParser
 import re
 from functools import reduce
 from collections import defaultdict
@@ -376,23 +375,5 @@ class SimTest(TestCase):
                                 )
 
 
-
-
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('-p', '--profile', dest='prof', action='store_true')
-    args = parser.parse_args()
-    if not args.prof:
-        unittest.main()
-        exit()
-    from cProfile import run
-    from pstats import Stats
-    import sys
-    if '-p' in sys.argv:
-        sys.argv.remove('-p')
-    if '--profile' in sys.argv:
-        sys.argv.remove('--profile')
-    run('unittest.main()', filename='dump.prof')
-    stats = Stats()
-    stats.load_stats('dump.prof')
-    stats.sort_stats('cumtime', 'tottime').reverse_order().print_stats()
+    unittest.main()
