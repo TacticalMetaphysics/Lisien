@@ -17,6 +17,10 @@ from .util import path_len
 from .exc import TravelException
 
 
+def roerror(*args, **kwargs):
+    raise ValueError("Read-only")
+
+
 class Thing(Node):
 
     """The sort of item that has a particular location at any given time.
@@ -47,6 +51,15 @@ class Thing(Node):
             'locations': self._get_locations,
             'arrival_time': self._get_arrival_time,
             'next_arrival_time': self._get_next_arrival_time
+        }
+        self._setitem_dispatch = {
+            'name': roerror,
+            'character': roerror,
+            'arrival_time': roerror,
+            'next_arrival_time': roerror,
+            'location': lambda v: self._set_loc_and_next(v, None),
+            'next_location': lambda v: self._set_loc_and_next(self['location'], v),
+            'locations': lambda v: self._set_loc_and_next(*v)
         }
         super().__init__(character, name)
 
@@ -96,22 +109,9 @@ class Thing(Node):
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
-        if key == 'name':
-            raise ValueError("Can't change names")
-        elif key == 'character':
-            raise ValueError("Can't change characters")
-        elif key == 'location':
-            self['locations'] = (value, None)
-        elif key == 'arrival_time':
-            raise ValueError("Read-only")
-        elif key == 'next_location':
-            self['locations'] = (self['location'], value)
-        elif key == 'next_arrival_time':
-            raise ValueError("Read-only")
-        elif key == 'locations':
-            self._set_loc_and_next(*value)
-            self.dispatch('locations', value)
-        else:
+        try:
+            self._setitem_dispatch[key](value)
+        except KeyError:
             super().__setitem__(key, value)
 
     def __delitem__(self, key):
@@ -212,6 +212,7 @@ class Thing(Node):
             loc,
             nextloc
         )
+        self.dispatch('locations', (loc, nextloc))
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
