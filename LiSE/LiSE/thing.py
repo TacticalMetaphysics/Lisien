@@ -156,12 +156,9 @@ class Thing(Node):
         """
         (a, b) = self['locations']
         try:
-            return self.character.portal[a][b]
+            return self.engine._portal_objs[(self.character.name, a, b)]
         except KeyError:
-            try:
-                return self.character.thing[a]
-            except KeyError:
-                return self.character.place[a]
+            return self.engine._node_objs[(self.character.name, a)]
 
     @property
     def location(self):
