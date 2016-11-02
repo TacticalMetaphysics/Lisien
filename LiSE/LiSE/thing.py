@@ -169,9 +169,11 @@ class Thing(Node):
         started.
 
         """
-        if self['location'] is None:
-            return None
-        return self.character.node[self['location']]
+        loc, nxtloc = self._get_locations()
+        try:
+            return self.engine._node_objs[(self.character.name, loc)]
+        except KeyError:
+            raise ValueError("Nonexistent location: {}".format(loc))
 
     @location.setter
     def location(self, v):
@@ -185,13 +187,13 @@ class Thing(Node):
         headed.
 
         """
-        locn = self['next_location']
-        if not locn:
+        loc, nxtloc = self._get_locations()
+        if nxtloc is None:
             return None
         try:
-            return self.character.thing[locn]
+            return self.engine._node_objs[(self.character.name, nxtloc)]
         except KeyError:
-            return self.character.place[locn]
+            raise ValueError("Nonexistent next location: ".format(nxtloc))
 
     @next_location.setter
     def next_location(self, v):
