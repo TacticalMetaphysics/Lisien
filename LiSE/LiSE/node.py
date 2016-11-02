@@ -101,7 +101,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
-    __slots__ = ['user', 'graph', 'gorm', 'node']
+    __slots__ = ['user', 'graph', 'gorm', 'node', '_getitem_dispatch', '_setitem_dispatch']
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
