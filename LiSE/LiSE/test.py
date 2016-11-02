@@ -279,8 +279,8 @@ class SimTest(TestCase):
             ]
             
             same_loc_ticks = list(self.engine.ticks_when(
-                student.avatar.historical('location')
-                == other_student.avatar.historical('location')
+                student.avatar.only.historical('location')
+                == other_student.avatar.only.historical('location')
             ))
             self.assertTrue(
                 same_loc_ticks,
@@ -314,8 +314,8 @@ class SimTest(TestCase):
         def sameClasstime(stu0, stu1):
             self.assertTrue(
                 self.engine.ticks_when(
-                    stu0.avatar.historical('location') ==
-                    stu1.avatar.historical('location') ==
+                    stu0.avatar.only.historical('location') ==
+                    stu1.avatar.only.historical('location') ==
                     self.engine.alias('classroom')
                 ),
                 "{stu0} seems not to have been in the classroom "
@@ -324,8 +324,8 @@ class SimTest(TestCase):
                 "{stu1} was there at ticks {ticks1}".format(
                     stu0=stu0.name,
                     stu1=stu1.name,
-                    ticks0=list(self.engine.ticks_when(stu0.avatar.historical('location') == self.engine.alias('classroom'))),
-                    ticks1=list(self.engine.ticks_when(stu1.avatar.historical('location') == self.engine.alias('classroom')))
+                    ticks0=list(self.engine.ticks_when(stu0.avatar.only.historical('location') == self.engine.alias('classroom'))),
+                    ticks1=list(self.engine.ticks_when(stu1.avatar.only.historical('location') == self.engine.alias('classroom')))
                 )
             )
             return stu1
@@ -350,8 +350,8 @@ class SimTest(TestCase):
                         for stu1 in dorm[d][rr].values():
                             self.assertFalse(
                                 self.engine.ticks_when(
-                                    stu0.avatar.historical('location') ==
-                                    stu1.avatar.historical('location') ==
+                                    stu0.avatar.only.historical('location') ==
+                                    stu1.avatar.only.historical('location') ==
                                     self.engine.alias('dorm{}room{}'.format(d, r))
                                 ),
                                 "{} seems to share a room with {}".format(
@@ -364,8 +364,8 @@ class SimTest(TestCase):
                             for stu1 in dorm[dd][rr].values():
                                 self.assertFalse(
                                     self.engine.ticks_when(
-                                        stu0.avatar.historical('location') ==
-                                        stu1.avatar.historical('location') ==
+                                        stu0.avatar.only.historical('location') ==
+                                        stu1.avatar.only.historical('location') ==
                                         self.engine.alias(common)
                                     ),
                                     "{} seems to have been in the same"

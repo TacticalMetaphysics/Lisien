@@ -1571,30 +1571,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             return self._char_av_cache[g]
 
         def __getitem__(self, g):
-            """Conditionally return the CharacterAvatarMapping for a graph.
-
-            If you ask for a graph that I have avatars in, I'll always give
-            you the mapping of avatars in that graph. But if I don't have
-            a graph by that name, I may be able to function as a proxy
-            to what you're really looking for.
-
-            If I have only one avatar in any graph, pretend I'm that avatar;
-            return an item from it.
-
-            If I have more than one avatar, but they're all in the same graph,
-            pretend I'm the CharacterAvatarMapping for that graph; return
-            an avatar.
-
-            """
-            try:
-                return self._get_char_av_cache(g)
-            except KeyError:
-                pass
-            try:
-                return self.node[g]
-            except KeyError:
-                pass
-            return self.only[g]
+            return self._get_char_av_cache(g)
 
         @property
         def node(self):
@@ -1620,14 +1597,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             except KeyError:
                 raise AttributeError("I have no avatar, or more than one avatar")
 
-        def __getattr__(self, attr):
-            """If I've got only one avatar, return its attribute."""
-            try:
-                graph, node = self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)
-                return getattr(self.engine.character[graph].node[node], attr)
-            except KeyError:
-                raise AttributeError
-
         def __repr__(self):
             """Represent myself like a dictionary."""
             d = {}
@@ -1646,21 +1615,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine = outer.engine
                 self.name = outer.name
                 self.graph = graphn
-
-            def __getattr__(self, attrn):
-                """If I don't have such an attribute, but I contain exactly one
-                avatar, and *it* has the attribute, return the
-                avatar's attribute.
-
-                """
-                try:
-                    av = self.engine._avatarness_cache.get_char_graph_solo_av(
-                        self.character.name, self.graph, *self.engine.time
-                    )
-                    return getattr(self.engine._node_objs[(self.graph, av)], attrn)
-                except KeyError:
-                    raise AttributeError("I have no avatar here, or more than one")
-                raise AttributeError
 
             def __iter__(self):
                 """Iterate over the names of all the presently existing nodes in the
@@ -1684,23 +1638,16 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 ))
 
             def __getitem__(self, av):
-                """Return the Place or Thing by the given name in the graph, if it's
-                my avatar and it exists.
-
-                If I contain exactly *one* Place or Thing, and you're
-                not trying to get it by its name, delegate to its
-                __getitem__. It's common for one Character to have
-                exactly one avatar in another Character, and when that
-                happens, it's nice not to have to specify the avatar's
-                name.
-
-                """
                 if av in self:
                     return self.engine._node_objs[(self.graph, av)]
+                raise KeyError("No avatar: {}".format(av))
+
+            @property
+            def only(self):
                 mykey = singleton_get(self.keys())
                 if mykey is not None:
-                    return self.engine._node_objs[(self.graph, mykey)][av]
-                raise KeyError("No such avatar")
+                    return self.engine._node_objs[(self.graph, mykey)]
+                raise AttributeError("No avatar, or more than one")
 
             def __setitem__(self, k, v):
                 mykey = singleton_get(self.keys())
