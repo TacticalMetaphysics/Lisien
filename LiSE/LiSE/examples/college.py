@@ -212,6 +212,9 @@ def install(eng):
 
 
 if __name__ == "__main__":
-    import LiSE
-    with LiSE.Engine("collegeWorld.db", "collegeCode.db") as eng:
+    from LiSE.engine import Engine
+    with Engine(":memory:") as eng:
         install(eng)
+        for i in range(72):
+            eng.next_tick()
+            print(i)
