@@ -11,7 +11,6 @@ from collections import Mapping
 from networkx import shortest_path, shortest_path_length
 
 import gorm.graph
-from gorm.reify import reify
 
 from .util import getatt
 from .query import StatusAlias
@@ -34,9 +33,9 @@ class RuleMapping(rule.RuleMapping):
     character = getatt('node.character')
 
     def __iter__(self):
-        for (rule, active) in self.node._rule_names_activeness():
+        for (rul, active) in self.node._rule_names_activeness():
             if active:
-                yield rule
+                yield rul
 
 
 class UserMapping(Mapping):
@@ -102,22 +101,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
-    __slots__ = ['user', 'graph', 'gorm', 'node']
-
-    def _rule_names_activeness(self):
-        cache = self.engine._active_rules_cache[self._get_rulebook_name()]
-        for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
-                if branch not in cache[rule]:
-                    continue
-                try:
-                    yield (
-                        rule,
-                        cache[rule][branch][tick]
-                    )
-                    break
-                except ValueError:
-                    continue
+    __slots__ = ['user', 'graph', 'gorm', 'node', '_getitem_dispatch', '_setitem_dispatch']
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -190,6 +174,10 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         yield from self.extrakeys
         return
 
+    def clear(self):
+        for key in super().__iter__():
+            del self[key]
+
     def __contains__(self, k):
         """Handle extra keys, then delegate."""
         if k in self.extrakeys:
@@ -206,28 +194,19 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        cache = self.engine._edges_cache[self.character.name][self.name]
-        (branch, tick) = self.engine.time
-        for nodeB in cache:
-            try:
-                if cache[nodeB][0][branch][tick]:
-                    yield nodeB
-            except (KeyError, ValueError):
-                continue
-            return
+        yield from self.engine._edges_cache.iter_entities(self.character.name, self.name, *self.engine.time)
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
-        cache = self.engine._edges_cache[self.character.name]
-        (branch, tick) = self.engine.time
-        for nodeA in cache:
-            if self.name not in cache[nodeA]:
-                continue
-            try:
-                if cache[nodeA][self.name][0][branch][tick]:
-                    yield nodeA
-            except (KeyError, ValueError):
-                continue
+        cache = self.engine._edges_cache.predecessors[self.character.name][self.name]
+        for nodeB in cache:
+            for (b, t) in self.engine._active_branches():
+                if b in cache[nodeB][0]:
+                    if b != self.engine.branch:
+                        self.engine._edges_cache.store(self.character.name, self.name, nodeB, 0, *self.engine.time)
+                    if cache[nodeB][0][b][t]:
+                        yield nodeB
+                        break
 
     def portals(self):
         """Iterate over :class:`Portal` objects that lead away from me"""

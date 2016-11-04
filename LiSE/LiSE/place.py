@@ -19,12 +19,10 @@ class Place(Node):
     }
 
     def __getitem__(self, key):
-        if key == 'name':
-            return self.name
-        elif key == 'character':
-            return self.character.name
-        else:
+        try:
             return super().__getitem__(key)
+        except KeyError:
+            return {'name': self.name, 'character': self.character.name}[key]
 
     def __repr__(self):
         return "{}.place[{}]".format(

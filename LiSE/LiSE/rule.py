@@ -24,7 +24,7 @@ from collections import (
 )
 from functools import partial
 
-from gorm.reify import reify
+from .util import reify
 
 from .bind import (
     dispatch,
@@ -396,27 +396,23 @@ class RuleBook(MutableSequence):
 
     """
 
-    @reify
+    @property
     def _cache(self):
-        if self.name not in self.engine._rulebooks_cache:
-            self.engine._rulebooks_cache[self.name] = list(
-                self.engine.rule.db.rulebook_rules(self.name)
-            )
-        return self.engine._rulebooks_cache[self.name]
+        return self.engine._rulebooks_cache.retrieve(self.name)
 
     def __init__(self, engine, name):
         self.engine = engine
+        self.db = engine.rule.db
         self.name = name
         self._listeners = []
 
     def __contains__(self, v):
-        if isinstance(v, Rule):
-            v = v.name
+        if not isinstance(v, Rule):
+            v = self.engine.rule[v]
         return v in self._cache
 
     def __iter__(self):
-        for rulen in self._cache:
-            yield self.engine.rule[rulen]
+        return iter(self._cache)
 
     def __len__(self):
         return len(self._cache)
@@ -444,13 +440,18 @@ class RuleBook(MutableSequence):
 
     def __setitem__(self, i, v):
         rule = self._coerce_rule(v)
-        self.engine._rulebook_set(self.name, i, rule.name)
+        self.db.rulebook_set(self.name, i, rule)
+        cache = self._cache
+        while len(cache) <= i:
+            cache.append(None)
+        cache[i] = rule
         self._activate_rule(rule)
         self._dispatch()
 
     def insert(self, i, v):
         rule = self._coerce_rule(v)
-        self.engine._rulebook_insert(self.name, i, rule.name)
+        self._cache.insert(i, rule)
+        self.db.rulebook_ins(self.name, i, rule.name)
         self._activate_rule(rule)
         self._dispatch()
 
@@ -470,7 +471,8 @@ class RuleBook(MutableSequence):
         return super().index(v)
 
     def __delitem__(self, i):
-        self.engine._rulebook_del_rule(self.name, i)
+        del self._cache[i]
+        self.db.rulebook_del(self.name, i)
         self._dispatch()
 
     def listener(self, fun):
@@ -527,12 +529,7 @@ class RuleMapping(MutableMapping):
         return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
-        cache = self.engine._active_rules_cache[self.rulebook.name]
-        for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache[rule]:
-                    yield cache[rule][branch][tick]
-                    break
+        return self.engine._active_rules_cache.iter_entities(self.name, *self.engine.time)
 
     def __len__(self):
         n = 0
@@ -541,16 +538,7 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
-        if self.rulebook.name not in self.engine._active_rules_cache:
-            return False
-        cache = self.engine._active_rules_cache[self.rulebook.name]
-        if k not in cache:
-            return False
-        cache = cache[k]
-        for (branch, tick) in self.engine._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        return False
+        return k in self.rulebook
 
     def __getitem__(self, k):
         if k not in self:

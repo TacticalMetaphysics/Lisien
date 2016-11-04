@@ -361,7 +361,7 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             if side.stat in (
                     'location', 'next_location', 'locations', 'arrival_time', 'next_arrival_time'
             ):
-                return engine._things_cache[side.entity.character.name][side.entity.name]
+                return engine._things_cache.branches[(side.entity.character.name, side.entity.name)]
             if side.stat in side.entity._cache:
                 return side.entity._cache[side.stat]
 

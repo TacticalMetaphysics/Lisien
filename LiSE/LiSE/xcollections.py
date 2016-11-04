@@ -389,7 +389,6 @@ class CharacterMapping(MutableMapping):
         """Store the engine, initialize caches"""
         self.engine = engine
         self._listeners = defaultdict(list)
-        self._cache = {}
 
     def _dispatch(self, k, v):
         """Call anyone listening for a character named ``k``, and anyone
@@ -414,13 +413,13 @@ class CharacterMapping(MutableMapping):
 
     def __contains__(self, name):
         """Has this character been created?"""
-        if name in self._cache:
+        if name in self.engine._char_objs:
             return True
         return self.engine.db.have_character(name)
 
     def __len__(self):
         """How many characters have been created?"""
-        return self.engine.db.ct_characters()
+        return len(self.engine._char_objs)
 
     def __getitem__(self, name):
         """Return the named character, if it's been created.
@@ -431,11 +430,10 @@ class CharacterMapping(MutableMapping):
         from .character import Character
         if name not in self:
             raise KeyError("No such character")
-        if hasattr(self, '_cache'):
-            if name not in self._cache:
-                self._cache[name] = Character(self.engine, name)
-            return self._cache[name]
-        return Character(self.engine, name)
+        cache = self.engine._char_objs
+        if name not in cache:
+            cache[name] = Character(self.engine, name)
+        return cache[name]
 
     def __setitem__(self, name, value):
         """Make a new character by the given name, and initialize its data to
@@ -444,15 +442,15 @@ class CharacterMapping(MutableMapping):
         """
         from .character import Character
         if isinstance(value, Character):
-            self._cache[name] = value
+            self.engine._char_objs[name] = value
             return
-        self._cache[name] = Character(self.engine, name, data=value)
-        self._dispatch(name, self._cache[name])
+        self.engine._char_objs[name] = Character(self.engine, name, data=value)
+        self._dispatch(name, self.engine._char_objs[name])
 
     def __delitem__(self, name):
         """Delete the named character from both the cache and the database."""
-        if hasattr(self, '_cache') and name in self._cache:
-            del self._cache[name]
+        if name in self.engine._char_objs:
+            del self.engine._char_objs[name]
         self.engine.db.del_character(name)
         self._dispatch(name, None)
 
