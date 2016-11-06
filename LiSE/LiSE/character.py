@@ -39,8 +39,7 @@ from gorm.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from gorm.window import FuturistWindowDict
-from gorm.pickydict import PickyDefaultDict
+from gorm.cache import FuturistWindowDict, PickyDefaultDict
 
 from .xcollections import CompositeDict
 from .bind import TimeDispatcher

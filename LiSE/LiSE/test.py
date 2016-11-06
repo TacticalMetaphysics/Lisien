@@ -2,8 +2,7 @@ import unittest
 import re
 from functools import reduce
 from collections import defaultdict
-from gorm.pickydict import StructuredDefaultDict
-from gorm.window import WindowDict
+from gorm.cache import StructuredDefaultDict, WindowDict
 from LiSE.engine import Engine
 from LiSE.examples import college as sim
 
