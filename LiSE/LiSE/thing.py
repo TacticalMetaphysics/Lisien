@@ -42,31 +42,26 @@ class Thing(Node):
         'next_arrival_time'
     }
 
-    def __init__(self, character, name):
-        self._getitem_dispatch = {
-            'name': lambda: self.name,
-            'character': lambda: self.character.name,
-            'location': lambda: self._get_locations()[0],
-            'next_location': lambda: self._get_locations()[1],
-            'locations': self._get_locations,
-            'arrival_time': self._get_arrival_time,
-            'next_arrival_time': self._get_next_arrival_time
-        }
-        self._setitem_dispatch = {
-            'name': roerror,
-            'character': roerror,
-            'arrival_time': roerror,
-            'next_arrival_time': roerror,
-            'location': lambda v: self._set_loc_and_next(v, None),
-            'next_location': lambda v: self._set_loc_and_next(self['location'], v),
-            'locations': lambda v: self._set_loc_and_next(*v)
-        }
-        super().__init__(character, name)
+    def _getname(self):
+        return self.name
 
-    def __contains__(self, key):
-        if key in self.extrakeys:
-            return True
-        return super().__contains__(key)
+    def _getcharname(self):
+        return self.character.name
+
+    def _getloc(self):
+        return self._get_locations()[0]
+
+    def _setloc(self, v):
+        self._set_loc_and_next(v, None)
+
+    def _getnxtloc(self):
+        return self._get_locations()[1]
+
+    def _setnxtloc(self, v):
+        self._set_loc_and_next(self['location'], v)
+
+    def _setlocs(self, v):
+        self._set_loc_and_next(*v)
 
     def _get_arrival_time(self):
         return self.engine._things_cache.tick_before(self.character.name, self.name, *self.engine.time)
@@ -79,6 +74,31 @@ class Thing(Node):
 
     def _get_locations(self):
         return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
+
+    _getitem_dispatch = {
+        'name': _getname,
+        'character': _getcharname,
+        'location': _getloc,
+        'next_location': _getnxtloc,
+        'locations': _get_locations,
+        'arrival_time': _get_arrival_time,
+        'next_arrival_time': _get_next_arrival_time
+    }
+
+    _setitem_dispatch = {
+        'name': roerror,
+        'character': roerror,
+        'arrival_time': roerror,
+        'next_arrival_time': roerror,
+        'location': _setloc,
+        'next_location': _setnxtloc,
+        'locations': _setlocs
+    }
+
+    def __contains__(self, key):
+        if key in self.extrakeys:
+            return True
+        return super().__contains__(key)
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
