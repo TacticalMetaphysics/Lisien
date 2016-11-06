@@ -219,6 +219,7 @@ class SimTest(TestCase):
         )
 
     def testCharRulesHandledCaches(self):
+        live = self.engine._character_rules_handled_cache._data
         for rulemap in [
                 'character',
                 'avatar',
@@ -226,22 +227,18 @@ class SimTest(TestCase):
                 'character_place',
                 'character_portal'
         ]:
-            handled_ticks = StructuredDefaultDict(3, set)
+            handled_ticks = StructuredDefaultDict(2, set)
             for character, rulebook, rule, branch, tick in getattr(
                     self.engine.db, 'handled_{}_rules'.format(rulemap)
             )():
-                handled_ticks[character][rulebook][rule][branch].add(tick)
-            old_handled_ticks = StructuredDefaultDict(3, set)
-            live = getattr(
-                self.engine, '_{}_rules_handled_cache'.format(rulemap)
-            )._data
+                handled_ticks[character][rule][branch].add(tick)
+            old_handled_ticks = StructuredDefaultDict(2, set)
             for character in live:
-                for rulebook in live[character]:
-                    if live[character][rulebook]:
-                        for rule in live[character][rulebook]:
-                            for branch, ticks in live[character][rulebook][rule].items():
-                                self.assertIsInstance(ticks, set)
-                                old_handled_ticks[character][rulebook][rule][branch] = ticks
+                if live[character][rulemap]:
+                    for rule in live[character][rulemap]:
+                        for branch, ticks in live[character][rulemap][rule].items():
+                            self.assertIsInstance(ticks, set)
+                            old_handled_ticks[character][rule][branch] = ticks
             self.assertDictEqual(
                 old_handled_ticks,
                 handled_ticks,

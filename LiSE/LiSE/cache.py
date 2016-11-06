@@ -276,23 +276,23 @@ class ActiveRulesCache(Cache):
 class CharacterRulesHandledCache(object):
     def __init__(self, engine):
         self.engine = engine
-        self._data = StructuredDefaultDict(4, set)
+        self._data = StructuredDefaultDict(3, set)
         self.shallow = {}
         self.unhandled = StructuredDefaultDict(2, dict)
 
     def store(self, character, ruletype, rulebook, rule, branch, tick):
-        the_set = self.shallow[(character, ruletype, rulebook, rule, branch)] = self._data[character][ruletype][rulebook][rule][branch]
+        the_set = self.shallow[(character, ruletype, rule, branch)] = self._data[character][ruletype][rule][branch]
         the_set.add(tick)
         if tick not in self.unhandled[character][ruletype][branch]:
             self.unhandled[character][ruletype][branch][tick] = set(self.engine._active_rules_cache.active_sets[rulebook][branch][tick])
         self.unhandled[character][ruletype][branch][tick].remove(rule)
 
     def retrieve(self, character, ruletype, rulebook, rule, branch):
-        return self.shallow[(character, ruletype, rulebook, rule, branch)]
+        return self.shallow[(character, ruletype, rule, branch)]
 
     def check_rule_handled(self, character, ruletype, rulebook, rule, branch, tick):
         try:
-            ret = tick in self.shallow[(character, ruletype, rulebook, rule, branch)]
+            ret = tick in self.shallow[(character, ruletype, rule, branch)]
         except KeyError:
             ret = False
         assert ret is rule not in self.unhandled[character][ruletype][branch][tick]
