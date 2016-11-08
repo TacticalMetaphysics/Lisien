@@ -48,7 +48,7 @@ json_load_hints = {}
 
 class AbstractEngine(object):
     def __getattr__(self, att):
-        if hasattr(self, 'method') and att in self.method:
+        if att in self.method:
             return partial(self.method[att], self)
         raise AttributeError
 
