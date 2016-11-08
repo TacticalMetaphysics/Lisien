@@ -707,17 +707,17 @@ class AllRuleBooks(Mapping):
         self.engine = engine
         self.db = db
         self.db.init_table('rulebooks')
-        self._cache = {}
         self._listeners = defaultdict(list)
+        self._cache = {}
 
     def __iter__(self):
-        return iter(self.engine._rulebooks_cache.keys())
+        return iter(self.engine._rulebooks_cache._data.keys())
 
     def __len__(self):
-        return len(self.engine._rulebooks_cache)
+        return len(self.engine._rulebooks_cache._data)
 
     def __contains__(self, k):
-        return k in self.engine._rulebooks_cache
+        return k in self.engine._rulebooks_cache._data
 
     def __getitem__(self, k):
         if k not in self._cache:

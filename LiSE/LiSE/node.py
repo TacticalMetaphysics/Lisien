@@ -107,13 +107,11 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
-        cache = self.engine._nodes_rulebooks_cache
-        if (
-                self.character.name not in cache or
-                self.name not in cache[self.character.name]
-        ):
-            return (self.character.name, self.name)
-        return cache[self.character.name][self.name]
+        cache = self.engine._nodes_rulebooks_cache._data
+        key = (self.character.name, self.name)
+        if key not in cache:
+            return key
+        return cache[key]
 
     def _get_rulebook(self):
         return rule.RuleBook(
