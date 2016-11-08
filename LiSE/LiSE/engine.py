@@ -47,6 +47,24 @@ json_dump_hints = {}
 json_load_hints = {}
 
 
+class Encoder(JSONEncoder):
+    def encode(self, o):
+        return super().encode(self.listify(o))
+
+    def default(self, o):
+        try:
+            from numpy import sctypes
+        except ImportError:
+            return super().default(o)
+        t = type(o)
+        if t in sctypes['int']:
+            return int(o)
+        elif t in sctypes['float']:
+            return float(o)
+        else:
+            return super().default(o)
+
+
 class AbstractEngine(object):
     def __getattr__(self, att):
         if att in self.method:
@@ -97,37 +115,21 @@ class AbstractEngine(object):
         else:
             return obj
 
-    @classmethod
-    def get_encoder(cls):
-        if not hasattr(cls, '_json_encoder'):
-            class Encoder(JSONEncoder):
-                def encode(self, o):
-                    return super().encode(cls.listify(o))
-
-                def default(self, o):
-                    try:
-                        from numpy import sctypes
-                    except ImportError:
-                        return super().default(o)
-                    t = type(o)
-                    if t in sctypes['int']:
-                        return int(o)
-                    elif t in sctypes['float']:
-                        return float(o)
-                    else:
-                        return super().default(o)
-            cls._json_encoder = Encoder
-        return cls._json_encoder
+    @reify
+    def json_encoder(self):
+        class EngEncoder(Encoder):
+            listify = self.listify
+        return EngEncoder
 
     def json_dump(self, obj):
         global json_dump_hints, json_load_hints
         try:
             if obj not in json_dump_hints:
-                dumped = json_dump_hints[obj] = dumps(obj, cls=self.get_encoder())
+                dumped = json_dump_hints[obj] = dumps(obj, cls=self.json_encoder)
                 json_load_hints[dumped] = obj
             return json_dump_hints[obj]
         except TypeError:
-            return dumps(obj, cls=self.get_encoder())
+            return dumps(obj, cls=self.json_encoder)
 
     def json_load(self, s):
         global json_dump_hints, json_load_hints
