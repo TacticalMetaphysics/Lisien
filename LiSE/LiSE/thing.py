@@ -123,7 +123,7 @@ class Thing(Node):
 
         """
         try:
-            return self._getitem_dispatch[key]()
+            return self._getitem_dispatch[key](self)
         except KeyError:
             return super().__getitem__(key)
 
