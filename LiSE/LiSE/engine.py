@@ -16,11 +16,12 @@ from .xcollections import (
     CharacterMapping
 )
 from .character import Character
-from .node import Node
+from .thing import Thing
+from .place import Place
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import Query, QueryEngine
-from .util import getatt, EntityStatAccessor
+from .util import getatt, reify, EntityStatAccessor
 from .cache import (
     AvatarnessCache,
     RulebooksCache,
@@ -52,50 +53,46 @@ class AbstractEngine(object):
             return partial(self.method[att], self)
         raise AttributeError
 
-    @classmethod
-    def listify(cls, obj):
-        if isinstance(obj, list):
-            return ["list"] + [cls.listify(v) for v in obj]
-        elif isinstance(obj, tuple):
-            return ["tuple"] + [cls.listify(v) for v in obj]
-        elif isinstance(obj, dict):
-            return ["dict"] + [
-                [cls.listify(k), cls.listify(v)]
+    @reify
+    def _listify_dispatch(self):
+        return {
+            list: lambda obj: ["list"] + [self.listify(v) for v in obj],
+            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
+            dict: lambda obj: ["dict"] + [
+                [self.listify(k), self.listify(v)]
                 for (k, v) in obj.items()
-            ]
-        elif isinstance(obj, cls.char_cls):
-            return ['character', obj.name]
-        elif isinstance(obj, cls.node_cls):
-            return ['node', obj.character.name, obj.name]
-        elif isinstance(obj, cls.portal_cls):
-            return ['portal', obj.character.name, obj._origin, obj._destination]
-        else:
+            ],
+            self.char_cls: lambda obj: ["character", obj.name],
+            self.thing_cls: lambda obj: ["node", obj.character.name, obj.name],
+            self.place_cls: lambda obj: ["node", obj.character.name, obj.name],
+            self.portal_cls: lambda obj: ["portal", obj.character.name, obj._origin, obj._destination]
+        }
+
+    def listify(self, obj):
+        try:
+            return self._listify_dispatch[type(obj)](obj)
+        except KeyError:
             return obj
+
+    @reify
+    def _delistify_dispatch(self):
+        return {
+            'list': lambda obj: [self.delistify(v) for v in obj[1:]],
+            'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
+            'dict': lambda obj: {
+                self.delistify(k): self.delistify(v)
+                for (k, v) in obj[1:]
+            },
+            'character': lambda obj: self.character[self.delistify(obj[1])],
+            'node': lambda obj: self._node_objs[(self.delistify(obj[1]), self.delistify(obj[2]))],
+            'portal': lambda obj: self._portal_objs[(self.delistify(obj[1]), self.delistify(obj[2]), self.delistify(obj[3]))]
+        }
 
     def delistify(self, obj):
         if isinstance(obj, list) or isinstance(obj, tuple):
-            if obj == [] or obj == ["list"]:
-                return []
-            elif obj == ["tuple"]:
-                return tuple()
-            elif obj == ['dict']:
-                return {}
-            elif obj[0] == 'list':
-                return [self.delistify(p) for p in obj[1:]]
-            elif obj[0] == 'tuple':
-                return tuple(self.delistify(p) for p in obj[1:])
-            elif obj[0] == 'dict':
-                return {
-                    self.delistify(k): self.delistify(v)
-                    for (k, v) in obj[1:]
-                }
-            elif obj[0] == 'character':
-                return self.character[self.delistify(obj[1])]
-            elif obj[0] == 'node':
-                return self.character[self.delistify(obj[1])].node[self.delistify(obj[2])]
-            elif obj[0] == 'portal':
-                return self.character[self.delistify(obj[1])].portal[self.delistify(obj[2])][self.delistify(obj[3])]
-            else:
+            try:
+                return self._delistify_dispatch[obj[0]](obj)
+            except KeyError:
                 raise ValueError("Unknown sequence type: {}".format(obj[0]))
         else:
             return obj
@@ -191,7 +188,8 @@ class Engine(AbstractEngine, gORM):
 
     """
     char_cls = Character
-    node_cls = Node
+    thing_cls = Thing
+    place_cls = Place
     portal_cls = Portal
 
     def _del_rulebook(self, rulebook):
