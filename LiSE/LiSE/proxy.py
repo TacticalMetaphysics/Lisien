@@ -17,7 +17,7 @@ from .engine import AbstractEngine
 from .character import Facade
 from gorm.xjson import JSONReWrapper, JSONListReWrapper
 from .util import reify
-from gorm.pickydict import PickyDefaultDict, StructuredDefaultDict
+from gorm.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
