@@ -58,6 +58,7 @@ class EngineHandle(object):
         self._universal_cache = {}
         self._rule_cache = {}
         self._rulebook_cache = defaultdict(list)
+        self._stores_cache = defaultdict(dict)
 
     def log(self, level, message):
         if self._logq:
@@ -947,20 +948,19 @@ class EngineHandle(object):
     def have_rulebook(self, rulebook):
         return rulebook in self._real.rulebook
 
-    def keys_in_store(self, store):
-        return list(getattr(self._real, store).keys())
+    def source_copy(self, store):
+        return dict(getattr(self._real, store).iterplain())
 
-    def len_store(self, store):
-        return len(getattr(self._real, store))
+    def source_diff(self, store):
+        old = self._stores_cache.get(store, {})
+        new = self._stores_cache[store] = self.source_copy(store)
+        return dict_diff(old, new)
 
-    def plain_items_in_store(self, store):
-        return list(getattr(self._real, store).iterplain())
-
-    def plain_source(self, store, k):
-        return getattr(self._real, store).plain(k)
-
-    def store_set_source(self, store, k, v):
+    def set_source(self, store, k, v):
         getattr(self._real, store).set_source(k, v)
+
+    def del_source(self, store, k):
+        del getattr(self._real, store)[k]
 
     def install_module(self, module):
         import_module(module).install(self._real)

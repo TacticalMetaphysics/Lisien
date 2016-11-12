@@ -1578,32 +1578,25 @@ class FuncStoreProxy(object):
     def __init__(self, engine_proxy, store):
         self.engine = engine_proxy
         self._store = store
+        self._cache = self.engine.handle('source_diff', store=store)
 
     def __iter__(self):
-        yield from self.engine.handle(
-            command='keys_in_store', store=self._store
-        )
+        return iter(self._cache)
 
     def __len__(self):
-        return self.engine.handle(
-            command='len_store',
-            store=self._store
-        )
+        return len(self._cache)
 
     def plain(self, k):
-        return self.engine.handle(
-            command='plain_source', store=self._store, k=k
-        )
+        return self._cache[k]
 
     def iterplain(self):
-        yield from self.engine.handle(
-            command='plain_items_in_store', store=self._store
-        )
+        yield from self._cache.values()
 
     def set_source(self, func_name, source):
         self.engine.handle(
-            command='store_set_source', store=self._store, k=func_name, v=source
+            command='set_source', store=self._store, k=func_name, v=source
         )
+        self._cache[func_name] = source
 
 
 class ChangeSignatureError(TypeError):
