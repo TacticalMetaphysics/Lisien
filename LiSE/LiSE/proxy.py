@@ -124,9 +124,9 @@ class CachingEntityProxy(CachingProxy):
 
 
 class NodeProxy(CachingEntityProxy):
-    @reify
+    @property
     def character(self):
-        return CharacterProxy(self.engine, self._charname)
+        return self.engine.character[self._charname]
 
     @property
     def _cache(self):
@@ -1643,54 +1643,6 @@ class EngineProxy(AbstractEngine):
         (branch, tick) = (self._branch, self._tick) = v
         self.handle(command='set_time', branch=branch, tick=tick, silent=True)
 
-    @reify
-    def eternal(self):
-        return EternalVarProxy(self)
-
-    @reify
-    def universal(self):
-        return GlobalVarProxy(self)
-
-    @reify
-    def character(self):
-        return CharacterMapProxy(self)
-
-    @reify
-    def string(self):
-        return StringStoreProxy(self)
-
-    @reify
-    def rulebook(self):
-        return AllRuleBooksProxy(self)
-
-    @reify
-    def rule(self):
-        return AllRulesProxy(self)
-
-    @reify
-    def action(self):
-        return FuncStoreProxy(self, 'action')
-
-    @reify
-    def prereq(self):
-        return FuncStoreProxy(self, 'prereq')
-
-    @reify
-    def trigger(self):
-        return FuncStoreProxy(self, 'trigger')
-
-    @reify
-    def sense(self):
-        return FuncStoreProxy(self, 'sense')
-
-    @reify
-    def function(self):
-        return FuncStoreProxy(self, 'function')
-
-    @reify
-    def method(self):
-        return FuncStoreProxy(self, 'method')
-
     def __init__(self, handle_out, handle_in, logger, do_game_start=False,  install_modules=[]):
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
@@ -1698,6 +1650,17 @@ class EngineProxy(AbstractEngine):
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
         self.logger = logger
+        self.method = FuncStoreProxy(self, 'method')
+        self.eternal = EternalVarProxy(self)
+        self.universal = GlobalVarProxy(self)
+        self.character = CharacterMapProxy(self)
+        self.string = StringStoreProxy(self)
+        self.rulebook = AllRuleBooksProxy(self)
+        self.rule = AllRulesProxy(self)
+        self.action = FuncStoreProxy(self, 'action')
+        self.prereq = FuncStoreProxy(self, 'prereq')
+        self.trigger = FuncStoreProxy(self, 'trigger')
+        self.function = FuncStoreProxy(self, 'function')
         (self._branch, self._tick) = self.handle(command='get_watched_time')
 
         for module in install_modules:
