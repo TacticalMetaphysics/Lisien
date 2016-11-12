@@ -1612,7 +1612,8 @@ class ChangeSignatureError(TypeError):
 
 class EngineProxy(AbstractEngine):
     char_cls = CharacterProxy
-    node_cls = NodeProxy
+    thing_cls = ThingProxy
+    place_cls = PlaceProxy
     portal_cls = PortalProxy
 
     @property
