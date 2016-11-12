@@ -64,7 +64,12 @@ class GameApp(App):
         except FileNotFoundError:
             pass
         self.procman = LiSE.proxy.EngineProcessManager()
-        self.engine = self.procman.start(self.worlddb, self.codedb, logger=Logger, do_game_start=not have_world, install_modules=self.modules if not have_code else [])
+        self.engine = self.procman.start(
+            self.worlddb, self.codedb,
+            logger=Logger, loglevel='debug',
+            do_game_start=not have_world,
+            install_modules=self.modules if not have_code else []
+        )
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)
