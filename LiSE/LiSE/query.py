@@ -686,6 +686,10 @@ class QueryEngine(gorm.query.QueryEngine):
                     yield (self.json_load(k), self.json_load(v))
                 seen.add(k)
 
+    def universal_dump(self):
+        for key, branch, tick, value in self.sql('universal_dump'):
+            yield self.json_load(key), branch, tick, self.json_load(value)
+
     def universal_get(self, key, branch, tick):
         key = self.json_dump(key)
         for (b, t) in self.active_branches(branch, tick):

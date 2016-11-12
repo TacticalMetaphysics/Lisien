@@ -12,8 +12,8 @@ from gorm import ORM as gORM
 from .xcollections import (
     StringStore,
     FunctionStore,
-    GlobalVarMapping,
-    CharacterMapping
+    CharacterMapping,
+    UniversalMapping
 )
 from .character import Character
 from .thing import Thing
@@ -23,6 +23,7 @@ from .rule import AllRuleBooks, AllRules
 from .query import Query, QueryEngine
 from .util import getatt, reify, EntityStatAccessor
 from .cache import (
+    UniversalCache,
     AvatarnessCache,
     RulebooksCache,
     CharacterRulebooksCache,
@@ -312,6 +313,8 @@ class Engine(AbstractEngine, gORM):
             json_dump=self.json_dump,
             json_load=self.json_load,
         )
+        self.eternal = self.db.globl
+        self.universal = UniversalMapping(self)
         self._time_listeners = []
         self._next_tick_listeners = []
         if logfun is None:
@@ -339,12 +342,12 @@ class Engine(AbstractEngine, gORM):
         self.rule = AllRules(self, self._code_qe)
         self.rulebook = AllRuleBooks(self, self._code_qe)
         self.string = StringStore(self._code_qe)
-        self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
         # set up caches
         self._char_objs = {}
         self._node_objs = {}
         self._portal_objs = {}
+        self._universal_cache = UniversalCache(self)
         self._rulebooks_cache = RulebooksCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
         self._nodes_rulebooks_cache = NodeRulebookCache(self)
@@ -360,6 +363,8 @@ class Engine(AbstractEngine, gORM):
         self._character_portal_rules_handled_cache = CharacterRulesHandledCache(self)
         self._things_cache = ThingsCache(self)
         self._avatarness_cache = AvatarnessCache(self)
+        for row in self.rule.db.universal_dump():
+            self._universal_cache.store(*row)
         for row in self.rule.db.rulebooks_rules():
             self._rulebooks_cache.store(*row)
         for row in self.rule.db.characters_rulebooks():

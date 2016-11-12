@@ -312,7 +312,7 @@ class FunctionStore(MutableMapping):
         return part
 
 
-class GlobalVarMapping(MutableMapping):
+class UniversalMapping(MutableMapping):
     """Mapping for variables that are global but which I keep history for"""
     __slots__ = ['engine', '_listeners']
 
@@ -342,34 +342,27 @@ class GlobalVarMapping(MutableMapping):
         return listener(self._listeners, fun, key)
 
     def __iter__(self):
-        """Iterate over the global keys whose values aren't null at the moment.
-
-        The values may be None, however.
-
-        """
-        for (k, v) in self.engine.db.universal_items(*self.engine.time):
-            yield k
+        return self.engine._universal_cache.iter_keys(*self.engine.time)
 
     def __len__(self):
-        """Just count while iterating"""
-        n = 0
-        for k in iter(self):
-            n += 1
-        return n
+        return self.engine._universal_cache.count_keys(*self.engine.time)
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        return self.engine.db.universal_get(k, *self.engine.time)
+        return self.engine._universal_cache.retrieve(k, *self.engine.time)
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
         (branch, tick) = self.engine.time
         self.engine.db.universal_set(k, branch, tick, v)
+        self.engine._universal_cache.store(k, branch, tick, v)
         self._dispatch(k, v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        self.engine.db.universal_del(k)
+        branch, tick = self.engine.time
+        self.engine.db.universal_del(k, branch, tick)
+        self.engine._universal_cache.store(k, branch, tick, None)
         self._dispatch(k, None)
 
 

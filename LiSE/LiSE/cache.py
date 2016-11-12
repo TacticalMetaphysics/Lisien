@@ -3,6 +3,11 @@ from gorm.cache import Cache, PickyDefaultDict, StructuredDefaultDict, FuturistW
 from .util import singleton_get
 
 
+class UniversalCache(Cache):
+    def store(self, key, branch, tick, value):
+        super().store(None, key, branch, tick, value)
+
+
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, engine):

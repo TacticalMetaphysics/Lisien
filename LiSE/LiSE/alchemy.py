@@ -829,6 +829,15 @@ def queries(table, view):
             table['lise_globals'].c.branch
         )
 
+    r['universal_dump'] = select(
+        [
+            table['lise_globals'].c.key,
+            table['lise_globals'].c.branch,
+            table['lise_globals'].c.tick,
+            table['lise_globals'].c.value
+        ]
+    )
+
     r['universal_items'] = select(
         [
             table['lise_globals'].c.key,

@@ -321,6 +321,7 @@
     "thing_locs_branch_data": "SELECT things.tick, things.location, things.next_location \nFROM things \nWHERE things.character = ? AND things.thing = ? AND things.branch = ?",
     "things_dump": "SELECT things.character, things.thing, things.branch, things.tick, things.location, things.next_location \nFROM things",
     "travel_reqs": "SELECT travel_reqs.reqs \nFROM travel_reqs \nWHERE travel_reqs.character = ?",
+    "universal_dump": "SELECT lise_globals.\"key\", lise_globals.branch, lise_globals.tick, lise_globals.value \nFROM lise_globals",
     "universal_get": "SELECT lise_globals.value \nFROM lise_globals, (SELECT lise_globals.\"key\" AS \"key\", lise_globals.branch AS branch, MAX(lise_globals.tick) AS tick \nFROM lise_globals \nWHERE lise_globals.\"key\" = ? AND lise_globals.branch = ? AND lise_globals.tick <= ? GROUP BY lise_globals.\"key\", lise_globals.branch)",
     "universal_ins": "INSERT INTO lise_globals (\"key\", branch, tick, value) VALUES (?, ?, ?, ?)",
     "universal_items": "SELECT lise_globals.\"key\", lise_globals.value \nFROM lise_globals, (SELECT lise_globals.\"key\" AS \"key\", lise_globals.branch AS branch, MAX(lise_globals.tick) AS tick \nFROM lise_globals \nWHERE lise_globals.branch = ? AND lise_globals.tick <= ? GROUP BY lise_globals.\"key\", lise_globals.branch)",
