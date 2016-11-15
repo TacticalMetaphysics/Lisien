@@ -1,20 +1,20 @@
 from setuptools import setup
 setup(
-    name = "gorm",
+    name = "allegedb",
     version = "0.10.0",
-    packages = ["gorm"],
+    packages = ["allegedb"],
     install_requires = ['networkx>=1.9'],
     author = "Zachary Spector",
     author_email = "zacharyspector@gmail.com",
     description = "An object-relational mapper serving database-backed versions of the standard networkx graph classes.",
     license = "BSD",
     keywords = "orm graph networkx sql database",
-    url = "https://github.com/LogicalDash/gorm",
+    url = "https://github.com/LogicalDash/LiSE",
     package_dir={
-        "gorm": "gorm"
+      "allegedb": "allegedb"
     },
     package_data={
-        "gorm": [
+        "allegedb": [
             "sqlite.json"
         ]
     }

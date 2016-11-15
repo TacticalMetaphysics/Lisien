@@ -1,5 +1,5 @@
-# This file is part of gorm, an object relational mapper for versioned graphs.
-# Copyright (C) 2014 Zachary Spector.
+# This file is part of allegedb, an object relational mapper for versioned graphs.
+# Copyright (C) Zachary Spector.
 import networkx
 from networkx.exception import NetworkXError
 from collections import MutableMapping, defaultdict
@@ -17,7 +17,7 @@ def getatt(attribute_name):
     return property(attrgetter(attribute_name))
 
 def convert_to_networkx_graph(data,create_using=None,multigraph_input=False):
-    if isinstance(data, GormGraph):
+    if isinstance(data, AllegedGraph):
         result = networkx.convert.from_dict_of_dicts(
             data.adj,
             create_using=create_using,
@@ -85,7 +85,7 @@ class AbstractEntityMapping(NeatMapping):
         self._set_cache(key, None)
 
     def __iter__(self):
-        if self.gorm.caching:
+        if self.db.caching:
             return self._iter_keys_cache()
         return self._iter_keys_db()
 
@@ -103,98 +103,98 @@ class AbstractEntityMapping(NeatMapping):
         """
         def wrapval(v):
             if isinstance(v, list):
-                if self.gorm.caching:
+                if self.db.caching:
                     return JSONListReWrapper(self, key, v)
                 return JSONListWrapper(self, key)
             elif isinstance(v, dict):
-                if self.gorm.caching:
+                if self.db.caching:
                     return JSONReWrapper(self, key, v)
                 return JSONWrapper(self, key)
             else:
                 return v
 
-        if self.gorm.caching:
+        if self.db.caching:
             return wrapval(self._get_cache(key))
         return wrapval(self._get(key))
 
     def __setitem__(self, key, value):
         """Set key=value at the present branch and revision"""
         if value is None:
-            raise ValueError("gorm uses None to indicate that a key's been deleted")
+            raise ValueError("db uses None to indicate that a key's been deleted")
         self._set_db(key, value)
-        if self.gorm.caching:
+        if self.db.caching:
             self._set_cache(key, value)
     def __delitem__(self, key):
         """Indicate that the key has no value at this time"""
         self._del_db(key)
-        if self.gorm.caching:
+        if self.db.caching:
             self._set_cache(key, None)
 
 
 class GraphMapping(AbstractEntityMapping):
     """Mapping for graph attributes"""
-    gorm = getatt('graph.gorm')
+    db = getatt('graph.db')
     def __init__(self, graph):
         """Initialize private dict and store pointers to the graph and ORM"""
         self.graph = graph
 
     def _iter_keys_db(self):
         """Return keys from the database"""
-        return iter(self.gorm.db.graph_val_keys(
+        return iter(self.db.query.graph_val_keys(
                 self.graph.name,
-                self.gorm.branch,
-                self.gorm.rev
+                self.db.branch,
+                self.db.rev
         ))
 
     def _iter_keys_cache(self):
-        return self.gorm._graph_val_cache.iter_entity_keys(
-            self.graph.name, self.gorm.branch, self.gorm.rev
+        return self.db._graph_val_cache.iter_entity_keys(
+            self.graph.name, self.db.branch, self.db.rev
         )
 
     def _get_db(self, key):
         """Just load value from database and return"""
-        return self.gorm.db.graph_val_get(
+        return self.db.query.graph_val_get(
             self.graph.name,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _get_cache(self, key):
-        return self.gorm._graph_val_cache.retrieve(
-            self.graph.name, key, self.gorm.branch, self.gorm.rev
+        return self.db._graph_val_cache.retrieve(
+            self.graph.name, key, self.db.branch, self.db.rev
         )
     _get = _get_cache
 
     def _set_db(self, key, value):
         """Set key=value in the database (not the cache)"""
-        self.gorm.db.graph_val_set(
+        self.db.query.graph_val_set(
             self.graph.name,
             key,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             value
         )
 
     def _set_cache(self, key, value):
-        """Set key=value in gorm's _graph_val_cache"""
-        self.gorm._graph_val_cache.store(
-            self.graph.name, key, self.gorm.branch, self.gorm.rev, value
+        """Set key=value in db's _graph_val_cache"""
+        self.db._graph_val_cache.store(
+            self.graph.name, key, self.db.branch, self.db.rev, value
         )
 
     def _del_db(self, key):
         """Delete the value from the database (not the cache)"""
-        self.gorm.db.graph_val_del(
+        self.db.query.graph_val_del(
             self.graph.name,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
-    gorm = getatt('graph.gorm')
+    db = getatt('graph.db')
 
     def __init__(self, graph, node):
         """Store name and graph"""
@@ -202,65 +202,65 @@ class Node(AbstractEntityMapping):
         self.node = node
 
     def _iter_keys_db(self):
-        return self.gorm.db.node_val_keys(
+        return self.db.query.node_val_keys(
             self.graph.name,
             self.node,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _iter_keys_cache(self):
-        return self.gorm._node_val_cache.iter_entity_keys(
-            self.graph.name, self.node, self.gorm.branch, self.gorm.rev
+        return self.db._node_val_cache.iter_entity_keys(
+            self.graph.name, self.node, self.db.branch, self.db.rev
         )
 
     def _get_db(self, key):
-        return self.gorm.db.node_val_get(
+        return self.db.query.node_val_get(
             self.graph.name,
             self.node,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _get_cache(self, key):
-        return self.gorm._node_val_cache.retrieve(
-            self.graph.name, self.node, key, self.gorm.branch, self.gorm.rev
+        return self.db._node_val_cache.retrieve(
+            self.graph.name, self.node, key, self.db.branch, self.db.rev
         )
 
     def _set_db(self, key, value):
-        self.gorm.db.node_val_set(
+        self.db.query.node_val_set(
             self.graph.name,
             self.node,
             key,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             value
         )
 
     def _set_cache(self, key, value):
-        self.gorm._node_val_cache.store(
+        self.db._node_val_cache.store(
             self.graph.name,
             self.node,
             key,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             value
         )
 
     def _del_db(self, key):
-        self.gorm.db.node_val_del(
+        self.db.query.node_val_del(
             self.graph.name,
             self.node,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
 
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
-    gorm = getatt('graph.gorm')
+    db = getatt('graph.db')
 
     def __init__(self, graph, nodeA, nodeB, idx=0):
         """Store the graph, the names of the nodes, and the index.
@@ -274,80 +274,80 @@ class Edge(AbstractEntityMapping):
         self.idx = idx
 
     def _iter_keys_db(self):
-        return self.gorm.db.edge_val_keys(
+        return self.db.query.edge_val_keys(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _iter_keys_cache(self):
-        return self.gorm._edge_val_cache.iter_entity_keys(
+        return self.db._edge_val_cache.iter_entity_keys(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _get_db(self, key):
-        return self.gorm.db.edge_val_get(
+        return self.db.query.edge_val_get(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _get_cache(self, key):
-        return self.gorm._edge_val_cache.retrieve(
+        return self.db._edge_val_cache.retrieve(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _set_db(self, key, value):
-        self.gorm.db.edge_val_set(
+        self.db.query.edge_val_set(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
             key,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             value
         )
 
     def _set_cache(self, key, value):
-        self.gorm._edge_val_cache.store(
+        self.db._edge_val_cache.store(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
             key,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             value
         )
 
     def _del_db(self, key):
-        self.gorm.db.edge_val_del(
+        self.db.query.edge_val_del(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             self.idx,
             key,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
 
@@ -355,7 +355,7 @@ class GraphNodeMapping(NeatMapping):
     """Mapping for nodes in a graph"""
     def __init__(self, graph):
         self.graph = graph
-        self.gorm = graph.gorm
+        self.db = graph.db
 
     def __iter__(self):
         """Iterate over the names of the nodes"""
@@ -364,15 +364,15 @@ class GraphNodeMapping(NeatMapping):
 
     def __contains__(self, node):
         """Return whether the node exists presently"""
-        if self.gorm.caching:
-            return self.gorm._nodes_cache.contains_entity(
-                self.graph.name, node, self.gorm.branch, self.gorm.rev
+        if self.db.caching:
+            return self.db._nodes_cache.contains_entity(
+                self.graph.name, node, self.db.branch, self.db.rev
             )
-        return self.gorm.db.node_exists(
+        return self.db.query.node_exists(
             self.graph.name,
             node,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def __len__(self):
@@ -394,22 +394,22 @@ class GraphNodeMapping(NeatMapping):
         is made with them, perhaps clearing out the one already there.
 
         """
-        self.gorm.db.exist_node(
+        self.db.query.exist_node(
             self.graph.name,
             node,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             True
         )
         n = Node(self.graph, node)
         n.clear()
         n.update(dikt)
-        if self.gorm.caching:
-            self.gorm._nodes_cache.store(
+        if self.db.caching:
+            self.db._nodes_cache.store(
                 self.graph.name,
                 node,
-                self.gorm.branch,
-                self.gorm.rev,
+                self.db.branch,
+                self.db.rev,
                 True
             )
 
@@ -417,19 +417,19 @@ class GraphNodeMapping(NeatMapping):
         """Indicate that the given node no longer exists"""
         if node not in self:
             raise KeyError("No such node")
-        self.gorm.db.exist_node(
+        self.db.query.exist_node(
             self.graph.name,
             node,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             False
         )
-        if self.gorm.caching:
-            self.gorm._nodes_cache.store(
+        if self.db.caching:
+            self.db._nodes_cache.store(
                 self.graph.name,
                 node,
-                self.gorm.branch,
-                self.gorm.rev,
+                self.db.branch,
+                self.db.rev,
                 False
             )
 
@@ -441,7 +441,7 @@ class GraphNodeMapping(NeatMapping):
         not let you compare my nodes with regular networkx
         nodes-that-are-dicts. So I cast my nodes into dicts for this
         purpose, and cast the other argument's nodes the same way, in
-        case it is a gorm graph.
+        case it is a db graph.
 
         """
         if not hasattr(other, 'keys'):
@@ -466,8 +466,8 @@ class GraphEdgeMapping(NeatMapping):
         return self._metacache[id(self)]
 
     @property
-    def gorm(self):
-        return self.graph.gorm
+    def db(self):
+        return self.graph.db
 
     def __init__(self, graph):
         self.graph = graph
@@ -497,7 +497,7 @@ class GraphEdgeMapping(NeatMapping):
 
 class AbstractSuccessors(GraphEdgeMapping):
     graph = getatt('container.graph')
-    gorm = getatt('container.graph.gorm')
+    db = getatt('container.graph.db')
     _metacache = defaultdict(dict)
 
     @property
@@ -511,37 +511,37 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __iter__(self):
         """Iterate over node IDs that have an edge with my nodeA"""
-        if self.gorm.caching:
-            return self.gorm._edges_cache.iter_entities(
+        if self.db.caching:
+            return self.db._edges_cache.iter_entities(
                 self.graph.name,
                 self.nodeA,
-                self.gorm.branch,
-                self.gorm.rev
+                self.db.branch,
+                self.db.rev
             )
-        return self.gorm.db.nodeBs(
+        return self.db.query.nodeBs(
             self.graph.name,
             self.nodeA,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def __contains__(self, nodeB):
         """Is there an edge leading to ``nodeB`` at the moment?"""
-        if self.gorm.caching:
-            return self.gorm._edges_cache.contains_entity(
+        if self.db.caching:
+            return self.db._edges_cache.contains_entity(
                 self.graph.name,
                 self.nodeA,
                 nodeB,
                 0,
-                self.gorm.branch,
-                self.gorm.rev
+                self.db.branch,
+                self.db.rev
             )
-        for i in self.gorm.db.multi_edges(
+        for i in self.db.query.multi_edges(
                 self.graph.name,
                 self.nodeA,
                 nodeB,
-                self.gorm.branch,
-                self.gorm.rev
+                self.db.branch,
+                self.db.rev
         ):
             return True
         return False
@@ -560,7 +560,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         """Get the edge between my nodeA and the given node"""
         if nodeB not in self:
             raise KeyError("No edge {}->{}".format(self.nodeA, nodeB))
-        if self.gorm.caching:
+        if self.db.caching:
             if nodeB not in self._cache:
                 self._cache[nodeB] = self._make_edge(nodeB)
             return self._cache[nodeB]
@@ -571,23 +571,23 @@ class AbstractSuccessors(GraphEdgeMapping):
         value, a mapping.
 
         """
-        self.gorm.db.exist_edge(
+        self.db.query.exist_edge(
             self.graph.name,
             self.nodeA,
             nodeB,
             0,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             True
         )
-        if self.gorm.caching:
-            self.gorm._edges_cache.store(
+        if self.db.caching:
+            self.db._edges_cache.store(
                 self.graph.name,
                 self.nodeA,
                 nodeB,
                 0,
-                self.gorm.branch,
-                self.gorm.rev,
+                self.db.branch,
+                self.db.rev,
                 True
             )
         e = self[nodeB]
@@ -596,23 +596,23 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __delitem__(self, nodeB):
         """Remove the edge between my nodeA and the given nodeB"""
-        self.gorm.db.exist_edge(
+        self.db.query.exist_edge(
             self.graph.name,
             self.nodeA,
             nodeB,
             0,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             False
         )
-        if self.gorm.caching:
-            self.gorm._edges_cache.store(
+        if self.db.caching:
+            self.db._edges_cache.store(
                 self.graph.name,
                 self.nodeA,
                 nodeB,
                 0,
-                self.gorm.branch,
-                self.gorm.rev,
+                self.db.branch,
+                self.db.rev,
                 False
             )
 
@@ -728,46 +728,46 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             """Iterate over the edges that exist at the present (branch, rev)
 
             """
-            if self.gorm.caching:
-                cache = self.gorm._edges_cache.predecessors[(self.graph.name, self.nodeB)]
+            if self.db.caching:
+                cache = self.db._edges_cache.predecessors[(self.graph.name, self.nodeB)]
                 for nodeA in cache:
                     seen = False
                     for idx in cache[nodeA]:
                         if seen:
                             break
-                        for (branch, rev) in self.gorm._active_branches():
+                        for (branch, rev) in self.db._active_branches():
                             if branch in cache[nodeA][idx]:
                                 v = cache[nodeA][idx][branch][rev]
-                                self.gorm._edges_cache.store(self.graph.name, nodeA, self.nodeB, idx, branch, rev, v)
+                                self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, idx, branch, rev, v)
                                 if v:
                                     yield nodeA
                                 seen = True
                                 break
                 return
-            return self.gorm.db.nodeAs(
+            return self.db.query.nodeAs(
                 self.graph.name,
                 self.nodeB,
-                self.gorm.branch,
-                self.gorm.rev
+                self.db.branch,
+                self.db.rev
             )
 
         def __contains__(self, nodeA):
             """Is there an edge from ``nodeA`` at the moment?"""
-            if self.gorm.caching:
-                cache = self.gorm._edges_cache.predecessors[(self.graph.name, self.nodeB)][nodeA]
-                for (branch, rev) in self.gorm._active_branches():
+            if self.db.caching:
+                cache = self.db._edges_cache.predecessors[(self.graph.name, self.nodeB)][nodeA]
+                for (branch, rev) in self.db._active_branches():
                     for idx in cache:
                         if branch in cache[idx]:
                             v = cache[idx][branch][rev]
-                            self.gorm._edges_cache.store(self.graph.name, nodeA, self.nodeB, idx, branch, rev, v)
+                            self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, idx, branch, rev, v)
                             return v
                 return False
-            for i in self.gorm.db.multi_edges(
+            for i in self.db.query.multi_edges(
                     self.graph.name,
                     self.nodeA,
                     self.nodeB,
-                    self.gorm.branch,
-                    self.gorm.rev
+                    self.db.branch,
+                    self.db.rev
             ):
                 return True
             return False
@@ -795,55 +795,55 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 e = self[nodeA]
                 e.clear()
             except KeyError:
-                self.gorm.db.exist_edge(
+                self.db.query.exist_edge(
                     self.graph.name,
                     nodeA,
                     self.nodeB,
                     0,
-                    self.gorm.branch,
-                    self.gorm.rev,
+                    self.db.branch,
+                    self.db.rev,
                     True
                 )
                 e = self._make_edge(nodeA)
             e.update(value)
-            if self.gorm.caching:
-                self.gorm._edges_cache.store(self.graph.name, nodeA, self.nodeB, 0, self.gorm.branch, self.gorm.rev, True)
+            if self.db.caching:
+                self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, 0, self.db.branch, self.db.rev, True)
 
         def __delitem__(self, nodeA):
             """Unset the existence of the edge from the given node to mine"""
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[nodeA]:
-                    self.gorm.db.exist_edge(
+                    self.db.query.exist_edge(
                         self.graph.name,
                         nodeA,
                         self.nodeB,
                         idx,
-                        self.gorm.branch,
-                        self.gorm.rev,
+                        self.db.branch,
+                        self.db.rev,
                         False
                     )
-                    if self.gorm.caching:
-                        self.gorm._edges_cache.store(
+                    if self.db.caching:
+                        self.db._edges_cache.store(
                             self.graph.name,
                             nodeA,
                             self.nodeB,
                             idx,
-                            self.gorm.branch,
-                            self.gorm.rev,
+                            self.db.branch,
+                            self.db.rev,
                             False
                         )
                     return
-            self.gorm.db.exist_edge(
+            self.db.query.exist_edge(
                 self.graph.name,
                 nodeA,
                 self.nodeB,
                 0,
-                self.gorm.branch,
-                self.gorm.rev,
+                self.db.branch,
+                self.db.rev,
                 False
             )
-            if self.gorm.caching:
-                self.gorm._edges_cache.store(self.graph.name, nodeA, self.nodeB, 0, self.gorm.branch, self.gorm.rev, False)
+            if self.db.caching:
+                self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, 0, self.db.branch, self.db.rev, False)
 
 
 class MultiEdges(GraphEdgeMapping):
@@ -851,22 +851,22 @@ class MultiEdges(GraphEdgeMapping):
     def __init__(self, graph, nodeA, nodeB):
         """Store graph and node IDs"""
         self.graph = graph
-        self.gorm = graph.gorm
+        self.db = graph.db
         self.nodeA = nodeA
         self.nodeB = nodeB
         self._cache = {}
 
     def __iter__(self):
-        if self.gorm.caching:
-            return self.gorm._edges_cache.iter_keys(
-                self.graph.name, self.nodeA, self.nodeB, self.gorm.brach, self.gorm.rev
+        if self.db.caching:
+            return self.db._edges_cache.iter_keys(
+                self.graph.name, self.nodeA, self.nodeB, self.db.brach, self.db.rev
             )
-        return self.gorm.db.multi_edges(
+        return self.db.query.multi_edges(
             self.graph.name,
             self.nodeA,
             self.nodeB,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def __len__(self):
@@ -877,17 +877,17 @@ class MultiEdges(GraphEdgeMapping):
         return n
 
     def __contains__(self, i):
-        if self.gorm.caching:
-            return self.gorm._edges_cache.contains_key(
-                self.graph.name, self.nodeA, self.nodeB, i, self.gorm.branch, self.gorm.rev
+        if self.db.caching:
+            return self.db._edges_cache.contains_key(
+                self.graph.name, self.nodeA, self.nodeB, i, self.db.branch, self.db.rev
             )
-        return self.gorm.db.edge_exists(
+        return self.db.query.edge_exists(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             i,
-            self.gorm.branch,
-            self.gorm.rev
+            self.db.branch,
+            self.db.rev
         )
 
     def _getedge(self, idx):
@@ -909,21 +909,21 @@ class MultiEdges(GraphEdgeMapping):
         Edge first, if necessary.
 
         """
-        self.gorm.db.exist_edge(
+        self.db.query.exist_edge(
             self.graph.name,
             self.nodeA,
             self.nodeB,
             idx,
-            self.gorm.branch,
-            self.gorm.rev,
+            self.db.branch,
+            self.db.rev,
             True
         )
         e = self._getedge(idx)
         e.clear()
         e.update(val)
-        if self.gorm.caching:
-            self.gorm._edges_cache.store(
-                self.graph.name, self.nodeA, self.nodeB, idx, self.gorm.branch, self.gorm.rev, True
+        if self.db.caching:
+            self.db._edges_cache.store(
+                self.graph.name, self.nodeA, self.nodeB, idx, self.db.branch, self.db.rev, True
             )
 
     def __delitem__(self, idx):
@@ -933,9 +933,9 @@ class MultiEdges(GraphEdgeMapping):
             raise KeyError("No edge at that index")
         e.clear()
         del self._cache[idx]
-        if self.gorm.caching:
-            self.gorm._edges_cache.remember(
-                self.graph.name, self.nodeA, self.nodeB, idx, self.gorm.branch, self.gorm.rev
+        if self.db.caching:
+            self.db._edges_cache.remember(
+                self.graph.name, self.nodeA, self.nodeB, idx, self.db.branch, self.db.rev
             )
 
     def clear(self):
@@ -1020,8 +1020,8 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
             self[nodeA].clear()
 
 
-class GormGraph(object):
-    """Class giving the gorm graphs those methods they share in
+class AllegedGraph(object):
+    """Class giving the graphs those methods they share in
     common.
 
     """
@@ -1041,13 +1041,13 @@ class GormGraph(object):
         return self._nodemaps[self._name]
 
     def nodes(self):
-        if self.gorm.caching:
-            for n in self.gorm._nodes_cache.iter_entities(self._name, self.gorm.branch, self.gorm.rev):
+        if self.db.caching:
+            for n in self.db._nodes_cache.iter_entities(self._name, self.db.branch, self.db.rev):
                 yield n
             return
         else:
-            for node in self.gorm.db.nodes_extant(
-                self._name, self.gorm.branch, self.gorm.rev
+            for node in self.db.query.nodes_extant(
+                self._name, self.db.branch, self.db.rev
             ):
                 yield node
 
@@ -1057,7 +1057,7 @@ class GormGraph(object):
 
     @name.setter
     def name(self, v):
-        raise TypeError("gorm graphs can't be renamed")
+        raise TypeError("graphs can't be renamed")
 
     def _and_previous(self):
         """Return a 4-tuple that will usually be (current branch, current
@@ -1067,9 +1067,9 @@ class GormGraph(object):
         branch.
 
         """
-        branch = self.gorm.branch
-        rev = self.gorm.rev
-        (parent, parent_rev) = self.gorm.sql('parparrev', branch).fetchone()
+        branch = self.db.branch
+        rev = self.db.rev
+        (parent, parent_rev) = self.db.sql('parparrev', branch).fetchone()
         before_branch = parent if parent_rev == rev else branch
         return (before_branch, rev-1, branch, rev)
 
@@ -1086,7 +1086,7 @@ class GormGraph(object):
         self.graph.clear()
 
 
-class Graph(GormGraph, networkx.Graph):
+class Graph(AllegedGraph, networkx.Graph):
     """A version of the networkx.Graph class that stores its state in a
     database.
 
@@ -1098,15 +1098,15 @@ class Graph(GormGraph, networkx.Graph):
         return self._succs[self._name]
     edge = adj
     
-    def __init__(self, gorm, name, data=None, **attr):
+    def __init__(self, db, name, data=None, **attr):
         self._name = name
-        self.gorm = gorm
+        self.db = db
         if data is not None:
             networkx.convert.to_networkx_graph(data, create_using=self)
         self.graph.update(attr)
 
 
-class DiGraph(GormGraph, networkx.DiGraph):
+class DiGraph(AllegedGraph, networkx.DiGraph):
     """A version of the networkx.DiGraph class that stores its state in a
     database.
 
@@ -1124,9 +1124,9 @@ class DiGraph(GormGraph, networkx.DiGraph):
         if self._name not in self._preds:
             self._preds[self._name] = DiGraphPredecessorsMapping(self)
 
-    def __init__(self, gorm, name, data=None, **attr):
+    def __init__(self, db, name, data=None, **attr):
         self._name = name
-        self.gorm = gorm
+        self.db = db
         if data is not None:
             convert_to_networkx_graph(data, create_using=self)
         self.graph.update(attr)
@@ -1213,7 +1213,7 @@ class DiGraph(GormGraph, networkx.DiGraph):
             assert(v in self.succ[u])
 
 
-class MultiGraph(GormGraph, networkx.MultiGraph):
+class MultiGraph(AllegedGraph, networkx.MultiGraph):
     """A version of the networkx.MultiGraph class that stores its state in a
     database.
 
@@ -1225,15 +1225,15 @@ class MultiGraph(GormGraph, networkx.MultiGraph):
         return self._succs[self._name]
     edge = adj
 
-    def __init__(self, gorm, name, data=None, **attr):
-        self.gorm = gorm
+    def __init__(self, db, name, data=None, **attr):
+        self.db = db
         self._name = name
         if data is not None:
             networkx.convert.to_networkx_graph(data, create_using=self)
         self.graph.update(attr)
 
 
-class MultiDiGraph(GormGraph, networkx.MultiDiGraph):
+class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
     """A version of the networkx.MultiDiGraph class that stores its state in a
     database.
 
@@ -1252,8 +1252,8 @@ class MultiDiGraph(GormGraph, networkx.MultiDiGraph):
             self._preds[self._name] = MultiDiGraphPredecessorsMapping(self)
         return self._preds[self._name]
 
-    def __init__(self, gorm, name, data=None, **attr):
-        self.gorm = gorm
+    def __init__(self, db, name, data=None, **attr):
+        self.db = db
         self._name = name
         if data is not None:
             networkx.convert.to_networkx_graph(data, create_using=self)

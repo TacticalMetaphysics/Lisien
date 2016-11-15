@@ -1,5 +1,5 @@
-# This file is part of gorm, an object relational mapper for versioned graphs.
-# Copyright (C) 2014 Zachary Spector.
+# This file is part of allegedb, an object relational mapper for versioned graphs.
+# Copyright (C) Zachary Spector.
 from collections import defaultdict, deque
 from .graph import (
     Graph,
@@ -35,15 +35,15 @@ class ORM(object):
         either case, begin a transaction.
 
         """
-        self.db = query_engine_class(dbstring, connect_args, alchemy, json_dump, json_load)
+        self.query = query_engine_class(dbstring, connect_args, alchemy, json_dump, json_load)
         self._obranch = None
         self._orev = None
-        self.db.initdb()
+        self.query.initdb()
         # I will be recursing a lot so just cache all the branch info
         if caching:
             self.caching = True
-            self._global_cache = self.db._global_cache = {}
-            for k, v in self.db.global_items():
+            self._global_cache = self.query._global_cache = {}
+            for k, v in self.query.global_items():
                 if k == 'branch':
                     self._obranch = v
                 elif k == 'rev':
@@ -52,12 +52,12 @@ class ORM(object):
                     self._global_cache[k] = v
             self._childbranch = defaultdict(set)
             self._parentbranch_rev = {}
-            for (branch, parent, parent_rev) in self.db.all_branches():
+            for (branch, parent, parent_rev) in self.query.all_branches():
                 if branch != 'master':
                     self._parentbranch_rev[branch] = (parent, parent_rev)
                 self._childbranch[parent].add(branch)
             self.graph = {}
-            for (graph, typ) in self.db.graphs_types():
+            for (graph, typ) in self.query.graphs_types():
                 self.graph[graph] = {
                     'Graph': Graph,
                     'DiGraph': DiGraph,
@@ -67,8 +67,8 @@ class ORM(object):
             self._obranch = self.branch
             self._orev = self.rev
             self._active_branches_cache = []
-            self.db.active_branches = self._active_branches
-            todo = deque(self.db.timestream_data())
+            self.query.active_branches = self._active_branches
+            todo = deque(self.query.timestream_data())
             while todo:
                 (branch, parent, parent_tick) = working = todo.popleft()
                 if branch == 'master':
@@ -79,19 +79,19 @@ class ORM(object):
                 else:
                     todo.append(working)
             self._graph_val_cache = Cache(self)
-            for row in self.db.graph_val_dump():
+            for row in self.query.graph_val_dump():
                 self._graph_val_cache.store(*row)
             self._node_val_cache = Cache(self)
-            for row in self.db.node_val_dump():
+            for row in self.query.node_val_dump():
                 self._node_val_cache.store(*row)
             self._nodes_cache = NodesCache(self)
-            for row in self.db.nodes_dump():
+            for row in self.query.nodes_dump():
                 self._nodes_cache.store(*row)
             self._edge_val_cache = Cache(self)
-            for row in self.db.edge_val_dump():
+            for row in self.query.edge_val_dump():
                 self._edge_val_cache.store(*row)
             self._edges_cache = EdgesCache(self)
-            for row in self.db.edges_dump():
+            for row in self.query.edges_dump():
                 self._edges_cache.store(*row)
 
     def __enter__(self):
@@ -106,7 +106,7 @@ class ORM(object):
         """Private use. Checks that the branch is known about."""
         if self.caching and b in self._parentbranch_rev:
             return True
-        return self.db.have_branch(b)
+        return self.query.have_branch(b)
 
     def is_parent_of(self, parent, child):
         """Return whether ``child`` is a branch descended from ``parent`` at
@@ -144,7 +144,7 @@ class ORM(object):
         if not self._havebranch(v):
             # assumes the present revision in the parent branch has
             # been finalized.
-            self.db.new_branch(v, curbranch, currev)
+            self.query.new_branch(v, curbranch, currev)
         # make sure I'll end up within the revision range of the
         # destination branch
         if v != 'master':
@@ -153,7 +153,7 @@ class ORM(object):
                     self._parentbranch_rev[v] = (curbranch, currev)
                 parrev = self._parentbranch_rev[v][1]
             else:
-                parrev = self.db.parrev(v)
+                parrev = self.query.parrev(v)
             if currev < parrev:
                 raise ValueError(
                     "Tried to jump to branch {br}, which starts at revision {rv}. "
@@ -165,14 +165,14 @@ class ORM(object):
         if self.caching:
             self._obranch = v
         else:
-            self.db.globl['branch'] = v
+            self.query.globl['branch'] = v
 
     @property
     def rev(self):
         """Return the global value ``rev``, or ``self._orev`` if that's set"""
         if self._orev is not None:
             return self._orev
-        return self.db.globl['rev']
+        return self.query.globl['rev']
 
     @rev.setter
     def rev(self, v):
@@ -187,7 +187,7 @@ class ORM(object):
             if self.caching:
                 (parent, parent_rev) = self._parentbranch_rev[branch]
             else:
-                (parent, parent_rev) = self.db.parparrev(branch)
+                (parent, parent_rev) = self.query.parparrev(branch)
             if v < int(parent_rev):
                 raise ValueError(
                     "The revision number {revn} "
@@ -197,30 +197,30 @@ class ORM(object):
         if self.caching:
             self._orev = v
         else:
-            self.db.globl['rev'] = v
+            self.query.globl['rev'] = v
 
     def commit(self):
-        """Alias of ``self.db.commit``"""
+        """Alias of ``self.query.commit``"""
         if self.caching:
-            self.db.globl['branch'] = self._obranch
-            self.db.globl['rev'] = self._orev
-        self.db.commit()
+            self.query.globl['branch'] = self._obranch
+            self.query.globl['rev'] = self._orev
+        self.query.commit()
 
     def close(self):
-        """Alias of ``self.db.close``"""
+        """Alias of ``self.query.close``"""
         if self.caching:
-            self.db.globl['branch'] = self._obranch
-            self.db.globl['rev'] = self._orev
-        self.db.close()
+            self.query.globl['branch'] = self._obranch
+            self.query.globl['rev'] = self._orev
+        self.query.close()
 
     def initdb(self):
-        """Alias of ``self.db.initdb``"""
-        self.db.initdb()
+        """Alias of ``self.query.initdb``"""
+        self.query.initdb()
 
     def _init_graph(self, name, type_s='Graph'):
-        if self.db.have_graph(name):
+        if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
-        self.db.new_graph(name, type_s)
+        self.query.new_graph(name, type_s)
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
@@ -280,7 +280,7 @@ class ORM(object):
             'MultiGraph': MultiGraph,
             'MultiDiGraph': MultiDiGraph
         }
-        type_s = self.db.graph_type(name)
+        type_s = self.query.graph_type(name)
         if type_s not in graphtypes:
             raise GraphNameError("I don't know of a graph named {}".format(name))
         g = graphtypes[type_s](self, name)
@@ -292,7 +292,7 @@ class ORM(object):
         """Remove all traces of a graph's existence from the database"""
         # make sure the graph exists before deleting anything
         self.get_graph(name)
-        self.db.del_graph(name)
+        self.query.del_graph(name)
         if self.caching and name in self.graph:
             del self.graph[name]
 
@@ -312,7 +312,7 @@ class ORM(object):
                 yield b, r
             return
 
-        for pair in self.db.active_branches(b, r):
+        for pair in self.query.active_branches(b, r):
             yield pair
 
     def _branch_descendants(self, branch=None):
@@ -322,7 +322,7 @@ class ORM(object):
         """
         branch = branch or self.branch
         if not self.caching:
-            for desc in self.db.branch_descendants(branch):
+            for desc in self.query.branch_descendants(branch):
                 yield desc
             return
         for (parent, (child, rev)) in self._parentbranch_rev.items():

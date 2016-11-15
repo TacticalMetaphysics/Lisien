@@ -1,5 +1,5 @@
-# This file is part of gorm, an object relational mapper for graphs.
-# Copyright (c) 2014 ZacharySpector@gmail.com
+# This file is part of allegedb, an object relational mapper for graphs.
+# Copyright (c) Zachary Spector
 """Wrapper to run SQL queries in a lightly abstracted way, such that
 code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
@@ -12,7 +12,7 @@ try:
     import xjson
 except ImportError:
     # python 3
-    from gorm import xjson
+    from allegedb import xjson
 import os
 xjpath = os.path.dirname(xjson.__file__)
 alchemyIntegError = None
@@ -91,7 +91,7 @@ class QueryEngine(object):
         def alchem_init(dbstring, connect_args):
             from sqlalchemy import create_engine
             from sqlalchemy.engine.base import Engine
-            from gorm.alchemy import Alchemist
+            from allegedb.alchemy import Alchemist
             if isinstance(dbstring, Engine):
                 self.engine = dbstring
             else:

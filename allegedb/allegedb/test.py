@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-import gorm
+import allegedb
 
 
 testkvs = [0, 1, 10, 10**10, 10**10**4, 'spam', 'eggs', 'ham',  '💧', '🔑', '𐦖',('spam', 'eggs', 'ham')]
@@ -14,9 +14,9 @@ for k in testkvs:
 testdata.append(('lol', deepcopy(testdata)))
 
 
-class GormTest(unittest.TestCase):
+class AllegedTest(unittest.TestCase):
     def setUp(self):
-        self.engine = gorm.ORM('sqlite:///:memory:')
+        self.engine = allegedb.ORM('sqlite:///:memory:')
         self.engine.initdb()
         self.graphmakers = (self.engine.new_graph, self.engine.new_digraph, self.engine.new_multigraph, self.engine.new_multidigraph)
 
@@ -24,7 +24,7 @@ class GormTest(unittest.TestCase):
         self.engine.close()
 
 
-class GraphTest(GormTest):
+class GraphTest(AllegedTest):
     def setUp(self):
         super().setUp()
         g = self.engine.new_graph('test')
@@ -71,7 +71,7 @@ class GraphTest(GormTest):
 
 class BranchLineageTest(GraphTest):
     def runTest(self):
-        """Create some branches of history and check that gorm remembers where
+        """Create some branches of history and check that allegedb remembers where
         each came from and what happened in each.
 
         """
@@ -127,7 +127,7 @@ class BranchLineageTest(GraphTest):
         self.assertIn(1, g.edge[0])
 
 
-class StorageTest(GormTest):
+class StorageTest(AllegedTest):
     def runTest(self):
         """Test that all the graph types can store and retrieve key-value pairs
         for the graph as a whole, for nodes, and for edges.
@@ -140,7 +140,7 @@ class StorageTest(GormTest):
             g.add_edge(0, 1)
             n = g.node[0]
             e = g.edge[0][1]
-            if isinstance(e, gorm.graph.MultiEdges):
+            if isinstance(e, allegedb.graph.MultiEdges):
                 e = e[0]
             for (k, v) in testdata:
                 g.graph[k] = v
@@ -161,26 +161,26 @@ class StorageTest(GormTest):
             self.engine.del_graph('testgraph')
 
 
-class CompiledQueriesTest(GormTest):
+class CompiledQueriesTest(AllegedTest):
     def runTest(self):
         """Make sure that the queries generated in SQLAlchemy are the same as
         those precompiled into SQLite.
 
         """
-        from gorm.alchemy import Alchemist
-        self.assertTrue(hasattr(self.engine.db, 'alchemist'))
-        self.assertTrue(isinstance(self.engine.db.alchemist, Alchemist))
+        from allegedb.alchemy import Alchemist
+        self.assertTrue(hasattr(self.engine.query, 'alchemist'))
+        self.assertTrue(isinstance(self.engine.query.alchemist, Alchemist))
         from json import load
-        with open(self.engine.db.json_path + '/sqlite.json', 'r') as jsonfile:
+        with open(self.engine.query.json_path + '/sqlite.json', 'r') as jsonfile:
             precompiled = load(jsonfile)
         self.assertEqual(
-            precompiled.keys(), self.engine.db.alchemist.sql.keys()
+            precompiled.keys(), self.engine.query.alchemist.sql.keys()
         )
         for (k, query) in precompiled.items():
             self.assertEqual(
                 query,
                 str(
-                    self.engine.db.alchemist.sql[k]
+                    self.engine.query.alchemist.sql[k]
                 )
             )
 

@@ -251,8 +251,8 @@ class StructuredDefaultDict(dict):
 
 
 class Cache(object):
-    def __init__(self, gorm):
-        self.gorm = gorm
+    def __init__(self, db):
+        self.db = db
         self.parents = StructuredDefaultDict(3, FuturistWindowDict)
         self.keys = StructuredDefaultDict(2, FuturistWindowDict)
         self.keycache = {}
@@ -265,7 +265,7 @@ class Cache(object):
         if keycache_key in self.keycache:
             return
         kc = FuturistWindowDict()
-        for (b, r) in self.gorm._active_branches():
+        for (b, r) in self.db._active_branches():
             other_branch_key = parentity + (b,)
             if other_branch_key in self.keycache and r in self.keycache[other_branch_key]:
                 kc[rev] = self.keycache[other_branch_key][r].copy()
@@ -311,7 +311,7 @@ class Cache(object):
         entity = args[:-3]
         key, branch, rev = args[-3:]
         if rev not in self.shallow[entity+(key, branch)]:
-            for (b, r) in self.gorm._active_branches(branch, rev):
+            for (b, r) in self.db._active_branches(branch, rev):
                 if b in self.branches[entity+(key,)]:
                     v = self.branches[entity+(key,)][b][r]
                     self.store(*entity+(key, branch, rev, v))
@@ -369,8 +369,8 @@ class NodesCache(Cache):
 
 
 class EdgesCache(Cache):
-    def __init__(self, gorm):
-        Cache.__init__(self, gorm)
+    def __init__(self, db):
+        Cache.__init__(self, db)
         self.predecessors = StructuredDefaultDict(3, FuturistWindowDict)
 
     def store(self, graph, nodeA, nodeB, idx, branch, rev, ex):
