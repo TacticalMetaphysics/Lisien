@@ -194,7 +194,7 @@ class FunctionStore(MutableMapping):
         self._tab = table
         self._listeners = defaultdict(list)
         self.cache = {}
-        self.engine.db.init_func_table(table)
+        self.engine.query.init_func_table(table)
 
     def _dispatch(self, name, fun):
         """Call listeners to functions generally and to the named function in
@@ -354,14 +354,14 @@ class UniversalMapping(MutableMapping):
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
         (branch, tick) = self.engine.time
-        self.engine.db.universal_set(k, branch, tick, v)
+        self.engine.query.universal_set(k, branch, tick, v)
         self.engine._universal_cache.store(k, branch, tick, v)
         self._dispatch(k, v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
         branch, tick = self.engine.time
-        self.engine.db.universal_del(k, branch, tick)
+        self.engine.query.universal_del(k, branch, tick)
         self.engine._universal_cache.store(k, branch, tick, None)
         self._dispatch(k, None)
 
@@ -402,13 +402,13 @@ class CharacterMapping(MutableMapping):
 
     def __iter__(self):
         """Iterate over every character name."""
-        return self.engine.db.characters()
+        return self.engine.query.characters()
 
     def __contains__(self, name):
         """Has this character been created?"""
         if name in self.engine._char_objs:
             return True
-        return self.engine.db.have_character(name)
+        return self.engine.query.have_character(name)
 
     def __len__(self):
         """How many characters have been created?"""
@@ -444,7 +444,7 @@ class CharacterMapping(MutableMapping):
         """Delete the named character from both the cache and the database."""
         if name in self.engine._char_objs:
             del self.engine._char_objs[name]
-        self.engine.db.del_character(name)
+        self.engine.query.del_character(name)
         self._dispatch(name, None)
 
 

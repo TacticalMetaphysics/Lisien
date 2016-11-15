@@ -6,7 +6,7 @@ ordinary method calls.
 """
 from collections import defaultdict
 from importlib import import_module
-from gorm.xjson import (
+from allegedb.xjson import (
     JSONReWrapper,
     JSONListReWrapper
 )

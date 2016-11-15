@@ -1,5 +1,5 @@
 from collections import defaultdict
-from gorm.cache import Cache, PickyDefaultDict, StructuredDefaultDict, FuturistWindowDict
+from allegedb.cache import Cache, PickyDefaultDict, StructuredDefaultDict, FuturistWindowDict
 from .util import singleton_get
 
 
@@ -23,7 +23,7 @@ class AvatarnessCache(Cache):
 
     def _forward_branch(self, map, key, branch, tick, copy=True):
         if branch not in map[key]:
-            for b, t in self.gorm._active_branches():
+            for b, t in self.db._active_branches():
                 if b in map[key]:
                     map[key][branch][tick] = map[key][b][t].copy() if copy else map[key][b][t]
                     break
@@ -107,7 +107,7 @@ class AvatarnessCache(Cache):
             return
         for character in self.user_order[graph][node]:
             if (graph, node, character, branch) not in self.user_shallow:
-                for (b, t) in self.gorm._active_branches():
+                for (b, t) in self.allegedb._active_branches():
                     if b in self.user_order[graph][node][character]:
                         isav = self.user_order[graph][node][character][b][t]
                         self.store(character, graph, node, b, t, isav)

@@ -2,6 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Proxy objects to access LiSE entities from another process."""
 import sys
+import syslog
 import logging
 from os import getpid
 from collections import (
@@ -15,9 +16,9 @@ from queue import Empty
 
 from .engine import AbstractEngine
 from .character import Facade
-from gorm.xjson import JSONReWrapper, JSONListReWrapper
+from allegedb.xjson import JSONReWrapper, JSONListReWrapper
 from .util import reify
-from gorm.cache import PickyDefaultDict, StructuredDefaultDict
+from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 """Proxy objects to make LiSE usable when launched in a subprocess,
@@ -2007,22 +2008,19 @@ def subprocess(
     def log(typ, data):
         if typ == 'command':
             (cmd, kvs) = data
-            logq.put((
-                'debug',
-                "LiSE proc {}: calling {}({})".format(
-                    getpid(),
-                    cmd,
-                    ",  ".join("{}={}".format(k,  v) for k,  v in kvs.items())
-                )
-            ))
+            logs = "LiSE proc {}: calling {}({})".format(
+                getpid(),
+                cmd,
+                ",  ".join("{}={}".format(k,  v) for k,  v in kvs.items())
+            )
         else:
-            logq.put((
-                'debug',
-                "LiSE proc {}: returning {} (of type {})".format(
-                    getpid(),
-                    data,
-                    repr(type(data)))
-            ))
+            logs = "LiSE proc {}: returning {} (of type {})".format(
+                getpid(),
+                data,
+                repr(type(data))
+            )
+        logq.put(('debug', logs))
+        syslog.syslog(logs)
     engine_handle = EngineHandle(args, kwargs, logq)
 
     while True:
@@ -2132,6 +2130,7 @@ class EngineProcessManager(object):
             try:
                 (level, message) = self.logq.get(block=block)
                 getattr(self.logger, level)(message)
+                print(message)
                 n += 1
             except Empty:
                 return

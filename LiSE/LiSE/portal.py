@@ -2,7 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Directed edges, as used by LiSE."""
 
-from gorm.graph import Edge
+from allegedb.graph import Edge
 
 from .exc import CacheError
 from .util import getatt
@@ -89,7 +89,7 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
 
     @property
     def _dispatch_cache(self):
-        return self.gorm._edge_val_cache[self.character.name][self.nodeA][self.nodeB][0]
+        return self.db._edge_val_cache[self.character.name][self.nodeA][self.nodeB][0]
 
     @property
     def character(self):
@@ -97,7 +97,7 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
 
     @property
     def engine(self):
-        return self.gorm
+        return self.db
 
     def __getitem__(self, key):
         """Get the present value of the key.

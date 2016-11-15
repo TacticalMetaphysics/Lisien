@@ -2,7 +2,7 @@ import unittest
 import re
 from functools import reduce
 from collections import defaultdict
-from gorm.cache import StructuredDefaultDict, WindowDict
+from allegedb.cache import StructuredDefaultDict, WindowDict
 from LiSE.engine import Engine
 from LiSE.examples import college as sim
 
@@ -84,7 +84,7 @@ class SimTest(TestCase):
                 character_place_rulebook,
                 character_node_rulebook,
                 character_portal_rulebook
-        ) in self.engine.db.characters_rulebooks():
+        ) in self.engine.query.characters_rulebooks():
             charrb[character] = {
                 'character': character_rulebook,
                 'avatar': avatar_rulebook,
@@ -100,7 +100,7 @@ class SimTest(TestCase):
 
     def testNodeRulebooksCache(self):
         noderb = defaultdict(dict)
-        for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
+        for (character, node, rulebook) in self.engine.query.nodes_rulebooks():
             noderb[character][node] = rulebook
         self.assertDictEqual(
             noderb,
@@ -109,7 +109,7 @@ class SimTest(TestCase):
 
     def testPortalRulebooksCache(self):
         portrb = StructuredDefaultDict(1, dict)
-        for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
+        for (character, nodeA, nodeB, rulebook) in self.engine.query.portals_rulebooks():
             portrb[character][nodeA][nodeB] = rulebook
         self.assertDictEqual(
             portrb,
@@ -118,7 +118,7 @@ class SimTest(TestCase):
 
     def testAvatarnessCaches(self):
         user_avatarness = StructuredDefaultDict(3, WindowDict)
-        for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
+        for (character, graph, node, branch, tick, is_avatar) in self.engine.query.avatarness_dump():
             user_avatarness[graph][node][character][branch][tick] = is_avatar
         new_user_avatarness = StructuredDefaultDict(3, WindowDict)
         usr = self.engine._avatarness_cache.user_order
@@ -165,7 +165,7 @@ class SimTest(TestCase):
                                 char][node][rulebook][rule] \
                                 = cache[char][node][rulebook][rule]
         for character, node, rulebook, rule, branch, tick in \
-                self.engine.db.dump_node_rules_handled():
+                self.engine.query.dump_node_rules_handled():
             node_rules_handled_ticks[
                 character][node][rulebook][rule][branch].add(tick)
         self.assertDictEqual(
@@ -210,7 +210,7 @@ class SimTest(TestCase):
                                     = cache[character][nodeA][nodeB][
                                         rulebook][rule]
         for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
-                in self.engine.db.dump_portal_rules_handled():
+                in self.engine.query.dump_portal_rules_handled():
             portal_rules_handled_ticks[
                 character][nodeA][nodeB][rulebook][rule][branch].add(tick)
         self.assertDictEqual(
@@ -229,7 +229,7 @@ class SimTest(TestCase):
         ]:
             handled_ticks = StructuredDefaultDict(2, set)
             for character, rulebook, rule, branch, tick in getattr(
-                    self.engine.db, 'handled_{}_rules'.format(rulemap)
+                    self.engine.query, 'handled_{}_rules'.format(rulemap)
             )():
                 handled_ticks[character][rule][branch].add(tick)
             old_handled_ticks = StructuredDefaultDict(2, set)
@@ -248,7 +248,7 @@ class SimTest(TestCase):
     def testThingsCache(self):
         things = StructuredDefaultDict(3, tuple)
         for (character, thing, branch, tick, loc, nextloc) in \
-                self.engine.db.things_dump():
+                self.engine.query.things_dump():
             things[(character,)][thing][branch][tick] = (loc, nextloc)
         self.assertDictEqual(
             things,

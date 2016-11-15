@@ -10,7 +10,7 @@ from collections import Mapping
 
 from networkx import shortest_path, shortest_path_length
 
-import gorm.graph
+import allegedb.graph
 
 from .util import getatt
 from .query import StatusAlias
@@ -92,7 +92,7 @@ class UserMapping(Mapping):
                 return getattr(me, attr)
 
 
-class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
+class Node(allegedb.graph.Node, rule.RuleFollower, TimeDispatcher):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
 
@@ -101,7 +101,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
-    __slots__ = ['user', 'graph', 'gorm', 'node', '_getitem_dispatch', '_setitem_dispatch']
+    __slots__ = ['user', 'graph', 'db', 'node', '_getitem_dispatch', '_setitem_dispatch']
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -150,7 +150,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     @property
     def engine(self):
-        return self.gorm
+        return self.db
 
     @property
     def character(self):
@@ -164,7 +164,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
         """Store character and name, and initialize caches"""
         self.user = UserMapping(self)
         self.graph = character
-        self.gorm = character.engine
+        self.db = character.engine
         self.node = name
 
     def __iter__(self):
@@ -192,7 +192,7 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        yield from self.engine._edges_cache.iter_entities(self.character.name, self.name, *self.engine.time)
+        yield from self.db._edges_cache.iter_entities(self.character.name, self.name, *self.engine.time)
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""

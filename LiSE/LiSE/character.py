@@ -33,13 +33,13 @@ from operator import ge, gt, le, lt, eq
 from math import floor
 
 import networkx as nx
-from gorm.graph import (
+from allegedb.graph import (
     DiGraph,
     GraphNodeMapping,
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from gorm.cache import FuturistWindowDict, PickyDefaultDict
+from allegedb.cache import FuturistWindowDict, PickyDefaultDict
 
 from .xcollections import CompositeDict
 from .bind import TimeDispatcher
@@ -697,7 +697,7 @@ class CharacterSense(object):
     @property
     def func(self):
         """Return the function most recently associated with this sense."""
-        fn = self.engine.db.sense_func_get(
+        fn = self.engine.query.sense_func_get(
             self.observer.name,
             self.sensename,
             *self.engine.time
@@ -736,7 +736,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
 
     def __iter__(self):
         """Iterate over active sense names."""
-        yield from self.engine.db.sense_active_items(
+        yield from self.engine.query.sense_active_items(
             self.character.name, *self.engine.time
         )
 
@@ -749,7 +749,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
 
     def __getitem__(self, k):
         """Get a :class:`CharacterSense` named ``k`` if it exists."""
-        if not self.engine.db.sense_is_active(
+        if not self.engine.query.sense_is_active(
                 self.character.name,
                 k,
                 *self.engine.time
@@ -768,7 +768,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
                 raise TypeError("Not a function")
             self.engine.sense[funn] = v
         (branch, tick) = self.engine.time
-        self.engine.db.sense_fun_set(
+        self.engine.query.sense_fun_set(
             self.character.name,
             k,
             branch,
@@ -781,7 +781,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
     def __delitem__(self, k):
         """Stop having the given sense."""
         (branch, tick) = self.engine.time
-        self.engine.db.sense_set(
+        self.engine.query.sense_set(
             self.character.name,
             k,
             branch,
@@ -1216,7 +1216,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 d[mapp] = rulebook.name \
                     if isinstance(rulebook, RuleBook) \
                     else rulebook
-        self.engine.db.init_character(
+        self.engine.query.init_character(
             self.name,
             **d
         )
@@ -1359,11 +1359,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             return repr(dict(self))
 
     class ThingPlaceMapping(GraphNodeMapping, RuleFollower):
-        """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
+        """Replacement for allegedb's GraphNodeMapping that does Place and Thing"""
         _book = "character_node"
 
         graph = getatt('character')
-        engine = gorm = getatt('character.engine')
+        engine = allegedb = getatt('character.engine')
         name = getatt('character.name')
 
         def __init__(self, character):

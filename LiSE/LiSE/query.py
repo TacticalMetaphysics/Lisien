@@ -7,7 +7,7 @@ from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from operator import gt, lt, eq, ne, le, ge
 
-import gorm.query
+import allegedb.query
 
 from .exc import (
     IntegrityError,
@@ -393,7 +393,7 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             )
 
 
-class QueryEngine(gorm.query.QueryEngine):
+class QueryEngine(allegedb.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
@@ -1661,7 +1661,7 @@ class QueryEngine(gorm.query.QueryEngine):
             yield from self.branch_descendants(child)
 
     def initdb(self):
-        """Set up the database schema, both for gorm and the special
+        """Set up the database schema, both for allegedb and the special
         extensions for LiSE
 
         """
