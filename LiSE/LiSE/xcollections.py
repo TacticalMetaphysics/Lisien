@@ -41,15 +41,15 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = ['db', 'table', '_language', '_lang_listeners', 'cache', '_str_listeners']
+    __slots__ = ['query', 'table', '_language', '_lang_listeners', 'cache', '_str_listeners']
 
-    def __init__(self, qe, table='strings', lang='eng'):
+    def __init__(self, query, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
-        self.db = qe
-        self.db.init_string_table(table)
+        self.query = query
+        self.query.init_string_table(table)
         self.table = table
         self._language = lang
         self._lang_listeners = []
@@ -97,7 +97,7 @@ class StringStore(MutableMapping):
         return unlistener(self._str_listeners, fun, string)
 
     def commit(self):
-        self.db.commit()
+        self.query.commit()
 
     @property
     def language(self):
@@ -116,7 +116,7 @@ class StringStore(MutableMapping):
         language.
 
         """
-        for (k, v) in self.db.string_table_lang_items(
+        for (k, v) in self.query.string_table_lang_items(
                 self.table, self.language
         ):
             self.cache[k] = v
@@ -124,12 +124,12 @@ class StringStore(MutableMapping):
 
     def __len__(self):
         """"Count strings in the current language."""
-        return self.db.count_all_table(self.table)
+        return self.query.count_all_table(self.table)
 
     def __getitem__(self, k):
         """Get the string and format it with other strings here."""
         if k not in self.cache:
-            v = self.db.string_table_get(
+            v = self.query.string_table_get(
                 self.table, self.language, k
             )
             if v is None:
@@ -140,7 +140,7 @@ class StringStore(MutableMapping):
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
         self.cache[k] = v
-        self.db.string_table_set(self.table, self.language, k, v)
+        self.query.string_table_set(self.table, self.language, k, v)
         self._dispatch_str(k, v)
 
     def __delitem__(self, k):
@@ -149,14 +149,14 @@ class StringStore(MutableMapping):
 
         """
         del self.cache[k]
-        self.db.string_table_del(self.table, self.language, k)
+        self.query.string_table_del(self.table, self.language, k)
         self._dispatch_str(k, None)
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
-        yield from self.db.string_table_lang_items(
+        yield from self.query.string_table_lang_items(
             self.table, lang
         )
 
@@ -181,16 +181,16 @@ class StoredPartial(object):
 
 class FunctionStore(MutableMapping):
     """Store functions in a SQL database"""
-    __slots__ = ['engine', 'db', '_tab', '_listeners', 'cache']
+    __slots__ = ['engine', 'query', '_tab', '_listeners', 'cache']
 
-    def __init__(self, engine, db, table):
+    def __init__(self, engine, query, table):
         """Use ``codedb`` as a connection object. Connect to it, and
         initialize the schema if needed.
 
         """
         self.engine = engine
-        self.db = db
-        self.db.init_table(table)
+        self.query = query
+        self.query.init_table(table)
         self._tab = table
         self._listeners = defaultdict(list)
         self.cache = {}
@@ -216,11 +216,11 @@ class FunctionStore(MutableMapping):
 
     def __len__(self):
         """Return count of all functions here."""
-        return self.db.count_all_table(self._tab)
+        return self.query.count_all_table(self._tab)
 
     def __iter__(self):
         """Iterate over function names in alphabetical order."""
-        for row in self.db.func_table_iter(self._tab):
+        for row in self.query.func_table_iter(self._tab):
             yield row[0]
 
     def __contains__(self, name):
@@ -229,7 +229,7 @@ class FunctionStore(MutableMapping):
             return False
         if name in self.cache:
             return True
-        return self.db.func_table_contains(self._tab, name)
+        return self.query.func_table_contains(self._tab, name)
 
     def __getitem__(self, name):
         """Reconstruct the named function from its code string stored in the
@@ -238,11 +238,11 @@ class FunctionStore(MutableMapping):
         """
         if name not in self.cache:
             try:
-                self.cache[name] = self.db.func_table_get(self._tab, name)
+                self.cache[name] = self.query.func_table_get(self._tab, name)
             except KeyError:
-                d = self.db.func_table_get_all(self._tab, name)
+                d = self.query.func_table_get_all(self._tab, name)
                 if d['base'] not in self.cache:
-                    self.cache[name] = self.db.func_table_get(self._tab, name)
+                    self.cache[name] = self.query.func_table_get(self._tab, name)
                 kwargs = self.engine.json_load(name[len(d['base']):])
                 self.cache[name] = StoredPartial(self, d['base'], **kwargs)
         return self.cache[name]
@@ -258,14 +258,14 @@ class FunctionStore(MutableMapping):
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
-        self.db.func_table_set(self._tab, fun.__name__, fun)
+        self.query.func_table_set(self._tab, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
         return fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
-        self.db.func_table_set(self._tab, name, fun)
+        self.query.func_table_set(self._tab, name, fun)
         self.cache[name] = fun
         self._dispatch(name, fun)
 
@@ -276,31 +276,31 @@ class FunctionStore(MutableMapping):
         were set to ``None``.
 
         """
-        self.db.func_table_del(self._tab, name)
+        self.query.func_table_del(self._tab, name)
         del self.cache[name]
         self._dispatch(name, None)
 
     def plain(self, k):
         """Return the plain source code of the function."""
-        return self.db.func_table_get_plain(self._tab, k)
+        return self.query.func_table_get_plain(self._tab, k)
 
     def iterplain(self):
         """Iterate over (name, source) where source is in plaintext, not
         bytecode.
 
         """
-        yield from self.db.func_table_name_plaincode(self._tab)
+        yield from self.query.func_table_name_plaincode(self._tab)
 
     def commit(self):
         """Tell my ``QueryEngine`` to commit."""
-        self.db.commit()
+        self.query.commit()
 
     def set_source(self, func_name, source):
         """Set the plain, uncompiled source code of ``func_name`` to
         ``source``.
 
         """
-        self.db.func_table_set_source(
+        self.query.func_table_set_source(
             self._tab,
             func_name,
             source

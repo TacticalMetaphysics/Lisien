@@ -926,7 +926,7 @@ class EngineHandle(object):
 
     def get_node_rulebook(self, char, node):
         try:
-            return self._real.db.node_rulebook(char, node)
+            return self._real.query.node_rulebook(char, node)
         except KeyError:
             return None
 

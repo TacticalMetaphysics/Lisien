@@ -227,7 +227,7 @@ class Engine(AbstractEngine, gORM):
                             "{}->{} in character {}".format(
                                 origin, destination, character
                             ))
-        self.rule.db.rulebook_del_all(rulebook)
+        self.rule.query.rulebook_del_all(rulebook)
         del self._rulebooks_cache._data[rulebook]
 
     def _set_character_rulebook(self, character, which, rulebook):
@@ -363,15 +363,15 @@ class Engine(AbstractEngine, gORM):
         self._character_portal_rules_handled_cache = CharacterRulesHandledCache(self)
         self._things_cache = ThingsCache(self)
         self._avatarness_cache = AvatarnessCache(self)
-        for row in self.rule.db.universal_dump():
+        for row in self.rule.query.universal_dump():
             self._universal_cache.store(*row)
-        for row in self.rule.db.rulebooks_rules():
+        for row in self.rule.query.rulebooks_rules():
             self._rulebooks_cache.store(*row)
-        for row in self.rule.db.characters_rulebooks():
+        for row in self.rule.query.characters_rulebooks():
             self._characters_rulebooks_cache.store(*row)
-        for row in self.rule.db.nodes_rulebooks():
+        for row in self.rule.query.nodes_rulebooks():
             self._nodes_rulebooks_cache.store(*row)
-        for row in self.rule.db.portals_rulebooks():
+        for row in self.rule.query.portals_rulebooks():
             self._portals_rulebooks_cache.store(*row)
         # note the use of the world DB, not the code DB
         for row in self.query.dump_active_rules():

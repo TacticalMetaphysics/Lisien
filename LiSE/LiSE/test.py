@@ -64,7 +64,7 @@ class SimTest(TestCase):
 
     def testRulebooksCache(self):
         rulebooks = defaultdict(list)
-        for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
+        for (rulebook, rule) in self.engine.rule.query.rulebooks_rules():
             rulebooks[rulebook].append(rule)
         # Ignoring empty rulebooks because those only exist
         # implicitly, they don't have database records
