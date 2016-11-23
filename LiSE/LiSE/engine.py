@@ -192,8 +192,8 @@ class Engine(AbstractEngine, gORM):
     """
     char_cls = Character
     thing_cls = Thing
-    place_cls = Place
-    portal_cls = Portal
+    place_cls = node_class = Place
+    portal_cls = edge_cls = Portal
 
     def _del_rulebook(self, rulebook):
         for (character, character_rulebooks) in \

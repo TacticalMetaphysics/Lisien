@@ -6,6 +6,8 @@ from .graph import (
     DiGraph,
     MultiGraph,
     MultiDiGraph,
+    Node,
+    Edge
 )
 from .query import QueryEngine
 from .cache import Cache, NodesCache, EdgesCache
@@ -21,6 +23,9 @@ class ORM(object):
     gorm.
 
     """
+    node_cls = Node
+    edge_cls = Edge
+
     def __init__(
             self,
             dbstring,
@@ -43,6 +48,8 @@ class ORM(object):
         if caching:
             self.caching = True
             self._global_cache = self.query._global_cache = {}
+            self._node_objs = {}
+            self._edge_objs = {}
             for k, v in self.query.global_items():
                 if k == 'branch':
                     self._obranch = v
@@ -81,18 +88,18 @@ class ORM(object):
             self._graph_val_cache = Cache(self)
             for row in self.query.graph_val_dump():
                 self._graph_val_cache.store(*row)
-            self._node_val_cache = Cache(self)
-            for row in self.query.node_val_dump():
-                self._node_val_cache.store(*row)
             self._nodes_cache = NodesCache(self)
             for row in self.query.nodes_dump():
                 self._nodes_cache.store(*row)
-            self._edge_val_cache = Cache(self)
-            for row in self.query.edge_val_dump():
-                self._edge_val_cache.store(*row)
             self._edges_cache = EdgesCache(self)
             for row in self.query.edges_dump():
                 self._edges_cache.store(*row)
+            self._node_val_cache = Cache(self)
+            for row in self.query.node_val_dump():
+                self._node_val_cache.store(*row)
+            self._edge_val_cache = Cache(self)
+            for row in self.query.edge_val_dump():
+                self._edge_val_cache.store(*row)
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
