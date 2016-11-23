@@ -17,3 +17,5 @@ elide.ini
 *.so
 *.csv
 ELiDE/LiSE
+ELiDE/allegedb
+LiSE/allegedb
