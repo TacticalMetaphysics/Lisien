@@ -305,6 +305,9 @@ class Engine(AbstractEngine, gORM):
         set up listeners; and start a transaction
 
         """
+        self._char_objs = {}
+        self._node_objs = {}
+        self._portal_objs = {}
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
@@ -344,9 +347,6 @@ class Engine(AbstractEngine, gORM):
         self.string = StringStore(self._code_qe)
         self.character = CharacterMapping(self)
         # set up caches
-        self._char_objs = {}
-        self._node_objs = {}
-        self._portal_objs = {}
         self._universal_cache = UniversalCache(self)
         self._rulebooks_cache = RulebooksCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
