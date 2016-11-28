@@ -385,8 +385,8 @@ class GraphNodeMapping(NeatMapping):
     def __getitem__(self, node):
         """If the node exists at present, return it, else throw KeyError"""
         if node not in self:
-            raise KeyError("Node doesn't exist")
-        return Node(self.graph, node)
+            raise KeyError
+        return self.db._node_objs[(self.graph.name, node)]
 
     def __setitem__(self, node, dikt):
         """Only accept dict-like values for assignment. These are taken to be
@@ -401,7 +401,7 @@ class GraphNodeMapping(NeatMapping):
             self.db.rev,
             True
         )
-        n = Node(self.graph, node)
+        n = self.db._node_objs[(self.graph.name, node)]
         n.clear()
         n.update(dikt)
         if self.db.caching:
