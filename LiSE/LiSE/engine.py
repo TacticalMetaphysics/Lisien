@@ -193,7 +193,7 @@ class Engine(AbstractEngine, gORM):
     char_cls = Character
     thing_cls = Thing
     place_cls = node_cls = Place
-    portal_cls = edge_cls = Portal
+    portal_cls = edge_cls = _make_edge = Portal
 
     def _make_node(self, char, node):
         if self._is_thing(char, node):
