@@ -955,7 +955,8 @@ class Engine(AbstractEngine, gORM):
 
     def entityfy(self, v, stat='dummy'):
         if (
-                isinstance(v, Node) or
+                isinstance(v, Thing) or
+                isinstance(v, Place) or
                 isinstance(v, Portal) or
                 isinstance(v, Query) or
                 isinstance(v, EntityStatAccessor)
