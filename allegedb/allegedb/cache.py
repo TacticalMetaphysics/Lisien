@@ -366,7 +366,7 @@ class NodesCache(Cache):
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
-            self.db._node_objs[(graph, node)] = self.db.node_cls(self.db.graph[graph], node)
+            self.db._node_objs[(graph, node)] = self.db._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, rev, ex)
 
 
@@ -380,6 +380,6 @@ class EdgesCache(Cache):
             ex = None
         if (graph, nodeA, nodeB, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, nodeA, nodeB, idx)] \
-                = self.db.edge_cls(self.db.graph[graph], nodeA, nodeB, idx)
+                = self.db._make_edge(self.db.graph[graph], nodeA, nodeB, idx)
         Cache.store(self, graph, nodeA, nodeB, idx, branch, rev, ex)
         self.predecessors[(graph, nodeB)][nodeA][idx][branch][rev] = ex

@@ -23,8 +23,8 @@ class ORM(object):
     gorm.
 
     """
-    node_cls = Node
-    edge_cls = Edge
+    node_cls = _make_node = Node
+    edge_cls = _make_edge = Edge
 
     def __init__(
             self,
