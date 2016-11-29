@@ -314,6 +314,8 @@ class Engine(AbstractEngine, gORM):
         self._char_objs = {}
         self._node_objs = {}
         self._portal_objs = {}
+        self._things_cache = ThingsCache(self)
+        self.character = self.graph = CharacterMapping(self)
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
@@ -351,8 +353,7 @@ class Engine(AbstractEngine, gORM):
         self.rule = AllRules(self, self._code_qe)
         self.rulebook = AllRuleBooks(self, self._code_qe)
         self.string = StringStore(self._code_qe)
-        self.character = CharacterMapping(self)
-        # set up caches
+        # load data
         self._universal_cache = UniversalCache(self)
         self._rulebooks_cache = RulebooksCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
@@ -367,7 +368,6 @@ class Engine(AbstractEngine, gORM):
         self._character_place_rules_handled_cache = CharacterRulesHandledCache(self)
         self._character_node_rules_handled_cache = CharacterRulesHandledCache(self)
         self._character_portal_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._things_cache = ThingsCache(self)
         self._avatarness_cache = AvatarnessCache(self)
         for row in self.rule.query.universal_dump():
             self._universal_cache.store(*row)

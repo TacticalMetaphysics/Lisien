@@ -63,7 +63,13 @@ class ORM(object):
                 if branch != 'master':
                     self._parentbranch_rev[branch] = (parent, parent_rev)
                 self._childbranch[parent].add(branch)
-            self.graph = {}
+            if not hasattr(self, 'graph'):
+                self.graph = {}
+            self._graph_val_cache = Cache(self)
+            self._nodes_cache = NodesCache(self)
+            self._edges_cache = EdgesCache(self)
+            self._node_val_cache = Cache(self)
+            self._edge_val_cache = Cache(self)
             for (graph, typ) in self.query.graphs_types():
                 self.graph[graph] = {
                     'Graph': Graph,
@@ -85,19 +91,14 @@ class ORM(object):
                     self._childbranch[parent].add(branch)
                 else:
                     todo.append(working)
-            self._graph_val_cache = Cache(self)
             for row in self.query.graph_val_dump():
                 self._graph_val_cache.store(*row)
-            self._nodes_cache = NodesCache(self)
             for row in self.query.nodes_dump():
                 self._nodes_cache.store(*row)
-            self._edges_cache = EdgesCache(self)
             for row in self.query.edges_dump():
                 self._edges_cache.store(*row)
-            self._node_val_cache = Cache(self)
             for row in self.query.node_val_dump():
                 self._node_val_cache.store(*row)
-            self._edge_val_cache = Cache(self)
             for row in self.query.edge_val_dump():
                 self._edge_val_cache.store(*row)
 
