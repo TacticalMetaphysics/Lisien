@@ -1032,6 +1032,10 @@ class AllegedGraph(object):
         if self._name not in self._statmaps:
             self._statmaps[self._name] = GraphMapping(self)
         return self._statmaps[self._name]
+    @graph.setter
+    def graph(self, v):
+        self.graph.clear()
+        self.graph.update(v)
 
     _nodemaps = {}
     @property
@@ -1039,6 +1043,35 @@ class AllegedGraph(object):
         if self._name not in self._nodemaps:
             self._nodemaps[self._name] = GraphNodeMapping(self)
         return self._nodemaps[self._name]
+    @node.setter
+    def node(self, v):
+        self.node.clear()
+        self.node.update(v)
+
+    _succmaps = {}
+    @property
+    def adj(self):
+        if self._name not in self._succmaps:
+            self._succmaps[self._name] = self.adj_cls(self)
+        return self._succmaps[self._name]
+    @adj.setter
+    def adj(self, v):
+        self.adj.clear()
+        self.adj.update(v)
+    edge = succ = adj
+
+    _predmaps = {}
+    @property
+    def pred(self):
+        if not hasattr(self, 'pred_cls'):
+            raise TypeError("Undirected graph")
+        if self._name not in self._predmaps:
+            self._predmaps[self._name] = self.pred_cls(self)
+        return self._predmaps[self._name]
+    @pred.setter
+    def pred(self, v):
+        self.pred.clear()
+        self.pred.update(v)
 
     def nodes(self):
         if self.db.caching:
@@ -1091,12 +1124,7 @@ class Graph(AllegedGraph, networkx.Graph):
     database.
 
     """
-    @property
-    def adj(self):
-        if self._name not in self._succs:
-            self._succs[self._name] = GraphSuccessorsMapping(self)
-        return self._succs[self._name]
-    edge = adj
+    adj_cls = GraphSuccessorsMapping
     
     def __init__(self, db, name, data=None, **attr):
         self._name = name
@@ -1111,18 +1139,8 @@ class DiGraph(AllegedGraph, networkx.DiGraph):
     database.
 
     """
-    @property
-    def adj(self):
-        if self._name not in self._succs:
-            self._succs[self._name] = DiGraphPredecessorsMapping(self)
-        return self._succs[self._name]
-    edge = succ = adj
-
-    _preds = {}
-    @property
-    def pred(self):
-        if self._name not in self._preds:
-            self._preds[self._name] = DiGraphPredecessorsMapping(self)
+    adj_cls = DiGraphSuccessorsMapping
+    pred_cls = DiGraphPredecessorsMapping
 
     def __init__(self, db, name, data=None, **attr):
         self._name = name
@@ -1218,12 +1236,7 @@ class MultiGraph(AllegedGraph, networkx.MultiGraph):
     database.
 
     """
-    @property
-    def adj(self):
-        if self._name not in self._succs:
-            self._succs[self._name] = MultiGraphSuccessorsMapping(self)
-        return self._succs[self._name]
-    edge = adj
+    adj_cls = MultiGraphSuccessorsMapping
 
     def __init__(self, db, name, data=None, **attr):
         self.db = db
@@ -1238,19 +1251,8 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
     database.
 
     """
-    @property
-    def adj(self):
-        if self._name not in self._succs:
-            self._succs[self._name] = MultiGraphSuccessorsMapping(self)
-        return self._succs[self._name]
-    edge = succ = adj
-
-    _preds = {}
-    @property
-    def pred(self):
-        if self._name not in self._preds:
-            self._preds[self._name] = MultiDiGraphPredecessorsMapping(self)
-        return self._preds[self._name]
+    adj_cls = MultiGraphSuccessorsMapping
+    pred_cls = MultiDiGraphPredecessorsMapping
 
     def __init__(self, db, name, data=None, **attr):
         self.db = db
