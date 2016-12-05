@@ -1,10 +1,10 @@
 import unittest
-import LiSE
 import re
-from collections import defaultdict
 from functools import reduce
-from LiSE.engine import crhandled_defaultdict
-from examples import college as sim
+from collections import defaultdict
+from allegedb.cache import StructuredDefaultDict, WindowDict
+from LiSE.engine import Engine
+from LiSE.examples import college as sim
 
 
 def deepDictDiffIter(d0, d1, lvl=0):
@@ -40,14 +40,19 @@ class TestCase(unittest.TestCase):
             ))
 
 
-class LiSETest(TestCase):
+class SimTest(TestCase):
+    maxDiff = None
     def setUp(self):
         """Start an engine, install the sim module, and run it a while.
 
         This gives us some world-state to test upon.
 
         """
-        self.engine = LiSE.Engine(":memory:")
+        from logging import getLogger, FileHandler
+        self.engine = Engine(":memory:")
+        logger = getLogger('LiSE.engine')
+        logger.setLevel('DEBUG')
+        logger.addHandler(FileHandler('test.log'))
         sim.install(self.engine)
         for i in range(72):
             self.engine.next_tick()
@@ -59,14 +64,14 @@ class LiSETest(TestCase):
 
     def testRulebooksCache(self):
         rulebooks = defaultdict(list)
-        for (rulebook, rule) in self.engine.rule.db.rulebooks_rules():
+        for (rulebook, rule) in self.engine.rule.query.rulebooks_rules():
             rulebooks[rulebook].append(rule)
         # Ignoring empty rulebooks because those only exist
         # implicitly, they don't have database records
         oldrulebooks = {}
-        for (k, v) in self.engine._rulebooks_cache.items():
+        for (k, v) in self.engine._rulebooks_cache._data.items():
             if v:
-                oldrulebooks[k] = v
+                oldrulebooks[k] = [rule.name for rule in v]
         self.assertDictEqual(oldrulebooks, rulebooks)
 
     def testCharRulebooksCaches(self):
@@ -79,7 +84,7 @@ class LiSETest(TestCase):
                 character_place_rulebook,
                 character_node_rulebook,
                 character_portal_rulebook
-        ) in self.engine.db.characters_rulebooks():
+        ) in self.engine.query.characters_rulebooks():
             charrb[character] = {
                 'character': character_rulebook,
                 'avatar': avatar_rulebook,
@@ -90,109 +95,43 @@ class LiSETest(TestCase):
             }
         self.assertDictEqual(
             charrb,
-            self.engine._characters_rulebooks_cache
+            self.engine._characters_rulebooks_cache._data
         )
 
     def testNodeRulebooksCache(self):
         noderb = defaultdict(dict)
-        for (character, node, rulebook) in self.engine.db.nodes_rulebooks():
+        for (character, node, rulebook) in self.engine.query.nodes_rulebooks():
             noderb[character][node] = rulebook
         self.assertDictEqual(
             noderb,
-            self.engine._nodes_rulebooks_cache
+            self.engine._nodes_rulebooks_cache._data
         )
 
     def testPortalRulebooksCache(self):
-        portrb = defaultdict(
-            lambda: defaultdict(dict)
-        )
-        for (character, nodeA, nodeB, rulebook) in self.engine.db.portals_rulebooks():
+        portrb = StructuredDefaultDict(1, dict)
+        for (character, nodeA, nodeB, rulebook) in self.engine.query.portals_rulebooks():
             portrb[character][nodeA][nodeB] = rulebook
         self.assertDictEqual(
             portrb,
-            self.engine._portals_rulebooks_cache
+            self.engine._portals_rulebooks_cache._data
         )
 
     def testAvatarnessCaches(self):
-        db_avatarness = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
-                )
-            )
-        )
-        user_avatarness = defaultdict(  # graph:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # character:
-                    lambda: defaultdict(  # branch:
-                        dict  # tick: is_avatar
-                    )
-                )
-            )
-        )
-        for (character, graph, node, branch, tick, is_avatar) in self.engine.db.avatarness_dump():
-            db_avatarness[character][graph][node][branch][tick] = is_avatar
+        user_avatarness = StructuredDefaultDict(3, WindowDict)
+        for (character, graph, node, branch, tick, is_avatar) in self.engine.query.avatarness_dump():
             user_avatarness[graph][node][character][branch][tick] = is_avatar
-        new_db_avatarness = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    dict
-                )
-            )
-        )
-        db = self.engine._avatarness_cache.db_order
-        for char in db:
-            for graph in db[char]:
-                for node in db[char][graph]:
-                    if db[char][graph][node]:
-                        new_db_avatarness[char][graph][node] \
-                            = db[char][graph][node]
-        new_user_avatarness = defaultdict(  # graph:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # character:
-                    dict
-                )
-            )
-        )
+        new_user_avatarness = StructuredDefaultDict(3, WindowDict)
         usr = self.engine._avatarness_cache.user_order
         for graph in usr:
             for node in usr[graph]:
                 for char in usr[graph][node]:
                     if usr[graph][node][char]:
-                        new_user_avatarness[graph][node][char] \
-                            = usr[graph][node][char]
-        self.assertDictEqual(
-            db_avatarness,
-            new_db_avatarness
-        )
+                        for branch in usr[graph][node][char]:
+                            for tick, is_avatar in usr[graph][node][char][branch].items():
+                                new_user_avatarness[graph][node][char][branch][tick] = is_avatar
         self.assertDictEqual(
             user_avatarness,
             new_user_avatarness
-        )
-
-    def testActiveRulesCache(self):
-        actrules = defaultdict(  # rulebook:
-            lambda: defaultdict(  # rule:
-                lambda: defaultdict(  # branch:
-                    dict  # tick: active
-                )
-            )
-        )
-        newactrules = defaultdict(dict)
-        cache = self.engine._active_rules_cache
-        for rulebook in cache:
-            for rule in cache[rulebook]:
-                if cache[rulebook][rule]:
-                    newactrules[rulebook][rule] = cache[rulebook][rule]
-        for (
-                rulebook, rule, branch, tick, active
-        ) in self.engine.db.dump_active_rules():
-            actrules[rulebook][rule][branch][tick] = active
-        self.assertDictEqual(
-            actrules,
-            newactrules
         )
 
     def testNodeRulesHandledCache(self):
@@ -216,7 +155,7 @@ class LiSETest(TestCase):
                 )
             )
         )
-        cache = self.engine._node_rules_handled_cache
+        cache = self.engine._node_rules_handled_cache._data
         for char in cache:
             for node in cache[char]:
                 for rulebook in cache[char][node]:
@@ -226,7 +165,7 @@ class LiSETest(TestCase):
                                 char][node][rulebook][rule] \
                                 = cache[char][node][rulebook][rule]
         for character, node, rulebook, rule, branch, tick in \
-                self.engine.db.dump_node_rules_handled():
+                self.engine.query.dump_node_rules_handled():
             node_rules_handled_ticks[
                 character][node][rulebook][rule][branch].add(tick)
         self.assertDictEqual(
@@ -259,7 +198,7 @@ class LiSETest(TestCase):
                 )
             )
         )
-        cache = self.engine._portal_rules_handled_cache
+        cache = self.engine._portal_rules_handled_cache._data
         for character in cache:
             for nodeA in cache[character]:
                 for nodeB in cache[character][nodeA]:
@@ -271,7 +210,7 @@ class LiSETest(TestCase):
                                     = cache[character][nodeA][nodeB][
                                         rulebook][rule]
         for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
-                in self.engine.db.dump_portal_rules_handled():
+                in self.engine.query.dump_portal_rules_handled():
             portal_rules_handled_ticks[
                 character][nodeA][nodeB][rulebook][rule][branch].add(tick)
         self.assertDictEqual(
@@ -280,6 +219,7 @@ class LiSETest(TestCase):
         )
 
     def testCharRulesHandledCaches(self):
+        live = self.engine._character_rules_handled_cache._data
         for rulemap in [
                 'character',
                 'avatar',
@@ -287,20 +227,18 @@ class LiSETest(TestCase):
                 'character_place',
                 'character_portal'
         ]:
-            handled_ticks = crhandled_defaultdict()
+            handled_ticks = StructuredDefaultDict(2, set)
             for character, rulebook, rule, branch, tick in getattr(
-                    self.engine.db, 'handled_{}_rules'.format(rulemap)
+                    self.engine.query, 'handled_{}_rules'.format(rulemap)
             )():
-                handled_ticks[character][rulebook][rule][branch].add(tick)
-            old_handled_ticks = crhandled_defaultdict()
-            live = getattr(
-                self.engine, '_{}_rules_handled_cache'.format(rulemap)
-            )
+                handled_ticks[character][rule][branch].add(tick)
+            old_handled_ticks = StructuredDefaultDict(2, set)
             for character in live:
-                for rulebook in live[character]:
-                    if live[character][rulebook]:
-                        old_handled_ticks[character][rulebook] \
-                            = live[character][rulebook]
+                if live[character][rulemap]:
+                    for rule in live[character][rulemap]:
+                        for branch, ticks in live[character][rulemap][rule].items():
+                            self.assertIsInstance(ticks, set)
+                            old_handled_ticks[character][rule][branch] = ticks
             self.assertDictEqual(
                 old_handled_ticks,
                 handled_ticks,
@@ -308,19 +246,13 @@ class LiSETest(TestCase):
             )
 
     def testThingsCache(self):
-        things = defaultdict(  # character:
-            lambda: defaultdict(  # thing:
-                lambda: defaultdict(  # branch:
-                    dict  # tick: (location, next_location)
-                )
-            )
-        )
+        things = StructuredDefaultDict(3, tuple)
         for (character, thing, branch, tick, loc, nextloc) in \
-                self.engine.db.things_dump():
-            things[character][thing][branch][tick] = (loc, nextloc)
+                self.engine.query.things_dump():
+            things[(character,)][thing][branch][tick] = (loc, nextloc)
         self.assertDictEqual(
             things,
-            self.engine._things_cache
+            self.engine._things_cache.keys
         )
 
     def testRoommateCollisions(self):
@@ -343,8 +275,8 @@ class LiSETest(TestCase):
             ]
             
             same_loc_ticks = list(self.engine.ticks_when(
-                student.avatar.historical('location')
-                == other_student.avatar.historical('location')
+                student.avatar.only.historical('location')
+                == other_student.avatar.only.historical('location')
             ))
             self.assertTrue(
                 same_loc_ticks,
@@ -352,7 +284,7 @@ class LiSETest(TestCase):
                     student.name, other_student.name
                 )
             )
-            self.assertGreaterThan(
+            self.assertGreater(
                 len(same_loc_ticks),
                 6,
                 "{} and {} share their room for less than 6 ticks".format(
@@ -378,8 +310,8 @@ class LiSETest(TestCase):
         def sameClasstime(stu0, stu1):
             self.assertTrue(
                 self.engine.ticks_when(
-                    stu0.avatar.historical('location') ==
-                    stu1.avatar.historical('location') ==
+                    stu0.avatar.only.historical('location') ==
+                    stu1.avatar.only.historical('location') ==
                     self.engine.alias('classroom')
                 ),
                 "{stu0} seems not to have been in the classroom "
@@ -388,8 +320,8 @@ class LiSETest(TestCase):
                 "{stu1} was there at ticks {ticks1}".format(
                     stu0=stu0.name,
                     stu1=stu1.name,
-                    ticks0=list(self.engine.ticks_when(stu0.avatar.historical('location') == self.engine.alias('classroom'))),
-                    ticks1=list(self.engine.ticks_when(stu1.avatar.historical('location') == self.engine.alias('classroom')))
+                    ticks0=list(self.engine.ticks_when(stu0.avatar.only.historical('location') == self.engine.alias('classroom'))),
+                    ticks1=list(self.engine.ticks_when(stu1.avatar.only.historical('location') == self.engine.alias('classroom')))
                 )
             )
             return stu1
@@ -414,8 +346,8 @@ class LiSETest(TestCase):
                         for stu1 in dorm[d][rr].values():
                             self.assertFalse(
                                 self.engine.ticks_when(
-                                    stu0.avatar.historical('location') ==
-                                    stu1.avatar.historical('location') ==
+                                    stu0.avatar.only.historical('location') ==
+                                    stu1.avatar.only.historical('location') ==
                                     self.engine.alias('dorm{}room{}'.format(d, r))
                                 ),
                                 "{} seems to share a room with {}".format(
@@ -428,8 +360,8 @@ class LiSETest(TestCase):
                             for stu1 in dorm[dd][rr].values():
                                 self.assertFalse(
                                     self.engine.ticks_when(
-                                        stu0.avatar.historical('location') ==
-                                        stu1.avatar.historical('location') ==
+                                        stu0.avatar.only.historical('location') ==
+                                        stu1.avatar.only.historical('location') ==
                                         self.engine.alias(common)
                                     ),
                                     "{} seems to have been in the same"
@@ -437,6 +369,7 @@ class LiSETest(TestCase):
                                         stu0.name, stu1.name
                                     )
                                 )
+
 
 if __name__ == '__main__':
     unittest.main()

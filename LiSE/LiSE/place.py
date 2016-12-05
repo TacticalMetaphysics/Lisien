@@ -19,12 +19,10 @@ class Place(Node):
     }
 
     def __getitem__(self, key):
-        if key == 'name':
-            return self.name
-        elif key == 'character':
-            return self.character.name
-        else:
+        try:
             return super().__getitem__(key)
+        except KeyError:
+            return {'name': self.name, 'character': self.character.name}[key]
 
     def __repr__(self):
         return "{}.place[{}]".format(
@@ -58,3 +56,6 @@ class Place(Node):
         super().delete()
         if not nochar:
             del self.character.place[self.name]
+
+    def __eq__(self, other):
+        return isinstance(other, Place) and self.character.name == other.character.name and self.name == other.name

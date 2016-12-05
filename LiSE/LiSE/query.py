@@ -7,7 +7,7 @@ from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from operator import gt, lt, eq, ne, le, ge
 
-import gorm.query
+import allegedb.query
 
 from .exc import (
     IntegrityError,
@@ -361,7 +361,7 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             if side.stat in (
                     'location', 'next_location', 'locations', 'arrival_time', 'next_arrival_time'
             ):
-                return engine._things_cache[side.entity.character.name][side.entity.name]
+                return engine._things_cache.branches[(side.entity.character.name, side.entity.name)]
             if side.stat in side.entity._cache:
                 return side.entity._cache[side.stat]
 
@@ -393,7 +393,7 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             )
 
 
-class QueryEngine(gorm.query.QueryEngine):
+class QueryEngine(allegedb.query.QueryEngine):
     json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
@@ -685,6 +685,10 @@ class QueryEngine(gorm.query.QueryEngine):
                 if k not in seen and v is not None:
                     yield (self.json_load(k), self.json_load(v))
                 seen.add(k)
+
+    def universal_dump(self):
+        for key, branch, tick, value in self.sql('universal_dump'):
+            yield self.json_load(key), branch, tick, self.json_load(value)
 
     def universal_get(self, key, branch, tick):
         key = self.json_dump(key)
@@ -1249,7 +1253,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 branch,
                 tick,
                 self.json_load(loc),
-                self.json_load(nextloc)
+                self.json_load(nextloc) if nextloc else None
             )
 
     def thing_loc_and_next_set(
@@ -1657,7 +1661,7 @@ class QueryEngine(gorm.query.QueryEngine):
             yield from self.branch_descendants(child)
 
     def initdb(self):
-        """Set up the database schema, both for gorm and the special
+        """Set up the database schema, both for allegedb and the special
         extensions for LiSE
 
         """

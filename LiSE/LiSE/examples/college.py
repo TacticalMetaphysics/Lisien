@@ -116,7 +116,7 @@ def install(eng):
         # You don't want to use the global variable for the classroom
         # because it won't be around (or at least, won't work) after
         # the engine restarts.
-        return character.avatar['physical'].location != \
+        return character.avatar['physical'].only.location != \
             engine.character['physical'].place['classroom']
 
     sloth.prereq(class_in_session)
@@ -129,7 +129,7 @@ def install(eng):
 
     @learn.trigger
     def in_class(engine, character, node):
-        return character.avatar['physical'].location == \
+        return character.avatar['physical'].only.location == \
             engine.character['physical'].place['classroom']
 
     learn.prereq(class_in_session)
@@ -212,6 +212,9 @@ def install(eng):
 
 
 if __name__ == "__main__":
-    import LiSE
-    with LiSE.Engine("collegeWorld.db", "collegeCode.db") as eng:
+    from LiSE.engine import Engine
+    with Engine(":memory:") as eng:
         install(eng)
+        for i in range(72):
+            eng.next_tick()
+            print(i)

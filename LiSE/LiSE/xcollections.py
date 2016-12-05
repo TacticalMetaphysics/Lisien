@@ -7,6 +7,8 @@ from .bind import dispatch, listen, listener, unlisten, unlistener
 
 class NotThatMap(Mapping):
     """Wraps another mapping and conceals exactly one of its keys."""
+    __slots__ = ['inner', 'k']
+
     def __init__(self, inner, k):
         """Store the inner mapping and the key to hide."""
         self.inner = inner
@@ -39,14 +41,15 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
+    __slots__ = ['query', 'table', '_language', '_lang_listeners', 'cache', '_str_listeners']
 
-    def __init__(self, qe, table='strings', lang='eng'):
+    def __init__(self, query, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
-        self.db = qe
-        self.db.init_string_table(table)
+        self.query = query
+        self.query.init_string_table(table)
         self.table = table
         self._language = lang
         self._lang_listeners = []
@@ -94,7 +97,7 @@ class StringStore(MutableMapping):
         return unlistener(self._str_listeners, fun, string)
 
     def commit(self):
-        self.db.commit()
+        self.query.commit()
 
     @property
     def language(self):
@@ -113,7 +116,7 @@ class StringStore(MutableMapping):
         language.
 
         """
-        for (k, v) in self.db.string_table_lang_items(
+        for (k, v) in self.query.string_table_lang_items(
                 self.table, self.language
         ):
             self.cache[k] = v
@@ -121,12 +124,12 @@ class StringStore(MutableMapping):
 
     def __len__(self):
         """"Count strings in the current language."""
-        return self.db.count_all_table(self.table)
+        return self.query.count_all_table(self.table)
 
     def __getitem__(self, k):
         """Get the string and format it with other strings here."""
         if k not in self.cache:
-            v = self.db.string_table_get(
+            v = self.query.string_table_get(
                 self.table, self.language, k
             )
             if v is None:
@@ -137,7 +140,7 @@ class StringStore(MutableMapping):
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
         self.cache[k] = v
-        self.db.string_table_set(self.table, self.language, k, v)
+        self.query.string_table_set(self.table, self.language, k, v)
         self._dispatch_str(k, v)
 
     def __delitem__(self, k):
@@ -146,19 +149,21 @@ class StringStore(MutableMapping):
 
         """
         del self.cache[k]
-        self.db.string_table_del(self.table, self.language, k)
+        self.query.string_table_del(self.table, self.language, k)
         self._dispatch_str(k, None)
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
-        yield from self.db.string_table_lang_items(
+        yield from self.query.string_table_lang_items(
             self.table, lang
         )
 
 
 class StoredPartial(object):
+    __slots__ = ['_funcname', 'store', 'keywords', 'kwargs', 'name']
+
     @property
     def engine(self):
         return self.store.engine
@@ -176,18 +181,20 @@ class StoredPartial(object):
 
 class FunctionStore(MutableMapping):
     """Store functions in a SQL database"""
-    def __init__(self, engine, db, table):
+    __slots__ = ['engine', 'query', '_tab', '_listeners', 'cache']
+
+    def __init__(self, engine, query, table):
         """Use ``codedb`` as a connection object. Connect to it, and
         initialize the schema if needed.
 
         """
         self.engine = engine
-        self.db = db
-        self.db.init_table(table)
+        self.query = query
+        self.query.init_table(table)
         self._tab = table
         self._listeners = defaultdict(list)
         self.cache = {}
-        self.engine.db.init_func_table(table)
+        self.engine.query.init_func_table(table)
 
     def _dispatch(self, name, fun):
         """Call listeners to functions generally and to the named function in
@@ -209,11 +216,11 @@ class FunctionStore(MutableMapping):
 
     def __len__(self):
         """Return count of all functions here."""
-        return self.db.count_all_table(self._tab)
+        return self.query.count_all_table(self._tab)
 
     def __iter__(self):
         """Iterate over function names in alphabetical order."""
-        for row in self.db.func_table_iter(self._tab):
+        for row in self.query.func_table_iter(self._tab):
             yield row[0]
 
     def __contains__(self, name):
@@ -222,7 +229,7 @@ class FunctionStore(MutableMapping):
             return False
         if name in self.cache:
             return True
-        return self.db.func_table_contains(self._tab, name)
+        return self.query.func_table_contains(self._tab, name)
 
     def __getitem__(self, name):
         """Reconstruct the named function from its code string stored in the
@@ -231,11 +238,11 @@ class FunctionStore(MutableMapping):
         """
         if name not in self.cache:
             try:
-                self.cache[name] = self.db.func_table_get(self._tab, name)
+                self.cache[name] = self.query.func_table_get(self._tab, name)
             except KeyError:
-                d = self.db.func_table_get_all(self._tab, name)
+                d = self.query.func_table_get_all(self._tab, name)
                 if d['base'] not in self.cache:
-                    self.cache[name] = self.db.func_table_get(self._tab, name)
+                    self.cache[name] = self.query.func_table_get(self._tab, name)
                 kwargs = self.engine.json_load(name[len(d['base']):])
                 self.cache[name] = StoredPartial(self, d['base'], **kwargs)
         return self.cache[name]
@@ -251,14 +258,14 @@ class FunctionStore(MutableMapping):
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
-        self.db.func_table_set(self._tab, fun.__name__, fun)
+        self.query.func_table_set(self._tab, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
         return fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
-        self.db.func_table_set(self._tab, name, fun)
+        self.query.func_table_set(self._tab, name, fun)
         self.cache[name] = fun
         self._dispatch(name, fun)
 
@@ -269,31 +276,31 @@ class FunctionStore(MutableMapping):
         were set to ``None``.
 
         """
-        self.db.func_table_del(self._tab, name)
+        self.query.func_table_del(self._tab, name)
         del self.cache[name]
         self._dispatch(name, None)
 
     def plain(self, k):
         """Return the plain source code of the function."""
-        return self.db.func_table_get_plain(self._tab, k)
+        return self.query.func_table_get_plain(self._tab, k)
 
     def iterplain(self):
         """Iterate over (name, source) where source is in plaintext, not
         bytecode.
 
         """
-        yield from self.db.func_table_name_plaincode(self._tab)
+        yield from self.query.func_table_name_plaincode(self._tab)
 
     def commit(self):
         """Tell my ``QueryEngine`` to commit."""
-        self.db.commit()
+        self.query.commit()
 
     def set_source(self, func_name, source):
         """Set the plain, uncompiled source code of ``func_name`` to
         ``source``.
 
         """
-        self.db.func_table_set_source(
+        self.query.func_table_set_source(
             self._tab,
             func_name,
             source
@@ -305,8 +312,10 @@ class FunctionStore(MutableMapping):
         return part
 
 
-class GlobalVarMapping(MutableMapping):
+class UniversalMapping(MutableMapping):
     """Mapping for variables that are global but which I keep history for"""
+    __slots__ = ['engine', '_listeners']
+
     def __init__(self, engine):
         """Store the engine and initialize my private dictionary of
         listeners.
@@ -333,34 +342,27 @@ class GlobalVarMapping(MutableMapping):
         return listener(self._listeners, fun, key)
 
     def __iter__(self):
-        """Iterate over the global keys whose values aren't null at the moment.
-
-        The values may be None, however.
-
-        """
-        for (k, v) in self.engine.db.universal_items(*self.engine.time):
-            yield k
+        return self.engine._universal_cache.iter_keys(*self.engine.time)
 
     def __len__(self):
-        """Just count while iterating"""
-        n = 0
-        for k in iter(self):
-            n += 1
-        return n
+        return self.engine._universal_cache.count_keys(*self.engine.time)
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        return self.engine.db.universal_get(k, *self.engine.time)
+        return self.engine._universal_cache.retrieve(k, *self.engine.time)
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
         (branch, tick) = self.engine.time
-        self.engine.db.universal_set(k, branch, tick, v)
+        self.engine.query.universal_set(k, branch, tick, v)
+        self.engine._universal_cache.store(k, branch, tick, v)
         self._dispatch(k, v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        self.engine.db.universal_del(k)
+        branch, tick = self.engine.time
+        self.engine.query.universal_del(k, branch, tick)
+        self.engine._universal_cache.store(k, branch, tick, None)
         self._dispatch(k, None)
 
 
@@ -374,11 +376,12 @@ class CharacterMapping(MutableMapping):
     anything useful anymore.
 
     """
+    __slots__ = ['engine', '_listeners', '_cache']
+
     def __init__(self, engine):
         """Store the engine, initialize caches"""
         self.engine = engine
         self._listeners = defaultdict(list)
-        self._cache = {}
 
     def _dispatch(self, k, v):
         """Call anyone listening for a character named ``k``, and anyone
@@ -399,17 +402,17 @@ class CharacterMapping(MutableMapping):
 
     def __iter__(self):
         """Iterate over every character name."""
-        return self.engine.db.characters()
+        return self.engine.query.characters()
 
     def __contains__(self, name):
         """Has this character been created?"""
-        if name in self._cache:
+        if name in self.engine._char_objs:
             return True
-        return self.engine.db.have_character(name)
+        return self.engine.query.have_character(name)
 
     def __len__(self):
         """How many characters have been created?"""
-        return self.engine.db.ct_characters()
+        return len(self.engine._char_objs)
 
     def __getitem__(self, name):
         """Return the named character, if it's been created.
@@ -420,11 +423,10 @@ class CharacterMapping(MutableMapping):
         from .character import Character
         if name not in self:
             raise KeyError("No such character")
-        if hasattr(self, '_cache'):
-            if name not in self._cache:
-                self._cache[name] = Character(self.engine, name)
-            return self._cache[name]
-        return Character(self.engine, name)
+        cache = self.engine._char_objs
+        if name not in cache:
+            cache[name] = Character(self.engine, name)
+        return cache[name]
 
     def __setitem__(self, name, value):
         """Make a new character by the given name, and initialize its data to
@@ -433,16 +435,16 @@ class CharacterMapping(MutableMapping):
         """
         from .character import Character
         if isinstance(value, Character):
-            self._cache[name] = value
+            self.engine._char_objs[name] = value
             return
-        self._cache[name] = Character(self.engine, name, data=value)
-        self._dispatch(name, self._cache[name])
+        self.engine._char_objs[name] = Character(self.engine, name, data=value)
+        self._dispatch(name, self.engine._char_objs[name])
 
     def __delitem__(self, name):
         """Delete the named character from both the cache and the database."""
-        if hasattr(self, '_cache') and name in self._cache:
-            del self._cache[name]
-        self.engine.db.del_character(name)
+        if name in self.engine._char_objs:
+            del self.engine._char_objs[name]
+        self.engine.query.del_character(name)
         self._dispatch(name, None)
 
 
@@ -453,6 +455,8 @@ class CompositeDict(Mapping):
     Assumes the dicts have no overlap.
 
     """
+    __slots__ = ['d1', 'd2']
+
     def __init__(self, d1, d2):
         """Store dictionaries"""
         self.d1 = d1

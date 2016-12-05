@@ -2,7 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Directed edges, as used by LiSE."""
 
-from gorm.graph import Edge
+from allegedb.graph import Edge
 
 from .exc import CacheError
 from .util import getatt
@@ -14,6 +14,7 @@ from .rule import RuleMapping as BaseRuleMapping
 
 class RuleMapping(BaseRuleMapping):
     """Mapping to get rules followed by a portal."""
+    __slots__ = 'portal',
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
@@ -78,19 +79,25 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
     def _get_rule_mapping(self):
         return RuleMapping(self)
 
-    def __init__(self, character, origin, destination):
-        """Remember what portal I am, and initialize caches."""
-        self._origin = origin
-        self._destination = destination
-        self.character = character
-        self.engine = character.engine
-        self._keycache = {}
-        self._existence = {}
+    @property
+    def _origin(self):
+        return self.nodeA
 
-        self._dispatch_cache = self.engine._edge_val_cache[
-            self.character.name][self._origin][self._destination][0]
+    @property
+    def _destination(self):
+        return self.nodeB
 
-        super().__init__(character, self._origin, self._destination)
+    @property
+    def _dispatch_cache(self):
+        return self.db._edge_val_cache[self.character.name][self.nodeA][self.nodeB][0]
+
+    @property
+    def character(self):
+        return self.graph
+
+    @property
+    def engine(self):
+        return self.db
 
     def __getitem__(self, key):
         """Get the present value of the key.

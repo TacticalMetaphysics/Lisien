@@ -6,181 +6,134 @@ flow of time.
 
 """
 from random import Random
-from collections import defaultdict
 from functools import partial
-from sqlite3 import connect
 from json import dumps, loads, JSONEncoder
-from gorm import ORM as gORM
-from gorm.window import WindowDict
-from gorm.reify import reify
+from allegedb import ORM as gORM
 from .xcollections import (
     StringStore,
     FunctionStore,
-    GlobalVarMapping,
-    CharacterMapping
+    CharacterMapping,
+    UniversalMapping
 )
 from .character import Character
-from .node import Node
+from .thing import Thing
+from .place import Place
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules
 from .query import Query, QueryEngine
-from .util import getatt, EntityStatAccessor
+from .util import getatt, reify, EntityStatAccessor
+from .cache import (
+    UniversalCache,
+    AvatarnessCache,
+    RulebooksCache,
+    CharacterRulebooksCache,
+    NodeRulebookCache,
+    PortalRulebookCache,
+    ActiveRulesCache,
+    NodeRulesHandledCache,
+    PortalRulesHandledCache,
+    CharacterRulesHandledCache,
+    ThingsCache
+)
 
 
 class DummyEntity(dict):
+    __slots__ = ['engine']
+
     def __init__(self, engine):
         self.engine = engine
 
 
-def crhandled_defaultdict():
-    """Return a defaultdict for recording when a rule's been handled."""
-    return defaultdict(  # character:
-        lambda: defaultdict(  # rulebook:
-            lambda: defaultdict(  # rule:
-                lambda: defaultdict(  # branch:
-                    set  # ticks handled
-                )
-            )
-        )
-    )
+json_dump_hints = {}
+json_load_hints = {}
 
 
-class AvatarnessCache(object):
-    """A cache for remembering when a node is an avatar of a character."""
-    def __init__(self, db):
-        self.db = db
-        self.db_order = defaultdict(  # character:
-            lambda: defaultdict(  # graph:
-                lambda: defaultdict(  # node:
-                    lambda: defaultdict(  # branch:
-                        WindowDict  # tick: is_avatar
-                    )
-                )
-            )
-        )
-        """Avatarness cached in the way it's stored in the database."""
-        self.user_order = defaultdict(  # graph:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # character:
-                    lambda: defaultdict(  # branch:
-                        WindowDict  # tick: is_avatar
-                    )
-                )
-            )
-        )
-        """Avatarness cached for iterating over the users of a node.
+class Encoder(JSONEncoder):
+    def encode(self, o):
+        return super().encode(self.listify(o))
 
-        That is, characters that have a particular node as an avatar.
-
-        """
-        for row in db.avatarness_dump():
-            self.remember(*row)
-
-    def remember(self, character, graph, node, branch, tick, is_avatar):
-        self.db_order[character][graph][node][branch][tick] = is_avatar
-        self.user_order[graph][node][character][branch][tick] = is_avatar
+    def default(self, o):
+        try:
+            from numpy import sctypes
+        except ImportError:
+            return super().default(o)
+        t = type(o)
+        if t in sctypes['int']:
+            return int(o)
+        elif t in sctypes['float']:
+            return float(o)
+        else:
+            return super().default(o)
 
 
 class AbstractEngine(object):
-    @reify
-    def json_dump_hints(self):
-        return {}
-
-    @reify
-    def json_load_hints(self):
-        return {}
-
     def __getattr__(self, att):
-        if hasattr(self, 'method') and att in self.method:
+        if hasattr(super(), 'method') and att in self.method:
             return partial(self.method[att], self)
         raise AttributeError
 
-    @classmethod
-    def listify(cls, obj):
-        if isinstance(obj, list):
-            return ["list"] + [cls.listify(v) for v in obj]
-        elif isinstance(obj, tuple):
-            return ["tuple"] + [cls.listify(v) for v in obj]
-        elif isinstance(obj, dict):
-            return ["dict"] + [
-                [cls.listify(k), cls.listify(v)]
+    @reify
+    def _listify_dispatch(self):
+        return {
+            list: lambda obj: ["list"] + [self.listify(v) for v in obj],
+            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
+            dict: lambda obj: ["dict"] + [
+                [self.listify(k), self.listify(v)]
                 for (k, v) in obj.items()
-            ]
-        elif isinstance(obj, cls.char_cls):
-            return ['character', obj.name]
-        elif isinstance(obj, cls.node_cls):
-            return ['node', obj.character.name, obj.name]
-        elif isinstance(obj, cls.portal_cls):
-            return ['portal', obj.character.name, obj._origin, obj._destination]
-        else:
+            ],
+            self.char_cls: lambda obj: ["character", obj.name],
+            self.thing_cls: lambda obj: ["node", obj.character.name, obj.name],
+            self.place_cls: lambda obj: ["node", obj.character.name, obj.name],
+            self.portal_cls: lambda obj: ["portal", obj.character.name, obj._origin, obj._destination]
+        }
+
+    def listify(self, obj):
+        try:
+            return self._listify_dispatch[type(obj)](obj)
+        except KeyError:
             return obj
+
+    @reify
+    def _delistify_dispatch(self):
+        return {
+            'list': lambda obj: [self.delistify(v) for v in obj[1:]],
+            'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
+            'dict': lambda obj: {
+                self.delistify(k): self.delistify(v)
+                for (k, v) in obj[1:]
+            },
+            'character': lambda obj: self.character[self.delistify(obj[1])],
+            'node': lambda obj: self._node_objs[(self.delistify(obj[1]), self.delistify(obj[2]))],
+            'portal': lambda obj: self._portal_objs[(self.delistify(obj[1]), self.delistify(obj[2]), self.delistify(obj[3]))]
+        }
 
     def delistify(self, obj):
         if isinstance(obj, list) or isinstance(obj, tuple):
-            if obj == [] or obj == ["list"]:
-                return []
-            elif obj == ["tuple"]:
-                return tuple()
-            elif obj == ['dict']:
-                return {}
-            elif obj[0] == 'list':
-                return [self.delistify(p) for p in obj[1:]]
-            elif obj[0] == 'tuple':
-                return tuple(self.delistify(p) for p in obj[1:])
-            elif obj[0] == 'dict':
-                return {
-                    self.delistify(k): self.delistify(v)
-                    for (k, v) in obj[1:]
-                }
-            elif obj[0] == 'character':
-                return self.character[self.delistify(obj[1])]
-            elif obj[0] == 'node':
-                return self.character[self.delistify(obj[1])].node[self.delistify(obj[2])]
-            elif obj[0] == 'portal':
-                return self.character[self.delistify(obj[1])].portal[self.delistify(obj[2])][self.delistify(obj[3])]
-            else:
-                raise ValueError("Unknown sequence type: {}".format(obj[0]))
+            return self._delistify_dispatch[obj[0]](obj)
         else:
             return obj
 
-    @classmethod
-    def get_encoder(cls):
-        if not hasattr(cls, '_json_encoder'):
-            class Encoder(JSONEncoder):
-                def encode(self, o):
-                    return super().encode(cls.listify(o))
-
-                def default(self, o):
-                    try:
-                        from numpy import sctypes
-                    except ImportError:
-                        return super().default(o)
-                    t = type(o)
-                    if t in sctypes['int']:
-                        return int(o)
-                    elif t in sctypes['float']:
-                        return float(o)
-                    else:
-                        return super().default(o)
-            cls._json_encoder = Encoder
-        return cls._json_encoder
+    @reify
+    def json_encoder(self):
+        class EngEncoder(Encoder):
+            listify = self.listify
+        return EngEncoder
 
     def json_dump(self, obj):
-        return dumps(obj,  cls=self.get_encoder())
-#        try:
-#            if obj not in self.json_dump_hints:
-#                self.json_dump_hints[obj] = dumps(obj, cls=self.get_encoder())
-#            return self.json_dump_hints[obj]
-#        except TypeError:
-#            return dumps(obj, cls=self.get_encoder())
+        global json_dump_hints, json_load_hints
+        try:
+            if obj not in json_dump_hints:
+                dumped = json_dump_hints[obj] = dumps(obj, cls=self.json_encoder)
+                json_load_hints[dumped] = obj
+            return json_dump_hints[obj]
+        except TypeError:
+            return dumps(obj, cls=self.json_encoder)
 
     def json_load(self, s):
-        if s is None:
-            return None
+        global json_dump_hints, json_load_hints
+        if s in json_load_hints:
+            return json_load_hints[s]
         return self.delistify(loads(s))
-#        if s not in self.json_load_hints:
-#            self.json_load_hints[s] = self.delistify(loads(s))
-#        return self.json_load_hints[s]
 
 
 class Engine(AbstractEngine, gORM):
@@ -235,30 +188,15 @@ class Engine(AbstractEngine, gORM):
 
     """
     char_cls = Character
-    node_cls = Node
-    portal_cls = Portal
+    thing_cls = Thing
+    place_cls = node_cls = Place
+    portal_cls = edge_cls = _make_edge = Portal
 
-    @reify
-    def _rulebooks_cache(self):
-        r = defaultdict(list)
-        for (rulebook, rule) in self.rule.db.rulebooks_rules():
-            r[rulebook].append(rule)
-        return r
-
-    def _rulebook_set(self, rulebook, i, rule):
-        self.rule.db.rulebook_set(rulebook, i, rule)
-        cache = self._rulebooks_cache[rulebook]
-        while len(cache) <= i:
-            cache.append(None)
-        cache[i] = rule
-
-    def _rulebook_insert(self, rulebook, i, rule):
-        self._rulebooks_cache[rulebook].insert(i, rule)
-        self.db.rulebook_ins(rulebook, i, rule)
-
-    def _rulebook_del_rule(self, rulebook, i):
-        self.rule.db.rulebook_del(rulebook, i)
-        del self._rulebooks_cache[rulebook][i]
+    def _make_node(self, char, node):
+        if self._is_thing(char, node):
+            return Thing(char, node)
+        else:
+            return Place(char, node)
 
     def _del_rulebook(self, rulebook):
         for (character, character_rulebooks) in \
@@ -292,42 +230,8 @@ class Engine(AbstractEngine, gORM):
                             "{}->{} in character {}".format(
                                 origin, destination, character
                             ))
-        self.rule.db.rulebook_del_all(rulebook)
-        del self._rulebooks_cache[rulebook]
-
-    class crc_default_dict(defaultdict):
-        def __missing__(self, k):
-            self[k] = value = {
-                'character': (k, 'character'),
-                'avatar': (k, 'avatar'),
-                'character_thing': (k, 'character_thing'),
-                'character_place': (k, 'character_place'),
-                'character_node': (k, 'character_node'),
-                'character_portal': (k, 'character_portal')
-            }
-            return value
-
-    @reify
-    def _characters_rulebooks_cache(self):
-        r = self.crc_default_dict()
-        for (
-                character,
-                character_rulebook,
-                avatar_rulebook,
-                character_thing_rulebook,
-                character_place_rulebook,
-                character_node_rulebook,
-                character_portal_rulebook
-        ) in self.db.characters_rulebooks():
-            r[character] = {
-                'character': character_rulebook,
-                'avatar': avatar_rulebook,
-                'character_thing': character_thing_rulebook,
-                'character_place': character_place_rulebook,
-                'character_node': character_node_rulebook,
-                'character_portal': character_portal_rulebook
-            }
-        return r
+        self.rule.query.rulebook_del_all(rulebook)
+        del self._rulebooks_cache._data[rulebook]
 
     def _set_character_rulebook(self, character, which, rulebook):
         if which not in (
@@ -339,36 +243,16 @@ class Engine(AbstractEngine, gORM):
                 'character_portal'
         ):
             raise ValueError("Not a character rulebook: {}".format(which))
-        self.db.upd_rulebook_char(which, rulebook, character)
-        self._characters_rulebooks_cache[character][which] = rulebook
-
-    @reify
-    def _nodes_rulebooks_cache(self):
-        r = defaultdict(dict)
-        for (character, node, rulebook) in self.db.nodes_rulebooks():
-            r[character][node] = rulebook
-        return r
+        self.query.upd_rulebook_char(which, rulebook, character)
+        self._characters_rulebooks_cache.store(character, **{which: rulebook})
 
     def _set_node_rulebook(self, character, node, rulebook):
-        self._nodes_rulebooks_cache[character][node] = rulebook
-        self.engine.db.set_node_rulebook(character, node, rulebook)
-
-    @reify
-    def _portals_rulebooks_cache(self):
-        r = defaultdict(
-            lambda: defaultdict(dict)
-        )
-        for (character, nodeA, nodeB, rulebook) in self.db.portals_rulebooks():
-            r[character][nodeA][nodeB] = rulebook
-        return r
+        self._nodes_rulebooks_cache.store(character, node, rulebook)
+        self.engine.query.set_node_rulebook(character, node, rulebook)
 
     def _set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
-        self._portals_rulebooks_cache[character][nodeA][nodeB] = rulebook
-        self.db.set_portal_rulebook(character, nodeA, nodeB, rulebook)
-
-    @reify
-    def _avatarness_cache(self):
-        return AvatarnessCache(self.db)
+        self._portals_rulebooks_cache.store(character, nodeA, nodeB, rulebook)
+        self.query.set_portal_rulebook(character, nodeA, nodeB, rulebook)
 
     def _remember_avatarness(self, character, graph, node, is_avatar=True, branch=None, tick=None):
         """Use this to record a change in avatarness.
@@ -383,7 +267,7 @@ class Engine(AbstractEngine, gORM):
         """
         branch = branch or self.branch
         tick = tick or self.tick
-        self._avatarness_cache.remember(
+        self._avatarness_cache.store(
             character,
             graph,
             node,
@@ -391,7 +275,7 @@ class Engine(AbstractEngine, gORM):
             tick,
             is_avatar
         )
-        self.db.avatar_set(
+        self.query.avatar_set(
             character,
             graph,
             node,
@@ -399,148 +283,15 @@ class Engine(AbstractEngine, gORM):
             tick,
             is_avatar
         )
-
-    @reify
-    def _active_rules_cache(self):
-        r = defaultdict(  # rulebook:
-            lambda: defaultdict(  # rule:
-                lambda: defaultdict(  # branch:
-                    WindowDict  # tick: active
-                )
-            )
-        )
-        for (rulebook, rule, branch, tick, active) in \
-                self.db.dump_active_rules():
-            r[rulebook][rule][branch][tick] = active
-        return r
 
     def _set_rule_activeness(
             self, rulebook, rule, active, branch=None, tick=None
     ):
         branch = branch or self.branch
         tick = tick or self.tick
-        self._active_rules_cache[rulebook][rule][branch][tick] = active
+        self._active_rules_cache.store(rulebook, rule, branch, tick, active)
         # note the use of the world DB, not the code DB
-        self.db.set_rule_activeness(rulebook, rule, branch, tick, active)
-
-    @reify
-    def _node_rules_handled_cache(self):
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # node:
-                lambda: defaultdict(  # rulebook:
-                    lambda: defaultdict(  # rule:
-                        lambda: defaultdict(  # branch:
-                            set  # ticks handled
-                        )
-                    )
-                )
-            )
-        )
-        for (character, node, rulebook, rule, branch, tick) \
-                in self.db.dump_node_rules_handled():
-            r[character][node][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _portal_rules_handled_cache(self):
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # nodeA:
-                lambda: defaultdict(  # nodeB:
-                    lambda: defaultdict(  # rulebook:
-                        lambda: defaultdict(  # rule:
-                            lambda: defaultdict(  # branch:
-                                set  # ticks handled
-                            )
-                        )
-                    )
-                )
-            )
-        )
-        for (character, nodeA, nodeB, idx, rulebook, rule, branch, tick) \
-                in self.db.dump_portal_rules_handled():
-            r[character][nodeA][nodeB][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _character_rules_handled_cache(self):
-        r = crhandled_defaultdict()
-        for (character, rulebook, rule, branch, tick) in \
-                self.db.handled_character_rules():
-            r[character][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _avatar_rules_handled_cache(self):
-        r = crhandled_defaultdict()
-        for (character, rulebook, rule, branch, tick) in \
-                self.db.handled_avatar_rules():
-            r[character][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _character_thing_rules_handled_cache(self):
-        r = crhandled_defaultdict()
-        for (character, rulebook, rule, branch, tick) in \
-                self.db.handled_character_thing_rules():
-            r[character][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _character_place_rules_handled_cache(self):
-        r = crhandled_defaultdict()
-        for (character, rulebook, rule, branch, tick) in \
-                self.db.handled_character_place_rules():
-            r[character][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _character_node_rules_handled_cache(self):
-        r = crhandled_defaultdict()
-        for (character, rulebook, rule, branch, tick) in \
-                self.db.handled_character_node_rules():
-            r[character][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _character_portal_rules_handled_cache(self):
-        r = crhandled_defaultdict()
-        for (character, rulebook, rule, branch, tick) in \
-                self.db.handled_character_portal_rules():
-            r[character][rulebook][rule][branch].add(tick)
-        return r
-
-    @reify
-    def _things_cache(self):
-        r = defaultdict(  # character:
-            lambda: defaultdict(  # thing:
-                lambda: defaultdict(  # branch:
-                    WindowDict  # tick: (location, next_location)
-                )
-            )
-        )
-        for (character, thing, branch, tick, loc, nextloc) in \
-                self.db.things_dump():
-            r[character][thing][branch][tick] = (loc, nextloc)
-        return r
-
-    @reify
-    def _time_listeners(self):
-        return []
-
-    @reify
-    def _next_tick_listeners(self):
-        return []
-
-    @reify
-    def codedb(self):
-        return connect(self._codedb)
-
-    @reify
-    def worlddb(self):
-        if hasattr(self.db, 'alchemist'):
-            return self.db.alchemist.conn.connection
-        else:
-            return self.db.connection
+        self.query.set_rule_activeness(rulebook, rule, branch, tick, active)
 
     def __init__(
             self,
@@ -557,6 +308,11 @@ class Engine(AbstractEngine, gORM):
         set up listeners; and start a transaction
 
         """
+        self._char_objs = {}
+        self._node_objs = {}
+        self._portal_objs = {}
+        self._things_cache = ThingsCache(self)
+        self.character = self.graph = CharacterMapping(self)
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
@@ -565,6 +321,10 @@ class Engine(AbstractEngine, gORM):
             json_dump=self.json_dump,
             json_load=self.json_load,
         )
+        self.eternal = self.query.globl
+        self.universal = UniversalMapping(self)
+        self._time_listeners = []
+        self._next_tick_listeners = []
         if logfun is None:
             from logging import getLogger
             logger = getLogger(__name__)
@@ -581,7 +341,64 @@ class Engine(AbstractEngine, gORM):
             )
             self._code_qe.initdb()
         else:
-            self._code_qe = self.db
+            self._code_qe = self.query
+        self.action = FunctionStore(self, self._code_qe, 'actions')
+        self.prereq = FunctionStore(self, self._code_qe, 'prereqs')
+        self.trigger = FunctionStore(self, self._code_qe, 'triggers')
+        self.function = FunctionStore(self, self._code_qe, 'functions')
+        self.method = FunctionStore(self, self._code_qe, 'methods')
+        self.rule = AllRules(self, self._code_qe)
+        self.rulebook = AllRuleBooks(self, self._code_qe)
+        self.string = StringStore(self._code_qe)
+        # load data
+        self._universal_cache = UniversalCache(self)
+        self._rulebooks_cache = RulebooksCache(self)
+        self._characters_rulebooks_cache = CharacterRulebooksCache(self)
+        self._nodes_rulebooks_cache = NodeRulebookCache(self)
+        self._portals_rulebooks_cache = PortalRulebookCache(self)
+        self._active_rules_cache = ActiveRulesCache(self)
+        self._node_rules_handled_cache = NodeRulesHandledCache(self)
+        self._portal_rules_handled_cache = PortalRulesHandledCache(self)
+        self._character_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._avatar_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_thing_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_place_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_node_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_portal_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._avatarness_cache = AvatarnessCache(self)
+        for row in self.rule.query.universal_dump():
+            self._universal_cache.store(*row)
+        for row in self.rule.query.rulebooks_rules():
+            self._rulebooks_cache.store(*row)
+        for row in self.rule.query.characters_rulebooks():
+            self._characters_rulebooks_cache.store(*row)
+        for row in self.rule.query.nodes_rulebooks():
+            self._nodes_rulebooks_cache.store(*row)
+        for row in self.rule.query.portals_rulebooks():
+            self._portals_rulebooks_cache.store(*row)
+        # note the use of the world DB, not the code DB
+        for row in self.query.dump_active_rules():
+            self._active_rules_cache.store(*row)
+        for row in self.query.dump_node_rules_handled():
+            self._node_rules_handled_cache.store(*row)
+        for row in self.query.dump_portal_rules_handled():
+            self._portal_rules_handled_cache.store(*row)
+        for row in self.query.handled_character_rules():
+            self._character_rules_handled_cache.store(*row)
+        for row in self.query.handled_avatar_rules():
+            self._avatar_rules_handled_cache.store(*row)
+        for row in self.query.handled_character_thing_rules():
+            self._character_thing_rules_handled_cache.store(*row)
+        for row in self.query.handled_character_place_rules():
+            self._character_place_rules_handled_cache.store(*row)
+        for row in self.query.handled_character_node_rules():
+            self._character_node_rules_handled_cache.store(*row)
+        for row in self.query.handled_character_portal_rules():
+            self._character_portal_rules_handled_cache.store(*row)
+        for row in self.query.things_dump():
+            self._things_cache.store(*row)
+        for row in self.query.avatarness_dump():
+            self._avatarness_cache.store(*row)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -612,26 +429,6 @@ class Engine(AbstractEngine, gORM):
     vonmisesvariate = getatt('rando.vonmisesvariate')
     weibullvariate = getatt('rando.weibullvariate')
 
-    @reify
-    def action(self):
-        return FunctionStore(self, self._code_qe, 'actions')
-
-    @reify
-    def prereq(self):
-        return FunctionStore(self, self._code_qe, 'prereqs')
-
-    @reify
-    def trigger(self):
-        return FunctionStore(self, self._code_qe, 'triggers')
-
-    @reify
-    def function(self):
-        return FunctionStore(self, self._code_qe, 'functions')
-
-    @reify
-    def method(self):
-        return FunctionStore(self, self._code_qe, 'methods')
-
     @property
     def stores(self):
         return (
@@ -641,26 +438,6 @@ class Engine(AbstractEngine, gORM):
             self.function,
             self.string
         )
-
-    @reify
-    def rule(self):
-        return AllRules(self, self._code_qe)
-
-    @reify
-    def rulebook(self):
-        return AllRuleBooks(self, self._code_qe)
-
-    @reify
-    def string(self):
-        return StringStore(self._code_qe)
-
-    @reify
-    def universal(self):
-        return GlobalVarMapping(self)
-
-    @reify
-    def character(self):
-        return CharacterMapping(self)
 
     def debug(self, msg):
         """Log a message at level 'debug'"""
@@ -790,11 +567,11 @@ class Engine(AbstractEngine, gORM):
     def branch(self):
         if self._obranch is not None:
             return self._obranch
-        return self.db.globl['branch']
+        return self.query.globl['branch']
 
     @branch.setter
     def branch(self, v):
-        """Set my gorm's branch and call listeners"""
+        """Set my allegedb's branch and call listeners"""
         (b, t) = self.time
         if v == b:
             return
@@ -807,22 +584,10 @@ class Engine(AbstractEngine, gORM):
             self._branches[child] = self._branches[parent][child]
             self._branches_start[child] = t
         self._obranch = v
-        self.db.globl['branch'] = v
+        self.query.globl['branch'] = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
                 time_listener(b, t, v, t)
-
-    @reify
-    def _branch_parents(self):
-        return {}
-
-    @reify
-    def _branches(self):
-        return defaultdict(dict)
-
-    @reify
-    def _branches_start(self):
-        return {}
 
     @property
     def tick(self):
@@ -830,7 +595,7 @@ class Engine(AbstractEngine, gORM):
 
     @tick.setter
     def tick(self, v):
-        """Update gorm's ``rev``, and call listeners"""
+        """Update allegedb's ``rev``, and call listeners"""
         if not isinstance(v, int):
             raise TypeError("tick must be integer")
         (branch_then, tick_then) = self.time
@@ -845,7 +610,7 @@ class Engine(AbstractEngine, gORM):
     @property
     def time(self):
         """Return tuple of branch and tick"""
-        return (self.branch, self.tick)
+        return (self._obranch, self._orev)
 
     @time.setter
     def time(self, v):
@@ -867,114 +632,62 @@ class Engine(AbstractEngine, gORM):
                 )
 
     def _rule_active(self, rulebook, rule):
-        cache = self._active_rules_cache[rulebook][rule]
-        for (branch, tick) in self._active_branches(*self.time):
-            if branch in cache:
-                return cache[branch][tick]
-        return False
+        if hasattr(rulebook, 'name'):
+            rulebook = rulebook.name
+        if hasattr(rule, 'name'):
+            rule = rule.name
+        return self._active_rules_cache.retrieve(rulebook, rule, *self.time) is True
 
     def _poll_char_rules(self):
         if self._sql_polling:
-            yield from self.db.poll_char_rules(*self.time)
+            yield from self.query.poll_char_rules(*self.time)
             return
-
-        def handled(rulebook, rule):
-            cache = self._character_rules_handled_cache
-            return (
-                rulebook in cache and
-                rule in cache[rulebook] and
-                self.branch in cache[rulebook][rule] and
-                self.tick in cache[rulebook][rule][self.branch]
-            )
 
         for char in self.character:
             for (
                     rulemap,
                     rulebook
-            ) in self._characters_rulebooks_cache[char].items():
-                for rule in self._rulebooks_cache[rulebook]:
-                    if (
-                        self._rule_active(rulebook, rule) and not
-                        handled(rulebook, rule)
-                    ):
-                        yield (rulemap, char, rulebook, rule)
+            ) in self._characters_rulebooks_cache.retrieve(char).items():
+                for rule in self._character_rules_handled_cache.iter_unhandled_rules(
+                    char, rulemap, rulebook, *self.time
+                ):
+                    yield (rulemap, char, rulebook, rule)
 
     def _poll_node_rules(self):
         if self._sql_polling:
-            yield from self.db.poll_node_rules(*self.time)
+            yield from self.query.poll_node_rules(*self.time)
             return
-        cache = self._node_rules_handled_cache
-
-        def handled(char, node, rulebook, rule):
-            return (
-                char in cache and
-                node in cache[char] and
-                rulebook in cache[char][node] and
-                rule in cache[char][rule][rulebook] and
-                self.branch in cache[char][rule][rulebook] and
-                self.tick in cache[char][rule][rulebook][self.branch]
-            )
 
         for chara in self.character.values():
             char = chara.name
             for node in chara.node:
-                if (
-                        char in self._nodes_rulebooks_cache and
-                        node in self._nodes_rulebooks_cache[char]
-                ):
-                    rulebook = self._nodes_rulebooks_cache[char][node]
-                else:
+                try:
+                    rulebook = self._nodes_rulebooks_cache.retrieve(char, node)
+                except KeyError:
                     rulebook = (char, node)
-                for rule in self._rulebooks_cache[rulebook]:
-                    if (
-                        self._rule_active(rulebook, rule) and not
-                        handled(char, node, rulebook, rule)
-                    ):
-                        yield (char, node, rulebook, rule)
+                for rule in self._node_rules_handled_cache.iter_unhandled_rules(
+                    char, node, rulebook, *self.time
+                ):
+                    yield (char, node, rulebook, rule)
 
     def _poll_portal_rules(self):
         if self._sql_polling:
-            yield from self.db.poll_portal_rules(*self.time)
+            yield from self.query.poll_portal_rules(*self.time)
             return
-
-        def handled(char, nodeA, nodeB, rulebook, rule):
-            cache = self._portal_rules_handled_cache
-            return (
-                char in cache and
-                nodeA in cache[char] and
-                nodeB in cache[char][nodeA] and
-                rulebook in cache[char][nodeA][nodeB] and
-                rule in cache[char][nodeA][nodeB][rulebook] and
-                self.branch in cache[char][nodeA][nodeB][rulebook][rule] and
-                self.tick in cache[char][nodeA][nodeB][rulebook][rule][
-                    self.branch
-                ]
-            )
 
         cache = self._portals_rulebooks_cache
         for chara in self.character.values():
             for nodeA in chara.portal:
                 for nodeB in chara.portal[nodeA]:
-                    if (
-                            chara.name in cache and
-                            nodeA in cache[chara.name] and
-                            nodeB in cache[chara.name][nodeA]
-                    ):
-                        rulebook = cache[chara.name][nodeA][nodeB]
-                    else:
-                        rulebook = (chara.name, nodeA, nodeB)
-                    for rule in self._rulebooks_cache[rulebook]:
-                        if (
-                            self._rule_active(rulebook, rule) and not
-                            handled(chara, nodeA, nodeB, rulebook, rule)
-                        ):
-                            yield (
-                                chara,
-                                nodeA,
-                                nodeB,
-                                rulebook,
-                                rule
-                            )
+                    rulebook = cache.retrieve(chara.name, nodeA, nodeB)
+                    for rule in cache.iter_unhandled_rules(chara.name, nodeA, nodeB, rulebook, *self.time):
+                        yield (
+                            chara,
+                            nodeA,
+                            nodeB,
+                            rulebook,
+                            rule
+                        )
 
     def _poll_rules(self):
         """Iterate over tuples containing rules yet unresolved in the current tick.
@@ -1015,45 +728,35 @@ class Engine(AbstractEngine, gORM):
         ) in self._poll_portal_rules():
             try:
                 c = self.character[character]
-                yield 'portal', c.portal[a][b], rulebook, self.rule[rule]
+                yield 'portal', c, c.portal[a][b], rulebook, self.rule[rule]
             except KeyError:
                 continue
 
     def _handled_thing_rule(self, char, thing, rulebook, rule, branch, tick):
-        self._node_rules_handled_cache[
-            char][thing][rulebook][rule][branch].add(tick)
-        self.db.handled_thing_rule(
+        self._node_rules_handled_cache.store(char, thing, rulebook, rule, branch, tick)
+        self.query.handled_thing_rule(
             char, thing, rulebook, rule, branch, tick
         )
 
     def _handled_place_rule(self, char, place, rulebook, rule, branch, tick):
-        self._node_rules_handled_cache[
-            char][place][rulebook][rule][branch].add(tick)
-        self.db.handled_place_rule(
+        self._node_rules_handled_cache.store(char, place, rulebook, rule, branch, tick)
+        self.query.handled_place_rule(
             char, place, rulebook, rule, branch, tick
         )
 
     def _handled_portal_rule(
             self, char, nodeA, nodeB, rulebook, rule, branch, tick
     ):
-        self._portal_rules_handled_cache[
-            char][nodeA][nodeB][rulebook][rule][branch].add(tick)
-        self.db.handled_portal_rule(
+        self._portal_rules_handled_cache.store(char, nodeA, nodeB, rulebook, rule, branch, tick)
+        self.query.handled_portal_rule(
             char, nodeA, nodeB, rulebook, rule, branch, tick
         )
 
     def _handled_character_rule(
             self, typ, char, rulebook, rule, branch, tick
     ):
-        {
-            'character': self._character_rules_handled_cache,
-            'avatar': self._avatar_rules_handled_cache,
-            'character_thing': self._character_thing_rules_handled_cache,
-            'character_place': self._character_place_rules_handled_cache,
-            'character_node': self._character_node_rules_handled_cache,
-            'character_portal': self._character_portal_rules_handled_cache,
-        }[typ][char][rulebook][rule][branch].add(tick)
-        self.db.handled_character_rule(
+        self._character_rules_handled_cache.store(char, typ, rulebook, rule, branch, tick)
+        self.query.handled_character_rule(
             typ, char, rulebook, rule, branch, tick
         )
 
@@ -1068,7 +771,7 @@ class Engine(AbstractEngine, gORM):
 
         """
         (branch, tick) = self.time
-        for (typ, character, entity, rulebook, rule) in self._poll_rules():
+        for (typ, character, entity, rulebook, rule) in list(self._poll_rules()):
             def follow(*args):
                 return (rule(self, *args), rule.name, typ, rulebook)
 
@@ -1149,9 +852,7 @@ class Engine(AbstractEngine, gORM):
         curtick = self.tick
         r = []
         while self.tick == curtick:
-            result = self.advance()
-            self.debug("[next_tick]: {}".format(result))
-            r.append(result)
+            r.append(self.advance())
         # The last element is always None, but is not a sentinel; any
         # rule may return None.
         for listener in self._next_tick_listeners:
@@ -1193,26 +894,19 @@ class Engine(AbstractEngine, gORM):
         This also deletes all its history. You'd better be sure.
 
         """
-        self.db.del_character(name)
+        self.query.del_character(name)
         self.del_graph(name)
         del self.character[name]
 
     def _is_thing(self, character, node):
-        if character not in self._things_cache or \
-           node not in self._things_cache[character]:
-            return False
-        cache = self._things_cache[character][node]
-        for (branch, tick) in self._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        return False
+        return self._things_cache.contains_entity(character, node, *self.time)
 
     def _set_thing_loc_and_next(
             self, character, node, loc, nextloc=None, branch=None, tick=None
     ):
         branch = branch or self.branch
         tick = tick or self.tick
-        self.db.thing_loc_and_next_set(
+        self.query.thing_loc_and_next_set(
             character,
             node,
             branch,
@@ -1220,34 +914,27 @@ class Engine(AbstractEngine, gORM):
             loc,
             nextloc
         )
-        self._things_cache[character][node][branch][tick] = (loc, nextloc)
+        self._things_cache.store(character, node, branch, tick, loc, nextloc)
 
     def _node_exists(self, character, node):
-        if character not in self._nodes_cache or \
-           node not in self._nodes_cache[character]:
-            return False
-        cache = self._nodes_cache[character][node]
-        for (branch, tick) in self._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        return False
+        return self._nodes_cache.contains_entity(character, node, *self.time)
 
     def _exist_node(self, character, node, exist=True, branch=None, tick=None):
         branch = branch or self.branch
         tick = tick or self.tick
-        self.db.exist_node(
+        self.query.exist_node(
             character,
             node,
             branch,
             tick,
             exist
         )
-        self._nodes_cache[character][node][branch][tick] = exist
+        self._nodes_cache.store(character, node, branch, tick, exist)
 
     def _exist_edge(self, character, nodeA, nodeB, exist=True, branch=None, tick=None):
         branch = branch or self.branch
         tick = tick or self.tick
-        self.db.exist_edge(
+        self.query.exist_edge(
             character,
             nodeA,
             nodeB,
@@ -1256,7 +943,7 @@ class Engine(AbstractEngine, gORM):
             tick,
             exist
         )
-        self._edges_cache[character][nodeA][nodeB][0][branch][tick] = exist
+        self._edges_cache.store(character, nodeA, nodeB, 0, branch, tick, exist)
 
     def alias(self, v, stat='dummy'):
         r = DummyEntity(self)
@@ -1265,7 +952,8 @@ class Engine(AbstractEngine, gORM):
 
     def entityfy(self, v, stat='dummy'):
         if (
-                isinstance(v, Node) or
+                isinstance(v, Thing) or
+                isinstance(v, Place) or
                 isinstance(v, Portal) or
                 isinstance(v, Query) or
                 isinstance(v, EntityStatAccessor)

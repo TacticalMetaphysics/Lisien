@@ -36,7 +36,7 @@ from json import dumps
 from sqlalchemy.sql import bindparam, column
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 from sqlalchemy.sql.expression import union
-import gorm.alchemy
+import allegedb.alchemy
 
 # Constants
 
@@ -154,7 +154,7 @@ def tables_for_meta(meta):
         )
         return r
 
-    r = gorm.alchemy.tables_for_meta(meta)
+    r = allegedb.alchemy.tables_for_meta(meta)
 
     for functyp in functyps:
         r[functyp] = func_store_table(functyp)
@@ -424,7 +424,7 @@ def tables_for_meta(meta):
     # "Portal" is LiSE's term for an edge in any of the directed
     # graphs it uses. The name is different to distinguish them from
     # Edge objects, which exist in an underlying object-relational
-    # mapper called gorm, and have a different API.
+    # mapper called allegedb, and have a different API.
     r['portal_rulebook'] = Table(
         'portal_rulebook', meta,
         Column('character', TEXT, primary_key=True),
@@ -533,7 +533,7 @@ def indices_for_table_dict(table):
             t.c.rule
         )
 
-    r = gorm.alchemy.indices_for_table_dict(table)
+    r = allegedb.alchemy.indices_for_table_dict(table)
 
     for idx in (
             Index(
@@ -783,7 +783,7 @@ def queries(table, view):
             )
         )
 
-    r = gorm.alchemy.queries_for_table_dict(table)
+    r = allegedb.alchemy.queries_for_table_dict(table)
 
     for functyp in functyps:
         r['func_{}_name_plaincode'.format(functyp)] \
@@ -828,6 +828,15 @@ def queries(table, view):
             table['lise_globals'].c.key,
             table['lise_globals'].c.branch
         )
+
+    r['universal_dump'] = select(
+        [
+            table['lise_globals'].c.key,
+            table['lise_globals'].c.branch,
+            table['lise_globals'].c.tick,
+            table['lise_globals'].c.value
+        ]
+    )
 
     r['universal_items'] = select(
         [

@@ -24,7 +24,7 @@ from collections import (
 )
 from functools import partial
 
-from gorm.reify import reify
+from .util import reify
 
 from .bind import (
     dispatch,
@@ -35,6 +35,8 @@ from .bind import (
 
 
 class RuleFuncList(MutableSequence):
+    __slots__ = ['rule', '_listeners', '_cache']
+
     def __init__(self, rule):
         self.rule = rule
         self._listeners = []
@@ -110,26 +112,26 @@ class TriggerList(RuleFuncList):
 
     @reify
     def _loader(self):
-        return self.funcstore.db.rule_triggers
+        return self.funcstore.query.rule_triggers
 
     @reify
     def _replacer(self):
-        return self.funcstore.db.replace_rule_trigger
+        return self.funcstore.query.replace_rule_trigger
 
     @reify
     def _inserter(self):
-        return self.funcstore.db.insert_rule_trigger
+        return self.funcstore.query.insert_rule_trigger
 
     @reify
     def _deleter(self):
-        return self.funcstore.db.delete_rule_trigger
+        return self.funcstore.query.delete_rule_trigger
 
     @reify
     def _appender(self):
-        return self.funcstore.db.append_rule_trigger
+        return self.funcstore.query.append_rule_trigger
 
     def _setall(self, l):
-        self.funcstore.db.replace_all_rule_triggers(self.rule.name, l)
+        self.funcstore.query.replace_all_rule_triggers(self.rule.name, l)
 
 
 class PrereqList(RuleFuncList):
@@ -139,26 +141,26 @@ class PrereqList(RuleFuncList):
 
     @reify
     def _loader(self):
-        return self.funcstore.db.rule_prereqs
+        return self.funcstore.query.rule_prereqs
 
     @reify
     def _replacer(self):
-        return self.funcstore.db.replace_rule_prereq
+        return self.funcstore.query.replace_rule_prereq
 
     @reify
     def _inserter(self):
-        return self.funcstore.db.insert_rule_prereq
+        return self.funcstore.query.insert_rule_prereq
 
     @reify
     def _deleter(self):
-        return self.funcstore.db.delete_rule_prereq
+        return self.funcstore.query.delete_rule_prereq
 
     @reify
     def _appender(self):
-        return self.funcstore.db.append_rule_prereq
+        return self.funcstore.query.append_rule_prereq
 
     def _setall(self, l):
-        self.funcstore.db.replace_all_rule_prereqs(self.rule.name, l)
+        self.funcstore.query.replace_all_rule_prereqs(self.rule.name, l)
 
 
 class ActionList(RuleFuncList):
@@ -168,29 +170,31 @@ class ActionList(RuleFuncList):
 
     @reify
     def _loader(self):
-        return self.funcstore.db.rule_actions
+        return self.funcstore.query.rule_actions
 
     @reify
     def _replacer(self):
-        return self.funcstore.db.replace_rule_action
+        return self.funcstore.query.replace_rule_action
 
     @reify
     def _inserter(self):
-        return self.funcstore.db.insert_rule_action
+        return self.funcstore.query.insert_rule_action
 
     @reify
     def _deleter(self):
-        return self.funcstore.db.delete_rule_action
+        return self.funcstore.query.delete_rule_action
 
     @reify
     def _appender(self):
-        return self.funcstore.db.append_rule_action
+        return self.funcstore.query.append_rule_action
 
     def _setall(self, l):
-        self.funcstore.db.replace_all_rule_actions(self.rule.name, l)
+        self.funcstore.query.replace_all_rule_actions(self.rule.name, l)
 
 
 class RuleFuncListDescriptor(object):
+    __slots__ = ['cls']
+
     def __init__(self, cls):
         self.cls = cls
 
@@ -222,6 +226,7 @@ class Rule(object):
     change the world.
 
     """
+
     triggers = RuleFuncListDescriptor(TriggerList)
     prereqs = RuleFuncListDescriptor(PrereqList)
     actions = RuleFuncListDescriptor(ActionList)
@@ -242,27 +247,13 @@ class Rule(object):
         self.engine = engine
         self.name = self.__name__ = name
         if name not in self.engine.rule:
-            self.engine.rule.db.set_rule(name)
+            self.engine.rule.query.set_rule(name)
         if triggers:
             self.triggers.extend(triggers)
         if prereqs:
             self.prereqs.extend(prereqs)
         if actions:
             self.actions.extend(actions)
-        self._trigger_results_cache = defaultdict(  # trigger
-            lambda: defaultdict(  # branch
-                lambda: defaultdict(  # tick
-                    dict  # args: result
-                )
-            )
-        )
-        self._prereq_results_cache = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    dict
-                )
-            )
-        )
 
     def __eq__(self, other):
         return (
@@ -341,7 +332,7 @@ class Rule(object):
         name.
 
         """
-        if self.engine.rule.db.haverule(newname):
+        if self.engine.rule.query.haverule(newname):
             raise KeyError("Already have a rule called {}".format(newname))
         return Rule(
             self.engine,
@@ -367,14 +358,7 @@ class Rule(object):
         """
         curtime = (branch, tick) = engine.time
         for trigger in self.triggers:
-            if not (
-                trigger.__name__ in self._trigger_results_cache and
-                branch in self._trigger_results_cache[trigger.__name__] and
-                tick in self._trigger_results_cache[trigger.__name__][branch] and
-                args in self._trigger_results_cache[trigger.__name__][branch][tick]
-            ):
-                self._trigger_results_cache[trigger.__name__][branch][tick][args] = trigger(engine, *args)
-            result = self._trigger_results_cache[trigger.__name__][branch][tick][args]
+            result = trigger(engine, *args)
             if engine.time != curtime:
                 engine.time = curtime
             if result:
@@ -388,14 +372,7 @@ class Rule(object):
         """
         curtime = (branch, tick) = engine.time
         for prereq in self.prereqs:
-            if not(
-                prereq.__name__ in self._prereq_results_cache and
-                branch in self._prereq_results_cache[prereq.__name__] and
-                tick in self._prereq_results_cache[prereq.__name__][branch] and
-                args in self._prereq_results_cache[prereq.__name__][branch][tick]
-            ):
-                self._prereq_results_cache[prereq.__name__][branch][tick][args] = prereq(self.engine, *args)
-            result = self._prereq_results_cache[prereq.__name__][branch][tick][args]
+            result = prereq(self.engine, *args)
             engine.time = curtime
             if not result:
                 return False
@@ -418,27 +395,24 @@ class RuleBook(MutableSequence):
     anyway.
 
     """
-    @reify
+
+    @property
     def _cache(self):
-        if self.name not in self.engine._rulebooks_cache:
-            self.engine._rulebooks_cache[self.name] = list(
-                self.engine.rule.db.rulebook_rules(self.name)
-            )
-        return self.engine._rulebooks_cache[self.name]
+        return self.engine._rulebooks_cache.retrieve(self.name)
 
     def __init__(self, engine, name):
         self.engine = engine
+        self.query = engine.rule.query
         self.name = name
         self._listeners = []
 
     def __contains__(self, v):
-        if isinstance(v, Rule):
-            v = v.name
+        if not isinstance(v, Rule):
+            v = self.engine.rule[v]
         return v in self._cache
 
     def __iter__(self):
-        for rulen in self._cache:
-            yield self.engine.rule[rulen]
+        return iter(self._cache)
 
     def __len__(self):
         return len(self._cache)
@@ -466,13 +440,18 @@ class RuleBook(MutableSequence):
 
     def __setitem__(self, i, v):
         rule = self._coerce_rule(v)
-        self.engine._rulebook_set(self.name, i, rule.name)
+        self.query.rulebook_set(self.name, i, rule)
+        cache = self._cache
+        while len(cache) <= i:
+            cache.append(None)
+        cache[i] = rule
         self._activate_rule(rule)
         self._dispatch()
 
     def insert(self, i, v):
         rule = self._coerce_rule(v)
-        self.engine._rulebook_insert(self.name, i, rule.name)
+        self._cache.insert(i, rule)
+        self.query.rulebook_ins(self.name, i, rule.name)
         self._activate_rule(rule)
         self._dispatch()
 
@@ -492,7 +471,8 @@ class RuleBook(MutableSequence):
         return super().index(v)
 
     def __delitem__(self, i):
-        self.engine._rulebook_del_rule(self.name, i)
+        del self._cache[i]
+        self.query.rulebook_del(self.name, i)
         self._dispatch()
 
     def listener(self, fun):
@@ -522,6 +502,7 @@ class RuleMapping(MutableMapping):
     the rulebook, but won't be followed.
 
     """
+
     def __init__(self, engine, rulebook):
         self.engine = engine
         if isinstance(rulebook, RuleBook):
@@ -548,12 +529,7 @@ class RuleMapping(MutableMapping):
         return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
-        cache = self.engine._active_rules_cache[self.rulebook.name]
-        for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache[rule]:
-                    yield cache[rule][branch][tick]
-                    break
+        return self.engine._active_rules_cache.iter_entities(self.name, *self.engine.time)
 
     def __len__(self):
         n = 0
@@ -562,16 +538,7 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
-        if self.rulebook.name not in self.engine._active_rules_cache:
-            return False
-        cache = self.engine._active_rules_cache[self.rulebook.name]
-        if k not in cache:
-            return False
-        cache = cache[k]
-        for (branch, tick) in self.engine._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        return False
+        return k in self.rulebook
 
     def __getitem__(self, k):
         if k not in self:
@@ -639,25 +606,38 @@ class RuleMapping(MutableMapping):
         del self.rulebook[i]
         self._dispatch(k, None)
 
+rule_mappings = {}
+rulebook_listeners = defaultdict(list)
+rulebooks = {}
 
 class RuleFollower(object):
     """Interface for that which has a rulebook associated, which you can
     get a :class:`RuleMapping` into
 
     """
-    @reify
+    @property
     def _rule_mapping(self):
-        return self._get_rule_mapping()
+        if id(self) not in rule_mappings:
+            rule_mappings[id(self)] = self._get_rule_mapping()
+        return rule_mappings[id(self)]
+
+    @property
+    def _rulebook_listeners(self):
+        return rulebook_listeners[id(self)]
+
+    @property
+    def _rulebooks(self):
+        return rulebooks[id(self)]
+
+    @_rulebooks.setter
+    def _rulebooks(self, v):
+        rulebooks[id(self)] = v
 
     @property
     def rule(self, v=None, name=None):
         if v is not None:
             return self._rule_mapping(v, name)
         return self._rule_mapping
-
-    @reify
-    def _rulebook_listeners(self):
-        return []
 
     @property
     def rulebook(self):
@@ -721,21 +701,23 @@ class RuleFollower(object):
 
 
 class AllRuleBooks(Mapping):
-    def __init__(self, engine, db):
+    __slots__ = ['engine', 'query', '_cache', '_listeners']
+
+    def __init__(self, engine, query):
         self.engine = engine
-        self.db = db
-        self.db.init_table('rulebooks')
-        self._cache = {}
+        self.query = query
+        self.query.init_table('rulebooks')
         self._listeners = defaultdict(list)
+        self._cache = {}
 
     def __iter__(self):
-        return iter(self.engine._rulebooks_cache.keys())
+        return iter(self.engine._rulebooks_cache._data.keys())
 
     def __len__(self):
-        return len(self.engine._rulebooks_cache)
+        return len(self.engine._rulebooks_cache._data)
 
     def __contains__(self, k):
-        return k in self.engine._rulebooks_cache
+        return k in self.engine._rulebooks_cache._data
 
     def __getitem__(self, k):
         if k not in self._cache:
@@ -756,11 +738,11 @@ class AllRuleBooks(Mapping):
 # to a null rulebook in the database. That's not very useful and might
 # cause bad effects later on.
 class AllRules(MutableMapping):
-    def __init__(self, engine, db):
+    def __init__(self, engine, query):
         self.engine = engine
-        self.db = db
-        self.db.init_table('rules')
-        self.db.init_table('rulebooks')
+        self.query = query
+        self.query.init_table('rules')
+        self.query.init_table('rulebooks')
         self._cache = {}
         self._listeners = defaultdict(list)
 
@@ -771,14 +753,14 @@ class AllRules(MutableMapping):
         dispatch(self._listeners, rule.name, active, self, rule, active)
 
     def __iter__(self):
-        yield from self.db.allrules()
+        yield from self.query.allrules()
 
     def __len__(self):
-        return self.db.ctrules()
+        return self.query.ctrules()
 
     def __contains__(self, k):
         try:
-            return self.db.haverule(k)
+            return self.query.haverule(k)
         except TypeError:
             return False
 

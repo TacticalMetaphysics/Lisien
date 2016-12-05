@@ -6,7 +6,7 @@ ordinary method calls.
 """
 from collections import defaultdict
 from importlib import import_module
-from gorm.xjson import (
+from allegedb.xjson import (
     JSONReWrapper,
     JSONListReWrapper
 )
@@ -58,6 +58,7 @@ class EngineHandle(object):
         self._universal_cache = {}
         self._rule_cache = {}
         self._rulebook_cache = defaultdict(list)
+        self._stores_cache = defaultdict(dict)
 
     def log(self, level, message):
         if self._logq:
@@ -138,7 +139,17 @@ class EngineHandle(object):
             return self.get_chardiffs(chars)
 
     def add_character(self, char, data, attr):
-        self._real.add_character(char, data, **attr)
+        character = self._real.new_character(char, **attr)
+        placedata = data.get('place', data.get('node', {}))
+        for place, stats in placedata.items():
+            character.add_place(place, **stats)
+        thingdata = data.get('thing',  {})
+        for thing, stats in thingdata.items():
+            character.add_thing(thing, **stats)
+        portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
+        for orig, dests in portdata.items():
+            for dest, stats in dests.items():
+                character.add_portal(orig, dest, **stats)
 
     def commit(self):
         self._real.commit()
@@ -292,12 +303,9 @@ class EngineHandle(object):
 
     @staticmethod
     def _character_something_diff(char, cache, copier, *args):
-        try:
-            old = cache.get(char, {})
-            new = cache[char] = copier(char, *args)
-            return dict_diff(old, new)
-        except KeyError:
-            return None
+        old = cache.get(char, {})
+        new = cache[char] = copier(char, *args)
+        return dict_diff(old, new)
 
     def character_stat_diff(self, char):
         return self._character_something_diff(char, self._char_stat_cache, self.character_stat_copy)
@@ -918,7 +926,7 @@ class EngineHandle(object):
 
     def get_node_rulebook(self, char, node):
         try:
-            return self._real.db.node_rulebook(char, node)
+            return self._real.query.node_rulebook(char, node)
         except KeyError:
             return None
 
@@ -940,20 +948,19 @@ class EngineHandle(object):
     def have_rulebook(self, rulebook):
         return rulebook in self._real.rulebook
 
-    def keys_in_store(self, store):
-        return list(getattr(self._real, store).keys())
+    def source_copy(self, store):
+        return dict(getattr(self._real, store).iterplain())
 
-    def len_store(self, store):
-        return len(getattr(self._real, store))
+    def source_diff(self, store):
+        old = self._stores_cache.get(store, {})
+        new = self._stores_cache[store] = self.source_copy(store)
+        return dict_diff(old, new)
 
-    def plain_items_in_store(self, store):
-        return list(getattr(self._real, store).iterplain())
-
-    def plain_source(self, store, k):
-        return getattr(self._real, store).plain(k)
-
-    def store_set_source(self, store, k, v):
+    def set_source(self, store, k, v):
         getattr(self._real, store).set_source(k, v)
+
+    def del_source(self, store, k):
+        del getattr(self._real, store)[k]
 
     def install_module(self, module):
         import_module(module).install(self._real)

@@ -10,8 +10,7 @@ from collections import Mapping
 
 from networkx import shortest_path, shortest_path_length
 
-import gorm.graph
-from gorm.reify import reify
+import allegedb.graph
 
 from .util import getatt
 from .query import StatusAlias
@@ -24,6 +23,8 @@ class RuleMapping(rule.RuleMapping):
     with a node.
 
     """
+    __slots__ = ['node']
+
     def __init__(self, node):
         """Initialize with node's engine, character, and rulebook."""
         super().__init__(node.engine, node.rulebook)
@@ -32,9 +33,9 @@ class RuleMapping(rule.RuleMapping):
     character = getatt('node.character')
 
     def __iter__(self):
-        for (rule, active) in self.node._rule_names_activeness():
+        for (rul, active) in self.node._rule_names_activeness():
             if active:
-                yield rule
+                yield rul
 
 
 class UserMapping(Mapping):
@@ -47,6 +48,8 @@ class UserMapping(Mapping):
     the keys; and so on.
 
     """
+    __slots__ = ['node']
+
     def __init__(self, node):
         """Store the node"""
         self.node = node
@@ -89,7 +92,7 @@ class UserMapping(Mapping):
                 return getattr(me, attr)
 
 
-class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
+class Node(allegedb.graph.Node, rule.RuleFollower, TimeDispatcher):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
 
@@ -98,36 +101,17 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
-    @property
-    def _cache(self):
-        return self._dispatch_cache
-
-    def _rule_names_activeness(self):
-        cache = self.engine._active_rules_cache[self._get_rulebook_name()]
-        for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
-                if branch not in cache[rule]:
-                    continue
-                try:
-                    yield (
-                        rule,
-                        cache[rule][branch][tick]
-                    )
-                    break
-                except ValueError:
-                    continue
+    __slots__ = ['user', 'graph', 'db', 'node', '_getitem_dispatch', '_setitem_dispatch']
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
-        cache = self.engine._nodes_rulebooks_cache
-        if (
-                self.character.name not in cache or
-                self.name not in cache[self.character.name]
-        ):
-            return (self.character.name, self.name)
-        return cache[self.character.name][self.name]
+        cache = self.engine._nodes_rulebooks_cache._data
+        key = (self.character.name, self.name)
+        if key not in cache:
+            return key
+        return cache[key]
 
     def _get_rulebook(self):
         return rule.RuleBook(
@@ -159,30 +143,38 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
                     seen.add(user)
                     break
 
-    @reify
-    def user(self):
-        return UserMapping(self)
-
     @property
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
         return self.character.portal[self.name]
 
+    @property
+    def engine(self):
+        return self.db
+
+    @property
+    def character(self):
+        return self.graph
+
+    @property
+    def name(self):
+        return self.node
+
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
-        self.character = character
-        self.engine = character.engine
-        self.gorm = self.engine
-        self.graph = self.character
-        self.name = self.node = name
-        (branch, tick) = self.engine.time
-        self._dispatch_cache = self.engine._node_val_cache[
-            self.character.name][self.name]
+        self.user = UserMapping(self)
+        self.graph = character
+        self.db = character.engine
+        self.node = name
 
     def __iter__(self):
         yield from super().__iter__()
         yield from self.extrakeys
         return
+
+    def clear(self):
+        for key in super().__iter__():
+            del self[key]
 
     def __contains__(self, k):
         """Handle extra keys, then delegate."""
@@ -200,28 +192,19 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        cache = self.engine._edges_cache[self.character.name][self.name]
-        (branch, tick) = self.engine.time
-        for nodeB in cache:
-            try:
-                if cache[nodeB][0][branch][tick]:
-                    yield nodeB
-            except (KeyError, ValueError):
-                continue
-            return
+        yield from self.db._edges_cache.iter_entities(self.character.name, self.name, *self.engine.time)
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
-        cache = self.engine._edges_cache[self.character.name]
-        (branch, tick) = self.engine.time
-        for nodeA in cache:
-            if self.name not in cache[nodeA]:
-                continue
-            try:
-                if cache[nodeA][self.name][0][branch][tick]:
-                    yield nodeA
-            except (KeyError, ValueError):
-                continue
+        cache = self.engine._edges_cache.predecessors[self.character.name][self.name]
+        for nodeB in cache:
+            for (b, t) in self.engine._active_branches():
+                if b in cache[nodeB][0]:
+                    if b != self.engine.branch:
+                        self.engine._edges_cache.store(self.character.name, self.name, nodeB, 0, *self.engine.time)
+                    if cache[nodeB][0][b][t]:
+                        yield nodeB
+                        break
 
     def portals(self):
         """Iterate over :class:`Portal` objects that lead away from me"""
@@ -358,13 +341,3 @@ class Node(gorm.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def __bool__(self):
         return self.name in self.character.node
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Node) and
-            self.character == other.character and
-            self.name == other.name
-        )
-
-    def __hash__(self):
-        return hash((self.character.name, self.name))

@@ -7,9 +7,54 @@ from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
 
 
+class reify(object):
+    '''
+    Put the result of a method which uses this (non-data) descriptor decorator
+    in the instance dict after the first call, effectively replacing the
+    decorator with an instance variable.
+
+    It acts like @property, except that the function is only ever called once;
+    after that, the value is cached as a regular attribute. This gives you lazy
+    attribute creation on objects that are meant to be immutable.
+
+    Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
+    Modified for LiSE
+    
+    '''
+    __slots__ = ['func', 'reified']
+
+    def __init__(self, func):
+        self.func = func
+        self.reified = {}
+
+    def __get__(self, inst, cls):
+        if inst is None:
+            return self
+        if id(inst) in self.reified:
+            return self.reified[id(inst)]
+        self.reified[id(inst)] = retval = self.func(inst)
+        return retval
+
+    def __set__(self, inst, val):
+        if id(inst) not in self.reified:
+            # shouldn't happen, but it's easy to handle
+            self.reified[id(inst)] = self.func(inst)
+        self.reified[id(inst)].update(val)
+
+
 def getatt(attribute_name):
     """An easy way to make an alias"""
     return property(attrgetter(attribute_name))
+
+
+def singleton_get(s):
+    """Take an iterable and return its only item, or None if that's impossible."""
+    it = None
+    for that in s:
+        if it is not None:
+            return None
+        it = that
+    return it
 
 
 def path_len(graph, path, weight=None):
@@ -70,6 +115,8 @@ def keycache_iter(keycache, branch, tick, get_iterator):
 
 
 class EntityStatAccessor(object):
+    __slots__ = ['engine', 'entity', 'branch', 'tick', 'stat', 'current', 'mungers']
+
     def __init__(self, entity, stat, engine=None, branch=None, tick=None, current=False, mungers=[]):
         if engine is None:
             engine = entity.engine

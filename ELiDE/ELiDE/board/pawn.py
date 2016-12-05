@@ -91,6 +91,31 @@ class Pawn(PawnSpot):
         self.loc_name = self.remote['location']
         self.next_loc_name = self.remote.get('next_location', None)
 
+    def finalize(self):
+        super().finalize()
+        self.bind(
+            loc_name=self._trigger_push_location,
+            next_loc_name=self._trigger_push_next_location
+        )
+
+    def unfinalize(self):
+        super().unfinalize()
+        self.unbind(
+            loc_name=self._trigger_push_location,
+            next_loc_name=self._trigger_push_next_location
+        )
+
+    def pull_from_remote(self):
+        relocate = False
+        if self.loc_name != self.remote['location']:
+            self.loc_name = self.remote['location']  # aliasing? could be trouble
+            relocate = True
+        if self.next_loc_name != self.remote['next_location']:
+            self.next_loc_name = self.remote['next_location']
+            relocate = True
+        if relocate:
+            self.relocate()
+
     def push_location(self, *args):
         self.remote['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)

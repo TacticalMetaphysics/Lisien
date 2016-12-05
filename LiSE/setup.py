@@ -21,12 +21,13 @@ setup(
     url="https://github.com/LogicalDash/LiSE",
     packages=[
         "LiSE",
-        "LiSE.server"
+        "LiSE.server",
+        "LiSE.examples"
     ],
     package_data={
         'LiSE': ['sqlite.json']
     },
     install_requires=[
-        "gorm>=0.8.3",
+        "allegedb>=0.10.0",
     ],
 )

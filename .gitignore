@@ -5,8 +5,17 @@ wheelhouse/
 *.whl
 .idea/
 *.db
+*.db-journal
 *.egg-info
 *.log
 .eric6project
 .ropeproject
 *.e4p
+.cache
+elide.ini
+*.prof
+*.so
+*.csv
+ELiDE/LiSE
+ELiDE/allegedb
+LiSE/allegedb

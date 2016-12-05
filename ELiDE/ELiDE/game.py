@@ -1,5 +1,4 @@
 import os
-from importlib import import_module
 from kivy.logger import Logger
 from kivy.properties import (
     AliasProperty,
@@ -9,7 +8,6 @@ from kivy.resources import resource_find
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
-from LiSE.engine import Engine
 import LiSE.proxy
 from .util import trigger
 
@@ -66,14 +64,12 @@ class GameApp(App):
         except FileNotFoundError:
             pass
         self.procman = LiSE.proxy.EngineProcessManager()
-        self.engine = self.procman.start(self.worlddb, self.codedb, logger=Logger)
-        if not have_code:
-            for module in self.modules:
-                self.engine.handle(command='install_module', module=module)
-        if not have_world:
-            self.engine.handle(command='do_game_start')
-        if not (have_world and have_code):
-            self.engine.pull()
+        self.engine = self.procman.start(
+            self.worlddb, self.codedb,
+            logger=Logger, loglevel='debug',
+            do_game_start=not have_world,
+            install_modules=self.modules if not have_code else []
+        )
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
         self.screens.bind(children=self._pull_screens)

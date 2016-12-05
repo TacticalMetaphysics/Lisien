@@ -14,13 +14,15 @@ contained by Places, or possibly other Things.
 import networkx as nx
 from .node import Node
 from .util import path_len
-from .exc import(
-    CacheError,
-    TravelException
-)
+from .exc import TravelException
+
+
+def roerror(*args, **kwargs):
+    raise ValueError("Read-only")
 
 
 class Thing(Node):
+
     """The sort of item that has a particular location at any given time.
 
     If a Thing is in a Place, it is standing still. If it is in a
@@ -30,6 +32,7 @@ class Thing(Node):
     same.
 
     """
+
     extrakeys = {
         'name',
         'character',
@@ -37,6 +40,59 @@ class Thing(Node):
         'next_location',
         'arrival_time',
         'next_arrival_time'
+    }
+
+    def _getname(self):
+        return self.name
+
+    def _getcharname(self):
+        return self.character.name
+
+    def _getloc(self):
+        return self._get_locations()[0]
+
+    def _setloc(self, v):
+        self._set_loc_and_next(v, None)
+
+    def _getnxtloc(self):
+        return self._get_locations()[1]
+
+    def _setnxtloc(self, v):
+        self._set_loc_and_next(self['location'], v)
+
+    def _setlocs(self, v):
+        self._set_loc_and_next(*v)
+
+    def _get_arrival_time(self):
+        return self.engine._things_cache.tick_before(self.character.name, self.name, *self.engine.time)
+
+    def _get_next_arrival_time(self):
+        try:
+            return self.engine._things_cache.tick_after(self.character.name, self.name, *self.engine.time)
+        except KeyError:
+            return None
+
+    def _get_locations(self):
+        return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
+
+    _getitem_dispatch = {
+        'name': _getname,
+        'character': _getcharname,
+        'location': _getloc,
+        'next_location': _getnxtloc,
+        'locations': _get_locations,
+        'arrival_time': _get_arrival_time,
+        'next_arrival_time': _get_next_arrival_time
+    }
+
+    _setitem_dispatch = {
+        'name': roerror,
+        'character': roerror,
+        'arrival_time': roerror,
+        'next_arrival_time': roerror,
+        'location': _setloc,
+        'next_location': _setnxtloc,
+        'locations': _setlocs
     }
 
     def __contains__(self, key):
@@ -66,56 +122,16 @@ class Thing(Node):
         ``locations``: return a pair of ``(location, next_location)``
 
         """
-        if key == 'name':
-            return self.name
-        elif key == 'character':
-            return self.character.name
-        elif key == 'location':
-            return self['locations'][0]
-        elif key == 'arrival_time':
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache:
-                    return cache[branch].rev_before(tick)
-            raise CacheError("Locations not cached correctly")
-        elif key == 'next_location':
-            return self['locations'][1]
-        elif key == 'next_arrival_time':
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache:
-                    try:
-                        return cache[branch].rev_after(tick)
-                    except KeyError:
-                        return None
-            return None
-        elif key == 'locations':
-            cache = self.engine._things_cache[self.character.name][self.name]
-            for (branch, tick) in self.engine._active_branches():
-                if branch in cache:
-                    return cache[branch][tick]
-            raise CacheError("Locations not cached correctly")
-        else:
+        try:
+            return self._getitem_dispatch[key](self)
+        except KeyError:
             return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
-        if key == 'name':
-            raise ValueError("Can't change names")
-        elif key == 'character':
-            raise ValueError("Can't change characters")
-        elif key == 'location':
-            self['locations'] = (value, None)
-        elif key == 'arrival_time':
-            raise ValueError("Read-only")
-        elif key == 'next_location':
-            self['locations'] = (self['location'], value)
-        elif key == 'next_arrival_time':
-            raise ValueError("Read-only")
-        elif key == 'locations':
-            self._set_loc_and_next(*value)
-            self.dispatch('locations', value)
-        else:
+        try:
+            self._setitem_dispatch[key](value)
+        except KeyError:
             super().__setitem__(key, value)
 
     def __delitem__(self, key):
@@ -125,7 +141,7 @@ class Thing(Node):
         super().__delitem__(key)
 
     def __repr__(self):
-        """Return my character, name, and location"""
+        """Return my character, name, and location."""
         if self['next_location'] is not None:
             return "{}.thing[{}]@{}->{}".format(
                 self['character'],
@@ -139,26 +155,6 @@ class Thing(Node):
             self['location']
         )
 
-    def _get_arrival_time(self):
-        """Query the database for when I arrive at my present location."""
-        cache = self.engine._things_cache[self.character.name][self.name]
-        for (branch, tick) in self.engine._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        raise CacheError("Thing seems never to have arrived where it is")
-
-    def _get_next_arrival_time(self):
-        """Query the database for when I will arrive at my next location, or
-        ``None`` if I'm not traveling.
-
-        """
-        cache = self.engine._things_cache[self.character.name][self.name]
-        for (branch, tick) in self.engine._active_branches():
-            try:
-                return min(t for t in cache[branch] if t > tick)
-            except (KeyError, ValueError):
-                continue
-
     def delete(self, nochar=False):
         super().delete()
         if not nochar:
@@ -169,15 +165,7 @@ class Thing(Node):
     def clear(self):
         """Unset everything."""
         for k in list(self.keys()):
-            if k not in (
-                    'name',
-                    'character',
-                    'location',
-                    'next_location',
-                    'arrival_time',
-                    'next_arrival_time',
-                    'locations'
-            ):
+            if k not in self.extrakeys:
                 del self[k]
 
     @property
@@ -188,12 +176,9 @@ class Thing(Node):
         """
         (a, b) = self['locations']
         try:
-            return self.character.portal[a][b]
+            return self.engine._portal_objs[(self.character.name, a, b)]
         except KeyError:
-            try:
-                return self.character.thing[a]
-            except KeyError:
-                return self.character.place[a]
+            return self.engine._node_objs[(self.character.name, a)]
 
     @property
     def location(self):
@@ -201,9 +186,11 @@ class Thing(Node):
         started.
 
         """
-        if not self['location']:
-            return None
-        return self.character.node[self['location']]
+        loc, nxtloc = self._get_locations()
+        try:
+            return self.engine._node_objs[(self.character.name, loc)]
+        except KeyError:
+            raise ValueError("Nonexistent location: {}".format(loc))
 
     @location.setter
     def location(self, v):
@@ -217,31 +204,19 @@ class Thing(Node):
         headed.
 
         """
-        locn = self['next_location']
-        if not locn:
+        loc, nxtloc = self._get_locations()
+        if nxtloc is None:
             return None
         try:
-            return self.character.thing[locn]
+            return self.engine._node_objs[(self.character.name, nxtloc)]
         except KeyError:
-            return self.character.place[locn]
+            raise ValueError("Nonexistent next location: ".format(nxtloc))
 
     @next_location.setter
     def next_location(self, v):
         if hasattr(v, 'name'):
             v = v.name
         self['next_location'] = v
-
-    def _loc_and_next(self):
-        """Private method that returns a pair in which the first item is my
-        present ``location`` and the second is my ``next_location``,
-        to which I am presently travelling.
-
-        """
-        cache = self.engine._things_cache[self.character.name][self.name]
-        for (branch, tick) in self.engine._active_branches():
-            if branch in cache:
-                return cache[branch][tick]
-        raise CacheError("Thing loc and next weren't cached right")
 
     def _set_loc_and_next(self, loc, nextloc=None):
         """Private method to simultaneously set ``location`` and
@@ -254,6 +229,7 @@ class Thing(Node):
             loc,
             nextloc
         )
+        self.dispatch('locations', (loc, nextloc))
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
@@ -272,7 +248,7 @@ class Thing(Node):
         curloc = self["location"]
         orm = self.character.engine
         curtick = orm.tick
-        ticks = self.character.portal[curloc][placen].get(weight, 1)
+        ticks = self.engine._portal_objs[(self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
         orm.tick += ticks
         self['locations'] = (placen, None)
@@ -417,3 +393,6 @@ class Thing(Node):
 
         """
         return self.engine.json_dump(self._get_json_dict())
+
+    def __eq__(self, other):
+        return isinstance(other, Thing) and self.character.name == other.character.name and self.name == other.name
