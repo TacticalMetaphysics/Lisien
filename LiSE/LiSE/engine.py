@@ -109,10 +109,7 @@ class AbstractEngine(object):
 
     def delistify(self, obj):
         if isinstance(obj, list) or isinstance(obj, tuple):
-            try:
-                return self._delistify_dispatch[obj[0]](obj)
-            except KeyError:
-                raise ValueError("Unknown sequence type: {}".format(obj[0]))
+            return self._delistify_dispatch[obj[0]](obj)
         else:
             return obj
 
