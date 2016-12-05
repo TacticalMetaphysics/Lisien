@@ -15,7 +15,6 @@ from kivy.uix.listview import (
     SelectableView
 )
 from .statlist import StatListView
-from .util import try_load
 
 
 control_txt = {
