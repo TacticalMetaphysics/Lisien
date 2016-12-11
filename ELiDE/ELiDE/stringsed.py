@@ -1,44 +1,20 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
-from functools import partial
 from kivy.clock import Clock
-from kivy.factory import Factory
-from kivy.properties import (
-    AliasProperty,
-    NumericProperty,
-    ObjectProperty,
-    StringProperty
-)
+from kivy.properties import ObjectProperty
 from kivy.lang import Builder
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from .stores import (
-    StoreAdapter,
-    StoreDataItem,
     StoreEditor,
     StoreList,
     StringInput
 )
-
-
-class StringStoreAdapter(StoreAdapter):
-    """:class:`StoreAdapter` that wraps a string store. Gets string names
-    paired with their plaintext.
-
-    """
-
-    def get_data(self, *args):
-        """Get data from ``LiSE.query.QueryEngine.string_table_lang_items``.
-
-        """
-        return [
-            StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.lang_items()
-        ]
+from .util import trigger
 
 
 class StringStoreList(StoreList):
-    adapter_cls = StringStoreAdapter
+    def iter_data(self):
+        yield from self.store.lang_items()
 
 
 class StringsEditor(StoreEditor):
@@ -62,6 +38,7 @@ class StringsEditor(StoreEditor):
         )
         self.add_widget(self._editor)
 
+    @trigger
     def save(self, *args):
         self.source = self._editor.source
         if self.name != self._editor.name:
@@ -84,7 +61,6 @@ class StringsEdScreen(Screen):
         assert(newname in self.engine.string)
         self.ids.strname.text = ''
         ed.name = newname
-        ed._trigger_redata_reselect()
 
 
 Builder.load_string("""

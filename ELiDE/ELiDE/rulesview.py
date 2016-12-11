@@ -6,11 +6,12 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import AliasProperty, ObjectProperty, StringProperty
-from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.recycleview import RecycleView
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
-from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.screenmanager import Screen
 
@@ -29,47 +30,24 @@ dbg = Logger.debug
 def getname(o):
     return o if isinstance(o, str) else o.__name__
 
-
-class RuleButton(ListItemButton):
+# How do these get instantiated?
+class RuleButton(ToggleButton, RecycleDataViewBehavior):
+    rulesview = ObjectProperty()
     rule = ObjectProperty()
+    
+    def apply_selection(self, rv, index, is_selected):
+        if is_selected:
+            self.rulesview.rule = self.rule
 
 
-class RulesList(ListView):
+class RulesList(RecycleView):
     rulebook = ObjectProperty()
     rulesview = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        if 'adapter' not in kwargs:
-            kwargs['adapter'] = ListAdapter(
-                data=[],
-                selection_mode='single',
-                allow_empty_selection=False,
-                cls=RuleButton,
-                args_converter=lambda i, rule: {
-                    'size_hint_y': None,
-                    'height': 30,
-                    'text': rule.name,
-                    'rule': rule
-                }
-            )
-        super().__init__(**kwargs)
-
-    def on_adapter(self, *args):
-        self.adapter.bind(
-            on_selection_change=lambda inst:
-            self.set_rule(
-                self.adapter.selection[0].rule
-                if self.adapter.selection else None
-            )
-        )
 
     def on_rulebook(self, *args):
         if self.rulebook is None:
             return
-        self.adapter.data = list(self.rulebook)
-
-    def set_rule(self, rule):
-        self.rulesview.rule = rule
+        self.data = list(self.rulebook)
 
 
 class RulesView(FloatLayout):

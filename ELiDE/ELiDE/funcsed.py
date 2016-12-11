@@ -19,30 +19,14 @@ from kivy.properties import (
 )
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-from .stores import StoreAdapter, StoreDataItem, StoreEditor, StoreList
+from .stores import StoreEditor, StoreList
 from .codeinput import FunctionInput
 from .util import trigger
 
 
-class FuncStoreAdapter(StoreAdapter):
-    """:class:`StoreAdapter` that wraps a function store. Gets function
-    names paired with their source code in plaintext.
-
-    """
-
-    def get_data(self, *args):
-        """Get data from
-        ``LiSE.query.QueryEngine.func_table_name_plaincode``.
-
-        """
-        return [
-            StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.iterplain()
-        ]
-
-
 class FuncStoreList(StoreList):
-    adapter_cls = FuncStoreAdapter
+    def iter_data(self):
+        yield from self.store.iterplain()
 
 
 class FuncsEditor(StoreEditor):

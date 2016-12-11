@@ -6,21 +6,17 @@ from kivy.properties import (
     NumericProperty,
     StringProperty,
     ReferenceListProperty,
-    ObjectProperty
+    ObjectProperty,
+    OptionProperty
 )
 from kivy.lang import Builder
+from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import Screen
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
-from kivy.adapters.dictadapter import DictAdapter
-from kivy.uix.listview import (
-    CompositeListItem,
-    ListItemButton,
-    ListItemLabel,
-    SelectableView
-)
-from .statlist import StatListView
+from .statlist import AbstractStatListView
 
 
 control_txt = {
@@ -31,36 +27,20 @@ control_txt = {
 }
 
 
-class SelectableTextInput(TextInput, SelectableView):
-    def select_from_composite(self, *args):
-        pass
-
-    def deselect_from_composite(self, *args):
-        pass
-
-
-class IntInput(SelectableTextInput):
+class FloatInput(TextInput):
     def insert_text(self, s, from_undo=False):
         return super().insert_text(
-            ''.join(c for c in s if c in '0123456789'),
+            ''.join(c for c in s if c in '0123456789.'),
             from_undo
         )
 
 
-class ConfigListItem(CompositeListItem):
-    pass
-
-
-class ControlTypePicker(ListItemButton):
+class ControlTypePicker(Button):
     app = ObjectProperty()
     key = ObjectProperty()
     mainbutton = ObjectProperty()
     dropdown = ObjectProperty()
-    setter = ObjectProperty()
-    button_kwargs = DictProperty({})
-    dropdown_kwargs = DictProperty({})
-    control_texts = DictProperty({})
-    control_callbacks = DictProperty({})
+    sett = ObjectProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -73,7 +53,7 @@ class ControlTypePicker(ListItemButton):
             self.app.selected_remote[k] = v
 
     def selected(self, v):
-        self.setter(self.key, v)
+        self.sett(self.key, v)
         self.text = str(v)
 
     def build(self, *args):
@@ -118,173 +98,73 @@ class ControlTypePicker(ListItemButton):
         self.bind(on_press=self.dropdown.open)
 
 
-class StatListViewConfigurator(StatListView):
+class ConfigListItemToggleButton(BoxLayout):
+    config = ObjectProperty()
+
+
+class ConfigListItemSlider(BoxLayout):
+    config = ObjectProperty()
+
+
+class ConfigListItemCustomizer(Widget):
+    control = ObjectProperty()
+    config = ObjectProperty()
+
+    def on_control(self, *args):
+        self.clear_widgets()
+        if self.control == 'togglebutton':
+            wid = ConfigListItemToggleButton(config=self.config)
+            self.add_widget(wid)
+        elif self.control == 'slider':
+            wid = ConfigListItemSlider(config=self.config)
+            self.add_widget(wid)
+
+
+class ConfigListItem(BoxLayout):
+    key = ObjectProperty()
+    config = DictProperty()
+    sett = ObjectProperty()
+    control = OptionProperty('readout', options=['readout', 'textinput', 'togglebutton', 'slider'])
+
+
+class StatListViewConfigurator(AbstractStatListView):
     statlist = ObjectProperty()
+    _key_cfg_setters = DictProperty()
+    _val_text_setters = DictProperty()
+    _control_wids = DictProperty()
 
     def set_config(self, key, option, value):
         super().set_config(key, option, value)
         self.statlist.set_config(key, option, value)
 
+    def set_configs(self, key, d):
+        super().set_configs(key, d)
+        self.statlist.config[key] = d
+
+    def inst_set_configs(self, inst, val):
+        self.set_configs(inst.key, val)
+
     def set_control(self, key, control):
         super().set_control(key, control)
         self.statlist.set_control(key, control)
 
+    def inst_set_control(self, inst, val):
+        self.set_control(inst.key, val)
+
     def del_key(self, key):
         if key in self.mirror:
             del self.remote[key]
+            del self.mirror[key]
+        if key in self.statlist.config:
+            del self.statlist.config[key]
+        if key in self.statlist.control:
+            del self.statlist.control[key]
 
-    def get_adapter(self):
-        return DictAdapter(
-            data=self.get_data(),
-            cls=ConfigListItem,
-            args_converter=lambda i, kv: {
-                'cls_dicts': self.get_cls_dicts(*kv)
-            },
-            selection_mode='multiple',
-            allow_empty_selection=True
-        )
-
-    def get_cls_dicts(self, key, value):
-        control_type = self.control.get(key, 'readout')
-        cfg = self.config.get(key, {})
-        deldict = {
-            'cls': ListItemButton,
-            'kwargs': {
-                'text': 'del',
-                'on_press': lambda inst: self.del_key(key)
-            }
-        }
-        picker_dict = {
-            'cls': ControlTypePicker,
-            'kwargs': {
-                'key': key,
-                'text': control_txt[control_type],
-                'setter': self.set_control,
-                'control_texts': control_txt,
-                'dropdown_kwargs': {
-                    'canvas': self.canvas.after
-                }
-            }
-        }
-        keydict = {
-            'cls': ListItemLabel,
-            'kwargs': {'text': str(key)}
-        }
-        valdict = {
-            'cls': SelectableTextInput,
-            'kwargs': {
-                'text': str(value),
-                'on_text_validate': lambda i: self.set_value(key, i.text),
-                'on_enter': lambda i: self.set_value(key, i.text),
-                'on_focus': lambda i, v:
-                self.set_value(key, i.text) if not v else None,
-                'write_tab': False
-            }
-        }
-        cls_dicts = [
-            deldict, keydict, valdict, picker_dict
-        ]
-
-        if control_type == 'togglebutton':
-            if 'true_text' not in cfg:
-                cfg['true_text'] = '1'
-            if 'false_text' not in cfg:
-                cfg['false_text'] = '0'
-            true_text_label_dict = {
-                'cls': ListItemLabel,
-                'kwargs': {'text': 'True:'}
-            }
-            true_text_dict = {
-                'cls': SelectableTextInput,
-                'kwargs': {
-                    'multiline': False,
-                    'text': str(cfg.get('true_text', '1')),
-                    'on_enter': lambda i:
-                    self.set_config(key, 'true_text', i.text),
-                    'on_text_validate': lambda i:
-                    self.set_config(key, 'true_text', i.text),
-                    'on_focus': lambda i, foc:
-                    self.set_config(key, 'true_text', i.text)
-                    if not foc else None,
-                    'write_tab': False
-                }
-            }
-            false_text_label_dict = {
-                'cls': ListItemLabel,
-                'kwargs': {'text': 'False:'}
-            }
-            false_text_dict = {
-                'cls': SelectableTextInput,
-                'kwargs': {
-                    'multiline': False,
-                    'text': str(cfg.get('false_text', '0')),
-                    'on_enter': lambda i:
-                    self.set_config(key, 'false_text', i.text),
-                    'on_text_validate': lambda i:
-                    self.set_config(key, 'false_text', i.text),
-                    'on_focus': lambda i, foc:
-                    self.set_config(key, 'false_text', i.text)
-                    if not foc else None,
-                    'write_tab': False
-                }
-            }
-            cls_dicts.extend(
-                (
-                    true_text_label_dict,
-                    true_text_dict,
-                    false_text_label_dict,
-                    false_text_dict
-                )
-            )
-
-        if control_type == 'slider':
-            if 'min' not in cfg:
-                cfg['min'] = 0.0
-            if 'max' not in cfg:
-                cfg['max'] = 1.0
-            min_label_dict = {
-                'cls': ListItemLabel,
-                'kwargs': {'text': 'Minimum:'}
-            }
-            min_dict = {
-                'cls': IntInput,
-                'kwargs': {
-                    'multiline': False,
-                    'text': str(cfg.get('min', 0.0)),
-                    'on_enter': lambda i:
-                    self.set_config(key, 'min', float(i.text)),
-                    'on_text_validate': lambda i:
-                    self.set_config(key, 'min', float(i.text)),
-                    'on_focus': lambda i, foc:
-                    self.set_config(key, 'min', float(i.text))
-                    if not foc else None,
-                    'write_tab': False
-                }
-            }
-            max_label_dict = {
-                'cls': ListItemLabel,
-                'kwargs': {'text': 'Maximum:'}
-            }
-            max_dict = {
-                'cls': IntInput,
-                'kwargs': {
-                    'multiline': False,
-                    'hint_text': 'Maximum',
-                    'text': str(cfg.get('max', 1.0)),
-                    'on_enter': lambda i:
-                    self.set_config(key, 'max', float(i.text)),
-                    'on_text_validate': lambda i:
-                    self.set_config(key, 'max', float(i.text)),
-                    'on_focus': lambda i, foc:
-                    self.set_config(key, 'max', float(i.text))
-                    if not foc else None,
-                    'write_tab': False
-                }
-            }
-            cls_dicts.extend(
-                (min_label_dict, min_dict, max_label_dict, max_dict)
-            )
-        return cls_dicts
+    def munge(self, k, v):
+        ret = super().munge(k, v)
+        ret['on_control'] = self.inst_set_control
+        ret['on_config'] = self.inst_set_configs
+        return ret
 
 
 class StatScreen(Screen):
@@ -319,11 +199,24 @@ class StatScreen(Screen):
 Builder.load_string("""
 <ConfigListItem>:
     height: 30
+    Button:
+        text: 'del'
+        on_press: root.deleter(root.key)
+    Label:
+        text: str(root.key)
+    ControlTypePicker:
+        key: root.key
+        sett: root.sett
+        control: root.control
+    ConfigListItemCustomizer:
+        config: root.config
+        control: root.control
 <StatScreen>:
     name: 'statcfg'
     BoxLayout:
         orientation: 'vertical'
         StatListViewConfigurator:
+            viewclass: 'ConfigListItem'
             id: cfg
             engine: root.engine
             remote: root.remote
@@ -331,6 +224,12 @@ Builder.load_string("""
             tick: root.tick
             statlist: root.statlist
             size_hint_y: 0.95
+            RecycleBoxLayout:
+                default_size: None, dp(56)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: 0.05
