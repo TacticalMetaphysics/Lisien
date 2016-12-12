@@ -70,7 +70,7 @@ cd LiSE
 git submodule init
 git submodule update
 sudo apt-get install cython3 python3-dev python3-pip python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-pip3 install --user LiSE/ ELiDE/
+pip3 install --user allegedb/ LiSE/ ELiDE/
 ```
 
 Thereafter you may run the graphical frontend as ``python3 -m ELiDE``.
