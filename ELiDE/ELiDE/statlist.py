@@ -44,7 +44,6 @@ class StatRowListItem(Widget):
         else:
             self.reg(self)
 
-
 class StatRowLabel(StatRowListItem, Label):
     pass
 
@@ -124,7 +123,18 @@ class StatRowListItemContainer(BoxLayout):
         'slider': StatRowSlider
     }
 
-    def on_control(self, *args):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            key=self.remake,
+            value=self.remake,
+            control=self.remake,
+            config=self.remake,
+            parent=self.remake
+        )
+
+    @trigger
+    def remake(self, *args):
         if not hasattr(self, 'label'):
             self.label = Label(text=str(self.key))
             
@@ -134,6 +144,7 @@ class StatRowListItemContainer(BoxLayout):
             self.add_widget(self.label)
         if hasattr(self, 'wid'):
             self.remove_widget(self.wid)
+            del self.wid
         cls = self.licls[self.control]
         self.wid = cls(
             key=self.key,
@@ -178,6 +189,7 @@ class AbstractStatListView(RecycleView):
             branch=self.refresh_mirror,
             tick=self.refresh_mirror,
             remote=self.refresh_mirror,
+            mirror=self._trigger_upd_data
         )
         super().__init__(**kwargs)
 
@@ -339,7 +351,7 @@ Builder.load_string(
     min: self.config['min']
     max: self.config['max']
 <StatListView>:
-    viewclass: 'StatRowListItem'
+    viewclass: 'StatRowListItemContainer'
     RecycleBoxLayout:
         default_size: None, dp(56)
         default_size_hint: 1, None
