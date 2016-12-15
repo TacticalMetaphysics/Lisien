@@ -124,6 +124,7 @@ class ConfigListItem(BoxLayout):
     key = ObjectProperty()
     config = DictProperty()
     sett = ObjectProperty()
+    deleter = ObjectProperty()
     control = OptionProperty('readout', options=['readout', 'textinput', 'togglebutton', 'slider'])
 
 
@@ -164,6 +165,7 @@ class StatListViewConfigurator(AbstractStatListView):
         ret = super().munge(k, v)
         ret['on_control'] = self.inst_set_control
         ret['on_config'] = self.inst_set_configs
+        ret['deleter'] = self.del_key
         return ret
 
 
