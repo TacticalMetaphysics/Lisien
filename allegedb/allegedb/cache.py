@@ -295,6 +295,8 @@ class Cache(object):
                     kc[rev].discard(key)
                 else:
                     kc[rev].add(key)
+            elif value is None:
+                kc[rev] = set()
             else:
                 kc[rev] = set([key])
 
