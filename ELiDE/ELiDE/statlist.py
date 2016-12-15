@@ -193,6 +193,18 @@ class AbstractStatListView(RecycleView):
         )
         super().__init__(**kwargs)
 
+    def del_key(self, k):
+        if k not in self.mirror:
+            raise KeyError
+        del self.remote[k]
+        del self.mirror[k]
+        if k in self.control:
+            del self.remote['_control'][k]
+            del self.control[k]
+        if k in self.config:
+            del self.remote['_config'][k]
+            del self.config[k]
+
     def set_value(self, k, v):
         if self.engine is None or self.remote is None:
             self._trigger_set_value(k, v)

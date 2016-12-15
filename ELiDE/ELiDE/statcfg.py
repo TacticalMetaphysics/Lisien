@@ -156,10 +156,7 @@ class StatListViewConfigurator(AbstractStatListView):
         if key in self.mirror:
             del self.remote[key]
             del self.mirror[key]
-        if key in self.statlist.config:
-            del self.statlist.config[key]
-        if key in self.statlist.control:
-            del self.statlist.control[key]
+        self.statlist.del_key(key)
 
     def munge(self, k, v):
         ret = super().munge(k, v)
