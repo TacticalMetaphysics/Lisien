@@ -166,6 +166,7 @@ class StatListViewConfigurator(AbstractStatListView):
 
 class StatScreen(Screen):
     statlist = ObjectProperty()
+    statcfg = ObjectProperty()
     toggle = ObjectProperty()
     engine = ObjectProperty()
     branch = StringProperty('master')
@@ -186,9 +187,9 @@ class StatScreen(Screen):
             # you need to enter things
             return
         try:
-            self.remote[key] = self.engine.json_load(value)
+            self.remote[key] = self.statlist.mirror[key] = self.statcfg.mirror[key] = self.engine.json_load(value)
         except (TypeError, ValueError):
-            self.remote[key] = value
+            self.remote[key] = self.statlist.mirror[key] = self.statcfg.mirror[key] = value
         self.ids.newstatkey.text = ''
         self.ids.newstatval.text = ''
 
@@ -210,6 +211,7 @@ Builder.load_string("""
         control: root.control
 <StatScreen>:
     name: 'statcfg'
+    statcfg: cfg
     BoxLayout:
         orientation: 'vertical'
         StatListViewConfigurator:
