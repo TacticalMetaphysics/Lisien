@@ -55,7 +55,7 @@ class ControlTypePicker(Button):
     def build(self, *args):
         if None in (
                 self.key,
-                self.setter
+                self.sett
         ):
             Clock.schedule_once(self.build, 0)
             return
