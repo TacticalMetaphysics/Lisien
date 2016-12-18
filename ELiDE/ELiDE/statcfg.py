@@ -157,6 +157,7 @@ class StatListViewConfigurator(AbstractStatListView):
         ret['on_control'] = self.inst_set_control
         ret['on_config'] = self.inst_set_configs
         ret['deleter'] = self.del_key
+        ret['sett'] = self.set_control
         return ret
 
 
