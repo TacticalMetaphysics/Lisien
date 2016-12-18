@@ -52,10 +52,6 @@ class ControlTypePicker(Button):
         else:
             self.app.selected_remote[k] = v
 
-    def selected(self, v):
-        self.sett(self.key, v)
-        self.text = str(v)
-
     def build(self, *args):
         if None in (
                 self.key,
@@ -66,7 +62,7 @@ class ControlTypePicker(Button):
         self.mainbutton = None
         self.dropdown = None
         self.dropdown = DropDown()
-        self.dropdown.bind(on_select=lambda instance, x: self.selected(x))
+        self.dropdown.bind(on_select=lambda instance, x: self.sett(self.key, x))
         readoutbut = Button(
             text='Readout',
             size_hint_y=None,
@@ -206,6 +202,7 @@ Builder.load_string("""
         key: root.key
         sett: root.sett
         control: root.control
+        text: 'Text input' if self.control == 'texttinput' else 'Slider' if self.control == 'slider' else 'Toggle button' if self.control == 'togglebutton' else 'Readout'
     ConfigListItemCustomizer:
         config: root.config
         control: root.control
