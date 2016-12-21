@@ -123,6 +123,9 @@ class StatRowListItemContainer(BoxLayout):
         'slider': StatRowSlider
     }
 
+    def set_value(self, *args):
+        self.sett(self.key, self.value)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bind(
