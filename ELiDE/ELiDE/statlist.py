@@ -224,9 +224,6 @@ class AbstractStatListView(RecycleView):
         Clock.unschedule(todo)
         Clock.schedule_once(todo, 0)
 
-    def on_mirror(self, *args):
-        self.upd_data()
-
     def init_control_config(self, key):
         if key not in self.control:
             self.set_control(key, 'readout')
