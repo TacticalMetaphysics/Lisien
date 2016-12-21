@@ -247,7 +247,7 @@ class AbstractStatListView(RecycleView):
         else:
             ctrld = dict(self.control)
             ctrld[key] = control
-        self.remote['_control'] = self.control = ctrld
+        self.remote['_control'] = self.mirror['_control'] = self.control = ctrld
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
