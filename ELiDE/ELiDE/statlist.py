@@ -248,7 +248,6 @@ class AbstractStatListView(RecycleView):
             ctrld = dict(self.control)
             ctrld[key] = control
         self.remote['_control'] = self.control = ctrld
-        self.canvas.after.clear()
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
