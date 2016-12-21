@@ -203,7 +203,7 @@ Builder.load_string("""
         key: root.key
         sett: root.sett
         control: root.control
-        text: 'Text input' if self.control == 'texttinput' else 'Slider' if self.control == 'slider' else 'Toggle button' if self.control == 'togglebutton' else 'Readout'
+        text: 'Text input' if self.control == 'textinput' else 'Slider' if self.control == 'slider' else 'Toggle button' if self.control == 'togglebutton' else 'Readout'
     ConfigListItemCustomizer:
         config: root.config
         control: root.control
