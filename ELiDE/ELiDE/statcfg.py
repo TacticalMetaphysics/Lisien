@@ -10,7 +10,7 @@ from kivy.properties import (
     OptionProperty
 )
 from kivy.lang import Builder
-from kivy.uix.widget import Widget
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -94,15 +94,33 @@ class ControlTypePicker(Button):
         self.bind(on_press=self.dropdown.open)
 
 
-class ConfigListItemToggleButton(BoxLayout):
+class ConfigListItemCustomization(BoxLayout):
     config = ObjectProperty()
 
 
-class ConfigListItemSlider(BoxLayout):
-    config = ObjectProperty()
+class ConfigListItemToggleButton(ConfigListItemCustomization):
+    def set_true_text(self, *args):
+        self.config['_true_text'] = self.ids.truetext.text
+
+    def set_false_text(self, *args):
+        self.config['_false_text'] = self.ids.falsetext.text
 
 
-class ConfigListItemCustomizer(Widget):
+class ConfigListItemSlider(ConfigListItemCustomization):
+    def set_min(self, *args):
+        try:
+            self.config['_min'] = float(self.ids.minimum.text)
+        except ValueError:
+            self.ids.minimum.text = ''
+
+    def set_max(self, *args):
+        try:
+            self.config['_max'] = float(self.ids.maximum.text)
+        except ValueError:
+            self.ids.maximum.text = ''
+
+
+class ConfigListItemCustomizer(FloatLayout):
     control = ObjectProperty()
     config = ObjectProperty()
 
@@ -192,6 +210,35 @@ class StatScreen(Screen):
 
 
 Builder.load_string("""
+<ConfigListItemCustomization>:
+    config: self.parent.config if self.parent else {}
+    pos_hint: {'x': 0, 'y': 0}
+<ConfigListItemToggleButton>:
+    Label:
+        text: 'True text:'
+    TextInput:
+        id: truetext
+        hint_text: root.config.get('_true_text', '1')
+        on_text_validate: root.set_true_text()
+    Label:
+        text: 'False text:'
+    TextInput:
+        id: falsetext
+        hint_text: root.config.get('_false_text', '0')
+        on_text_validate: root.set_false_text()
+<ConfigListItemSlider>:
+    Label:
+        text: 'Minimum:'
+    TextInput:
+        id: minimum
+        hint_text: str(root.config.get('_min', 0.0))
+        on_text_validate: root.set_min()
+    Label:
+        text: 'Maximum:'
+    TextInput:
+        id: maximum
+        hint_text: str(root.config.get('_max', 1.0))
+        on_text_validate: root.set_max()
 <ConfigListItem>:
     height: 30
     Button:
