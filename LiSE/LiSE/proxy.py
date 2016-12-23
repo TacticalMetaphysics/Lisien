@@ -32,7 +32,8 @@ class CachingProxy(MutableMapping):
     @rulebook.setter
     def rulebook(self, v):
         rb = v.name if hasattr(v, 'name') else v
-        self._rulebook = v if isinstance(v, RuleBookProxy) else RuleBookProxy(self.engine, rb)
+        self._rulebook = v if isinstance(v, RuleBookProxy) \
+                         else RuleBookProxy(self.engine, rb)
         self._set_rulebook(rb)
         self.dispatch('rulebook', rb)
 
@@ -222,6 +223,7 @@ class NodeProxy(CachingEntityProxy):
     def delete(self):
         self.engine.del_node(self._charname, self.name)
 
+
 class PlaceProxy(NodeProxy):
     def __repr__(self):
         return "proxy to {}.place[{}]".format(
@@ -257,7 +259,10 @@ class ThingProxy(NodeProxy):
     def next_location(self, v):
         if isinstance(v, NodeProxy):
             if v.character != self.character:
-                raise ValueError("Things can only be located in their character. Maybe you want an avatar?")
+                raise ValueError(
+                    "Things can only be located in their character. "
+                    "Maybe you want an avatar?"
+                )
             locn = v.name
         elif v in self.character.node:
             locn = v
@@ -265,7 +270,10 @@ class ThingProxy(NodeProxy):
             raise TypeError("Location must be a node or the name of one")
         self._set_next_location(locn)
 
-    def __init__(self, engine, character, name, location, next_location, arrival_time, next_arrival_time):
+    def __init__(
+            self, engine, character, name, location, next_location,
+            arrival_time, next_arrival_time
+    ):
         if location is None:
             raise TypeError("Things must have locations")
         super().__init__(engine, character, name)
@@ -278,9 +286,9 @@ class ThingProxy(NodeProxy):
         yield from super().__iter__()
         yield from {
             'location',
-                'next_location',
-                'arrival_time',
-                'next_arrival_time'
+            'next_location',
+            'arrival_time',
+            'next_arrival_time'
         }
 
     def __getitem__(self, k):
@@ -570,7 +578,9 @@ class ThingMapProxy(CachingProxy):
         return self is other
 
     def _apply_diff(self, diff):
-        for (thing, (location, next_location, arrival_time, next_arrival_time)) in diff.items():
+        for (
+                thing, (location, next_location, arrival_time, next_arrival_time)
+        ) in diff.items():
             if location:
                 if thing in self._cache:
                     thisthing = self._cache[thing]
@@ -608,7 +618,9 @@ class ThingMapProxy(CachingProxy):
 
     def _cache_munge(self, k, v):
         return ThingProxy(
-            self.engine, self.name, *self.engine.handle('get_thing_special_stats', char=self.name, thing=k)
+            self.engine, self.name, *self.engine.handle(
+                'get_thing_special_stats', char=self.name, thing=k
+            )
         )
 
     def _set_item(self, k, v):
@@ -619,7 +631,11 @@ class ThingMapProxy(CachingProxy):
             statdict=v,
             silent=True
         )
-        self._cache[k] = ThingProxy(self.engine, self.name, v.pop('location'), v.pop('next_location', None), v.pop('arrival_time', None), v.pop('next_arrival_time', None))
+        self._cache[k] = ThingProxy(
+            self.engine, self.name,
+            v.pop('location'), v.pop('next_location', None),
+            v.pop('arrival_time', None), v.pop('next_arrival_time', None)
+        )
         self.engine._node_stat_cache[self.name][k] = v
 
     def _del_item(self, k):
@@ -849,16 +865,20 @@ class PredecessorsProxy(MutableMapping):
         self.name = nodeBname
 
     def __iter__(self):
-        return iter(self.engine._character_portals_cache.predecessors[self._charname][self.name])
+        return iter(self.engine._character_portals_cache.predecessors[
+            self._charname][self.name])
 
     def __len__(self):
-        return len(self.engine._character_portals_cache.predecessors[self._charname][self.name])
+        return len(self.engine._character_portals_cache.predecessors[
+            self._charname][self.name])
 
     def __contains__(self, k):
-        return k in self.engine._character_portals_cache.predecessors[self._charname][self.name]
+        return k in self.engine._character_portals_cache.predecessors[
+            self._charname][self.name]
 
     def __getitem__(self, k):
-        return self.engine._character_portals_cache.predecessors[self._charname][self.name][k]
+        return self.engine._character_portals_cache.predecessors[
+            self._charname][self.name][k]
 
     def __setitem__(self, k, v):
         self.engine._place_stat_cache[self._charname][k] = v
@@ -1098,14 +1118,20 @@ class AvatarMapProxy(Mapping):
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("{} has no avatar in {}".format(self.character.name, k))
-        return self.GraphAvatarsProxy(self.character, self.character.engine.character[k])
+        return self.GraphAvatarsProxy(
+            self.character, self.character.engine.character[k]
+        )
 
     def __getattr__(self, attr):
         vals = self.values()
         if not vals:
-            raise AttributeError("No attribute {}, and no graph to delegate to".format(attr))
+            raise AttributeError(
+                "No attribute {}, and no graph to delegate to".format(attr)
+            )
         elif len(vals) > 1:
-            raise AttributeError("No attribute {}, and more than one graph".format(attr))
+            raise AttributeError(
+                "No attribute {}, and more than one graph".format(attr)
+            )
         else:
             return getattr(next(iter(vals)), attr)
 
@@ -1115,10 +1141,12 @@ class AvatarMapProxy(Mapping):
             self.graph = graph
 
         def __iter__(self):
-            yield from self.character.engine._character_avatars_cache[self.character.name][self.graph.name]
+            yield from self.character.engine._character_avatars_cache[
+                self.character.name][self.graph.name]
 
         def __len__(self):
-            return len(self.character.engine._character_avatars_cache[self.character.name][self.graph.name])
+            return len(self.character.engine._character_avatars_cache[
+                self.character.name][self.graph.name])
 
         def __contains__(self, k):
             cache = self.character.engine._character_avatars_cache[self.character.name]
@@ -1126,7 +1154,9 @@ class AvatarMapProxy(Mapping):
 
         def __getitem__(self, k):
             if k not in self:
-                raise KeyError("{} has no avatar {} in graph {}".format(self.character.name, k, self.graph.name))
+                raise KeyError("{} has no avatar {} in graph {}".format(
+                    self.character.name, k, self.graph.name
+                ))
             return self.graph.node[k]
 
         def __getattr__(self, attr):
@@ -1251,7 +1281,8 @@ class CharacterProxy(MutableMapping):
             silent=True
         )
         self.thing._cache[name] = ThingProxy(
-            self.engine, self.name, name, location, next_location, self.engine.tick, None
+            self.engine, self.name, name, location, next_location,
+            self.engine.tick, None
         )
 
     def add_things_from(self, seq):
@@ -1628,7 +1659,10 @@ class EngineProxy(AbstractEngine):
         (branch, tick) = (self._branch, self._tick) = v
         self.handle(command='set_time', branch=branch, tick=tick, silent=True)
 
-    def __init__(self, handle_out, handle_in, logger, do_game_start=False,  install_modules=[]):
+    def __init__(
+            self, handle_out, handle_in, logger,
+            do_game_start=False,  install_modules=[]
+    ):
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
@@ -1670,28 +1704,36 @@ class EngineProxy(AbstractEngine):
         for char in charsdiffs:
             self._char_cache[char] = CharacterProxy(self, char)
             self._char_stat_cache[char] = charsdiffs[char]['character_stat']
-            for origin,  destinations in charsdiffs[char]['portal_stat'].items():
+            for origin, destinations in charsdiffs[char]['portal_stat'].items():
                 for destination,  stats in destinations.items():
                     self._portal_stat_cache[char][origin][destination] = stats
             for node,  stats in charsdiffs[char]['node_stat'].items():
                 self._node_stat_cache[char][node] = stats
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             for rbtype, rb in charsdiffs[char]['rulebooks'].items():
-                self._character_rulebooks_cache[char][rbtype] = RuleBookProxy(self.rulebook, rb)
+                self._character_rulebooks_cache[char][rbtype] \
+                    = RuleBookProxy(self.rulebook, rb)
             for node, rb in charsdiffs[char]['node_rulebooks'].items():
-                self._char_node_rulebooks_cache[char][node] = RuleBookProxy(self.rulebook, rb)
+                self._char_node_rulebooks_cache[char][node] \
+                    = RuleBookProxy(self.rulebook, rb)
             for origin, destinations in charsdiffs[char]['portal_rulebooks'].items():
                 for destination, rulebook in destinations.items():
-                    self._char_port_rulebooks_cache[char][origin][destination] = RuleBookProxy(self.rulebook, rulebook)
-            for (thing, (loc, nxloc, arrt, nxarrt)) in charsdiffs[char]['things'].items():
+                    self._char_port_rulebooks_cache[char][origin][destination] \
+                        = RuleBookProxy(self.rulebook, rulebook)
+            for (
+                    thing, (loc, nxloc, arrt, nxarrt)
+            ) in charsdiffs[char]['things'].items():
                 if loc:
-                    self._things_cache[char][thing] = ThingProxy(self, char, thing, loc, nxloc, arrt, nxarrt)
+                    self._things_cache[char][thing] \
+                        = ThingProxy(self, char, thing, loc, nxloc, arrt, nxarrt)
             for (place, ex) in charsdiffs[char]['places'].items():
                 if ex:
-                    self._character_places_cache[char][place] = PlaceProxy(self, char, place)
+                    self._character_places_cache[char][place] \
+                        = PlaceProxy(self, char, place)
             for (orig, dest), ex in charsdiffs[char]['portals'].items():
                 if ex:
-                    self._character_portals_cache[char][orig][dest] = PortalProxy(self, char, orig, dest)
+                    self._character_portals_cache[char][orig][dest] \
+                        = PortalProxy(self, char, orig, dest)
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
@@ -1711,12 +1753,15 @@ class EngineProxy(AbstractEngine):
             # I hate that I have to ask the subprocess about this.
             # Maybe change the serialization to always reflect
             # the distinction between place and thing
-            (loc, nextloc, arrt, nextarrt) = self.handle('get_thing_special_stats', char=charname, thing=nodename)
+            (loc, nextloc, arrt, nextarrt) \
+                = self.handle('get_thing_special_stats', char=charname, thing=nodename)
             if loc is not None:
-                self._things_cache[charname][nodename] = ThingProxy(self, charname, nodename, loc, nextloc, arrt, nextarrt)
+                self._things_cache[charname][nodename] \
+                    = ThingProxy(self, charname, nodename, loc, nextloc, arrt, nextarrt)
                 return self._things_cache[charname][nodename]
             else:
-                self._character_places_cache[charname][nodename] = PlaceProxy(self, charname, nodename)
+                self._character_places_cache[charname][nodename] \
+                    = PlaceProxy(self, charname, nodename)
                 return self._character_places_cache[charname][nodename]
         elif obj[0] == 'portal':
             charname = self.delistify(obj[1])
@@ -1724,7 +1769,8 @@ class EngineProxy(AbstractEngine):
             destname = self.delistify(obj[3])
             cache = self._character_portals_cache
             if not (charname in cache and origname in cache[charname] and destname in cache[charname][origname]):
-                cache[charname][origname][destname] = PortalProxy(self, charname, origname, destname)
+                cache[charname][origname][destname] \
+                    = PortalProxy(self, charname, origname, destname)
             return cache[charname][origname][destname]
         else:
             return super().delistify(obj)
@@ -1889,8 +1935,8 @@ class EngineProxy(AbstractEngine):
             self.send(self.json_dump((False, 'time_travel', [branch, tick, char])))
             Thread(
                 target=self._call_with_recv,
-                args=(char, self._set_time, self._upd_char_cache, cb) if cb else
-                (char, self._set_time, self._upd_char_cache),
+                args=(char, self._set_time, self._upd_char_cache, cb)
+                if cb else (char, self._set_time, self._upd_char_cache),
                 kwargs={'branch': branch, 'tick': tick}
             ).start()
         else:
@@ -1909,10 +1955,11 @@ class EngineProxy(AbstractEngine):
         self._char_cache[char] = CharacterProxy(self, char)
         self._char_stat_cache[char] = attr
         placedata = data.get('place', data.get('node', {}))
-        for place, stats in  placedata.items():
+        for place, stats in placedata.items():
             assert place not in self._character_places_cache[char]
             assert place not in self._node_stat_cache[char]
-            self._character_places_cache[char][place] = PlaceProxy(self.engine,  char,  place)
+            self._character_places_cache[char][place] \
+                = PlaceProxy(self.engine,  char,  place)
             self._node_stat_cache[char][place] = stats
         thingdata = data.get('thing',  {})
         for thing, stats in thingdata.items():
@@ -1924,7 +1971,8 @@ class EngineProxy(AbstractEngine):
                 raise ValueError('The arrival_time stats are read-only')
             loc = stats.pop('location')
             nxtloc = stats.pop('next_location') if 'next_location' in stats else None
-            self._things_cache[char][thing] = ThingProxy(loc, nxtloc, self.engine.rev, None)
+            self._things_cache[char][thing] \
+                = ThingProxy(loc, nxtloc, self.engine.rev, None)
             self._node_stat_cache[char][thing] = stats
         portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
         for orig, dests in portdata.items():
@@ -1933,7 +1981,8 @@ class EngineProxy(AbstractEngine):
             for dest, stats in dests.items():
                 assert dest not in self._character_portals_cache[char][orig]
                 assert dest not in self._portal_stat_cache[char][orig]
-                self._character_portals_cache[char][orig][dest] = PortalProxy(self.engine, char, orig, dest)
+                self._character_portals_cache[char][orig][dest] \
+                    = PortalProxy(self.engine, char, orig, dest)
                 self._portal_stat_cache[char][orig][dest] = stats
         self.handle(
             command='add_character', char=char, data=data, attr=attr,
