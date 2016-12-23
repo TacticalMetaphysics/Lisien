@@ -704,7 +704,7 @@ class PlaceMapProxy(CachingProxy):
 class SuccessorsProxy(CachingProxy):
     @property
     def _cache(self):
-        return self.engine._character_portals_cache[
+        return self.engine._character_portals_cache.successors[
             self._charname][self._nodeA]
 
     def __init__(self, engine_proxy, charname, nodeAname):
@@ -780,7 +780,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
 
     @property
     def _cache(self):
-        return self.engine._character_portals_cache[self.name]
+        return self.engine._character_portals_cache.successors[self.name]
 
     def __init__(self, engine_proxy, charname):
         self.name = charname
@@ -854,39 +854,25 @@ class PredecessorsProxy(MutableMapping):
         self.name = nodeBname
 
     def __iter__(self):
-        cache = self.engine._character_portals_cache[self._charname]
-        for orig in cache:
-            for dest in cache[orig]:
-                if dest == self.name:
-                    yield orig
-                    break
+        return iter(self.engine._character_portals_cache.predecessors[self._charname][self.name])
 
     def __len__(self):
-        n = 0
-        for orig in self:
-            n += 1
-        return n
+        return len(self.engine._character_portals_cache.predecessors[self._charname][self.name])
 
     def __contains__(self, k):
-        cache = self.engine._character_portals_cache[self._charname]
-        return k in cache and self.name in cache[k]
+        return k in self.engine._character_portals_cache.predecessors[self._charname][self.name]
 
     def __getitem__(self, k):
-        if k not in self:
-            raise KeyError(
-                "{} does not precede {}".format(k, self.name)
-            )
-        if k not in self.character.portal._cache:
-            self.character.portal._cache[k] = {}
-        if self.name not in self.character.portal._cache[k]:
-            self.character.portal._cache[k][self.name] = PortalProxy(
-                self.engine, self._charname, k, self.name
-            )
-        return self.character.portal._cache[k][self.name]
+        return self.engine._character_portals_cache.predecessors[self._charname][self.name][k]
 
     def __setitem__(self, k, v):
         self.engine._place_stat_cache[self._charname][k] = v
-        self.engine._character_portals_cache[self._charname][k][self.name] = PortalProxy(self.engine, self._charname, k, self.name)
+        self.engine._character_portals_cache.store(
+            self._charname,
+            self.name,
+            k,
+            PortalProxy(self.engine, self._charname, k, self.name)
+        )
         self.engine.handle(
             command='set_place',
             char=self._charname,
@@ -901,8 +887,6 @@ class PredecessorsProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
-        del self.engine._place_stat_cache[self._charname][k]
-        self.engine._character_portals_cache[self._charname][k][self.name].delete()
         self.engine.del_portal(self._charname, k, self.name)
 
 
@@ -911,30 +895,21 @@ class CharPredecessorsMappingProxy(MutableMapping):
     def rulebook(self):
         return self.character.portal.rulebook
 
+#        return self.engine._character_portals_cache.predecessors
+
     def __init__(self, engine_proxy, charname):
         self.engine = engine_proxy
         self.name = charname
+        self._cache = {}
 
     def __contains__(self, k):
-        if k in self._cache:
-            return True
-        return self.engine.handle(
-            command='node_has_predecessor',
-            char=self.name,
-            node=k
-        )
+        return k in self.engine._character_portals_cache.predecessors[self.name]
 
     def __iter__(self):
-        yield from self.engine.handle(
-            command='character_nodes_with_predecessors',
-            char=self.name
-        )
+        return iter(self.engine._character_portals_cache.predecessors[self.name])
 
     def __len__(self):
-        return self.engine.handle(
-            command='character_nodes_with_predecessors_len',
-            char=self.name
-        )
+        return len(self.engine._character_portals_cache.predecessors[self.name])
 
     def __getitem__(self, k):
         if k not in self:
@@ -946,6 +921,13 @@ class CharPredecessorsMappingProxy(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
+        for pred, proxy in v.items():
+            self.engine._character_portals_cache.store(
+                self.name,
+                pred,
+                k,
+                proxy
+            )
         self.engine.handle(
             command='character_set_node_predecessors',
             char=self.name,
@@ -957,6 +939,8 @@ class CharPredecessorsMappingProxy(MutableMapping):
     def __delitem__(self, k):
         for v in self[k]:
             self.engine.del_portal(self.name, k, v)
+        if k in self._cache:
+            del self._cache[k]
 
 
 class CharStatProxy(CachingEntityProxy):
@@ -1604,6 +1588,20 @@ class ChangeSignatureError(TypeError):
     pass
 
 
+class PortalObjCache(object):
+    def __init__(self):
+        self.successors = StructuredDefaultDict(2, PortalProxy)
+        self.predecessors = StructuredDefaultDict(2, PortalProxy)
+
+    def store(self, char, u, v, obj):
+        self.successors[char][u][v] = obj
+        self.predecessors[char][v][u] = obj
+
+    def delete(self, char, u, v):
+        del self.successors[char][u][v]
+        del self.predecessors[char][v][u]
+
+
 class EngineProxy(AbstractEngine):
     char_cls = CharacterProxy
     thing_cls = ThingProxy
@@ -1670,7 +1668,7 @@ class EngineProxy(AbstractEngine):
         self._character_rulebooks_cache = StructuredDefaultDict(1, RuleBookProxy)
         self._char_node_rulebooks_cache = StructuredDefaultDict(1, RuleBookProxy)
         self._char_port_rulebooks_cache = StructuredDefaultDict(2, RuleBookProxy)
-        self._character_portals_cache = StructuredDefaultDict(2, PortalProxy)
+        self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
         self._char_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
@@ -1982,10 +1980,7 @@ class EngineProxy(AbstractEngine):
     def del_portal(self, char, orig, dest):
         if char not in self._chars_cache:
             raise KeyError("No such character")
-        cache = self._character_portals_cache[char]
-        if orig not in cache or dest not in cache[orig]:
-            raise KeyError("No such portal")
-        del cache[orig][dest]
+        self._character_portals_cache.delete(char, orig, dest)
         self.handle(
             command='del_portal',
             char=char,
