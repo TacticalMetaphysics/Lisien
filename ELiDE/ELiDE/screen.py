@@ -97,7 +97,7 @@ class TimePanel(BoxLayout):
 
     def next_tick(self, *args):
         self.screen.app.engine.next_tick(
-            char=self.screen.app.character_name,
+            chars=[self.screen.app.character_name],
             cb=self.screen._update_from_chardiff
         )
 
@@ -268,7 +268,7 @@ class MainScreen(Screen):
         elif not hasattr(self, '_old_time'):
             self._old_time = tuple(self.app.time)
             self.app.engine.next_tick(
-                char=self.app.character_name,
+                chars=[self.app.character_name],
                 cb=self._update_from_chardiff
             )
         elif self._old_time == self.app.time:
