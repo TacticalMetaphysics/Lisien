@@ -130,7 +130,7 @@ class Thing(Node):
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
         try:
-            self._setitem_dispatch[key](value)
+            self._setitem_dispatch[key](self, value)
         except KeyError:
             super().__setitem__(key, value)
 
