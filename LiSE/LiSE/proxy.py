@@ -895,8 +895,6 @@ class CharPredecessorsMappingProxy(MutableMapping):
     def rulebook(self):
         return self.character.portal.rulebook
 
-#        return self.engine._character_portals_cache.predecessors
-
     def __init__(self, engine_proxy, charname):
         self.engine = engine_proxy
         self.name = charname
