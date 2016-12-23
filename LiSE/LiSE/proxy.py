@@ -21,11 +21,6 @@ from .util import reify
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
-"""Proxy objects to make LiSE usable when launched in a subprocess,
-and a manager class to launch it thus.
-
-"""
-
 
 class CachingProxy(MutableMapping):
     @property
