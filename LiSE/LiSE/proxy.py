@@ -1935,8 +1935,8 @@ class EngineProxy(AbstractEngine):
             self.send(self.json_dump((False, 'time_travel', [branch, tick, char])))
             Thread(
                 target=self._call_with_recv,
-                args=(char, self._set_time, self._upd_char_cache, cb)
-                if cb else (char, self._set_time, self._upd_char_cache),
+                args=(char, self._set_time, self._upd_chars_caches, cb)
+                if cb else (char, self._set_time, self._upd_chars_caches),
                 kwargs={'branch': branch, 'tick': tick}
             ).start()
         else:
