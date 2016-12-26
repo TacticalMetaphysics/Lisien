@@ -271,10 +271,7 @@ class Cache(object):
                         mapp[key][b][t] != newval
                 ):
                     mapp[key][branch][rev] = mapp[key][b][t].copy() if copy else mapp[key][b][t]
-                    break
-            else:
-                _, parrev = self.db._parentbranch_rev.get(branch, ('master', 0))
-                mapp[key][branch][parrev] = None
+            raise ValueError("No data to forward")
 
     def _forward_keycache(self, parentity, branch, rev):
         keycache_key = parentity + (branch,)
