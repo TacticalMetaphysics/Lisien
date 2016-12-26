@@ -21,15 +21,15 @@ class AvatarnessCache(Cache):
         self.uniqav = StructuredDefaultDict(1, FuturistWindowDict)
         self.uniqgraph = StructuredDefaultDict(1, FuturistWindowDict)
 
-    def _forward_branch(self, map, key, branch, tick, copy=True):
-        if branch not in map[key]:
+    def _forward_branch(self, mapp, key, branch, tick, copy=True):
+        if branch not in mapp[key]:
             for b, t in self.db._active_branches():
-                if b in map[key]:
-                    map[key][branch][tick] = map[key][b][t].copy() if copy else map[key][b][t]
+                if b in mapp[key]:
+                    mapp[key][branch][tick] = mapp[key][b][t].copy() if copy else mapp[key][b][t]
                     break
             else:
                 _, parrev = self.db._parentbranch_rev.get(branch, ('master', 0))
-                map[key][branch][parrev] = set() if copy else None
+                mapp[key][branch][parrev] = set() if copy else None
 
     def store(self, character, graph, node, branch, tick, is_avatar):
         if not is_avatar:
