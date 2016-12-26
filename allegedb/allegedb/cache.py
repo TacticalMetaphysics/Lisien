@@ -327,7 +327,10 @@ class Cache(object):
         key, branch, rev = args[-3:]
         if rev not in self.shallow[entity+(key, branch)]:
             for (b, r) in self.db._active_branches(branch, rev):
-                if b in self.branches[entity+(key,)]:
+                if (
+                        b in self.branches[entity+(key,)]
+                        and r in self.branches[entity+(key,)][b]
+                ):
                     v = self.branches[entity+(key,)][b][r]
                     self.store(*entity+(key, branch, rev, v))
                     self.store(*entity+(key, b, r, v))
