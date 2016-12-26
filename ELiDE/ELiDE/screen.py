@@ -253,11 +253,10 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_chardiff(self, char, chardiff, **kwargs):
-        Logger.debug("{}: updating from diff {}".format(
-            char, chardiff
-        ))
-        self.board.trigger_update_from_diff(chardiff)
+    def _update_from_chardiff(self, chardiff, **kwargs):
+        self.board.trigger_update_from_diff(
+            chardiff.get(self.board.character.name, {})
+        )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.pull_time()
 
