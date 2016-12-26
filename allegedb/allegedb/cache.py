@@ -1,6 +1,10 @@
 from collections import deque, MutableMapping, ItemsView, ValuesView
 
 
+class HistoryError(KeyError):
+    pass
+
+
 class WindowDictItemsView(ItemsView):
     def __contains__(self, item):
         (rev, v) = item
@@ -103,10 +107,10 @@ class WindowDict(MutableMapping):
     def __getitem__(self, rev):
         self.seek(rev)
         if not self._past:
-            raise KeyError("Revision {} is before the start of history".format(rev))
+            raise HistoryError("Revision {} is before the start of history".format(rev))
         ret = self._past[-1][1]
         if ret is None:
-            raise KeyError("Set, then deleted")
+            raise HistoryError("Set, then deleted")
         return ret
 
     def __setitem__(self, rev, v):
@@ -148,7 +152,7 @@ class WindowDict(MutableMapping):
                 assert not deleted
                 deleted = True
         if not deleted:
-            raise KeyError("Rev not present: {}".format(rev))
+            raise HistoryError("Rev not present: {}".format(rev))
 
     def __repr__(self):
         return "WindowDict({})".format(repr(dict(self)))
@@ -178,13 +182,13 @@ class FuturistWindowDict(WindowDict):
         if self._future:
             self.seek(rev)
         if self._future:
-            raise ValueError("Already have some history after {}".format(rev))
+            raise HistoryError("Already have some history after {}".format(rev))
         if not self._past or rev > self._past[-1][0]:
             self._past.append((rev, v))
         elif rev == self._past[-1][0]:
             self._past[-1] = (rev, v)
         else:
-            raise ValueError("Already have some history after {} (and my seek function is broken?)".format(rev))
+            raise HistoryError("Already have some history after {} (and my seek function is broken?)".format(rev))
 
 
 class PickyDefaultDict(dict):
@@ -304,10 +308,8 @@ class Cache(object):
         try:
             ret = self.shallower[args]
             if ret is None:
-                raise ValueError
+                raise HistoryError("Set, then deleted")
             return ret
-        except ValueError:
-            raise KeyError("Set, then deleted")
         except KeyError:
             pass
         entity = args[:-3]
