@@ -21,28 +21,18 @@ class AvatarnessCache(Cache):
         self.uniqav = StructuredDefaultDict(1, FuturistWindowDict)
         self.uniqgraph = StructuredDefaultDict(1, FuturistWindowDict)
 
-    def _forward_branch(self, mapp, key, branch, tick, copy=True):
-        if branch not in mapp[key]:
-            for b, t in self.db._active_branches():
-                if b in mapp[key]:
-                    mapp[key][branch][tick] = mapp[key][b][t].copy() if copy else mapp[key][b][t]
-                    break
-            else:
-                _, parrev = self.db._parentbranch_rev.get(branch, ('master', 0))
-                mapp[key][branch][parrev] = set() if copy else None
-
     def store(self, character, graph, node, branch, tick, is_avatar):
         if not is_avatar:
             is_avatar = None
         Cache.store(self, character, graph, node, branch, tick, is_avatar)
         self.user_order[graph][node][character][branch][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][tick] = is_avatar
-        self._forward_branch(self.charavs, character, branch, tick)
-        self._forward_branch(self.graphavs, (character, graph), branch, tick)
-        self._forward_branch(self.graphs, character, branch, tick)
-        self._forward_branch(self.soloav, (character, graph), branch, tick, copy=False)
-        self._forward_branch(self.uniqav, character, branch, tick, copy=False)
-        self._forward_branch(self.uniqgraph, character, branch, tick, copy=False)
+        self._forward_branch(self.charavs, character, branch, tick, is_avatar)
+        self._forward_branch(self.graphavs, (character, graph), branch, tick, is_avatar)
+        self._forward_branch(self.graphs, character, branch, tick, is_avatar)
+        self._forward_branch(self.soloav, (character, graph), branch, tick, is_avatar, copy=False)
+        self._forward_branch(self.uniqav, character, branch, tick, is_avatar, copy=False)
+        self._forward_branch(self.uniqgraph, character, branch, tick, is_avatar, copy=False)
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
         graphs = self.graphs[character][branch]

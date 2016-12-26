@@ -137,7 +137,7 @@ class WindowDict(MutableMapping):
         else:
             self.seek(rev)
             self._past.append((rev, v))
-    
+
     def __delitem__(self, rev):
         name = '_past' if rev <= self._rev else '_future'
         stack = getattr(self, name)
@@ -253,7 +253,6 @@ class StructuredDefaultDict(dict):
         raise TypeError("Can't set layer {}".format(self.layer))
 
 
-
 class Cache(object):
     def __init__(self, db):
         self.db = db
@@ -263,6 +262,19 @@ class Cache(object):
         self.branches = StructuredDefaultDict(1, FuturistWindowDict)
         self.shallow = PickyDefaultDict(FuturistWindowDict)
         self.shallower = {}
+
+    def _forward_branch(self, mapp, key, branch, rev, newval=None, copy=True):
+        if branch not in mapp[key]:
+            for b, t in self.db._active_branches():
+                if b in mapp[key] and (
+                        newval is None or
+                        mapp[key][b][t] != newval
+                ):
+                    mapp[key][branch][rev] = mapp[key][b][t].copy() if copy else mapp[key][b][t]
+                    break
+            else:
+                _, parrev = self.db._parentbranch_rev.get(branch, ('master', 0))
+                mapp[key][branch][parrev] = None
 
     def _forward_keycache(self, parentity, branch, rev):
         keycache_key = parentity + (branch,)
@@ -280,7 +292,9 @@ class Cache(object):
         entity, key, branch, rev, value = args[-5:]
         parent = args[:-5]
         if parent:
+            self._forward_branch(self.parents[parent][entity], key, branch, rev, value)
             self.parents[parent][entity][key][branch][rev] = value
+        self._forward_branch(self.keys[parent+(entity,)], key, branch, rev, value)
         self.keys[parent+(entity,)][key][branch][rev] = value
         self.branches[parent+(entity,key)][branch][rev] = value
         self.shallow[parent+(entity,key,branch)][rev] = value
