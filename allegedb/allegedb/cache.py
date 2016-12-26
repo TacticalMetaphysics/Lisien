@@ -289,9 +289,15 @@ class Cache(object):
         entity, key, branch, rev, value = args[-5:]
         parent = args[:-5]
         if parent:
-            self._forward_branch(self.parents[parent][entity], key, branch, rev, value)
+            try:
+                self._forward_branch(self.parents[parent][entity], key, branch, rev, value)
+            except ValueError:
+                pass
             self.parents[parent][entity][key][branch][rev] = value
-        self._forward_branch(self.keys[parent+(entity,)], key, branch, rev, value)
+        try:
+            self._forward_branch(self.keys[parent+(entity,)], key, branch, rev, value)
+        except ValueError:
+            pass
         self.keys[parent+(entity,)][key][branch][rev] = value
         self.branches[parent+(entity,key)][branch][rev] = value
         self.shallow[parent+(entity,key,branch)][rev] = value
