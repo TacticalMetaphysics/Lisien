@@ -28,7 +28,8 @@ class AvatarnessCache(Cache):
                     map[key][branch][tick] = map[key][b][t].copy() if copy else map[key][b][t]
                     break
             else:
-                map[key][branch][tick] = set() if copy else None
+                _, parrev = self.db._parentbranch_rev.get(branch, ('master', 0))
+                map[key][branch][parrev] = set() if copy else None
 
     def store(self, character, graph, node, branch, tick, is_avatar):
         if not is_avatar:
