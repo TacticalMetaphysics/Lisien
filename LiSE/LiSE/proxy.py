@@ -1929,10 +1929,17 @@ class EngineProxy(AbstractEngine):
             return self.handle(command='next_tick', chars='all')
 
     def time_travel(self, branch, tick, char=None, cb=None):
+        # TODO: multiple chars
         if cb and not char:
             raise TypeError("Callbacks require char name")
         if char:
-            self.send(self.json_dump((False, 'time_travel', [branch, tick, char])))
+            self.send(self.json_dump({
+                'command': 'time_travel',
+                'silent': False,
+                'branch': branch,
+                'tick': tick,
+                'chars': [char]
+            }))
             Thread(
                 target=self._call_with_recv,
                 args=(char, self._set_time, self._upd_chars_caches, cb)
@@ -1944,7 +1951,7 @@ class EngineProxy(AbstractEngine):
                 command='time_travel',
                 branch=branch,
                 tick=tick,
-                char=char,
+                chars=[char],
                 silent=True
             )
 
