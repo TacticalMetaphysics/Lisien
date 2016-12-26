@@ -38,11 +38,13 @@ class AvatarnessCache(Cache):
         self.user_shallow[(graph, node, character, branch)][tick] = is_avatar
         self._forward_branch(self.charavs, character, branch, tick)
         self._forward_branch(self.graphavs, (character, graph), branch, tick)
+        self._forward_branch(self.graphs, character, branch, tick)
         self._forward_branch(self.soloav, (character, graph), branch, tick, copy=False)
         self._forward_branch(self.uniqav, character, branch, tick, copy=False)
         self._forward_branch(self.uniqgraph, character, branch, tick, copy=False)
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
+        graphs = self.graphs[character][branch]
         uniqgraph = self.uniqgraph[character][branch]
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
@@ -50,6 +52,8 @@ class AvatarnessCache(Cache):
             charavs[tick] = charavs[tick].copy()
         if not graphavs.has_exact_rev(tick):
             graphavs[tick] = graphavs[tick].copy()
+        if not graphs.has_exact_rev(tick):
+            graphs[tick] = graphs[tick].copy()
         if is_avatar:
             if graphavs[tick]:
                 soloav[tick] = None
@@ -59,28 +63,24 @@ class AvatarnessCache(Cache):
                 uniqav[tick] = None
             else:
                 uniqav[tick] = (graph, node)
+            if graphs[tick]:
+                uniqgraph[tick] = None
+            else:
+                uniqgraph[tick] = graph
             graphavs[tick].add(node)
             charavs[tick].add((graph, node))
+            graphs[tick].add(graph)
         else:
             graphavs[tick].remove(node)
             charavs[tick].remove((graph, node))
             soloav[tick] = singleton_get(graphavs[tick])
             uniqav[tick] = singleton_get(charavs[tick])
-        self._forward_branch(self.graphs, character, branch, tick)
-        if not self.graphs[character][branch].has_exact_rev(tick):
-            self.graphs[character][branch][tick] = self.graphs[character][branch][tick].copy()
-        if is_avatar:
-            if self.graphs[character][branch][tick]:
-                uniqgraph[tick] = None
-            else:
-                uniqgraph[tick] = graph
-            self.graphs[character][branch][tick].add(graph)
-        elif not self.graphavs[(character, graph)][branch][tick]:
-            self.graphs[character][branch][tick].remove(graph)
-            if len(self.graphs[character][branch][tick]) == 1:
-                uniqgraph[tick] = next(iter(self.graphs[character][branch][tick]))
-            else:
-                uniqgraph[tick] = None
+            if not graphavs[tick]:
+                graphs[tick].remove(graph)
+                if len(graphs[tick]) == 1:
+                    uniqgraph[tick] = next(iter(graphs[tick]))
+                else:
+                    uniqgraph[tick] = None
 
     def get_char_graph_avs(self, char, graph, branch, tick):
         self._forward_branch(self.graphavs, (char, graph), branch, tick)
