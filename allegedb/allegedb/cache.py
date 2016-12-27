@@ -179,8 +179,7 @@ class FuturistWindowDict(WindowDict):
         if not self._past and not self._future:
             self._past.append((rev, v))
             return
-        if self._future:
-            self.seek(rev)
+        self.seek(rev)
         if self._future:
             raise HistoryError("Already have some history after {}".format(rev))
         if not self._past or rev > self._past[-1][0]:
