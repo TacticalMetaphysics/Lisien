@@ -57,7 +57,7 @@ def unlisten(l, f, k=None):
 
 def listener(l, f=None, k=None):
     """Put a function into a list or dict, for later use by
-    :class:`LiSE.util.dispatch`.
+    :class:`LiSE.bind.dispatch`.
 
     """
     if f:
@@ -68,7 +68,7 @@ def listener(l, f=None, k=None):
 
 def unlistener(l, f=None, k=None):
     """Remove a function from the list or dict used by
-    :class:`LiSE.util.dispatch`.
+    :class:`LiSE.bind.dispatch`.
 
     """
     if f:
@@ -218,9 +218,11 @@ class SessionList(MutableSequence):
     def __repr__(self):
         return repr(self._real)
 
+
 time_dispatcher_listeners = {}
 time_dispatcher_validity = defaultdict(dict)
 time_dispatch_cache = {}
+
 
 class TimeDispatcher(object):
     """Mixin class for sim-time-sensitive objects with callback functions.
