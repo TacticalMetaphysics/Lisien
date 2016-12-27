@@ -65,14 +65,14 @@ class PawnSpot(ImageStack):
         )
 
     def pull_from_remote(self):
-        if self.remote['_image_paths'] != self.paths:
-            self.paths = list(self.remote['_image_paths'])
-        if self.remote['_offxs'] != self.offxs:
-            self.offxs = list(self.remote['_offxs'])
-        if self.remote['_offys'] != self.offys:
-            self.offys = list(self.remote['_offys'])
-        if self.remote['_stackhs'] != self.stackhs:
-            self.stackhs = list(self.remote['_stackhs'])
+        for key, att in [
+                ('_image_paths', 'paths'),
+                ('_offxs', 'offxs'),
+                ('_offys', 'offys'),
+                ('_stackhs', 'stackhs')
+        ]:
+            if key in self.remote and self.remote[key] != getattr(self, att):
+                setattr(self, att, self.remote[key])
 
     @trigger
     def _trigger_pull_from_remote(self, *args):
