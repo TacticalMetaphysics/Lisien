@@ -1881,6 +1881,8 @@ class EngineProxy(AbstractEngine):
         self._tick = kwargs['tick']
 
     def _pull_async(self, chars, cb):
+        if not callable(cb):
+            raise TypeError("Uncallable callback")
         self.send(self.json_dump({
             'silent': False,
             'command': 'get_chardiffs',
@@ -1907,6 +1909,8 @@ class EngineProxy(AbstractEngine):
     def next_tick(self, chars=[], cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
+        if not callable(cb):
+            raise TypeError("Uncallable callback")
         if chars:
             self.send(self.json_dump({
                 'silent': False,
@@ -1932,6 +1936,8 @@ class EngineProxy(AbstractEngine):
         # TODO: multiple chars
         if cb and not char:
             raise TypeError("Callbacks require char name")
+        if not callable(cb):
+            raise TypeError("Uncallable callback")
         if char:
             self.send(self.json_dump({
                 'command': 'time_travel',
