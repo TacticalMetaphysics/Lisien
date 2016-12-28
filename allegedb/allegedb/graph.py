@@ -123,7 +123,12 @@ class AbstractEntityMapping(NeatMapping):
             raise ValueError("db uses None to indicate that a key's been deleted")
         self._set_db(key, value)
         if self.db.caching:
-            self._set_cache(key, value)
+            try:
+                if self._get_cache(key) != value:
+                    self._set_cache(key, value)
+            except KeyError:
+                self._set_cache(key, value)
+
     def __delitem__(self, key):
         """Indicate that the key has no value at this time"""
         self._del_db(key)
