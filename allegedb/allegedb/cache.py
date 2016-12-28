@@ -120,23 +120,15 @@ class WindowDict(MutableMapping):
             self._past.appendleft((rev, v))
         elif rev == self._past[0][0]:
             self._past[0] = (rev, v)
-        elif rev == self._past[-1][0]:
-            self._past[-1] = (rev, v)
-        elif rev > self._past[-1][0]:
-            if not self._future or rev < self._future[0][0]:
-                self._past.append((rev, v))
-            elif rev == self._future[0][0]:
-                self._future[0] = (rev, v)
-            elif rev == self._future[-1][0]:
-                self._future[-1] = (rev, v)
-            elif rev > self._future[-1][0]:
-                self._future.append((rev, v))
-            else:
-                self.seek(rev)
-                self._past.append((rev, v))
         else:
             self.seek(rev)
-            self._past.append((rev, v))
+            if not self._past:
+                self._past.append((rev, v))
+            elif self._past[-1][0] == rev:
+                self._past[-1][1] = v
+            else:
+                assert self._past[-1][0] < rev
+                self._past.append((rev, v))
 
     def __delitem__(self, rev):
         name = '_past' if rev <= self._rev else '_future'
