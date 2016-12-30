@@ -39,13 +39,23 @@ class PawnSpot(ImageStack):
             Logger.debug('PawnSpot: bad remote {}'.format(self.remote))
             return
         self.name = self.remote.name
-        self.paths = self.remote.get(
-            '_image_paths', self.default_image_paths
-        )
+        if '_image_paths' in self.remote:
+            self.paths = self.remote['_image_paths']
+        else:
+            self.paths = self.remote['_image_paths'] = self.default_image_paths
         zeroes = [0] * len(self.paths)
-        self.offxs = self.remote.get('_offxs', zeroes)
-        self.offys = self.remote.get('_offys', zeroes)
-        self.stackhs = self.remote.get('_stackhs', zeroes)
+        if '_offxs' in self.remote:
+            self.offxs = self.remote['_offxs']
+        else:
+            self.offxs = self.remote['_offxs'] = zeroes
+        if '_offys' in self.remote:
+            self.offys = self.remote['_offys']
+        else:
+            self.offys = self.remote['_offys'] = zeroes
+        if '_stackhs' in self.remote:
+            self.stackhs = self.remote['_stackhs']
+        else:
+            self.stackhs = self.remote['_stackhs'] = zeroes
         self.remote.listener(self._trigger_pull_from_remote)
 
     def finalize(self):
