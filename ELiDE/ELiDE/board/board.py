@@ -306,9 +306,13 @@ class Board(RelativeLayout):
         currently = tuple(self.engine.time)
         self.engine.time = (self.branch, self.tick)
         if hasattr(self.parent, 'scroll_x'):
-            self.parent.scroll_x = self.character.stat.get('_scroll_x', 0.0)
+            self.parent.scroll_x = self.character.stat.setdefault(
+                '_scroll_x', 0.0
+            )
         if hasattr(self.parent, 'scroll_y'):
-            self.parent.scroll_y = self.character.stat.get('_scroll_y', 0.0)
+            self.parent.scroll_y = self.character.stat.setdefault(
+                '_scroll_y', 0.0
+            )
         self.engine.time = currently
 
     @trigger
@@ -990,7 +994,7 @@ Builder.load_string(
     size_hint: (None, None)
     Image:
         id: wallpaper
-        source: resource_find(root.character.stat.get('wallpaper', 'wallpape.jpg')) if root.character else ''
+        source: resource_find(root.character.stat.setdefault('wallpaper', 'wallpape.jpg')) if root.character else ''
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
