@@ -25,6 +25,12 @@ from ..util import trigger
 
 
 def normalize_layout(l):
+    """Make sure all the spots in a layout are where you can click.
+
+    Returns a copy of the layout with all spot coordinates are
+    normalized to within (0.0, 0.98).
+
+    """
     import numpy as np
     xs = []
     ys = []
@@ -116,6 +122,7 @@ class Board(RelativeLayout):
         }
 
     def on_touch_down(self, touch):
+        """Check for collisions and select an appropriate entity."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
         if not self.collide_point(*touch.pos):
@@ -165,6 +172,7 @@ class Board(RelativeLayout):
                 return True
 
     def on_touch_move(self, touch):
+        """If an entity is selected, drag it."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
         if self.selection in self.selection_candidates:
@@ -186,6 +194,7 @@ class Board(RelativeLayout):
                     return cand.dispatch('on_touch_move', touch)
 
     def portal_touch_up(self, touch):
+        """Try to create a portal between the spots the user chose."""
         try:
             # If the touch ended upon a spot, and there isn't
             # already a portal between the origin and this
@@ -229,6 +238,7 @@ class Board(RelativeLayout):
         del self.protodest
 
     def on_touch_up(self, touch):
+        """Delegate touch handling if possible, else select something."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
         self._lasttouch = touch
@@ -272,6 +282,7 @@ class Board(RelativeLayout):
         return
 
     def on_parent(self, *args):
+        """Create some subwidgets and trigger the first update."""
         if not self.parent or hasattr(self, '_parented'):
             return
         self._parented = True
@@ -889,6 +900,7 @@ class BoardView(ScrollView):
     reciprocal_portal = BooleanProperty(False)
 
     def on_touch_down(self, touch):
+        """See if the board can handle the touch. If not, scroll."""
         touch.push()
         touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_down', touch):
@@ -898,6 +910,7 @@ class BoardView(ScrollView):
         return super().on_touch_down(touch)
 
     def on_touch_move(self, touch):
+        """See if the board can handle the touch. If not, scroll."""
         touch.push()
         touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_move', touch):
@@ -907,6 +920,7 @@ class BoardView(ScrollView):
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
+        """See if the board can handle the touch. If not, scroll."""
         touch.push()
         touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_up', touch):
@@ -984,6 +998,7 @@ class BoardView(ScrollView):
                 )
             )
         )
+
 
 Builder.load_string(
     """
