@@ -590,14 +590,16 @@ class Board(RelativeLayout):
                     patch['_offys'] = zeroes
                 if '_stackhs' not in place:
                     patch['_stackhs'] = zeroes
-                nodes_patch[place_name] = patch
+                if patch:
+                    nodes_patch[place_name] = patch
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
-        self.engine.handle(
-            'update_nodes',
-            char=self.character.name, 
-            patch=nodes_patch
-        )
+        if nodes_patch:
+            self.engine.handle(
+                'update_nodes',
+                char=self.character.name,
+                patch=nodes_patch,
+            )
         for spot in spots_added:
             spot.finalize()
         self.new_spots = spots_added
@@ -850,11 +852,12 @@ class Board(RelativeLayout):
                 int(x * self.width),
                 int(y * self.height)
             )
-        self.engine.handle(
-            'update_nodes',
-            char=self.character.name,
-            patch=node_upd
-        )
+        if node_upd:
+            self.engine.handle(
+                'update_nodes',
+                char=self.character.name,
+                patch=node_upd
+            )
         self.new_spots = self.spots_unposd = []
 
     def arrows(self):
