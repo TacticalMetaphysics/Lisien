@@ -21,6 +21,7 @@ def within_history(rev, windowdict):
 
 
 class WindowDictKeysView(KeysView):
+    """Look through all the keys a WindowDict contains."""
     def __contains__(self, rev):
         if not within_history(rev, self._mapping):
             return False
