@@ -8,6 +8,7 @@ class HistoryError(KeyError):
 
 
 def within_history(rev, windowdict):
+    """Return whether the windowdict has history at the revision."""
     if not (windowdict._past or windowdict._future):
         return False
     begin = windowdict._past[0][0] if windowdict._past else \
