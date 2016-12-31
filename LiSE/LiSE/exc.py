@@ -22,8 +22,7 @@ class AvatarError(ValueError):
 
 
 class AmbiguousAvatarError(AvatarError):
-     """Error condition for when an AvatarMapping can't decide what you want."""
-     pass
+    """An AvatarMapping can't decide what you want."""
 
 
 class RuleError(ValueError):
