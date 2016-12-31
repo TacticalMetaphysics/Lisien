@@ -148,7 +148,6 @@ class JSONListWrapper(JSONWrapper):
         self._set(me)
 
 
-
 class JSONReWrapper(MutableMapping):
     """Like JSONWrapper with a cache."""
     __slots__ = ['_outer', '_key', '_inner', '_v']

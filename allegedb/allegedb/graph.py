@@ -16,7 +16,8 @@ def getatt(attribute_name):
     """An easy way to make an alias"""
     return property(attrgetter(attribute_name))
 
-def convert_to_networkx_graph(data,create_using=None,multigraph_input=False):
+
+def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     if isinstance(data, AllegedGraph):
         result = networkx.convert.from_dict_of_dicts(
             data.adj,
@@ -26,8 +27,9 @@ def convert_to_networkx_graph(data,create_using=None,multigraph_input=False):
         result.graph = dict(data.graph)
         result.node = {k: dict(v) for k, v in data.node.items()}
         return result
-    return networkx.convert.to_networkx_graph(data, create_using, multigraph_input)
-
+    return networkx.convert.to_networkx_graph(
+        data, create_using, multigraph_input
+    )
 
 
 class NeatMapping(MutableMapping):
@@ -37,7 +39,9 @@ class NeatMapping(MutableMapping):
             del self[k]
 
     def __repr__(self):
-        return "{}(graph{}, data {})".format(self.__class__.__name__, self.graph.name, repr(dict(self)))
+        return "{}(graph{}, data {})".format(
+            self.__class__.__name__, self.graph.name, repr(dict(self))
+        )
 
     def update(self, other):
         """Version of ``update`` that doesn't clobber the database so much"""
@@ -120,7 +124,9 @@ class AbstractEntityMapping(NeatMapping):
     def __setitem__(self, key, value):
         """Set key=value at the present branch and revision"""
         if value is None:
-            raise ValueError("db uses None to indicate that a key's been deleted")
+            raise ValueError(
+                "allegedb uses None to indicate that a key's been deleted"
+            )
         self._set_db(key, value)
         if self.db.caching:
             try:
@@ -139,6 +145,7 @@ class AbstractEntityMapping(NeatMapping):
 class GraphMapping(AbstractEntityMapping):
     """Mapping for graph attributes"""
     db = getatt('graph.db')
+
     def __init__(self, graph):
         """Initialize private dict and store pointers to the graph and ORM"""
         self.graph = graph
@@ -682,6 +689,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     """
     _predcache = defaultdict(dict)
+
     def __contains__(self, nodeB):
         return nodeB in self.graph.node
 
@@ -734,7 +742,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
             """
             if self.db.caching:
-                cache = self.db._edges_cache.predecessors[(self.graph.name, self.nodeB)]
+                cache = self.db._edges_cache.predecessors[
+                    (self.graph.name, self.nodeB)]
                 for nodeA in cache:
                     seen = False
                     for idx in cache[nodeA]:
@@ -743,7 +752,15 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         for (branch, rev) in self.db._active_branches():
                             if branch in cache[nodeA][idx]:
                                 v = cache[nodeA][idx][branch][rev]
-                                self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, idx, branch, rev, v)
+                                self.db._edges_cache.store(
+                                    self.graph.name,
+                                    nodeA,
+                                    self.nodeB,
+                                    idx,
+                                    branch,
+                                    rev,
+                                    v
+                                )
                                 if v:
                                     yield nodeA
                                 seen = True
@@ -759,12 +776,21 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
         def __contains__(self, nodeA):
             """Is there an edge from ``nodeA`` at the moment?"""
             if self.db.caching:
-                cache = self.db._edges_cache.predecessors[(self.graph.name, self.nodeB)][nodeA]
+                cache = self.db._edges_cache.predecessors[
+                    (self.graph.name, self.nodeB)][nodeA]
                 for (branch, rev) in self.db._active_branches():
                     for idx in cache:
                         if branch in cache[idx]:
                             v = cache[idx][branch][rev]
-                            self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, idx, branch, rev, v)
+                            self.db._edges_cache.store(
+                                self.graph.name,
+                                nodeA,
+                                self.nodeB,
+                                idx,
+                                branch,
+                                rev,
+                                v
+                            )
                             return v
                 return False
             for i in self.db.query.multi_edges(
@@ -812,7 +838,15 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 e = self._make_edge(nodeA)
             e.update(value)
             if self.db.caching:
-                self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, 0, self.db.branch, self.db.rev, True)
+                self.db._edges_cache.store(
+                    self.graph.name,
+                    nodeA,
+                    self.nodeB,
+                    0,
+                    self.db.branch,
+                    self.db.rev,
+                    True
+                )
 
         def __delitem__(self, nodeA):
             """Unset the existence of the edge from the given node to mine"""
@@ -848,7 +882,15 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 False
             )
             if self.db.caching:
-                self.db._edges_cache.store(self.graph.name, nodeA, self.nodeB, 0, self.db.branch, self.db.rev, False)
+                self.db._edges_cache.store(
+                    self.graph.name,
+                    nodeA,
+                    self.nodeB,
+                    0,
+                    self.db.branch,
+                    self.db.rev,
+                    False
+                )
 
 
 class MultiEdges(GraphEdgeMapping):
@@ -864,7 +906,8 @@ class MultiEdges(GraphEdgeMapping):
     def __iter__(self):
         if self.db.caching:
             return self.db._edges_cache.iter_keys(
-                self.graph.name, self.nodeA, self.nodeB, self.db.brach, self.db.rev
+                self.graph.name, self.nodeA, self.nodeB,
+                self.db.brach, self.db.rev
             )
         return self.db.query.multi_edges(
             self.graph.name,
@@ -884,7 +927,8 @@ class MultiEdges(GraphEdgeMapping):
     def __contains__(self, i):
         if self.db.caching:
             return self.db._edges_cache.contains_key(
-                self.graph.name, self.nodeA, self.nodeB, i, self.db.branch, self.db.rev
+                self.graph.name, self.nodeA, self.nodeB, i,
+                self.db.branch, self.db.rev
             )
         return self.db.query.edge_exists(
             self.graph.name,
@@ -928,7 +972,8 @@ class MultiEdges(GraphEdgeMapping):
         e.update(val)
         if self.db.caching:
             self.db._edges_cache.store(
-                self.graph.name, self.nodeA, self.nodeB, idx, self.db.branch, self.db.rev, True
+                self.graph.name, self.nodeA, self.nodeB, idx,
+                self.db.branch, self.db.rev, True
             )
 
     def __delitem__(self, idx):
@@ -940,7 +985,8 @@ class MultiEdges(GraphEdgeMapping):
         del self._cache[idx]
         if self.db.caching:
             self.db._edges_cache.remember(
-                self.graph.name, self.nodeA, self.nodeB, idx, self.db.branch, self.db.rev
+                self.graph.name, self.nodeA, self.nodeB, idx,
+                self.db.branch, self.db.rev
             )
 
     def clear(self):
@@ -986,9 +1032,12 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
                 return (self.nodeA, nodeB)
 
         _multedge = {}
+
         def _get_multedge(self, nodeB):
             if nodeB not in self._multedge:
-                self._multedge[nodeB] = MultiEdges(self.graph, *self._order_nodes(nodeB))
+                self._multedge[nodeB] = MultiEdges(
+                    self.graph, *self._order_nodes(nodeB)
+                )
             return self._multedge[nodeB]
 
         def __getitem__(self, nodeB):
@@ -1032,33 +1081,39 @@ class AllegedGraph(object):
     """
     _succs = {}
     _statmaps = {}
+
     @property
     def graph(self):
         if self._name not in self._statmaps:
             self._statmaps[self._name] = GraphMapping(self)
         return self._statmaps[self._name]
+
     @graph.setter
     def graph(self, v):
         self.graph.clear()
         self.graph.update(v)
 
     _nodemaps = {}
+
     @property
     def node(self):
         if self._name not in self._nodemaps:
             self._nodemaps[self._name] = GraphNodeMapping(self)
         return self._nodemaps[self._name]
+
     @node.setter
     def node(self, v):
         self.node.clear()
         self.node.update(v)
 
     _succmaps = {}
+
     @property
     def adj(self):
         if self._name not in self._succmaps:
             self._succmaps[self._name] = self.adj_cls(self)
         return self._succmaps[self._name]
+
     @adj.setter
     def adj(self, v):
         self.adj.clear()
@@ -1066,6 +1121,7 @@ class AllegedGraph(object):
     edge = succ = adj
 
     _predmaps = {}
+
     @property
     def pred(self):
         if not hasattr(self, 'pred_cls'):
@@ -1073,6 +1129,7 @@ class AllegedGraph(object):
         if self._name not in self._predmaps:
             self._predmaps[self._name] = self.pred_cls(self)
         return self._predmaps[self._name]
+
     @pred.setter
     def pred(self, v):
         self.pred.clear()
@@ -1080,7 +1137,9 @@ class AllegedGraph(object):
 
     def nodes(self):
         if self.db.caching:
-            for n in self.db._nodes_cache.iter_entities(self._name, self.db.branch, self.db.rev):
+            for n in self.db._nodes_cache.iter_entities(
+                    self._name, self.db.branch, self.db.rev
+            ):
                 yield n
             return
         else:
@@ -1130,7 +1189,7 @@ class Graph(AllegedGraph, networkx.Graph):
 
     """
     adj_cls = GraphSuccessorsMapping
-    
+
     def __init__(self, db, name, data=None, **attr):
         self._name = name
         self.db = db

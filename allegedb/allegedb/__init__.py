@@ -40,7 +40,9 @@ class ORM(object):
         either case, begin a transaction.
 
         """
-        self.query = query_engine_class(dbstring, connect_args, alchemy, json_dump, json_load)
+        self.query = query_engine_class(
+            dbstring, connect_args, alchemy, json_dump, json_load
+        )
         self._obranch = None
         self._orev = None
         self.query.initdb()
@@ -126,7 +128,11 @@ class ORM(object):
         if child == 'master':
             return False
         if child not in self._parentbranch_rev:
-            raise ValueError("The branch {} seems not to have ever been created".format(child))
+            raise ValueError(
+                "The branch {} seems not to have ever been created".format(
+                    child
+                )
+            )
         if self._parentbranch_rev[child][0] == parent:
             return True
         return self.is_parent_of(parent, self._parentbranch_rev[child][0])
@@ -164,7 +170,8 @@ class ORM(object):
                 parrev = self.query.parrev(v)
             if currev < parrev:
                 raise ValueError(
-                    "Tried to jump to branch {br}, which starts at revision {rv}. "
+                    "Tried to jump to branch {br}, "
+                    "which starts at revision {rv}. "
                     "Go to rev {rv} or later to use this branch.".format(
                         br=v,
                         rv=parrev
@@ -290,7 +297,9 @@ class ORM(object):
         }
         type_s = self.query.graph_type(name)
         if type_s not in graphtypes:
-            raise GraphNameError("I don't know of a graph named {}".format(name))
+            raise GraphNameError(
+                "I don't know of a graph named {}".format(name)
+            )
         g = graphtypes[type_s](self, name)
         if self.caching:
             self.graph[name] = g

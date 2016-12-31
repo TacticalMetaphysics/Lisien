@@ -48,21 +48,27 @@ class WindowDictValuesView(ValuesView):
 
 class WindowDict(MutableMapping):
     """A dict that keeps every value that a variable has had over time.
-    
-    Look up a revision number in this dict and it will give you the effective value as
-    of that revision. Keys should always be revision numbers. Once a key is set, all greater
-    keys are considered to be in this dict unless the value is ``None``. Keys after that one
-    aren't "set" until one's value is non-``None`` again.
-    
-    Optimized for the cases where you look up the same revision repeatedly, or its neighbors.
-    
+
+    Look up a revision number in this dict and it will give you the
+    effective value as of that revision. Keys should always be
+    revision numbers. Once a key is set, all greater keys are
+    considered to be in this dict unless the value is ``None``. Keys
+    after that one aren't "set" until one's value is non-``None``
+    again.
+
+    Optimized for the cases where you look up the same revision
+    repeatedly, or its neighbors.
+
     """
     __slots__ = ['_past', '_future']
 
     def seek(self, rev):
-        """Arrange the caches in the optimal way for looking up the given revision."""
-        # TODO: binary search? Perhaps only when one or the other deque is very large?
-        if self._past and self._past[-1][0] <= rev and (not self._future or self._future[0][0] > rev):
+        """Arrange the caches to help look up the given revision."""
+        # TODO: binary search? Perhaps only when one or the other
+        # deque is very large?
+        if self._past and self._past[-1][0] <= rev and (
+                not self._future or self._future[0][0] > rev
+        ):
             return
         while self._future and self._future[0][0] <= rev:
             self._past.append(self._future.popleft())
@@ -70,7 +76,7 @@ class WindowDict(MutableMapping):
             self._future.appendleft(self._past.pop())
 
     def has_exact_rev(self, rev):
-        """Return whether I have a value at this exact revision, not just a previous one."""
+        """Return whether I have a value at this exact revision."""
         self.seek(rev)
         return self._past and self._past[-1][0] == rev
 
@@ -107,7 +113,9 @@ class WindowDict(MutableMapping):
     def __getitem__(self, rev):
         self.seek(rev)
         if not self._past:
-            raise HistoryError("Revision {} is before the start of history".format(rev))
+            raise HistoryError(
+                "Revision {} is before the start of history".format(rev)
+            )
         ret = self._past[-1][1]
         if ret is None:
             raise HistoryError("Set, then deleted")
@@ -153,7 +161,12 @@ class WindowDict(MutableMapping):
 class WindowDefaultDict(WindowDict):
     __slots__ = ['_future', '_past', 'cls', 'args_munger', 'kwargs_munger']
 
-    def __init__(self, cls, args_munger=lambda k: tuple(), kwargs_munger=lambda k: {}, data={}):
+    def __init__(
+            self, cls,
+            args_munger=lambda k: tuple(),
+            kwargs_munger=lambda k: {},
+            data={}
+    ):
         super(WindowDefaultDict, self).__init__(data)
         self.cls = cls
         self.args_munger = args_munger
@@ -173,26 +186,35 @@ class FuturistWindowDict(WindowDict):
             return
         self.seek(rev)
         if self._future:
-            raise HistoryError("Already have some history after {}".format(rev))
+            raise HistoryError(
+                "Already have some history after {}".format(rev)
+            )
         if not self._past or rev > self._past[-1][0]:
             self._past.append((rev, v))
         elif rev == self._past[-1][0]:
             self._past[-1] = (rev, v)
         else:
-            raise HistoryError("Already have some history after {} (and my seek function is broken?)".format(rev))
+            raise HistoryError(
+                "Already have some history after {} "
+                "(and my seek function is broken?)".format(rev)
+            )
 
 
 class PickyDefaultDict(dict):
     """A ``defaultdict`` alternative that requires values of a specific type.
-    
+
     Default values are constructed with no arguments by default;
     supply ``args_munger`` and/or ``kwargs_munger`` to override this.
     They take arguments ``self`` and the unused key being looked up.
-    
+
     """
     __slots__ = ['type', 'args_munger', 'kwargs_munger']
 
-    def __init__(self, type=object, args_munger=lambda self, k: tuple(), kwargs_munger=lambda self, k: dict()):
+    def __init__(
+            self, type=object,
+            args_munger=lambda self, k: tuple(),
+            kwargs_munger=lambda self, k: dict()
+    ):
         self.type = type
         self.args_munger = args_munger
         self.kwargs_munger = kwargs_munger
@@ -200,7 +222,10 @@ class PickyDefaultDict(dict):
     def __getitem__(self, k):
         if k in self:
             return super(PickyDefaultDict, self).__getitem__(k)
-        ret = self[k] = self.type(*self.args_munger(self, k), **self.kwargs_munger(self, k))
+        ret = self[k] = self.type(
+            *self.args_munger(self, k),
+            **self.kwargs_munger(self, k)
+        )
         return ret
 
     def __setitem__(self, k, v):
@@ -211,18 +236,22 @@ class PickyDefaultDict(dict):
 
 class StructuredDefaultDict(dict):
     """A ``defaultdict``-like class that expects values stored at a specific depth.
-    
+
     Requires an integer to tell it how many layers deep to go.
     The innermost layer will be ``PickyDefaultDict``, which will take the
     ``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
     to my constructor.
-    
+
     This will never accept manual assignments at any layer but the deepest.
-    
+
     """
     __slots__ = ['layer', 'type', 'args_munger', 'kwargs_munger']
 
-    def __init__(self, layers, type=object, args_munger=lambda self, k: tuple(), kwargs_munger=lambda self, k: dict()):
+    def __init__(
+            self, layers, type=object,
+            args_munger=lambda self, k: tuple(),
+            kwargs_munger=lambda self, k: dict()
+    ):
         if layers < 1:
             raise ValueError("Not enough layers")
         self.layer = layers
@@ -234,9 +263,14 @@ class StructuredDefaultDict(dict):
         if k in self:
             return super(StructuredDefaultDict, self).__getitem__(k)
         if self.layer < 2:
-            ret = PickyDefaultDict(self.type, self.args_munger, self.kwargs_munger)
+            ret = PickyDefaultDict(
+                self.type, self.args_munger, self.kwargs_munger
+            )
         else:
-            ret = StructuredDefaultDict(self.layer-1, self.type, self.args_munger, self.kwargs_munger)
+            ret = StructuredDefaultDict(
+                self.layer-1, self.type,
+                self.args_munger, self.kwargs_munger
+            )
         super(StructuredDefaultDict, self).__setitem__(k, ret)
         return ret
 
@@ -261,7 +295,8 @@ class Cache(object):
                         newval is None or
                         mapp[key][b][t] != newval
                 ):
-                    mapp[key][branch][rev] = mapp[key][b][t].copy() if copy else mapp[key][b][t]
+                    mapp[key][branch][rev] \
+                        = mapp[key][b][t].copy() if copy else mapp[key][b][t]
             raise ValueError("No data to forward")
 
     def _forward_keycache(self, parentity, branch, rev):
@@ -271,7 +306,8 @@ class Cache(object):
         kc = FuturistWindowDict()
         for (b, r) in self.db._active_branches():
             other_branch_key = parentity + (b,)
-            if other_branch_key in self.keycache and r in self.keycache[other_branch_key]:
+            if other_branch_key in self.keycache and \
+               r in self.keycache[other_branch_key]:
                 kc[rev] = self.keycache[other_branch_key][r].copy()
                 break
         self.keycache[keycache_key] = kc
@@ -281,12 +317,16 @@ class Cache(object):
         parent = args[:-5]
         if parent:
             try:
-                self._forward_branch(self.parents[parent][entity], key, branch, rev, value)
+                self._forward_branch(
+                    self.parents[parent][entity], key, branch, rev, value
+                )
             except ValueError:
                 pass
             self.parents[parent][entity][key][branch][rev] = value
         try:
-            self._forward_branch(self.keys[parent+(entity,)], key, branch, rev, value)
+            self._forward_branch(
+                self.keys[parent+(entity,)], key, branch, rev, value
+            )
         except ValueError:
             pass
         self.keys[parent+(entity,)][key][branch][rev] = value
@@ -296,7 +336,10 @@ class Cache(object):
         self._forward_keycache(parent+(entity,), branch, rev)
         self._forward_keycache((entity,), branch, rev)
         keycached = None
-        for kc in self.keycache[parent+(entity,branch)], self.keycache[(entity,branch)]:
+        for kc in (
+                self.keycache[parent+(entity,branch)],
+                self.keycache[(entity,branch)]
+        ):
             if kc is keycached:
                 return
             keycached = kc
@@ -373,7 +416,8 @@ class Cache(object):
         except KeyError:
             return False
         return key in keys
-    contains_entity = contains_key = contains_entity_key = contains_entity_or_key
+    contains_entity = contains_key = contains_entity_key \
+                      = contains_entity_or_key
 
 
 class NodesCache(Cache):
@@ -381,7 +425,8 @@ class NodesCache(Cache):
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
-            self.db._node_objs[(graph, node)] = self.db._make_node(self.db.graph[graph], node)
+            self.db._node_objs[(graph, node)] \
+                = self.db._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, rev, ex)
 
 

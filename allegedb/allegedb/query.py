@@ -77,7 +77,10 @@ class QueryEngine(object):
     """
     json_path = xjpath
 
-    def __init__(self, dbstring, connect_args, alchemy, json_dump=None, json_load=None):
+    def __init__(
+            self, dbstring, connect_args, alchemy,
+            json_dump=None, json_load=None
+    ):
         """If ``alchemy`` is True and ``dbstring`` is a legit database URI,
         instantiate an Alchemist and start a transaction with
         it. Otherwise use sqlite3.
@@ -88,6 +91,7 @@ class QueryEngine(object):
 
         """
         dbstring = dbstring or 'sqlite:///:memory:'
+
         def alchem_init(dbstring, connect_args):
             from sqlalchemy import create_engine
             from sqlalchemy.engine.base import Engine
@@ -327,7 +331,9 @@ class QueryEngine(object):
                     self.json_dump(value)
                 )
             else:
-                raise TypeError('Expected dict, list, or tuple, got {}'.format(type(arg)))
+                raise TypeError(
+                    "Expected dict, list, or tuple, got {}".format(type(arg))
+                )
         return self.sqlmany('graph_val_ins', *map(convert_arg, args))
 
     def flush_graph_val(self):
@@ -398,7 +404,9 @@ class QueryEngine(object):
                     branch, rev, extant
                 )
             else:
-                raise TypeError('Expected dict, list, or tuple, got {}'.format(type(arg)))
+                raise TypeError(
+                    "Expected dict, list, or tuple, got {}".format(type(arg))
+                )
         arghs = list(map(convert_arg, args))
         return self.sqlmany('exist_node_ins', *arghs)
 
@@ -431,7 +439,9 @@ class QueryEngine(object):
     def node_val_dump(self):
         """Yield the entire contents of the node_val table."""
         self.flush_node_val()
-        for (graph, node, key, branch, rev, value) in self.sql('node_val_dump'):
+        for (
+                graph, node, key, branch, rev, value
+        ) in self.sql('node_val_dump'):
             yield (
                 self.json_load(graph),
                 self.json_load(node),
@@ -510,7 +520,9 @@ class QueryEngine(object):
                     self.json_dump(value)
                 )
             else:
-                raise TypeError("Need dict, list, or tuple, not {}".format(type(arg)))
+                raise TypeError(
+                    "Need dict, list, or tuple, not {}".format(type(arg))
+                )
         self.sqlmany('node_val_ins', *map(convert_arg, args))
 
     def flush_node_val(self):
@@ -528,7 +540,9 @@ class QueryEngine(object):
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
         self.flush_edges()
-        for (graph, nodeA, nodeB, idx, branch, rev, extant) in self.sql('edges_dump'):
+        for (
+                graph, nodeA, nodeB, idx, branch, rev, extant
+        ) in self.sql('edges_dump'):
             yield (
                 self.json_load(graph),
                 self.json_load(nodeA),
@@ -645,7 +659,9 @@ class QueryEngine(object):
                     idx, branch, rev, extant
                 )
             else:
-                raise TypeError('Expected dict, list, or tuple, got {}'.format(type(arg)))
+                raise TypeError(
+                    "Expected dict, list, or tuple, got {}".format(type(arg))
+                )
         return self.sqlmany('edge_exist_ins', *map(convert_arg, args))
 
     def flush_edges(self):
@@ -661,7 +677,9 @@ class QueryEngine(object):
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
         self.flush_edge_val()
-        for (graph, nodeA, nodeB, idx, key, branch, rev, value) in self.sql('edge_val_dump'):
+        for (
+                graph, nodeA, nodeB, idx, key, branch, rev, value
+        ) in self.sql('edge_val_dump'):
             yield (
                 self.json_load(graph),
                 self.json_load(nodeA),
@@ -689,7 +707,9 @@ class QueryEngine(object):
     def edge_val_get(self, graph, nodeA, nodeB, idx, key, branch, rev):
         """Return the value of this key of this edge."""
         self.flush_edge_val()
-        (graph, nodeA, nodeB, key) = map(self.json_dump, (graph, nodeA, nodeB, key))
+        (graph, nodeA, nodeB, key) = map(
+            self.json_dump, (graph, nodeA, nodeB, key)
+        )
         for (b, r) in self.active_branches(branch, rev):
             for row in self.sql(
                 'edge_val_get', graph, nodeA, nodeB, idx, key, b, r
@@ -723,7 +743,9 @@ class QueryEngine(object):
                     self.json_dump(value)
                 )
             else:
-                raise TypeError('Expected dict, list, or tuple, got {}'.format(type(arg)))
+                raise TypeError(
+                    "Expected dict, list, or tuple, got {}".format(type(arg))
+                )
         return self.sqlmany('edge_val_ins', *map(convert_arg, args))
 
     def flush_edge_val(self):
@@ -734,7 +756,9 @@ class QueryEngine(object):
 
     def edge_val_set(self, graph, nodeA, nodeB, idx, key, branch, rev, value):
         """Set this key of this edge to this value."""
-        self._edgevals2set.append((graph, nodeA, nodeB, idx, key, branch, rev, value))
+        self._edgevals2set.append(
+            (graph, nodeA, nodeB, idx, key, branch, rev, value)
+        )
 
     def edge_val_del(self, graph, nodeA, nodeB, idx, key, branch, rev):
         """Declare that the key no longer applies to this edge, as of this
