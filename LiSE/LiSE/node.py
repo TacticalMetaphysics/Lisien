@@ -101,7 +101,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower, TimeDispatcher):
     contain things.
 
     """
-    __slots__ = ['user', 'graph', 'db', 'node', '_getitem_dispatch', '_setitem_dispatch']
+    __slots__ = ['user', 'graph', 'db', 'node']
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
