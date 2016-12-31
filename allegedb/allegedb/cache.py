@@ -1,8 +1,39 @@
-from collections import deque, MutableMapping, ItemsView, ValuesView
+from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
 class HistoryError(KeyError):
     pass
+
+
+def within_history(rev, windowdict):
+    if not (windowdict._past or windowdict._future):
+        return False
+    begin = windowdict._past[0][0] if windowdict._past else \
+            windowdict._future[0][0]
+    end = windowdict._future[-1][0] if windowdict._future else \
+          windowdict._past[-1][0]
+    if not begin <= rev <= end:
+        return False
+    return True
+
+
+class WindowDictKeysView(KeysView):
+    def __contains__(self, rev):
+        if not within_history(rev, self._mapping):
+            return False
+        for mrev, mv in self._mapping._past:
+            if mrev == rev:
+                return True
+        for mrev, mv in self._mapping._future:
+            if mrev == rev:
+                return True
+        return False
+
+    def __iter__(self):
+        for rev, v in self._mapping._past:
+            yield rev
+        for rev, v in self._mapping._future:
+            yield rev
 
 
 class WindowDictItemsView(ItemsView):
@@ -90,6 +121,9 @@ class WindowDict(MutableMapping):
         self.seek(rev)
         if self._future:
             return self._future[0][0]
+
+    def keys(self):
+        return WindowDictKeysView(self)
 
     def items(self):
         return WindowDictItemsView(self)
