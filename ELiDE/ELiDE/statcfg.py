@@ -62,34 +62,44 @@ class ControlTypePicker(Button):
         self.mainbutton = None
         self.dropdown = None
         self.dropdown = DropDown()
-        self.dropdown.bind(on_select=lambda instance, x: self.sett(self.key, x))
+        self.dropdown.bind(
+            on_select=lambda instance, x: self.sett(self.key, x)
+        )
         readoutbut = Button(
             text='Readout',
             size_hint_y=None,
             height=self.height
         )
-        readoutbut.bind(on_press=lambda instance: self.dropdown.select('readout'))
+        readoutbut.bind(
+            on_press=lambda instance: self.dropdown.select('readout')
+        )
         self.dropdown.add_widget(readoutbut)
         textinbut = Button(
             text='Text input',
             size_hint_y=None,
             height=self.height
         )
-        textinbut.bind(on_press=lambda instance: self.dropdown.select('textinput'))
+        textinbut.bind(
+            on_press=lambda instance: self.dropdown.select('textinput')
+        )
         self.dropdown.add_widget(textinbut)
         togbut = Button(
             text='Toggle button',
             size_hint_y=None,
             height=self.height
         )
-        togbut.bind(on_press=lambda instance: self.dropdown.select('togglebutton'))
+        togbut.bind(
+            on_press=lambda instance: self.dropdown.select('togglebutton')
+        )
         self.dropdown.add_widget(togbut)
         sliderbut = Button(
             text='Slider',
             size_hint_y=None,
             height=self.height
         )
-        sliderbut.bind(on_press=lambda instance: self.dropdown.select('slider'))
+        sliderbut.bind(
+            on_press=lambda instance: self.dropdown.select('slider')
+        )
         self.dropdown.add_widget(sliderbut)
         self.bind(on_press=self.dropdown.open)
 
@@ -139,7 +149,9 @@ class ConfigListItem(BoxLayout):
     config = DictProperty()
     sett = ObjectProperty()
     deleter = ObjectProperty()
-    control = OptionProperty('readout', options=['readout', 'textinput', 'togglebutton', 'slider'])
+    control = OptionProperty(
+        'readout', options=['readout', 'textinput', 'togglebutton', 'slider']
+    )
 
 
 class StatListViewConfigurator(AbstractStatListView):
@@ -202,9 +214,15 @@ class StatScreen(Screen):
             # you need to enter things
             return
         try:
-            self.remote[key] = self.statlist.mirror[key] = self.statcfg.mirror[key] = self.engine.json_load(value)
+            self.remote[key] \
+                = self.statlist.mirror[key] \
+                = self.statcfg.mirror[key] \
+                = self.engine.json_load(value)
         except (TypeError, ValueError):
-            self.remote[key] = self.statlist.mirror[key] = self.statcfg.mirror[key] = value
+            self.remote[key] \
+                = self.statlist.mirror[key] \
+                = self.statcfg.mirror[key] \
+                = value
         self.ids.newstatkey.text = ''
         self.ids.newstatval.text = ''
 

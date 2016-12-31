@@ -42,7 +42,9 @@ class CharactersBox(BoxLayout):
             return ''
         return self.character.name
 
-    character_name = AliasProperty(_get_character_name, lambda self, v: None, bind=('character',))
+    character_name = AliasProperty(
+        _get_character_name, lambda self, v: None, bind=('character',)
+    )
 
     def set_char(self, char):
         self.select_character(self.engine.character[char])

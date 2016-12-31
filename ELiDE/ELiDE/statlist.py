@@ -44,6 +44,7 @@ class StatRowListItem(Widget):
         else:
             self.reg(self)
 
+
 class StatRowLabel(StatRowListItem, Label):
     pass
 
@@ -115,7 +116,9 @@ class StatRowListItemContainer(BoxLayout):
     unreg = ObjectProperty()
     sett = ObjectProperty()
     config = DictProperty()
-    control = OptionProperty('readout', options=['readout', 'textinput', 'togglebutton', 'slider'])
+    control = OptionProperty(
+        'readout', options=['readout', 'textinput', 'togglebutton', 'slider']
+    )
     licls = {
         'readout': StatRowLabel,
         'textinput': StatRowTextInput,
@@ -140,7 +143,7 @@ class StatRowListItemContainer(BoxLayout):
     def remake(self, *args):
         if not hasattr(self, 'label'):
             self.label = Label(text=str(self.key))
-            
+
             def updlabel(*args):
                 self.label.text = str(self.key)
             self.bind(key=updlabel)
@@ -247,7 +250,10 @@ class AbstractStatListView(RecycleView):
         else:
             ctrld = dict(self.control)
             ctrld[key] = control
-        self.remote['_control'] = self.mirror['_control'] = self.control = ctrld
+        self.remote['_control'] \
+            = self.mirror['_control'] \
+            = self.control \
+            = ctrld
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:

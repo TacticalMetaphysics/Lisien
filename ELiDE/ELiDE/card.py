@@ -1025,6 +1025,7 @@ class DeckBuilderScrollBar(FloatLayout):
         """Stop scrolling."""
         self.scrolling = False
 
+
 kv = """
 <ColorTextureBox>:
     canvas:

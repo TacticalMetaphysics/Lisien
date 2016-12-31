@@ -316,7 +316,6 @@ class ELiDEApp(App):
     def on_selection(self, *args):
         Logger.debug("ELiDEApp: selection {}".format(self.selection))
 
-
     def delete_selection(self):
         """Delete both the selected widget and whatever it represents."""
         selection = self.selection

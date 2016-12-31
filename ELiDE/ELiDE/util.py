@@ -14,10 +14,12 @@ fortyfive = pi / 4
 class trigger(object):
     """Make a trigger from a method.
 
-    Decorate a method with this and it will become a trigger. Supply a numeric parameter to set a timeout.
+    Decorate a method with this and it will become a trigger. Supply a
+    numeric parameter to set a timeout.
 
-    Not suitable for methods that expect any arguments other than ``dt``. However you should make your method
-    accept ``*args`` for compatibility.
+    Not suitable for methods that expect any arguments other than
+    ``dt``. However you should make your method accept ``*args`` for
+    compatibility.
 
     """
     def __init__(self, func_or_timeout):
@@ -34,8 +36,9 @@ class trigger(object):
 
     def __get__(self, instance, owner=None):
         if instance is None:
-            # EventDispatcher iterates over its attributes before it instantiates.
-            # Don't try making any trigger in that case.
+            # EventDispatcher iterates over its attributes before it
+            # instantiates.  Don't try making any trigger in that
+            # case.
             return
         retval = Clock.create_trigger(
             partial(self.func, instance), self.timeout

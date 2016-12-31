@@ -93,6 +93,7 @@ class FunctionNameInput(TextInput):
             ''.join(c for c in s if c in (ascii_letters + digits + '_'))
         )
 
+
 kv = """
 <FunctionInput>:
     orientation: 'vertical'
@@ -159,4 +160,7 @@ Builder.load_string(kv)
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
-    runTouchApp(ELiDEFunctionInput(header='def foo(bar, bas):', style=styles.get_style_by_name('fruity')))
+    runTouchApp(FunctionInput(
+        header='def foo(bar, bas):',
+        style=styles.get_style_by_name('fruity'))
+    )

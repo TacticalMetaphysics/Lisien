@@ -18,6 +18,7 @@ from kivy.uix.screenmanager import Screen
 from .util import trigger
 # TODO: let the user import their own sprite art
 
+
 class SpriteSelector(BoxLayout):
     prefix = StringProperty()
     pallets = ListProperty()

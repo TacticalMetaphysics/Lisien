@@ -30,11 +30,12 @@ dbg = Logger.debug
 def getname(o):
     return o if isinstance(o, str) else o.__name__
 
+
 # How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
     rulesview = ObjectProperty()
     rule = ObjectProperty()
-    
+
     def apply_selection(self, rv, index, is_selected):
         if is_selected:
             self.rulesview.rule = self.rule
