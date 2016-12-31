@@ -47,7 +47,9 @@ class EngineHandle(object):
         self._char_av_cache = {}
         self._char_rulebooks_cache = {}
         self._char_nodes_rulebooks_cache = defaultdict(dict)
-        self._char_portals_rulebooks_cache = defaultdict(lambda: defaultdict(dict))
+        self._char_portals_rulebooks_cache = defaultdict(
+            lambda: defaultdict(dict)
+        )
         self._char_things_cache = {}
         self._char_places_cache = {}
         self._char_portals_cache = {}
@@ -308,7 +310,9 @@ class EngineHandle(object):
         return dict_diff(old, new)
 
     def character_stat_diff(self, char):
-        return self._character_something_diff(char, self._char_stat_cache, self.character_stat_copy)
+        return self._character_something_diff(
+            char, self._char_stat_cache, self.character_stat_copy
+        )
 
     def character_avatars_copy(self, char):
         return {
@@ -317,7 +321,9 @@ class EngineHandle(object):
         }
 
     def character_avatars_diff(self, char):
-        return self._character_something_diff(char, self._char_av_cache, self.character_avatars_copy)
+        return self._character_something_diff(
+            char, self._char_av_cache, self.character_avatars_copy
+        )
 
     def character_rulebooks_copy(self, char):
         chara = self._real.character[char]
@@ -331,7 +337,9 @@ class EngineHandle(object):
         }
 
     def character_rulebooks_diff(self, char):
-        return self._character_something_diff(char, self._char_rulebooks_cache, self.character_rulebooks_copy)
+        return self._character_something_diff(
+            char, self._char_rulebooks_cache, self.character_rulebooks_copy
+        )
 
     def character_nodes_rulebooks_copy(self, char, nodes='all'):
         chara = self._real.character[char]
@@ -342,7 +350,10 @@ class EngineHandle(object):
         return {node.name: node.rulebook.name for node in nodeiter}
 
     def character_nodes_rulebooks_diff(self, char, nodes='all'):
-        return self._character_something_diff(char, self._char_nodes_rulebooks_cache, self.character_nodes_rulebooks_copy, nodes)
+        return self._character_something_diff(
+            char, self._char_nodes_rulebooks_cache,
+            self.character_nodes_rulebooks_copy, nodes
+        )
 
     def character_portals_rulebooks_copy(self, char, portals='all'):
         chara = self._real.character[char]
@@ -352,13 +363,17 @@ class EngineHandle(object):
         else:
             portiter = (chara.portal[orig][dest] for (orig, dest) in portals)
         for portal in portiter:
-            result[portal['origin']][portal['destination']] = portal.rulebook.name
+            result[portal['origin']][portal['destination']] \
+                = portal.rulebook.name
         return result
 
     def character_portals_rulebooks_diff(self, char, portals='all'):
         try:
-            old = self._char_portals_rulebooks_cache.get(char, defaultdict(dict))
-            new = self._char_portals_rulebooks_cache[char] = self.character_portals_rulebooks_copy(char, portals)
+            old = self._char_portals_rulebooks_cache.get(
+                char, defaultdict(dict)
+            )
+            new = self._char_portals_rulebooks_cache[char] \
+                  = self.character_portals_rulebooks_copy(char, portals)
             result = {}
             for origin in old:
                 if origin in new:
@@ -442,7 +457,12 @@ class EngineHandle(object):
         return {
             k: self.unwrap_node_stat(char, node, k, v)
             for (k, v) in self._real.character[char].node[node].items()
-            if k not in {'location', 'next_location', 'arrival_time', 'next_arrival_time'}
+            if k not in {
+                    'location',
+                    'next_location',
+                    'arrival_time',
+                    'next_arrival_time'
+            }
         }
 
     def node_stat_diff(self, char, node):
@@ -463,7 +483,10 @@ class EngineHandle(object):
             return None
 
     def character_nodes_stat_diff(self, char):
-        """Return a dictionary of ``node_stat_diff`` output for each node in a character."""
+        """Return a dictionary of ``node_stat_diff`` output for each node in a
+        character.
+
+        """
         r = {}
         for node in self._real.character[char].node:
             diff = self.node_stat_diff(char, node)
@@ -482,8 +505,9 @@ class EngineHandle(object):
     def update_node(self, char, node, patch):
         """Change a node's stats according to a dictionary.
 
-        The ``patch`` dictionary should hold the new values of stats, keyed by the stats' names; a value of
-        ``None`` deletes the stat.
+        The ``patch`` dictionary should hold the new values of stats,
+        keyed by the stats' names; a value of ``None`` deletes the
+        stat.
 
         """
         character = self._real.character[char]
@@ -495,10 +519,21 @@ class EngineHandle(object):
         else:
             character.node[node].update(patch)
 
-    def update_nodes(self, char, patch):
-        """Change the stats of nodes in a character according to a dictionary."""
+    def update_nodes(self, char, patch, backdate=False):
+        """Change the stats of nodes in a character according to a
+        dictionary.
+
+        """
+        if backdate:
+            parbranch, parrev = self._real._parentbranch_rev.get(
+                self._real.branch, ('master', 0)
+            )
+            tick_now = self._real.tick
+            self._real.tick = parrev
         for (n, npatch) in patch.items():
             self.update_node(char, n, npatch)
+        if backdate:
+            self._real.tick = tick_now
 
     def del_node(self, char, node):
         """Remove a node from a character."""
@@ -506,7 +541,12 @@ class EngineHandle(object):
 
     def character_things(self, char):
         return {
-            name: (thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'])
+            name: (
+                thing['location'],
+                thing['next_location'],
+                thing['arrival_time'],
+                thing['next_arrival_time']
+            )
             for (name, thing) in self._real.character[char].thing.items()
         }
 
@@ -679,7 +719,12 @@ class EngineHandle(object):
             thing = self._real.character[char].thing[thing]
         except KeyError:
             return (None, None, None, None)
-        return (thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'])
+        return (
+            thing['location'],
+            thing['next_location'],
+            thing['arrival_time'],
+            thing['next_arrival_time']
+        )
 
     def set_thing_next_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['next_location'] = loc
@@ -693,7 +738,9 @@ class EngineHandle(object):
     def thing_travel_to(self, char, thing, dest, weight, graph):
         self._real.character[char].thing[thing].travel_to(dest, weight, graph)
 
-    def thing_travel_to_by(self, char, thing, dest, arrival_tick, weight, graph):
+    def thing_travel_to_by(
+            self, char, thing, dest, arrival_tick, weight, graph
+    ):
         self._real.character[char].thing[thing].travel_to_by(
             dest, arrival_tick, weight, graph
         )
@@ -746,7 +793,9 @@ class EngineHandle(object):
             return None
 
     def add_portal(self, char, orig, dest, symmetrical, statdict):
-        self._real.character[char].add_portal(orig, dest, symmetrical, **statdict)
+        self._real.character[char].add_portal(
+            orig, dest, symmetrical, **statdict
+        )
 
     def add_portals_from(self, char, seq, symmetrical):
         self._real.character[char].add_portals_from(seq, symmetrical)
@@ -808,7 +857,8 @@ class EngineHandle(object):
         character = self._real.character[char]
         if patch is None:
             del character.portal[orig][dest]
-        elif orig not in character.portal or dest not in character.portal[orig]:
+        elif orig not in character.portal \
+             or dest not in character.portal[orig]:
             character.portal[orig][dest] = patch
         else:
             character.portal[orig][dest].update(patch)
@@ -889,7 +939,10 @@ class EngineHandle(object):
         return list_diff(old, new)
 
     def all_rulebooks_diff(self):
-        return {rulebook: self.rulebook_diff(rulebook) for rulebook in self._real.rulebook.keys()}
+        return {
+            rulebook: self.rulebook_diff(rulebook)
+            for rulebook in self._real.rulebook.keys()
+        }
 
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
@@ -913,9 +966,15 @@ class EngineHandle(object):
         old = self._rule_cache.get(rule, {})
         new = self._rule_cache[rule] = self.rule_copy(rule)
         return {
-            'triggers': list_diff(old.get('triggers', {}), new.get('triggers', {})),
-            'prereqs': list_diff(old.get('prereqs', {}), new.get('prereqs', {})),
-            'actions': list_diff(old.get('actions', {}), new.get('actions', {}))
+            'triggers': list_diff(
+                old.get('triggers', {}), new.get('triggers', {})
+            ),
+            'prereqs': list_diff(
+                old.get('prereqs', {}), new.get('prereqs', {})
+            ),
+            'actions': list_diff(
+                old.get('actions', {}), new.get('actions', {})
+            )
         }
 
     def all_rules_diff(self):

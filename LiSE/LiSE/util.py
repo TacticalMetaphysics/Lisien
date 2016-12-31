@@ -19,7 +19,7 @@ class reify(object):
 
     Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
     Modified for LiSE
-    
+
     '''
     __slots__ = ['func', 'reified']
 
@@ -48,7 +48,7 @@ def getatt(attribute_name):
 
 
 def singleton_get(s):
-    """Take an iterable and return its only item, or None if that's impossible."""
+    """Take an iterable and return its only item if possible, else None."""
     it = None
     for that in s:
         if it is not None:
@@ -115,9 +115,14 @@ def keycache_iter(keycache, branch, tick, get_iterator):
 
 
 class EntityStatAccessor(object):
-    __slots__ = ['engine', 'entity', 'branch', 'tick', 'stat', 'current', 'mungers']
+    __slots__ = [
+        'engine', 'entity', 'branch', 'tick', 'stat', 'current', 'mungers'
+    ]
 
-    def __init__(self, entity, stat, engine=None, branch=None, tick=None, current=False, mungers=[]):
+    def __init__(
+            self, entity, stat,
+            engine=None, branch=None, tick=None, current=False, mungers=[]
+    ):
         if engine is None:
             engine = entity.engine
         if branch is None and engine is not None:
@@ -157,7 +162,8 @@ class EntityStatAccessor(object):
         return "EntityStatAccessor({}[{}]{}), {} mungers".format(
             self.entity,
             self.stat,
-            "" if self.current else ", branch={}, tick={}".format(self.branch, self.tick),
+            "" if self.current else
+            ", branch={}, tick={}".format(self.branch, self.tick),
             len(self.mungers)
         )
 

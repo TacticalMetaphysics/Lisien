@@ -635,7 +635,9 @@ class RuleFollower(BaseRuleFollower):
         )
 
     def _get_rulebook_name(self):
-        return self.engine._characters_rulebooks_cache.retrieve(self.character.name).setdefault(
+        return self.engine._characters_rulebooks_cache.retrieve(
+            self.character.name
+        ).setdefault(
             self._book, (self.character.name, self._book)
         )
 
@@ -979,9 +981,7 @@ class FacadeEntityMapping(MutableMapping, TimeDispatcher):
 
     """
 
-
     engine = getatt('facade.engine')
-
 
     def __init__(self, facade):
         """Store the facade."""
@@ -1165,7 +1165,6 @@ class Facade(AbstractCharacter, nx.DiGraph):
             self.dispatch(k, None)
 
 
-
 class Character(AbstractCharacter, DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
@@ -1225,7 +1224,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 'character_place', 'character_node', 'character_portal'
         ):
             if rulebook in d:
-                self.engine._set_character_rulebook(name, rulebook, d[rulebook])
+                self.engine._set_character_rulebook(
+                    name, rulebook, d[rulebook]
+                )
 
     class ThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
         """:class:`Thing` objects that are in a :class:`Character`"""
@@ -1239,19 +1240,27 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.character = character
 
         def __iter__(self):
-            return self.engine._things_cache.iter_keys(self.character.name, *self.engine.time)
+            return self.engine._things_cache.iter_keys(
+                self.character.name, *self.engine.time
+            )
 
         def __contains__(self, thing):
-            return self.engine._things_cache.contains_key(self.character.name, thing, *self.engine.time)
+            return self.engine._things_cache.contains_key(
+                self.character.name, thing, *self.engine.time
+            )
 
         def __len__(self):
-            return self.engine._things_cache.count_keys(self.character.name, *self.engine.time)
+            return self.engine._things_cache.count_keys(
+                self.character.name, *self.engine.time
+            )
 
         def __getitem__(self, thing):
             if thing not in self:
                 raise KeyError("No such thing: {}".format(thing))
             cache = self.engine._node_objs
-            if (self.name, thing) not in cache or not isinstance(cache[(self.name, thing)], Thing):
+            if (self.name, thing) not in cache or not isinstance(
+                    cache[(self.name, thing)], Thing
+            ):
                 cache[(self.name, thing)] = Thing(self.character, thing)
             return cache[(self.name, thing)]
 
@@ -1315,32 +1324,47 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.character = character
 
         def __iter__(self):
-            for node in self.engine._nodes_cache.iter_entities(self.character.name, *self.engine.time):
-                if not self.engine._things_cache.contains_entity(self.character.name, node, *self.engine.time):
+            for node in self.engine._nodes_cache.iter_entities(
+                    self.character.name, *self.engine.time
+            ):
+                if not self.engine._things_cache.contains_entity(
+                        self.character.name, node, *self.engine.time
+                ):
                     yield node
 
         def __len__(self):
-            return self.engine._nodes_cache.count_entities(self.character.name, *self.engine.time) - \
-                self.engine._things_cache.count_entities(self.character.name, *self.engine.time)
+            return self.engine._nodes_cache.count_entities(
+                self.character.name, *self.engine.time
+            ) - self.engine._things_cache.count_entities(
+                self.character.name, *self.engine.time
+            )
 
         def __contains__(self, place):
-            # TODO: maybe a special cache just for places and not just nodes in general
+            # TODO: maybe a special cache just for places and not just
+            # nodes in general
             return (
-                self.engine._nodes_cache.contains_entity(self.character.name, place, *self.engine.time) and not
-                self.engine._things_cache.contains_entity(self.character.name, place, *self.engine.time)
+                self.engine._nodes_cache.contains_entity(
+                    self.character.name, place, *self.engine.time
+                ) and not self.engine._things_cache.contains_entity(
+                    self.character.name, place, *self.engine.time
+                )
             )
 
         def __getitem__(self, place):
             if place not in self:
                 raise KeyError("No such place: {}".format(place))
             cache = self.engine._node_objs
-            if (self.name, place) not in cache or not isinstance(cache[(self.name, place)], Place):
+            if (self.name, place) not in cache or not isinstance(
+                    cache[(self.name, place)], Place
+            ):
                 cache[(self.name, place)] = Place(self.character, place)
             return cache[(self.name, place)]
 
         def __setitem__(self, place, v):
             cache = self.engine._node_objs
-            if (self.name, place) not in cache or not isinstance(cache[(self.name, place)], Place):
+            if (self.name, place) not in cache or not isinstance(
+                    cache[(self.name, place)], Place
+            ):
                 cache[(self.name, place)] = Place(self.character, place)
             if not self.engine._node_exists(self.character.name, place):
                 self.engine._exist_node(self.character.name, place)
@@ -1359,7 +1383,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             return repr(dict(self))
 
     class ThingPlaceMapping(GraphNodeMapping, RuleFollower):
-        """Replacement for allegedb's GraphNodeMapping that does Place and Thing"""
+        """GraphNodeMapping but for Place and Thing"""
         _book = "character_node"
 
         graph = getatt('character')
@@ -1437,7 +1461,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             """Mapping for possible destinations from some node."""
 
             engine = getatt('graph.engine')
-            
+
             @reify
             def _cache(self):
                 return {}
@@ -1484,7 +1508,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     False
                 )
                 try:
-                    del self.engine._portal_objs[(self.graph.name, self.nodeA, nodeB)]
+                    del self.engine._portal_objs[
+                        (self.graph.name, self.nodeA, nodeB)
+                    ]
                 except KeyError:
                     pass
                 self.dispatch(nodeB, None)
@@ -1581,9 +1607,15 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             """
             try:
-                return self._get_char_av_cache(self.engine._avatarness_cache.get_char_only_graph(self.character.name, *self.engine.time))
+                return self._get_char_av_cache(
+                    self.engine._avatarness_cache.get_char_only_graph(
+                        self.character.name, *self.engine.time
+                    )
+                )
             except KeyError:
-                raise AttributeError("I have no avatar, or I have avatars in many graphs")
+                raise AttributeError(
+                    "I have no avatar, or I have avatars in many graphs"
+                )
 
         @property
         def only(self):
@@ -1593,9 +1625,14 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             """
             try:
-                return self.engine._node_objs[self.engine._avatarness_cache.get_char_only_av(self.character.name, *self.engine.time)]
+                return self.engine._node_objs[
+                    self.engine._avatarness_cache.get_char_only_av(
+                        self.character.name, *self.engine.time
+                    )]
             except KeyError:
-                raise AttributeError("I have no avatar, or more than one avatar")
+                raise AttributeError(
+                    "I have no avatar, or more than one avatar"
+                )
 
         def __repr__(self):
             """Represent myself like a dictionary."""
@@ -1615,7 +1652,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine = outer.engine
                 self.name = outer.name
                 self.graph = graphn
-
 
             def __iter__(self):
                 """Iterate over the names of all the presently existing nodes in the
@@ -1653,7 +1689,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             def __setitem__(self, k, v):
                 mykey = singleton_get(self.keys())
                 if mykey is None:
-                    raise AmbiguousAvatarError("More than one avatar in {}; be more specific to set the stats of one.".format(self.graph))
+                    raise AmbiguousAvatarError(
+                        "More than one avatar in {}; "
+                        "be more specific to set the stats of one.".format(
+                            self.graph
+                        )
+                    )
                 self.engine._node_objs[(self.graph, mykey)][k] = v
 
             def __repr__(self):
@@ -1890,7 +1931,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
     def portals(self):
         """Iterate over all portals."""
-        for (o, d) in self.engine._edges_cache.iter_keys(self.character.name, *self.engine.time):
+        for (o, d) in self.engine._edges_cache.iter_keys(
+                self.character.name, *self.engine.time
+        ):
             yield self.engine._portal_objs[(self.character.name, o, d)]
 
     def avatars(self):
@@ -1898,8 +1941,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         in.
 
         """
-        for graph in self.engine._avatarness_cache.iter_entities(self.character.name, *self.engine.time):
-            for node in self.engine._avatarness_cache.iter_entities(self.character.name, graph, *self.engine.time):
+        for graph in self.engine._avatarness_cache.iter_entities(
+                self.character.name, *self.engine.time
+        ):
+            for node in self.engine._avatarness_cache.iter_entities(
+                    self.character.name, graph, *self.engine.time
+            ):
                 try:
                     yield self.engine._node_objs[(graph, node)]
                 except KeyError:

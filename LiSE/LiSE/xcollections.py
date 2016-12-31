@@ -41,7 +41,10 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = ['query', 'table', '_language', '_lang_listeners', 'cache', '_str_listeners']
+    __slots__ = [
+        'query', 'table', '_language', '_lang_listeners', 'cache',
+        '_str_listeners'
+    ]
 
     def __init__(self, query, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
@@ -242,7 +245,9 @@ class FunctionStore(MutableMapping):
             except KeyError:
                 d = self.query.func_table_get_all(self._tab, name)
                 if d['base'] not in self.cache:
-                    self.cache[name] = self.query.func_table_get(self._tab, name)
+                    self.cache[name] = self.query.func_table_get(
+                        self._tab, name
+                    )
                 kwargs = self.engine.json_load(name[len(d['base']):])
                 self.cache[name] = StoredPartial(self, d['base'], **kwargs)
         return self.cache[name]

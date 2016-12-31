@@ -15,6 +15,7 @@ from .rule import RuleMapping as BaseRuleMapping
 class RuleMapping(BaseRuleMapping):
     """Mapping to get rules followed by a portal."""
     __slots__ = 'portal',
+
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
@@ -60,21 +61,26 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
                     break
                 except ValueError:
                     continue
-        raise KeyError("{}->{} has no rulebook?".format(self._origin, self._destination))
+        raise KeyError("{}->{} has no rulebook?".format(
+            self._origin, self._destination
+        ))
 
     def _get_rulebook_name(self):
         cache = self.engine._portals_rulebooks_cache
         if self.character.name not in cache or \
             self._origin not in cache[self.character.name] or \
-            self._destination not in cache[self.character.name][self._origin]:
+            self._destination not in cache[
+                self.character.name][self._origin]:
             return
         cache = cache[self.character.name][self._origin][self._destination]
         for (branch, tick) in self.engine._active_branches():
             if branch in cache:
                 return cache[branch][tick]
-        raise CacheError("Rulebook for portal {}->{} in character {} is not cached.".format(
-            self._origin, self._destination, self.character.name
-        ))
+        raise CacheError(
+            "Rulebook for portal {}->{} in character {} is not cached.".format(
+                self._origin, self._destination, self.character.name
+            )
+        )
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -89,7 +95,8 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
 
     @property
     def _dispatch_cache(self):
-        return self.db._edge_val_cache[self.character.name][self.nodeA][self.nodeB][0]
+        return self.db._edge_val_cache[
+            self.character.name][self.nodeA][self.nodeB][0]
 
     @property
     def character(self):
@@ -184,7 +191,7 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         )
 
     def __bool__(self):
-        """It means something that I exist, even if I have no data but my name."""
+        """It means something that I exist, even if I have no data."""
         return self._origin in self.character.portal and \
             self._destination in self.character.portal[self._origin]
 
@@ -278,4 +285,5 @@ class Portal(Edge, RuleFollower, TimeDispatcher):
         """
         del self.character.portal[self.origin.name][self.destination.name]
         (branch, tick) = self.engine.time
-        self.engine._edges_cache[self.character.name][self.origin.name][self.destination.name][branch][tick] = False
+        self.engine._edges_cache[self.character.name][self.origin.name][
+            self.destination.name][branch][tick] = False

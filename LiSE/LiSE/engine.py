@@ -84,7 +84,8 @@ class AbstractEngine(object):
             self.char_cls: lambda obj: ["character", obj.name],
             self.thing_cls: lambda obj: ["node", obj.character.name, obj.name],
             self.place_cls: lambda obj: ["node", obj.character.name, obj.name],
-            self.portal_cls: lambda obj: ["portal", obj.character.name, obj._origin, obj._destination]
+            self.portal_cls: lambda obj: [
+                "portal", obj.character.name, obj._origin, obj._destination]
         }
 
     def listify(self, obj):
@@ -103,8 +104,14 @@ class AbstractEngine(object):
                 for (k, v) in obj[1:]
             },
             'character': lambda obj: self.character[self.delistify(obj[1])],
-            'node': lambda obj: self._node_objs[(self.delistify(obj[1]), self.delistify(obj[2]))],
-            'portal': lambda obj: self._portal_objs[(self.delistify(obj[1]), self.delistify(obj[2]), self.delistify(obj[3]))]
+            'node': lambda obj: self._node_objs[(
+                self.delistify(obj[1]), self.delistify(obj[2])
+            )],
+            'portal': lambda obj: self._portal_objs[(
+                self.delistify(obj[1]),
+                self.delistify(obj[2]),
+                self.delistify(obj[3])
+            )]
         }
 
     def delistify(self, obj):
@@ -123,7 +130,9 @@ class AbstractEngine(object):
         global json_dump_hints, json_load_hints
         try:
             if obj not in json_dump_hints:
-                dumped = json_dump_hints[obj] = dumps(obj, cls=self.json_encoder)
+                dumped = json_dump_hints[obj] = dumps(
+                    obj, cls=self.json_encoder
+                )
                 json_load_hints[dumped] = obj
             return json_dump_hints[obj]
         except TypeError:
@@ -169,17 +178,19 @@ class Engine(AbstractEngine, gORM):
       their order.  A whole rulebook full of rules may be assigned to
       an entity at once.
     - ``trigger``: A mapping of functions that might trigger a rule.
-    - ``prereq``: A mapping of functions a rule might require to return 
+    - ``prereq``: A mapping of functions a rule might require to return
       ``True`` for it to run.
     - ``action``: A mapping of functions that might manipulate the world
       state as a result of a rule running.
     - ``function``: A mapping of generic functions stored in the same
       database as the previous.
-    - ``string``: A mapping of strings, probably shown to the user of the simulation at some point.
+    - ``string``: A mapping of strings, probably shown to the player
+      at some point.
     - ``language``: Identifies the language used by
       ``string``. There's a different ``string`` mapping for each
       ``language``.
-    - ``eternal``: Mapping of arbitrary serializable objects. It isn't sensitive to sim-time. A good place to keep game settings.
+    - ``eternal``: Mapping of arbitrary serializable objects. It isn't
+      sensitive to sim-time. A good place to keep game settings.
     - ``universal``: Another mapping of arbitrary serializable
       objects, but this one *is* sensitive to sim-time. Each tick, the
       state of the randomizer is saved here under the key
@@ -254,7 +265,10 @@ class Engine(AbstractEngine, gORM):
         self._portals_rulebooks_cache.store(character, nodeA, nodeB, rulebook)
         self.query.set_portal_rulebook(character, nodeA, nodeB, rulebook)
 
-    def _remember_avatarness(self, character, graph, node, is_avatar=True, branch=None, tick=None):
+    def _remember_avatarness(
+            self, character, graph, node,
+            is_avatar=True, branch=None, tick=None
+    ):
         """Use this to record a change in avatarness.
 
         Should be called whenever a node that wasn't an avatar of a
@@ -361,10 +375,14 @@ class Engine(AbstractEngine, gORM):
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)
         self._avatar_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._character_thing_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._character_place_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._character_node_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._character_portal_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_thing_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._character_place_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._character_node_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._character_portal_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
         self._avatarness_cache = AvatarnessCache(self)
         for row in self.rule.query.universal_dump():
             self._universal_cache.store(*row)
@@ -636,20 +654,24 @@ class Engine(AbstractEngine, gORM):
             rulebook = rulebook.name
         if hasattr(rule, 'name'):
             rule = rule.name
-        return self._active_rules_cache.retrieve(rulebook, rule, *self.time) is True
+        return self._active_rules_cache.retrieve(
+            rulebook, rule, *self.time
+        ) is True
 
     def _poll_char_rules(self):
         if self._sql_polling:
             yield from self.query.poll_char_rules(*self.time)
             return
 
+        unhandled_iter = self._character_rules_handled_cache.\
+                         iter_unhandled_rules
         for char in self.character:
             for (
                     rulemap,
                     rulebook
             ) in self._characters_rulebooks_cache.retrieve(char).items():
-                for rule in self._character_rules_handled_cache.iter_unhandled_rules(
-                    char, rulemap, rulebook, *self.time
+                for rule in unhandled_iter(
+                        char, rulemap, rulebook, *self.time
                 ):
                     yield (rulemap, char, rulebook, rule)
 
@@ -658,6 +680,7 @@ class Engine(AbstractEngine, gORM):
             yield from self.query.poll_node_rules(*self.time)
             return
 
+        unhandled_iter = self._node_rules_handled_cache.iter_unhandled_rules
         for chara in self.character.values():
             char = chara.name
             for node in chara.node:
@@ -665,7 +688,7 @@ class Engine(AbstractEngine, gORM):
                     rulebook = self._nodes_rulebooks_cache.retrieve(char, node)
                 except KeyError:
                     rulebook = (char, node)
-                for rule in self._node_rules_handled_cache.iter_unhandled_rules(
+                for rule in unhandled_iter(
                     char, node, rulebook, *self.time
                 ):
                     yield (char, node, rulebook, rule)
@@ -680,7 +703,9 @@ class Engine(AbstractEngine, gORM):
             for nodeA in chara.portal:
                 for nodeB in chara.portal[nodeA]:
                     rulebook = cache.retrieve(chara.name, nodeA, nodeB)
-                    for rule in cache.iter_unhandled_rules(chara.name, nodeA, nodeB, rulebook, *self.time):
+                    for rule in cache.iter_unhandled_rules(
+                            chara.name, nodeA, nodeB, rulebook, *self.time
+                    ):
                         yield (
                             chara,
                             nodeA,
@@ -733,13 +758,17 @@ class Engine(AbstractEngine, gORM):
                 continue
 
     def _handled_thing_rule(self, char, thing, rulebook, rule, branch, tick):
-        self._node_rules_handled_cache.store(char, thing, rulebook, rule, branch, tick)
+        self._node_rules_handled_cache.store(
+            char, thing, rulebook, rule, branch, tick
+        )
         self.query.handled_thing_rule(
             char, thing, rulebook, rule, branch, tick
         )
 
     def _handled_place_rule(self, char, place, rulebook, rule, branch, tick):
-        self._node_rules_handled_cache.store(char, place, rulebook, rule, branch, tick)
+        self._node_rules_handled_cache.store(
+            char, place, rulebook, rule, branch, tick
+        )
         self.query.handled_place_rule(
             char, place, rulebook, rule, branch, tick
         )
@@ -747,7 +776,9 @@ class Engine(AbstractEngine, gORM):
     def _handled_portal_rule(
             self, char, nodeA, nodeB, rulebook, rule, branch, tick
     ):
-        self._portal_rules_handled_cache.store(char, nodeA, nodeB, rulebook, rule, branch, tick)
+        self._portal_rules_handled_cache.store(
+            char, nodeA, nodeB, rulebook, rule, branch, tick
+        )
         self.query.handled_portal_rule(
             char, nodeA, nodeB, rulebook, rule, branch, tick
         )
@@ -755,7 +786,9 @@ class Engine(AbstractEngine, gORM):
     def _handled_character_rule(
             self, typ, char, rulebook, rule, branch, tick
     ):
-        self._character_rules_handled_cache.store(char, typ, rulebook, rule, branch, tick)
+        self._character_rules_handled_cache.store(
+            char, typ, rulebook, rule, branch, tick
+        )
         self.query.handled_character_rule(
             typ, char, rulebook, rule, branch, tick
         )
@@ -771,7 +804,8 @@ class Engine(AbstractEngine, gORM):
 
         """
         (branch, tick) = self.time
-        for (typ, character, entity, rulebook, rule) in list(self._poll_rules()):
+        rules = list(self._poll_rules())
+        for (typ, character, entity, rulebook, rule) in rules:
             def follow(*args):
                 return (rule(self, *args), rule.name, typ, rulebook)
 
@@ -931,7 +965,9 @@ class Engine(AbstractEngine, gORM):
         )
         self._nodes_cache.store(character, node, branch, tick, exist)
 
-    def _exist_edge(self, character, nodeA, nodeB, exist=True, branch=None, tick=None):
+    def _exist_edge(
+            self, character, nodeA, nodeB, exist=True, branch=None, tick=None
+    ):
         branch = branch or self.branch
         tick = tick or self.tick
         self.query.exist_edge(
@@ -943,7 +979,9 @@ class Engine(AbstractEngine, gORM):
             tick,
             exist
         )
-        self._edges_cache.store(character, nodeA, nodeB, 0, branch, tick, exist)
+        self._edges_cache.store(
+            character, nodeA, nodeB, 0, branch, tick, exist
+        )
 
     def alias(self, v, stat='dummy'):
         r = DummyEntity(self)
