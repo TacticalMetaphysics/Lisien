@@ -169,6 +169,12 @@ class WindowDict(MutableMapping):
                 self._past.append((rev, v))
 
     def __delitem__(self, rev):
+        # Not checking for rev's presence at the beginning because
+        # to do so would likely require iterating thru history,
+        # which I have to do anyway in deleting.
+        # But handle degenerate case.
+        if not within_history(rev, self):
+            raise HistoryError("Rev outside of history: {}".format(rev))
         name = '_past' if rev <= self._rev else '_future'
         stack = getattr(self, name)
         waste = deque()
