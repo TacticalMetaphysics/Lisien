@@ -39,13 +39,7 @@ class WindowDictKeysView(KeysView):
 class WindowDictItemsView(ItemsView):
     def __contains__(self, item):
         (rev, v) = item
-        if self._mapping._past:
-            if rev < self._mapping._past[0][0]:
-                return False
-        elif self._mapping._future:
-            if rev < self._mapping._future[0][0]:
-                return False
-        else:
+        if not within_history(rev, self._mapping):
             return False
         for mrev, mv in self._mapping._past:
             if mrev == rev:
@@ -108,6 +102,8 @@ class WindowDict(MutableMapping):
 
     def has_exact_rev(self, rev):
         """Return whether I have a value at this exact revision."""
+        if not within_history(rev, self):
+            return False
         self.seek(rev)
         return self._past and self._past[-1][0] == rev
 
