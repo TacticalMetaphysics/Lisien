@@ -1,3 +1,5 @@
+# This file is part of allegedb, a database abstraction for versioned graphs
+# Copyright (c) Zachary Spector. ZacharySpector@gmail.com
 from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
