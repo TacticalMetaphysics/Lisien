@@ -2,7 +2,6 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 from kivy.clock import Clock
 from kivy.lang import Builder
-from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
 
 from kivy.properties import (
@@ -10,8 +9,6 @@ from kivy.properties import (
     ObjectProperty,
     ReferenceListProperty
 )
-from .board.spot import Spot
-from .board.pawn import Pawn
 from .board.arrow import ArrowWidget
 from .util import try_load, dummynum
 
