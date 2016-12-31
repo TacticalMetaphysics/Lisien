@@ -83,17 +83,13 @@ ELiDE uses third-party graphics sets:
 * "Crypt" and "Island" from the [PROCJAM 2015 Art Pack](http://www.procjam.com/2015/09/procjam-art-pack-now-available/), by Marsh Davies, available under the terms of [Creative Commons BY-NC](http://creativecommons.org/licenses/by-nc/4.0/)
 * The default wallpaper, wallpape.jpg, is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
+The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George
+Douros, in the public domain.
 
 [networkx](http://networkx.github.io/), which forms the basis of
 LiSE's data model, is available under
 [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My
-versions of the networkx graph classes are kept in a separate package,
-[gorm](https://github.com/LogicalDash/gorm), and released under the
-same license.
-
-The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George
-Douros, in the public domain.
-
-The LiSE source files themselves are licensed under the terms of the
-GNU General Public License version 3. See the text of the license in
-the file gpl-3.0.txt
+versions of the networkx graph classes are in the ``allegedb``
+directory, and use the same license. The rest of the LiSE source files
+are licensed under the terms of the GNU General Public License version
+3. See the text of the license in the file gpl-3.0.txt
