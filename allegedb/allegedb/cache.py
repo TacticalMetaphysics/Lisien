@@ -2,7 +2,7 @@ from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
 class HistoryError(KeyError):
-    pass
+    """You tried to access the past in a bad way."""
 
 
 def within_history(rev, windowdict):
@@ -37,6 +37,7 @@ class WindowDictKeysView(KeysView):
 
 
 class WindowDictItemsView(ItemsView):
+    """Look through everything a WindowDict contains."""
     def __contains__(self, item):
         (rev, v) = item
         if not within_history(rev, self._mapping):
@@ -55,6 +56,7 @@ class WindowDictItemsView(ItemsView):
 
 
 class WindowDictValuesView(ValuesView):
+    """Look through all the values that a WindowDict contains."""
     def __contains__(self, value):
         for rev, v in self._mapping._past:
             if v == value:
@@ -195,27 +197,36 @@ class WindowDict(MutableMapping):
 
 
 class WindowDefaultDict(WindowDict):
-    __slots__ = ['_future', '_past', 'cls', 'args_munger', 'kwargs_munger']
+    """A WindowDict that has a default type.
+
+    See PickyDefaultDict for details of how to use the default class.
+
+    """
+    __slots__ = ['_future', '_past', 'type', 'args_munger', 'kwargs_munger']
 
     def __init__(
-            self, cls,
+            self, type,
             args_munger=lambda k: tuple(),
             kwargs_munger=lambda k: {},
             data={}
     ):
         super(WindowDefaultDict, self).__init__(data)
-        self.cls = cls
+        self.type = type
         self.args_munger = args_munger
         self.kwargs_munger = kwargs_munger
 
     def __getitem__(self, k):
         if k in self:
             return super(WindowDefaultDict, self).__getitem__(k)
-        ret = self[k] = self.cls(*self.args_munger(k), **self.kwargs_munger(k))
+        ret = self[k] = self.type(
+            *self.args_munger(k), **self.kwargs_munger(k)
+        )
         return ret
 
 
 class FuturistWindowDict(WindowDict):
+    """A WindowDict that does not let you rewrite the past."""
+
     def __setitem__(self, rev, v):
         if not self._past and not self._future:
             self._past.append((rev, v))
@@ -238,6 +249,10 @@ class FuturistWindowDict(WindowDict):
 
 class PickyDefaultDict(dict):
     """A ``defaultdict`` alternative that requires values of a specific type.
+
+    Pass some type object (such as a class) to the constructor to
+    specify what type to use by default, which is the only type I will
+    accept.
 
     Default values are constructed with no arguments by default;
     supply ``args_munger`` and/or ``kwargs_munger`` to override this.
@@ -315,6 +330,7 @@ class StructuredDefaultDict(dict):
 
 
 class Cache(object):
+    """A data store that's useful for tracking graph revisions."""
     def __init__(self, db):
         self.db = db
         self.parents = StructuredDefaultDict(3, FuturistWindowDict)
@@ -349,6 +365,15 @@ class Cache(object):
         self.keycache[keycache_key] = kc
 
     def store(self, *args):
+        """Put a value in various dictionaries for later .retrieve(...).
+
+        Needs at least five arguments, of which the -1th is the value
+        to store, the -2th is the revision to store it at, the -3th
+        is the branch to store it in, the -4th is the key to store it
+        under, and the rest specify the entity (eg. node, edge, graph)
+        that it's about.
+
+        """
         entity, key, branch, rev, value = args[-5:]
         parent = args[:-5]
         if parent:
@@ -392,6 +417,13 @@ class Cache(object):
                 kc[rev] = set([key])
 
     def retrieve(self, *args):
+        """Get a value previously .store(...)'d.
+
+        Needs at least four arguments. The -1th is the revision
+        that you want, the -2th is the branch, the -3th is the key,
+        and all the rest specify the entity (eg. graph, node, edge).
+
+        """
         try:
             ret = self.shallower[args]
             if ret is None:
@@ -417,6 +449,15 @@ class Cache(object):
         return ret
 
     def iter_entities_or_keys(self, *args):
+        """Iterate over the keys an entity has, if you specify an entity.
+
+        Otherwise iterate over the entities themselves, or at any rate the
+        tuple specifying which entity.
+
+        Needs at least two arguments, the branch and the revision. Any
+        that come before that will be taken to identify the entity.
+
+        """
         entity = args[:-2]
         branch, rev = args[-2:]
         self._forward_keycache(entity, branch, rev)
@@ -428,6 +469,14 @@ class Cache(object):
     iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
     def count_entities_or_keys(self, *args):
+        """Return the number of keys an entity has, if you specify an entity.
+
+        Otherwise return the number of entities.
+
+        Needs at least two arguments, the branch and the revision. Any
+        that come before that will be taken to identify the entity.
+
+        """
         entity = args[:-2]
         branch, rev = args[-2:]
         self._forward_keycache(entity, branch, rev)
@@ -438,6 +487,14 @@ class Cache(object):
     count_entities = count_keys = count_entity_keys = count_entities_or_keys
 
     def contains_entity_or_key(self, *args):
+        """Check if an entity has a key at the given time, if entity specified.
+
+        Otherwise check if the entity exists.
+
+        Needs at least three arguments, the key, the branch, and the revision.
+        Any that come before that will be taken to identify the entity.
+
+        """
         try:
             return self.shallower[args] is not None
         except KeyError:
@@ -458,6 +515,7 @@ class Cache(object):
 
 class NodesCache(Cache):
     def store(self, graph, node, branch, rev, ex):
+        """Store whether a node exists, and create an object for it"""
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
@@ -472,6 +530,11 @@ class EdgesCache(Cache):
         self.predecessors = StructuredDefaultDict(3, FuturistWindowDict)
 
     def store(self, graph, nodeA, nodeB, idx, branch, rev, ex):
+        """Store whether an edge exists, and create an object for it
+
+        Also stores predecessors for every edge.
+
+        """
         if not ex:
             ex = None
         if (graph, nodeA, nodeB, idx) not in self.db._edge_objs:
