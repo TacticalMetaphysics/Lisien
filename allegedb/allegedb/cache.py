@@ -385,6 +385,21 @@ class Cache(object):
         that it's about.
 
         """
+        def upkc(entpar, branch, rev, key):
+            self._forward_keycache(entpar, branch, rev)
+            kc = self.keycache[entpar+(branch,)]
+            if rev in kc:
+                if not kc.has_exact_rev(rev):
+                    kc[rev] = kc[rev].copy()
+                if value is None:
+                    kc[rev].discard(key)
+                else:
+                    kc[rev].add(key)
+            elif value is None:
+                kc[rev] = set()
+            else:
+                kc[rev] = set([key])
+
         entity, key, branch, rev, value = args[-5:]
         parent = args[:-5]
         if parent:
@@ -405,27 +420,11 @@ class Cache(object):
         self.branches[parent+(entity,key)][branch][rev] = value
         self.shallow[parent+(entity,key,branch)][rev] = value
         self.shallower[parent+(entity,key,branch,rev)] = value
-        self._forward_keycache(parent+(entity,), branch, rev)
-        self._forward_keycache((entity,), branch, rev)
-        keycached = None
-        for kc in (
-                self.keycache[parent+(entity,branch)],
-                self.keycache[(entity,branch)]
-        ):
-            if kc is keycached:
-                return
-            keycached = kc
-            if rev in kc:
-                if not kc.has_exact_rev(rev):
-                    kc[rev] = kc[rev].copy()
-                if value is None:
-                    kc[rev].discard(key)
-                else:
-                    kc[rev].add(key)
-            elif value is None:
-                kc[rev] = set()
-            else:
-                kc[rev] = set([key])
+        if parent:
+            upkc(parent+(entity,), branch, rev, key)
+            upkc(parent, branch, rev, entity)
+        else:
+            upkc((entity,), branch, rev, key)
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
