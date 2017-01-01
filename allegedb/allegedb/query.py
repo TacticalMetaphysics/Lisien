@@ -137,7 +137,7 @@ class QueryEngine(object):
 
         First argument is the name of the query, either a key in
         ``sqlite.json`` or a method name in
-        ``gorm.alchemy.Alchemist``. The rest of the arguments are
+        ``allegedb.alchemy.Alchemist``. The rest of the arguments are
         parameters to the query.
 
         """
@@ -168,7 +168,7 @@ class QueryEngine(object):
 
         Though not private, this is a utility function that is
         unlikely to be useful unless you're adding functionality to
-        gorm.
+        allegedb.
 
         """
         yield (branch, rev)

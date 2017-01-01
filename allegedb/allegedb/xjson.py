@@ -1,4 +1,4 @@
-# This file is part of gorm, an object relational mapper for versioned graphs.
+# This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) 2014 Zachary Spector.
 from collections import MutableMapping, MutableSequence
 from json import dumps, loads

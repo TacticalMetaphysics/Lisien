@@ -18,6 +18,7 @@ def getatt(attribute_name):
 
 
 def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
+    """Convert an AllegedGraph to the corresponding NetworkX graph type."""
     if isinstance(data, AllegedGraph):
         result = networkx.convert.from_dict_of_dicts(
             data.adj,
@@ -33,6 +34,7 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
 
 
 class NeatMapping(MutableMapping):
+    """Common amenities for mappings"""
     def clear(self):
         """Delete everything"""
         for k in list(self.keys()):

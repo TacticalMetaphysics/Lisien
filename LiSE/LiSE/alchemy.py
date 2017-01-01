@@ -4,7 +4,7 @@
 and output it in JSON form.
 
 This uses sqlalchemy to describe the queries. It extends the module of
-the same name in the ``gorm`` package. If you change anything here,
+the same name in the ``allegedb`` package. If you change anything here,
 you won't be able to use your changes until you put the generated JSON
 where LiSE will look for it, as in:
 

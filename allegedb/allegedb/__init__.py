@@ -20,7 +20,7 @@ class GraphNameError(KeyError):
 class ORM(object):
     """Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
-    gorm.
+    allegedb.
 
     """
     node_cls = _make_node = Node
