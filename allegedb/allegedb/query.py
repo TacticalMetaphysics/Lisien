@@ -66,7 +66,7 @@ class GlobalKeyValueStore(MutableMapping):
 
 class QueryEngine(object):
     """Wrapper around either a DBAPI2.0 connection or an
-    Alchemist. Provides functions to run queries using either.
+    Alchemist. Provides methods to run queries using either.
 
     """
     json_path = xjpath
