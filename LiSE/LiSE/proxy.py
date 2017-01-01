@@ -1732,8 +1732,9 @@ class EngineProxy(AbstractEngine):
                         = PlaceProxy(self, char, place)
             for (orig, dest), ex in charsdiffs[char]['portals'].items():
                 if ex:
-                    self._character_portals_cache[char][orig][dest] \
-                        = PortalProxy(self, char, orig, dest)
+                    self._character_portals_cache.store(
+                        char, orig, dest, PortalProxy(self, char, orig, dest)
+                    )
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
