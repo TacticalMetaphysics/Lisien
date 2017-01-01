@@ -150,12 +150,21 @@ class QueryEngine(object):
             )
 
     def sqlmany(self, stringname, *args):
+        """Wrapper for executing many SQL calls on my connection.
+
+        First arg is the name of a query, either a key in the
+        precompiled JSON or a method name in
+        ``allegedb.alchemy.Alchemist``. Remaining arguments should be
+        tuples of argument sequences to be passed to the query.
+
+        """
         if hasattr(self, 'alchemist'):
             return getattr(self.alchemist.many, stringname)(*args)
         s = self.strings[stringname]
         return self.connection.cursor().executemany(s, args)
 
     def timestream_data(self):
+        """Yield all data concerning the lineage of timestream branches."""
         for row in self.sql('allbranch'):
             yield tuple(row)
 
@@ -166,9 +175,8 @@ class QueryEngine(object):
         began; and recursing through the entire genealogy of branches
         until we reach the branch 'master'.
 
-        Though not private, this is a utility function that is
-        unlikely to be useful unless you're adding functionality to
-        allegedb.
+        Though not private, this is unlikely to be useful unless
+        you're adding functionality to allegedb.
 
         """
         yield (branch, rev)
@@ -520,9 +528,11 @@ class QueryEngine(object):
         self._nodevals2set = []
 
     def node_val_set(self, graph, node, key, branch, rev, value):
+        """Set a key-value pair on a node at a specific branch and revision"""
         self._nodevals2set.append((graph, node, key, branch, rev, value))
 
     def node_val_del(self, graph, node, key, branch, rev):
+        """Delete a key from a node at a specific branch and revision"""
         self.node_val_set(graph, node, key, branch, rev, None)
 
     def edges_dump(self):
@@ -752,7 +762,7 @@ class QueryEngine(object):
         self.edge_val_set(graph, nodeA, nodeB, idx, key, branch, rev, None)
 
     def initdb(self):
-        """Create tables and indices."""
+        """Create tables and indices as needed."""
         if hasattr(self, 'alchemist'):
             self.alchemist.meta.create_all(self.engine)
             if 'branch' not in self.globl:
@@ -810,6 +820,7 @@ class QueryEngine(object):
             cursor.execute(self.strings['index_edge_val'])
 
     def flush(self):
+        """Put all pending changes into the SQL transaction."""
         self._flush_nodes()
         self._flush_edges()
         self._flush_graph_val()
