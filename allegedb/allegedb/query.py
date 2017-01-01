@@ -260,7 +260,7 @@ class QueryEngine(object):
 
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""
-        self.flush_graph_val()
+        self._flush_graph_val()
         for (graph, key, branch, rev, value) in self.sql('graph_val_dump'):
             yield (
                 self.json_load(graph),
@@ -275,7 +275,7 @@ class QueryEngine(object):
         revision.
 
         """
-        self.flush_graph_val()
+        self._flush_graph_val()
         graph = self.json_dump(graph)
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -292,7 +292,7 @@ class QueryEngine(object):
         revision.
 
         """
-        self.flush_graph_val()
+        self._flush_graph_val()
         (graph, key) = map(self.json_dump, (graph, key))
         for (b, r) in self.active_branches(branch, rev):
             for row in self.sql(
@@ -307,7 +307,8 @@ class QueryEngine(object):
                 return self.json_load(row[0])
         raise KeyError("Key never set")
 
-    def flush_graph_val(self):
+    def _flush_graph_val(self):
+        """Send all new and changed graph values to the database."""
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -351,7 +352,7 @@ class QueryEngine(object):
         revision.
 
         """
-        self.flush_nodes()
+        self._flush_nodes()
         graph = self.json_dump(graph)
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -371,7 +372,7 @@ class QueryEngine(object):
         revision.
 
         """
-        self.flush_nodes()
+        self._flush_nodes()
         (graph, node) = map(self.json_dump, (graph, node))
         for (b, r) in self.active_branches(branch, rev):
             for x in self.sql(
@@ -380,7 +381,7 @@ class QueryEngine(object):
                 return bool(x[0])
         return False
 
-    def flush_nodes(self):
+    def _flush_nodes(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -415,7 +416,7 @@ class QueryEngine(object):
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
-        self.flush_nodes()
+        self._flush_nodes()
         for (graph, node, branch, tick, extant) in self.sql('nodes_dump'):
             yield (
                 self.json_load(graph),
@@ -427,7 +428,7 @@ class QueryEngine(object):
 
     def node_val_dump(self):
         """Yield the entire contents of the node_val table."""
-        self.flush_node_val()
+        self._flush_node_val()
         for (
                 graph, node, key, branch, rev, value
         ) in self.sql('node_val_dump'):
@@ -445,7 +446,7 @@ class QueryEngine(object):
         revision.
 
         """
-        self.flush_node_val()
+        self._flush_node_val()
         (graph, node) = map(self.json_dump, (graph, node))
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -462,7 +463,7 @@ class QueryEngine(object):
 
     def node_vals_ever(self, graph, node):
         """Iterate over all values set on a node through time."""
-        self.flush_node_val()
+        self._flush_node_val()
         (graph, node) = map(self.json_dump, (graph, node))
         for (key, branch, tick, value) in self.sql(
                 'node_vals_ever', graph, node
@@ -471,7 +472,7 @@ class QueryEngine(object):
 
     def node_val_get(self, graph, node, key, branch, rev):
         """Get the value of the node's key as it was at the given revision."""
-        self.flush_node_val()
+        self._flush_node_val()
         (graph, node, key) = map(self.json_dump, (graph, node, key))
         for (b, r) in self.active_branches(branch, rev):
             for row in self.sql(
@@ -487,7 +488,7 @@ class QueryEngine(object):
                 return self.json_load(row[0])
         raise KeyError("Key {} never set".format(key))
 
-    def flush_node_val(self):
+    def _flush_node_val(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -526,7 +527,7 @@ class QueryEngine(object):
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
-        self.flush_edges()
+        self._flush_edges()
         for (
                 graph, nodeA, nodeB, idx, branch, rev, extant
         ) in self.sql('edges_dump'):
@@ -545,7 +546,7 @@ class QueryEngine(object):
         graph, at this revision.
 
         """
-        self.flush_edges()
+        self._flush_edges()
         graph = self.json_dump(graph)
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -561,7 +562,7 @@ class QueryEngine(object):
         about it in this branch.
 
         """
-        self.flush_edges()
+        self._flush_edges()
         (graph, nodeA, nodeB) = map(self.json_dump, (graph, nodeA, nodeB))
         for (b, r) in self.active_branches(branch, rev):
             for row in self.sql(
@@ -581,8 +582,8 @@ class QueryEngine(object):
         node.
 
         """
-        self.flush_nodes()
-        self.flush_edges()
+        self._flush_nodes()
+        self._flush_edges()
         (graph, nodeB) = map(self.json_dump, (graph, nodeB))
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -599,8 +600,8 @@ class QueryEngine(object):
 
     def nodeBs(self, graph, nodeA, branch, rev):
         """Return an iterable of nodes you can get to from the given one."""
-        self.flush_nodes()
-        self.flush_edges()
+        self._flush_nodes()
+        self._flush_edges()
         (graph, nodeA) = map(self.json_dump, (graph, nodeA))
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -616,8 +617,8 @@ class QueryEngine(object):
         nodes.
 
         """
-        self.flush_nodes()
-        self.flush_edges()
+        self._flush_nodes()
+        self._flush_edges()
         (graph, nodeA, nodeB) = map(self.json_dump, (graph, nodeA, nodeB))
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -628,7 +629,7 @@ class QueryEngine(object):
                     yield row[0]
                 seen.add(row[0])
 
-    def flush_edges(self):
+    def _flush_edges(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -661,7 +662,7 @@ class QueryEngine(object):
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
-        self.flush_edge_val()
+        self._flush_edge_val()
         for (
                 graph, nodeA, nodeB, idx, key, branch, rev, value
         ) in self.sql('edge_val_dump'):
@@ -678,7 +679,7 @@ class QueryEngine(object):
 
     def edge_val_keys(self, graph, nodeA, nodeB, idx, branch, rev):
         """Return an iterable of keys this edge has."""
-        self.flush_edge_val()
+        self._flush_edge_val()
         (graph, nodeA, nodeB) = map(self.json_dump, (graph, nodeA, nodeB))
         seen = set()
         for (b, r) in self.active_branches(branch, rev):
@@ -691,7 +692,7 @@ class QueryEngine(object):
 
     def edge_val_get(self, graph, nodeA, nodeB, idx, key, branch, rev):
         """Return the value of this key of this edge."""
-        self.flush_edge_val()
+        self._flush_edge_val()
         (graph, nodeA, nodeB, key) = map(
             self.json_dump, (graph, nodeA, nodeB, key)
         )
@@ -704,7 +705,7 @@ class QueryEngine(object):
                 return self.json_load(row[0])
         raise KeyError("Key never set")
 
-    def flush_edge_val(self):
+    def _flush_edge_val(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -809,11 +810,11 @@ class QueryEngine(object):
             cursor.execute(self.strings['index_edge_val'])
 
     def flush(self):
-        self.flush_nodes()
-        self.flush_edges()
-        self.flush_graph_val()
-        self.flush_node_val()
-        self.flush_edge_val()
+        self._flush_nodes()
+        self._flush_edges()
+        self._flush_graph_val()
+        self._flush_node_val()
+        self._flush_edge_val()
 
     def commit(self):
         """Commit the transaction"""
