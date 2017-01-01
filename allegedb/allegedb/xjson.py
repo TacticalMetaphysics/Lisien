@@ -75,9 +75,15 @@ def json_load(s,  hint=True):
 
 
 class JSONWrapper(MutableMapping):
+    """A dictionary-like object stored in a JSON-encoded string field.
+
+    This isn't meant to be used on its own; see ``JSONReWrapper``.
+
+    """
     __slots__ = ['outer', 'outkey']
 
     def __init__(self, outer, outkey):
+        """Store the mapping I'm in and the key used to access me."""
         self.outer = outer
         self.outkey = outkey
 
@@ -137,6 +143,11 @@ class JSONWrapper(MutableMapping):
 
 
 class JSONListWrapper(JSONWrapper):
+    """A list synchronized with a JSON-encoded string field.
+
+    This isn't meant to be used on its own; see ``JSONListReWrapper``.
+
+    """
     def append(self, v):
         me = self._get()
         me.append(v)
@@ -149,7 +160,12 @@ class JSONListWrapper(JSONWrapper):
 
 
 class JSONReWrapper(MutableMapping):
-    """Like JSONWrapper with a cache."""
+    """A dictionary synchronized with a JSON-encoded string field.
+
+    This is meant to be used in allegedb entities (graph, node, or
+    edge), for when the user stores a dictionary in them.
+
+    """
     __slots__ = ['_outer', '_key', '_inner', '_v']
 
     def __init__(self, outer, key, initval):
@@ -197,7 +213,13 @@ class JSONReWrapper(MutableMapping):
 
 
 class JSONListReWrapper(MutableSequence):
-    """Like JSONListWrapper with a cache."""
+    """A list synchronized with a JSON-encoded string field.
+
+    This is meant to be used in allegedb entities (graph, node, or
+    edge), for when the user stores a list in them.
+
+    """
+
     __slots__ = ['_inner', '_v']
 
     def __init__(self, outer, key, initval=None):
@@ -242,6 +264,7 @@ class JSONListReWrapper(MutableSequence):
 
 
 def json_deepcopy(obj):
+    """Copy all the data from a ``JSONWrapper`` into a dictionary."""
     r = {}
     for (k, v) in obj.items():
         if (
