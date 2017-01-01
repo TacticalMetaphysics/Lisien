@@ -690,7 +690,8 @@ class Board(RelativeLayout):
                     patch['_offys'] = zeroes
                 if '_stackhs' not in thing:
                     patch['_stackhs'] = zeroes
-                nodes_patch[thing_name] = patch
+                if patch:
+                    nodes_patch[thing_name] = patch
                 try:
                     whereat = self.arrow[
                         pwn.thing['location']
@@ -701,11 +702,13 @@ class Board(RelativeLayout):
                     whereat = self.spot[pwn.thing['location']]
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
-        self.engine.handle(
-            'update_nodes',
-            char=self.character.name,
-            patch=nodes_patch
-        )
+        if nodes_patch:
+            self.engine.handle(
+                'update_nodes',
+                char=self.character.name,
+                patch=nodes_patch,
+                silent=True
+            )
         for pwn in pawns_added:
             pwn.finalize()
 
