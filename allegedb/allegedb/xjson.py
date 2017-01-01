@@ -1,5 +1,5 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
-# Copyright (C) 2014 Zachary Spector.
+# Copyright (C) Zachary Spector. zacharyspector@gmail.com
 from collections import MutableMapping, MutableSequence
 from json import dumps, loads
 from copy import deepcopy
