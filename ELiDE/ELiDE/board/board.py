@@ -632,42 +632,17 @@ class Board(RelativeLayout):
                 self.character.name
             )
         )
-        self._new_arrows_todo = set()
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
                 if (
                         arrow_orig not in self.arrow or
                         arrow_dest not in self.arrow[arrow_orig]
                 ):
-                    self._new_arrows_todo.add((arrow_orig, arrow_dest))
-        self._pop_new_arrow()
-
-    def _pop_new_arrow(self, *args):
-        notyet = set()
-        try:
-            (orig, dest) = self._new_arrows_todo.pop()
-        except KeyError:
-            return
-        while not (orig in self.spot and dest in self.spot):
-            notyet.add((orig, dest))
-            try:
-                (orig, dest) = self._new_arrows_todo.pop()
-            except KeyError:
-                self._new_arrows_todo.update(notyet)
-                return
-        if not (orig in self.spot and dest in self.spot) or (
-                orig in self.arrow and dest in self.arrow[orig]
-        ):
-            self._new_arrows_todo.update(notyet)
-            return
-        self.arrowlayout.add_widget(
-            self.make_arrow(
-                self.character.portal[orig][dest]
-            )
-        )
-        self._new_arrows_todo.update(notyet)
-        if self._new_arrows_todo:
-            Clock.schedule_once(self._pop_new_arrow, 0)
+                    self.arrowlayout.add_widget(
+                        self.make_arrow(
+                            self.character.portal[arrow_orig][arrow_dest]
+                        )
+                    )
 
     def add_pawn(self, thingn, *args):
         if (
