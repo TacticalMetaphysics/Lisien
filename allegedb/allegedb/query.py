@@ -307,7 +307,7 @@ class QueryEngine(object):
                 return self.json_load(row[0])
         raise KeyError("Key never set")
 
-    def graph_val_ins_many(self, *args):
+    def flush_graph_val(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -328,12 +328,10 @@ class QueryEngine(object):
                 raise TypeError(
                     "Expected dict, list, or tuple, got {}".format(type(arg))
                 )
-        return self.sqlmany('graph_val_ins', *map(convert_arg, args))
 
-    def flush_graph_val(self):
         if not self._graphvals2set:
             return
-        self.graph_val_ins_many(*self._graphvals2set)
+        self.sqlmany('graph_val_ins', *map(convert_arg, self._graphvals2set))
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, rev, value):
@@ -382,7 +380,7 @@ class QueryEngine(object):
                 return bool(x[0])
         return False
 
-    def exist_node_many(self, *args):
+    def flush_nodes(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -401,13 +399,10 @@ class QueryEngine(object):
                 raise TypeError(
                     "Expected dict, list, or tuple, got {}".format(type(arg))
                 )
-        arghs = list(map(convert_arg, args))
-        return self.sqlmany('exist_node_ins', *arghs)
 
-    def flush_nodes(self):
         if not self._nodes2set:
             return
-        self.exist_node_many(*self._nodes2set)
+        self.sqlmany('exist_node_ins', *map(convert_arg, self._nodes2set))
         self._nodes2set = []
 
     def exist_node(self, graph, node, branch, rev, extant):
@@ -492,7 +487,7 @@ class QueryEngine(object):
                 return self.json_load(row[0])
         raise KeyError("Key {} never set".format(key))
 
-    def node_val_ins_many(self, *args):
+    def flush_node_val(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -517,12 +512,10 @@ class QueryEngine(object):
                 raise TypeError(
                     "Need dict, list, or tuple, not {}".format(type(arg))
                 )
-        self.sqlmany('node_val_ins', *map(convert_arg, args))
 
-    def flush_node_val(self):
         if not self._nodevals2set:
             return
-        self.node_val_ins_many(*self._nodevals2set)
+        self.sqlmany('node_val_ins', *map(convert_arg, self._nodevals2set))
         self._nodevals2set = []
 
     def node_val_set(self, graph, node, key, branch, rev, value):
@@ -635,7 +628,7 @@ class QueryEngine(object):
                     yield row[0]
                 seen.add(row[0])
 
-    def exist_edge_many(self, *args):
+    def flush_edges(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -656,12 +649,10 @@ class QueryEngine(object):
                 raise TypeError(
                     "Expected dict, list, or tuple, got {}".format(type(arg))
                 )
-        return self.sqlmany('edge_exist_ins', *map(convert_arg, args))
 
-    def flush_edges(self):
         if not self._edges2set:
             return
-        self.exist_edge_many(*self._edges2set)
+        self.sqlmany('edge_exist_ins', *map(convert_arg, self._edges2set))
         self._edges2set = []
 
     def exist_edge(self, graph, nodeA, nodeB, idx, branch, rev, extant):
@@ -713,7 +704,7 @@ class QueryEngine(object):
                 return self.json_load(row[0])
         raise KeyError("Key never set")
 
-    def edge_val_ins_many(self, *args):
+    def flush_edge_val(self):
         def convert_arg(arg):
             if isinstance(arg, dict):
                 return (
@@ -740,12 +731,10 @@ class QueryEngine(object):
                 raise TypeError(
                     "Expected dict, list, or tuple, got {}".format(type(arg))
                 )
-        return self.sqlmany('edge_val_ins', *map(convert_arg, args))
 
-    def flush_edge_val(self):
         if not self._edgevals2set:
             return
-        self.edge_val_ins_many(*self._edgevals2set)
+        self.sqlmany('edge_val_ins', *map(convert_arg, self._edgevals2set))
         self._edgevals2set = []
 
     def edge_val_set(self, graph, nodeA, nodeB, idx, key, branch, rev, value):
