@@ -1747,18 +1747,24 @@ class EngineProxy(AbstractEngine):
         elif obj[0] == 'node':
             charname = self.delistify(obj[1])
             nodename = self.delistify(obj[2])
-            if charname in self._things_cache and nodename in self._things_cache[charname]:
+            if charname in self._things_cache and \
+               nodename in self._things_cache[charname]:
                 return self._things_cache[charname][nodename]
-            if charname in self._character_places_cache and nodename in self._character_places_cache[charname]:
+            if charname in self._character_places_cache and \
+               nodename in self._character_places_cache[charname]:
                 return self._character_places_cache[charname][nodename]
             # I hate that I have to ask the subprocess about this.
             # Maybe change the serialization to always reflect
             # the distinction between place and thing
             (loc, nextloc, arrt, nextarrt) \
-                = self.handle('get_thing_special_stats', char=charname, thing=nodename)
+                = self.handle(
+                    'get_thing_special_stats', char=charname, thing=nodename
+                )
             if loc is not None:
                 self._things_cache[charname][nodename] \
-                    = ThingProxy(self, charname, nodename, loc, nextloc, arrt, nextarrt)
+                    = ThingProxy(
+                        self, charname, nodename, loc, nextloc, arrt, nextarrt
+                    )
                 return self._things_cache[charname][nodename]
             else:
                 self._character_places_cache[charname][nodename] \
@@ -1769,7 +1775,11 @@ class EngineProxy(AbstractEngine):
             origname = self.delistify(obj[2])
             destname = self.delistify(obj[3])
             cache = self._character_portals_cache
-            if not (charname in cache and origname in cache[charname] and destname in cache[charname][origname]):
+            if not (
+                    charname in cache and
+                    origname in cache[charname] and
+                    destname in cache[charname][origname]
+            ):
                 cache[charname][origname][destname] \
                     = PortalProxy(self, charname, origname, destname)
             return cache[charname][origname][destname]
@@ -1823,7 +1833,8 @@ class EngineProxy(AbstractEngine):
     def json_rewrap(self, r):
         if isinstance(r, tuple):
             if r[0] in ('JSONListReWrapper', 'JSONReWrapper'):
-                cls = JSONReWrapper if r[0] == 'JSONReWrapper' else JSONListReWrapper
+                cls = JSONReWrapper if r[0] == 'JSONReWrapper' \
+                      else JSONListReWrapper
                 if r[1] == 'character':
                     (charn, k, v) = r[2:]
                     return cls(CharacterProxy(self, charn), k, v)
@@ -1838,9 +1849,21 @@ class EngineProxy(AbstractEngine):
                             thing=noden
                         )
                         if loc is not None:
-                            node = self._things_cache[char][noden] = ThingProxy(self, char, noden, loc, nxtloc, arrt, nxtarrt)
+                            node = self._things_cache[char][noden] \
+                                   = ThingProxy(
+                                       self,
+                                       char,
+                                       noden,
+                                       loc,
+                                       nxtloc,
+                                       arrt,
+                                       nxtarrt
+                                   )
                         else:
-                            node = self._character_places_cache[char][noden] = PlaceProxy(self, char, noden)
+                            node = self._character_places_cache[
+                                char][noden] = PlaceProxy(
+                                    self, char, noden
+                                )
                     return cls(node, k, v)
                 else:
                     assert (r[1] == 'portal')
@@ -1984,7 +2007,8 @@ class EngineProxy(AbstractEngine):
             if 'arrival_time' in stats or 'next_arrival_time' in stats:
                 raise ValueError('The arrival_time stats are read-only')
             loc = stats.pop('location')
-            nxtloc = stats.pop('next_location') if 'next_location' in stats else None
+            nxtloc = stats.pop('next_location') \
+                     if 'next_location' in stats else None
             self._things_cache[char][thing] \
                 = ThingProxy(loc, nxtloc, self.engine.rev, None)
             self._node_stat_cache[char][thing] = stats
@@ -2020,7 +2044,8 @@ class EngineProxy(AbstractEngine):
     def del_node(self, char, node):
         if char not in self._chars_cache:
             raise KeyError("No such character")
-        if node not in self._character_places_cache[char] and node not in self._things_cache[char]:
+        if node not in self._character_places_cache[char] and \
+           node not in self._things_cache[char]:
             raise KeyError("No such node")
         if node in self._things_cache[char]:
             del self._things_cache[char][node]
@@ -2138,8 +2163,10 @@ class EngineProcessManager(object):
             except OSError:
                 pass
             del kwargs['logfile']
-        do_game_start = kwargs.pop('do_game_start') if 'do_game_start' in kwargs else False
-        install_modules = kwargs.pop('install_modules') if 'install_modules' in kwargs else []
+        do_game_start = kwargs.pop('do_game_start') \
+                        if 'do_game_start' in kwargs else False
+        install_modules = kwargs.pop('install_modules') \
+                          if 'install_modules' in kwargs else []
         formatter = logging.Formatter(
             fmt='[{levelname}] LiSE.proxy({process})\t{message}',
             style='{'

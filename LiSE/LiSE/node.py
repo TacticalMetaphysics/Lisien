@@ -192,16 +192,22 @@ class Node(allegedb.graph.Node, rule.RuleFollower, TimeDispatcher):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        yield from self.db._edges_cache.iter_entities(self.character.name, self.name, *self.engine.time)
+        yield from self.db._edges_cache.iter_entities(
+            self.character.name, self.name, *self.engine.time
+        )
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
-        cache = self.engine._edges_cache.predecessors[self.character.name][self.name]
+        cache = self.engine._edges_cache.predecessors[
+            self.character.name][self.name]
         for nodeB in cache:
             for (b, t) in self.engine._active_branches():
                 if b in cache[nodeB][0]:
                     if b != self.engine.branch:
-                        self.engine._edges_cache.store(self.character.name, self.name, nodeB, 0, *self.engine.time)
+                        self.engine._edges_cache.store(
+                            self.character.name, self.name, nodeB, 0,
+                            *self.engine.time
+                        )
                     if cache[nodeB][0][b][t]:
                         yield nodeB
                         break

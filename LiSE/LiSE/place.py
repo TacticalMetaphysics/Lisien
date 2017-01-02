@@ -58,4 +58,8 @@ class Place(Node):
             del self.character.place[self.name]
 
     def __eq__(self, other):
-        return isinstance(other, Place) and self.character.name == other.character.name and self.name == other.name
+        return (
+            isinstance(other, Place) and
+            self.character.name == other.character.name and
+            self.name == other.name
+        )

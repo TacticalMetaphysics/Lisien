@@ -64,16 +64,22 @@ class Thing(Node):
         self._set_loc_and_next(*v)
 
     def _get_arrival_time(self):
-        return self.engine._things_cache.tick_before(self.character.name, self.name, *self.engine.time)
+        return self.engine._things_cache.tick_before(
+            self.character.name, self.name, *self.engine.time
+        )
 
     def _get_next_arrival_time(self):
         try:
-            return self.engine._things_cache.tick_after(self.character.name, self.name, *self.engine.time)
+            return self.engine._things_cache.tick_after(
+                self.character.name, self.name, *self.engine.time
+            )
         except KeyError:
             return None
 
     def _get_locations(self):
-        return self.engine._things_cache.retrieve(self.character.name, self.name, *self.engine.time)
+        return self.engine._things_cache.retrieve(
+            self.character.name, self.name, *self.engine.time
+        )
 
     _getitem_dispatch = {
         'name': _getname,
@@ -248,7 +254,8 @@ class Thing(Node):
         curloc = self["location"]
         orm = self.character.engine
         curtick = orm.tick
-        ticks = self.engine._portal_objs[(self.character.name, curloc, place)].get(weight, 1)
+        ticks = self.engine._portal_objs[
+            (self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
         orm.tick += ticks
         self['locations'] = (placen, None)
@@ -395,4 +402,8 @@ class Thing(Node):
         return self.engine.json_dump(self._get_json_dict())
 
     def __eq__(self, other):
-        return isinstance(other, Thing) and self.character.name == other.character.name and self.name == other.name
+        return (
+            isinstance(other, Thing) and
+            self.character.name == other.character.name and
+            self.name == other.name
+        )

@@ -347,7 +347,8 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             return side()
         elif isinstance(side, StatusAlias):
             return EntityStatAccessor(
-                side.entity, side.stat, side.engine, side.branch, side.tick, side.current, side.mungers
+                side.entity, side.stat, side.engine,
+                side.branch, side.tick, side.current, side.mungers
             )
         elif isinstance(side, EntityStatAccessor):
             return side
@@ -359,9 +360,11 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             return side.cache
         if hasattr(side, 'entity'):
             if side.stat in (
-                    'location', 'next_location', 'locations', 'arrival_time', 'next_arrival_time'
+                    'location', 'next_location', 'locations',
+                    'arrival_time', 'next_arrival_time'
             ):
-                return engine._things_cache.branches[(side.entity.character.name, side.entity.name)]
+                return engine._things_cache.branches[
+                    (side.entity.character.name, side.entity.name)]
             if side.stat in side.entity._cache:
                 return side.entity._cache[side.stat]
 
@@ -398,8 +401,10 @@ class QueryEngine(allegedb.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
-    def comparison(self, entity0, stat0, entity1, stat1=None, oper='eq', windows=[]):
-        engine = entity0.engine
+    def comparison(
+            self, entity0, stat0, entity1,
+            stat1=None, oper='eq', windows=[]
+    ):
         stat1 = stat1 or stat0
         return comparisons[oper](
             leftside=entity0.status(stat0),
@@ -795,7 +800,9 @@ class QueryEngine(allegedb.query.QueryEngine):
             return self.sql('upd_node_rulebook', rulebook, character, node)
 
     def portal_rulebook(self, character, nodeA, nodeB):
-        (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
+        (character, nodeA, nodeB) = map(
+            self.json_dump, (character, nodeA, nodeB)
+        )
         r = self.sql(
             'portal_rulebook',
             character,
@@ -1019,7 +1026,9 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
 
     def portal_rules(self, character, nodeA, nodeB, branch, tick):
-        (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
+        (character, nodeA, nodeB) = map(
+            self.json_dump, (character, nodeA, nodeB)
+        )
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
@@ -1041,7 +1050,9 @@ class QueryEngine(allegedb.query.QueryEngine):
     def handled_character_rule(
             self, ruletyp, character, rulebook, rule, branch, tick
     ):
-        (character, rulebook, rule) = map(self.json_dump, (character, rulebook, rule))
+        (character, rulebook, rule) = map(
+            self.json_dump, (character, rulebook, rule)
+        )
         try:
             return self.sql(
                 'handled_character_rule',
@@ -1360,7 +1371,9 @@ class QueryEngine(allegedb.query.QueryEngine):
         return d
 
     def is_avatar_of(self, character, graph, node, branch, tick):
-        (character, graph, node) = map(self.json_dump, (character, graph, node))
+        (character, graph, node) = map(
+            self.json_dump, (character, graph, node)
+        )
         for (avatarness,) in self.sql(
                 'is_avatar_of', character, graph, node, branch, tick
         ):
@@ -1476,7 +1489,9 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
 
     def avatar_set(self, character, graph, node, branch, tick, isav):
-        (character, graph, node) = map(self.json_dump, (character, graph, node))
+        (character, graph, node) = map(
+            self.json_dump, (character, graph, node)
+        )
         try:
             return self.sql(
                 'avatar_ins', character, graph, node, branch, tick, isav
@@ -1583,7 +1598,9 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield self.json_load(rule)
 
     def current_rules_portal(self, character, nodeA, nodeB, branch, tick):
-        (character, nodeA, nodeB) = map(self.json_dump, (character, nodeA, nodeB))
+        (character, nodeA, nodeB) = map(
+            self.json_dump, (character, nodeA, nodeB)
+        )
         for rule in self.sql(
             'current_rules_portal',
             character,
@@ -1595,11 +1612,15 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield self.json_load(rule)
 
     def ct_rulebook_rules(self, rulebook):
-        return self.sql('ct_rulebook_rules', self.json_dump(rulebook)).fetchone()[0]
+        return self.sql(
+            'ct_rulebook_rules', self.json_dump(rulebook)
+        ).fetchone()[0]
 
     def rulebook_get(self, rulebook, idx):
         return self.json_load(
-            self.sql('rulebook_get', self.json_dump(rulebook), idx).fetchone()[0]
+            self.sql(
+                'rulebook_get', self.json_dump(rulebook), idx
+            ).fetchone()[0]
         )
 
     def allrules(self):

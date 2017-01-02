@@ -529,7 +529,9 @@ class RuleMapping(MutableMapping):
         return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
-        return self.engine._active_rules_cache.iter_entities(self.name, *self.engine.time)
+        return self.engine._active_rules_cache.iter_entities(
+            self.name, *self.engine.time
+        )
 
     def __len__(self):
         n = 0
@@ -606,9 +608,11 @@ class RuleMapping(MutableMapping):
         del self.rulebook[i]
         self._dispatch(k, None)
 
+
 rule_mappings = {}
 rulebook_listeners = defaultdict(list)
 rulebooks = {}
+
 
 class RuleFollower(object):
     """Interface for that which has a rulebook associated, which you can
