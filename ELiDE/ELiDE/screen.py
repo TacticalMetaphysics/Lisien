@@ -275,6 +275,12 @@ class MainScreen(Screen):
         else:
             del self._old_time
 
+    def on_board(self, *args):
+        if not self.app:
+            Clock.schedule_once(self.on_board, 0)
+            return
+        self.board.bind(selection=self.app.setter('selection'))
+
 
 Builder.load_string(
     """
