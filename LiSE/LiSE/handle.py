@@ -45,7 +45,7 @@ class EngineHandle(object):
             lambda: defaultdict(dict)
         )
         self._char_stat_cache = {}
-        self._char_av_cache = {}
+        self._char_av_cache = defaultdict(lambda: defaultdict(set))
         self._char_rulebooks_cache = {}
         self._char_nodes_rulebooks_cache = defaultdict(dict)
         self._char_portals_rulebooks_cache = defaultdict(
@@ -209,12 +209,17 @@ class EngineHandle(object):
         return list(self._real.string)
 
     def get_string_lang_items(self, lang):
-        return list(self._real.string.lang_items(lang))
+        ret = list(self._real.string.lang_items(lang))
+        for lang, (k, v) in ret:
+            self._strings_cache[lang][k] = v
+        return ret
 
     def strings_copy(self, lang=None):
         if lang is None:
             lang = self._real.string.language
-        return dict(self._real.string.lang_items(lang))
+        return dict(
+            self._real.string.lang_items(lang)
+        )
 
     def strings_diff(self, lang=None):
         if lang is None:
@@ -234,18 +239,23 @@ class EngineHandle(object):
 
     def set_string(self, k, v):
         self._real.string[k] = v
+        self._strings_cache[self._real.string.language][k] = v
 
     def del_string(self, k):
         del self._real.string[k]
+        del self._strings_cache[self._real.string.language][k]
 
     def get_eternal(self, k):
-        return self._real.eternal[k]
+        ret = self._eternal_cache[k] = self._real.eternal[k]
+        return ret
 
     def set_eternal(self, k, v):
         self._real.eternal[k] = v
+        self._eternal_cache[k] = v
 
     def del_eternal(self, k):
         del self._real.eternal[k]
+        del self._eternal_cache[k]
 
     def eternal_keys(self):
         return list(self._real.eternal.keys())
@@ -265,13 +275,16 @@ class EngineHandle(object):
         return dict_diff(old, new)
 
     def get_universal(self, k):
-        return self._real.universal[k]
+        ret = self._universal_cache[k] = self._real.universal[k]
+        return ret
 
     def set_universal(self, k, v):
         self._real.universal[k] = v
+        self._universal_cache[k] = v
 
     def del_universal(self, k):
         del self._real.universal[k]
+        del self._universal_cache[k]
 
     def universal_keys(self):
         return list(self._real.universal.keys())
@@ -295,6 +308,20 @@ class EngineHandle(object):
 
     def del_character(self, char):
         del self._real.character[char]
+        for cache in (
+                self._char_stat_cache,
+                self._node_stat_cache,
+                self._portal_stat_cache,
+                self._char_av_cache,
+                self._char_rulebooks_cache,
+                self._char_nodes_rulebooks_cache,
+                self._char_portals_rulebooks_cache,
+                self._char_things_cache,
+                self._char_places_cache,
+                self._char_portals_cache
+        ):
+            if char in cache:
+                del cache[char]
 
     def character_has_stat(self, char, k):
         return k in self._real.character[char].stat
@@ -415,12 +442,18 @@ class EngineHandle(object):
 
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
+        if char in self._char_stat_cache:
+            self._char_stat_cache[char][k] = v
 
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
+        if char in self._char_stat_cache:
+            del self._char_stat_cache[char][k]
 
     def update_character_stats(self, char, patch):
         self._real.character[char].stat.update(patch)
+        if char in self._char_stat_cache:
+            self._char_stat_cache[char].update(patch)
 
     def update_character(self, char, patch):
         self.update_character_stats(char, patch['character'])
@@ -456,9 +489,13 @@ class EngineHandle(object):
 
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
+        if char in self._node_stat_cache:
+            self._node_stat_cache[char][node][k] = v
 
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
+        if char in self._node_stat_cache:
+            del self._node_stat_cache[char][node][k]
 
     def node_stat_keys(self, char, node):
         return list(self._real.character[char].node[node])
@@ -549,6 +586,40 @@ class EngineHandle(object):
     def del_node(self, char, node):
         """Remove a node from a character."""
         del self._real.character[char].node[node]
+        for cache in (
+                self._char_nodes_rulebooks_cache,
+                self._node_stat_cache,
+                self._node_successors_cache
+        ):
+            if char in cache:
+                del cache[char][node]
+        if char in self._char_things_cache and node in self._char_things_cache[char]:
+            del self._char_things_cache[char][node]
+        if char in self._char_places_cache and node in self._char_places_cache[char]:
+            self._char_places_cache[char].remove(node)
+        if char in self._portal_stat_cache:
+            if node in self._portal_stat_cache[char]:
+                for d in self._portal_stat_cache[char][node]:
+                    try:
+                        del self._char_portals_rulebooks_cache[char][node][d]
+                    except KeyError:
+                        pass
+                    try:
+                        del self._char_portals_cache[char][node][d]
+                    except KeyError:
+                        pass
+                del self._portal_stat_cache[char][node]
+            for o in self._portal_stat_cache[char]:
+                if node in self._portal_stat_cache[char][o]:
+                    try:
+                        del self._char_portals_rulebooks_cache[char][o][node]
+                    except KeyError:
+                        pass
+                    try:
+                        del self._char_portals_cache[char][o][node]
+                    except KeyError:
+                        pass
+                    del self._portal_stat_cache[char][o][node]
 
     def character_things(self, char):
         return {
@@ -671,6 +742,14 @@ class EngineHandle(object):
 
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
+        if char in self._node_stat_cache:
+            self._node_stat_cache[char][thing] = statdict
+        if char in self._char_things_cache:
+            loc = statdict.pop('location')
+            nxtloc = statdict.pop('next_location', None)
+            arrt = statdict.pop('arrival_time', self.tick)
+            nxtarrt = statdict.pop('next_arrival_time', None)
+            self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
 
     def add_thing(self, char, thing, loc, next_loc, statdict):
         self._real.character[char].add_thing(
@@ -694,6 +773,11 @@ class EngineHandle(object):
 
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
+        if char in self._char_things_cache:
+            _, nxtloc, arrt, nxtarrt = self._char_things_cache[char].get(
+                thing, (loc, None, self.tick, None)
+            )
+            self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
 
     def get_thing_next_location(self, char, thing):
         try:
@@ -721,6 +805,10 @@ class EngineHandle(object):
 
     def set_thing_next_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['next_location'] = loc
+        if char in self._char_things_cache:
+            # if this throws KeyError the cache is bad
+            oldloc, _, arrt, nxtarrt = self._char_things_cache[char][thing]
+            self._char_things_cache[char][thing] = (oldloc, loc, arrt, nxtarrt)
 
     def thing_follow_path(self, char, thing, path, weight):
         self._real.character[char].thing[thing].follow_path(path, weight)
@@ -749,6 +837,8 @@ class EngineHandle(object):
 
     def set_place(self, char, place, statdict):
         self._real.character[char].place[place] = statdict
+        if char in self._node_stat_cache:
+            self._node_stat_cache[char][place] = statdict
 
     def add_places_from(self, char, seq):
         self._real.character[char].add_places_from(seq)
@@ -767,6 +857,8 @@ class EngineHandle(object):
 
     def set_portal(self, char, orig, dest, statdict):
         self._real.character[char].portal[orig][dest] = statdict
+        if char in self._portal_stat_cache:
+            self._portal_stat_cache[char][orig][dest] = statdict
 
     def character_portals(self, char):
         r = []
@@ -795,6 +887,10 @@ class EngineHandle(object):
 
     def del_portal(self, char, orig, dest):
         del self._real.character[char].portal[orig][dest]
+        if char in self._portal_stat_cache:
+            del self._portal_stat_cache[char][orig][dest]
+        if char in self._char_portals_rulebooks_cache:
+            del self._char_places_cache[char][orig][dest]
 
     def get_portal_stat(self, char, orig, dest, k):
         try:
@@ -807,9 +903,13 @@ class EngineHandle(object):
 
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
+        if char in self._portal_stat_cache:
+            self._portal_stat_cache[char][orig][dest][k] = v
 
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
+        if char in self._portal_stat_cache:
+            del self._portal_stat_cache[char][orig][dest][k]
 
     def portal_stat_copy(self, char, orig, dest):
         return {
@@ -945,6 +1045,7 @@ class EngineHandle(object):
 
     def del_rulebook_rule(self, rulebook, i):
         del self._real.rulebook[rulebook][i]
+        del self._rulebook_cache[rulebook][i]
 
     def rule_copy(self, rule):
         if not hasattr(rule, 'actions'):
