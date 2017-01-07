@@ -53,7 +53,6 @@ class EngineHandle(object):
         self._char_things_cache = {}
         self._char_places_cache = {}
         self._char_portals_cache = {}
-        self._char_nodes_with_successors = {}
         self._node_successors_cache = defaultdict(dict)
         self._strings_cache = defaultdict(dict)
         self._eternal_cache = {}
@@ -610,12 +609,6 @@ class EngineHandle(object):
     def node_precedes(self, char, dest, orig):
         return orig in self._real.character[char].pred[dest]
 
-    def character_nodes_with_predecessors(self, char):
-        return list(self._real.character[char].pred.keys())
-
-    def character_nodes_with_predecessors_len(self, char):
-        return len(self._real.character[char].pred)
-
     def character_set_node_predecessors(self, char, node, preds):
         self._real.character[char].pred[node] = preds
 
@@ -627,18 +620,6 @@ class EngineHandle(object):
 
     def character_has_node(self, char, node):
         return node in self._real.character[char].node
-
-    def character_nodes_with_successors(self, char):
-        return list(self._real.character[char].adj.keys())
-
-    def character_nodes_with_successors_diff(self, char):
-        try:
-            old = self._char_nodes_with_successors.get(char, [])
-            new = self.character_nodes_with_successors(char)
-            self._char_nodes_with_successors[char] = new
-            return list_diff(old, new)
-        except KeyError:
-            return None
 
     def node_successors(self, char, node):
         return list(self._real.character[char].portal[node].keys())
