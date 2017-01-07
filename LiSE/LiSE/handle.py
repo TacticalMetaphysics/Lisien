@@ -4,6 +4,7 @@
 ordinary method calls.
 
 """
+from re import match
 from collections import defaultdict
 from importlib import import_module
 from allegedb.xjson import (
@@ -138,6 +139,17 @@ class EngineHandle(object):
         self._real.time = (branch, tick)
         if chars:
             return self.get_chardiffs(chars)
+
+    def increment_branch(self):
+        branch = self._real.branch
+        m = match('(.*)([0-9]+)', branch)
+        if m:
+            stem, n = m.groups()
+            branch = stem + str(n+1)
+        else:
+            branch += '1'
+        self.set_branch(branch)
+        return branch
 
     def add_character(self, char, data, attr):
         character = self._real.new_character(char, **attr)
