@@ -45,7 +45,6 @@ class ELiDEApp(App):
     engine = ObjectProperty()
     branch = StringProperty('master')
     tick = NumericProperty(0)
-    time = ListProperty(['master', 0])
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
     selected_remote = ObjectProperty()
@@ -71,23 +70,12 @@ class ELiDEApp(App):
         (self.branch, self.tick) = self.engine.time
     pull_time = trigger(_pull_time)
 
-    def on_time(self, *args):
-        local_time = (branch, tick) = tuple(self.time)
-        if local_time != self.engine.time:
-            self.engine.time = local_time
-        if self.branch != branch:
-            self.branch = branch
-        if self.tick != tick:
-            self.tick = tick
-
     def set_branch(self, b):
         """Set my branch to the given value."""
         self.branch = b
-        if self.time[0] != b:
-            self.time[0] = b
-        if self.engine.time != self.time:
+        if self.engine.time != (self.branch, self.tick):
             self.engine.time_travel(
-                *self.time,
+                self.branch, self.tick,
                 char=self.character.name,
                 cb=self.mainscreen._update_from_chardiff
             )
@@ -95,11 +83,9 @@ class ELiDEApp(App):
     def set_tick(self, t):
         """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
-        if self.time[1] != self.tick:
-            self.time[1] = self.tick
-        if self.engine.time != self.time:
+        if self.engine.time != (self.branch, self.tick):
             self.engine.time_travel(
-                *self.time,
+                self.branch, self.tick,
                 char=self.character.name,
                 cb=self.mainscreen._update_from_chardiff
             )
@@ -108,7 +94,7 @@ class ELiDEApp(App):
         if t is None:
             (b, t) = b
         t = int(t)
-        (self.branch, self.tick) = self.time = (b, t)
+        (self.branch, self.tick) = (b, t)
 
     def select_character(self, char):
         """Change my ``character`` to the selected character object if they
@@ -275,10 +261,19 @@ class ELiDEApp(App):
                 self.funcs
         ):
             self.manager.add_widget(wid)
+
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.mainscreen)
+
+        @self.engine.branch_listener
+        def pull_branch(inst, v):
+            self.branch = v
+
+        @self.engine.tick_listener
+        def pull_tick(inst, v):
+            self.tick = v
 
         return self.manager
 

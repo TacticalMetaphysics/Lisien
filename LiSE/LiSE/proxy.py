@@ -209,7 +209,8 @@ class NodeProxy(CachingEntityProxy):
             char=self._charname,
             node=self.name,
             k=k, v=v,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def _del_item(self, k):
@@ -220,7 +221,8 @@ class NodeProxy(CachingEntityProxy):
             char=self._charname,
             node=self.name,
             k=k,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def delete(self):
@@ -482,7 +484,8 @@ class PortalProxy(CachingEntityProxy):
             orig=self._origin,
             dest=self._destination,
             k=k, v=v,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def _del_item(self, k):
@@ -492,7 +495,8 @@ class PortalProxy(CachingEntityProxy):
             orig=self._origin,
             dest=self._destination,
             k=k,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def __init__(self, engine_proxy, charname, nodeAname, nodeBname):
@@ -642,7 +646,8 @@ class ThingMapProxy(CachingProxy):
             char=self.name,
             thing=k,
             statdict=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self._cache[k] = ThingProxy(
             self.engine, self.name,
@@ -656,7 +661,8 @@ class ThingMapProxy(CachingProxy):
             command='del_node',
             char=self.name,
             node=k,
-            silent=True
+            silent=True,
+            branching=True
         )
         del self._cache[k]
         del self.engine._node_stat_cache[self.name][k]
@@ -711,7 +717,8 @@ class PlaceMapProxy(CachingProxy):
             command='set_place',
             char=self.name,
             place=k, statdict=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.engine._node_stat_cache[self.name][k] = v
 
@@ -720,7 +727,8 @@ class PlaceMapProxy(CachingProxy):
             command='del_node',
             char=self.name,
             node=k,
-            silent=True
+            silent=True,
+            branching=True
         )
         del self.engine._node_stat_cache[self.name][k]
 
@@ -786,7 +794,8 @@ class SuccessorsProxy(CachingProxy):
             orig=self._nodeA,
             dest=nodeB,
             statdict=value,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def _del_item(self, nodeB):
@@ -859,7 +868,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
             character=self.name,
             node=nodeA,
             val=val,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def _del_item(self, nodeA):
@@ -1002,7 +1012,8 @@ class CharStatProxy(CachingEntityProxy):
             command='set_character_stat',
             char=self.name,
             k=k, v=v,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def _del_item(self, k):
@@ -1010,7 +1021,8 @@ class CharStatProxy(CachingEntityProxy):
             command='del_character_stat',
             char=self.name,
             k=k,
-            silent=True
+            silent=True,
+            branching=True
         )
 
 
@@ -1665,6 +1677,12 @@ class EngineProxy(AbstractEngine):
     def branch(self, v):
         self.handle(command='set_branch', branch=v, silent=True)
         self._branch = v
+        for f in self._branch_listeners:
+            f(self, v)
+
+    def branch_listener(self, f):
+        if f not in self._branch_listeners:
+            self._branch_listeners.append(f)
 
     @property
     def tick(self):
@@ -1674,6 +1692,12 @@ class EngineProxy(AbstractEngine):
     def tick(self, v):
         self.handle('set_tick', tick=v, silent=True)
         self._tick = v
+        for f in self._tick_listeners:
+            f(self, v)
+
+    def tick_listener(self, f):
+        if f not in self._tick_listeners:
+            self._tick_listeners.append(f)
 
     @property
     def time(self):
@@ -1693,6 +1717,8 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
+        self._branch_listeners = []
+        self._tick_listeners = []
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -1851,13 +1877,14 @@ class EngineProxy(AbstractEngine):
         self.logger.critical(msg)
 
     def handle(self, cmd=None, **kwargs):
-        self._handle_lock.acquire()
         if 'command' in kwargs:
             cmd = kwargs['command']
         elif cmd:
             kwargs['command'] = cmd
         else:
             raise TypeError("No command")
+        branching = kwargs.pop('branching', False)
+        self._handle_lock.acquire()
         if 'silent' not in kwargs:
             kwargs['silent'] = False
         self.send(self.json_dump(kwargs))
@@ -1868,7 +1895,12 @@ class EngineProxy(AbstractEngine):
                     cmd, command
                 )
             self._handle_lock.release()
-            return self.json_load(result)
+            r = self.json_load(result)
+            if branching:
+                self._branch = r
+                for f in self._branch_listeners:
+                    f(self, r)
+            return r
         self._handle_lock.release()
 
     def json_rewrap(self, r):
@@ -2065,7 +2097,7 @@ class EngineProxy(AbstractEngine):
                 self._portal_stat_cache[char][orig][dest] = stats
         self.handle(
             command='add_character', char=char, data=data, attr=attr,
-            silent=True
+            silent=True, branching=True
         )
 
     def new_character(self, char, **attr):
@@ -2080,7 +2112,7 @@ class EngineProxy(AbstractEngine):
         del self._character_places_cache[char]
         del self._things_cache[char]
         del self._character_portals_cache[char]
-        self.handle(command='del_character', char=char, silent=True)
+        self.handle(command='del_character', char=char, silent=True, branching=True)
 
     def del_node(self, char, node):
         if char not in self._chars_cache:
@@ -2096,7 +2128,8 @@ class EngineProxy(AbstractEngine):
             command='del_node',
             char=char,
             node=node,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def del_portal(self, char, orig, dest):
@@ -2108,7 +2141,8 @@ class EngineProxy(AbstractEngine):
             char=char,
             orig=orig,
             dest=dest,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def commit(self):
