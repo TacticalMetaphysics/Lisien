@@ -19,6 +19,17 @@ from .util import (
 from allegedb.cache import HistoryError
 
 
+def branching(fun):
+    def brancher(self, *args, **kwargs):
+        try:
+            fun(self, *args, **kwargs)
+        except HistoryError:
+            self.increment_branch()
+            fun(self, *args, **kwargs)
+        return self.branch
+    return brancher
+
+
 class EngineHandle(object):
     """A wrapper for a :class:`LiSE.Engine` object that runs in the same
     process, but with an API built to be used in a command-processing
@@ -278,16 +289,6 @@ class EngineHandle(object):
     def get_universal(self, k):
         ret = self._universal_cache[k] = self._real.universal[k]
         return ret
-
-    def branching(fun):
-        def brancher(self, *args, **kwargs):
-            try:
-                fun(self, *args, **kwargs)
-            except HistoryError:
-                self.increment_branch()
-                fun(self, *args, **kwargs)
-            return self.branch
-        return brancher
 
     @branching
     def set_universal(self, k, v):
