@@ -149,6 +149,7 @@ class EngineHandle(object):
 
     def time_travel(self, branch, tick, chars=[]):
         self._real.time = (branch, tick)
+        self.set_time(branch, tick)
         if chars:
             return self.get_chardiffs(chars)
 
@@ -160,7 +161,7 @@ class EngineHandle(object):
             branch = stem + str(n+1)
         else:
             branch += '1'
-        self.set_branch(branch)
+        self.time_travel(branch, self.tick)
         return branch
 
     def add_character(self, char, data, attr):
