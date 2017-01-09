@@ -163,11 +163,6 @@ class QueryEngine(object):
         s = self.strings[stringname]
         return self.connection.cursor().executemany(s, args)
 
-    def timestream_data(self):
-        """Yield all data concerning the lineage of timestream branches."""
-        for row in self.sql('allbranch'):
-            yield tuple(row)
-
     def active_branches(self, branch, rev):
         """Yield a series of ``(branch, rev)`` pairs, starting with the
         ``branch`` and ``rev`` provided; proceeding to the parent
