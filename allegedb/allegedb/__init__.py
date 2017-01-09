@@ -83,16 +83,6 @@ class ORM(object):
             self._orev = self.rev
             self._active_branches_cache = []
             self.query.active_branches = self._active_branches
-            todo = deque(self.query.timestream_data())
-            while todo:
-                (branch, parent, parent_tick) = working = todo.popleft()
-                if branch == 'master':
-                    continue
-                if parent in self._branches:
-                    self._parentbranch_rev[branch] = (parent, parent_tick)
-                    self._childbranch[parent].add(branch)
-                else:
-                    todo.append(working)
             for row in self.query.graph_val_dump():
                 self._graph_val_cache.store(*row)
             for row in self.query.nodes_dump():
