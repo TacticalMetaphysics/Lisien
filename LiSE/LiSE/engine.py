@@ -593,14 +593,12 @@ class Engine(AbstractEngine, gORM):
         (b, t) = self.time
         if v == b:
             return
-        if v not in self._branches:
+        if v not in self._parentbranch_rev:
             parent = b
             child = v
-            assert(parent in self._branches)
-            self._branch_parents[child] = parent
-            self._branches[parent][child] = {}
-            self._branches[child] = self._branches[parent][child]
-            self._branches_start[child] = t
+            self._parentbranch_rev[child] = parent, t
+            self._childbranch[parent].add(child)
+            self.query.new_branch(child, parent, t)
         self._obranch = v
         self.query.globl['branch'] = v
         if not hasattr(self, 'locktime'):
