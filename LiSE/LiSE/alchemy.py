@@ -836,6 +836,10 @@ def queries(table, view):
             table['lise_globals'].c.tick,
             table['lise_globals'].c.value
         ]
+    ).order_by(
+        table['lise_globals'].c.key,
+        table['lise_globals'].c.branch,
+        table['lise_globals'].c.tick
     )
 
     r['universal_items'] = select(
@@ -1591,7 +1595,13 @@ def queries(table, view):
         avatars.c.branch,
         avatars.c.tick,
         avatars.c.is_avatar
-    ])
+    ]).order_by(
+        avatars.c.character_graph,
+        avatars.c.avatar_graph,
+        avatars.c.avatar_node,
+        avatars.c.branch,
+        avatars.c.tick
+    )
 
     def hitick_avatars(*cols):
         """Return query to get the time of the latest change to the avatars table.
@@ -1686,7 +1696,12 @@ def queries(table, view):
         things.c.tick,
         things.c.location,
         things.c.next_location
-    ])
+    ]).order_by(
+        things.c.character,
+        things.c.thing,
+        things.c.branch,
+        things.c.tick
+    )
 
     r['thing_loc_and_next_ins'] = insert_cols(
         things,
