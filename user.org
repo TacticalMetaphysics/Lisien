@@ -73,3 +73,11 @@ User stories for LiSE and ELiDE.
    Export feature! Even if you haven't made a game interface yet
 
 ** Turn it into a game
+
+*** Engine selection
+    Because you might not want to build your game in ELiDE.
+
+*** Interface design
+    If you do make your game in ELiDE, you'll need to design the
+    interface that the player will see. I think I could reuse most of
+    Kivy Designer.
