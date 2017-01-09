@@ -1029,11 +1029,17 @@ class EngineHandle(object):
     def get_character_avatar(self, char, graph):
         return self._real.character[char].avatar[graph].name
 
+    @branching
     def add_avatar(self, char, graph, node):
         self._real.character[char].add_avatar(graph, node)
+        if char in self._char_av_cache:
+            self._char_av_cache[char][graph].add(node)
 
+    @branching
     def del_avatar(self, char, graph, node):
         self._real.character[char].del_avatar(graph, node)
+        if char in self._char_av_cache:
+            self._char_av_cache[char][graph].remove(node)
 
     def get_rule_actions(self, rule):
         return self._real.rule[rule].actions._cache
