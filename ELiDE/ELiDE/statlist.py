@@ -30,19 +30,24 @@ from .util import trigger
 class StatRowListItem(Widget):
     key = ObjectProperty()
     value = ObjectProperty(None, allownone=True)
-    reg = ObjectProperty()
-    unreg = ObjectProperty()
+    gett = ObjectProperty()
     sett = ObjectProperty()
+    listen = ObjectProperty()
+    unlisten = ObjectProperty()
     config = DictProperty()
 
-    def set_value(self, *args):
+    def on_listen(self, *args):
+        self.listen(self._pull)
+        self.bind(value=self._push)
+        self._pull()
+
+    @trigger
+    def _push(self, *args):
         self.sett(self.key, self.value)
 
-    def on_parent(self, *args):
-        if self.parent is None:
-            self.unreg(self)
-        else:
-            self.reg(self)
+    @trigger
+    def _pull(self, *args):
+        self.value = self.gett(self.key)
 
 
 class StatRowLabel(StatRowListItem, Label):
@@ -70,7 +75,6 @@ class StatRowTextInput(StatRowListItem, TextInput):
             self.parent.value = None
         else:
             self.parent.value = self.text
-        self.parent.set_value()
         self.text = ''
 
 
@@ -88,7 +92,6 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
             self.parent.value = 0
         else:
             self.parent.value = 1
-        self.parent.set_value()
 
 
 class StatRowSlider(StatRowListItem, Slider):
@@ -105,16 +108,18 @@ class StatRowSlider(StatRowListItem, Slider):
     def on_touch_up(self, *args):
         if self.need_set:
             self.parent.value = self.value
-            self.parent.set_value()
+            self.parent._push()
             self.need_set = False
 
 
 class StatRowListItemContainer(BoxLayout):
     key = ObjectProperty()
-    value = ObjectProperty(None, allownone=True)
     reg = ObjectProperty()
     unreg = ObjectProperty()
+    gett = ObjectProperty()
     sett = ObjectProperty()
+    listen = ObjectProperty()
+    unlisten = ObjectProperty()
     config = DictProperty()
     control = OptionProperty(
         'readout', options=['readout', 'textinput', 'togglebutton', 'slider']
@@ -133,7 +138,6 @@ class StatRowListItemContainer(BoxLayout):
         super().__init__(**kwargs)
         self.bind(
             key=self.remake,
-            value=self.remake,
             control=self.remake,
             config=self.remake,
             parent=self.remake
@@ -154,19 +158,19 @@ class StatRowListItemContainer(BoxLayout):
         cls = self.licls[self.control]
         self.wid = cls(
             key=self.key,
-            value=self.value,
-            reg=self.reg,
-            unreg=self.unreg,
+            gett=self.gett,
             sett=self.sett,
-            config=self.config
+            config=self.config,
+            listen=self.listen,
+            unlisten=self.unlisten
         )
         self.bind(
             key=self.wid.setter('key'),
-            value=self.wid.setter('value'),
-            reg=self.wid.setter('reg'),
-            unreg=self.wid.setter('unreg'),
+            gett=self.wid.setter('gett'),
             sett=self.wid.setter('sett'),
-            config=self.wid.setter('config')
+            config=self.wid.setter('config'),
+            listen=self.wid.setter('listen'),
+            unlisten=self.wid.setter('unlisten')
         )
         self.add_widget(self.wid)
 
@@ -304,10 +308,12 @@ class AbstractStatListView(RecycleView):
     def munge(self, k, v):
         return {
             'key': k,
-            'value': v,
             'reg': self._reg_widget,
             'unreg': self._unreg_widget,
+            'gett': self.remote.__getitem__,
             'sett': self.set_value,
+            'listen': self.remote.listener,
+            'unlisten': self.remote.unlisten,
             'control': self.control.get(k, 'readout'),
             'config': self.config.get(k, default_cfg)
         }
