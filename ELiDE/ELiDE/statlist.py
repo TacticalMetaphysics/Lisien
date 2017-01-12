@@ -72,9 +72,9 @@ class StatRowTextInput(StatRowListItem, TextInput):
     @trigger
     def upd_value(self, *args):
         if self.text == '':
-            self.parent.value = None
+            self.value = None
         else:
-            self.parent.value = self.text
+            self.value = self.text
         self.text = ''
 
 
@@ -82,10 +82,10 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
     def on_touch_up(self, *args):
         if self.parent is None:
             return
-        if self.state == 'normal' and self.parent.value != 0:
-            self.parent.value = 0
-        elif self.state == 'down' and self.parent.value != 1:
-            self.parent.value = 1
+        if self.state == 'normal' and self.value != 0:
+            self.value = 0
+        elif self.state == 'down' and self.value != 1:
+            self.value = 1
 
 
 class StatRowSlider(StatRowListItem, Slider):
@@ -96,13 +96,16 @@ class StatRowSlider(StatRowListItem, Slider):
             del kwargs['text']
         super().__init__(**kwargs)
 
+    def on_listen(self, *args):
+        self.listen(self._pull)
+        self._pull()
+
     def on_value(self, *args):
         self.need_set = True
 
     def on_touch_up(self, *args):
         if self.need_set:
-            self.parent.value = self.value
-            self.parent._push()
+            self._push()
             self.need_set = False
 
 
