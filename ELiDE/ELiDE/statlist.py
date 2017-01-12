@@ -82,15 +82,9 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
     def on_touch_up(self, *args):
         if self.parent is None:
             return
-        if (
-            self.state == 'normal' and self.parent.value == 0
-        ) or (
-            self.state == 'down' and self.parent.value == 1
-        ):
-            return
-        if self.state == 'normal':
+        if self.state == 'normal' and self.parent.value != 0:
             self.parent.value = 0
-        else:
+        elif self.state == 'down' and self.parent.value != 1:
             self.parent.value = 1
 
 
