@@ -38,8 +38,10 @@ class StatRowListItem(Widget):
 
     def on_listen(self, *args):
         self.listen(self._pull)
-        self.bind(value=self._push)
         self._pull()
+
+    def on_value(self, *args):
+        self.bind(value=self._push)
 
     @trigger
     def _push(self, *args):
