@@ -7,6 +7,7 @@ methods. But if you need to store historical data some other way,
 you might want to store it in a ``WindowDict``.
 
 """
+from copy import copy as copier
 from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
@@ -359,7 +360,7 @@ class Cache(object):
                         mapp[key][b][t] != newval
                 ):
                     mapp[key][branch][rev] \
-                        = mapp[key][b][t].copy() if copy else mapp[key][b][t]
+                        = copier(mapp[key][b][t]) if copy else mapp[key][b][t]
             raise ValueError("No data to forward")
 
     def _forward_keycache(self, parentity, branch, rev):
