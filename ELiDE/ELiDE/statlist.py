@@ -28,13 +28,23 @@ from .util import trigger
 
 
 class StatRowListItem(Widget):
+    """Mixin class for widgets that show a stat's current value.
+
+    """
     key = ObjectProperty()
+    "The stat I am about. Same as in the LiSE entity."
     value = ObjectProperty(None, allownone=True)
+    "The present value of the stat."
     gett = ObjectProperty()
+    "Getter function: takes stat, returns its present value."
     sett = ObjectProperty()
+    "Setter function: takes stat and value, sets stat=value."
     listen = ObjectProperty()
+    "Function that takes a function and calls it when the stat changes."
     unlisten = ObjectProperty()
+    "Function that takes a ``listen``ed function and stops it listening."
     config = DictProperty()
+    "Dictionary of some parameters for how to present myself."
 
     def on_listen(self, *args):
         self.listen(self._pull)
@@ -53,7 +63,7 @@ class StatRowListItem(Widget):
 
 
 class StatRowLabel(StatRowListItem, Label):
-    pass
+    """Display the current value of a stat as text."""
 
 
 class StatRowTextInput(StatRowListItem, TextInput):
