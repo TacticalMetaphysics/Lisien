@@ -83,16 +83,42 @@ class ORM(object):
             self._orev = self.rev
             self._active_branches_cache = []
             self.query.active_branches = self._active_branches
-            for row in self.query.graph_val_dump():
-                self._graph_val_cache.store(*row)
-            for row in self.query.nodes_dump():
-                self._nodes_cache.store(*row)
-            for row in self.query.edges_dump():
-                self._edges_cache.store(*row)
-            for row in self.query.node_val_dump():
-                self._node_val_cache.store(*row)
-            for row in self.query.edge_val_dump():
-                self._edge_val_cache.store(*row)
+            # Make sure to load in the correct order, so that
+            # caches for child branches get built after their parents
+            graphval = defaultdict(list)
+            nodeval = defaultdict(list)
+            edgeval = defaultdict(list)
+            nodes = defaultdict(list)
+            edges = defaultdict(list)
+            for (graph, key, branch, rev, val) in self.query.graph_val_dump():
+                graphval[branch].append((graph, key, branch, rev, val))
+            for (graph, node, branch, rev, ex) in self.query.nodes_dump():
+                nodes[branch].append((graph, node, branch, rev, ex))
+            for (graph, u, v, i, branch, rev, ex) in self.query.edges_dump():
+                edges[branch].append((graph, u, v, i, branch, rev, ex))
+            for (
+                    graph, node, key, branch, rev, val
+            ) in self.query.node_val_dump():
+                nodeval[branch].append((graph, node, key, branch, rev, val))
+            for (
+                    graph, u, v, i, key, branch, rev, val
+            ) in self.query.edge_val_dump():
+                edgeval[branch].append((graph, u, v, i, key, branch, rev, val))
+            branch2do = deque(['master'])
+            while branch2do:
+                branch = branch2do.pop()
+                for row in graphval[branch]:
+                    self._graph_val_cache.store(*row)
+                for row in nodes[branch]:
+                    self._nodes_cache.store(*row)
+                for row in edges[branch]:
+                    self._edges_cache.store(*row)
+                for row in nodeval[branch]:
+                    self._node_val_cache.store(*row)
+                for row in edgeval[branch]:
+                    self._edge_val_cache.store(*row)
+                if branch in self._childbranch:
+                    branch2do.extend(self._childbranch[branch])
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
