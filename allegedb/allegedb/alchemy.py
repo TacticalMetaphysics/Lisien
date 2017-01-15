@@ -48,7 +48,8 @@ def tables_for_meta(meta):
             Column('creator', TEXT, nullable=True),
             Column('description', TEXT, nullable=True),
             Column('parent', TEXT, default='master'),
-            Column('parent_rev', Integer, default=0)
+            Column('parent_rev', Integer, default=0),
+            CheckConstraint('branch<>parent')
         ),
         'graphs': Table(
             'graphs', meta,

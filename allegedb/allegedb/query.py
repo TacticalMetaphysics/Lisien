@@ -779,10 +779,6 @@ class QueryEngine(object):
             cursor.execute('SELECT * FROM branches;')
         except OperationalError:
             cursor.execute(self.strings['create_branches'])
-            cursor.execute(
-                "INSERT INTO branches (branch, parent, parent_rev) "
-                "VALUES ('master', 'master', 0)"
-            )
         try:
             cursor.execute('SELECT * FROM graphs;')
         except OperationalError:
