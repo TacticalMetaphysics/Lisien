@@ -633,14 +633,24 @@ class Engine(AbstractEngine, gORM):
         """Set my ``branch`` and ``tick``, and call listeners"""
         (branch_then, tick_then) = self.time
         (branch_now, tick_now) = v
-        relock = hasattr(self, 'locktime')
-        self.locktime = True
-        # setting tick and branch in this order makes it practical to
-        # track the timestream genealogy
-        self.tick = tick_now
-        self.branch = branch_now
-        if not relock:
-            del self.locktime
+        # make sure I'll end up within the revision range of the
+        # destination branch
+        if branch_now != 'master':
+            if branch_now in self._parentbranch_rev:
+                parrev = self._parentbranch_rev[branch_now][1]
+            else:
+                self._parentbranch_rev[branch_now] = (branch_then, tick_then)
+                parrev = tick_then
+            if tick_now < parrev:
+                raise ValueError(
+                    "Tried to jump to branch {br}, "
+                    "which starts at tick {t}. "
+                    "Go to tick {t} or later to use branch {br}.".format(
+                        br=branch_now,
+                        t=parrev
+                    )
+                )
+        (self._obranch, self._orev) = (branch_now, tick_now)
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
                 time_listener(
