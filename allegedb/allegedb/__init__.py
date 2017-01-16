@@ -65,20 +65,11 @@ class ORM(object):
                 if branch != 'master':
                     self._parentbranch_rev[branch] = (parent, parent_rev)
                 self._childbranch[parent].add(branch)
-            if not hasattr(self, 'graph'):
-                self.graph = {}
             self._graph_val_cache = Cache(self)
             self._nodes_cache = NodesCache(self)
             self._edges_cache = EdgesCache(self)
             self._node_val_cache = Cache(self)
             self._edge_val_cache = Cache(self)
-            for (graph, typ) in self.query.graphs_types():
-                self.graph[graph] = {
-                    'Graph': Graph,
-                    'DiGraph': DiGraph,
-                    'MultiGraph': MultiGraph,
-                    'MultiDiGraph': MultiDiGraph
-                }[typ](self, graph)
             self._obranch = self.branch
             self._orev = self.rev
             self._active_branches_cache = []
@@ -119,6 +110,15 @@ class ORM(object):
                     self._edge_val_cache.store(*row)
                 if branch in self._childbranch:
                     branch2do.extend(self._childbranch[branch])
+            if not hasattr(self, 'graph'):
+                self.graph = {}
+            for (graph, typ) in self.query.graphs_types():
+                self.graph[graph] = {
+                    'Graph': Graph,
+                    'DiGraph': DiGraph,
+                    'MultiGraph': MultiGraph,
+                    'MultiDiGraph': MultiDiGraph
+                }[typ](self, graph)
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
