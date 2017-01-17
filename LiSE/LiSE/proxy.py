@@ -2033,7 +2033,7 @@ class EngineProxy(AbstractEngine):
         # TODO: multiple chars
         if cb and not char:
             raise TypeError("Callbacks require char name")
-        if not callable(cb):
+        if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
         if char:
             self.send(self.json_dump({
@@ -2054,7 +2054,7 @@ class EngineProxy(AbstractEngine):
                 command='time_travel',
                 branch=branch,
                 tick=tick,
-                chars=[char],
+                chars=[],
                 silent=True
             )
 
