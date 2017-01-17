@@ -70,7 +70,7 @@ class AbstractEngine(object):
     def __getattr__(self, att):
         if hasattr(super(), 'method') and att in self.method:
             return partial(self.method[att], self)
-        raise AttributeError
+        raise AttributeError('No attribute or stored method: {}'.format(att))
 
     @reify
     def _listify_dispatch(self):
