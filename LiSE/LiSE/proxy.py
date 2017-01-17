@@ -119,6 +119,11 @@ class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
         return self.engine.json_rewrap(v)
 
+    def __repr__(self):
+        return "{}({}) {}".format(
+            self.__class__.__name__, self._cache, self.name
+        )
+
 
 class NodeProxy(CachingEntityProxy):
     @property
