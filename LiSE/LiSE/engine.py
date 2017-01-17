@@ -600,7 +600,6 @@ class Engine(AbstractEngine, gORM):
             self._childbranch[parent].add(child)
             self.query.new_branch(child, parent, t)
         self._obranch = v
-        self.query.globl['branch'] = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
                 time_listener(b, t, v, t)
@@ -617,7 +616,6 @@ class Engine(AbstractEngine, gORM):
         (branch_then, tick_then) = self.time
         if v == self.tick:
             return
-        self._orev = v
         self.rev = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
