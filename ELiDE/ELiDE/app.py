@@ -267,13 +267,10 @@ class ELiDEApp(App):
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.mainscreen)
 
-        @self.engine.branch_listener
-        def pull_branch(inst, v):
-            self.branch = v
-
-        @self.engine.tick_listener
-        def pull_tick(inst, v):
-            self.tick = v
+        @self.engine.time_listener
+        def pull_time(inst, branch, tick):
+            self.branch = branch
+            self.tick = tick
 
         return self.manager
 

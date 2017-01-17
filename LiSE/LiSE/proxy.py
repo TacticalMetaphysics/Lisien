@@ -1680,14 +1680,7 @@ class EngineProxy(AbstractEngine):
 
     @branch.setter
     def branch(self, v):
-        self.handle(command='set_branch', branch=v, silent=True)
-        self._branch = v
-        for f in self._branch_listeners:
-            f(self, v)
-
-    def branch_listener(self, f):
-        if f not in self._branch_listeners:
-            self._branch_listeners.append(f)
+        self.time_travel(v, self.tick)
 
     @property
     def tick(self):
@@ -1695,14 +1688,7 @@ class EngineProxy(AbstractEngine):
 
     @tick.setter
     def tick(self, v):
-        self.handle('set_tick', tick=v, silent=True)
-        self._tick = v
-        for f in self._tick_listeners:
-            f(self, v)
-
-    def tick_listener(self, f):
-        if f not in self._tick_listeners:
-            self._tick_listeners.append(f)
+        self.time_travel(self.branch, v)
 
     @property
     def time(self):
@@ -1710,8 +1696,11 @@ class EngineProxy(AbstractEngine):
 
     @time.setter
     def time(self, v):
-        (branch, tick) = (self._branch, self._tick) = v
-        self.handle(command='set_time', branch=branch, tick=tick, silent=True)
+        self.time_travel(*v)
+
+    def time_listener(self, f):
+        if f not in self._time_listeners:
+            self._time_listeners.append(f)
 
     def __init__(
             self, handle_out, handle_in, logger,
@@ -1722,8 +1711,7 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
-        self._branch_listeners = []
-        self._tick_listeners = []
+        self._time_listeners = []
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -1901,10 +1889,8 @@ class EngineProxy(AbstractEngine):
                 )
             self._handle_lock.release()
             r = self.json_load(result)
-            if branching:
-                self._branch = r
-                for f in self._branch_listeners:
-                    f(self, r)
+            if branching and r != self._branch:
+                self.time_travel(r, self.tick)
             return r
         self._handle_lock.release()
 
@@ -1977,6 +1963,8 @@ class EngineProxy(AbstractEngine):
 
     def _inc_tick(self, *args):
         self._tick += 1
+        for f in self._time_listeners:
+            f(self, *self.time)
 
     def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
