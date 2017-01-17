@@ -311,6 +311,10 @@ class AbstractStatListView(RecycleView):
         if self.remote is None:
             return
         new = dict(self.remote)
+        if '_control' in new and new['_control'] != self.control:
+            self.control = new['_control']
+        if '_config' in new and new['_config'] != self.config:
+            self.config = new['_config']
         if self.mirror != new:
             self.mirror = new
 
@@ -328,20 +332,6 @@ class AbstractStatListView(RecycleView):
         }
 
     def upd_data(self, *args):
-        if (
-                '_control' in self.mirror and
-                self.control != self.mirror['_control']
-        ):
-            self.unbind(control=self._trigger_upd_data)
-            self.control = dict(self.mirror['_control'])
-            self.bind(control=self._trigger_upd_data)
-        if (
-                '_config' in self.mirror and
-                self.config != self.mirror['_config']
-        ):
-            self.unbind(config=self._trigger_upd_data)
-            self.config = dict(self.mirror['_config'])
-            self.bind(config=self._trigger_upd_data)
         self.data = [self.munge(k, v) for k, v in self.iter_data()]
     _trigger_upd_data = trigger(upd_data)
 
