@@ -336,8 +336,8 @@ class ORM(object):
         latest revision in the branch that matters.
 
         """
-        b = branch or self.branch
-        r = rev or self.rev
+        b = self.branch if branch is None else branch
+        r = self.rev if rev is None else rev
         if self.caching:
             yield b, r
             while b in self._parentbranch_rev:
