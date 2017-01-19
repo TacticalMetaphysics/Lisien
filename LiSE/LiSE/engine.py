@@ -279,8 +279,8 @@ class Engine(AbstractEngine, gORM):
         ``graph`` is the character the node is in.
 
         """
-        branch = branch or self.branch
-        tick = tick or self.tick
+        branch = self.branch if branch is None else branch
+        tick = self.tick if tick is None else tick
         self._avatarness_cache.store(
             character,
             graph,
