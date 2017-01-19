@@ -503,7 +503,7 @@ class Cache(object):
                     self.store(*entity+(key, b, r, v))
                     break
             else:
-                self.store(*entity+(key, branch, rev, None))
+                raise KeyError
         ret = self.shallower[args] = self.shallow[entity+(key,branch)][rev]
         return ret
 
