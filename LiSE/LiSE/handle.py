@@ -149,11 +149,12 @@ class EngineHandle(object):
 
     def time_travel(self, branch, tick, chars=[]):
         self._real.time = (branch, tick)
-        self.set_time(branch, tick)
         if chars:
             return self.get_chardiffs(chars)
+        else:
+            return {}
 
-    def increment_branch(self):
+    def increment_branch(self, chars=[]):
         branch = self._real.branch
         m = match('(.*)([0-9]+)', branch)
         if m:
@@ -161,8 +162,11 @@ class EngineHandle(object):
             branch = stem + str(n+1)
         else:
             branch += '1'
-        self.time_travel(branch, self.tick)
-        return branch
+        ret = {'branch': branch}
+        self._real.branch = branch
+        if chars:
+            ret.update(self.get_chardiffs(chars))
+        return ret
 
     def add_character(self, char, data, attr):
         character = self._real.new_character(char, **attr)
@@ -208,9 +212,6 @@ class EngineHandle(object):
 
     def get_watched_time(self):
         return (self.branch, self.tick)
-
-    def set_time(self, branch, tick):
-        self._real.time = (self.branch, self.tick) = (branch, tick)
 
     def get_language(self):
         return self._real.string.language
