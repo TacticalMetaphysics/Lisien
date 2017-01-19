@@ -636,18 +636,18 @@ class Engine(AbstractEngine, gORM):
         if branch_now != 'master':
             if branch_now in self._parentbranch_rev:
                 parrev = self._parentbranch_rev[branch_now][1]
-            else:
-                self._parentbranch_rev[branch_now] = (branch_then, tick_then)
-                parrev = tick_then
-            if tick_now < parrev:
-                raise ValueError(
-                    "Tried to jump to branch {br}, "
-                    "which starts at tick {t}. "
-                    "Go to tick {t} or later to use branch {br}.".format(
-                        br=branch_now,
-                        t=parrev
+                if tick_now < parrev:
+                    raise ValueError(
+                        "Tried to jump to branch {br}, "
+                        "which starts at tick {t}. "
+                        "Go to tick {t} or later to use branch {br}.".format(
+                            br=branch_now,
+                            t=parrev
+                        )
                     )
-                )
+            else:
+                self._parentbranch_rev[branch_now] = (branch_then, tick_now)
+                self.query.new_branch(branch_now, branch_then, tick_now)
         (self._obranch, self._orev) = (branch_now, tick_now)
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
