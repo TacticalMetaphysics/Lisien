@@ -3,7 +3,8 @@ from allegedb.cache import (
     Cache,
     PickyDefaultDict,
     StructuredDefaultDict,
-    FuturistWindowDict
+    FuturistWindowDict,
+    HistoryError
 )
 from .util import singleton_get
 
@@ -53,12 +54,12 @@ class AvatarnessCache(Cache):
         uniqgraph = self.uniqgraph[character][branch]
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
-        if not charavs.has_exact_rev(tick):
-            charavs[tick] = charavs[tick].copy()
-        if not graphavs.has_exact_rev(tick):
-            graphavs[tick] = graphavs[tick].copy()
-        if not graphs.has_exact_rev(tick):
-            graphs[tick] = graphs[tick].copy()
+        for avmap in (charavs, graphavs, graphs):
+            if not avmap.has_exact_rev(tick):
+                try:
+                    avmap[tick] = avmap[tick].copy()
+                except HistoryError:
+                    avmap[tick] = set()
         if is_avatar:
             if graphavs[tick]:
                 soloav[tick] = None
