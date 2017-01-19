@@ -415,8 +415,13 @@ class GraphNodeMapping(NeatMapping):
             self.db.rev,
             True
         )
-        n = self.db._node_objs[(self.graph.name, node)]
-        n.clear()
+        if (self.graph.name, node) in self.db._node_objs:
+            n = self.db._node_objs[(self.graph.name, node)]
+            n.clear()
+        else:
+            n = self.db._node_objs[(self.graph.name, node)] = Node(
+                self.graph, node
+            )
         n.update(dikt)
         if self.db.caching:
             self.db._nodes_cache.store(
