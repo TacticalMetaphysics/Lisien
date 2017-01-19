@@ -170,6 +170,8 @@ class ORM(object):
 
         """
         curbranch = self.branch
+        if curbranch == v:
+            return
         currev = self.rev
         if not self._havebranch(v):
             # assumes the present revision in the parent branch has
@@ -208,10 +210,11 @@ class ORM(object):
     @rev.setter
     def rev(self, v):
         """Set the global value ``rev``, first checking that it's not before
-        the start of this branch. If it is, also go to the parent
-        branch.
+        the start of this branch.
 
         """
+        if v == self.rev:
+            return
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
         if branch != 'master':
