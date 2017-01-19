@@ -708,8 +708,13 @@ class Engine(AbstractEngine, gORM):
         for chara in self.character.values():
             for nodeA in chara.portal:
                 for nodeB in chara.portal[nodeA]:
-                    rulebook = cache.retrieve(chara.name, nodeA, nodeB)
-                    for rule in cache.iter_unhandled_rules(
+                    try:
+                        rulebook = cache.retrieve(chara.name, nodeA, nodeB)
+                    except KeyError:
+                        rulebook = (chara.name, nodeA, nodeB)
+                    unhanditer = self._portal_rules_handled_cache.\
+                                 iter_unhandled_rules
+                    for rule in unhanditer(
                             chara.name, nodeA, nodeB, rulebook, *self.time
                     ):
                         yield (
