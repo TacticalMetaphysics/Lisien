@@ -1084,6 +1084,15 @@ class AllegedGraph(object):
     _succs = {}
     _statmaps = {}
 
+    def __init__(self, db, name, data=None, **attr):
+        self._name = name
+        self.db = db
+        if self.db.caching:
+            self.db.graph[name] = self
+        if data is not None:
+            convert_to_networkx_graph(data, create_using=self)
+        self.graph.update(attr)
+
     @property
     def graph(self):
         if self._name not in self._statmaps:
@@ -1192,13 +1201,6 @@ class Graph(AllegedGraph, networkx.Graph):
     """
     adj_cls = GraphSuccessorsMapping
 
-    def __init__(self, db, name, data=None, **attr):
-        self._name = name
-        self.db = db
-        if data is not None:
-            networkx.convert.to_networkx_graph(data, create_using=self)
-        self.graph.update(attr)
-
 
 class DiGraph(AllegedGraph, networkx.DiGraph):
     """A version of the networkx.DiGraph class that stores its state in a
@@ -1207,13 +1209,6 @@ class DiGraph(AllegedGraph, networkx.DiGraph):
     """
     adj_cls = DiGraphSuccessorsMapping
     pred_cls = DiGraphPredecessorsMapping
-
-    def __init__(self, db, name, data=None, **attr):
-        self._name = name
-        self.db = db
-        if data is not None:
-            convert_to_networkx_graph(data, create_using=self)
-        self.graph.update(attr)
 
     def remove_edge(self, u, v):
         """Version of remove_edge that's much like normal networkx but only
@@ -1304,13 +1299,6 @@ class MultiGraph(AllegedGraph, networkx.MultiGraph):
     """
     adj_cls = MultiGraphSuccessorsMapping
 
-    def __init__(self, db, name, data=None, **attr):
-        self.db = db
-        self._name = name
-        if data is not None:
-            networkx.convert.to_networkx_graph(data, create_using=self)
-        self.graph.update(attr)
-
 
 class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
     """A version of the networkx.MultiDiGraph class that stores its state in a
@@ -1319,13 +1307,6 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
     """
     adj_cls = MultiGraphSuccessorsMapping
     pred_cls = MultiDiGraphPredecessorsMapping
-
-    def __init__(self, db, name, data=None, **attr):
-        self.db = db
-        self._name = name
-        if data is not None:
-            networkx.convert.to_networkx_graph(data, create_using=self)
-        self.graph.update(attr)
 
     def remove_edge(self, u, v, key=None):
         """Version of remove_edge that's much like normal networkx but only

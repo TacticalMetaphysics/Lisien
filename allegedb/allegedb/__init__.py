@@ -273,10 +273,7 @@ class ORM(object):
 
         """
         self._init_graph(name, 'DiGraph')
-        dg = DiGraph(self, name, data, **attr)
-        if self.caching:
-            self.graph[name] = dg
-        return dg
+        return DiGraph(self, name, data, **attr)
 
     def new_multigraph(self, name, data=None, **attr):
         """Return a new instance of type MultiGraph, initialized with the given
