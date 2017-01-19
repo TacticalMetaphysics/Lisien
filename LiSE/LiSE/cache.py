@@ -265,8 +265,9 @@ class PortalRulesHandledCache(object):
             try:
                 unhandl = self.unhandled[
                     (character, nodeA, nodeB)][branch][tick] \
-                    = self.engine._active_rules_cache[
-                        rulebook][branch][tick].copy()
+                    = self.engine._active_rules_cache.retrieve(
+                        rulebook, branch, tick
+                    ).copy()
             except KeyError:
                 return
         yield from unhandl
@@ -320,6 +321,9 @@ class ActiveRulesCache(Cache):
         else:
             auh.discard(rule)
 
+    def retrieve(self, rulebook, branch, tick):
+        return self.active_sets[rulebook][branch][tick]
+
 
 class CharacterRulesHandledCache(object):
     def __init__(self, engine):
@@ -363,8 +367,9 @@ class CharacterRulesHandledCache(object):
             try:
                 unhandl \
                     = self.unhandled[character][ruletype][branch][tick] \
-                    = self.engine._active_rules_cache.active_sets[
-                        rulebook][branch][tick].copy()
+                    = self.engine._active_rules_cache.retrieve(
+                        rulebook, branch, tick
+                    ).copy()
             except KeyError:
                 return
         yield from unhandl
