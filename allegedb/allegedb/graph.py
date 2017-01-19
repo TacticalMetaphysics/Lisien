@@ -41,7 +41,7 @@ class NeatMapping(MutableMapping):
             del self[k]
 
     def __repr__(self):
-        return "{}(graph{}, data {})".format(
+        return "{}(graph={}, data={})".format(
             self.__class__.__name__, self.graph.name, repr(dict(self))
         )
 
