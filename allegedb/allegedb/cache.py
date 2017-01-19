@@ -11,6 +11,9 @@ from copy import copy as copier
 from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
+TESTING = True
+
+
 class HistoryError(KeyError):
     """You tried to access the past in a bad way."""
 
@@ -352,29 +355,70 @@ class Cache(object):
         self.shallow = PickyDefaultDict(FuturistWindowDict)
         self.shallower = {}
 
-    def _forward_branch(self, mapp, key, branch, rev, newval=None, copy=True):
-        if branch not in mapp[key]:
-            for b, t in self.db._active_branches():
-                if b in mapp[key] and (
-                        newval is None or
-                        mapp[key][b][t] != newval
-                ):
-                    mapp[key][branch][rev] \
-                        = copier(mapp[key][b][t]) if copy else mapp[key][b][t]
-            raise ValueError("No data to forward")
+    def _forward_valcache(self, cache, branch, rev, copy=True):
+        if branch in cache:
+            return cache[branch].get(rev, None)
+        for b, r in self.db._active_branches(branch, rev):
+            if b in cache:
+                cache[branch][r] = copier(cache[b][r]) if copy else cache[b].get(r, None)
+                return cache[branch].get(r, None)
 
     def _forward_keycache(self, parentity, branch, rev):
         keycache_key = parentity + (branch,)
         if keycache_key in self.keycache:
             return
         kc = FuturistWindowDict()
-        for (b, r) in self.db._active_branches():
+        for (b, r) in self.db._active_branches(branch, rev):
             other_branch_key = parentity + (b,)
             if other_branch_key in self.keycache and \
                r in self.keycache[other_branch_key]:
                 kc[rev] = self.keycache[other_branch_key][r].copy()
                 break
+        else:
+            kc[rev] = set()
         self.keycache[keycache_key] = kc
+        return kc[rev]
+
+    def _update_keycache(self, entpar, branch, rev, key, value):
+        if TESTING and key in ('_control', '_config'):
+            assert value is not None
+        try:
+            self._forward_keycache(entpar, branch, rev)
+        except ValueError:
+            kc = FuturistWindowDict()
+            kc[rev] = set() if value is None else set([key])
+            self.keycache[entpar+(branch,)] = kc
+            return
+        kc = self.keycache[entpar+(branch,)]
+        if rev in kc:
+            if not kc.has_exact_rev(rev):
+                kc[rev] = kc[rev].copy()
+            if value is None:
+                kc[rev].discard(key)
+            else:
+                kc[rev].add(key)
+        elif value is None:
+            kc[rev] = set()
+        else:
+            kc[rev] = set([key])
+
+    def _validate_keycache(self, cache, entpar, branch, rev):
+        if not TESTING:
+            return
+        kc = self.keycache[entpar+(branch,)][rev]
+        correct = set()
+        for key in cache:
+            try:
+                if cache[key][branch][rev] is not None:
+                    correct.add(key)
+            except HistoryError:
+                for (b, r) in self.db._active_branches(branch, rev):
+                    if b in cache[key] and r in cache[key][b]:
+                        correct.add(key)
+                        break
+        assert kc == correct, """
+        Invalid keycache for {} at branch {}, rev {}
+        """.format(entpar, branch, rev)
 
     def store(self, *args):
         """Put a value in various dictionaries for later .retrieve(...).
@@ -386,46 +430,44 @@ class Cache(object):
         that it's about.
 
         """
-        def upkc(entpar, branch, rev, key):
-            self._forward_keycache(entpar, branch, rev)
-            kc = self.keycache[entpar+(branch,)]
-            if rev in kc:
-                if not kc.has_exact_rev(rev):
-                    kc[rev] = kc[rev].copy()
-                if value is None:
-                    kc[rev].discard(key)
-                else:
-                    kc[rev].add(key)
-            elif value is None:
-                kc[rev] = set()
-            else:
-                kc[rev] = set([key])
-
         entity, key, branch, rev, value = args[-5:]
         parent = args[:-5]
         if parent:
-            try:
-                self._forward_branch(
-                    self.parents[parent][entity], key, branch, rev, value
+            if branch not in self.parents[parent][entity][key]:
+                self._forward_valcache(
+                    self.parents[parent][entity][key], branch, rev
                 )
-            except ValueError:
-                pass
             self.parents[parent][entity][key][branch][rev] = value
-        try:
-            self._forward_branch(
-                self.keys[parent+(entity,)], key, branch, rev, value
+        if branch not in self.keys[parent+(entity,)][key]:
+            self._forward_valcache(
+                self.keys[parent+(entity,)][key], branch, rev
             )
-        except ValueError:
-            pass
         self.keys[parent+(entity,)][key][branch][rev] = value
-        self.branches[parent+(entity,key)][branch][rev] = value
-        self.shallow[parent+(entity,key,branch)][rev] = value
-        self.shallower[parent+(entity,key,branch,rev)] = value
+        if branch not in self.branches[parent+(entity, key)]:
+            self._forward_valcache(
+                self.branches[parent+(entity, key)], branch, rev
+            )
+        self.branches[parent+(entity, key)][branch][rev] = value
+        self.shallow[parent+(entity, key, branch)][rev] = value
+        self.shallower[parent+(entity, key, branch, rev)] = value
+        upkc = self._update_keycache
         if parent:
-            upkc(parent+(entity,), branch, rev, key)
-            upkc(parent, branch, rev, entity)
+            upkc(parent+(entity,), branch, rev, key, value)
+            upkc(parent, branch, rev, entity, value)
+            self._validate_keycache(
+                self.parents[parent][entity],
+                parent+(entity,), branch, rev
+            )
+            self._validate_keycache(
+                self.keys[parent+(entity,)],
+                parent+(entity,), branch, rev
+            )
         else:
-            upkc((entity,), branch, rev, key)
+            upkc((entity,), branch, rev, key, value)
+            self._validate_keycache(
+                self.keys[(entity,)],
+                (entity,), branch, rev
+            )
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.

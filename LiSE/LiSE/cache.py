@@ -32,21 +32,20 @@ class AvatarnessCache(Cache):
         Cache.store(self, character, graph, node, branch, tick, is_avatar)
         self.user_order[graph][node][character][branch][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][tick] = is_avatar
-        self._forward_branch(self.charavs, character, branch, tick, is_avatar)
-        self._forward_branch(
-            self.graphavs, (character, graph), branch, tick, is_avatar
+        self._forward_valcache(self.charavs[character], branch, tick)
+        self._forward_valcache(
+            self.graphavs[(character, graph)], branch, tick
         )
-        self._forward_branch(self.graphs, character, branch, tick, is_avatar)
-        self._forward_branch(
-            self.soloav,
-            (character, graph),
-            branch, tick, is_avatar, copy=False
+        self._forward_valcache(self.graphs[character], branch, tick)
+        self._forward_valcache(
+            self.soloav[(character, graph)],
+            branch, tick, copy=False
         )
-        self._forward_branch(
-            self.uniqav, character, branch, tick, is_avatar, copy=False
+        self._forward_valcache(
+            self.uniqav[character], branch, tick, copy=False
         )
-        self._forward_branch(
-            self.uniqgraph, character, branch, tick, is_avatar, copy=False
+        self._forward_valcache(
+            self.uniqgraph[character], branch, tick, copy=False
         )
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
@@ -89,32 +88,29 @@ class AvatarnessCache(Cache):
                     uniqgraph[tick] = None
 
     def get_char_graph_avs(self, char, graph, branch, tick):
-        try:
-            self._forward_branch(self.graphavs, (char, graph), branch, tick)
-        except ValueError:
-            return set()
-        return self.graphavs[(char, graph)][branch][tick]
+        return self._forward_valcache(
+            self.graphavs[(char, graph)], branch, tick
+        ) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, tick):
-        self._forward_branch(
-            self.soloav, (char, graph), branch, tick, copy=False
+        return self._forward_valcache(
+            self.soloav[(char, graph)], branch, tick, copy=False
         )
-        return self.soloav[(char, graph)][branch][tick]
 
     def get_char_only_av(self, char, branch, tick):
-        self._forward_branch(self.uniqav, char, branch, tick, copy=False)
-        return self.uniqav[char][branch][tick]
+        return self._forward_valcache(
+            self.uniqav[char], branch, tick, copy=False
+        )
 
     def get_char_only_graph(self, char, branch, tick):
-        self._forward_branch(self.uniqgraph, char, branch, tick, copy=False)
-        return self.uniqgraph[char][branch][tick]
+        return self._forward_valcache(
+            self.uniqgraph[char], branch, tick, copy=False
+        )
 
     def get_char_graphs(self, char, branch, tick):
-        try:
-            self._forward_branch(self.graphs, char, branch, tick)
-        except ValueError:
-            return set()
-        return self.graphs[char][branch].get(tick, set())
+        return self._forward_valcache(
+            self.graphs[char], branch, tick
+        ) or set()
 
     def iter_node_users(self, graph, node, branch, tick):
         if graph not in self.user_order:
