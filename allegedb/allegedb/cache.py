@@ -499,8 +499,9 @@ class Cache(object):
                         and r in self.branches[entity+(key,)][b]
                 ):
                     v = self.branches[entity+(key,)][b][r]
-                    self.store(*entity+(key, branch, rev, v))
-                    self.store(*entity+(key, b, r, v))
+                    self.store(*entity+(key, branch, r, v))
+                    if rev > r:
+                        self.store(*entity+(key, branch, rev, v))
                     break
             else:
                 raise KeyError
