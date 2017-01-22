@@ -3,7 +3,7 @@ setup(
     name = "allegedb",
     version = "0.10.0",
     packages = ["allegedb"],
-    install_requires = ['networkx>=1.9'],
+    install_requires = ['networkx>=1.9', 'blinker'],
     author = "Zachary Spector",
     author_email = "zacharyspector@gmail.com",
     description = "An object-relational mapper serving database-backed versions of the standard networkx graph classes.",

@@ -2,6 +2,7 @@
 # Copyright (C) Zachary Spector.
 import networkx
 from networkx.exception import NetworkXError
+from blinker import Signal
 from collections import MutableMapping, defaultdict
 from operator import attrgetter
 from .xjson import (
@@ -61,6 +62,8 @@ class NeatMapping(MutableMapping):
 
 
 class AbstractEntityMapping(NeatMapping):
+    changed = Signal()
+
     def _iter_keys_db(self):
         """Return a list of keys from the database (not the cache)."""
         raise NotImplementedError
@@ -136,12 +139,14 @@ class AbstractEntityMapping(NeatMapping):
             except KeyError:
                 self._set_cache(key, value)
         self._set_db(key, value)
+        self.changed.send(self, key=key, value=value)
 
     def __delitem__(self, key):
         """Indicate that the key has no value at this time"""
         if self.db.caching:
             self._set_cache(key, None)
         self._del_db(key)
+        self.changed.send(self, key=key, value=None)
 
 
 class GraphMapping(AbstractEntityMapping):
@@ -367,6 +372,10 @@ class Edge(AbstractEntityMapping):
 
 class GraphNodeMapping(NeatMapping):
     """Mapping for nodes in a graph"""
+    created = Signal()
+    changed = Signal()
+    deleted = Signal()
+
     def __init__(self, graph):
         self.graph = graph
         self.db = graph.db
@@ -408,6 +417,7 @@ class GraphNodeMapping(NeatMapping):
         is made with them, perhaps clearing out the one already there.
 
         """
+        created = node not in self
         self.db.query.exist_node(
             self.graph.name,
             node,
@@ -431,6 +441,10 @@ class GraphNodeMapping(NeatMapping):
                 self.db.rev,
                 True
             )
+        if created:
+            self.created.send(self, node=n)
+        else:
+            self.changed.send(self, node=n)
 
     def __delitem__(self, node):
         """Indicate that the given node no longer exists"""
@@ -451,6 +465,7 @@ class GraphNodeMapping(NeatMapping):
                 self.db.rev,
                 False
             )
+        self.deleted.send(self, name=node)
 
     def __eq__(self, other):
         """Compare values cast into dicts.
@@ -518,6 +533,9 @@ class AbstractSuccessors(GraphEdgeMapping):
     graph = getatt('container.graph')
     db = getatt('container.graph.db')
     _metacache = defaultdict(dict)
+    created = Signal()
+    changed = Signal()
+    deleted = Signal()
 
     @property
     def _cache(self):
@@ -590,6 +608,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         value, a mapping.
 
         """
+        created = nodeB not in self
         self.db.query.exist_edge(
             self.graph.name,
             self.nodeA,
@@ -612,6 +631,10 @@ class AbstractSuccessors(GraphEdgeMapping):
         e = self[nodeB]
         e.clear()
         e.update(value)
+        if created:
+            self.created.send(self, edge=e)
+        else:
+            self.changed.send(self, edge=e)
 
     def __delitem__(self, nodeB):
         """Remove the edge between my nodeA and the given nodeB"""
@@ -634,6 +657,7 @@ class AbstractSuccessors(GraphEdgeMapping):
                 self.db.rev,
                 False
             )
+        self.deleted.send(self, from_node=self.nodeA, to_node=nodeB)
 
     def clear(self):
         """Delete every edge with origin at my nodeA"""
