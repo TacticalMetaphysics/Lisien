@@ -8,6 +8,7 @@ flow of time.
 from random import Random
 from functools import partial
 from json import dumps, loads, JSONEncoder
+from blinker import Signal
 from allegedb import ORM as gORM
 from .xcollections import (
     StringStore,
@@ -35,6 +36,99 @@ from .cache import (
     CharacterRulesHandledCache,
     ThingsCache
 )
+
+
+class TimeSignal(Signal):
+    def __init__(self, engine):
+        super().__init__()
+        self.engine = engine
+
+    def __iter__(self):
+        yield self.engine.branch
+        yield self.engine.tick
+
+    def __len__(self):
+        return 2
+
+    def __getitem__(self, i):
+        if i in ('branch', 0):
+            return self.engine.branch
+        if i in ('tick', 'rev', 1):
+            return self.engine.tick
+
+    def __setitem__(self, i, v):
+        if i in ('branch', 0):
+            self.engine.branch = v
+        if i in ('tick', 'rev', 1):
+            self.engine.tick = v
+
+
+class TimeSignalDescriptor(object):
+    signals = {}
+
+    def __get__(self, inst, cls):
+        if id(inst) not in self.signals:
+            self.signals[id(inst)] = TimeSignal(inst)
+        return self.signals[id(inst)]
+
+    def __set__(self, inst, val):
+        if id(inst) not in self.signals:
+            self.signals[id(inst)] = TimeSignal(inst)
+        real = self.signals[id(inst)]
+        (branch_then, tick_then) = real.engine.time
+        (branch_now, tick_now) = val
+        # make sure I'll end up within the revision range of the
+        # destination branch
+        if branch_now != 'master':
+            if branch_now in real.engine._parentbranch_rev:
+                parrev = real.engine._parentbranch_rev[branch_now][1]
+                if tick_now < parrev:
+                    raise ValueError(
+                        "Tried to jump to branch {br}, "
+                        "which starts at tick {t}. "
+                        "Go to tick {t} or later to use branch {br}.".format(
+                            br=branch_now,
+                            t=parrev
+                        )
+                    )
+            else:
+                real.engine._parentbranch_rev[branch_now] = (
+                    branch_then, tick_now
+                )
+                real.engine.query.new_branch(branch_now, branch_then, tick_now)
+        (real.engine._obranch, real.engine._otick) = val
+        real.send(real.engine, branch_then, tick_then, branch_now, tick_now)
+
+
+class NextTick(Signal):
+    """Make time move forward in the simulation.
+
+    Calls ``advance`` repeatedly, appending its results to a list until
+    the tick has ended.  Returns the list.
+
+    I am also a ``Signal``, so you can register functions to be
+    called when the simulation runs. Pass them to my ``connect``
+    method.
+
+    """
+    def __init__(self, engine):
+        super().__init__()
+        self.engine = engine
+
+    def __call__(self):
+        curtick = self.engine.tick
+        r = []
+        while self.engine.tick == curtick:
+            r.append(self.engine.advance())
+        # The last element is always None, but is not a sentinel; any
+        # rule may return None.
+        self.send(
+            self.engine,
+            branch=self.engine.branch,
+            tick=self.engine.tick,
+            result=r
+        )
+        return r[:-1]
 
 
 class DummyEntity(dict):
@@ -202,6 +296,7 @@ class Engine(AbstractEngine, gORM):
     thing_cls = Thing
     place_cls = node_cls = Place
     portal_cls = edge_cls = _make_edge = Portal
+    time = TimeSignalDescriptor()
 
     def _make_node(self, char, node):
         if self._is_thing(char, node):
@@ -322,6 +417,7 @@ class Engine(AbstractEngine, gORM):
         set up listeners; and start a transaction
 
         """
+        self.next_tick = NextTick(self)
         self._char_objs = {}
         self._node_objs = {}
         self._portal_objs = {}
@@ -337,8 +433,6 @@ class Engine(AbstractEngine, gORM):
         )
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
-        self._time_listeners = []
-        self._next_tick_listeners = []
         if logfun is None:
             from logging import getLogger
             logger = getLogger(__name__)
@@ -541,46 +635,6 @@ class Engine(AbstractEngine, gORM):
         """Close on exit."""
         self.close()
 
-    def time_listener(self, v):
-        """Call a function whenever my ``branch`` or ``tick`` changes.
-
-        The function will be called with the old branch and tick
-        followed by the new branch and tick.
-
-        """
-        if not callable(v):
-            raise TypeError("Need a function")
-        if v not in self._time_listeners:
-            self._time_listeners.append(v)
-        return v
-
-    def time_unlisten(self, v):
-        """Don't call this function when the time changes."""
-        if v in self._time_listeners:
-            self._time_listeners.remove(v)
-        return v
-
-    def next_tick_listener(self, v):
-        """Call a function when time passes.
-
-        It will only be called when the time changes as a result of
-        all the rules being processed for a tick. This is what it
-        means for time to 'pass', rather than for you to change the
-        time yourself.
-
-        """
-        if not callable(v):
-            raise TypeError("Need a function")
-        if v not in self._next_tick_listeners:
-            self._next_tick_listeners.append(v)
-        return v
-
-    def next_tick_unlisten(self, v):
-        """Don't call this function when time passes."""
-        if v in self._next_tick_listeners:
-            self._next_tick_listeners.remove(v)
-        return v
-
     @property
     def branch(self):
         if self._obranch is not None:
@@ -601,8 +655,7 @@ class Engine(AbstractEngine, gORM):
             self.query.new_branch(child, parent, t)
         self._obranch = v
         if not hasattr(self, 'locktime'):
-            for time_listener in self._time_listeners:
-                time_listener(b, t, v, t)
+            self.time.send(b, t, v, t)
 
     @property
     def tick(self):
@@ -618,42 +671,7 @@ class Engine(AbstractEngine, gORM):
             return
         self.rev = v
         if not hasattr(self, 'locktime'):
-            for time_listener in self._time_listeners:
-                time_listener(branch_then, tick_then, branch_then, v)
-
-    @property
-    def time(self):
-        """Return tuple of branch and tick"""
-        return (self._obranch, self._orev)
-
-    @time.setter
-    def time(self, v):
-        """Set my ``branch`` and ``tick``, and call listeners"""
-        (branch_then, tick_then) = self.time
-        (branch_now, tick_now) = v
-        # make sure I'll end up within the revision range of the
-        # destination branch
-        if branch_now != 'master':
-            if branch_now in self._parentbranch_rev:
-                parrev = self._parentbranch_rev[branch_now][1]
-                if tick_now < parrev:
-                    raise ValueError(
-                        "Tried to jump to branch {br}, "
-                        "which starts at tick {t}. "
-                        "Go to tick {t} or later to use branch {br}.".format(
-                            br=branch_now,
-                            t=parrev
-                        )
-                    )
-            else:
-                self._parentbranch_rev[branch_now] = (branch_then, tick_now)
-                self.query.new_branch(branch_now, branch_then, tick_now)
-        (self._obranch, self._orev) = (branch_now, tick_now)
-        if not hasattr(self, 'locktime'):
-            for time_listener in self._time_listeners:
-                time_listener(
-                    branch_then, tick_then, branch_now, tick_now
-                )
+            self.time.send(branch_then, tick_then, branch_then, v)
 
     def _rule_active(self, rulebook, rule):
         if hasattr(rulebook, 'name'):
@@ -886,23 +904,6 @@ class Engine(AbstractEngine, gORM):
                 self.commit()
             r = None
         return r
-
-    def next_tick(self):
-        """Make time move forward in the simulation.
-
-        Calls ``advance`` repeatedly, appending its results to a list until
-        the tick has ended.  Return the list.
-
-        """
-        curtick = self.tick
-        r = []
-        while self.tick == curtick:
-            r.append(self.advance())
-        # The last element is always None, but is not a sentinel; any
-        # rule may return None.
-        for listener in self._next_tick_listeners:
-            listener(self.branch, self.tick, r)
-        return r[:-1]
 
     def new_character(self, name, **kwargs):
         """Create and return a new :class:`Character`."""
