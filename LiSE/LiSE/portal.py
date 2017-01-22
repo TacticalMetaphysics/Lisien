@@ -7,7 +7,6 @@ from allegedb.graph import Edge
 from .exc import CacheError
 from .util import getatt
 from .query import StatusAlias
-from .bind import TimeDispatcher
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 
@@ -31,7 +30,7 @@ class RuleMapping(BaseRuleMapping):
                 yield rule
 
 
-class Portal(Edge, RuleFollower, TimeDispatcher):
+class Portal(Edge, RuleFollower):
     """Connection between two Places that Things may travel along.
 
     Portals are one-way, but you can make one appear two-way by

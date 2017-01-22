@@ -42,7 +42,6 @@ from allegedb.graph import (
 from allegedb.cache import FuturistWindowDict, PickyDefaultDict
 
 from .xcollections import CompositeDict
-from .bind import TimeDispatcher
 from .rule import RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
 from .node import Node
@@ -723,7 +722,7 @@ class CharacterSense(object):
         return r
 
 
-class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
+class CharacterSenseMapping(MutableMapping, RuleFollower):
 
     """Used to view other Characters as seen by one, via a particular sense."""
 
@@ -803,7 +802,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, TimeDispatcher):
         self[name] = fun
 
 
-class FacadePlace(MutableMapping, TimeDispatcher):
+class FacadePlace(MutableMapping):
 
     """Lightweight analogue of Place for Facade use."""
 
@@ -972,7 +971,7 @@ class FacadePortal(FacadePlace):
         return self.facade.node[self._real['destination']]
 
 
-class FacadeEntityMapping(MutableMapping, TimeDispatcher):
+class FacadeEntityMapping(MutableMapping):
 
     """Mapping that contains entities in a Facade.
 
@@ -1114,7 +1113,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def _get_inner_map(self):
             return self.facade.character.preportal
 
-    class StatMapping(MutableMapping, TimeDispatcher):
+    class StatMapping(MutableMapping):
         @property
         def _dispatch_cache(self):
             return self
@@ -1228,7 +1227,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     name, rulebook, d[rulebook]
                 )
 
-    class ThingMapping(MutableMapping, RuleFollower, TimeDispatcher):
+    class ThingMapping(MutableMapping, RuleFollower):
         """:class:`Thing` objects that are in a :class:`Character`"""
         _book = "character_thing"
 
@@ -1312,7 +1311,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __repr__(self):
             return repr(dict(self))
 
-    class PlaceMapping(MutableMapping, RuleFollower, TimeDispatcher):
+    class PlaceMapping(MutableMapping, RuleFollower):
         """:class:`Place` objects that are in a :class:`Character`"""
         _book = "character_place"
 
@@ -1421,9 +1420,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             else:
                 del self.character.place[k]
 
-    class PortalSuccessorsMapping(
-            GraphSuccessorsMapping, RuleFollower, TimeDispatcher
-    ):
+    class PortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
         """Mapping of nodes that have at least one outgoing edge.
 
         Maps them to another mapping, keyed by the destination nodes,
@@ -1457,7 +1454,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             super().__delitem__(nodeA)
             self.dispatch(nodeA, None)
 
-        class Successors(GraphSuccessorsMapping.Successors, TimeDispatcher):
+        class Successors(GraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
 
             engine = getatt('graph.engine')
@@ -1704,7 +1701,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     d[k] = dict(self[k])
                 return repr(d)
 
-    class StatMapping(MutableMapping, TimeDispatcher):
+    class StatMapping(MutableMapping):
         """Caching dict-alike for character stats"""
         engine = getatt('character.engine')
         _real = getatt('character.graph')

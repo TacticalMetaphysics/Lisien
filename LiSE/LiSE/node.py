@@ -14,7 +14,6 @@ import allegedb.graph
 
 from .util import getatt
 from .query import StatusAlias
-from .bind import TimeDispatcher
 from . import rule
 
 
@@ -92,7 +91,7 @@ class UserMapping(Mapping):
                 return getattr(me, attr)
 
 
-class Node(allegedb.graph.Node, rule.RuleFollower, TimeDispatcher):
+class Node(allegedb.graph.Node, rule.RuleFollower):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
 
