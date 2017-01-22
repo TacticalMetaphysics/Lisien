@@ -409,7 +409,9 @@ class Cache(object):
             try:
                 if cache[key][branch][rev] is not None:
                     correct.add(key)
-            except HistoryError:
+            except HistoryError as err:
+                if err.deleted:
+                    continue
                 for (b, r) in self.db._active_branches(branch, rev):
                     if b in cache[key] and r in cache[key][b]:
                         correct.add(key)
