@@ -17,6 +17,10 @@ TESTING = True
 class HistoryError(KeyError):
     """You tried to access the past in a bad way."""
 
+    def __init__(self, *args, deleted=False):
+        super().__init__(*args)
+        self.deleted = deleted
+
 
 def within_history(rev, windowdict):
     """Return whether the windowdict has history at the revision."""
@@ -165,7 +169,7 @@ class WindowDict(MutableMapping):
             )
         ret = self._past[-1][1]
         if ret is None:
-            raise HistoryError("Set, then deleted")
+            raise HistoryError("Set, then deleted", deleted=True)
         return ret
 
     def __setitem__(self, rev, v):
@@ -372,7 +376,10 @@ class Cache(object):
     def _forward_keycache(self, parentity, branch, rev):
         keycache_key = parentity + (branch,)
         if keycache_key in self.keycache:
-            return
+            kc = self.keycache[keycache_key]
+            if not kc.has_exact_rev(rev):
+                kc[rev] = kc[rev].copy()
+            return kc[rev]
         kc = FuturistWindowDict()
         for (b, r) in self.db._active_branches(branch, rev):
             other_branch_key = parentity + (b,)
@@ -386,38 +393,25 @@ class Cache(object):
         return kc[rev]
 
     def _update_keycache(self, entpar, branch, rev, key, value):
-        if TESTING and key in ('_control', '_config'):
-            assert value is not None
-        try:
-            self._forward_keycache(entpar, branch, rev)
-        except ValueError:
-            kc = FuturistWindowDict()
-            kc[rev] = set() if value is None else set([key])
-            self.keycache[entpar+(branch,)] = kc
-            return
-        kc = self.keycache[entpar+(branch,)]
-        if rev in kc:
-            if not kc.has_exact_rev(rev):
-                kc[rev] = kc[rev].copy()
-            if value is None:
-                kc[rev].discard(key)
-            else:
-                kc[rev].add(key)
-        elif value is None:
-            kc[rev] = set()
+        kc = self._forward_keycache(entpar, branch, rev)
+        if value is None:
+            kc.discard(key)
         else:
-            kc[rev] = set([key])
+            kc.add(key)
+        return kc
 
-    def _validate_keycache(self, cache, entpar, branch, rev):
+    def _validate_keycache(self, cache, keycache, branch, rev, entpar):
         if not TESTING:
             return
-        kc = self.keycache[entpar+(branch,)][rev]
+        kc = keycache
         correct = set()
         for key in cache:
             try:
                 if cache[key][branch][rev] is not None:
                     correct.add(key)
-            except HistoryError:
+            except HistoryError as err:
+                if err.deleted:
+                    continue
                 for (b, r) in self.db._active_branches(branch, rev):
                     if b in cache[key] and r in cache[key][b]:
                         correct.add(key)
@@ -458,21 +452,21 @@ class Cache(object):
         self.shallower[parent+(entity, key, branch, rev)] = value
         upkc = self._update_keycache
         if parent:
-            upkc(parent+(entity,), branch, rev, key, value)
-            upkc(parent, branch, rev, entity, value)
             self._validate_keycache(
                 self.parents[parent][entity],
-                parent+(entity,), branch, rev
+                upkc(parent+(entity,), branch, rev, key, value),
+                branch, rev, parent+(entity,)
             )
             self._validate_keycache(
                 self.keys[parent+(entity,)],
-                parent+(entity,), branch, rev
+                upkc(parent, branch, rev, entity, value),
+                branch, rev, parent+(entity,)
             )
         else:
-            upkc((entity,), branch, rev, key, value)
             self._validate_keycache(
                 self.keys[(entity,)],
-                (entity,), branch, rev
+                upkc((entity,), branch, rev, key, value),
+                branch, rev, (entity,)
             )
 
     def retrieve(self, *args):
