@@ -17,6 +17,10 @@ TESTING = True
 class HistoryError(KeyError):
     """You tried to access the past in a bad way."""
 
+    def __init__(self, *args, deleted=False):
+        super().__init__(*args)
+        self.deleted = deleted
+
 
 def within_history(rev, windowdict):
     """Return whether the windowdict has history at the revision."""
@@ -165,7 +169,7 @@ class WindowDict(MutableMapping):
             )
         ret = self._past[-1][1]
         if ret is None:
-            raise HistoryError("Set, then deleted")
+            raise HistoryError("Set, then deleted", deleted=True)
         return ret
 
     def __setitem__(self, rev, v):
