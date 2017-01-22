@@ -373,7 +373,6 @@ class Edge(AbstractEntityMapping):
 class GraphNodeMapping(NeatMapping):
     """Mapping for nodes in a graph"""
     created = Signal()
-    changed = Signal()
     deleted = Signal()
 
     def __init__(self, graph):
@@ -443,8 +442,6 @@ class GraphNodeMapping(NeatMapping):
             )
         if created:
             self.created.send(self, node=n)
-        else:
-            self.changed.send(self, node=n)
 
     def __delitem__(self, node):
         """Indicate that the given node no longer exists"""
@@ -534,7 +531,6 @@ class AbstractSuccessors(GraphEdgeMapping):
     db = getatt('container.graph.db')
     _metacache = defaultdict(dict)
     created = Signal()
-    changed = Signal()
     deleted = Signal()
 
     @property
@@ -633,8 +629,6 @@ class AbstractSuccessors(GraphEdgeMapping):
         e.update(value)
         if created:
             self.created.send(self, edge=e)
-        else:
-            self.changed.send(self, edge=e)
 
     def __delitem__(self, nodeB):
         """Remove the edge between my nodeA and the given nodeB"""
@@ -681,22 +675,27 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
             self._cache[nodeA] = self.Successors(self, nodeA)
         return self._cache[nodeA]
 
-    def __setitem__(self, nodeA, val):
+    def __setitem__(self, key, val):
         """Wipe out any edges presently emanating from nodeA and replace them
         with those described by val
 
         """
-        if nodeA in self:
-            sucs = self[nodeA]
+        if key in self:
+            sucs = self[key]
+            created = False
         else:
-            sucs = self._cache[nodeA] = self.Successors(self, nodeA)
+            sucs = self._cache[key] = self.Successors(self, key)
+            created = True
         sucs.clear()
         sucs.update(val)
+        if created:
+            self.created.send(self, key=key, val=val)
 
-    def __delitem__(self, nodeA):
+    def __delitem__(self, key):
         """Wipe out edges emanating from nodeA"""
-        self[nodeA].clear()
-        del self._cache[nodeA]
+        self[key].clear()
+        del self._cache[key]
+        self.deleted.send(self, key=key)
 
     def __iter__(self):
         return iter(self.graph.node)
@@ -704,8 +703,8 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
     def __len__(self):
         return len(self.graph.node)
 
-    def __contains__(self, nodeA):
-        return nodeA in self.graph.node
+    def __contains__(self, key):
+        return key in self.graph.node
 
 
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
@@ -741,15 +740,19 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             cache[nodeB] = self.Predecessors(self, nodeB)
         return cache[nodeB]
 
-    def __setitem__(self, nodeB, val):
+    def __setitem__(self, key, val):
         """Interpret ``val`` as a mapping of edges that end at ``nodeB``"""
-        preds = self._getpreds(nodeB)
+        created = key not in self
+        preds = self._getpreds(key)
         preds.clear()
         preds.update(val)
+        if created:
+            self.created.send(self, key=key, val=val)
 
-    def __delitem__(self, nodeB):
+    def __delitem__(self, key):
         """Delete all edges ending at ``nodeB``"""
-        self._getpreds(nodeB).clear()
+        self._getpreds(key).clear()
+        self.deleted.send(self, key=key)
 
     def __iter__(self):
         return iter(self.graph.node)
@@ -856,6 +859,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             try:
                 e = self[nodeA]
                 e.clear()
+                created = False
             except KeyError:
                 self.db.query.exist_edge(
                     self.graph.name,
@@ -867,6 +871,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     True
                 )
                 e = self._make_edge(nodeA)
+                created = True
             e.update(value)
             if self.db.caching:
                 self.db._edges_cache.store(
@@ -878,6 +883,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     self.db.rev,
                     True
                 )
+            if created:
+                self.created.send(self, key=nodeA, val=value)
 
         def __delitem__(self, nodeA):
             """Unset the existence of the edge from the given node to mine"""
@@ -902,6 +909,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                             self.db.rev,
                             False
                         )
+                    self.deleted.send(self, key=nodeA)
                     return
             self.db.query.exist_edge(
                 self.graph.name,
@@ -922,6 +930,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     self.db.rev,
                     False
                 )
+            self.deleted.send(self, key=nodeA)
 
 
 class MultiEdges(GraphEdgeMapping):
@@ -989,6 +998,7 @@ class MultiEdges(GraphEdgeMapping):
         Edge first, if necessary.
 
         """
+        created = idx not in self
         self.db.query.exist_edge(
             self.graph.name,
             self.nodeA,
@@ -1006,6 +1016,8 @@ class MultiEdges(GraphEdgeMapping):
                 self.graph.name, self.nodeA, self.nodeB, idx,
                 self.db.branch, self.db.rev, True
             )
+        if created:
+            self.created.send(self, key=idx, val=val)
 
     def __delitem__(self, idx):
         """Delete the edge at a particular index"""
@@ -1019,6 +1031,7 @@ class MultiEdges(GraphEdgeMapping):
                 self.graph.name, self.nodeA, self.nodeB, idx,
                 self.db.branch, self.db.rev
             )
+        self.deleted.send(self, key=idx)
 
     def clear(self):
         """Delete all edges between these nodes"""
@@ -1044,15 +1057,19 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
         proper Successors object for storage
 
         """
+        created = nodeA in self
         r = self._getsucc(nodeA)
         r.clear()
         r.update(val)
+        if created:
+            self.created.send(self, key=nodeA, val=val)
 
     def __delitem__(self, nodeA):
         """Disconnect this node from everything"""
         succs = self._getsucc(nodeA)
         succs.clear()
         del self._cache[nodeA]
+        self.deleted.send(self, key=nodeA)
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""
@@ -1082,12 +1099,16 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
             between my ``nodeA`` and the given ``nodeB``
 
             """
+            created = nodeB not in self
             self[nodeB].update(val)
+            if created:
+                self.created.send(self, key=nodeB, val=val)
 
         def __delitem__(self, nodeB):
             """Delete all edges between my ``nodeA`` and the given ``nodeB``"""
             self[nodeB].clear()
             del self._multedge[nodeB]
+            self.deleted.send(self, key=nodeB)
 
 
 class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
@@ -1099,10 +1120,14 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
             return MultiEdges(self.graph, nodeA, self.nodeB)
 
         def __setitem__(self, nodeA, val):
+            created = nodeA not in self
             self[nodeA].update(val)
+            if created:
+                self.created.send(self, key=nodeA, val=val)
 
         def __delitem__(self, nodeA):
             self[nodeA].clear()
+            self.deleted.send(self, key=nodeA)
 
 
 class AllegedGraph(object):
