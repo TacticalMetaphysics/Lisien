@@ -2,7 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping, defaultdict
-from .bind import dispatch, listen, listener, unlisten, unlistener
+from blinker import Signal
 
 
 class NotThatMap(Mapping):
@@ -34,17 +34,25 @@ class NotThatMap(Mapping):
         return self.inner[key]
 
 
-class StringStore(MutableMapping):
+class Language(Signal):
+    def __get__(self, inst, cls):
+        return inst._language
+
+    def __set__(self, inst, val):
+        inst._language = val
+        inst.cache = {}
+
+
+class StringStore(MutableMapping, Signal):
     """Store strings in database, and format them with one another upon retrieval.
 
     In any one string, putting the key of another string in curly
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = [
-        'query', 'table', '_language', '_lang_listeners', 'cache',
-        '_str_listeners'
-    ]
+    __slots__ = ['query', 'table', 'cache']
+
+    language = Language()
 
     def __init__(self, query, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
@@ -55,64 +63,10 @@ class StringStore(MutableMapping):
         self.query.init_string_table(table)
         self.table = table
         self._language = lang
-        self._lang_listeners = []
         self.cache = {}
-        self._str_listeners = defaultdict(list)
-
-    def _dispatch_lang(self, v):
-        """When the language changes, call everything that's listening to
-        it.
-
-        """
-        for f in self._lang_listeners:
-            f(self, v)
-
-    def lang_listener(self, fun):
-        """Arrange to call the function when the language changes."""
-        listen(self._lang_listeners, fun)
-        return fun
-
-    def lang_unlisten(self, fun):
-        unlisten(self._lang_listeners, fun)
-        return fun
-
-    def _dispatch_str(self, k, v):
-        """When some string ``k`` is set to ``v``, notify any listeners of the
-        fact.
-
-        That means listeners to ``k`` in particular, and to strings
-        generally.
-
-        """
-        dispatch(self._str_listeners, k, self, k, v)
-
-    def listener(self, fun=None, string=None):
-        """Arrange to call the function when a string is set.
-
-        With optional argument ``string``, only that particular string
-        will trigger the listener. Without ``string``, every string
-        will.
-
-        """
-        return listener(self._str_listeners, fun, string)
-
-    def unlisten(self, fun=None, string=None):
-        return unlistener(self._str_listeners, fun, string)
 
     def commit(self):
         self.query.commit()
-
-    @property
-    def language(self):
-        """Get the current language."""
-        return self._language
-
-    @language.setter
-    def language(self, v):
-        """Invalidate the cache upon changing the language."""
-        self._language = v
-        self._dispatch_lang(v)
-        self.cache = {}
 
     def __iter__(self):
         """First cache, then iterate over all string IDs for the current
@@ -144,7 +98,7 @@ class StringStore(MutableMapping):
         """Set the value of a string for the current language."""
         self.cache[k] = v
         self.query.string_table_set(self.table, self.language, k, v)
-        self._dispatch_str(k, v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Delete the string from the current language, and remove it from the
@@ -153,7 +107,7 @@ class StringStore(MutableMapping):
         """
         del self.cache[k]
         self.query.string_table_del(self.table, self.language, k)
-        self._dispatch_str(k, None)
+        self.send(self, key=k, val=None)
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
@@ -182,9 +136,9 @@ class StoredPartial(object):
         return self.store[self._funcname](*args, **self.kwargs)
 
 
-class FunctionStore(MutableMapping):
+class FunctionStore(MutableMapping, Signal):
     """Store functions in a SQL database"""
-    __slots__ = ['engine', 'query', '_tab', '_listeners', 'cache']
+    __slots__ = ['engine', 'query', '_tab', 'cache']
 
     def __init__(self, engine, query, table):
         """Use ``codedb`` as a connection object. Connect to it, and
@@ -195,27 +149,8 @@ class FunctionStore(MutableMapping):
         self.query = query
         self.query.init_table(table)
         self._tab = table
-        self._listeners = defaultdict(list)
         self.cache = {}
         self.engine.query.init_func_table(table)
-
-    def _dispatch(self, name, fun):
-        """Call listeners to functions generally and to the named function in
-        particular when it's set to a new callable.
-
-        """
-        dispatch(self._listeners, name, self, name, fun)
-
-    def listener(self, f=None, name=None):
-        """Arrange to call a listener function when a stored function changes.
-
-        With optional argument ``name``, the listener will only be
-        called when the named function changes. Otherwise it will be
-        called when any stored function changes, including when it's
-        set the first time.
-
-        """
-        return listener(self._listeners, f, name)
 
     def __len__(self):
         """Return count of all functions here."""
@@ -265,14 +200,14 @@ class FunctionStore(MutableMapping):
             )
         self.query.func_table_set(self._tab, fun.__name__, fun)
         self.cache[fun.__name__] = fun
-        self._dispatch(fun.__name__, fun)
+        self.send(self, key=fun.__name__, val=fun)
         return fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
         self.query.func_table_set(self._tab, name, fun)
         self.cache[name] = fun
-        self._dispatch(name, fun)
+        self.send(self, key=name, val=fun)
 
     def __delitem__(self, name):
         """Delete the named function from both the cache and the database.
@@ -283,7 +218,7 @@ class FunctionStore(MutableMapping):
         """
         self.query.func_table_del(self._tab, name)
         del self.cache[name]
-        self._dispatch(name, None)
+        self.send(self, key=name, val=None)
 
     def plain(self, k):
         """Return the plain source code of the function."""
@@ -317,34 +252,17 @@ class FunctionStore(MutableMapping):
         return part
 
 
-class UniversalMapping(MutableMapping):
+class UniversalMapping(MutableMapping, Signal):
     """Mapping for variables that are global but which I keep history for"""
-    __slots__ = ['engine', '_listeners']
+    __slots__ = ['engine']
 
     def __init__(self, engine):
         """Store the engine and initialize my private dictionary of
         listeners.
 
         """
+        super().__init__()
         self.engine = engine
-        self._listeners = defaultdict(list)
-
-    def _dispatch(self, k, v):
-        """Call everyone listening to this key, and everyone who listens to
-        all keys.
-
-        """
-        (b, t) = self.engine.time
-        dispatch(self._listeners, k, b, t, self, k, v)
-
-    def listener(self, fun=None, key=None):
-        """Arrange to call this function when a key is set to a new value.
-
-        With optional argument ``key``, only call when that particular
-        key changes.
-
-        """
-        return listener(self._listeners, fun, key)
 
     def __iter__(self):
         return self.engine._universal_cache.iter_keys(*self.engine.time)
@@ -361,17 +279,17 @@ class UniversalMapping(MutableMapping):
         (branch, tick) = self.engine.time
         self.engine.query.universal_set(k, branch, tick, v)
         self.engine._universal_cache.store(k, branch, tick, v)
-        self._dispatch(k, v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
         branch, tick = self.engine.time
         self.engine.query.universal_del(k, branch, tick)
         self.engine._universal_cache.store(k, branch, tick, None)
-        self._dispatch(k, None)
+        self.send(self, key=k, val=None)
 
 
-class CharacterMapping(MutableMapping):
+class CharacterMapping(MutableMapping, Signal):
     """A mapping by which to access :class:`Character` objects.
 
     If a character already exists, you can always get its name here to
@@ -381,29 +299,11 @@ class CharacterMapping(MutableMapping):
     anything useful anymore.
 
     """
-    __slots__ = ['engine', '_listeners', '_cache']
+    __slots__ = ['engine', '_cache']
 
     def __init__(self, engine):
         """Store the engine, initialize caches"""
         self.engine = engine
-        self._listeners = defaultdict(list)
-
-    def _dispatch(self, k, v):
-        """Call anyone listening for a character named ``k``, and anyone
-        listening to all characters
-
-        """
-        dispatch(self._listeners, k, self, k, v)
-
-    def listener(self, f=None, char=None):
-        """Arrange to call the function when a character is created or
-        destroyed.
-
-        With optional argument ``char``, only call when a character by
-        that name is created or destroyed.
-
-        """
-        return listener(self._listeners, f, char)
 
     def __iter__(self):
         """Iterate over every character name."""
@@ -443,14 +343,14 @@ class CharacterMapping(MutableMapping):
             self.engine._char_objs[name] = value
             return
         self.engine._char_objs[name] = Character(self.engine, name, data=value)
-        self._dispatch(name, self.engine._char_objs[name])
+        self.send(self, key=name, val=self.engine._char_objs[name])
 
     def __delitem__(self, name):
         """Delete the named character from both the cache and the database."""
         if name in self.engine._char_objs:
             del self.engine._char_objs[name]
         self.engine.query.del_character(name)
-        self._dispatch(name, None)
+        self.send(self, key=name, val=None)
 
 
 class CompositeDict(Mapping):
