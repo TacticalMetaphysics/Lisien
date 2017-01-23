@@ -31,6 +31,7 @@ from collections import (
 )
 from operator import ge, gt, le, lt, eq
 from math import floor
+from blinker import Signal
 
 import networkx as nx
 from allegedb.graph import (
@@ -1701,13 +1702,14 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     d[k] = dict(self[k])
                 return repr(d)
 
-    class StatMapping(MutableMapping):
+    class StatMapping(MutableMapping, Signal):
         """Caching dict-alike for character stats"""
         engine = getatt('character.engine')
         _real = getatt('character.graph')
 
         def __init__(self, char):
             """Store character."""
+            super().__init__()
             self.character = char
 
         def __iter__(self):
@@ -1727,11 +1729,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __setitem__(self, k, v):
             assert(v is not None)
             self._real[k] = v
-            self.dispatch(k, v)
+            self.send(self, key=k, val=v)
 
         def __delitem__(self, k):
             del self._real[k]
-            self.dispatch(k, None)
+            self.send(self, key=k, val=None)
 
     def facade(self):
         return Facade(self)
