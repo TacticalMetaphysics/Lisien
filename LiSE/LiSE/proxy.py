@@ -1993,7 +1993,7 @@ class EngineProxy(AbstractEngine):
     def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
         self._tick = kwargs['tick']
-        self.time.send(*self.time)
+        self.time.send(self, branch=self._branch, tick=self._tick)
 
     def _pull_async(self, chars, cb):
         if not callable(cb):
