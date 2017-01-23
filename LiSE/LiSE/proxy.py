@@ -46,12 +46,11 @@ class RulebookDescriptor(object):
         self.signal.send(inst, rulebook=rb)
 
 
-class CachingProxy(MutableMapping):
-    changed = Signal()
-    deleted = Signal()
+class CachingProxy(MutableMapping, Signal):
     rulebook = RulebookDescriptor()
 
     def __init__(self, engine_proxy):
+        super().__init__()
         self.engine = engine_proxy
         self.exists = True
 
@@ -75,14 +74,14 @@ class CachingProxy(MutableMapping):
     def __setitem__(self, k, v):
         self._set_item(k, v)
         self._cache[k] = self._cache_munge(k, v)
-        self.changed.send(self, key=k, val=v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
         self._del_item(k)
         del self._cache[k]
-        self.changed.send(self, key=k, val=None)
+        self.send(self, key=k, val=None)
 
     def _apply_diff(self, diff):
         for (k, v) in diff.items():
@@ -99,7 +98,7 @@ class CachingProxy(MutableMapping):
         self.exists = diff is not None
         if not self.exists:
             self._cache = {}
-            self.deleted.send(self)
+            self.send(self)
             return
         self._apply_diff(diff)
 
