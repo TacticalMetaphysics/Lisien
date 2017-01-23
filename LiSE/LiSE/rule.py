@@ -23,30 +23,18 @@ from collections import (
     defaultdict
 )
 from functools import partial
+from blinker import Signal
 
 from .util import reify
 
-from .bind import (
-    dispatch,
-    listener,
-    unlistener,
-    listen
-)
 
-
-class RuleFuncList(MutableSequence):
-    __slots__ = ['rule', '_listeners', '_cache']
+class RuleFuncList(MutableSequence, Signal):
+    __slots__ = ['rule', '_cache']
 
     def __init__(self, rule):
+        super().__init__()
         self.rule = rule
-        self._listeners = []
         self._cache = list(self._loader(self.rule.name))
-
-    def listener(self, f):
-        return listener(self._listeners, f)
-
-    def unlisten(self, f):
-        return unlistener(self._listeners, f)
 
     def _nominate(self, v):
         if callable(v):
@@ -390,7 +378,7 @@ class Rule(object):
         return r
 
 
-class RuleBook(MutableSequence):
+class RuleBook(MutableSequence, Signal):
     """A list of rules to be followed for some Character, or a part of it
     anyway.
 
@@ -420,9 +408,6 @@ class RuleBook(MutableSequence):
     def __getitem__(self, i):
         return self.engine.rule[self._cache[i]]
 
-    def _dispatch(self):
-        self.engine.rulebook.dispatch(self)
-
     def _activate_rule(self, rule, active=True):
         self.engine._set_rule_activeness(
             self.name,
@@ -446,14 +431,16 @@ class RuleBook(MutableSequence):
             cache.append(None)
         cache[i] = rule
         self._activate_rule(rule)
-        self._dispatch()
+        self.engine.rulebook.send(self, i=i, v=v)
+        self.send(self, i=i, v=v)
 
     def insert(self, i, v):
         rule = self._coerce_rule(v)
         self._cache.insert(i, rule)
         self.query.rulebook_ins(self.name, i, rule.name)
         self._activate_rule(rule)
-        self._dispatch()
+        self.engine.rulebook.send(self, i=i, v=v)
+        self.send(self, i=i, v=v)
 
     def index(self, v):
         if isinstance(v, str):
@@ -473,13 +460,11 @@ class RuleBook(MutableSequence):
     def __delitem__(self, i):
         del self._cache[i]
         self.query.rulebook_del(self.name, i)
-        self._dispatch()
-
-    def listener(self, fun):
-        self.engine.rulebook.listener(rulebook=self.name)(fun)
+        self.engine.rulebook.send(self, i=i, v=None)
+        self.send(self, i=i, v=None)
 
 
-class RuleMapping(MutableMapping):
+class RuleMapping(MutableMapping, Signal):
     """Wraps a :class:`RuleBook` so you can get its rules by name.
 
     You can access the rules in this either dictionary-style or as
@@ -509,21 +494,14 @@ class RuleMapping(MutableMapping):
             self.rulebook = rulebook
         else:
             self.rulebook = self.engine.rulebook[rulebook]
-        self._listeners = defaultdict(list)
         self._rule_cache = {}
-
-    def listener(self, f=None, rule=None):
-        return listener(self._listeners, f, rule)
-
-    def _dispatch(self, rule, active):
-        dispatch(self._listeners, rule.name, self, rule, active)
 
     def _activate_rule(self, rule, active=True):
         if rule in self.rulebook:
             self.rulebook._activate_rule(rule, active)
         else:
             self.rulebook.append(rule)
-        self._dispatch(rule, active)
+        self.send(self, rule=rule, active=active)
 
     def __repr__(self):
         return 'RuleMapping({})'.format([k for k in self])
@@ -606,11 +584,10 @@ class RuleMapping(MutableMapping):
     def __delitem__(self, k):
         i = self.rulebook.index(k)
         del self.rulebook[i]
-        self._dispatch(k, None)
+        self.send(self, key=k, val=None)
 
 
 rule_mappings = {}
-rulebook_listeners = defaultdict(list)
 rulebooks = {}
 
 
@@ -625,10 +602,8 @@ class RuleFollower(object):
             rule_mappings[id(self)] = self._get_rule_mapping()
         return rule_mappings[id(self)]
 
-    @property
-    def _rulebook_listeners(self):
-        return rulebook_listeners[id(self)]
-
+    # keeping _rulebooks out of the instance lets subclasses
+    # use __slots__ without having _rulebooks in the slots
     @property
     def _rulebooks(self):
         return rulebooks[id(self)]
@@ -653,7 +628,6 @@ class RuleFollower(object):
     def rulebook(self, v):
         n = v.name if isinstance(v, RuleBook) else v
         self._set_rulebook_name(n)
-        self._dispatch_rulebook(v)
         self._upd_rulebook()
 
     def _upd_rulebook(self):
@@ -678,9 +652,6 @@ class RuleFollower(object):
             rule.active = active
             yield rule
 
-    def rulebook_listener(self, f):
-        listen(self._rulebook_listeners, f)
-
     def _rule_names_activeness(self):
         """Iterate over pairs of rule names and their activeness for each rule
         in my rulebook.
@@ -704,14 +675,14 @@ class RuleFollower(object):
         raise NotImplementedError
 
 
-class AllRuleBooks(Mapping):
-    __slots__ = ['engine', 'query', '_cache', '_listeners']
+class AllRuleBooks(Mapping, Signal):
+    __slots__ = ['engine', 'query', '_cache']
 
     def __init__(self, engine, query):
+        super().__init__()
         self.engine = engine
         self.query = query
         self.query.init_table('rulebooks')
-        self._listeners = defaultdict(list)
         self._cache = {}
 
     def __iter__(self):
@@ -728,33 +699,19 @@ class AllRuleBooks(Mapping):
             self._cache[k] = RuleBook(self.engine, k)
         return self._cache[k]
 
-    def listener(self, f=None, rulebook=None):
-        return listener(self._listeners, f, rulebook)
-
-    def dispatch(self, rulebook):
-        for fun in self._listeners[rulebook.name]:
-            fun(rulebook)
-
 
 # TODO: fix null rulebooks
 #
 # It appears that when you create a rule here it gets assigned
 # to a null rulebook in the database. That's not very useful and might
 # cause bad effects later on.
-class AllRules(MutableMapping):
+class AllRules(MutableMapping, Signal):
     def __init__(self, engine, query):
         self.engine = engine
         self.query = query
         self.query.init_table('rules')
         self.query.init_table('rulebooks')
         self._cache = {}
-        self._listeners = defaultdict(list)
-
-    def listener(self, f=None, rule=None):
-        return listener(self._listeners, f, rule)
-
-    def dispatch(self, rule, active):
-        dispatch(self._listeners, rule.name, active, self, rule, active)
 
     def __iter__(self):
         yield from self.query.allrules()
@@ -794,14 +751,14 @@ class AllRules(MutableMapping):
             raise TypeError(
                 "Don't know how to store {} as a rule.".format(type(v))
             )
-        self.dispatch(new, True)
+        self.send(self, key=new, rule=v, active=True)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such rule")
         old = self[k]
         self.engine._rulebook_del_rule(self.name, self.index(k))
-        self.dispatch(old, False)
+        self.send(self, key=k, rule=old, active=False)
 
     def __call__(self, v=None, name=None):
         if v is None and name is not None:
@@ -818,5 +775,5 @@ class AllRules(MutableMapping):
             raise KeyError("Already have rule {}".format(name))
         new = Rule(self.engine, name)
         self._cache[name] = new
-        self.dispatch(new, True)
+        self.send(self, rule=new, active=True)
         return new
