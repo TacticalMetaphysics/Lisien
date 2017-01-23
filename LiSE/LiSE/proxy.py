@@ -13,6 +13,7 @@ from collections import (
 from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
+from blinker import Signal
 
 from .engine import AbstractEngine
 from .character import Facade
@@ -22,23 +23,35 @@ from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 
-class CachingProxy(MutableMapping):
-    @property
-    def rulebook(self):
-        if not hasattr(self, '_rulebook'):
-            self._rulebook = self._get_rulebook()
-        return self._rulebook
+class RulebookDescriptor(object):
+    rulebooks = {}
+    signal = Signal()
 
-    @rulebook.setter
-    def rulebook(self, v):
-        rb = v.name if hasattr(v, 'name') else v
-        self._rulebook = v if isinstance(v, RuleBookProxy) \
-                         else RuleBookProxy(self.engine, rb)
-        self._set_rulebook(rb)
-        self.dispatch('rulebook', rb)
+    def __get__(self, inst, cls):
+        if id(inst) not in self.rulebooks:
+            self.rulebooks[id(inst)] = inst._get_rulebook()
+        proxy = self.rulebooks[id(inst)]
+        if not hasattr(proxy, 'send'):
+            proxy.send = self.signal.send
+        if not hasattr(proxy, 'connect'):
+            proxy.connect = self.signal.connect
+        return proxy
+
+    def __set__(self, inst, val):
+        rb = val.name if hasattr(val, 'name') else val
+        self.rulebooks[id(inst)] \
+            = val if isinstance(val, RuleBookProxy) \
+            else RuleBookProxy(inst.engine, rb)
+        inst._set_rulebook(rb)
+        self.signal.send(inst, rulebook=rb)
+
+
+class CachingProxy(MutableMapping):
+    changed = Signal()
+    deleted = Signal()
+    rulebook = RulebookDescriptor()
 
     def __init__(self, engine_proxy):
-        self._listeners = []
         self.engine = engine_proxy
         self.exists = True
 
@@ -62,31 +75,31 @@ class CachingProxy(MutableMapping):
     def __setitem__(self, k, v):
         self._set_item(k, v)
         self._cache[k] = self._cache_munge(k, v)
-        self.dispatch('setitem', k, v)
+        self.changed.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
         self._del_item(k)
         del self._cache[k]
-        self.dispatch('delitem', k)
+        self.changed.send(self, key=k, val=None)
 
     def _apply_diff(self, diff):
         for (k, v) in diff.items():
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
-                    self.dispatch('delitem', k)
+                    self.changed.send(self, key=k, val=None)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
-                self.dispatch('setitem', k, v)
+                self.changed.send(self, key=k, val=v)
 
     def update_cache(self):
         diff = self._get_diff()
         self.exists = diff is not None
         if not self.exists:
             self._cache = {}
-            self.dispatch('deleted')
+            self.deleted.send(self)
             return
         self._apply_diff(diff)
 
@@ -101,18 +114,6 @@ class CachingProxy(MutableMapping):
 
     def _del_item(self, k):
         raise NotImplementedError("Abstract method")
-
-    def listener(self, fun):
-        if fun not in self._listeners:
-            self._listeners.append(fun)
-
-    def unlisten(self, fun):
-        if fun in self._listeners:
-            self._listeners.remove(fun)
-
-    def dispatch(self, *args, **kwargs):
-        for fun in self._listeners:
-            fun(self, *args, **kwargs)
 
 
 class CachingEntityProxy(CachingProxy):
@@ -1668,11 +1669,49 @@ class PortalObjCache(object):
         del self.predecessors[char][v][u]
 
 
+class TimeSignal(Signal):
+    def __init__(self, engine):
+        super().__init__()
+        self.engine = engine
+
+    def __iter__(self):
+        yield self.engine.branch
+        yield self.engine.tick
+
+    def __len__(self):
+        return 2
+
+    def __getitem__(self, i):
+        if i in ('branch', 0):
+            return self.engine.branch
+        if i in ('tick', 1):
+            return self.engine.tick
+
+    def __setitem__(self, i, v):
+        if i in ('branch', 0):
+            self.engine.time_travel(v, self.engine.tick)
+        if i in ('tick', 1):
+            self.engine.time_travel(self.engine.branch, v)
+
+
+class TimeDescriptor(object):
+    times = {}
+
+    def __get__(self, inst, cls):
+        if id(inst) not in self.times:
+            self.times[id(inst)] = TimeSignal(inst)
+        return self.times[id(inst)]
+
+    def __set__(self, inst, val):
+        inst.time_travel(*val)
+
+
 class EngineProxy(AbstractEngine):
     char_cls = CharacterProxy
     thing_cls = ThingProxy
     place_cls = PlaceProxy
     portal_cls = PortalProxy
+    time = TimeDescriptor()
 
     @property
     def branch(self):
@@ -1690,18 +1729,6 @@ class EngineProxy(AbstractEngine):
     def tick(self, v):
         self.time_travel(self.branch, v)
 
-    @property
-    def time(self):
-        return (self._branch, self._tick)
-
-    @time.setter
-    def time(self, v):
-        self.time_travel(*v)
-
-    def time_listener(self, f):
-        if f not in self._time_listeners:
-            self._time_listeners.append(f)
-
     def __init__(
             self, handle_out, handle_in, logger,
             do_game_start=False,  install_modules=[]
@@ -1711,7 +1738,6 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
-        self._time_listeners = []
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -1963,12 +1989,12 @@ class EngineProxy(AbstractEngine):
 
     def _inc_tick(self, *args):
         self._tick += 1
-        for f in self._time_listeners:
-            f(self, *self.time)
+        self.time.send(self, *self.time)
 
     def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
         self._tick = kwargs['tick']
+        self.time.send(*self.time)
 
     def _pull_async(self, chars, cb):
         if not callable(cb):
@@ -2020,7 +2046,9 @@ class EngineProxy(AbstractEngine):
         elif silent:
             self.handle(command='next_tick', chars=[], silent=True)
         else:
-            return self.handle(command='next_tick', chars='all')
+            ret = self.handle(command='next_tick', chars='all')
+            self.time.send(self, branch=ret['branch'], tick=ret['tick'])
+            return ret
 
     def time_travel(self, branch, tick, char=None, cb=None):
         # TODO: multiple chars
@@ -2050,6 +2078,7 @@ class EngineProxy(AbstractEngine):
                 chars=[],
                 silent=True
             )
+        self.time.send(self, branch=branch, tick=tick)
 
     def add_character(self, char, data={}, **attr):
         if char in self._char_cache:
