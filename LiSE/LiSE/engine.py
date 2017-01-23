@@ -97,7 +97,12 @@ class TimeSignalDescriptor(object):
                 )
                 real.engine.query.new_branch(branch_now, branch_then, tick_now)
         (real.engine._obranch, real.engine._otick) = val
-        real.send(real.engine, branch_then, tick_then, branch_now, tick_now)
+        real.send(
+            real,
+            engine=real.engine,
+            origtime=(branch_then, tick_then),
+            time=(branch_now, tick_now)
+        )
 
 
 class NextTick(Signal):
