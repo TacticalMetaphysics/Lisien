@@ -50,7 +50,7 @@ class StringStore(MutableMapping, Signal):
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = ['query', 'table', 'cache']
+    __slots__ = ['query', 'table', 'cache', 'receivers']
 
     language = Language()
 
@@ -59,6 +59,7 @@ class StringStore(MutableMapping, Signal):
         language code.
 
         """
+        super().__init__()
         self.query = query
         self.query.init_string_table(table)
         self.table = table
@@ -303,6 +304,7 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __init__(self, engine):
         """Store the engine, initialize caches"""
+        super().__init__()
         self.engine = engine
 
     def __iter__(self):
