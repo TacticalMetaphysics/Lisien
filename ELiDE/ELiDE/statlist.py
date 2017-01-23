@@ -57,9 +57,12 @@ class StatRowListItem(Widget):
     def _push(self, *args):
         self.sett(self.key, self.value)
 
-    @trigger
-    def _pull(self, *args):
+    def _really_pull(self, *args):
         self.value = self.gett(self.key)
+
+    def _pull(self, *args, **kwargs):
+        Clock.unschedule(self._really_pull)
+        Clock.schedule_once(self._really_pull, 0)
 
 
 class StatRowLabel(StatRowListItem, Label):
@@ -325,8 +328,8 @@ class AbstractStatListView(RecycleView):
             'unreg': self._unreg_widget,
             'gett': self.remote.__getitem__,
             'sett': self.set_value,
-            'listen': self.remote.listener,
-            'unlisten': self.remote.unlisten,
+            'listen': self.remote.connect,
+            'unlisten': self.remote.disconnect,
             'control': self.control.get(k, 'readout'),
             'config': self.config.get(k, default_cfg)
         }

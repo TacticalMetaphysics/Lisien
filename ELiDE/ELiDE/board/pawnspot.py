@@ -46,7 +46,7 @@ class PawnSpot(ImageStack):
         self.offxs = self.remote.setdefault('_offxs', zeroes)
         self.offys = self.remote.setdefault('_offys', zeroes)
         self.stackhs = self.remote.setdefault('_stackhs', zeroes)
-        self.remote.listener(self._trigger_pull_from_remote)
+        self.remote.changed.connect(self._trigger_pull_from_remote)
 
     def finalize(self):
         self.bind(
