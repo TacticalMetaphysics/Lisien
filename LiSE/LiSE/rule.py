@@ -632,8 +632,6 @@ class RuleFollower(object):
 
     def _upd_rulebook(self):
         self._rulebook = self._get_rulebook()
-        for f in self._rulebook_listeners:
-            f(self, self._rulebook)
 
     def _get_rulebook(self):
         return self.engine.rulebook[self._get_rulebook_name()]
