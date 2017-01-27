@@ -11,6 +11,7 @@ from kivy.graphics import (
     Color,
     Line
 )
+from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
@@ -46,7 +47,7 @@ class PawnSpot(ImageStack):
         self.offxs = self.remote.setdefault('_offxs', zeroes)
         self.offys = self.remote.setdefault('_offys', zeroes)
         self.stackhs = self.remote.setdefault('_stackhs', zeroes)
-        self.remote.changed.connect(self._trigger_pull_from_remote)
+        self.remote.connect(self._trigger_pull_from_remote)
 
     def finalize(self):
         self.bind(
@@ -64,7 +65,8 @@ class PawnSpot(ImageStack):
             stackhs=self._trigger_push_stackhs
         )
 
-    def pull_from_remote(self):
+    def pull_from_remote(self, *args):
+        self.unfinalize()
         for key, att in [
                 ('_image_paths', 'paths'),
                 ('_offxs', 'offxs'),
@@ -73,12 +75,11 @@ class PawnSpot(ImageStack):
         ]:
             if key in self.remote and self.remote[key] != getattr(self, att):
                 setattr(self, att, self.remote[key])
-
-    @trigger
-    def _trigger_pull_from_remote(self, *args):
-        self.unfinalize()
-        self.pull_from_remote()
         self.finalize()
+
+    def _trigger_pull_from_remote(self, *args, **kwargs):
+        Clock.unschedule(self.pull_from_remote)
+        Clock.schedule_once(self.pull_from_remote, 0)
 
     @trigger
     def _trigger_push_image_paths(self, *args):
