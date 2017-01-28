@@ -86,9 +86,7 @@ class StatRowTextInput(StatRowListItem, TextInput):
 
     @trigger
     def upd_value(self, *args):
-        if self.text == '':
-            self.value = None
-        else:
+        if self.text not in ('', self.value):
             self.value = self.text
         self.text = ''
 
@@ -367,7 +365,7 @@ Builder.load_string(
 <StatRowLabel>:
     text: str(self.value)
 <StatRowTextInput>:
-    text: str(self.value)
+    hint_text: str(self.value)
     multiline: False
 <StatRowToggleButton>:
     text: self.config['true_text'] if self.value else self.config['false_text']
