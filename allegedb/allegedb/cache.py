@@ -459,7 +459,7 @@ class Cache(object):
             )
             self._validate_keycache(
                 self.keys[parent+(entity,)],
-                upkc(parent, branch, rev, entity, value),
+                upkc(parent+(entity,), branch, rev, key, value),
                 branch, rev, parent+(entity,)
             )
         else:
