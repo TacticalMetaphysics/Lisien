@@ -450,22 +450,24 @@ class Cache(object):
         self.branches[parent+(entity, key)][branch][rev] = value
         self.shallow[parent+(entity, key, branch)][rev] = value
         self.shallower[parent+(entity, key, branch, rev)] = value
-        upkc = self._update_keycache
         if parent:
+            kc = self._update_keycache(
+                parent+(entity,), branch, rev, key, value
+            )
             self._validate_keycache(
                 self.parents[parent][entity],
-                upkc(parent+(entity,), branch, rev, key, value),
+                kc,
                 branch, rev, parent+(entity,)
             )
             self._validate_keycache(
                 self.keys[parent+(entity,)],
-                upkc(parent+(entity,), branch, rev, key, value),
+                kc,
                 branch, rev, parent+(entity,)
             )
         else:
             self._validate_keycache(
                 self.keys[(entity,)],
-                upkc((entity,), branch, rev, key, value),
+                self._update_keycache((entity,), branch, rev, key, value),
                 branch, rev, (entity,)
             )
 
