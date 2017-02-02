@@ -161,10 +161,9 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
+        super().__init__(character, name)
         self.user = UserMapping(self)
-        self.graph = character
         self.db = character.engine
-        self.node = name
 
     def __iter__(self):
         yield from super().__iter__()
@@ -183,11 +182,11 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
-        self.dispatch(k, v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         super().__delitem__(k)
-        self.dispatch(k, None)
+        self.send(self, key=k, val=None)
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""

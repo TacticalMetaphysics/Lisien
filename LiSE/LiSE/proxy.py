@@ -23,27 +23,26 @@ from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 
-class RulebookDescriptor(object):
+class RulebookDescriptor(Signal):
     rulebooks = {}
-    signal = Signal()
 
     def __get__(self, inst, cls):
         if id(inst) not in self.rulebooks:
             self.rulebooks[id(inst)] = inst._get_rulebook()
         proxy = self.rulebooks[id(inst)]
         if not hasattr(proxy, 'send'):
-            proxy.send = self.signal.send
+            proxy.send = self.send
         if not hasattr(proxy, 'connect'):
-            proxy.connect = self.signal.connect
+            proxy.connect = self.connect
         return proxy
 
     def __set__(self, inst, val):
         rb = val.name if hasattr(val, 'name') else val
-        self.rulebooks[id(inst)] \
+        obj = self.rulebooks[id(inst)] \
             = val if isinstance(val, RuleBookProxy) \
             else RuleBookProxy(inst.engine, rb)
         inst._set_rulebook(rb)
-        self.signal.send(inst, rulebook=rb)
+        self.send(obj)
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -1988,7 +1987,7 @@ class EngineProxy(AbstractEngine):
 
     def _inc_tick(self, *args):
         self._tick += 1
-        self.time.send(self, *self.time)
+        self.time.send(self, branch=self._branch, tick=self._tick)
 
     def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
@@ -2077,7 +2076,6 @@ class EngineProxy(AbstractEngine):
                 chars=[],
                 silent=True
             )
-        self.time.send(self, branch=branch, tick=tick)
 
     def add_character(self, char, data={}, **attr):
         if char in self._char_cache:

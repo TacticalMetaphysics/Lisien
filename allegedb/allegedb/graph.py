@@ -61,8 +61,7 @@ class NeatMapping(MutableMapping):
                 self[k] = v
 
 
-class AbstractEntityMapping(NeatMapping):
-    changed = Signal()
+class AbstractEntityMapping(NeatMapping, Signal):
 
     def _iter_keys_db(self):
         """Return a list of keys from the database (not the cache)."""
@@ -139,14 +138,14 @@ class AbstractEntityMapping(NeatMapping):
             except KeyError:
                 self._set_cache(key, value)
         self._set_db(key, value)
-        self.changed.send(self, key=key, value=value)
+        self.send(self, key=key, value=value)
 
     def __delitem__(self, key):
         """Indicate that the key has no value at this time"""
         if self.db.caching:
             self._set_cache(key, None)
         self._del_db(key)
-        self.changed.send(self, key=key, value=None)
+        self.send(self, key=key, value=None)
 
 
 class GraphMapping(AbstractEntityMapping):
@@ -155,6 +154,7 @@ class GraphMapping(AbstractEntityMapping):
 
     def __init__(self, graph):
         """Initialize private dict and store pointers to the graph and ORM"""
+        super().__init__()
         self.graph = graph
 
     def _iter_keys_db(self):
@@ -217,6 +217,7 @@ class Node(AbstractEntityMapping):
 
     def __init__(self, graph, node):
         """Store name and graph"""
+        super().__init__()
         self.graph = graph
         self.node = node
 
@@ -287,6 +288,7 @@ class Edge(AbstractEntityMapping):
         For non-multigraphs the index is always 0.
 
         """
+        super().__init__()
         self.graph = graph
         self.nodeA = nodeA
         self.nodeB = nodeB

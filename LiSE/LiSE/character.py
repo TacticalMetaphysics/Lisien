@@ -1228,7 +1228,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     name, rulebook, d[rulebook]
                 )
 
-    class ThingMapping(MutableMapping, RuleFollower):
+    class ThingMapping(MutableMapping, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""
         _book = "character_thing"
 
@@ -1237,6 +1237,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __init__(self, character):
             """Store the character and initialize cache."""
+            super().__init__()
             self.character = character
 
         def __iter__(self):
@@ -1293,7 +1294,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 th = cache[(self.name, thing)] = Thing(self.character, thing)
             th.clear()
             th.update(val)
-            self.dispatch(thing, th)
+            self.send(self, key=thing, val=th)
 
         def __delitem__(self, thing):
             self[thing].delete(nochar=True)
@@ -1307,12 +1308,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine.tick,
                 None
             )
-            self.dispatch(thing, None)
+            self.send(self, key=thing, val=None)
 
         def __repr__(self):
             return repr(dict(self))
 
-    class PlaceMapping(MutableMapping, RuleFollower):
+    class PlaceMapping(MutableMapping, RuleFollower, Signal):
         """:class:`Place` objects that are in a :class:`Character`"""
         _book = "character_place"
 
@@ -1321,6 +1322,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __init__(self, character):
             """Store the character."""
+            super().__init__()
             self.character = character
 
         def __iter__(self):
@@ -1371,13 +1373,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             pl = cache[(self.name, place)]
             pl.clear()
             pl.update(v)
-            self.dispatch(place, v)
+            self.send(self, key=place, val=v)
 
         def __delitem__(self, place):
             self[place].delete(nochar=True)
             self.engine._exist_node(self.character.name, place, exist=False)
             del self.engine._node_objs[(self.name, place)]
-            self.dispatch(place, None)
+            self.send(self, key=place, val=None)
 
         def __repr__(self):
             return repr(dict(self))
@@ -1464,10 +1466,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             def _cache(self):
                 return {}
 
-            def dispatch(self, nodeB, portal):
+            def send(self, **kwargs):
                 """Call all listeners to ``nodeB`` and to my ``nodeA``."""
-                super().dispatch(nodeB, portal)
-                self.container.dispatch(self.nodeA, self)
+                super().send(self, **kwargs)
+                self.container.send(self, **kwargs)
 
             def __getitem__(self, nodeB):
                 key = (self.graph.name, self.nodeA, nodeB)
