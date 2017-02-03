@@ -578,6 +578,12 @@ class NodesCache(Cache):
             self.db._node_objs[(graph, node)] \
                 = self.db._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, rev, ex)
+        # does this work??
+        self._validate_keycache(
+            self.keys[(graph,)],
+            self._update_keycache((graph,), branch, rev, node, ex),
+            branch, rev, (graph,)
+        )
 
 
 class EdgesCache(Cache):
@@ -598,3 +604,17 @@ class EdgesCache(Cache):
                 = self.db._make_edge(self.db.graph[graph], nodeA, nodeB, idx)
         Cache.store(self, graph, nodeA, nodeB, idx, branch, rev, ex)
         self.predecessors[(graph, nodeB)][nodeA][idx][branch][rev] = ex
+        # am i doin it right??
+        kc = self._update_keycache(
+            (graph, nodeA), branch, rev, (nodeB, idx), ex
+        )
+        self._validate_keycache(
+            self.parents[(graph, nodeA)][(nodeB, idx)],
+            kc,
+            branch, rev, (graph, nodeA, nodeB, idx)
+        )
+        self._validate_keycache(
+            self.keys[(graph, nodeA, nodeB, idx)],
+            kc,
+            branch, rev, (graph, nodeA, nodeB, idx)
+        )
