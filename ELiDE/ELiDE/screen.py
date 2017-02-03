@@ -88,12 +88,12 @@ class TimePanel(BoxLayout):
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
         self.ids.branchfield.text = ''
-        self.screen.app.set_branch(branch)
+        self.screen.app.branch = branch
 
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
-        self.screen.app.set_tick(tick)
+        self.screen.app.tick = tick
 
     def next_tick(self, *args):
         self.screen.app.engine.next_tick(

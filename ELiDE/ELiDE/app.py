@@ -70,9 +70,8 @@ class ELiDEApp(App):
         (self.branch, self.tick) = self.engine.time
     pull_time = trigger(_pull_time)
 
-    def set_branch(self, b):
-        """Set my branch to the given value."""
-        self.branch = b
+    @trigger
+    def _push_time(self, *args):
         if self.engine.time != (self.branch, self.tick):
             self.engine.time_travel(
                 self.branch, self.tick,
@@ -83,12 +82,6 @@ class ELiDEApp(App):
     def set_tick(self, t):
         """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
-        if self.engine.time != (self.branch, self.tick):
-            self.engine.time_travel(
-                self.branch, self.tick,
-                char=self.character.name,
-                cb=self.mainscreen._update_from_chardiff
-            )
 
     def set_time(self, b, t=None):
         if t is None:
@@ -272,6 +265,10 @@ class ELiDEApp(App):
             self.branch = inst.branch
             self.tick = inst.tick
 
+        self.bind(
+            branch=self._push_time,
+            tick=self._push_time
+        )
         return self.manager
 
     def _get_selected_remote(self):
