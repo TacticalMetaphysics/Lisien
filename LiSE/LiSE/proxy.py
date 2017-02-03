@@ -2062,10 +2062,12 @@ class EngineProxy(AbstractEngine):
                 'tick': tick,
                 'chars': [char]
             }))
+            args = [self._set_time, self._upd_chars_caches]
+            if cb:
+                args.append(cb)
             Thread(
                 target=self._call_with_recv,
-                args=(self._set_time, self._upd_chars_caches, cb)
-                if cb else (self._set_time, self._upd_chars_caches),
+                args=args,
                 kwargs={'branch': branch, 'tick': tick}
             ).start()
         else:

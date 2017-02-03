@@ -30,9 +30,7 @@ def within_history(rev, windowdict):
             windowdict._future[0][0]
     end = windowdict._future[-1][0] if windowdict._future else \
           windowdict._past[-1][0]
-    if not begin <= rev <= end:
-        return False
-    return True
+    return begin <= rev <= end
 
 
 class WindowDictKeysView(KeysView):

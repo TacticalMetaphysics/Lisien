@@ -1683,9 +1683,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             @property
             def only(self):
                 mykey = singleton_get(self.keys())
-                if mykey is not None:
-                    return self.engine._node_objs[(self.graph, mykey)]
-                raise AttributeError("No avatar, or more than one")
+                if mykey is None:
+                    raise AttributeError("No avatar, or more than one")
+                return self.engine._node_objs[(self.graph, mykey)]
 
             def __setitem__(self, k, v):
                 mykey = singleton_get(self.keys())
