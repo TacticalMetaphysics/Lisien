@@ -1189,6 +1189,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     """
     _book = "character"
 
+    engine = getatt('db')
+
     @property
     def character(self):
         return self
@@ -1200,7 +1202,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         """
         super().__init__(engine, name, data, **attr)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
-        self.engine = engine
         d = {}
         for mapp in (
                 'character',
