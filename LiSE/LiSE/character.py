@@ -1452,11 +1452,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             sucs = self._cache[nodeA]
             sucs.clear()
             sucs.update(val)
-            self.dispatch(nodeA, val)
+            self.send(self, key=nodeA, val=sucs)
 
         def __delitem__(self, nodeA):
             super().__delitem__(nodeA)
-            self.dispatch(nodeA, None)
+            self.send(self, key=nodeA, val=None)
 
         class Successors(GraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""

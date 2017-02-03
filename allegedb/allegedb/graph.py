@@ -487,7 +487,7 @@ class GraphNodeMapping(NeatMapping):
         return True
 
 
-class GraphEdgeMapping(NeatMapping):
+class GraphEdgeMapping(NeatMapping, Signal):
     """Provides an adjacency mapping and possibly a predecessor mapping
     for a graph.
 
@@ -503,6 +503,7 @@ class GraphEdgeMapping(NeatMapping):
         return self.graph.db
 
     def __init__(self, graph):
+        super().__init__()
         self.graph = graph
 
     def __eq__(self, other):
@@ -691,13 +692,13 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
         sucs.clear()
         sucs.update(val)
         if created:
-            self.created.send(self, key=key, val=val)
+            self.send(self, key=key, val=val)
 
     def __delitem__(self, key):
         """Wipe out edges emanating from nodeA"""
         self[key].clear()
         del self._cache[key]
-        self.deleted.send(self, key=key)
+        self.send(self, key=key, val=None)
 
     def __iter__(self):
         return iter(self.graph.node)
@@ -749,12 +750,12 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
         preds.clear()
         preds.update(val)
         if created:
-            self.created.send(self, key=key, val=val)
+            self.send(self, key=key, val=val)
 
     def __delitem__(self, key):
         """Delete all edges ending at ``nodeB``"""
         self._getpreds(key).clear()
-        self.deleted.send(self, key=key)
+        self.send(self, key=key, val=None)
 
     def __iter__(self):
         return iter(self.graph.node)
