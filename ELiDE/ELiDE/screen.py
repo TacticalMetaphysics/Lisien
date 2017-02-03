@@ -285,7 +285,6 @@ class MainScreen(Screen):
 Builder.load_string(
     """
 #: import resource_find kivy.resources.resource_find
-#: import remote_setter ELiDE.util.remote_setter
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
