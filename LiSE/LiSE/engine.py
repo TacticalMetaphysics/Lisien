@@ -428,6 +428,25 @@ class Engine(AbstractEngine, gORM):
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
+        self._universal_cache = UniversalCache(self)
+        self._rulebooks_cache = RulebooksCache(self)
+        self._characters_rulebooks_cache = CharacterRulebooksCache(self)
+        self._nodes_rulebooks_cache = NodeRulebookCache(self)
+        self._portals_rulebooks_cache = PortalRulebookCache(self)
+        self._active_rules_cache = ActiveRulesCache(self)
+        self._node_rules_handled_cache = NodeRulesHandledCache(self)
+        self._portal_rules_handled_cache = PortalRulesHandledCache(self)
+        self._character_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._avatar_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._character_thing_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._character_place_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._character_node_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._character_portal_rules_handled_cache \
+            = CharacterRulesHandledCache(self)
+        self._avatarness_cache = AvatarnessCache(self)
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
@@ -464,25 +483,6 @@ class Engine(AbstractEngine, gORM):
         self.rulebook = AllRuleBooks(self, self._code_qe)
         self.string = StringStore(self._code_qe)
         # load data
-        self._universal_cache = UniversalCache(self)
-        self._rulebooks_cache = RulebooksCache(self)
-        self._characters_rulebooks_cache = CharacterRulebooksCache(self)
-        self._nodes_rulebooks_cache = NodeRulebookCache(self)
-        self._portals_rulebooks_cache = PortalRulebookCache(self)
-        self._active_rules_cache = ActiveRulesCache(self)
-        self._node_rules_handled_cache = NodeRulesHandledCache(self)
-        self._portal_rules_handled_cache = PortalRulesHandledCache(self)
-        self._character_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._avatar_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._character_thing_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
-        self._character_place_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
-        self._character_node_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
-        self._character_portal_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
-        self._avatarness_cache = AvatarnessCache(self)
         for row in self.rule.query.universal_dump():
             self._universal_cache.store(*row)
         for row in self.rule.query.rulebooks_rules():
