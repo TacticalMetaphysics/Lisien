@@ -351,8 +351,15 @@ class CharacterMapping(MutableMapping, Signal):
         if isinstance(value, Character):
             self.engine._graph_objs[name] = value
             return
-        self.engine._graph_objs[name] = Character(self.engine, name, data=value)
-        self.send(self, key=name, val=self.engine._graph_objs[name])
+        if name in self.engine._graph_objs:
+            ch = self.engine._graph_objs[name]
+            ch.stat.clear()
+            ch.stat.update(value)
+        else:
+            ch = self.engine._graph_objs[name] = Character(
+                self.engine, name, data=value
+            )
+        self.send(self, key=name, val=ch)
 
     def __delitem__(self, name):
         """Delete the named character from both the cache and the database."""
