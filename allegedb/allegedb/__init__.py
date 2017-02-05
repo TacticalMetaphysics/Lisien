@@ -110,10 +110,11 @@ class ORM(object):
                     self._edge_val_cache.store(*row)
                 if branch in self._childbranch:
                     branch2do.extend(self._childbranch[branch])
+            self._graph_objs = {}
             if not hasattr(self, 'graph'):
-                self.graph = {}
+                self.graph = self._graph_objs
             for (graph, typ) in self.query.graphs_types():
-                self.graph[graph] = {
+                self._graph_objs[graph] = {
                     'Graph': Graph,
                     'DiGraph': DiGraph,
                     'MultiGraph': MultiGraph,
@@ -264,7 +265,7 @@ class ORM(object):
         self._init_graph(name, 'Graph')
         g = Graph(self, name, data, **attr)
         if self.caching:
-            self.graph[name] = g
+            self._graph_objs[name] = g
         return g
 
     def new_digraph(self, name, data=None, **attr):
@@ -273,7 +274,10 @@ class ORM(object):
 
         """
         self._init_graph(name, 'DiGraph')
-        return DiGraph(self, name, data, **attr)
+        dg = DiGraph(self, name, data, **attr)
+        if self.caching:
+            self._graph_objs[name] = dg
+        return dg
 
     def new_multigraph(self, name, data=None, **attr):
         """Return a new instance of type MultiGraph, initialized with the given
@@ -283,7 +287,7 @@ class ORM(object):
         self._init_graph(name, 'MultiGraph')
         mg = MultiGraph(self, name, data, **attr)
         if self.caching:
-            self.graph[name] = mg
+            self._graph_objs[name] = mg
         return mg
 
     def new_multidigraph(self, name, data=None, **attr):
@@ -294,7 +298,7 @@ class ORM(object):
         self._init_graph(name, 'MultiDiGraph')
         mdg = MultiDiGraph(self, name, data, **attr)
         if self.caching:
-            self.graph[name] = mdg
+            self._graph_objs[name] = mdg
         return mdg
 
     def get_graph(self, name):
@@ -303,8 +307,8 @@ class ORM(object):
         ``new_multidigraph``
 
         """
-        if self.caching and name in self.graph:
-            return self.graph[name]
+        if self.caching and name in self._graph_objs:
+            return self._graph_objs[name]
         graphtypes = {
             'Graph': Graph,
             'DiGraph': DiGraph,
@@ -318,7 +322,7 @@ class ORM(object):
             )
         g = graphtypes[type_s](self, name)
         if self.caching:
-            self.graph[name] = g
+            self._graph_objs[name] = g
         return g
 
     def del_graph(self, name):
@@ -326,8 +330,8 @@ class ORM(object):
         # make sure the graph exists before deleting anything
         self.get_graph(name)
         self.query.del_graph(name)
-        if self.caching and name in self.graph:
-            del self.graph[name]
+        if self.caching and name in self._graph_objs:
+            del self._graph_objs[name]
 
     def _active_branches(self, branch=None, rev=None):
         """Private use. Iterate over (branch, rev) pairs, where the branch is

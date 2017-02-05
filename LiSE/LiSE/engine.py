@@ -423,7 +423,6 @@ class Engine(AbstractEngine, gORM):
 
         """
         self.next_tick = NextTick(self)
-        self._char_objs = {}
         self._node_objs = {}
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)

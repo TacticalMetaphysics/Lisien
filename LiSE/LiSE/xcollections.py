@@ -313,13 +313,13 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __contains__(self, name):
         """Has this character been created?"""
-        if name in self.engine._char_objs:
+        if name in self.engine._graph_objs:
             return True
         return self.engine.query.have_character(name)
 
     def __len__(self):
         """How many characters have been created?"""
-        return len(self.engine._char_objs)
+        return len(self.engine._graph_objs)
 
     def __getitem__(self, name):
         """Return the named character, if it's been created.
@@ -330,7 +330,7 @@ class CharacterMapping(MutableMapping, Signal):
         from .character import Character
         if name not in self:
             raise KeyError("No such character")
-        cache = self.engine._char_objs
+        cache = self.engine._graph_objs
         if name not in cache:
             cache[name] = Character(self.engine, name)
         return cache[name]
@@ -342,15 +342,15 @@ class CharacterMapping(MutableMapping, Signal):
         """
         from .character import Character
         if isinstance(value, Character):
-            self.engine._char_objs[name] = value
+            self.engine._graph_objs[name] = value
             return
-        self.engine._char_objs[name] = Character(self.engine, name, data=value)
-        self.send(self, key=name, val=self.engine._char_objs[name])
+        self.engine._graph_objs[name] = Character(self.engine, name, data=value)
+        self.send(self, key=name, val=self.engine._graph_objs[name])
 
     def __delitem__(self, name):
         """Delete the named character from both the cache and the database."""
-        if name in self.engine._char_objs:
-            del self.engine._char_objs[name]
+        if name in self.engine._graph_objs:
+            del self.engine._graph_objs[name]
         self.engine.query.del_character(name)
         self.send(self, key=name, val=None)
 
