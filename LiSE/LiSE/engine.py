@@ -100,8 +100,10 @@ class TimeSignalDescriptor(object):
         real.send(
             real,
             engine=real.engine,
-            origtime=(branch_then, tick_then),
-            time=(branch_now, tick_now)
+            branch_then=branch_then,
+            tick_then=tick_then,
+            branch_now=branch_now,
+            tick_now=tick_now
         )
 
 
@@ -668,7 +670,13 @@ class Engine(AbstractEngine, gORM):
             self.query.new_branch(child, parent, t)
         self._obranch = v
         if not hasattr(self, 'locktime'):
-            self.time.send(b, t, v, t)
+            self.time.send(
+                self,
+                branch_then=b,
+                tick_then=t,
+                branch_now=v,
+                tick_now=t
+            )
 
     @property
     def tick(self):
@@ -684,7 +692,13 @@ class Engine(AbstractEngine, gORM):
             return
         self.rev = v
         if not hasattr(self, 'locktime'):
-            self.time.send(branch_then, tick_then, branch_then, v)
+            self.time.send(
+                self,
+                branch_then=branch_then,
+                tick_then=tick_then,
+                branch_now=branch_then,
+                tick_now=v
+            )
 
     def _rule_active(self, rulebook, rule):
         if hasattr(rulebook, 'name'):
