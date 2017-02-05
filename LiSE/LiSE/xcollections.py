@@ -309,7 +309,7 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __iter__(self):
         """Iterate over every character name."""
-        return self.engine.query.characters()
+        return iter(self.engine._graph_objs)
 
     def __contains__(self, name):
         """Has this character been created?"""
