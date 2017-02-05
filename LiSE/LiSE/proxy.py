@@ -2055,6 +2055,15 @@ class EngineProxy(AbstractEngine):
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
         if char:
+            args = [self._set_time, self._upd_chars_caches]
+            if cb:
+                args.append(cb)
+            self._time_travel_thread = Thread(
+                target=self._call_with_recv,
+                args=args,
+                kwargs={'branch': branch, 'tick': tick}
+            )
+            self._time_travel_thread.start()
             self.send(self.json_dump({
                 'command': 'time_travel',
                 'silent': False,
@@ -2062,14 +2071,6 @@ class EngineProxy(AbstractEngine):
                 'tick': tick,
                 'chars': [char]
             }))
-            args = [self._set_time, self._upd_chars_caches]
-            if cb:
-                args.append(cb)
-            Thread(
-                target=self._call_with_recv,
-                args=args,
-                kwargs={'branch': branch, 'tick': tick}
-            ).start()
         else:
             self.handle(
                 command='time_travel',
