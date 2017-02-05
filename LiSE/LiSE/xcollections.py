@@ -333,7 +333,14 @@ class CharacterMapping(MutableMapping, Signal):
         cache = self.engine._graph_objs
         if name not in cache:
             cache[name] = Character(self.engine, name)
-        return cache[name]
+        ret = cache[name]
+        if not isinstance(ret, Character):
+            raise TypeError(
+                "Tried to get a graph that isn't a Character. "
+                "This should never happen. It probably indicates "
+                "a bug in allegedb."
+            )
+        return ret
 
     def __setitem__(self, name, value):
         """Make a new character by the given name, and initialize its data to
