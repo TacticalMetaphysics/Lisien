@@ -402,27 +402,13 @@ class Engine(AbstractEngine, gORM):
             self, rulebook, rule, active, branch=None, tick=None
     ):
         branch = branch or self.branch
-        tick = tick or self.tick
+        tick = tick if tick is not None else self.tick
         self._active_rules_cache.store(rulebook, rule, branch, tick, active)
         # note the use of the world DB, not the code DB
         self.query.set_rule_activeness(rulebook, rule, branch, tick, active)
 
-    def __init__(
-            self,
-            worlddb,
-            codedb=None,
-            connect_args={},
-            alchemy=False,
-            commit_modulus=None,
-            random_seed=None,
-            sql_rule_polling=False,
-            logfun=None
-    ):
-        """Store the connections for the world database and the code database;
-        set up listeners; and start a transaction
-
-        """
-        self.next_tick = NextTick(self)
+    def _init_caches(self):
+        super()._init_caches()
         self._node_objs = {}
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
@@ -446,33 +432,8 @@ class Engine(AbstractEngine, gORM):
         self._character_portal_rules_handled_cache \
             = CharacterRulesHandledCache(self)
         self._avatarness_cache = AvatarnessCache(self)
-        super().__init__(
-            worlddb,
-            query_engine_class=QueryEngine,
-            connect_args=connect_args,
-            alchemy=alchemy,
-            json_dump=self.json_dump,
-            json_load=self.json_load,
-        )
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
-        if logfun is None:
-            from logging import getLogger
-            logger = getLogger(__name__)
-
-            def logfun(level, msg):
-                getattr(logger, level)(msg)
-        self.log = logfun
-        self._sql_polling = sql_rule_polling
-        self.commit_modulus = commit_modulus
-        self.random_seed = random_seed
-        if codedb:
-            self._code_qe = QueryEngine(
-                codedb, connect_args, alchemy, self.json_dump, self.json_load
-            )
-            self._code_qe.initdb()
-        else:
-            self._code_qe = self.query
         self.action = FunctionStore(self, self._code_qe, 'actions')
         self.prereq = FunctionStore(self, self._code_qe, 'prereqs')
         self.trigger = FunctionStore(self, self._code_qe, 'triggers')
@@ -481,7 +442,9 @@ class Engine(AbstractEngine, gORM):
         self.rule = AllRules(self, self._code_qe)
         self.rulebook = AllRuleBooks(self, self._code_qe)
         self.string = StringStore(self._code_qe)
-        # load data
+
+    def _init_load(self):
+        super()._init_load()
         for row in self.rule.query.universal_dump():
             self._universal_cache.store(*row)
         for row in self.rule.query.rulebooks_rules():
@@ -515,6 +478,52 @@ class Engine(AbstractEngine, gORM):
             self._things_cache.store(*row)
         for row in self.query.avatarness_dump():
             self._avatarness_cache.store(*row)
+
+    def _load_graphs(self):
+        for charn in self.query.characters():
+            self._graph_objs[charn] = Character(self, charn)
+
+    def __init__(
+            self,
+            worlddb,
+            codedb=None,
+            connect_args={},
+            alchemy=False,
+            commit_modulus=None,
+            random_seed=None,
+            sql_rule_polling=False,
+            logfun=None
+    ):
+        """Store the connections for the world database and the code database;
+        set up listeners; and start a transaction
+
+        """
+        if codedb:
+            self._code_qe = QueryEngine(
+                codedb, connect_args, alchemy, self.json_dump, self.json_load
+            )
+            self._code_qe.initdb()
+        super().__init__(
+            worlddb,
+            query_engine_class=QueryEngine,
+            connect_args=connect_args,
+            alchemy=alchemy,
+            json_dump=self.json_dump,
+            json_load=self.json_load,
+        )
+        if codedb is None:
+            self._code_qe = self.query
+        self.next_tick = NextTick(self)
+        if logfun is None:
+            from logging import getLogger
+            logger = getLogger(__name__)
+
+            def logfun(level, msg):
+                getattr(logger, level)(msg)
+        self.log = logfun
+        self._sql_polling = sql_rule_polling
+        self.commit_modulus = commit_modulus
+        self.random_seed = random_seed
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
