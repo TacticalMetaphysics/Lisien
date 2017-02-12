@@ -336,9 +336,9 @@ class CharacterMapping(MutableMapping, Signal):
         ret = cache[name]
         if not isinstance(ret, Character):
             raise TypeError(
-                "Tried to get a graph that isn't a Character. "
-                "This should never happen. It probably indicates "
-                "a bug in allegedb."
+                """Tried to get a graph that isn't a Character.
+                This should never happen. It probably indicates
+                a bug in allegedb."""
             )
         return ret
 
