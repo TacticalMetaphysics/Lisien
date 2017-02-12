@@ -949,17 +949,8 @@ class Engine(AbstractEngine, gORM):
         Any keyword arguments will be set as stats of the new character.
 
         """
-        self.new_digraph(name, data, **kwargs)
-        ch = Character(self, name)
-        if data is not None:
-            for a in data.adj:
-                for b in data.adj[a]:
-                    assert(
-                        a in ch.adj and
-                        b in ch.adj[a]
-                    )
-        if hasattr(self.character, '_cache'):
-            self.character._cache[name] = ch
+        self._init_graph(name, 'DiGraph')
+        self._graph_objs[name] = Character(self, name, data, **kwargs)
 
     def del_character(self, name):
         """Remove the Character from the database entirely.
