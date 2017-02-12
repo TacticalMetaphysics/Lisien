@@ -23,18 +23,13 @@ from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 
-class RulebookDescriptor(Signal):
+class RulebookDescriptor(object):
     rulebooks = {}
 
     def __get__(self, inst, cls):
         if id(inst) not in self.rulebooks:
             self.rulebooks[id(inst)] = inst._get_rulebook()
-        proxy = self.rulebooks[id(inst)]
-        if not hasattr(proxy, 'send'):
-            proxy.send = self.send
-        if not hasattr(proxy, 'connect'):
-            proxy.connect = self.connect
-        return proxy
+        return self.rulebooks[id(inst)]
 
     def __set__(self, inst, val):
         rb = val.name if hasattr(val, 'name') else val
@@ -42,7 +37,7 @@ class RulebookDescriptor(Signal):
             = val if isinstance(val, RuleBookProxy) \
             else RuleBookProxy(inst.engine, rb)
         inst._set_rulebook(rb)
-        self.send(obj)
+        obj.send(obj)
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -1067,12 +1062,13 @@ class RuleProxy(object):
         )
 
 
-class RuleBookProxy(MutableSequence):
+class RuleBookProxy(MutableSequence, Signal):
     @property
     def _cache(self):
         return self.all_rulebooks._cache[self.name]
 
     def __init__(self, all_rulebooks,  bookname):
+        super().__init__()
         self.all_rulebooks = all_rulebooks
         self.engine = all_rulebooks.engine
         self.name = bookname
@@ -1104,6 +1100,7 @@ class RuleBookProxy(MutableSequence):
             rule=v,
             silent=True
         )
+        self.send(self, i=i, val=v)
 
     def __delitem__(self, i):
         del self._cache[i]
@@ -1113,6 +1110,7 @@ class RuleBookProxy(MutableSequence):
             i=i,
             silent=True
         )
+        self.send(self, i=i, val=None)
 
     def insert(self, i, v):
         if isinstance(v, RuleProxy):
@@ -1125,6 +1123,8 @@ class RuleBookProxy(MutableSequence):
             rule=v,
             silent=True
         )
+        for j in range(i, len(self)):
+            self.send(self, i=j, val=self[j])
 
 
 class AvatarMapProxy(Mapping):
