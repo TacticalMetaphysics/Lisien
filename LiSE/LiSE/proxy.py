@@ -90,7 +90,7 @@ class CachingProxy(MutableMapping, Signal):
                     self.changed.send(self, key=k, val=None)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
-                self.changed.send(self, key=k, val=v)
+                self.send(self, key=k, val=v)
 
     def update_cache(self):
         diff = self._get_diff()
