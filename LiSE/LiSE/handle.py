@@ -147,7 +147,7 @@ class EngineHandle(object):
         if chars:
             return self.get_chardiffs(chars)
 
-    def time_travel(self, branch, tick, chars=[]):
+    def time_travel(self, branch, tick, chars='all'):
         self._real.time = (branch, tick)
         self.branch = branch
         self.tick = tick

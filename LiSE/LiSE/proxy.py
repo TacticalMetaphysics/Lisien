@@ -2048,13 +2048,12 @@ class EngineProxy(AbstractEngine):
             self.time.send(self, branch=ret['branch'], tick=ret['tick'])
             return ret
 
-    def time_travel(self, branch, tick, char=None, cb=None):
-        # TODO: multiple chars
-        if cb and not char:
+    def time_travel(self, branch, tick, chars='all', cb=None, block=True):
+        if cb and not chars:
             raise TypeError("Callbacks require char name")
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
-        if char:
+        if chars:
             args = [self._set_time, self._upd_char_caches]
             if cb:
                 args.append(cb)
@@ -2069,8 +2068,10 @@ class EngineProxy(AbstractEngine):
                 'silent': False,
                 'branch': branch,
                 'tick': tick,
-                'chars': [char]
+                'chars': chars
             }))
+            if block:
+                self._time_travel_thread.join()
         else:
             self.handle(
                 command='time_travel',
