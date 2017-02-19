@@ -411,6 +411,8 @@ class Engine(AbstractEngine, gORM):
 
     def _init_caches(self):
         super()._init_caches()
+        if not hasattr(self, '_code_qe'):
+            self._code_qe = self.query
         self._node_objs = {}
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
@@ -513,8 +515,6 @@ class Engine(AbstractEngine, gORM):
             json_dump=self.json_dump,
             json_load=self.json_load,
         )
-        if codedb is None:
-            self._code_qe = self.query
         self.next_tick = NextTick(self)
         if logfun is None:
             from logging import getLogger
