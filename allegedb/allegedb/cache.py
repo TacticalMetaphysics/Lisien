@@ -377,9 +377,12 @@ class Cache(object):
         if keycache_key in self.keycache:
             kc = self.keycache[keycache_key]
             if not kc.has_exact_rev(rev):
-                kc[rev] = kc[rev].copy()
+                if kc.rev_before(rev) == rev - 1:
+                    kc[rev] = kc[rev].copy()
+                else:
+                    kc[rev] = set(self._slow_iter_keys(self.keys[parentity], branch, rev))
             return kc[rev]
-        kc = FuturistWindowDict()
+        kc = WindowDict()
         for (b, r) in self.db._active_branches(branch, rev):
             other_branch_key = parentity + (b,)
             if other_branch_key in self.keycache and \
@@ -387,7 +390,7 @@ class Cache(object):
                 kc[rev] = self.keycache[other_branch_key][r].copy()
                 break
         else:
-            kc[rev] = set()
+            kc[rev] = set(self._slow_iter_keys(self.keys[parentity], branch, rev))
         self.keycache[keycache_key] = kc
         return kc[rev]
 
@@ -398,6 +401,11 @@ class Cache(object):
         else:
             kc.add(key)
         return kc
+
+    def _slow_iter_keys(self, cache, branch, rev):
+        for key in cache:
+            if cache[key][branch][rev] is not None:
+                yield key
 
     def _validate_keycache(self, cache, keycache, branch, rev, entpar):
         if not TESTING:
