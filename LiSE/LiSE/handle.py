@@ -461,19 +461,16 @@ class EngineHandle(object):
     @branching
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
-        if char in self._char_stat_cache:
-            self._char_stat_cache[char][k] = v
+        self._char_stat_cache.setdefault(char, {})[k] = v
 
     @branching
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
-        if char in self._char_stat_cache:
-            del self._char_stat_cache[char][k]
+        del self._char_stat_cache[char][k]
 
     def update_character_stats(self, char, patch):
         self._real.character[char].stat.update(patch)
-        if char in self._char_stat_cache:
-            self._char_stat_cache[char].update(patch)
+        self._char_stat_cache.setdefault(char, {}).update(patch)
 
     def update_character(self, char, patch):
         self.update_character_stats(char, patch['character'])
@@ -511,14 +508,12 @@ class EngineHandle(object):
     @branching
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
-        if char in self._node_stat_cache:
-            self._node_stat_cache[char][node][k] = v
+        self._node_stat_cache.setdefault(char, {})[node][k] = v
 
     @branching
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
-        if char in self._node_stat_cache:
-            del self._node_stat_cache[char][node][k]
+        del self._node_stat_cache[char][node][k]
 
     def node_stat_keys(self, char, node):
         return list(self._real.character[char].node[node])
@@ -766,20 +761,20 @@ class EngineHandle(object):
     @branching
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
-        if char in self._node_stat_cache:
-            self._node_stat_cache[char][thing] = statdict
-        if char in self._char_things_cache:
-            loc = statdict.pop('location')
-            nxtloc = statdict.pop('next_location', None)
-            arrt = statdict.pop('arrival_time', self.tick)
-            nxtarrt = statdict.pop('next_arrival_time', None)
-            self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
+        self._node_stat_cache.setdefault(char, {})[thing] = statdict
+        loc = statdict.pop('location')
+        nxtloc = statdict.pop('next_location', None)
+        arrt = statdict.pop('arrival_time', self.tick)
+        nxtarrt = statdict.pop('next_arrival_time', None)
+        self._char_things_cache.setdefault(char, {})[thing] = (loc, nxtloc, arrt, nxtarrt)
 
     @branching
     def add_thing(self, char, thing, loc, next_loc, statdict):
         self._real.character[char].add_thing(
             thing, loc, next_loc, **statdict
         )
+        self._node_stat_cache.setdefault(char, {})[thing] = statdict
+        self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
 
     @branching
     def place2thing(self, char, node, loc, next_loc=None):
@@ -802,11 +797,10 @@ class EngineHandle(object):
     @branching
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
-        if char in self._char_things_cache:
-            _, nxtloc, arrt, nxtarrt = self._char_things_cache[char].get(
-                thing, (loc, None, self.tick, None)
-            )
-            self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
+        _, nxtloc, arrt, nxtarrt = self._char_things_cache.setdefault(char, {}).get(
+            thing, (loc, None, self.tick, None)
+        )
+        self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
 
     def get_thing_next_location(self, char, thing):
         try:
@@ -835,10 +829,9 @@ class EngineHandle(object):
     @branching
     def set_thing_next_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['next_location'] = loc
-        if char in self._char_things_cache:
-            # if this throws KeyError the cache is bad
-            oldloc, _, arrt, nxtarrt = self._char_things_cache[char][thing]
-            self._char_things_cache[char][thing] = (oldloc, loc, arrt, nxtarrt)
+        # if this throws KeyError the cache is bad
+        oldloc, _, arrt, nxtarrt = self._char_things_cache.setdefault(char, {})[thing]
+        self._char_things_cache[char][thing] = (oldloc, loc, arrt, nxtarrt)
 
     def thing_follow_path(self, char, thing, path, weight):
         # TODO: special case of branching
@@ -872,8 +865,7 @@ class EngineHandle(object):
     @branching
     def set_place(self, char, place, statdict):
         self._real.character[char].place[place] = statdict
-        if char in self._node_stat_cache:
-            self._node_stat_cache[char][place] = statdict
+        self._node_stat_cache.setdefault(char, {})[place] = statdict
 
     def add_places_from(self, char, seq):
         # TODO: special case of branching
@@ -894,8 +886,7 @@ class EngineHandle(object):
     @branching
     def set_portal(self, char, orig, dest, statdict):
         self._real.character[char].portal[orig][dest] = statdict
-        if char in self._portal_stat_cache:
-            self._portal_stat_cache[char][orig][dest] = statdict
+        self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
 
     def character_portals(self, char):
         r = []
@@ -927,10 +918,8 @@ class EngineHandle(object):
     @branching
     def del_portal(self, char, orig, dest):
         del self._real.character[char].portal[orig][dest]
-        if char in self._portal_stat_cache:
-            del self._portal_stat_cache[char][orig][dest]
-        if char in self._char_portals_rulebooks_cache:
-            del self._char_places_cache[char][orig][dest]
+        del self._portal_stat_cache[char][orig][dest]
+        del self._char_places_cache[char][orig][dest]
 
     def get_portal_stat(self, char, orig, dest, k):
         try:
@@ -944,14 +933,12 @@ class EngineHandle(object):
     @branching
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
-        if char in self._portal_stat_cache:
-            self._portal_stat_cache[char][orig][dest][k] = v
+        self._portal_stat_cache.setdefault(char, {}).setdefault(orig, {})[dest][k] = v
 
     @branching
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
-        if char in self._portal_stat_cache:
-            del self._portal_stat_cache[char][orig][dest][k]
+        del self._portal_stat_cache[char][orig][dest][k]
 
     def portal_stat_copy(self, char, orig, dest):
         return {
@@ -1035,14 +1022,12 @@ class EngineHandle(object):
     @branching
     def add_avatar(self, char, graph, node):
         self._real.character[char].add_avatar(graph, node)
-        if char in self._char_av_cache:
-            self._char_av_cache[char][graph].add(node)
+        self._char_av_cache.setdefault(char, {})[graph].add(node)
 
     @branching
     def del_avatar(self, char, graph, node):
         self._real.character[char].del_avatar(graph, node)
-        if char in self._char_av_cache:
-            self._char_av_cache[char][graph].remove(node)
+        self._char_av_cache.setdefault(char, {})[graph].remove(node)
 
     def get_rule_actions(self, rule):
         return self._real.rule[rule].actions._cache
