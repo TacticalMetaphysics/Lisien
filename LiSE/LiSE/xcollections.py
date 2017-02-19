@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Common classes for collections in LiSE, of which most can be bound to."""
-from collections import Mapping, MutableMapping, defaultdict
+from collections import Mapping, MutableMapping
 from blinker import Signal
 
 
