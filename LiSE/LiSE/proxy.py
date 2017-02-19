@@ -1822,9 +1822,9 @@ class EngineProxy(AbstractEngine):
             return obj
         if obj[0] == 'character':
             name = self.delistify(obj[1])
-            if name not in self._chars_cache:
-                self._chars_cache[name] = CharacterProxy(self, name)
-            return self._chars_cache[name]
+            if name not in self._char_cache:
+                self._char_cache[name] = CharacterProxy(self, name)
+            return self._char_cache[name]
         elif obj[0] == 'node':
             charname = self.delistify(obj[1])
             nodename = self.delistify(obj[2])
@@ -1975,7 +1975,7 @@ class EngineProxy(AbstractEngine):
             cb(received, **kwargs)
         return received
 
-    def _upd_chars_caches(self, chardiffs, **kwargs):
+    def _upd_char_caches(self, chardiffs, **kwargs):
         deleted = set(self.character.keys())
         for (char, chardiff) in chardiffs.items():
             if char not in self._char_cache:
@@ -2002,7 +2002,7 @@ class EngineProxy(AbstractEngine):
             'command': 'get_chardiffs',
             'chars': chars
         }))
-        cbs = [self._upd_chars_caches]
+        cbs = [self._upd_char_caches]
         if cb:
             cbs.append(cb)
         self._call_with_recv(cbs)
@@ -2011,7 +2011,7 @@ class EngineProxy(AbstractEngine):
         """Update the state of all my proxy objects from the real objects."""
         if sync:
             diffs = self.handle('get_chardiffs', chars=chars)
-            self._upd_chars_caches(diffs)
+            self._upd_char_caches(diffs)
             if cb:
                 cb(diffs)
         else:
@@ -2031,7 +2031,7 @@ class EngineProxy(AbstractEngine):
                 'command': 'next_tick',
                 'chars': chars
             }))
-            args = [self._inc_tick, self._upd_chars_caches]
+            args = [self._inc_tick, self._upd_char_caches]
             if cb:
                 args.append(cb)
             if silent:
@@ -2055,7 +2055,7 @@ class EngineProxy(AbstractEngine):
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
         if char:
-            args = [self._set_time, self._upd_chars_caches]
+            args = [self._set_time, self._upd_char_caches]
             if cb:
                 args.append(cb)
             self._time_travel_thread = Thread(
@@ -2124,12 +2124,12 @@ class EngineProxy(AbstractEngine):
 
     def new_character(self, char, **attr):
         self.add_character(char, **attr)
-        return self._chars_cache[char]
+        return self._char_cache[char]
 
     def del_character(self, char):
-        if char not in self._chars_cache:
+        if char not in self._char_cache:
             raise KeyError("No such character")
-        del self._chars_cache[char]
+        del self._char_cache[char]
         del self._char_stat_cache[char]
         del self._character_places_cache[char]
         del self._things_cache[char]
@@ -2137,7 +2137,7 @@ class EngineProxy(AbstractEngine):
         self.handle(command='del_character', char=char, silent=True, branching=True)
 
     def del_node(self, char, node):
-        if char not in self._chars_cache:
+        if char not in self._char_cache:
             raise KeyError("No such character")
         if node not in self._character_places_cache[char] and \
            node not in self._things_cache[char]:
@@ -2155,7 +2155,7 @@ class EngineProxy(AbstractEngine):
         )
 
     def del_portal(self, char, orig, dest):
-        if char not in self._chars_cache:
+        if char not in self._char_cache:
             raise KeyError("No such character")
         self._character_portals_cache.delete(char, orig, dest)
         self.handle(
