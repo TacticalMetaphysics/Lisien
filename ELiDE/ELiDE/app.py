@@ -75,7 +75,7 @@ class ELiDEApp(App):
         if self.engine.time != (self.branch, self.tick):
             self.engine.time_travel(
                 self.branch, self.tick,
-                char=self.character.name,
+                chars=[self.character.name],
                 cb=self.mainscreen._update_from_chardiff
             )
 
