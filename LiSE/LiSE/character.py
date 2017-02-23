@@ -778,7 +778,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             funn,
             True
         )
-        self.dispatch(k, v)
+        self.send(key=k, val=v)
 
     def __delitem__(self, k):
         """Stop having the given sense."""
@@ -790,7 +790,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             tick,
             False
         )
-        self.dispatch(k, None)
+        self.send(key=k, val=None)
 
     def __call__(self, fun, name=None):
         """Decorate the function so it's mine now."""
@@ -866,11 +866,11 @@ class FacadePlace(MutableMapping):
             raise TypeError("Can't change names")
         self._masked.discard(k)
         self._patch[k] = v
-        self.dispatch(k, v)
+        self.send(key=k, val=v)
 
     def __delitem__(self, k):
         self._masked.add(k)
-        self.dispatch(k, None)
+        self.send(key=k, val=None)
 
 
 class FacadeThing(FacadePlace):
@@ -1029,11 +1029,11 @@ class FacadeEntityMapping(MutableMapping):
             v = self.facadecls(self.facade, v)
         self._masked.discard(k)
         self._patch[k] = v
-        self.dispatch(k, v)
+        self.send(key=k, val=v)
 
     def __delitem__(self, k):
         self._masked.add(k)
-        self.dispatch(k, None)
+        self.send(key=k, val=None)
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
@@ -1158,11 +1158,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def __setitem__(self, k, v):
             self._masked.discard(k)
             self._patch[k] = v
-            self.dispatch(k, v)
+            self.send(key=k, val=v)
 
         def __delitem__(self, k):
             self._masked.add(k)
-            self.dispatch(k, None)
+            self.send(key=k, val=None)
 
 
 class Character(AbstractCharacter, DiGraph, RuleFollower):
@@ -1295,7 +1295,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 th = cache[(self.name, thing)] = Thing(self.character, thing)
             th.clear()
             th.update(val)
-            self.send(self, key=thing, val=th)
+            self.send(key=thing, val=th)
 
         def __delitem__(self, thing):
             self[thing].delete(nochar=True)
@@ -1309,7 +1309,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine.tick,
                 None
             )
-            self.send(self, key=thing, val=None)
+            self.send(key=thing, val=None)
 
         def __repr__(self):
             return repr(dict(self))
@@ -1374,13 +1374,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             pl = cache[(self.name, place)]
             pl.clear()
             pl.update(v)
-            self.send(self, key=place, val=v)
+            self.send(key=place, val=v)
 
         def __delitem__(self, place):
             self[place].delete(nochar=True)
             self.engine._exist_node(self.character.name, place, exist=False)
             del self.engine._node_objs[(self.name, place)]
-            self.send(self, key=place, val=None)
+            self.send(key=place, val=None)
 
         def __repr__(self):
             return repr(dict(self))
@@ -1452,11 +1452,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             sucs = self._cache[nodeA]
             sucs.clear()
             sucs.update(val)
-            self.send(self, key=nodeA, val=sucs)
+            self.send(key=nodeA, val=sucs)
 
         def __delitem__(self, nodeA):
             super().__delitem__(nodeA)
-            self.send(self, key=nodeA, val=None)
+            self.send(key=nodeA, val=None)
 
         class Successors(GraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
@@ -1498,7 +1498,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 p = self.engine._portal_objs[key]
                 p.clear()
                 p.update(value)
-                self.dispatch(nodeB, p)
+                self.send(key=nodeB, val=p)
 
             def __delitem__(self, nodeB):
                 (branch, tick) = self.engine.time
@@ -1514,7 +1514,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     ]
                 except KeyError:
                     pass
-                self.dispatch(nodeB, None)
+                self.send(key=nodeB, val=None)
 
     class PortalPredecessorsMapping(
             DiGraphPredecessorsMapping,
@@ -1732,11 +1732,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __setitem__(self, k, v):
             assert(v is not None)
             self._real[k] = v
-            self.send(self, key=k, val=v)
+            self.send(key=k, val=v)
 
         def __delitem__(self, k):
             del self._real[k]
-            self.send(self, key=k, val=None)
+            self.send(key=k, val=None)
 
     def facade(self):
         return Facade(self)
@@ -1766,7 +1766,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def new_node(self, name, **kwargs):
         return self.new_place(name, **kwargs)
 
-    def add_thing(self, name, location, next_location=None, **kwargs):
+    def add_thing(self, name, location, **kwargs):
         """Create a Thing, set its location and next_location (if provided),
         and set its initial attributes from the keyword arguments (if
         any).
@@ -1779,9 +1779,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         super().add_node(name, **kwargs)
         if isinstance(location, Node):
             location = location.name
-        if isinstance(next_location, Node):
-            next_location = next_location.name
-        self.place2thing(name, location, next_location)
+        self.place2thing(name, location)
 
     def add_things_from(self, seq):
         for tup in seq:
@@ -1792,25 +1790,26 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.add_thing(name, location, next_loc, **kwargs)
 
     def new_thing(
-            self, name, location, next_location=None, statdict={}, **kwargs
+            self, name, location, statdict={}, **kwargs
     ):
         kwargs.update(statdict)
         if name not in self.node:
-            self.add_thing(name, location, next_location, **kwargs)
+            self.add_thing(name, location, **kwargs)
             return self.thing[name]
         n = 0
         while name + str(n) in self.node:
             n += 1
-        self.add_thing(name + str(n), location, next_location, **kwargs)
+        self.add_thing(name + str(n), location, **kwargs)
         return self.thing[name]
 
-    def place2thing(self, name, location, next_location=None):
-        """Turn a Place into a Thing with the given location and (if provided)
-        next_location. It will keep all its attached Portals.
+    def place2thing(self, name, location):
+        """Turn a Place into a Thing with the given.
+        
+        It will keep all its attached Portals.
 
         """
         self.engine._set_thing_loc_and_next(
-            self.name, name, location, next_location
+            self.name, name, location, None
         )
 
     def thing2place(self, name):
