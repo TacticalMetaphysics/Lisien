@@ -611,17 +611,3 @@ class EdgesCache(Cache):
                 = self.db._make_edge(self.db.graph[graph], nodeA, nodeB, idx)
         Cache.store(self, graph, nodeA, nodeB, idx, branch, rev, ex)
         self.predecessors[(graph, nodeB)][nodeA][idx][branch][rev] = ex
-        # am i doin it right??
-        kc = self._update_keycache(
-            (graph, nodeA), branch, rev, (nodeB, idx), ex
-        )
-        self._validate_keycache(
-            self.parents[(graph, nodeA)][(nodeB, idx)],
-            kc,
-            branch, rev, (graph, nodeA, nodeB, idx)
-        )
-        self._validate_keycache(
-            self.keys[(graph, nodeA, nodeB, idx)],
-            kc,
-            branch, rev, (graph, nodeA, nodeB, idx)
-        )
