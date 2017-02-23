@@ -530,8 +530,7 @@ class GraphEdgeMapping(NeatMapping, Signal):
 
 
 class AbstractSuccessors(GraphEdgeMapping):
-    graph = getatt('container.graph')
-    db = getatt('container.graph.db')
+    db = getatt('graph.db')
     _metacache = defaultdict(dict)
     created = Signal()
     deleted = Signal()
@@ -542,6 +541,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __init__(self, container, nodeA):
         """Store container and node"""
+        super().__init__(container.graph)
         self.container = container
         self.nodeA = nodeA
 
