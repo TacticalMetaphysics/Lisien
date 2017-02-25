@@ -404,25 +404,19 @@ class Cache(object):
 
     def _slow_iter_keys(self, cache, branch, rev):
         for key in cache:
-            if cache[key][branch][rev] is not None:
-                yield key
+            for (branch, rev) in self.db._active_branches(branch, rev):
+                try:
+                    if cache[key][branch][rev] is not None:
+                        yield key
+                except HistoryError as err:
+                    if err.deleted:
+                        break
 
     def _validate_keycache(self, cache, keycache, branch, rev, entpar):
         if not TESTING:
             return
         kc = keycache
-        correct = set()
-        for key in cache:
-            try:
-                if cache[key][branch][rev] is not None:
-                    correct.add(key)
-            except HistoryError as err:
-                if err.deleted:
-                    continue
-                for (b, r) in self.db._active_branches(branch, rev):
-                    if b in cache[key] and r in cache[key][b]:
-                        correct.add(key)
-                        break
+        correct = set(self._slow_iter_keys(cache, branch, rev))
         assert kc == correct, """
         Invalid keycache for {} at branch {}, rev {}
         """.format(entpar, branch, rev)
