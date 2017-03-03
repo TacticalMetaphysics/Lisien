@@ -80,7 +80,7 @@ class ORM(object):
         # someplace to be.
         branch2do = deque(['master'])
         while branch2do:
-            branch = branch2do.pop()
+            branch = branch2do.popleft()
             for row in graphval[branch]:
                 self._graph_val_cache.store(*row)
             if branch in self._childbranch:
@@ -88,7 +88,7 @@ class ORM(object):
         self._load_graphs()
         branch2do = deque(['master'])
         while branch2do:
-            branch = branch2do.pop()
+            branch = branch2do.popleft()
             for row in nodes[branch]:
                 self._nodes_cache.store(*row)
             for row in edges[branch]:
