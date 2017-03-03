@@ -75,12 +75,20 @@ class ORM(object):
         ) in self.query.edge_val_dump():
             edgeval[branch].append((graph, u, v, i, key, branch, rev, val))
         # Make sure to load in the correct order, so that
-        # caches for child branches get built after their parents
+        # caches for child branches get built after their parents.
+        # Do the graphs first, so that everything else will have
+        # someplace to be.
         branch2do = deque(['master'])
         while branch2do:
             branch = branch2do.pop()
             for row in graphval[branch]:
                 self._graph_val_cache.store(*row)
+            if branch in self._childbranch:
+                branch2do.extend(self._childbranch[branch])
+        self._load_graphs()
+        branch2do = deque(['master'])
+        while branch2do:
+            branch = branch2do.pop()
             for row in nodes[branch]:
                 self._nodes_cache.store(*row)
             for row in edges[branch]:
@@ -91,7 +99,6 @@ class ORM(object):
                 self._edge_val_cache.store(*row)
             if branch in self._childbranch:
                 branch2do.extend(self._childbranch[branch])
-        self._load_graphs()
 
     def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
