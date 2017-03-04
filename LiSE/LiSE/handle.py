@@ -47,7 +47,7 @@ class EngineHandle(object):
         ``(loglevel, message)``.
 
         """
-        self._real = Engine(*args, logfun=self.log, **kwargs)
+        self._real = Engine(*args, **kwargs)
         self._logq = logq
         self._muted_chars = set()
         self.branch = self._real.branch
@@ -244,9 +244,6 @@ class EngineHandle(object):
         new = self._strings_cache[lang] = self.strings_copy(lang)
         return dict_diff(old, new)
 
-    def count_strings(self):
-        return len(self._real.string)
-
     def get_string(self, k):
         return self._real.string[k]
 
@@ -273,12 +270,6 @@ class EngineHandle(object):
         del self._real.eternal[k]
         del self._eternal_cache[k]
 
-    def eternal_keys(self):
-        return list(self._real.eternal.keys())
-
-    def eternal_len(self):
-        return len(self._real.eternal)
-
     def have_eternal(self, k):
         return k in self._real.eternal
 
@@ -303,12 +294,6 @@ class EngineHandle(object):
     def del_universal(self, k):
         del self._real.universal[k]
         del self._universal_cache[k]
-
-    def universal_keys(self):
-        return list(self._real.universal.keys())
-
-    def universal_len(self):
-        return len(self._real.universal)
 
     def universal_copy(self):
         return dict(self._real.universal)
@@ -340,18 +325,6 @@ class EngineHandle(object):
         ):
             if char in cache:
                 del cache[char]
-
-    def character_has_stat(self, char, k):
-        return k in self._real.character[char].stat
-
-    def get_character_stat(self, char, k):
-        try:
-            return self.unwrap_character_stat(
-                char, k,
-                self._real.character[char].stat[k]
-            )
-        except KeyError:
-            return None
 
     def character_stat_copy(self, char):
         return {
@@ -477,33 +450,12 @@ class EngineHandle(object):
         self.update_nodes(char, patch['node'])
         self.update_portals(char, patch['portal'])
 
-    def character_stats(self, char):
-        return list(self._real.character[char].stat.keys())
-
-    def character_stats_len(self, char):
-        return len(self._real.character[char].stat)
-
     def characters(self):
         return list(self._real.character.keys())
-
-    def characters_len(self):
-        return len(self._real.character)
-
-    def have_character(self, char):
-        return char in self._real.character
 
     @branching
     def set_character(self, char, v):
         self._real.character[char] = v
-
-    def get_node_stat(self, char, node, k):
-        try:
-            return self.unwrap_node_stat(
-                char, node, k,
-                self._real.character[char].node[node][k]
-            )
-        except KeyError:
-            return None
 
     @branching
     def set_node_stat(self, char, node, k, v):
@@ -514,9 +466,6 @@ class EngineHandle(object):
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
         del self._node_stat_cache[char][node][k]
-
-    def node_stat_keys(self, char, node):
-        return list(self._real.character[char].node[node])
 
     def node_stat_copy(self, char, node):
         """Return a node's stats, prepared for pickling, in a dictionary."""
@@ -559,14 +508,6 @@ class EngineHandle(object):
             if diff:
                 r[node] = diff
         return r
-
-    def node_stat_len(self, char, node):
-        """Return the number of stats a node has."""
-        return len(self._real.character[char].node[node])
-
-    def node_has_stat(self, char, node, k):
-        """Return whether a stat is presently set for a node."""
-        return k in self._real.character[char].node[node]
 
     def update_node(self, char, node, patch):
         """Change a node's stats according to a dictionary.
@@ -666,14 +607,6 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_things_len(self, char):
-        """How many things are in this character?"""
-        return len(self._real.character[char].thing)
-
-    def character_has_thing(self, char, thing):
-        """Does this character have this thing?"""
-        return thing in self._real.character[char].thing
-
     def character_places(self, char):
         return list(self._real.character[char].place)
 
@@ -686,41 +619,14 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_places_len(self, char):
-        return len(self._real.character[char].place)
-
-    def character_has_place(self, char, place):
-        return place in self._real.character[char].place
-
-    def character_nodes(self, char):
-        return list(self._real.character[char].node.keys())
-
-    def character_predecessor_nodes(self, char):
-        return list(self._real.character[char].adj.keys())
-
-    def node_has_predecessor(self, char, node):
-        return node in self._real.character[char].pred.keys()
-
-    def node_predecessors_len(self, char, node):
-        return len(self._real.character[char].pred[node])
-
     def node_predecessors(self, char, node):
         return list(self._real.character[char].pred[node].keys())
-
-    def node_precedes(self, char, dest, orig):
-        return orig in self._real.character[char].pred[dest]
 
     def character_set_node_predecessors(self, char, node, preds):
         self._real.character[char].pred[node] = preds
 
     def character_del_node_predecessors(self, char, node):
         del self._real.character[char].pred[node]
-
-    def character_nodes_len(self, char):
-        return len(self._real.character[char].node)
-
-    def character_has_node(self, char, node):
-        return node in self._real.character[char].node
 
     def node_successors(self, char, node):
         return list(self._real.character[char].portal[node].keys())
@@ -734,9 +640,6 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_node_successors_len(self, char, node):
-        return len(self._real.character[char].adj[node])
-
     def character_set_node_successors(self, char, node, val):
         self._real.character[char].adj[node] = val
 
@@ -745,9 +648,6 @@ class EngineHandle(object):
 
     def nodes_connected(self, char, orig, dest):
         return dest in self._real.character[char].portal[orig]
-
-    def character_len_node_successors(self, char, orig):
-        return len(self._real.character[char].node[orig])
 
     def init_thing(self, char, thing, statdict={}):
         if thing in self._real.character[char].thing:
@@ -777,8 +677,8 @@ class EngineHandle(object):
         self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
 
     @branching
-    def place2thing(self, char, node, loc, next_loc=None):
-        self._real.character[char].place2thing(node, loc, next_loc)
+    def place2thing(self, char, node, loc):
+        self._real.character[char].place2thing(node, loc)
 
     @branching
     def thing2place(self, char, node):
@@ -801,18 +701,6 @@ class EngineHandle(object):
             thing, (loc, None, self.tick, None)
         )
         self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
-
-    def get_thing_next_location(self, char, thing):
-        try:
-            return self._real.character[char].thing[thing]['next_location']
-        except KeyError:
-            return None
-
-    def get_thing_loc_and_next(self, char, thing):
-        try:
-            return self._real.character[char].thing[thing]._loc_and_next()
-        except KeyError:
-            return (None, None)
 
     def get_thing_special_stats(self, char, thing):
         try:
@@ -921,15 +809,6 @@ class EngineHandle(object):
         del self._portal_stat_cache[char][orig][dest]
         del self._char_places_cache[char][orig][dest]
 
-    def get_portal_stat(self, char, orig, dest, k):
-        try:
-            return self.unwrap_portal_stat(
-                char, orig, dest, k,
-                self._real.character[char].portal[orig][dest][k]
-            )
-        except KeyError:
-            return None
-
     @branching
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
@@ -966,15 +845,6 @@ class EngineHandle(object):
                     r[orig][dest] = diff
         return r
 
-    def portal_stats(self, char, orig, dest):
-        return list(self._real.character[char][orig][dest].keys())
-
-    def len_portal_stats(self, char, orig, dest):
-        return len(self._real.character[char][orig][dest])
-
-    def portal_has_stat(self, char, orig, dest, k):
-        return k in self._real.character[char][orig][dest]
-
     @branching
     def update_portal(self, char, orig, dest, patch):
         character = self._real.character[char]
@@ -992,33 +862,6 @@ class EngineHandle(object):
             branch = self.update_portal(char, orig, dest, ppatch)
         return branch
 
-    def character_avatars(self, char):
-        return list(self._real.character[char].avatars())
-
-    def character_avatar_graphs(self, char):
-        return list(self._real.character[char].avatar.keys())
-
-    def character_avatars_in_graph(self, char, graph):
-        r = list(self._real.character[char].avatar[graph].keys())
-        self.debug(repr(r))
-        return r
-
-    def count_character_avatar_graphs(self, char):
-        return len(self._real.character[char].avatar)
-
-    def count_character_avatars_in_graph(self, char, graph):
-        return len(self._real.character[char].avatar[graph])
-
-    def character_has_avatar_in(self, char, graph):
-        return graph in self._real.character[char].avatar
-
-    def character_has_avatar(self, char, graph, node):
-        av = self._real.character[char].avatar
-        return graph in av and node in av[graph]
-
-    def get_character_avatar(self, char, graph):
-        return self._real.character[char].avatar[graph].name
-
     @branching
     def add_avatar(self, char, graph, node):
         self._real.character[char].add_avatar(graph, node)
@@ -1028,33 +871,6 @@ class EngineHandle(object):
     def del_avatar(self, char, graph, node):
         self._real.character[char].del_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)
-
-    def get_rule_actions(self, rule):
-        return self._real.rule[rule].actions._cache
-
-    def set_rule_actions(self, rule, actions):
-        self._real.rule[rule].actions = actions
-
-    def get_rule_triggers(self, rule):
-        return self._real.rule[rule].triggers._cache
-
-    def set_rule_triggers(self, rule, triggers):
-        self._real.rule[rule].triggers = triggers
-
-    def get_rule_prereqs(self, rule):
-        return self._real.rule[rule].prereqs._cache
-
-    def set_rule_prereqs(self, rule, l):
-        self._real.rule[rule].prereqs = l
-
-    def list_all_rules(self):
-        return list(self._real.rule.keys())
-
-    def count_all_rules(self):
-        return len(self._real.rule)
-
-    def have_rule(self, rule):
-        return rule in self._real.rule
 
     def new_empty_rule(self, rule):
         self._real.rule.new_empty(rule)
@@ -1109,33 +925,6 @@ class EngineHandle(object):
 
     def all_rules_diff(self):
         return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}
-
-    def get_character_rulebook(self, char):
-        return self._real.character[char].rulebook.name
-
-    def get_node_rulebook(self, char, node):
-        try:
-            return self._real.query.node_rulebook(char, node)
-        except KeyError:
-            return None
-
-    def set_node_rulebook(self, char, node, rulebook):
-        self._real.character[char].node[node].rulebook = rulebook
-
-    def get_portal_rulebook(self, char, orig, dest):
-        return self._real.character[char].portal[orig][dest].rulebook.name
-
-    def set_portal_rulebook(self, char, orig, dest, rulebook):
-        self._real.character[char].portal[orig][dest].rulebook = rulebook
-
-    def rulebooks(self):
-        return list(self._real.rulebook.keys())
-
-    def len_rulebooks(self):
-        return len(self._real.rulebook)
-
-    def have_rulebook(self, rulebook):
-        return rulebook in self._real.rulebook
 
     def source_copy(self, store):
         return dict(getattr(self._real, store).iterplain())
