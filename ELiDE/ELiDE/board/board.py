@@ -314,8 +314,6 @@ class Board(RelativeLayout):
             Clock.schedule_once(self.on_character, 0)
             return
 
-        currently = tuple(self.engine.time)
-        self.engine.time = (self.branch, self.tick)
         if hasattr(self.parent, 'scroll_x'):
             self.parent.scroll_x = self.character.stat.setdefault(
                 '_scroll_x', 0.0
@@ -324,7 +322,6 @@ class Board(RelativeLayout):
             self.parent.scroll_y = self.character.stat.setdefault(
                 '_scroll_y', 0.0
             )
-        self.engine.time = currently
 
     @trigger
     def kv_updated(self, *args):
@@ -415,11 +412,8 @@ class Board(RelativeLayout):
         """Wait for the scroll to stop, then store where it ended."""
         if self.parent.effect_x.velocity \
            == self.parent.effect_y.velocity == 0:
-            currently = tuple(self.engine.time)
-            self.engine.time = (self.branch, self.tick)
             self.character.stat['_scroll_x'] = self.parent.scroll_x
             self.character.stat['_scroll_y'] = self.parent.scroll_y
-            self.engine.time = currently
             self.tracking_vel = False
             return
         Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
@@ -724,8 +718,6 @@ class Board(RelativeLayout):
 
         # remove widgets that don't represent anything anymore
         Logger.debug("Board: updating")
-        currently = tuple(self.engine.time)
-        self.engine.time = (self.branch, self.tick)
         self.remove_absent_pawns()
         self.remove_absent_spots()
         self.remove_absent_arrows()
@@ -737,7 +729,6 @@ class Board(RelativeLayout):
             spot for spot in self.spot.values()
             if not ('_x' in spot.remote and '_y' in spot.remote)
         ]
-        self.engine.time = currently
 
     def update_from_diff(self, chardiff, *args):
         """Apply the changes described in the dict ``chardiff``."""
