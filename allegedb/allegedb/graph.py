@@ -548,7 +548,7 @@ class AbstractSuccessors(GraphEdgeMapping):
     def __iter__(self):
         """Iterate over node IDs that have an edge with my nodeA"""
         if self.db.caching:
-            return self.db._edges_cache.iter_entities(
+            return self.db._edges_cache.iter_successors(
                 self.graph.name,
                 self.nodeA,
                 self.db.branch,
@@ -564,11 +564,10 @@ class AbstractSuccessors(GraphEdgeMapping):
     def __contains__(self, nodeB):
         """Is there an edge leading to ``nodeB`` at the moment?"""
         if self.db.caching:
-            return self.db._edges_cache.contains_entity(
+            return self.db._edges_cache.has_successor(
                 self.graph.name,
                 self.nodeA,
                 nodeB,
-                0,
                 self.db.branch,
                 self.db.rev
             )
@@ -584,6 +583,13 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __len__(self):
         """How many nodes touch an edge shared with my nodeA?"""
+        if self.db.caching:
+            return self._cache.count_successors(
+                self.graph.name,
+                self.nodeA,
+                self.db.branch,
+                self.db.rev
+            )
         n = 0
         for nodeB in iter(self):
             n += 1
@@ -779,30 +785,12 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
             """
             if self.db.caching:
-                cache = self.db._edges_cache.predecessors[
-                    (self.graph.name, self.nodeB)]
-                for nodeA in cache:
-                    seen = False
-                    for idx in cache[nodeA]:
-                        if seen:
-                            break
-                        for (branch, rev) in self.db._active_branches():
-                            if branch in cache[nodeA][idx]:
-                                v = cache[nodeA][idx][branch][rev]
-                                self.db._edges_cache.store(
-                                    self.graph.name,
-                                    nodeA,
-                                    self.nodeB,
-                                    idx,
-                                    branch,
-                                    rev,
-                                    v
-                                )
-                                if v:
-                                    yield nodeA
-                                seen = True
-                                break
-                return
+                return self.db._edges_cache.iter_predecessors(
+                    self.graph.name,
+                    self.nodeB,
+                    self.db.branch,
+                    self.db.rev
+                )
             return self.db.query.nodeAs(
                 self.graph.name,
                 self.nodeB,
@@ -813,23 +801,13 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
         def __contains__(self, nodeA):
             """Is there an edge from ``nodeA`` at the moment?"""
             if self.db.caching:
-                cache = self.db._edges_cache.predecessors[
-                    (self.graph.name, self.nodeB)][nodeA]
-                for (branch, rev) in self.db._active_branches():
-                    for idx in cache:
-                        if branch in cache[idx]:
-                            v = cache[idx][branch][rev]
-                            self.db._edges_cache.store(
-                                self.graph.name,
-                                nodeA,
-                                self.nodeB,
-                                idx,
-                                branch,
-                                rev,
-                                v
-                            )
-                            return v
-                return False
+                return self.db._edges_cache.has_predecessor(
+                    self.graph.name,
+                    self.nodeB,
+                    nodeA,
+                    self.db.branch,
+                    self.db.rev
+                )
             for i in self.db.query.multi_edges(
                     self.graph.name,
                     self.nodeA,
@@ -842,6 +820,13 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
         def __len__(self):
             """How many edges exist at this rev of this branch?"""
+            if self.db.caching:
+                return self.db._edges_cache.count_predecessors(
+                    self.graph.name,
+                    self.nodeB,
+                    self.db.branch,
+                    self.db.rev
+                )
             n = 0
             for nodeA in iter(self):
                 n += 1
