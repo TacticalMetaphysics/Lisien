@@ -787,28 +787,28 @@ class QueryEngine(object):
             cursor.execute('SELECT * FROM graph_val;')
         except OperationalError:
             cursor.execute(self.strings['create_graph_val'])
-            cursor.execute(self.strings['index_graph_val'])
+            cursor.execute(self.strings['index_graph_val_time'])
         try:
             cursor.execute('SELECT * FROM nodes;')
         except OperationalError:
             cursor.execute(self.strings['create_nodes'])
-            cursor.execute(self.strings['index_nodes'])
+            cursor.execute(self.strings['index_nodes_time'])
 
         try:
             cursor.execute('SELECT * FROM node_val;')
         except OperationalError:
             cursor.execute(self.strings['create_node_val'])
-            cursor.execute(self.strings['index_node_val'])
+            cursor.execute(self.strings['index_node_val_time'])
         try:
             cursor.execute('SELECT * FROM edges;')
         except OperationalError:
             cursor.execute(self.strings['create_edges'])
-            cursor.execute(self.strings['index_edges'])
+            cursor.execute(self.strings['index_edges_time'])
         try:
             cursor.execute('SELECT * FROM edge_val;')
         except OperationalError:
             cursor.execute(self.strings['create_edge_val'])
-            cursor.execute(self.strings['index_edge_val'])
+            cursor.execute(self.strings['index_edge_val_time'])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""
