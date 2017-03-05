@@ -82,7 +82,7 @@ class CachingProxy(MutableMapping, Signal):
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
-                    self.changed.send(self, key=k, val=None)
+                    self.send(self, key=k, val=None)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
                 self.send(self, key=k, val=v)
