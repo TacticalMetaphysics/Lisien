@@ -850,9 +850,9 @@ class CharSuccessorsMappingProxy(CachingProxy):
                         o, d
                     )
             else:
-                if o in self._cache and d in self._cache[o]._cache:
-                    del self._cache[o]._cache[d]
-                    if not self._cache[o]._cache:
+                if o in self._cache and d in self._cache[o]:
+                    del self._cache[o][d]
+                    if len(self._cache[o]) == 0:
                         del self._cache[o]
 
     def _get_diff(self):
