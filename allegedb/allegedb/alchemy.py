@@ -484,9 +484,9 @@ def queries_for_table_dict(table):
             table['nodes'].c.extant
         ]).order_by(
             table['nodes'].c.graph,
-            table['nodes'].c.node,
             table['nodes'].c.branch,
-            table['nodes'].c.rev
+            table['nodes'].c.rev,
+            table['nodes'].c.node
         ),
         'graph_val_items': select(
             [
@@ -510,9 +510,9 @@ def queries_for_table_dict(table):
             table['graph_val'].c.value
         ]).order_by(
             table['graph_val'].c.graph,
-            table['graph_val'].c.key,
             table['graph_val'].c.branch,
-            table['graph_val'].c.rev
+            table['graph_val'].c.rev,
+            table['graph_val'].c.key
         ),
         'graph_val_get': select(
             [
@@ -570,9 +570,9 @@ def queries_for_table_dict(table):
         ]).order_by(
             table['node_val'].c.graph,
             table['node_val'].c.node,
-            table['node_val'].c.key,
             table['node_val'].c.branch,
-            table['node_val'].c.rev
+            table['node_val'].c.rev,
+            table['node_val'].c.key
         ),
         'node_val_get': select(
             [
@@ -683,11 +683,11 @@ def queries_for_table_dict(table):
             table['edges'].c.extant
         ]).order_by(
             table['edges'].c.graph,
+            table['edges'].c.branch,
+            table['edges'].c.rev,
             table['edges'].c.nodeA,
             table['edges'].c.nodeB,
-            table['edges'].c.idx,
-            table['edges'].c.branch,
-            table['edges'].c.rev
+            table['edges'].c.idx
         ),
         'edge_exist_ins': table['edges'].insert().prefix_with('OR REPLACE').values(
             graph=bindparam('graph'),
@@ -724,9 +724,9 @@ def queries_for_table_dict(table):
             table['edge_val'].c.nodeA,
             table['edge_val'].c.nodeB,
             table['edge_val'].c.idx,
-            table['edge_val'].c.key,
             table['edge_val'].c.branch,
-            table['edge_val'].c.rev
+            table['edge_val'].c.rev,
+            table['edge_val'].c.key
         ),
         'edge_val_items': select(
             [
