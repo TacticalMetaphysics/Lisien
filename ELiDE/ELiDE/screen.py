@@ -265,12 +265,12 @@ class MainScreen(Screen):
         if self.playbut.state == 'normal':
             return
         elif not hasattr(self, '_old_time'):
-            self._old_time = tuple(self.app.time)
+            self._old_time = (self.app.branch, self.app.tick)
             self.app.engine.next_tick(
                 chars=[self.app.character_name],
                 cb=self._update_from_chardiff
             )
-        elif self._old_time == self.app.time:
+        elif self._old_time == (self.app.branch, self.app.tick):
             return
         else:
             del self._old_time
