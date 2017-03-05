@@ -376,13 +376,16 @@ class Cache(object):
         keycache_key = parentity + (branch,)
         if keycache_key in keycache:
             kc = keycache[keycache_key]
-            if not kc.has_exact_rev(rev):
-                if kc.rev_before(rev) == rev - 1:
-                    kc[rev] = kc[rev].copy()
-                else:
-                    kc[rev] = set(self._slow_iter_keys(keys[parentity], branch, rev))
-            return kc[rev]
-        kc = WindowDict()
+            try:
+                if not kc.has_exact_rev(rev):
+                    if kc.rev_before(rev) == rev - 1:
+                        kc[rev] = kc[rev].copy()
+                    else:
+                        kc[rev] = set(self._slow_iter_keys(keys[parentity], branch, rev))
+                return kc[rev]
+            except HistoryError:
+                pass
+        kc = FuturistWindowDict()
         for (b, r) in self.db._active_branches(branch, rev):
             other_branch_key = parentity + (b,)
             if other_branch_key in keycache and \
