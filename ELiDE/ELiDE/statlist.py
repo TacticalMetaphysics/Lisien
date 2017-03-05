@@ -46,19 +46,29 @@ class StatRowListItem(Widget):
     config = DictProperty()
     "Dictionary of some parameters for how to present myself."
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(value=self._bind_value)
+
+    def _bind_value(self, *args):
+        self.bind(value=self._push)
+        self.unbind(value=self._bind_value)
+
     def on_listen(self, *args):
         self.listen(self._pull)
         self._pull()
-
-    def on_value(self, *args):
-        self.bind(value=self._push)
 
     @trigger
     def _push(self, *args):
         self.sett(self.key, self.value)
 
     def _really_pull(self, *args):
-        self.value = self.gett(self.key)
+        self.unbind(value=self._push)
+        try:
+            self.value = self.gett(self.key)
+        except KeyError:
+            Logger.info('StatRowListItem: {} deleted'.format(self.key))
+        self.bind(value=self._push)
 
     def _pull(self, *args, **kwargs):
         Clock.unschedule(self._really_pull)
