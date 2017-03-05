@@ -149,35 +149,39 @@ def tables_for_meta(meta):
 
 def indices_for_table_dict(table):
     return {
-        'graph_val': Index(
-            "graph_val_idx",
+        'graph_val_time': Index(
+            'graph_val_time_idx',
             table['graph_val'].c.graph,
-            table['graph_val'].c.key
+            table['graph_val'].c.branch,
+            table['graph_val'].c.rev
         ),
-        'nodes': Index(
-            "nodes_idx",
+        'nodes_time': Index(
+            'nodes_time_idx',
             table['nodes'].c.graph,
-            table['nodes'].c.node
+            table['nodes'].c.branch,
+            table['nodes'].c.rev
         ),
-        'node_val': Index(
-            "node_val_idx",
+        'node_val_time': Index(
+            'node_val_time_idx',
             table['node_val'].c.graph,
-            table['node_val'].c.node
+            table['node_val'].c.node,
+            table['node_val'].c.branch,
+            table['node_val'].c.rev
         ),
-        'edges': Index(
-            "edges_idx",
+        'edges_time': Index(
+            'edges_time_idx',
             table['edges'].c.graph,
-            table['edges'].c.nodeA,
-            table['edges'].c.nodeB,
-            table['edges'].c.idx
+            table['edges'].c.branch,
+            table['edges'].c.rev
         ),
-        'edge_val': Index(
-            "edge_val_idx",
+        'edge_val_time': Index(
+            'edge_val_time_idx',
             table['edge_val'].c.graph,
             table['edge_val'].c.nodeA,
             table['edge_val'].c.nodeB,
             table['edge_val'].c.idx,
-            table['edge_val'].c.key
+            table['edge_val'].c.branch,
+            table['edge_val'].c.rev
         )
     }
 
