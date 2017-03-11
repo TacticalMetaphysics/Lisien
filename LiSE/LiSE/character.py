@@ -723,7 +723,7 @@ class CharacterSense(object):
         return r
 
 
-class CharacterSenseMapping(MutableMapping, RuleFollower):
+class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
 
     """Used to view other Characters as seen by one, via a particular sense."""
 
@@ -734,6 +734,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
 
     def __init__(self, character):
         """Store the character."""
+        super().__init__()
         self.character = character
 
     def __iter__(self):
@@ -778,7 +779,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             funn,
             True
         )
-        self.send(key=k, val=v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Stop having the given sense."""
@@ -790,7 +791,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             tick,
             False
         )
-        self.send(key=k, val=None)
+        self.send(self, key=k, val=None)
 
     def __call__(self, fun, name=None):
         """Decorate the function so it's mine now."""
@@ -803,7 +804,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
         self[name] = fun
 
 
-class FacadePlace(MutableMapping):
+class FacadePlace(MutableMapping, Signal):
 
     """Lightweight analogue of Place for Facade use."""
 
@@ -829,6 +830,7 @@ class FacadePlace(MutableMapping):
         """
         self._patch = kwargs
         self._masked = set()
+        super().__init__()
         if isinstance(real_or_name, Place) or \
            isinstance(real_or_name, FacadePlace):
             self._real = real_or_name
@@ -866,11 +868,11 @@ class FacadePlace(MutableMapping):
             raise TypeError("Can't change names")
         self._masked.discard(k)
         self._patch[k] = v
-        self.send(key=k, val=v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         self._masked.add(k)
-        self.send(key=k, val=None)
+        self.send(self, key=k, val=None)
 
 
 class FacadeThing(FacadePlace):
@@ -972,7 +974,7 @@ class FacadePortal(FacadePlace):
         return self.facade.node[self._real['destination']]
 
 
-class FacadeEntityMapping(MutableMapping):
+class FacadeEntityMapping(MutableMapping, Signal):
 
     """Mapping that contains entities in a Facade.
 
@@ -985,6 +987,7 @@ class FacadeEntityMapping(MutableMapping):
 
     def __init__(self, facade):
         """Store the facade."""
+        super().__init__()
         self.facade = facade
         self._patch = {}
         self._masked = set()
@@ -1029,11 +1032,11 @@ class FacadeEntityMapping(MutableMapping):
             v = self.facadecls(self.facade, v)
         self._masked.discard(k)
         self._patch[k] = v
-        self.send(key=k, val=v)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         self._masked.add(k)
-        self.send(key=k, val=None)
+        self.send(self, key=k, val=None)
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
@@ -1114,12 +1117,13 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def _get_inner_map(self):
             return self.facade.character.preportal
 
-    class StatMapping(MutableMapping):
+    class StatMapping(MutableMapping, Signal):
         @property
         def _dispatch_cache(self):
             return self
 
         def __init__(self, facade):
+            super().__init__()
             self.facade = facade
             self._patch = {}
             self._masked = set()
@@ -1158,11 +1162,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def __setitem__(self, k, v):
             self._masked.discard(k)
             self._patch[k] = v
-            self.send(key=k, val=v)
+            self.send(self, key=k, val=v)
 
         def __delitem__(self, k):
             self._masked.add(k)
-            self.send(key=k, val=None)
+            self.send(self, key=k, val=None)
 
 
 class Character(AbstractCharacter, DiGraph, RuleFollower):
@@ -1295,7 +1299,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 th = cache[(self.name, thing)] = Thing(self.character, thing)
             th.clear()
             th.update(val)
-            self.send(key=thing, val=th)
+            self.send(self, key=thing, val=th)
 
         def __delitem__(self, thing):
             self[thing].delete(nochar=True)
@@ -1309,7 +1313,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.engine.tick,
                 None
             )
-            self.send(key=thing, val=None)
+            self.send(self, key=thing, val=None)
 
         def __repr__(self):
             return repr(dict(self))
@@ -1374,13 +1378,13 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             pl = cache[(self.name, place)]
             pl.clear()
             pl.update(v)
-            self.send(key=place, val=v)
+            self.send(self, key=place, val=v)
 
         def __delitem__(self, place):
             self[place].delete(nochar=True)
             self.engine._exist_node(self.character.name, place, exist=False)
             del self.engine._node_objs[(self.name, place)]
-            self.send(key=place, val=None)
+            self.send(self, key=place, val=None)
 
         def __repr__(self):
             return repr(dict(self))
@@ -1452,11 +1456,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             sucs = self._cache[nodeA]
             sucs.clear()
             sucs.update(val)
-            self.send(key=nodeA, val=sucs)
+            self.send(self, key=nodeA, val=sucs)
 
         def __delitem__(self, nodeA):
             super().__delitem__(nodeA)
-            self.send(key=nodeA, val=None)
+            self.send(self, key=nodeA, val=None)
 
         class Successors(GraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
@@ -1467,6 +1471,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             def _cache(self):
                 return {}
 
+            @staticmethod
             def send(self, **kwargs):
                 """Call all listeners to ``nodeB`` and to my ``nodeA``."""
                 super().send(self, **kwargs)
@@ -1498,7 +1503,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 p = self.engine._portal_objs[key]
                 p.clear()
                 p.update(value)
-                self.send(key=nodeB, val=p)
+                self.send(self, key=nodeB, val=p)
 
             def __delitem__(self, nodeB):
                 (branch, tick) = self.engine.time
@@ -1514,7 +1519,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     ]
                 except KeyError:
                     pass
-                self.send(key=nodeB, val=None)
+                self.send(self, key=nodeB, val=None)
 
     class PortalPredecessorsMapping(
             DiGraphPredecessorsMapping,
@@ -1732,11 +1737,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __setitem__(self, k, v):
             assert(v is not None)
             self._real[k] = v
-            self.send(key=k, val=v)
+            self.send(self, key=k, val=v)
 
         def __delitem__(self, k):
             del self._real[k]
-            self.send(key=k, val=None)
+            self.send(self, key=k, val=None)
 
     def facade(self):
         return Facade(self)
