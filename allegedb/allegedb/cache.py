@@ -613,10 +613,26 @@ class EdgesCache(Cache):
                 break
 
     def _forward_destcache(self, graph, orig, branch, rev):
-        self._forward_keycachelike(self._destcache, self.successors, self._slow_iter_successors, (graph, orig), branch, rev)
+        return self._forward_keycachelike(self._destcache, self.successors, self._slow_iter_successors, (graph, orig), branch, rev)
+
+    def _update_destcache(self, graph, orig, branch, rev, dest, value):
+        kc = self._forward_destcache(graph, orig, branch, rev)
+        if value is None:
+            kc.discard(dest)
+        else:
+            kc.add(dest)
+        return kc
 
     def _forward_origcache(self, graph, dest, branch, rev):
-        self._forward_keycachelike(self._origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
+        return self._forward_keycachelike(self._origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
+
+    def _update_origcache(self, graph, dest, branch, rev, orig, value):
+        kc = self._forward_origcache(graph, dest, branch, rev)
+        if value is None:
+            kc.discard(orig)
+        else:
+            kc.add(orig)
+        return kc
 
     def iter_successors(self, graph, orig, branch, rev):
         self._forward_destcache(graph, orig, branch, rev)
@@ -669,3 +685,10 @@ class EdgesCache(Cache):
                 = self.db._make_edge(self.db.graph[graph], nodeA, nodeB, idx)
         Cache.store(self, graph, nodeA, nodeB, idx, branch, rev, ex)
         self.predecessors[(graph, nodeB)][nodeA][idx][branch][rev] = ex
+        oc = self._update_origcache(graph, nodeB, branch, rev, nodeA, ex)
+        dc = self._update_destcache(graph, nodeA, branch, rev, nodeB, ex)
+        if TESTING:
+            correct_oc = set(self._slow_iter_predecessors(self.predecessors[(graph, nodeB)], branch, rev))
+            assert correct_oc == oc
+            correct_dc = set(self._slow_iter_successors(self.successors[(graph, nodeA)], branch, rev))
+            assert correct_dc == dc
