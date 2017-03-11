@@ -584,7 +584,7 @@ class AbstractSuccessors(GraphEdgeMapping):
     def __len__(self):
         """How many nodes touch an edge shared with my nodeA?"""
         if self.db.caching:
-            return self._cache.count_successors(
+            return self.db._edges_cache.count_successors(
                 self.graph.name,
                 self.nodeA,
                 self.db.branch,
