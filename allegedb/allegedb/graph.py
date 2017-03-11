@@ -1129,6 +1129,8 @@ class AllegedGraph(object):
     def __init__(self, db, name, data=None, **attr):
         self._name = name
         self.db = db
+        if self.db.caching and name not in self.db._graph_objs:
+            self.db._graph_objs[name] = self
         if data is not None:
             convert_to_networkx_graph(data, create_using=self)
         self.graph.update(attr)
