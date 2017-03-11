@@ -146,6 +146,7 @@ class FunctionStore(MutableMapping, Signal):
         initialize the schema if needed.
 
         """
+        super().__init__()
         self.engine = engine
         self.query = query
         self.query.init_table(table)

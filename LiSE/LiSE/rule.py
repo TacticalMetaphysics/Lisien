@@ -389,6 +389,7 @@ class RuleBook(MutableSequence, Signal):
         return self.engine._rulebooks_cache.retrieve(self.name)
 
     def __init__(self, engine, name):
+        super().__init__()
         self.engine = engine
         self.query = engine.rule.query
         self.name = name
@@ -489,6 +490,7 @@ class RuleMapping(MutableMapping, Signal):
     """
 
     def __init__(self, engine, rulebook):
+        super().__init__()
         self.engine = engine
         if isinstance(rulebook, RuleBook):
             self.rulebook = rulebook
@@ -705,6 +707,7 @@ class AllRuleBooks(Mapping, Signal):
 # cause bad effects later on.
 class AllRules(MutableMapping, Signal):
     def __init__(self, engine, query):
+        super().__init__()
         self.engine = engine
         self.query = query
         self.query.init_table('rules')
