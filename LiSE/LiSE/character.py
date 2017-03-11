@@ -930,6 +930,8 @@ class FacadePortal(FacadePlace):
     """Lightweight analogue of Portal for Facade use."""
 
     def __init__(self, real_or_origin, destination=None, **kwargs):
+        self._patch = kwargs
+        self._masked = set()
         if destination is None:
             if not (
                     isinstance(real_or_origin, Portal) or
@@ -958,7 +960,6 @@ class FacadePortal(FacadePlace):
                 if hasattr(destination, 'name')
                 else destination
             }
-        self._patch = kwargs
 
     def __setitem__(self, k, v):
         if k in ('origin', 'destination'):
