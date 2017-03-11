@@ -381,7 +381,7 @@ class Cache(object):
                     if kc.rev_before(rev) == rev - 1:
                         kc[rev] = kc[rev].copy()
                     else:
-                        kc[rev] = set(self._slow_iter_keys(keys[parentity], branch, rev))
+                        kc[rev] = set(slow_iter_keys(keys[parentity], branch, rev))
                 return kc[rev]
             except HistoryError:
                 pass
