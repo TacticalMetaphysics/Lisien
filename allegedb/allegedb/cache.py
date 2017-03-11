@@ -385,7 +385,7 @@ class Cache(object):
                 return kc[rev]
             except HistoryError:
                 pass
-        kc = FuturistWindowDict()
+        kc = keycache[keycache_key] = FuturistWindowDict()
         for (b, r) in self.db._active_branches(branch, rev):
             other_branch_key = parentity + (b,)
             if other_branch_key in keycache and \
@@ -394,7 +394,6 @@ class Cache(object):
                 break
         else:
             kc[rev] = set(slow_iter_keys(keys[parentity], branch, rev))
-        keycache[keycache_key] = kc
         return kc[rev]
 
     def _forward_keycache(self, parentity, branch, rev):
