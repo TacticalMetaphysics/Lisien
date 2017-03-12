@@ -563,8 +563,6 @@ class Cache(object):
             pass
         entity = args[:-3]
         key, branch, rev = args[-3:]
-        if key not in self.keys[entity]:
-            return False
         self._forward_keycache(entity, branch, rev)
         try:
             keys = self.keycache[entity+(branch,)][rev]
