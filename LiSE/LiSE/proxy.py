@@ -316,7 +316,7 @@ class ThingProxy(NodeProxy):
             thing=self.name,
             loc=v
         )
-        self.dispatch('location', v)
+        self.send(self, key='location', val=v)
 
     def _set_next_location(self, v):
         self._next_location = v
@@ -326,7 +326,7 @@ class ThingProxy(NodeProxy):
             thing=self.name,
             loc=v
         )
-        self.dispatch('next_location', v)
+        self.send(self, key='next_location', val=v)
 
     def __setitem__(self, k, v):
         if k == 'location':
@@ -363,16 +363,16 @@ class ThingProxy(NodeProxy):
             return
         if loc != self._location:
             self._location = loc
-            self.dispatch('location', loc)
+            self.send(self, key='location', val=loc)
         if next_loc != self._next_location:
             self._next_location = next_loc
-            self.dispatch('next_location', next_loc)
+            self.send(self, key='next_location', val=next_loc)
         if arrt != self._arrival_time:
             self._arrival_time = arrt
-            self.dispatch('arrival_time', arrt)
+            self.send(self, key='arrival_time', val=arrt)
         if next_arrt != self._next_arrival_time:
             self._next_arrival_time = next_arrt
-            self.dispatch('next_arrival_time', next_arrt)
+            self.send(self, key='next_arrival_time', val=next_arrt)
         super().update_cache()
 
     def follow_path(self, path, weight=None):
@@ -600,18 +600,16 @@ class ThingMapProxy(CachingProxy):
                     thisthing = self._cache[thing]
                     if thisthing._location != location:
                         thisthing._location = location
-                        thisthing.dispatch('location', location)
+                        thisthing.send(thisthing, key='location', val=location)
                     if thisthing._next_location != next_location:
                         thisthing._next_location = next_location
-                        thisthing.dispatch('next_location', next_location)
+                        thisthing.send(thisthing, key='next_location', val=next_location)
                     if thisthing._arrival_time != arrival_time:
                         thisthing._arrival_time = arrival_time
-                        thisthing.dispatch('arrival_time', arrival_time)
+                        thisthing.send(thisthing, key='arrival_time', val=arrival_time)
                     if thisthing._next_arrival_time != next_arrival_time:
                         thisthing._next_arrival_time = next_arrival_time
-                        thisthing.dispatch(
-                            'next_arrival_time', next_arrival_time
-                        )
+                        thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
                 else:
                     self._cache[thing] = ThingProxy(
                         self.engine,
@@ -623,7 +621,7 @@ class ThingMapProxy(CachingProxy):
                         next_arrival_time
                     )
             elif thing in self._cache:
-                thing.dispatch('deleted')
+                self.send(self, key=thing, val=None)
                 del self._cache[thing]
 
     def _get_diff(self):
