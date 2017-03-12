@@ -306,7 +306,7 @@ class Engine(AbstractEngine, gORM):
     time = TimeSignalDescriptor()
 
     def _make_node(self, char, node):
-        if self._is_thing(char, node):
+        if self._is_thing(char.name, node):
             return Thing(char, node)
         else:
             return Place(char, node)
