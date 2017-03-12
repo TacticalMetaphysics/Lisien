@@ -448,6 +448,9 @@ class Engine(AbstractEngine, gORM):
         self.string = StringStore(self._code_qe)
 
     def _init_load(self):
+        # I have to load thingness first, because it affects my _make_node method
+        for row in self.query.things_dump():
+            self._things_cache.store(*row)
         super()._init_load()
         for row in self.rule.query.universal_dump():
             self._universal_cache.store(*row)
@@ -478,8 +481,6 @@ class Engine(AbstractEngine, gORM):
             self._character_node_rules_handled_cache.store(*row)
         for row in self.query.handled_character_portal_rules():
             self._character_portal_rules_handled_cache.store(*row)
-        for row in self.query.things_dump():
-            self._things_cache.store(*row)
         for row in self.query.avatarness_dump():
             self._avatarness_cache.store(*row)
 
