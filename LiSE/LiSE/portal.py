@@ -43,7 +43,8 @@ class Portal(Edge, RuleFollower):
     """
     @property
     def _cache(self):
-        return self._dispatch_cache
+        return self.db._edge_val_cache[
+            self.character.name][self.nodeA][self.nodeB][0]
 
     def _rule_name_activeness(self):
         rulebook_name = self._get_rulebook_name()
@@ -91,11 +92,6 @@ class Portal(Edge, RuleFollower):
     @property
     def _destination(self):
         return self.nodeB
-
-    @property
-    def _dispatch_cache(self):
-        return self.db._edge_val_cache[
-            self.character.name][self.nodeA][self.nodeB][0]
 
     @property
     def character(self):
@@ -160,6 +156,7 @@ class Portal(Edge, RuleFollower):
             ][
                 "is_mirror"
             ] = True
+            self.send(self, key='symmetrical', val=False)
             return
         elif key == 'symmetrical' and not value:
             try:
@@ -172,14 +169,9 @@ class Portal(Edge, RuleFollower):
                 ] = False
             except KeyError:
                 pass
+            self.send(self, key='symmetrical', val=False)
             return
         super().__setitem__(key, value)
-        self.dispatch(key, value)
-
-    def __delitem__(self, key):
-        """Invalidate my :class:`Character`'s cache of portal traits"""
-        super().__delitem__(key)
-        self.dispatch(key, None)
 
     def __repr__(self):
         """Describe character, origin, and destination"""

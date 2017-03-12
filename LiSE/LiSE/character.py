@@ -812,10 +812,6 @@ class FacadePlace(MutableMapping, Signal):
     def name(self):
         return self['name']
 
-    @property
-    def _dispatch_cache(self):
-        return self
-
     def contents(self):
         # TODO: cache this
         for thing in self.facade.thing.values():
@@ -1119,10 +1115,6 @@ class Facade(AbstractCharacter, nx.DiGraph):
             return self.facade.character.preportal
 
     class StatMapping(MutableMapping, Signal):
-        @property
-        def _dispatch_cache(self):
-            return self
-
         def __init__(self, facade):
             super().__init__()
             self.facade = facade
