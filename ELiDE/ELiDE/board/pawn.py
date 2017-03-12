@@ -105,7 +105,8 @@ class Pawn(PawnSpot):
             next_loc_name=self._trigger_push_next_location
         )
 
-    def pull_from_remote(self):
+    def pull_from_remote(self, *args):
+        super().pull_from_remote(*args)
         relocate = False
         if self.loc_name != self.remote['location']:
             self.loc_name = self.remote['location']  # aliasing? could be trouble
