@@ -184,7 +184,7 @@ class NodeRulesHandledCache(object):
         self.engine = engine
         self._data = StructuredDefaultDict(4, set)
         self.shallow = {}
-        self.unhandled = StructuredDefaultDict(2, dict)
+        self.unhandled = StructuredDefaultDict(1, dict)
 
     def store(self, character, node, rulebook, rule, branch, tick):
         the_set = self.shallow[(character, node, rulebook, rule, branch)] \
