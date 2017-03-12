@@ -235,7 +235,7 @@ class Thing(Node):
             loc,
             nextloc
         )
-        self.dispatch('locations', (loc, nextloc))
+        self.send(self, key='locations', val=(loc, nextloc))
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
