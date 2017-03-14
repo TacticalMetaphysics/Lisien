@@ -54,14 +54,7 @@ class CharMenu(BoxLayout):
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""
-        if self.app.manager.current != 'chars':
-            adapter = self.app.chars.charsview.adapter
-            adapter.data = list(self.app.character)
-            adapter.select_list(
-                [adapter.get_view(
-                    adapter.data.index(self.app.character_name)
-                )]
-            )
+        # TODO: update the list of chars
         self.app.chars.toggle()
 
     def toggle_rules(self, *args):
