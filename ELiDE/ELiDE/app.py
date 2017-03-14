@@ -16,7 +16,6 @@ from kivy.properties import (
     AliasProperty,
     ObjectProperty,
     NumericProperty,
-    ListProperty,
     StringProperty
 )
 import LiSE
