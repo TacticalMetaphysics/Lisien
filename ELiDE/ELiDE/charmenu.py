@@ -67,10 +67,12 @@ class CharMenu(BoxLayout):
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
         if self.app.manager.current != 'rules':
-            if not hasattr(self.app.selected_remote, 'rulebook'):
-                self.app.rules.rulebook = self.app.character.rulebook
-            else:
-                self.app.rules.rulebook = self.app.selected_remote.rulebook
+            try:
+                rb = self.app.selected_remote.rulebook
+            except AttributeError:
+                charn = self.app.selected_remote.name
+                rb = self.app.engine.character[charn].rulebook
+            self.app.rules.rulebook = rb
         self.app.rules.toggle()
 
     def toggle_funcs_editor(self):

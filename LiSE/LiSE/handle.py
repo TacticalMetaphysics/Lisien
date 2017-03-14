@@ -872,6 +872,9 @@ class EngineHandle(object):
     def new_empty_rule(self, rule):
         self._real.rule.new_empty(rule)
 
+    def new_empty_rulebook(self, rulebook):
+        self._real.rulebook[rulebook]
+
     def rulebook_copy(self, rulebook):
         return list(self._real.rulebook[rulebook]._cache)
 

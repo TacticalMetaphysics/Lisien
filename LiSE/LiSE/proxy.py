@@ -1063,7 +1063,7 @@ class RuleProxy(object):
 class RuleBookProxy(MutableSequence, Signal):
     @property
     def _cache(self):
-        return self.all_rulebooks._cache[self.name]
+        return self.all_rulebooks._cache.setdefault(self.name, [])
 
     def __init__(self, all_rulebooks,  bookname):
         super().__init__()
@@ -1589,7 +1589,8 @@ class AllRuleBooksProxy(Mapping):
 
     def __getitem__(self, k):
         if k not in self:
-            raise KeyError("No rulebook: {}".format(k))
+            self.engine.handle('new_empty_rulebook', rulebook=k)
+            self._cache[k] = []
         return self._cache[k]
 
 
