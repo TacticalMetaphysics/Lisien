@@ -12,10 +12,7 @@ from allegedb.xjson import (
     JSONListReWrapper
 )
 from .engine import Engine
-from .util import (
-    dict_diff,
-    list_diff
-)
+from .util import dict_diff, set_diff
 from allegedb.cache import HistoryError
 
 
@@ -615,7 +612,7 @@ class EngineHandle(object):
             old = self._char_places_cache.get(char, [])
             new = self.character_places(char)
             self._char_places_cache[char] = new
-            return list_diff(old, new)
+            return set_diff(old, new)
         except KeyError:
             return None
 
@@ -636,7 +633,7 @@ class EngineHandle(object):
             old = self._node_successors_cache[char].get(node, [])
             new = self.node_successors(char, node)
             self._node_successors_cache[char][node] = new
-            return list_diff(old, new)
+            return set_diff(old, new)
         except KeyError:
             return None
 
@@ -789,7 +786,7 @@ class EngineHandle(object):
             old = self._char_portals_cache.get(char, {})
             new = self.character_portals(char)
             self._char_portals_cache[char] = new
-            return list_diff(old, new)
+            return set_diff(old, new)
         except KeyError:
             return None
 
@@ -879,15 +876,20 @@ class EngineHandle(object):
         return list(self._real.rulebook[rulebook]._cache)
 
     def rulebook_diff(self, rulebook):
+        # TODO: do actual diffing
         old = self._rulebook_cache[rulebook]
         new = self._rulebook_cache[rulebook] = self.rulebook_copy(rulebook)
-        return list_diff(old, new)
+        if old == new:
+            return
+        return new
 
     def all_rulebooks_diff(self):
-        return {
-            rulebook: self.rulebook_diff(rulebook)
-            for rulebook in self._real.rulebook.keys()
-        }
+        ret = {}
+        for rulebook in self._real.rulebook.keys():
+            diff = self.rulebook_diff(rulebook)
+            if diff:
+                ret[rulebook] = diff
+        return ret
 
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
@@ -909,19 +911,15 @@ class EngineHandle(object):
         }
 
     def rule_diff(self, rule):
-        old = self._rule_cache.get(rule, {})
+        old = self._rule_cache.get(rule, {'triggers': [], 'prereqs': [], 'actions': []})
         new = self._rule_cache[rule] = self.rule_copy(rule)
-        return {
-            'triggers': list_diff(
-                old.get('triggers', {}), new.get('triggers', {})
-            ),
-            'prereqs': list_diff(
-                old.get('prereqs', {}), new.get('prereqs', {})
-            ),
-            'actions': list_diff(
-                old.get('actions', {}), new.get('actions', {})
-            )
-        }
+        ret = {}
+        if new['triggers'] != old['triggers']:
+            ret['triggers'] = new['triggers']
+        if new['prereqs'] != old['prereqs']:
+            ret['prereqs'] = new['prereqs']
+        if new['actions'] != old['actions']:
+            ret['actions'] = new['actions']
 
     def all_rules_diff(self):
         return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}

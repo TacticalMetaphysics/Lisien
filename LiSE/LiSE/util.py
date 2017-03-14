@@ -95,7 +95,7 @@ def dict_diff(old, new):
     return r
 
 
-def list_diff(old, new):
+def set_diff(old, new):
     r = {}
     for item in old:
         if item not in new:
