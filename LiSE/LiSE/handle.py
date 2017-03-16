@@ -904,6 +904,39 @@ class EngineHandle(object):
         del self._real.rulebook[rulebook][i]
         del self._rulebook_cache[rulebook][i]
 
+    def set_rule_triggers(self, rule, triggers):
+        self._real.rule[rule].triggers = triggers
+
+    def set_rule_prereqs(self, rule, prereqs):
+        self._real.rule[rule].prereqs = prereqs
+
+    def set_rule_actions(self, rule, actions):
+        self._real.rule[rule].actions = actions
+
+    def set_character_rulebook(self, char, rulebook):
+        self._real.character[char].rulebook = rulebook
+
+    def set_avatar_rulebook(self, char, rulebook):
+        self._real.character[char].avatar.rulebook = rulebook
+
+    def set_character_thing_rulebook(self, char, rulebook):
+        self._real.character[char].thing.rulebook = rulebook
+
+    def set_character_place_rulebook(self, char, rulebook):
+        self._real.character[char].place.rulebook = rulebook
+
+    def set_character_node_rulebook(self, char, rulebook):
+        self._real.character[char].node.rulebook = rulebook
+
+    def set_character_portal_rulebook(self, char, rulebook):
+        self._real.character[char].portal.rulebook = rulebook
+
+    def set_node_rulebook(self, char, node, rulebook):
+        self._real.character[char].node[node].rulebook = rulebook
+
+    def set_portal_rulebook(self, char, orig, dest, rulebook):
+        self._real.character[char].portal[orig][dest].rulebook = rulebook
+
     def rule_copy(self, rule):
         if not hasattr(rule, 'actions'):
             rule = self._real.rule[rule]
