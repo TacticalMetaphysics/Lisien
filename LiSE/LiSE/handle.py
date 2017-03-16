@@ -923,6 +923,7 @@ class EngineHandle(object):
             ret['prereqs'] = new['prereqs']
         if new['actions'] != old['actions']:
             ret['actions'] = new['actions']
+        return ret
 
     def all_rules_diff(self):
         return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}
