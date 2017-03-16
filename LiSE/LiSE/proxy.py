@@ -1738,7 +1738,7 @@ class FuncStoreProxy(object):
         return self._cache[k]
 
     def iterplain(self):
-        yield from self._cache.values()
+        yield from self._cache.items()
 
     def set_source(self, func_name, source):
         self.engine.handle(
