@@ -5,11 +5,14 @@ from collections import OrderedDict
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import AliasProperty, ObjectProperty, StringProperty
+from kivy.properties import AliasProperty, ObjectProperty, StringProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.recycleview.layout import LayoutSelectionBehavior
+from kivy.uix.recycleboxlayout import RecycleBoxLayout
+from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
@@ -31,24 +34,38 @@ def getname(o):
     return o if isinstance(o, str) else o.__name__
 
 
+class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
+    pass
+
+
 # How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
     rulesview = ObjectProperty()
     rule = ObjectProperty()
+    index = NumericProperty()
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            return self.parent.select_with_touch(self.index, touch)
 
     def apply_selection(self, rv, index, is_selected):
         if is_selected:
             self.rulesview.rule = self.rule
+            self.state = 'down'
+        else:
+            self.state = 'normal'
 
 
 class RulesList(RecycleView):
     rulebook = ObjectProperty()
     rulesview = ObjectProperty()
 
-    def on_rulebook(self, *args):
-        if self.rulebook is None:
-            return
-        self.data = list(self.rulebook)
+    def __init__(self, **kwargs):
+        self.bind(rulebook=self.redata)
+        super().__init__(**kwargs)
+
+    def redata(self, *args):
+        self.data = [{'rulesview': self.rulesview, 'rule': rule, 'index': i} for i, rule in enumerate(self.rulebook)]
 
 
 class RulesView(FloatLayout):
@@ -349,7 +366,7 @@ class RulesView(FloatLayout):
             dbg('RulesView: no rule')
             return
         if hasattr(self, '_list'):
-            self._list.adapter.data = list(self._list.rulebook)
+            self._list.redata()
         self.pull_triggers()
         self.pull_prereqs()
         self.pull_actions()
@@ -468,6 +485,14 @@ class RulesScreen(Screen):
 
 
 Builder.load_string("""
+<RulesList>:
+    viewclass: 'RuleButton'
+    SelectableRecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        height: self.minimum_height
+        size_hint_y: None
+        orientation: 'vertical'
 <RulesScreen>:
     name: 'rules'
     new_rule_name: rulename.text
