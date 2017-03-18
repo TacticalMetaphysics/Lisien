@@ -1095,36 +1095,39 @@ class RuleProxy(object):
         return ret
 
     @property
+    def _cache(self):
+        return self.engine._rules_cache[self.name]
+
+    @property
     def triggers(self):
-        return self.all_rules._cache[self.name].setdefault('triggers', [])
+        return self._cache.setdefault('triggers', [])
 
     @triggers.setter
     def triggers(self, v):
-        self.all_rules._cache[self.name]['triggers'] = v
+        self._cache['triggers'] = v
         self.engine.handle('set_rule_triggers', rule=self.name, triggers=self._nominate(v), silent=True)
 
     @property
     def prereqs(self):
-        return self.all_rules._cache[self.name].setdefault('prereqs', [])
+        return self._cache.setdefault('prereqs', [])
 
     @prereqs.setter
     def prereqs(self, v):
-        self.all_rules._cache[self.name]['prereqs'] = v
+        self._cache['prereqs'] = v
         self.engine.handle('set_rule_prereqs', rule=self.name, prereqs=self._nominate(v), silent=True)
 
     @property
     def actions(self):
-        return self.all_rules._cache[self.name].setdefault('actions', [])
+        return self._cache.setdefault('actions', [])
 
     @actions.setter
     def actions(self, v):
-        self.all_rules._cache[self.name]['actions'] = v
+        self._cache['actions'] = v
         self.engine.handle('set_rule_actions', rule=self.name, actions=self._nominate(v), silent=True)
 
-    def __init__(self, all_rules, rulename):
-        assert isinstance(all_rules, AllRulesProxy)
-        self.all_rules = all_rules
-        self.engine = all_rules.engine
+    def __init__(self, engine, rulename):
+        assert isinstance(engine, EngineProxy)
+        self.engine = engine
         self.name = self._name = rulename
 
     def __eq__(self, other):
@@ -1717,13 +1720,13 @@ class AllRulesProxy(Mapping):
         if k not in self:
             raise KeyError("No rule: {}".format(k))
         if k not in self._proxy_cache:
-            self._proxy_cache[k] = RuleProxy(self, k)
+            self._proxy_cache[k] = RuleProxy(self.engine, k)
         return self._proxy_cache[k]
 
     def new_empty(self, k):
         self.engine.handle(command='new_empty_rule', rule=k, silent=True)
         self._cache[k] = []
-        self._proxy_cache[k] = RuleProxy(self, k)
+        self._proxy_cache[k] = RuleProxy(self.engine, k)
         return self._proxy_cache[k]
 
 
