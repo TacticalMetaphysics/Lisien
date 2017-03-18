@@ -1137,12 +1137,11 @@ class RuleProxy(object):
 class RuleBookProxy(MutableSequence, Signal):
     @property
     def _cache(self):
-        return self.all_rulebooks._cache.setdefault(self.name, [])
+        return self.engine._rulebooks_cache.setdefault(self.name, [])
 
-    def __init__(self, all_rulebooks, bookname):
+    def __init__(self, engine, bookname):
         super().__init__()
-        self.all_rulebooks = all_rulebooks
-        self.engine = all_rulebooks.engine
+        self.engine = engine
         self.name = bookname
         self._proxy_cache = {}
 
@@ -1892,16 +1891,16 @@ class EngineProxy(AbstractEngine):
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             for rbtype, rb in charsdiffs[char]['rulebooks'].items():
                 self._character_rulebooks_cache[char][rbtype] \
-                    = RuleBookProxy(self.rulebook, rb)
+                    = RuleBookProxy(self, rb)
             for node, rb in charsdiffs[char]['node_rulebooks'].items():
                 self._char_node_rulebooks_cache[char][node] \
-                    = RuleBookProxy(self.rulebook, rb)
+                    = RuleBookProxy(self, rb)
             for origin, destinations in charsdiffs[
                     char]['portal_rulebooks'].items():
                 for destination, rulebook in destinations.items():
                     self._char_port_rulebooks_cache[
                         char][origin][destination] = RuleBookProxy(
-                            self.rulebook, rulebook
+                            self, rulebook
                         )
             for (
                     thing, (loc, nxloc, arrt, nxarrt)
