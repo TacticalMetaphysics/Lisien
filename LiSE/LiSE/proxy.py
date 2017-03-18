@@ -1725,7 +1725,7 @@ class AllRulesProxy(Mapping):
 
     def new_empty(self, k):
         self.engine.handle(command='new_empty_rule', rule=k, silent=True)
-        self._cache[k] = []
+        self._cache[k] = {'triggers': [], 'prereqs': [], 'actions': []}
         self._proxy_cache[k] = RuleProxy(self.engine, k)
         return self._proxy_cache[k]
 
