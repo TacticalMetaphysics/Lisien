@@ -49,7 +49,7 @@ class RuleButton(ToggleButton, RecycleDataViewBehavior):
             return self.parent.select_with_touch(self.index, touch)
 
     def apply_selection(self, rv, index, is_selected):
-        if is_selected:
+        if is_selected and index == self.index:
             self.rulesview.rule = self.rule
             self.state = 'down'
         else:
