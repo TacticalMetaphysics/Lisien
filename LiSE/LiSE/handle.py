@@ -938,8 +938,7 @@ class EngineHandle(object):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
     def rule_copy(self, rule):
-        if not hasattr(rule, 'actions'):
-            rule = self._real.rule[rule]
+        rule = self._real.rule[rule]
         return {
             'triggers': list(rule.triggers._cache),
             'prereqs': list(rule.prereqs._cache),
