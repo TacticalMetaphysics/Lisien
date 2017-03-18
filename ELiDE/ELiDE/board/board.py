@@ -24,7 +24,7 @@ from ..dummy import Dummy
 from ..util import trigger
 
 
-def normalize_layout(l):
+def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
     """Make sure all the spots in a layout are where you can click.
 
     Returns a copy of the layout with all spot coordinates are
@@ -39,15 +39,19 @@ def normalize_layout(l):
         xs.append(x)
         ys.append(y)
         ks.append(k)
-    minx = np.min(xs)
-    maxx = np.max(xs)
+    if minx is None:
+        minx = np.min(xs)
+    if maxx is None:
+        maxx = np.max(xs)
     try:
         xco = 0.98 / (maxx - minx)
         xnorm = np.multiply(xs, xco)
     except ZeroDivisionError:
         xnorm = np.array(xs)
-    miny = np.min(ys)
-    maxy = np.max(ys)
+    if miny is None:
+        miny = np.min(ys)
+    if maxy is None:
+        maxy = np.max(ys)
     try:
         yco = 0.98 / (maxy - miny)
         ynorm = np.multiply(ys, yco)
@@ -57,6 +61,23 @@ def normalize_layout(l):
     for i in range(len(ks)):
         o[ks[i]] = (xnorm[i], ynorm[i])
     return o
+
+
+def detect_2d_grid_layout_bounds(nodenames):
+    minx = miny = maxx = maxy = None
+    for nn in nodenames:
+        if not isinstance(nn, tuple) or len(nn) != 2:
+            raise ValueError("Not a 2d grid layout")
+        x, y = nn
+        if minx is None or x < minx:
+            minx = x
+        if maxx is None or x > maxx:
+            maxx = x
+        if miny is None or y < miny:
+            miny = y
+        if maxy is None or y > maxy:
+            maxy = y
+    return minx, miny, maxx, maxy
 
 
 class KvLayoutBack(FloatLayout):
@@ -791,29 +812,19 @@ class Board(RelativeLayout):
                 return
         # No spots have positions;
         # do a layout.
-        Clock.schedule_once(self.nx_layout, 0)
+        try:
+            bounds = detect_2d_grid_layout_bounds(spot.name for spot in self.new_spots)
+            Clock.schedule_once(partial(self.grid_layout, *bounds), 0)
+        except ValueError:
+            Clock.schedule_once(self.nx_layout, 0)
 
-    def nx_layout(self, *args):
-        """Use my ``grid_layout`` method to decide where all my spots should
-        go, and move them there.
-
-        """
-        for spot in self.new_spots:
-            if not (spot.name and spot.remote):
-                Clock.schedule_once(self.nx_layout, 0)
-                return
-        spots_only = self.character.facade()
-        for thing in list(spots_only.thing.keys()):
-            del spots_only.thing[thing]
-        l = self.graph_layout(spots_only)
-
+    def _apply_node_layout(self, l):
         node_upd = {}
-
         for spot in self.new_spots:
             (x, y) = l[spot.name]
             assert 0 <= x <= 0.98
             assert 0 <= y <= 0.98
-            node_upd[spot.remote.name] = {
+            node_upd[spot.name] = {
                 '_x': x,
                 '_y': y
             }
@@ -821,13 +832,23 @@ class Board(RelativeLayout):
                 int(x * self.width),
                 int(y * self.height)
             )
-        if node_upd:
-            self.engine.handle(
-                'update_nodes',
-                char=self.character.name,
-                patch=node_upd
-            )
-        self.new_spots = self.spots_unposd = []
+
+    def grid_layout(self, minx, miny, maxx, maxy, *args):
+        l = normalize_layout(
+            {spot.name: spot.name for spot in self.new_spots},
+            minx, miny, maxx, maxy
+        )
+        self._apply_node_layout(l)
+
+    def nx_layout(self, *args):
+        for spot in self.new_spots:
+            if not (spot.name and spot.remote):
+                Clock.schedule_once(self.nx_layout, 0)
+                return
+        spots_only = self.character.facade()
+        for thing in list(spots_only.thing.keys()):
+            del spots_only.thing[thing]
+        self._apply_node_layout(self.graph_layout(spots_only))
 
     def arrows(self):
         """Iterate over all my arrows."""
