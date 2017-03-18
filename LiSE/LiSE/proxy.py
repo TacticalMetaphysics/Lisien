@@ -1673,9 +1673,12 @@ class GlobalVarProxy(MutableMapping):
 
 
 class AllRuleBooksProxy(Mapping):
+    @property
+    def _cache(self):
+        return self.engine._rulebooks_cache
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('all_rulebooks_diff')
 
     def __iter__(self):
         yield from self._cache
@@ -1688,15 +1691,18 @@ class AllRuleBooksProxy(Mapping):
 
     def __getitem__(self, k):
         if k not in self:
-            self.engine.handle('new_empty_rulebook', rulebook=k)
+            self.engine.handle('new_empty_rulebook', rulebook=k, silent=True)
             self._cache[k] = []
         return self._cache[k]
 
 
 class AllRulesProxy(Mapping):
+    @property
+    def _cache(self):
+        return self.engine._rules_cache
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('all_rules_diff')
         self._proxy_cache = {}
 
     def __iter__(self):
