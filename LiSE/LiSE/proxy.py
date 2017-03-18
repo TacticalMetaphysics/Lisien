@@ -23,26 +23,7 @@ from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 
 
-class RulebookDescriptor(object):
-    rulebooks = {}
-
-    def __get__(self, inst, cls):
-        if id(inst) not in self.rulebooks:
-            self.rulebooks[id(inst)] = inst._get_rulebook()
-        return self.rulebooks[id(inst)]
-
-    def __set__(self, inst, val):
-        rb = val.name if hasattr(val, 'name') else val
-        obj = self.rulebooks[id(inst)] \
-            = val if isinstance(val, RuleBookProxy) \
-            else RuleBookProxy(inst.engine, rb)
-        inst._set_rulebook(rb)
-        obj.send(obj)
-
-
 class CachingProxy(MutableMapping, Signal):
-    rulebook = RulebookDescriptor()
-
     def __init__(self, engine_proxy):
         super().__init__()
         self.engine = engine_proxy
@@ -119,7 +100,31 @@ class CachingEntityProxy(CachingProxy):
         )
 
 
+class RulebookProxyDescriptor(object):
+    def __get__(self, inst, cls):
+        if inst is None:
+            return self
+        try:
+            proxy = inst._get_rulebook_proxy()
+        except KeyError:
+            proxy = RuleBookProxy(inst.engine, inst._get_default_rulebook_name())
+            inst._set_rulebook_proxy(proxy)
+        return proxy
+
+    def __set__(self, inst, val):
+        if hasattr(val, 'name'):
+            if not isinstance(val, RuleBookProxy):
+                raise TypeError
+            rb = val
+            val = val.name
+        else:
+            rb = RuleBookProxy(inst.engine, val)
+        inst._set_rulebook(val)
+        inst._set_rulebook_proxy(rb)
+
+
 class NodeProxy(CachingEntityProxy):
+    rulebook = RulebookProxyDescriptor()
     @property
     def character(self):
         return self.engine.character[self._charname]
@@ -128,30 +133,19 @@ class NodeProxy(CachingEntityProxy):
     def _cache(self):
         return self.engine._node_stat_cache[self._charname][self.name]
 
-    def _get_rulebook(self):
-        return RuleBookProxy(self.engine, self._get_rulebook_name())
+    def _get_default_rulebook_name(self):
+        return self._charname, self.name
 
-    def _get_rulebook_name(self):
-        r = self.engine.handle(
-            command='get_node_rulebook',
-            char=self._charname,
-            node=self.name
-        )
-        if r is None:
-            self.engine.handle(
-                command='set_node_rulebook',
-                char=self._charname,
-                node=self.name,
-                rulebook=(self._charname, self.name),
-                silent=True
-            )
-            return (self._charname, self.name)
-        return r
+    def _get_rulebook_proxy(self):
+        return self.engine._char_node_rulebooks_cache[self._charname][self.name]
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._char_node_rulebooks_cache[self._charname][self.name] = rb
 
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_node_rulebook',
-            char=self._charname, node=self.name, rulebook=rb
+            char=self._charname, node=self.name, rulebook=rb, silent=True
         )
 
     def __init__(self, engine_proxy, charname, nodename):
@@ -430,6 +424,17 @@ class ThingProxy(NodeProxy):
 
 
 class PortalProxy(CachingEntityProxy):
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_name(self):
+        return self._charname, self._origin, self._destination
+
+    def _get_rulebook_proxy(self):
+        return self.engine._char_port_rulebooks_cache[self._charname][self._origin][self._destination]
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._char_port_rulebooks_cache[self._charname][self._origin][self._destination] = rb
+
     def _set_rulebook(self, rb):
         self.engine.handle(
             command='set_portal_rulebook',
@@ -447,9 +452,6 @@ class PortalProxy(CachingEntityProxy):
             orig=self._origin,
             dest=self._destination
         )
-
-    def _get_rulebook(self):
-        return RuleBookProxy(self.engine, self._get_rulebook_name())
 
     @property
     def _cache(self):
@@ -535,6 +537,25 @@ class PortalProxy(CachingEntityProxy):
 
 
 class NodeMapProxy(MutableMapping):
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_name(self):
+        return self._charname, 'character_node'
+
+    def _get_rulebook_proxy(self):
+        return self.engine._character_rulebooks_cache[self._charname]['node']
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._character_rulebooks_cache[self._charname]['node'] = rb
+
+    def _set_rulebook(self, rb):
+        self.engine.handle(
+            'set_character_node_rulebook',
+            char=self._charname,
+            rulebook=rb,
+            silent=True
+        )
+
     @property
     def character(self):
         return self.engine.character[self._charname]
@@ -567,9 +588,24 @@ class NodeMapProxy(MutableMapping):
 
 
 class ThingMapProxy(CachingProxy):
-    @property
-    def rulebook(self):
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_name(self):
+        return self.name, 'character_thing'
+
+    def _get_rulebook_proxy(self):
         return self.engine._character_rulebooks_cache[self.name]['thing']
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._character_rulebooks_cache[self.name]['thing'] = rb
+
+    def _set_rulebook(self, rb):
+        self.engine.handle(
+            'set_character_thing_rulebook',
+            char=self.name,
+            rulebook=rb,
+            silent=True
+        )
 
     @property
     def character(self):
@@ -666,9 +702,23 @@ class ThingMapProxy(CachingProxy):
 
 
 class PlaceMapProxy(CachingProxy):
-    @property
-    def rulebook(self):
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_name(self):
+        return self.name, 'character_place'
+
+    def _get_rulebook_proxy(self):
         return self.engine._character_rulebooks_cache[self.name]['place']
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._character_rulebooks_cache[self.name]['place'] = rb
+
+    def _set_rulebook(self, rb):
+        self.engine.handle(
+            'set_character_place_rulebook',
+            char=self.name, rulebook=rb,
+            silent=True
+        )
 
     @property
     def character(self):
@@ -800,9 +850,22 @@ class SuccessorsProxy(CachingProxy):
 
 
 class CharSuccessorsMappingProxy(CachingProxy):
-    @property
-    def rulebook(self):
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_anme(self):
+        return self._charname, 'character_portal'
+
+    def _get_rulebook_proxy(self):
         return self.engine._character_rulebooks_cache[self._charname]['portal']
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._character_rulebooks_cache[self._charname]['portal'] = rb
+
+    def _set_rulebook(self, rb):
+        self.engine.handle(
+            'set_character_portal_rulebook',
+            char=self._charname, rulebook=rb
+        )
 
     @property
     def character(self):
@@ -926,10 +989,6 @@ class PredecessorsProxy(MutableMapping):
 
 
 class CharPredecessorsMappingProxy(MutableMapping):
-    @property
-    def rulebook(self):
-        return self.character.portal.rulebook
-
     def __init__(self, engine_proxy, charname):
         self.engine = engine_proxy
         self.name = charname
@@ -1024,31 +1083,46 @@ class CharStatProxy(CachingEntityProxy):
 
 
 class RuleProxy(object):
+    @staticmethod
+    def _nominate(v):
+        ret = []
+        for whatever in v:
+            if hasattr(whatever, 'name'):
+                ret.append(whatever.name)
+            else:
+                assert isinstance(whatever, str)
+                ret.append(whatever)
+        return ret
+
     @property
     def triggers(self):
-        return self.all_rules._cache[self.name]['triggers']
+        return self.all_rules._cache[self.name].setdefault('triggers', [])
 
     @triggers.setter
     def triggers(self, v):
         self.all_rules._cache[self.name]['triggers'] = v
+        self.engine.handle('set_rule_triggers', rule=self.name, triggers=self._nominate(v), silent=True)
 
     @property
     def prereqs(self):
-        return self.all_rules._cache[self.name]['prereqs']
+        return self.all_rules._cache[self.name].setdefault('prereqs', [])
 
     @prereqs.setter
     def prereqs(self, v):
         self.all_rules._cache[self.name]['prereqs'] = v
+        self.engine.handle('set_rule_prereqs', rule=self.name, prereqs=self._nominate(v), silent=True)
 
     @property
     def actions(self):
-        return self.all_rules._cache[self.name]['actions']
+        return self.all_rules._cache[self.name].setdefault('actions', [])
 
     @actions.setter
     def actions(self, v):
         self.all_rules._cache[self.name]['actions'] = v
+        self.engine.handle('set_rule_actions', rule=self.name, actions=self._nominate(v), silent=True)
 
     def __init__(self, all_rules, rulename):
+        assert isinstance(all_rules, AllRulesProxy)
         self.all_rules = all_rules
         self.engine = all_rules.engine
         self.name = self._name = rulename
@@ -1063,12 +1137,11 @@ class RuleProxy(object):
 class RuleBookProxy(MutableSequence, Signal):
     @property
     def _cache(self):
-        return self.all_rulebooks._cache.setdefault(self.name, [])
+        return self.engine._rulebooks_cache.setdefault(self.name, [])
 
-    def __init__(self, all_rulebooks,  bookname):
+    def __init__(self, engine, bookname):
         super().__init__()
-        self.all_rulebooks = all_rulebooks
-        self.engine = all_rulebooks.engine
+        self.engine = engine
         self.name = bookname
         self._proxy_cache = {}
 
@@ -1126,10 +1199,22 @@ class RuleBookProxy(MutableSequence, Signal):
 
 
 class AvatarMapProxy(Mapping):
-    @property
-    def rulebook(self):
-        return self.engine._character_rulebooks_cache[
-            self.character.name]['avatar']
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_name(self):
+        return self.character.name, 'avatar'
+
+    def _get_rulebook_proxy(self):
+        return self.engine._character_rulebooks_cache[self.character.name]['avatar']
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._character_rulebooks_cache[self.character.name]['avatar'] = rb
+
+    def _set_rulebook(self, rb):
+        self.engine.handle(
+            'set_avatar_rulebook',
+            char=self.character.name, rulebook=rb, silent=True
+        )
 
     def __init__(self, character):
         self.character = character
@@ -1209,9 +1294,22 @@ class AvatarMapProxy(Mapping):
 
 
 class CharacterProxy(MutableMapping):
-    @property
-    def rulebook(self):
+    rulebook = RulebookProxyDescriptor()
+
+    def _get_default_rulebook_name(self):
+        return self.name, 'character'
+
+    def _get_rulebook_proxy(self):
         return self.engine._character_rulebooks_cache[self.name]['character']
+
+    def _set_rulebook_proxy(self, rb):
+        self.engine._character_rulebooks_cache[self.name]['character'] = rb
+
+    def _set_rulebook(self, rb):
+        self.engine.handle(
+            'set_character_rulebook',
+            char=self.name, rulebook=rb, silent=True
+        )
 
     @reify
     def avatar(self):
@@ -1574,9 +1672,12 @@ class GlobalVarProxy(MutableMapping):
 
 
 class AllRuleBooksProxy(Mapping):
+    @property
+    def _cache(self):
+        return self.engine._rulebooks_cache
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('all_rulebooks_diff')
 
     def __iter__(self):
         yield from self._cache
@@ -1589,15 +1690,18 @@ class AllRuleBooksProxy(Mapping):
 
     def __getitem__(self, k):
         if k not in self:
-            self.engine.handle('new_empty_rulebook', rulebook=k)
+            self.engine.handle('new_empty_rulebook', rulebook=k, silent=True)
             self._cache[k] = []
         return self._cache[k]
 
 
 class AllRulesProxy(Mapping):
+    @property
+    def _cache(self):
+        return self.engine._rules_cache
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('all_rules_diff')
         self._proxy_cache = {}
 
     def __iter__(self):
@@ -1787,16 +1891,16 @@ class EngineProxy(AbstractEngine):
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             for rbtype, rb in charsdiffs[char]['rulebooks'].items():
                 self._character_rulebooks_cache[char][rbtype] \
-                    = RuleBookProxy(self.rulebook, rb)
+                    = RuleBookProxy(self, rb)
             for node, rb in charsdiffs[char]['node_rulebooks'].items():
                 self._char_node_rulebooks_cache[char][node] \
-                    = RuleBookProxy(self.rulebook, rb)
+                    = RuleBookProxy(self, rb)
             for origin, destinations in charsdiffs[
                     char]['portal_rulebooks'].items():
                 for destination, rulebook in destinations.items():
                     self._char_port_rulebooks_cache[
                         char][origin][destination] = RuleBookProxy(
-                            self.rulebook, rulebook
+                            self, rulebook
                         )
             for (
                     thing, (loc, nxloc, arrt, nxarrt)
