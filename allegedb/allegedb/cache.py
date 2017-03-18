@@ -11,7 +11,12 @@ from copy import copy as copier
 from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
-TESTING = True
+TESTING = False
+"""Change this to True to validate kecaches whenever they change.
+
+It will make things very slow.
+
+"""
 
 
 class HistoryError(KeyError):
