@@ -485,6 +485,8 @@ class RulesScreen(Screen):
 
 
 Builder.load_string("""
+<RuleButton>:
+    text: self.rule.name if self.rule else ''
 <RulesList>:
     viewclass: 'RuleButton'
     SelectableRecycleBoxLayout:
