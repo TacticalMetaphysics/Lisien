@@ -832,6 +832,14 @@ class Board(RelativeLayout):
                 int(x * self.width),
                 int(y * self.height)
             )
+        if node_upd:
+            self.engine.handle(
+                'update_nodes',
+                char=self.character.name,
+                patch=node_upd,
+                silent=True
+            )
+        self.new_spots = self.spots_unposd = []
 
     def grid_layout(self, minx, miny, maxx, maxy, *args):
         l = normalize_layout(
