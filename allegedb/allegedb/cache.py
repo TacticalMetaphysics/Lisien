@@ -363,11 +363,39 @@ class Cache(object):
     def __init__(self, db):
         self.db = db
         self.parents = StructuredDefaultDict(3, FuturistWindowDict)
+        """Entity data keyed by the entities' parents.
+
+        An entity's parent is what it's contained in. When speaking of a node,
+        this is its graph. When speaking of an edge, the parent is usually the
+        graph and the origin in a pair, though for multigraphs the destination
+        might be part of the parent as well.
+
+        Deeper layers of this cache are keyed by branch and revision.
+
+        """
         self.keys = StructuredDefaultDict(2, FuturistWindowDict)
+        """Cache of entity data keyed by the entities themselves.
+
+        That means the whole tuple identifying the entity is the
+        top-level key in this cache here. The second-to-top level
+        is the key within the entity.
+
+        Deeper layers of this cache are keyed by branch and revision.
+
+        """
         self.keycache = {}
+        """A simple dict holding sets of keys an entity has now."""
         self.branches = StructuredDefaultDict(1, FuturistWindowDict)
+        """A less structured alternative to ``keys``.
+
+        For when you already know the entity and the key within it,
+        but still need to iterate through history to find the value.
+
+        """
         self.shallow = PickyDefaultDict(FuturistWindowDict)
+        """Less structured alternative to ``branches`` ."""
         self.shallower = {}
+        """Even less structured alternative to ``shallow``."""
 
     def _forward_valcache(self, cache, branch, rev, copy=True):
         if branch in cache:
