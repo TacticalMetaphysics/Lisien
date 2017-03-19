@@ -627,14 +627,17 @@ class NodesCache(Cache):
 
 class EdgesCache(Cache):
     __slots__ = ['parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower',
-                 'origcache', 'destcache', 'predecessors', 'successors']
+                 'origcache', 'destcache', 'predecessors']
+
+    @property
+    def successors(self):
+        return self.parents
 
     def __init__(self, db):
         Cache.__init__(self, db)
         self.destcache = {}
         self.origcache = {}
         self.predecessors = StructuredDefaultDict(3, FuturistWindowDict)
-        self.successors = self.parents
 
     def _slow_iter_successors(self, cache, branch, rev):
         for nodeB, nodeBs in cache.items():
