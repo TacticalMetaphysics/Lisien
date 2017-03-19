@@ -804,7 +804,7 @@ class Board(RelativeLayout):
         # TODO: If only some spots are unpositioned, and they remain
         # that way for several frames, put them somewhere that the
         # user will be able to find.
-        if len(self.spots_unposd) != len(self.new_spots):
+        if not (self.spots_unposd and self.new_spots) or len(self.spots_unposd) != len(self.new_spots):
             return
         for spot in self.new_spots:
             if spot not in self.spots_unposd:
