@@ -360,6 +360,8 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
+    __slots__ = ['parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower']
+
     def __init__(self, db):
         self.db = db
         self.parents = StructuredDefaultDict(3, FuturistWindowDict)
@@ -624,10 +626,13 @@ class NodesCache(Cache):
 
 
 class EdgesCache(Cache):
+    __slots__ = ['parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower',
+                 'origcache', 'destcache', 'predecessors', 'successors']
+
     def __init__(self, db):
         Cache.__init__(self, db)
-        self._destcache = {}
-        self._origcache = {}
+        self.destcache = {}
+        self.origcache = {}
         self.predecessors = StructuredDefaultDict(3, FuturistWindowDict)
         self.successors = self.parents
 
@@ -644,7 +649,7 @@ class EdgesCache(Cache):
                 break
 
     def _forward_destcache(self, graph, orig, branch, rev):
-        return self._forward_keycachelike(self._destcache, self.successors, self._slow_iter_successors, (graph, orig), branch, rev)
+        return self._forward_keycachelike(self.destcache, self.successors, self._slow_iter_successors, (graph, orig), branch, rev)
 
     def _update_destcache(self, graph, orig, branch, rev, dest, value):
         kc = self._forward_destcache(graph, orig, branch, rev)
@@ -655,7 +660,7 @@ class EdgesCache(Cache):
         return kc
 
     def _forward_origcache(self, graph, dest, branch, rev):
-        return self._forward_keycachelike(self._origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
+        return self._forward_keycachelike(self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
 
     def _update_origcache(self, graph, dest, branch, rev, orig, value):
         kc = self._forward_origcache(graph, dest, branch, rev)
@@ -668,7 +673,7 @@ class EdgesCache(Cache):
     def iter_successors(self, graph, orig, branch, rev):
         self._forward_destcache(graph, orig, branch, rev)
         try:
-            succs = self._destcache[(graph, orig, branch)][rev]
+            succs = self.destcache[(graph, orig, branch)][rev]
         except KeyError:
             return
         yield from succs
@@ -676,7 +681,7 @@ class EdgesCache(Cache):
     def iter_predecessors(self, graph, dest, branch, rev):
         self._forward_origcache(graph, dest, branch, rev)
         try:
-            preds = self._origcache[(graph, dest, branch)][rev]
+            preds = self.origcache[(graph, dest, branch)][rev]
         except KeyError:
             return
         yield from preds
@@ -684,24 +689,24 @@ class EdgesCache(Cache):
     def count_successors(self, graph, orig, branch, rev):
         self._forward_destcache(graph, orig, branch, rev)
         try:
-            return len(self._destcache[(graph, orig, branch)])[rev]
+            return len(self.destcache[(graph, orig, branch)])[rev]
         except KeyError:
             return 0
 
     def count_predecessors(self, graph, dest, branch, rev):
         self._forward_origcache(graph, dest, branch, rev)
         try:
-            return len(self._origcache[(graph, dest, branch)][rev])
+            return len(self.origcache[(graph, dest, branch)][rev])
         except KeyError:
             return 0
 
     def has_successor(self, graph, orig, dest, branch, rev):
-        self._forward_keycachelike(self._destcache, self.successors, self._slow_iter_successors, (graph, orig), branch, rev)
-        return dest in self._destcache[(graph, orig, branch)][rev]
+        self._forward_keycachelike(self.destcache, self.successors, self._slow_iter_successors, (graph, orig), branch, rev)
+        return dest in self.destcache[(graph, orig, branch)][rev]
     
     def has_predecessor(self, graph, dest, orig, branch, rev):
-        self._forward_keycachelike(self._origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
-        return orig in self._origcache[(graph, orig, branch)][rev]
+        self._forward_keycachelike(self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
+        return orig in self.origcache[(graph, orig, branch)][rev]
 
     def store(self, graph, nodeA, nodeB, idx, branch, rev, ex):
         """Store whether an edge exists, and create an object for it
