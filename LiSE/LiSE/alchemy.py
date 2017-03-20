@@ -196,6 +196,16 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(['trigger'], ['triggers.name'])
     )
 
+    # Table for changes to rules' trigger lists after the
+    # game has started. Integrity needs to be checked in-program.
+    r['rule_triggers_patches'] = Table(
+        'rule_triggers_patches', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', Integer, primary_key=True),
+        Column('triggers', TEXT, nullable=False)
+    )
+
     # Table for rules' prereqs, functions with veto power over a rule
     # being followed
     r['rule_prereqs'] = Table(
@@ -205,6 +215,16 @@ def tables_for_meta(meta):
         Column('prereq', TEXT, nullable=False),
         ForeignKeyConstraint(['rule'], ['rules.rule']),
         ForeignKeyConstraint(['prereq'], ['prereqs.name'])
+    )
+
+    # Table for changes to rules' prereq lists after the game has
+    # started. Integrity needs to be checked in-program.
+    r['rule_prereqs_patches'] = Table(
+        'rule_prereqs_patches', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', Integer, primary_key=True),
+        Column('prereqs', TEXT, nullable=False)
     )
 
     # Table for rules' actions, the functions that do what the rule
