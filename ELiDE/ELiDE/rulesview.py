@@ -86,10 +86,14 @@ class RulesView(FloatLayout):
         if len(rn) == 2:
             (char, node) = rn
             character = self.engine.character[char]
-            if node in character.thing:
+            if node in {'character', 'avatar', 'character_thing', 'character_place', 'character_node', 'character_portal'}:
+                return "Character: {}, rulebook: {}".format(char, node)
+            elif node in character.thing:
                 return "Character: {}, Thing: {}".format(*rn)
-            else:
+            elif node in character.place:
                 return "Character: {}, Place: {}".format(*rn)
+            else:
+                raise KeyError("Node {} not present in character".format(node))
         elif len(rn) == 3:
             return "Character: {}, Portal: {}->{}".format(*rn)
         else:
