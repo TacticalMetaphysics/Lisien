@@ -104,13 +104,27 @@ class EngineHandle(object):
         else:
             return v
 
-    def unwrap_node_stat(self, char, node, k, v):
+    def unwrap_place_stat(self, place, k, v):
         if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'node', char, node, k, v._v)
+            return ('JSONReWrapper', 'place', place.character.name, place.name, k, v._v)
         elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'node', char, node, k, v._v)
+            return ('JSONListReWrapper', 'place', place.character.name, place.name, k, v._v)
         else:
             return v
+
+    def unwrap_thing_stat(self, thing, k, v):
+        if isinstance(v, JSONReWrapper):
+            return('JSONReWrapper', 'thing', thing.character.name, thing.name, thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'], k, v._v)
+        elif isinstance(v, JSONListReWrapper):
+            return('JSONListReWrapper', 'thing', thing.character.name, thing.name, thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'], k, v._v)
+        else:
+            return v
+
+    def unwrap_node_stat(self, node, k, v):
+        if hasattr(node, 'location'):
+            return self.unwrap_thing_stat(node, k, v)
+        else:
+            return self.unwrap_place_stat(node, k, v)
 
     def unwrap_portal_stat(self, char, orig, dest, k, v):
         if isinstance(v, JSONReWrapper):
@@ -464,11 +478,15 @@ class EngineHandle(object):
         del self._real.character[char].node[node][k]
         del self._node_stat_cache[char][node][k]
 
-    def node_stat_copy(self, char, node):
+    def node_stat_copy(self, node_or_char, node=None):
         """Return a node's stats, prepared for pickling, in a dictionary."""
+        if node is None:
+            node = node_or_char
+        else:
+            node = self._real.character[node_or_char].node[node]
         return {
-            k: self.unwrap_node_stat(char, node, k, v)
-            for (k, v) in self._real.character[char].node[node].items()
+            k: self.unwrap_node_stat(node, k, v)
+            for (k, v) in node.items()
             if k not in {
                     'location',
                     'next_location',
@@ -487,7 +505,7 @@ class EngineHandle(object):
         """
         try:
             old = self._node_stat_cache[char].get(node, {})
-            new = self.node_stat_copy(char, node)
+            new = self.node_stat_copy(self._real.character[char].node[node])
             self._node_stat_cache[char][node] = new
             r = dict_diff(old, new)
             return r

@@ -183,8 +183,8 @@ class AbstractEngine(object):
                 for (k, v) in obj.items()
             ],
             self.char_cls: lambda obj: ["character", obj.name],
-            self.thing_cls: lambda obj: ["node", obj.character.name, obj.name],
-            self.place_cls: lambda obj: ["node", obj.character.name, obj.name],
+            self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
+            self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
                 "portal", obj.character.name, obj._origin, obj._destination]
         }
@@ -197,6 +197,10 @@ class AbstractEngine(object):
 
     @reify
     def _delistify_dispatch(self):
+        def nodeget(obj):
+            return self._node_objs[(
+                self.delistify(obj[1]), self.delistify(obj[2])
+            )]
         return {
             'list': lambda obj: [self.delistify(v) for v in obj[1:]],
             'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
@@ -205,9 +209,9 @@ class AbstractEngine(object):
                 for (k, v) in obj[1:]
             },
             'character': lambda obj: self.character[self.delistify(obj[1])],
-            'node': lambda obj: self._node_objs[(
-                self.delistify(obj[1]), self.delistify(obj[2])
-            )],
+            'place': nodeget,
+            'thing': nodeget,
+            'node': nodeget,
             'portal': lambda obj: self._portal_objs[(
                 self.delistify(obj[1]),
                 self.delistify(obj[2]),

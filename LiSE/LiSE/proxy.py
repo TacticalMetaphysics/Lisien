@@ -1931,32 +1931,23 @@ class EngineProxy(AbstractEngine):
             if name not in self._char_cache:
                 self._char_cache[name] = CharacterProxy(self, name)
             return self._char_cache[name]
-        elif obj[0] == 'node':
+        elif obj[0] == 'place':
             charname = self.delistify(obj[1])
             nodename = self.delistify(obj[2])
-            if charname in self._things_cache and \
-               nodename in self._things_cache[charname]:
-                return self._things_cache[charname][nodename]
-            if charname in self._character_places_cache and \
-               nodename in self._character_places_cache[charname]:
+            try:
                 return self._character_places_cache[charname][nodename]
-            # I hate that I have to ask the subprocess about this.
-            # Maybe change the serialization to always reflect
-            # the distinction between place and thing
-            (loc, nextloc, arrt, nextarrt) \
-                = self.handle(
-                    'get_thing_special_stats', char=charname, thing=nodename
+            except KeyError:
+                return self._character_places_cache.setdefault(charname, {}).setdefault(
+                    nodename, PlaceProxy(self, charname, nodename)
                 )
-            if loc is not None:
-                self._things_cache[charname][nodename] \
-                    = ThingProxy(
-                        self, charname, nodename, loc, nextloc, arrt, nextarrt
-                    )
-                return self._things_cache[charname][nodename]
-            else:
-                self._character_places_cache[charname][nodename] \
-                    = PlaceProxy(self, charname, nodename)
-                return self._character_places_cache[charname][nodename]
+        elif obj[0] == 'thing':
+            charname, nodename, loc, nxtloc, arrt, nxtarrt = map(self.delistify, obj[1:])
+            try:
+                return self._character_things_cache[charname][nodename]
+            except KeyError:
+                return self._character_things_cache.setdefault(charname, {}).setdefault(
+                    nodename, ThingProxy(self, charname, nodename, loc, nxtloc, arrt, nxtarrt)
+                )
         elif obj[0] == 'portal':
             charname = self.delistify(obj[1])
             origname = self.delistify(obj[2])
@@ -2031,34 +2022,28 @@ class EngineProxy(AbstractEngine):
                       else JSONListReWrapper
                 if r[1] == 'character':
                     (charn, k, v) = r[2:]
-                    return cls(CharacterProxy(self, charn), k, v)
-                elif r[1] == 'node':
+                    try:
+                        char = self._char_cache[charn]
+                    except KeyError:
+                        char = self._char_cache[charn] = CharacterProxy(self, charn)
+                    return cls(char, k, v)
+                elif r[1] == 'place':
                     (char, noden, k, v) = r[2:]
                     try:
-                        node = self.character[char].node[noden]
+                        place = self.character[char].place[noden]
                     except KeyError:
-                        (loc, nxtloc, arrt, nxtarrt) = self.handle(
-                            'get_thing_special_stats',
-                            char=char,
-                            thing=noden
+                        place = self._character_places_cache.setdefault(char, {})[noden] = PlaceProxy(self, char, noden)
+                    return cls(place, k, v)
+                elif r[1] == 'thing':
+                    (char, thingn, loc, nxtloc, arrt, nxtarrt, k, v) = r[2:]
+                    try:
+                        thing = self._things_cache[char][thingn]
+                    except (KeyError, TypeError):
+                        # TypeError because StructuredDefaultDict can't instantiate ThingProxy
+                        thing = self._things_cache.setdefault(char, {})[thingn] = ThingProxy(
+                            self, char, thingn, loc, nxtloc, arrt, nxtarrt
                         )
-                        if loc is not None:
-                            node = self._things_cache[char][noden] \
-                                   = ThingProxy(
-                                       self,
-                                       char,
-                                       noden,
-                                       loc,
-                                       nxtloc,
-                                       arrt,
-                                       nxtarrt
-                                   )
-                        else:
-                            node = self._character_places_cache[
-                                char][noden] = PlaceProxy(
-                                    self, char, noden
-                                )
-                    return cls(node, k, v)
+                    return cls(thing, k, v)
                 else:
                     assert (r[1] == 'portal')
                     (char, nodeA, nodeB, k, v) = r[2:]
