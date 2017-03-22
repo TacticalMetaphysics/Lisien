@@ -2267,9 +2267,11 @@ class EngineProxy(AbstractEngine):
 
 
 def subprocess(
-    args, kwargs, handle_out_pipe, handle_in_pipe, logq
+    args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel
 ):
     def log(typ, data):
+        if loglevel > logging.DEBUG:
+            return
         if typ == 'command':
             (cmd, kvs) = data
             logs = "LiSE proc {}: calling {}({})".format(
@@ -2284,7 +2286,7 @@ def subprocess(
                 repr(type(data))
             )
         logq.put(('debug', logs))
-    engine_handle = EngineHandle(args, kwargs, logq)
+    engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
 
     while True:
         inst = handle_out_pipe.recv()
@@ -2369,7 +2371,8 @@ class EngineProcessManager(object):
                 kwargs,
                 handle_out_pipe_recv,
                 handle_in_pipe_send,
-                self.logq
+                self.logq,
+                loglevel
             )
         )
         self._p.daemon = True

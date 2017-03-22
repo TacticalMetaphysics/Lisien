@@ -4,6 +4,7 @@
 ordinary method calls.
 
 """
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from re import match
 from collections import defaultdict
 from importlib import import_module
@@ -36,7 +37,7 @@ class EngineHandle(object):
     developing your own API.
 
     """
-    def __init__(self, args, kwargs={}, logq=None, logfile=None):
+    def __init__(self, args, kwargs={}, logq=None, logfile=None, loglevel=None):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
 
@@ -46,6 +47,7 @@ class EngineHandle(object):
         """
         self._real = Engine(*args, **kwargs)
         self._logq = logq
+        self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
         self.tick = self._real.tick
@@ -72,23 +74,23 @@ class EngineHandle(object):
         self._stores_cache = defaultdict(dict)
 
     def log(self, level, message):
-        if self._logq:
+        if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
 
     def debug(self, message):
-        self.log('debug', message)
+        self.log(DEBUG, message)
 
     def info(self, message):
-        self.log('info', message)
+        self.log(INFO, message)
 
     def warning(self, message):
-        self.log('warning', message)
+        self.log(WARNING, message)
 
     def error(self, message):
-        self.log('error', message)
+        self.log(ERROR, message)
 
     def critical(self, message):
-        self.log('critical', message)
+        self.log(CRITICAL, message)
 
     def json_load(self, s):
         return self._real.json_load(s)
