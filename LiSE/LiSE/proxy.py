@@ -2,7 +2,6 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Proxy objects to access LiSE entities from another process."""
 import sys
-import syslog
 import logging
 from os import getpid
 from collections import (
@@ -2285,7 +2284,6 @@ def subprocess(
                 repr(type(data))
             )
         logq.put(('debug', logs))
-        syslog.syslog(logs)
     engine_handle = EngineHandle(args, kwargs, logq)
 
     while True:
