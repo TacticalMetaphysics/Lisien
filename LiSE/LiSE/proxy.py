@@ -1150,7 +1150,7 @@ class RuleBookProxy(MutableSequence, Signal):
     def __iter__(self):
         for k in self._cache:
             if k not in self._proxy_cache:
-                self._proxy_cache[k] = RuleProxy(self.engine.rule, k)
+                self._proxy_cache[k] = RuleProxy(self.engine, k)
             yield self._proxy_cache[k]
 
     def __len__(self):
