@@ -669,7 +669,7 @@ class Board(RelativeLayout):
             nextlocn = pwn.thing['next_location']
             if nextlocn is None:
                 self.add_spot(nextlocn)
-                whereat = self.spot[nextlocn]
+                whereat = self.spot[locn]
             else:
                 self.add_arrow(locn, nextlocn)
                 whereat = self.arrow[locn][nextlocn]
