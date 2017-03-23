@@ -255,21 +255,6 @@ class ThingProxy(NodeProxy):
             return None
         return self.engine.character[self._charname].node[self._next_location]
 
-    @next_location.setter
-    def next_location(self, v):
-        if isinstance(v, NodeProxy):
-            if v.character != self.character:
-                raise ValueError(
-                    "Things can only be located in their character. "
-                    "Maybe you want an avatar?"
-                )
-            locn = v.name
-        elif v in self.character.node:
-            locn = v
-        else:
-            raise TypeError("Location must be a node or the name of one")
-        self._set_next_location(locn)
-
     def __init__(
             self, engine, character, name, location, next_location,
             arrival_time, next_arrival_time
@@ -311,22 +296,10 @@ class ThingProxy(NodeProxy):
         )
         self.send(self, key='location', val=v)
 
-    def _set_next_location(self, v):
-        self._next_location = v
-        self.engine.handle(
-            command='set_thing_next_location',
-            char=self.character.name,
-            thing=self.name,
-            loc=v
-        )
-        self.send(self, key='next_location', val=v)
-
     def __setitem__(self, k, v):
         if k == 'location':
             self._set_location(v)
-        elif k == 'next_location':
-            self._set_next_location(v)
-        elif k in {'arrival_time', 'next_arrival_time'}:
+        elif k in {'next_location', 'arrival_time', 'next_arrival_time'}:
             raise ValueError("Read-only")
         else:
             super().__setitem__(k, v)

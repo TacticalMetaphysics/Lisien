@@ -731,13 +731,6 @@ class EngineHandle(object):
             thing['next_arrival_time']
         )
 
-    @branching
-    def set_thing_next_location(self, char, thing, loc):
-        self._real.character[char].thing[thing]['next_location'] = loc
-        # if this throws KeyError the cache is bad
-        oldloc, _, arrt, nxtarrt = self._char_things_cache.setdefault(char, {})[thing]
-        self._char_things_cache[char][thing] = (oldloc, loc, arrt, nxtarrt)
-
     def thing_follow_path(self, char, thing, path, weight):
         # TODO: special case of branching
         self._real.character[char].thing[thing].follow_path(path, weight)
