@@ -44,7 +44,7 @@ True
 >>> orm.rev = 1
 >>> red.edge == blue.edge
 True
->>> orm.branch = 'master'
+>>> orm.branch = 'trunk'
 >>> red.edge == blue.edge
 False
 ```

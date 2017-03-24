@@ -168,14 +168,14 @@ class QueryEngine(object):
         ``branch`` and ``rev`` provided; proceeding to the parent
         branch and the revision therein when the provided branch
         began; and recursing through the entire genealogy of branches
-        until we reach the branch 'master'.
+        until we reach the branch 'trunk'.
 
         Though not private, this is unlikely to be useful unless
         you're adding functionality to allegedb.
 
         """
         yield (branch, rev)
-        while branch != 'master':
+        while branch != 'trunk':
             if branch not in self._branches:
                 (b, r) = self.parparrev(branch)
                 self._branches[branch] = (b, self.json_load(r))
@@ -761,7 +761,7 @@ class QueryEngine(object):
         if hasattr(self, 'alchemist'):
             self.alchemist.meta.create_all(self.engine)
             if 'branch' not in self.globl:
-                self.globl['branch'] = 'master'
+                self.globl['branch'] = 'trunk'
             if 'rev' not in self.globl:
                 self.globl['rev'] = 0
             return
@@ -772,7 +772,7 @@ class QueryEngine(object):
         except OperationalError:
             cursor.execute(self.strings['create_global'])
         if 'branch' not in self.globl:
-            self.globl['branch'] = 'master'
+            self.globl['branch'] = 'trunk'
         if 'rev' not in self.globl:
             self.globl['rev'] = 0
         try:

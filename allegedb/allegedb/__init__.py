@@ -52,7 +52,7 @@ class ORM(object):
 
     def _init_load(self):
         for (branch, parent, parent_rev) in self.query.all_branches():
-            if branch != 'master':
+            if branch != 'trunk':
                 self._parentbranch_rev[branch] = (parent, parent_rev)
             self._childbranch[parent].add(branch)
         graphval = defaultdict(list)
@@ -78,7 +78,7 @@ class ORM(object):
         # caches for child branches get built after their parents.
         # Do the graphs first, so that everything else will have
         # someplace to be.
-        branch2do = deque(['master'])
+        branch2do = deque(['trunk'])
         while branch2do:
             branch = branch2do.popleft()
             for row in graphval[branch]:
@@ -86,7 +86,7 @@ class ORM(object):
             if branch in self._childbranch:
                 branch2do.extend(self._childbranch[branch])
         self._load_graphs()
-        branch2do = deque(['master'])
+        branch2do = deque(['trunk'])
         while branch2do:
             branch = branch2do.popleft()
             for row in nodes[branch]:
@@ -155,9 +155,9 @@ class ORM(object):
         any remove.
 
         """
-        if parent == 'master':
+        if parent == 'trunk':
             return True
-        if child == 'master':
+        if child == 'trunk':
             return False
         if child not in self._parentbranch_rev:
             raise ValueError(
@@ -195,7 +195,7 @@ class ORM(object):
             self.query.new_branch(v, curbranch, currev)
         # make sure I'll end up within the revision range of the
         # destination branch
-        if v != 'master':
+        if v != 'trunk':
             if self.caching:
                 if v not in self._parentbranch_rev:
                     self._parentbranch_rev[v] = (curbranch, currev)
@@ -233,7 +233,7 @@ class ORM(object):
             return
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
-        if branch != 'master':
+        if branch != 'trunk':
             if self.caching:
                 (parent, parent_rev) = self._parentbranch_rev[branch]
             else:
@@ -351,7 +351,7 @@ class ORM(object):
     def _active_branches(self, branch=None, rev=None):
         """Private use. Iterate over (branch, rev) pairs, where the branch is
         a descendant of the previous (starting with whatever branch is
-        presently active and ending at 'master'), and the rev is the
+        presently active and ending at 'trunk'), and the rev is the
         latest revision in the branch that matters.
 
         """

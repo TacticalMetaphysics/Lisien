@@ -65,7 +65,7 @@ class GraphTest(AllegedTest):
         g.add_edge(3, 0)
         self.engine.branch = 'nothing'
         g.remove_nodes_from((0, 1, 2, 3))
-        self.engine.branch = 'master'
+        self.engine.branch = 'trunk'
         self.engine.rev = 0
 
 
@@ -75,12 +75,12 @@ class BranchLineageTest(GraphTest):
         each came from and what happened in each.
 
         """
-        self.assertTrue(self.engine.is_parent_of('master', 'no_edge'))
-        self.assertTrue(self.engine.is_parent_of('master', 'triangle'))
-        self.assertTrue(self.engine.is_parent_of('master', 'nothing'))
+        self.assertTrue(self.engine.is_parent_of('trunk', 'no_edge'))
+        self.assertTrue(self.engine.is_parent_of('trunk', 'triangle'))
+        self.assertTrue(self.engine.is_parent_of('trunk', 'nothing'))
         self.assertTrue(self.engine.is_parent_of('no_edge', 'triangle'))
         self.assertTrue(self.engine.is_parent_of('square', 'nothing'))
-        self.assertFalse(self.engine.is_parent_of('nothing', 'master'))
+        self.assertFalse(self.engine.is_parent_of('nothing', 'trunk'))
         self.assertFalse(self.engine.is_parent_of('triangle', 'no_edge'))
         g = self.engine.graph['test']
         self.assertIn(0, g.node)
@@ -119,7 +119,7 @@ class BranchLineageTest(GraphTest):
         for node in (0, 1, 2):
             self.assertNotIn(node, g.node)
             self.assertNotIn(node, g.edge)
-        self.engine.branch = 'master'
+        self.engine.branch = 'trunk'
         self.engine.rev = 0
         self.assertIn(0, g.node)
         self.assertIn(1, g.node)

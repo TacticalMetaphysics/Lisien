@@ -49,7 +49,7 @@ class StatListPanel(BoxLayout):
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
-    branch = StringProperty('master')
+    branch = StringProperty('trunk')
     tick = NumericProperty(0)
     remote = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()

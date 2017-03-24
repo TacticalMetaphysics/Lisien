@@ -88,7 +88,7 @@ def tables_for_meta(meta):
             Column('character', TEXT, primary_key=True),
             Column('rulebook', TEXT, primary_key=True),
             Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True, default='master'),
+            Column('branch', TEXT, primary_key=True, default='trunk'),
             Column('tick', Integer, primary_key=True, default=0),
             ForeignKeyConstraint(
                 ['character', 'rulebook'],
@@ -167,7 +167,7 @@ def tables_for_meta(meta):
         'lise_globals', meta,
         Column('key', TEXT, primary_key=True),
         Column(
-            'branch', TEXT, primary_key=True, default='master'
+            'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
         Column('date', DateTime, nullable=True),
@@ -237,7 +237,7 @@ def tables_for_meta(meta):
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column(
-            'branch', TEXT, primary_key=True, default='master'
+            'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
         Column('date', DateTime, nullable=True),
@@ -339,7 +339,7 @@ def tables_for_meta(meta):
         ),
         Column('sense', TEXT, primary_key=True),
         Column(
-            'branch', TEXT, primary_key=True, default='master'
+            'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
         Column('date', DateTime, nullable=True),
@@ -383,7 +383,7 @@ def tables_for_meta(meta):
         Column('character', TEXT, primary_key=True),
         Column('thing', TEXT, primary_key=True),
         Column(
-            'branch', TEXT, primary_key=True, default='master'
+            'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
         Column('date', DateTime, nullable=True),
@@ -458,7 +458,7 @@ def tables_for_meta(meta):
         Column('avatar_graph', TEXT, primary_key=True),
         Column('avatar_node', TEXT, primary_key=True),
         Column(
-            'branch', TEXT, primary_key=True, default='master'
+            'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
         Column('date', DateTime, nullable=True),

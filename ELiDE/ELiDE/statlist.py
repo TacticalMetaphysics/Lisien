@@ -208,7 +208,7 @@ class AbstractStatListView(RecycleView):
     config = DictProperty({})
     mirror = DictProperty({})
     remote = ObjectProperty()
-    branch = StringProperty('master')
+    branch = StringProperty('trunk')
     tick = NumericProperty(0)
     time = ReferenceListProperty(branch, tick)
     engine = ObjectProperty()

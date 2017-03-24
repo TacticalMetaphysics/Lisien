@@ -550,7 +550,7 @@ class EngineHandle(object):
         """
         if backdate:
             parbranch, parrev = self._real._parentbranch_rev.get(
-                self._real.branch, ('master', 0)
+                self._real.branch, ('trunk', 0)
             )
             tick_now = self._real.tick
             self._real.tick = parrev

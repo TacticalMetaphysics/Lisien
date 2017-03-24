@@ -79,7 +79,7 @@ class TimeSignalDescriptor(object):
         (branch_now, tick_now) = val
         # make sure I'll end up within the revision range of the
         # destination branch
-        if branch_now != 'master':
+        if branch_now != 'trunk':
             if branch_now in real.engine._parentbranch_rev:
                 parrev = real.engine._parentbranch_rev[branch_now][1]
                 if tick_now < parrev:
@@ -667,7 +667,7 @@ class Engine(AbstractEngine, gORM):
         (b, t) = self.time
         if v == b:
             return
-        if v != 'master':
+        if v != 'trunk':
             if v in self._parentbranch_rev:
                 partick = self._parentbranch_rev[v][1]
                 if self.tick < partick:

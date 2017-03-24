@@ -42,7 +42,7 @@ class ELiDEApp(App):
 
     """
     engine = ObjectProperty()
-    branch = StringProperty('master')
+    branch = StringProperty('trunk')
     tick = NumericProperty(0)
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)

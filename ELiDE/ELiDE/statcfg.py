@@ -196,7 +196,7 @@ class StatScreen(Screen):
     statcfg = ObjectProperty()
     toggle = ObjectProperty()
     engine = ObjectProperty()
-    branch = StringProperty('master')
+    branch = StringProperty('trunk')
     tick = NumericProperty(0)
     time = ReferenceListProperty(branch, tick)
     remote = ObjectProperty()
