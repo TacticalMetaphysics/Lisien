@@ -17,26 +17,29 @@ code.
 from functools import partial
 
 from kivy.clock import Clock
-from kivy.logger import Logger
+from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.recycleview import RecycleView
-from kivy.uix.togglebutton import ToggleButton
 
 from kivy.properties import (
     AliasProperty,
-    ListProperty,
     NumericProperty,
     ObjectProperty,
     StringProperty
 )
-from .util import trigger
+from .util import trigger, RecycleToggleButton
 
 
-class StoreButton(ToggleButton):
+class StoreButton(RecycleToggleButton):
     store = ObjectProperty()
     table = StringProperty('functions')
     name = StringProperty()
     source = StringProperty()
+    select = ObjectProperty()
+
+    def on_state(self, *args):
+        if self.state == 'down':
+            self.select(self)
 
 
 class StoreList(RecycleView):
@@ -48,112 +51,46 @@ class StoreList(RecycleView):
     store = ObjectProperty()
     selection = ObjectProperty()
 
-    def munge(self, name, source):
+    def __init__(self, **kwargs):
+        self.bind(table=self._trigger_redata, store=self._trigger_redata)
+        super().__init__(**kwargs)
+
+    def munge(self, datum):
+        i, (name, source) = datum
         return {
             'store': self.store,
             'table': self.table,
             'text': str(name),
             'name': name,
             'source': source,
-            'on_state': self.select,
+            'select': self.select,
             'size_hint_y': None,
-            'height': 30
+            'height': 30,
+            'index': i
         }
 
     def redata(self, *args):
-        self.data = [self.munge(data) for data in self.iter_data()]
+        if not self.table or not self.store:
+            Clock.schedule_once(self.redata)
+            return
+        self.data = list(map(self.munge, enumerate(self.iter_data())))
     _trigger_redata = trigger(redata)
 
-    def select(self, inst, val):
-        if val == 'down':
-            self.selection = inst.name
+    def select(self, inst):
+        self.selection = inst
 
-
-class StoreEditor(BoxLayout):
-    """StoreList on the left with its editor on the right."""
-    table = StringProperty()
-    store = ObjectProperty()
-    storelist = ObjectProperty()
-    data = ListProperty([])
-    font_name = StringProperty('Roboto-Regular')
-    font_size = NumericProperty(12)
-    selection = ListProperty([])
-    oldsel = ListProperty([])
-    name = StringProperty()
-    source = StringProperty()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.bind(
-            table=self._trigger_remake,
-            store=self._trigger_remake
-        )
-
-    def remake(self, *args):
-        if None in (self.store, self.table):
-            return
-        self.clear_widgets()
-        self.storelist = self.list_cls(
-            size_hint_x=0.4,
-            table=self.table,
-            store=self.store
-        )
-        self.storelist.bind(
-            selection=self.changed_selection
-        )
-        self.bind(
-            table=self.storelist.setter('table'),
-            store=self.storelist.setter('store')
-        )
-        self.add_widget(self.storelist)
-        self.add_editor()
-    _trigger_remake = trigger(remake)
-
-    def changed_selection(self, *args):
-        if self.storelist.selection:
-            self.selection = self.storelist.selection
-            self.name = self.selection[0].name
-            self.source = self.selection[0].source
-
-    def add_editor(self, *args):
-        """Construct whatever editor widget I use and add it to myself."""
+    def iter_data(self):
         raise NotImplementedError
 
-    def save(self, *args):
-        """Write my editor's changes to disk."""
-        raise NotImplementedError
-
-    pawn_cfg = ObjectProperty()
-    spot_cfg = ObjectProperty()
 
 
-class StringInput(BoxLayout):
-    font_name = StringProperty('Roboto-Regular')
-    font_size = NumericProperty(12)
-    source = StringProperty()
-
-    def _get_name(self):
-        if 'stringname' not in self.ids:
-            return ''
-        return self.ids.stringname.text
-
-    def _set_name(self, v, *args):
-        if 'stringname' not in self.ids:
-            Clock.schedule_once(partial(self._set_name, v), 0)
-            return
-        self.ids.stringname.text = v
-
-    name = AliasProperty(_get_name, _set_name)
-
-    def _get_source(self):
-        if 'string' not in self.ids:
-            return ''
-        return self.ids.string.text
-
-    def _set_source(self, v, *args):
-        if 'string' not in self.ids:
-            Clock.schedule_once(partial(self._set_source, v), 0)
-            return
-        self.ids.string.text = v
-
-    source = AliasProperty(_get_source, _set_source)
+Builder.load_string("""
+<StoreList>:
+    viewclass: 'StoreButton'
+    SelectableRecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        height: self.minimum_height
+        size_hint_y: None
+        orientation: 'vertical'
+""")

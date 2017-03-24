@@ -10,9 +10,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
-from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
@@ -34,26 +31,14 @@ def getname(o):
     return o if isinstance(o, str) else o.__name__
 
 
-class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
-    pass
-
-
 # How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
     rulesview = ObjectProperty()
     rule = ObjectProperty()
-    index = NumericProperty()
 
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            return self.parent.select_with_touch(self.index, touch)
-
-    def apply_selection(self, rv, index, is_selected):
-        if is_selected and index == self.index:
+    def on_state(self, *args):
+        if self.state == 'down':
             self.rulesview.rule = self.rule
-            self.state = 'down'
-        else:
-            self.state = 'normal'
 
 
 class RulesList(RecycleView):
