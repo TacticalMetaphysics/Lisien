@@ -667,12 +667,24 @@ class Engine(AbstractEngine, gORM):
         (b, t) = self.time
         if v == b:
             return
-        if v not in self._parentbranch_rev:
-            parent = b
-            child = v
-            self._parentbranch_rev[child] = parent, t
-            self._childbranch[parent].add(child)
-            self.query.new_branch(child, parent, t)
+        if v != 'master':
+            if v in self._parentbranch_rev:
+                partick = self._parentbranch_rev[v][1]
+                if self.tick < partick:
+                    raise ValueError(
+                        "Tried to jump to branch {br}, "
+                        "which starts at tick {rv}. "
+                        "Go to tick {rv} or later to use this branch.".format(
+                            br=v,
+                            rv=partick
+                        )
+                    )
+            else:
+                parent = b
+                child = v
+                self._parentbranch_rev[child] = parent, t
+                self._childbranch[parent].add(child)
+                self.query.new_branch(child, parent, t)
         self._obranch = v
         if not hasattr(self, 'locktime'):
             self.time.send(
