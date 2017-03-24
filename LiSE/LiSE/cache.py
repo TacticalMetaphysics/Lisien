@@ -381,8 +381,8 @@ class ThingsCache(Cache):
 
     def tick_before(self, character, thing, branch, tick):
         self.retrieve(character, thing, branch, tick)
-        return self.shallow[(character, thing, branch)].rev_before(tick)
+        return self.keys[(character,)][thing][branch].rev_before(tick)
 
     def tick_after(self, character, thing, branch, tick):
         self.retrieve(character, thing, branch, tick)
-        return self.shallow[(character, thing, branch)].rev_after(tick)
+        return self.keys[(character,)][thing][branch].rev_after(tick)
