@@ -94,15 +94,13 @@ class Pawn(PawnSpot):
     def finalize(self):
         super().finalize()
         self.bind(
-            loc_name=self._trigger_push_location,
-            next_loc_name=self._trigger_push_next_location
+            loc_name=self._trigger_push_location
         )
 
     def unfinalize(self):
         super().unfinalize()
         self.unbind(
-            loc_name=self._trigger_push_location,
-            next_loc_name=self._trigger_push_next_location
+            loc_name=self._trigger_push_location
         )
 
     def pull_from_remote(self, *args):
@@ -120,10 +118,6 @@ class Pawn(PawnSpot):
     def push_location(self, *args):
         self.remote['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)
-
-    def push_next_location(self, *args):
-        self.remote['next_location'] = self.next_loc_name
-    _trigger_push_next_location = trigger(push_next_location)
 
     def add_widget(self, pawn, index=0, canvas='after'):
         """Apart from the normal behavior, bind my ``center`` so that the
