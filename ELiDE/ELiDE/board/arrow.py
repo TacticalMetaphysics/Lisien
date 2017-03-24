@@ -317,7 +317,7 @@ class ArrowWidget(Widget):
                     pawn.thing['arrival_time']
                 )
             )
-        except ZeroDivisionError:
+        except (TypeError, ZeroDivisionError):
             pawn.pos = self.pos_along(0)
 
     def _get_points(self):
