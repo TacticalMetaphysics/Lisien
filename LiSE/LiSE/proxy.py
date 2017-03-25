@@ -1722,7 +1722,7 @@ class FuncStoreProxy(object):
 
     def set_source(self, func_name, source):
         self.engine.handle(
-            command='set_source', store=self._store, k=func_name, v=source
+            command='set_source', store=self._store, k=func_name, v=source, silent=True
         )
         self._cache[func_name] = source
 
