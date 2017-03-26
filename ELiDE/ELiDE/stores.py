@@ -252,16 +252,16 @@ class FuncsEditor(BoxLayout):
     def save(self, *args):
         if not (self.name and self.store):
             return
-        if self.source != self.store.plain(self.name):
+        if self.source != self.store[self.name]:
             Logger.debug('saving function {}'.format(self.name))
-            self.store.set_source(self.name, self.source)
+            self.store[self.name] = self.source
     _trigger_save = trigger(save)
 
     @trigger
     def _pull_func(self, *args):
         self.save()
         self.ids.funname.text = self.name = self.storelist.selection.name
-        self.source = self.store.plain(self.name)
+        self.source = self.store[self.name]
 
 
 class FuncsEdBox(BoxLayout):
