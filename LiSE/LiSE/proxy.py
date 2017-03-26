@@ -1702,7 +1702,7 @@ class AllRulesProxy(Mapping):
         return self._proxy_cache[k]
 
 
-class FuncStoreProxy(object):
+class FuncStoreProxy(MutableMapping):
     def __init__(self, engine_proxy, store):
         self.engine = engine_proxy
         self._store = store
@@ -1714,17 +1714,20 @@ class FuncStoreProxy(object):
     def __len__(self):
         return len(self._cache)
 
-    def plain(self, k):
+    def __getitem__(self, k):
         return self._cache[k]
 
-    def iterplain(self):
-        yield from self._cache.items()
-
-    def set_source(self, func_name, source):
+    def __setitem__(self, func_name, source):
         self.engine.handle(
             command='set_source', store=self._store, k=func_name, v=source
         )
         self._cache[func_name] = source
+
+    def __delitem__(self, func_name):
+        self.engine.handle(
+            command='del_source', store=self._store, k=func_name, silent=True
+        )
+        del self._cache[func_name]
 
 
 class ChangeSignatureError(TypeError):
