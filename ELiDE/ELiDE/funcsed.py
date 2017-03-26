@@ -23,28 +23,10 @@ from kivy.properties import (
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
-from .stores import StoreList
 from .util import trigger
 
 
-class FuncStoreList(StoreList):
-    def iter_data(self):
-        yield from self.store.iterplain()
-
-
 sig_ex = re.compile('^ *def .+?\((.+)\):$')
-
-
-class FunctionInput(BoxLayout):
-    name = StringProperty()
-    params = ListProperty()
-    store = ObjectProperty()
-
-    def on_name(self, *args):
-        if 'funname' not in self.ids:
-            Clock.schedule_once(self.on_name, 0)
-            return
-        self.ids.funname.text = self.name
 
 
 class FunctionNameInput(TextInput):
@@ -289,7 +271,7 @@ Builder.load_string("""
     orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
-        FuncStoreList:
+        StoreList:
             id: funcs_list
             table: root.table
             store: root.store
@@ -320,7 +302,6 @@ Builder.load_string("""
                     id: char
                     group: 'subj_type'
                     size_hint_x: 0.2
-                    active: True
                     on_active: root.setchar(self.active)
                 Label:
                     text: 'Character'

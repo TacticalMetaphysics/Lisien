@@ -56,16 +56,13 @@ class StoreList(RecycleView):
         super().__init__(**kwargs)
 
     def munge(self, datum):
-        i, (name, source) = datum
+        i, name = datum
         return {
             'store': self.store,
             'table': self.table,
             'text': str(name),
             'name': name,
-            'source': source,
             'select': self.select,
-            'size_hint_y': None,
-            'height': 30,
             'index': i
         }
 
@@ -73,7 +70,7 @@ class StoreList(RecycleView):
         if not self.table or not self.store:
             Clock.schedule_once(self.redata)
             return
-        self.data = list(map(self.munge, enumerate(self.iter_data())))
+        self.data = list(map(self.munge, enumerate(sorted(self.store.keys()))))
     _trigger_redata = trigger(redata)
 
     def select(self, inst):
@@ -85,6 +82,9 @@ class StoreList(RecycleView):
 
 
 Builder.load_string("""
+<StoreButton>:
+    size_hint_y: None
+    height: 30
 <StoreList>:
     viewclass: 'StoreButton'
     SelectableRecycleBoxLayout:
