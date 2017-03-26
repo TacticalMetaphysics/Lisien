@@ -22,8 +22,7 @@ import LiSE
 from LiSE.proxy import EngineProcessManager
 import ELiDE
 import ELiDE.screen
-import ELiDE.stringsed
-import ELiDE.funcsed
+import ELiDE.stores
 import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
@@ -205,12 +204,12 @@ class ELiDEApp(App):
             toggle=toggler('chars')
         )
 
-        self.strings = ELiDE.stringsed.StringsEdScreen(
+        self.strings = ELiDE.stores.StringsEdScreen(
             engine=self.engine,
             toggle=toggler('strings')
         )
 
-        self.funcs = ELiDE.funcsed.FuncsEdScreen(
+        self.funcs = ELiDE.stores.FuncsEdScreen(
             name='funcs',
             toggle=toggler('funcs')
         )

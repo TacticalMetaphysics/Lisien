@@ -1,12 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) Zachary Spector, ZacharySpector@gmail.com
 from kivy.clock import Clock
-from kivy.properties import NumericProperty
-from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
-from kivy.uix.behaviors import FocusBehavior
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from kivy.uix.togglebutton import ToggleButton
 from functools import partial
 from math import sin, cos, atan, pi
 
@@ -15,24 +9,6 @@ ninety = pi / 2
 
 fortyfive = pi / 4
 """pi / 4"""
-
-
-class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
-    pass
-
-
-class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):
-    index = NumericProperty()
-
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            return self.parent.select_with_touch(self.index, touch)
-
-    def apply_selection(self, rv, index, is_selected):
-        if is_selected and index == self.index:
-            self.state = 'down'
-        else:
-            self.state = 'normal'
 
 
 class trigger(object):
