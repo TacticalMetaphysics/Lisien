@@ -111,17 +111,6 @@ class StringsEdScreen(Screen):
     engine = ObjectProperty()
     toggle = ObjectProperty()
 
-    def add_string(self, *args):
-        ed = self.ids.editor
-        ed.save()
-        newname = self.ids.strname.text
-        if newname in self.engine.string:
-            return
-        self.engine.string[newname] = ed.source = ''
-        assert(newname in self.engine.string)
-        self.ids.strname.text = ''
-        ed.name = newname
-
 
 class StringInput(BoxLayout):
     def _get_name(self):
@@ -149,6 +138,62 @@ class StringInput(BoxLayout):
         self.ids.string.text = v
 
     source = AliasProperty(_get_source, _set_source)
+
+
+class EdBox(BoxLayout):
+    storelist = ObjectProperty()
+    editor = ObjectProperty()
+    table = StringProperty()
+    store = ObjectProperty()
+    data = ListProperty()
+    toggle = ObjectProperty()
+    name = StringProperty('')
+    new_name_wid = ObjectProperty()
+
+    def on_storelist(self, *args):
+        self.storelist.bind(selection=self._pull_from_storelist)
+
+    @trigger
+    def _pull_from_storelist(self, *args):
+        self.save()
+        self.editor.name_wid.text = self.name = self.storelist.selection.name
+        self.editor.source = self.store[self.name]
+
+    def add_item(self, *args):
+        if not self.new_name_wid.text:
+            return
+        newname = self.new_name_wid.text
+        self.new_name_wid.text = ''
+        self.editor.save()
+        self.editor.name_wid.text = self.name = newname
+        self.editor.source = self.get_default_text(newname)
+
+    def rename_item(self, *args):
+        raise NotImplementedError
+
+    def del_item(self, *args):
+        raise NotImplementedError
+
+    def dismiss(self, *args):
+        self.save()
+        self.toggle()
+
+    def save(self, *args):
+        if not (self.name and self.editor):
+            return
+        if self.name == self.editor.name_wid.text:
+            self.editor.save()
+        else:
+            # renamed the function!
+            del self.store[self.name]
+            self.name = self.editor.name_wid.text
+            self.editor.save()
+            self.storelist.redata()
+
+
+class StringsEdBox(EdBox):
+    def get_default_text(self, newname):
+        return ''
 
 
 sig_ex = re.compile('^ *def .+?\((.+)\):$')
@@ -194,7 +239,7 @@ def sanitize_source(v, spaces=4):
     return params, '\n'.join(line[spaces:] for line in lines)
 
 
-class FuncsEditor(BoxLayout):
+class FuncEditor(BoxLayout):
     """The editor widget for working with any particular function.
 
     Contains a one-line field for the function's name; a multi-line
@@ -202,9 +247,9 @@ class FuncsEditor(BoxLayout):
     from among those permitted.
 
     """
-    name = StringProperty('')
     storelist = ObjectProperty()
     codeinput = ObjectProperty()
+    name_wid = ObjectProperty()
     _text = StringProperty()
     subject_type_params = {
         'character': ('engine', 'character'),
@@ -227,7 +272,7 @@ class FuncsEditor(BoxLayout):
     )
 
     def _get_source(self):
-        code = 'def ' + self.name + '(' + ', '.join(self.params) + '):\n'
+        code = 'def ' + self.name_wid.text + '(' + ', '.join(self.params) + '):\n'
         for line in self._text.split('\n'):
             code += (' ' * 4 + line + '\n')
         return code.rstrip(' \n\t')
@@ -240,69 +285,35 @@ class FuncsEditor(BoxLayout):
         self.params, self.codeinput.text = sanitize_source(v)
         self.codeinput.bind(text=self.setter('_text'))
 
-    source = AliasProperty(_get_source, _set_source, bind=('name', 'params', '_text'))
+    source = AliasProperty(_get_source, _set_source, bind=('params', '_text'))
 
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
         self.codeinput.bind(text=self.setter('_text'))
 
-    def on_storelist(self, *args):
-        self.storelist.bind(selection=self._pull_func)
-
     def save(self, *args):
-        if not (self.name and self.store):
+        if not (self.name_wid and self.store):
             return
-        if self.source != self.store[self.name]:
-            Logger.debug('saving function {}'.format(self.name))
-            self.store[self.name] = self.source
+        if self.source != self.store[self.name_wid.text]:
+            self.store[self.name_wid.text] = self.source
     _trigger_save = trigger(save)
 
-    @trigger
-    def _pull_func(self, *args):
-        self.save()
-        self.ids.funname.text = self.name = self.storelist.selection.name
-        self.source = self.store[self.name]
 
-
-class FuncsEdBox(BoxLayout):
+class FuncsEdBox(EdBox):
     """Widget for editing the Python source of funcs to be used in LiSE sims.
 
     Contains a list of functions in the store it's about, next to a
-    FuncsEditor showing the source of the selected one, and some
+    FuncEditor showing the source of the selected one, and some
     controls on the bottom that let you add, delete, and rename the function,
     or close the screen.
 
     """
-    funcs_ed = ObjectProperty()
-    table = StringProperty()
-    store = ObjectProperty()
-    data = ListProperty()
-    toggle = ObjectProperty()
 
-    def add_func(self, *args):
-        if not self.ids.newfuncname.text:
-            return
-        newname = self.ids.newfuncname.text
-        self.ids.newfuncname.text = ''
-        self.funcs_ed.save()
-        self.funcs_ed.name = newname
-        self.ids.funcs_ed.source = 'def {}({}):\n    pass'.format(
+    def get_default_text(self, newname):
+        return 'def {}({}):\n    pass'.format(
             newname,
-            ', '.join(self.funcs_ed.params)
+            ', '.join(self.editor.params)
         )
-
-    def del_func(self, *args):
-        raise NotImplementedError
-
-    def rename_func(self, *args):
-        raise NotImplementedError
-
-    def dismiss(self, *args):
-        self.funcs_ed.save()
-        self.toggle()
-
-    def save(self, *args):
-        self.funcs_ed.save()
 
     def subjtyp(self, val):
         if val == 'character':
@@ -317,22 +328,22 @@ class FuncsEdBox(BoxLayout):
     def setchar(self, active):
         if not active:
             return
-        self.funcs_ed.subject_type = 'character'
+        self.editor.subject_type = 'character'
 
     def setthing(self, active):
         if not active:
             return
-        self.funcs_ed.subject_type = 'thing'
+        self.editor.subject_type = 'thing'
 
     def setplace(self, active):
         if not active:
             return
-        self.funcs_ed.subject_type = 'place'
+        self.editor.subject_type = 'place'
 
     def setport(self, active):
         if not active:
             return
-        self.funcs_ed.subject_type = 'portal'
+        self.editor.subject_type = 'portal'
 
 
 class FuncsEdScreen(Screen):
@@ -354,9 +365,11 @@ Builder.load_string("""
         orientation: 'vertical'
 <StringInput>:
     orientation: 'vertical'
+    name_wid: title
     BoxLayout:
         size_hint_y: 0.05
         Label:
+            id: title
             text: 'Title: '
             size_hint_x: None
             width: self.texture_size[0]
@@ -364,33 +377,44 @@ Builder.load_string("""
             id: stringname
     TextInput:
         id: string
+<StringsEdBox>:
+    editor: strings_ed
+    storelist: strings_list
+    new_name_wid: newstrname
+    orientation: 'vertical'
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_x: 0.2
+        BoxLayout:
+            orientation: 'vertical'
+            StoreList:
+                id: strings_list
+                table: root.table
+                store: root.store
+                size_hint_y: 0.9
+            Widget:
+                id: space
+            TextInput:
+                id: newstrname
+            Button:
+                text: '+'
+                on_press: root.add_item()
+        StringInput:
+            id: strings_ed
+            table: root.table
+            store: root.store
+            storelist: strings_list
 <StringsEdScreen>:
     name: 'strings'
-    BoxLayout:
-        orientation: 'vertical'
-        StringInput:
-            id: editor
-            table: 'strings'
-            store: root.engine.string if root.engine else None
-            size_hint_y: 0.95
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.05
-            TextInput:
-                id: strname
-                hint_tex: 'New string name'
-            Button:
-                id: newstr
-                text: 'New'
-                on_press: root.add_string()
-            Button:
-                id: close
-                text: 'Close'
-                on_press: root.toggle()
+    StringsEdBox:
+        toggle: root.toggle
+        table: 'strings'
+        store: app.engine.string
 <Py3CodeInput@CodeInput>:
     lexer: py3lexer()
-<FuncsEditor>:
+<FuncEditor>:
     codeinput: code
+    name_wid: funname
     orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
@@ -437,17 +461,28 @@ Builder.load_string("""
         Py3CodeInput:
             id: code
 <FuncsEdBox>:
-    funcs_ed: funcs_ed
+    editor: funcs_ed
     storelist: funcs_list
     orientation: 'vertical'
+    new_name_wid: newfuncname
     BoxLayout:
         orientation: 'horizontal'
-        StoreList:
-            id: funcs_list
-            table: root.table
-            store: root.store
+        BoxLayout:
+            orientation: 'vertical'
             size_hint_x: 0.2
-        FuncsEditor:
+            StoreList:
+                id: funcs_list
+                table: root.table
+                store: root.store
+                size_hint_y: 0.9
+            TextInput:
+                id: newfuncname
+                size_hint_y: 0.05
+            Button:
+                text: '+'
+                on_press: root.add_item()
+                size_hint_y: 0.05
+        FuncEditor:
             id: funcs_ed
             table: root.table
             store: root.store
@@ -456,19 +491,15 @@ Builder.load_string("""
     BoxLayout:
         size_hint_y: 0.05
         Button:
-            text: '+'
-            on_press: root.add_func()
+            text: 'Close'
+            on_press: root.dismiss()
             size_hint_x: 0.2
-        TextInput:
-            id: newfuncname
-            size_hint_x: 0.2
+        Widget:
+            id: spacer
         BoxLayout:
-            size_hint_x: 0.4
-            Widget:
-                id: spacer
-                size_hint_x: 0.05
+            size_hint_x: 0.6
             BoxLayout:
-                size_hint_x: 0.3
+                size_hint_x: 0.32
                 CheckBox:
                     id: char
                     group: 'subj_type'
@@ -481,7 +512,7 @@ Builder.load_string("""
                     halign: 'left'
                     valign: 'middle'
             BoxLayout:
-                size_hint_x: 0.23
+                size_hint_x: 0.22
                 CheckBox:
                     id: thing
                     group: 'subj_type'
@@ -494,7 +525,7 @@ Builder.load_string("""
                     halign: 'left'
                     valign: 'middle'
             BoxLayout:
-                size_hint_x: 0.23
+                size_hint_x: 0.22
                 CheckBox:
                     id: place
                     group: 'subj_type'
@@ -519,11 +550,8 @@ Builder.load_string("""
                     text_size: self.size
                     halign: 'left'
                     valign: 'middle'
-        Button:
-            text: 'Close'
-            on_press: root.dismiss()
-            size_hint_x: 0.2
 <FuncsEdScreen>:
+    name: 'funcs'
     TabbedPanel:
         default_tab: action
         TabbedPanelItem:
