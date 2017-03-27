@@ -258,7 +258,7 @@ class RulesView(FloatLayout):
                 text=source
             )
             for (name, source) in
-            self.engine.trigger.iterplain()
+            self.engine.trigger.items()
         ]
         used_triggers = [
             Card(
@@ -291,7 +291,7 @@ class RulesView(FloatLayout):
                 text=source
             )
             for (name, source) in
-            self.engine.prereq.iterplain()
+            self.engine.prereq.items()
         ]
         used_prereqs = [
             Card(
@@ -324,7 +324,7 @@ class RulesView(FloatLayout):
                 text=source
             )
             for (name, source) in
-            self.engine.action.iterplain()
+            self.engine.action.items()
         ]
         used_actions = [
             Card(
