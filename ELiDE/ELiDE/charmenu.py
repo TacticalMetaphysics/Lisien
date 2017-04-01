@@ -169,7 +169,7 @@ Builder.load_string("""
         text: 'Strings'
         on_press: root.toggle_strings_editor()
     Button:
-        text: 'Functions'
+        text: 'Python'
         on_press: root.toggle_funcs_editor()
     Button:
         text: 'Rules'
