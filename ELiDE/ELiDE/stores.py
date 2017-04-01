@@ -431,7 +431,7 @@ Builder.load_string("""
             disabled_foreground_color: self.foreground_color
         FunctionNameInput:
             id: funname
-            size_hint_y: None
+            size_hint: (0.4, None)
             height: self.line_height + self.font_size
             multiline: False
             write_tab: False
