@@ -19,3 +19,5 @@ elide.ini
 ELiDE/LiSE
 ELiDE/allegedb
 LiSE/allegedb
+*.pyc
+*~
