@@ -163,7 +163,7 @@ Builder.load_string("""
     portaladdbut: portaladdbut
     portaldirbut: portaldirbut
     Button:
-        text: 'Character'
+        text: 'Characters'
         on_press: root.toggle_chars_screen()
     Button:
         text: 'Strings'
