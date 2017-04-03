@@ -108,11 +108,34 @@ class StoreList(RecycleView):
 
 
 class StringsEdScreen(Screen):
-    engine = ObjectProperty()
     toggle = ObjectProperty()
+    language = StringProperty('eng')
+    language_setter = ObjectProperty()
+
+    def set_language(self, lang):
+        # a little redundant
+        self.language_setter(lang)
+        self.language = lang
 
 
-class StringInput(BoxLayout):
+class Editor(BoxLayout):
+    name_wid = ObjectProperty()
+    name = StringProperty()
+    store = ObjectProperty()
+
+    def on_name_wid(self, *args):
+        self.name = self.name_wid.text
+        self.name_wid.bind(text=self.setter('name'))
+
+    def save(self, *args):
+        if not (self.name_wid and self.store):
+            return
+        if self.source != self.store[self.name_wid.text]:
+            self.store[self.name_wid.text] = self.source
+    _trigger_save = trigger(save)
+
+
+class StringInput(Editor):
     def _get_name(self):
         if 'stringname' not in self.ids:
             return ''
@@ -192,6 +215,8 @@ class EdBox(BoxLayout):
 
 
 class StringsEdBox(EdBox):
+    language = StringProperty('eng')
+
     def get_default_text(self, newname):
         return ''
 
@@ -239,7 +264,7 @@ def sanitize_source(v, spaces=4):
     return params, '\n'.join(line[spaces:] for line in lines)
 
 
-class FuncEditor(BoxLayout):
+class FuncEditor(Editor):
     """The editor widget for working with any particular function.
 
     Contains a one-line field for the function's name; a multi-line
@@ -249,7 +274,6 @@ class FuncEditor(BoxLayout):
     """
     storelist = ObjectProperty()
     codeinput = ObjectProperty()
-    name_wid = ObjectProperty()
     _text = StringProperty()
     subject_type_params = {
         'character': ('engine', 'character'),
@@ -290,13 +314,6 @@ class FuncEditor(BoxLayout):
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
         self.codeinput.bind(text=self.setter('_text'))
-
-    def save(self, *args):
-        if not (self.name_wid and self.store):
-            return
-        if self.source != self.store[self.name_wid.text]:
-            self.store[self.name_wid.text] = self.source
-    _trigger_save = trigger(save)
 
 
 class FuncsEdBox(EdBox):
@@ -365,7 +382,6 @@ Builder.load_string("""
         orientation: 'vertical'
 <StringInput>:
     orientation: 'vertical'
-    name_wid: title
     BoxLayout:
         size_hint_y: 0.05
         Label:
@@ -375,6 +391,8 @@ Builder.load_string("""
             width: self.texture_size[0]
         TextInput:
             id: stringname
+            disabled: True
+            text: root.name
     TextInput:
         id: string
 <StringsEdBox>:
@@ -384,32 +402,49 @@ Builder.load_string("""
     orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
-        size_hint_x: 0.2
         BoxLayout:
             orientation: 'vertical'
+            size_hint_x: 0.2
             StoreList:
                 id: strings_list
                 table: root.table
                 store: root.store
                 size_hint_y: 0.9
-            Widget:
-                id: space
             TextInput:
+                size_hint_y: 0.05
                 id: newstrname
             Button:
+                size_hint_y: 0.05
                 text: '+'
                 on_press: root.add_item()
         StringInput:
             id: strings_ed
-            table: root.table
             store: root.store
-            storelist: strings_list
+            name_wid: newstrname
 <StringsEdScreen>:
     name: 'strings'
-    StringsEdBox:
-        toggle: root.toggle
-        table: 'strings'
-        store: app.engine.string
+    BoxLayout:
+        orientation: 'vertical'
+        StringsEdBox:
+            id: edbox
+            toggle: root.toggle
+            table: 'strings'
+            store: app.engine.string
+            language: root.language
+        BoxLayout:
+            size_hint_y: 0.05
+            Button:
+                text: 'Close'
+                on_press: root.toggle()
+            Label:
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+                text: 'Language: '
+            TextInput:
+                id: language
+                hint_text: root.language
+                on_text_validate: root.set_language(self.text)
 <Py3CodeInput@CodeInput>:
     lexer: py3lexer()
 <FuncEditor>:

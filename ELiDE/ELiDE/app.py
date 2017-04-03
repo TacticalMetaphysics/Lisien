@@ -205,7 +205,8 @@ class ELiDEApp(App):
         )
 
         self.strings = ELiDE.stores.StringsEdScreen(
-            engine=self.engine,
+            language=self.engine.string.language,
+            language_setter=self._set_language,
             toggle=toggler('strings')
         )
 
@@ -263,11 +264,18 @@ class ELiDEApp(App):
             self.branch = inst.branch
             self.tick = inst.tick
 
+        @self.engine.string.language.connect
+        def pull_lang(inst, **kwargs):
+            self.strings.language = kwargs['language']
+
         self.bind(
             branch=self._push_time,
             tick=self._push_time
         )
         return self.manager
+
+    def _set_language(self, lang):
+        self.engine.string.language = lang
 
     def _get_selected_remote(self):
         if self.selection is None:
