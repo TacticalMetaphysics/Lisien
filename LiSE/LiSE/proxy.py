@@ -20,6 +20,7 @@ from allegedb.xjson import JSONReWrapper, JSONListReWrapper
 from .util import reify
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
+from .xcollections import AbstractLanguageDescriptor
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -1544,17 +1545,19 @@ class CharacterMapProxy(MutableMapping):
             del self.engine._char_cache[k]
 
 
-class StringStoreProxy(MutableMapping):
-    @property
-    def language(self):
-        if not hasattr(self, '_l'):
-            self._l = self.engine.handle(command='get_language')
-        return self._l
+class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
+    def _get_language(self, inst):
+        if not hasattr(inst, '_language'):
+            inst._language = inst.engine.handle(command='get_language')
+        return inst._language
 
-    @language.setter
-    def language(self, v):
-        self.engine.handle(command='set_language', lang=v)
-        self._l = v
+    def _set_language(self, inst, val):
+        inst._language = val
+        inst.engine.handle(command='set_language', lang=val, silent=True)
+
+
+class StringStoreProxy(MutableMapping):
+    language = ProxyLanguageDescriptor()
 
     def __init__(self, engine_proxy):
         self.engine = engine_proxy

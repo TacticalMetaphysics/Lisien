@@ -34,13 +34,40 @@ class NotThatMap(Mapping):
         return self.inner[key]
 
 
-class Language(Signal):
-    def __get__(self, inst, cls):
-        return inst._language
+class Language(str):
+    sigs = {}
+
+    def __new__(cls, sig, v):
+        me = str.__new__(cls, v)
+        cls.sigs[me] = sig
+        return me
+
+    def connect(self, *args, **kwargs):
+        self.sigs[self].connect(*args, **kwargs)
+
+
+class AbstractLanguageDescriptor(Signal):
+    def __get__(self, instance, owner=None):
+        if not hasattr(self, 'lang'):
+            self.lang = Language(self, self._get_language(instance))
+        return self.lang
 
     def __set__(self, inst, val):
-        inst._language = val
+        self._set_language(inst, val)
+        self.lang = Language(self, val)
         inst.cache = {}
+        self.send(inst, language=val)
+
+    def __str__(self):
+        return self.lang
+
+
+class LanguageDescriptor(AbstractLanguageDescriptor):
+    def _get_language(self, inst):
+        return inst._language
+
+    def _set_language(self, inst, val):
+        inst._language = val
 
 
 class StringStore(MutableMapping, Signal):
@@ -52,7 +79,7 @@ class StringStore(MutableMapping, Signal):
     """
     __slots__ = ['query', 'table', 'cache', 'receivers']
 
-    language = Language()
+    language = LanguageDescriptor()
 
     def __init__(self, query, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
@@ -64,25 +91,18 @@ class StringStore(MutableMapping, Signal):
         self.query.init_string_table(table)
         self.table = table
         self._language = lang
-        self.cache = {}
+        self.cache = dict(self.query.string_table_lang_items(
+                self.table, self.language
+        ))
 
     def commit(self):
         self.query.commit()
 
     def __iter__(self):
-        """First cache, then iterate over all string IDs for the current
-        language.
-
-        """
-        for (k, v) in self.query.string_table_lang_items(
-                self.table, self.language
-        ):
-            self.cache[k] = v
-        return iter(self.cache.keys())
+        return iter(self.cache)
 
     def __len__(self):
-        """"Count strings in the current language."""
-        return self.query.count_all_table(self.table)
+        return len(self.cache)
 
     def __getitem__(self, k):
         """Get the string and format it with other strings here."""
@@ -114,6 +134,9 @@ class StringStore(MutableMapping, Signal):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
+        if lang == self.language:
+            yield from self.cache.items()
+            return
         yield from self.query.string_table_lang_items(
             self.table, lang
         )

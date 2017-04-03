@@ -521,14 +521,15 @@ class QueryEngine(allegedb.query.QueryEngine):
             exec(source, globd, locd)
         if len(locd) != 1:
             raise UserFunctionError(
-                "Input code contains more than the one function definition."
+                "Input code contains more than the one function definition:\n" + source
             )
         if key not in locd:
             raise UserFunctionError(
                 "Function in input code has different name ({}) "
-                "than expected ({}).".format(
-                    next(locd.keys()),
-                    self.name
+                "than expected ({}). Input code: \n".format(
+                    next(iter(locd.keys())),
+                    key,
+                    source
                 )
             )
         fun = locd[key]
