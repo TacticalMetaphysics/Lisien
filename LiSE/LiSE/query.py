@@ -401,7 +401,6 @@ class QueryEngine(allegedb.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
-
     def universal_get(self, key, branch, tick):
         return self.json_load(self.sql('universal_get', self.json_dump(key), branch, tick))
 
