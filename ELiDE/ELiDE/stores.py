@@ -238,6 +238,8 @@ class EdBox(BoxLayout):
             self.editor.source = self.store[self.name]
         except KeyError:
             self.editor.source = self.get_default_text(self.name)
+        if hasattr(self, '_lock_save'):
+            del self._lock_save
 
     def del_item(self, *args):
         raise NotImplementedError
@@ -249,10 +251,15 @@ class EdBox(BoxLayout):
     def save(self, *args):
         if not self.editor:
             return
+        if hasattr(self, '_lock_save'):
+            return
+        self._lock_save = True
         save_select = self.editor.save()
         if save_select:
             name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
             self.storelist.redata(name)
+        else:
+            del self._lock_save
 
     def _trigger_save(self, name=None):
         self._select_name = name
@@ -314,7 +321,7 @@ def sanitize_source(v, spaces=4):
             break
     params = tuple(
         parm.strip() for parm in
-        sig_ex.match(lines[0]).groups()[0].split(',')
+        sig_ex.match(lines[0]).group(1).split(',')
     )
     del lines[0]
     if not lines:
