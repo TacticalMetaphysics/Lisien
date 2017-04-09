@@ -527,7 +527,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             raise UserFunctionError(
                 "Function in input code has different name ({}) "
                 "than expected ({}).".format(
-                    next(locd.keys()),
+                    next(iter(locd.keys())),
                     self.name
                 )
             )

@@ -91,25 +91,18 @@ class StringStore(MutableMapping, Signal):
         self.query.init_string_table(table)
         self.table = table
         self._language = lang
-        self.cache = {}
+        self.cache = dict(self.query.string_table_lang_items(
+                self.table, self.language
+        ))
 
     def commit(self):
         self.query.commit()
 
     def __iter__(self):
-        """First cache, then iterate over all string IDs for the current
-        language.
-
-        """
-        for (k, v) in self.query.string_table_lang_items(
-                self.table, self.language
-        ):
-            self.cache[k] = v
-        return iter(self.cache.keys())
+        return iter(self.cache)
 
     def __len__(self):
-        """"Count strings in the current language."""
-        return self.query.count_all_table(self.table)
+        return len(self.cache)
 
     def __getitem__(self, k):
         """Get the string and format it with other strings here."""
@@ -141,6 +134,9 @@ class StringStore(MutableMapping, Signal):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
+        if lang == self.language:
+            yield from self.cache.items()
+            return
         yield from self.query.string_table_lang_items(
             self.table, lang
         )
