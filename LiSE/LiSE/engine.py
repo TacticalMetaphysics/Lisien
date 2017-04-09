@@ -446,7 +446,7 @@ class Engine(AbstractEngine, gORM):
         self.method = FunctionStore(self, self._code_qe, 'methods')
         self.rule = AllRules(self, self._code_qe)
         self.rulebook = AllRuleBooks(self, self._code_qe)
-        self.string = StringStore(self._code_qe, self.time, 'strings', self.universal.setdefault('language', 'eng'))
+        self.string = StringStore(self._code_qe, 'strings', self.eternal.setdefault('language', 'eng'))
 
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method
