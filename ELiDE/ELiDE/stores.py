@@ -33,6 +33,7 @@ from kivy.uix.togglebutton import ToggleButton
 
 from kivy.properties import (
     AliasProperty,
+    BooleanProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
@@ -106,7 +107,7 @@ class StoreList(RecycleView):
         yield from sorted(self.store.keys())
 
     def redata(self, select_name=None, *args):
-        if not self.table or not self.store:
+        if not self.table or self.store is None:
             Clock.schedule_once(self.redata)
             return
         self.data = list(map(self.munge, enumerate(self._iter_keys())))
@@ -139,20 +140,30 @@ class StoreList(RecycleView):
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 
+
+class LanguageInput(TextInput):
+    screen = ObjectProperty()
+
+    def on_focus(self, instance, value, *largs):
+        if not value:
+            if self.screen.language != self.text:
+                self.screen.language_setter(self.text)
+                self.screen.language = self.text
+            self.text = ''
+
 class StringsEdScreen(Screen):
     toggle = ObjectProperty()
     language = StringProperty('eng')
     language_setter = ObjectProperty()
 
-    def set_language(self, lang):
-        # a little redundant
-        self.language_setter(lang)
-        self.language = lang
+    def on_language(self, *args):
+        self.ids.edbox.storelist.redata()
 
 
 class Editor(BoxLayout):
     name_wid = ObjectProperty()
     store = ObjectProperty()
+    disable_text_input = BooleanProperty(False)
     # This next is the trigger on the EdBox, which may redata the StoreList
     _trigger_save = ObjectProperty()
     _trigger_delete = ObjectProperty()
@@ -202,6 +213,14 @@ class Editor(BoxLayout):
 
 
 class StringInput(Editor):
+    validate_name_input = ObjectProperty()
+
+    def on_name_wid(self, *args):
+        if not self.validate_name_input:
+            Clock.schedule_once(self.on_name_wid, 0)
+            return
+        self.name_wid.bind(text=self.validate_name_input)
+
     def _get_name(self):
         if self.name_wid:
             return self.name_wid.text
@@ -235,21 +254,26 @@ class EdBox(BoxLayout):
     store = ObjectProperty()
     data = ListProperty()
     toggle = ObjectProperty()
-    name = StringProperty('')
+    disable_text_input = BooleanProperty(False)
 
     def on_storelist(self, *args):
         self.storelist.bind(selection=self._pull_from_storelist)
 
     @trigger
+    def validate_name_input(self, *args):
+        self.disable_text_input = not (self.valid_name(self.editor.name_wid.hint_text) or self.valid_name(self.editor.name_wid.text))
+
+    @trigger
     def _pull_from_storelist(self, *args):
         self.save()
         # The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
-        self.editor.name_wid.hint_text = self.name = self.storelist.selection.name.strip('+')
+        self.editor.name_wid.hint_text = self.storelist.selection.name.strip('+')
         self.editor.name_wid.text = ''
         try:
-            self.editor.source = self.store[self.name]
+            self.editor.source = self.store[self.editor.name_wid.hint_text]
         except KeyError:
-            self.editor.source = self.get_default_text(self.name)
+            self.editor.source = self.get_default_text(self.editor.name_wid.hint_text)
+        self.disable_text_input = not self.valid_name(self.editor.name_wid.hint_text)
         if hasattr(self, '_lock_save'):
             del self._lock_save
 
@@ -303,6 +327,10 @@ class StringsEdBox(EdBox):
     @staticmethod
     def get_default_text(newname):
         return ''
+
+    @staticmethod
+    def valid_name(name):
+        return name and name[0] != '+'
 
 
 sig_ex = re.compile('^ *def .+?\((.+)\):$')
@@ -424,6 +452,10 @@ class FuncsEdBox(EdBox):
     def get_default_text(self, newname):
         return self.editor.get_default_text(newname)
 
+    @staticmethod
+    def valid_name(name):
+        return name and name[0] not in string.digits + string.whitespace + string.punctuation
+
     def subjtyp(self, val):
         if val == 'character':
             self.ids.char.active = True
@@ -493,7 +525,7 @@ Builder.load_string("""
             on_press: root._trigger_delete()
     TextInput:
         id: string
-        disabled: root.store is None or (stringname.hint_text not in root.store and not stringname.text)
+        disabled: root.disable_text_input
 <StringsEdBox>:
     editor: strings_ed
     storelist: strings_list
@@ -508,6 +540,8 @@ Builder.load_string("""
         StringInput:
             id: strings_ed
             store: root.store
+            disable_text_input: root.disable_text_input
+            validate_name_input: root.validate_name_input
             _trigger_save: root._trigger_save
             _trigger_delete: root._trigger_delete
 <StringsEdScreen>:
@@ -530,10 +564,12 @@ Builder.load_string("""
                 halign: 'right'
                 valign: 'middle'
                 text: 'Language: '
-            TextInput:
+            LanguageInput:
                 id: language
+                screen: root
                 hint_text: root.language
-                on_text_validate: root.set_language(self.text)
+                write_tab: False
+                multiline: False
 <Py3CodeInput@CodeInput>:
     lexer: py3lexer()
 <FuncEditor>:
@@ -560,6 +596,7 @@ Builder.load_string("""
             multiline: False
             write_tab: False
             _trigger_save: root._trigger_save
+            on_text: root.validate_name_input(self.text)
         Py3CodeInput:
             id: params
             text: '(' + ', '.join(root.params) + '):'
@@ -589,6 +626,7 @@ Builder.load_string("""
             width: self.texture_size[0]
         Py3CodeInput:
             id: code
+            disabled: root.disable_text_input
 <FuncsEdBox>:
     editor: funcs_ed
     storelist: funcs_list
@@ -607,6 +645,8 @@ Builder.load_string("""
             table: root.table
             store: root.store
             storelist: funcs_list
+            disable_text_input: root.disable_text_input
+            validate_name_input: root.validate_name_input
             _trigger_save: root._trigger_save
             _trigger_delete: root._trigger_delete
             on_subject_type: root.subjtyp(self.subject_type)

@@ -105,7 +105,7 @@ class ELiDEApp(App):
             {
                 'world': 'sqlite:///LiSEworld.db',
                 'code': 'LiSEcode.db',
-                'language': 'en',
+                'language': 'eng',
                 'logfile': '',
                 'loglevel': 'info'
             }
