@@ -155,6 +155,7 @@ class Editor(BoxLayout):
     store = ObjectProperty()
     # This next is the trigger on the EdBox, which may redata the StoreList
     _trigger_save = ObjectProperty()
+    _trigger_delete = ObjectProperty()
 
     def save(self, *args):
         if not (self.name_wid and self.store):
@@ -187,6 +188,17 @@ class Editor(BoxLayout):
         else:
             self.store[self.name_wid.hint_text] = self.source
         return do_redata
+
+    def delete(self, *args):
+        key = self.name_wid.text or self.name_wid.hint_text
+        if key not in self.store:
+            # TODO feedback about missing key
+            return
+        del self.store[key]
+        try:
+            return min(kee for kee in self.store if kee > key)
+        except ValueError:
+            return '+'
 
 
 class StringInput(Editor):
@@ -241,9 +253,6 @@ class EdBox(BoxLayout):
         if hasattr(self, '_lock_save'):
             del self._lock_save
 
-    def del_item(self, *args):
-        raise NotImplementedError
-
     def dismiss(self, *args):
         self.save()
         self.toggle()
@@ -265,6 +274,19 @@ class EdBox(BoxLayout):
         self._select_name = name
         Clock.unschedule(self.save)
         Clock.schedule_once(self.save, 0)
+
+    def delete(self, *args):
+        if not self.editor:
+            return
+        if hasattr(self, '_lock_save'):
+            return
+        self._lock_save = True
+        del_select = self.editor.delete()
+        if del_select:
+            self.storelist.redata(del_select)
+        else:
+            del self._lock_save
+    _trigger_delete = trigger(delete)
 
 
 class StringNameInput(TextInput):
@@ -465,6 +487,10 @@ Builder.load_string("""
             multiline: False
             write_tab: False
             _trigger_save: root._trigger_save
+        Button:
+            text: 'del'
+            size_hint_x: 0.1
+            on_press: root._trigger_delete()
     TextInput:
         id: string
         disabled: root.store is None or (stringname.hint_text not in root.store and not stringname.text)
@@ -483,6 +509,7 @@ Builder.load_string("""
             id: strings_ed
             store: root.store
             _trigger_save: root._trigger_save
+            _trigger_delete: root._trigger_delete
 <StringsEdScreen>:
     name: 'strings'
     BoxLayout:
@@ -541,6 +568,10 @@ Builder.load_string("""
             height: self.line_height + self.font_size
             background_disabled_normal: ''
             disabled_foreground_color: self.foreground_color
+        Button:
+            text: 'del'
+            size_hint_x: 0.1
+            on_press: root._trigger_delete()
     BoxLayout:
         orientation: 'horizontal'
         Label:
@@ -577,6 +608,7 @@ Builder.load_string("""
             store: root.store
             storelist: funcs_list
             _trigger_save: root._trigger_save
+            _trigger_delete: root._trigger_delete
             on_subject_type: root.subjtyp(self.subject_type)
     BoxLayout:
         size_hint_y: 0.05
