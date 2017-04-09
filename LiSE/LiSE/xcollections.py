@@ -68,6 +68,7 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 
     def _set_language(self, inst, val):
         inst._language = val
+        inst.query.universal_set('language', val, *inst.time)
 
 
 class StringStore(MutableMapping, Signal):
@@ -77,11 +78,11 @@ class StringStore(MutableMapping, Signal):
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = ['query', 'table', 'cache', 'receivers']
+    __slots__ = ['query', 'table', 'cache', 'receivers', 'time']
 
     language = LanguageDescriptor()
 
-    def __init__(self, query, table='strings', lang='eng'):
+    def __init__(self, query, time, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
@@ -90,6 +91,7 @@ class StringStore(MutableMapping, Signal):
         self.query = query
         self.query.init_string_table(table)
         self.table = table
+        self.time = time
         self._language = lang
         self.cache = dict(self.query.string_table_lang_items(
                 self.table, self.language

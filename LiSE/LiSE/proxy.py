@@ -1553,7 +1553,7 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 
     def _set_language(self, inst, val):
         inst._language = val
-        inst.engine.handle(command='set_language', lang=val, silent=True)
+        inst._cache = inst.engine.handle(command='set_language', lang=val)
 
 
 class StringStoreProxy(MutableMapping):
