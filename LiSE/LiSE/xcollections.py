@@ -243,7 +243,8 @@ class FunctionStore(MutableMapping, Signal):
 
         """
         self.query.func_table_del(self._tab, name)
-        del self.cache[name]
+        if name in self.cache:
+            del self.cache[name]
         self.send(self, key=name, val=None)
 
     def plain(self, k):
