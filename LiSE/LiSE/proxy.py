@@ -2376,6 +2376,14 @@ class EngineProcessManager(object):
         while limit is None or n < limit:
             try:
                 (level, message) = self.logq.get(block=block)
+                if isinstance(level, int):
+                    level = {
+                        10: 'debug',
+                        20: 'info',
+                        30: 'warning',
+                        40: 'error',
+                        50: 'critical'
+                    }[level]
                 getattr(self.logger, level)(message)
                 print(message)
                 n += 1
