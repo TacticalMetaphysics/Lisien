@@ -233,6 +233,7 @@ class EngineHandle(object):
 
     def set_language(self, lang):
         self._real.string.language = lang
+        return self.strings_diff(lang)
 
     def get_string_ids(self):
         return list(self._real.string)
@@ -253,6 +254,8 @@ class EngineHandle(object):
     def strings_diff(self, lang=None):
         if lang is None:
             lang = self._real.string.language
+        else:
+            assert lang == self._real.string.language
         old = self._strings_cache.get(lang, {})
         new = self._strings_cache[lang] = self.strings_copy(lang)
         return dict_diff(old, new)

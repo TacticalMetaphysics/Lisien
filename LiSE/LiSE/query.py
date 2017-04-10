@@ -401,6 +401,23 @@ class QueryEngine(allegedb.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
+    def universal_get(self, key, branch, tick):
+        return self.json_load(self.sql('universal_get', self.json_dump(key), branch, tick))
+
+    def universal_set(self, key, branch, tick, val):
+        key, val = map(self.json_dump, (key, val))
+        try:
+            self.sql('universal_ins', key, branch, tick, val)
+        except IntegrityError:
+            self.sql('universal_upd', val, key, branch, tick)
+
+    def universal_del(self, key, branch, tick):
+        key = self.json_dump(key)
+        try:
+            self.sql('universal_ins', key, branch, tick, None)
+        except IntegrityError:
+            self.sql('universal_upd', None, key, branch, tick)
+
     def comparison(
             self, entity0, stat0, entity1,
             stat1=None, oper='eq', windows=[]
@@ -521,14 +538,15 @@ class QueryEngine(allegedb.query.QueryEngine):
             exec(source, globd, locd)
         if len(locd) != 1:
             raise UserFunctionError(
-                "Input code contains more than the one function definition."
+                "Input code contains more than the one function definition:\n" + source
             )
         if key not in locd:
             raise UserFunctionError(
                 "Function in input code has different name ({}) "
-                "than expected ({}).".format(
-                    next(locd.keys()),
-                    self.name
+                "than expected ({}). Input code: \n".format(
+                    next(iter(locd.keys())),
+                    key,
+                    source
                 )
             )
         fun = locd[key]

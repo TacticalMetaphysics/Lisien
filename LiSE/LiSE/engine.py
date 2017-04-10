@@ -291,9 +291,6 @@ class Engine(AbstractEngine, gORM):
       database as the previous.
     - ``string``: A mapping of strings, probably shown to the player
       at some point.
-    - ``language``: Identifies the language used by
-      ``string``. There's a different ``string`` mapping for each
-      ``language``.
     - ``eternal``: Mapping of arbitrary serializable objects. It isn't
       sensitive to sim-time. A good place to keep game settings.
     - ``universal``: Another mapping of arbitrary serializable
@@ -449,7 +446,7 @@ class Engine(AbstractEngine, gORM):
         self.method = FunctionStore(self, self._code_qe, 'methods')
         self.rule = AllRules(self, self._code_qe)
         self.rulebook = AllRuleBooks(self, self._code_qe)
-        self.string = StringStore(self._code_qe)
+        self.string = StringStore(self._code_qe, 'strings', self.eternal.setdefault('language', 'eng'))
 
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method

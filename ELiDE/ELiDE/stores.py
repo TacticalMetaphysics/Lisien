@@ -15,7 +15,7 @@ code.
 
 """
 import re
-from string import ascii_letters, digits
+import string
 from functools import partial
 
 from kivy.clock import Clock
@@ -33,6 +33,7 @@ from kivy.uix.togglebutton import ToggleButton
 
 from kivy.properties import (
     AliasProperty,
+    BooleanProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
@@ -67,6 +68,11 @@ class StoreButton(RecycleToggleButton):
     source = StringProperty()
     select = ObjectProperty()
 
+    def on_parent(self, *args):
+        if self.name == '+':
+            self.state = 'down'
+            self.select(self)
+
     def on_state(self, *args):
         if self.state == 'down':
             self.select(self)
@@ -96,56 +102,134 @@ class StoreList(RecycleView):
             'index': i
         }
 
-    def redata(self, *args):
-        if not self.table or not self.store:
+    def _iter_keys(self):
+        yield '+'
+        yield from sorted(self.store.keys())
+
+    def redata(self, select_name=None, *args):
+        if not self.table or self.store is None:
             Clock.schedule_once(self.redata)
             return
-        self.data = list(map(self.munge, enumerate(sorted(self.store.keys()))))
-    _trigger_redata = trigger(redata)
+        self.data = list(map(self.munge, enumerate(self._iter_keys())))
+        if select_name:
+            self._trigger_select_name(select_name)
+
+    def _trigger_redata(self, select_name=None, *args):
+        part = partial(self.redata, select_name, *args)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def select(self, inst):
         self.selection = inst
+        for boxl in self.children:
+            for child in boxl.children:
+                if child != inst and child.state == 'down':
+                    child.state = 'normal'
 
+    def select_name(self, name, *args):
+        for boxl in self.children:
+            for child in boxl.children:
+                if child.text == name:
+                    child.state = 'down'
+                    self.selection = child
+                else:
+                    child.state = 'normal'
+
+    def _trigger_select_name(self, name):
+        part = partial(self.select_name, name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
+
+
+class LanguageInput(TextInput):
+    screen = ObjectProperty()
+
+    def on_focus(self, instance, value, *largs):
+        if not value:
+            if self.screen.language != self.text:
+                self.screen.language_setter(self.text)
+                self.screen.language = self.text
+            self.text = ''
 
 class StringsEdScreen(Screen):
     toggle = ObjectProperty()
     language = StringProperty('eng')
     language_setter = ObjectProperty()
 
-    def set_language(self, lang):
-        # a little redundant
-        self.language_setter(lang)
-        self.language = lang
+    def on_language(self, *args):
+        self.ids.edbox.storelist.redata()
 
 
 class Editor(BoxLayout):
     name_wid = ObjectProperty()
-    name = StringProperty()
     store = ObjectProperty()
-
-    def on_name_wid(self, *args):
-        self.name = self.name_wid.text
-        self.name_wid.bind(text=self.setter('name'))
+    disable_text_input = BooleanProperty(False)
+    # This next is the trigger on the EdBox, which may redata the StoreList
+    _trigger_save = ObjectProperty()
+    _trigger_delete = ObjectProperty()
 
     def save(self, *args):
         if not (self.name_wid and self.store):
+            Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
             return
-        if self.source != self.store[self.name_wid.text]:
+        if not (self.name_wid.text or self.name_wid.hint_text):
+            Logger.debug("{}: Not saving, no name".format(type(self).__name__))
+            return
+        if self.name_wid.text and self.name_wid.text[0] in string.digits + string.whitespace + string.punctuation:
+            # TODO alert the user to invalid name
+            Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
+            return
+        do_redata = self.name_wid.hint_text == ''
+        if self.name_wid.text not in self.store:
+            do_redata = self.name_wid.text
+        if (
+            self.name_wid.text and
+            self.name_wid.hint_text and
+            self.name_wid.hint_text != self.name_wid.text and
+            self.name_wid.hint_text in self.store
+        ):
+            del self.store[self.name_wid.hint_text]
+            do_redata = self.name_wid.text
+        if self.name_wid.text and (
+            self.name_wid.text not in self.store or
+            self.source != self.store[self.name_wid.text]
+        ):
+            Logger.debug("{}: Saving!".format(type(self).__name__))
             self.store[self.name_wid.text] = self.source
-    _trigger_save = trigger(save)
+        else:
+            self.store[self.name_wid.hint_text] = self.source
+        return do_redata
+
+    def delete(self, *args):
+        key = self.name_wid.text or self.name_wid.hint_text
+        if key not in self.store:
+            # TODO feedback about missing key
+            return
+        del self.store[key]
+        try:
+            return min(kee for kee in self.store if kee > key)
+        except ValueError:
+            return '+'
 
 
 class StringInput(Editor):
+    validate_name_input = ObjectProperty()
+
+    def on_name_wid(self, *args):
+        if not self.validate_name_input:
+            Clock.schedule_once(self.on_name_wid, 0)
+            return
+        self.name_wid.bind(text=self.validate_name_input)
+
     def _get_name(self):
-        if 'stringname' not in self.ids:
-            return ''
-        return self.ids.stringname.text
+        if self.name_wid:
+            return self.name_wid.text
 
     def _set_name(self, v, *args):
-        if 'stringname' not in self.ids:
+        if not self.name_wid:
             Clock.schedule_once(partial(self._set_name, v), 0)
             return
-        self.ids.stringname.text = v
+        self.name_wid.text = v
 
     name = AliasProperty(_get_name, _set_name)
 
@@ -170,68 +254,103 @@ class EdBox(BoxLayout):
     store = ObjectProperty()
     data = ListProperty()
     toggle = ObjectProperty()
-    name = StringProperty('')
-    new_name_wid = ObjectProperty()
+    disable_text_input = BooleanProperty(False)
 
     def on_storelist(self, *args):
         self.storelist.bind(selection=self._pull_from_storelist)
 
     @trigger
+    def validate_name_input(self, *args):
+        self.disable_text_input = not (self.valid_name(self.editor.name_wid.hint_text) or self.valid_name(self.editor.name_wid.text))
+
+    @trigger
     def _pull_from_storelist(self, *args):
         self.save()
-        self.editor.name_wid.text = self.name = self.storelist.selection.name
-        self.editor.source = self.store[self.name]
-
-    def add_item(self, *args):
-        if not self.new_name_wid.text:
-            return
-        newname = self.new_name_wid.text
-        self.new_name_wid.text = ''
-        self.editor.save()
-        self.editor.name_wid.text = self.name = newname
-        self.editor.source = self.get_default_text(newname)
-
-    def rename_item(self, *args):
-        raise NotImplementedError
-
-    def del_item(self, *args):
-        raise NotImplementedError
+        # The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
+        self.editor.name_wid.hint_text = self.storelist.selection.name.strip('+')
+        self.editor.name_wid.text = ''
+        try:
+            self.editor.source = self.store[self.editor.name_wid.hint_text]
+        except KeyError:
+            self.editor.source = self.get_default_text(self.editor.name_wid.hint_text)
+        self.disable_text_input = not self.valid_name(self.editor.name_wid.hint_text)
+        if hasattr(self, '_lock_save'):
+            del self._lock_save
 
     def dismiss(self, *args):
         self.save()
         self.toggle()
 
     def save(self, *args):
-        if not (self.name and self.editor):
+        if not self.editor:
             return
-        if self.name == self.editor.name_wid.text:
-            self.editor.save()
+        if hasattr(self, '_lock_save'):
+            return
+        self._lock_save = True
+        save_select = self.editor.save()
+        if save_select:
+            name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
+            self.storelist.redata(name)
         else:
-            # renamed the function!
-            del self.store[self.name]
-            self.name = self.editor.name_wid.text
-            self.editor.save()
-            self.storelist.redata()
+            del self._lock_save
+
+    def _trigger_save(self, name=None):
+        self._select_name = name
+        Clock.unschedule(self.save)
+        Clock.schedule_once(self.save, 0)
+
+    def delete(self, *args):
+        if not self.editor:
+            return
+        if hasattr(self, '_lock_save'):
+            return
+        self._lock_save = True
+        del_select = self.editor.delete()
+        if del_select:
+            self.storelist.redata(del_select)
+        else:
+            del self._lock_save
+    _trigger_delete = trigger(delete)
+
+
+class StringNameInput(TextInput):
+    _trigger_save = ObjectProperty()
+
+    def on_focus(self, inst, val, *largs):
+        if self.text and not val:
+            self._trigger_save(self.text)
 
 
 class StringsEdBox(EdBox):
     language = StringProperty('eng')
 
-    def get_default_text(self, newname):
+
+    @staticmethod
+    def get_default_text(newname):
         return ''
+
+    @staticmethod
+    def valid_name(name):
+        return name and name[0] != '+'
 
 
 sig_ex = re.compile('^ *def .+?\((.+)\):$')
 
 
 class FunctionNameInput(TextInput):
+    _trigger_save = ObjectProperty()
+
     def insert_text(self, s, from_undo=False):
         if self.text == '':
-            if s[0] not in (ascii_letters + '_'):
+            if s[0] not in (string.ascii_letters + '_'):
                 return
         return super().insert_text(
-            ''.join(c for c in s if c in (ascii_letters + digits + '_'))
+            ''.join(c for c in s if c in (string.ascii_letters + string.digits + '_'))
         )
+
+    def on_focus(self, inst, val, *largs):
+        if not val:
+            self._trigger_save(self.text)
 
 
 def sanitize_source(v, spaces=4):
@@ -253,7 +372,7 @@ def sanitize_source(v, spaces=4):
             break
     params = tuple(
         parm.strip() for parm in
-        sig_ex.match(lines[0]).groups()[0].split(',')
+        sig_ex.match(lines[0]).group(1).split(',')
     )
     del lines[0]
     if not lines:
@@ -296,7 +415,7 @@ class FuncEditor(Editor):
     )
 
     def _get_source(self):
-        code = 'def ' + self.name_wid.text + '(' + ', '.join(self.params) + '):\n'
+        code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
         for line in self._text.split('\n'):
             code += (' ' * 4 + line + '\n')
         return code.rstrip(' \n\t')
@@ -310,6 +429,11 @@ class FuncEditor(Editor):
         self.codeinput.bind(text=self.setter('_text'))
 
     source = AliasProperty(_get_source, _set_source, bind=('params', '_text'))
+
+    def get_default_text(self, name):
+        if not name or name == '+':
+            name = 'a'
+        return "def {}({}):\n".format(name, ', '.join(self.params))
 
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
@@ -327,10 +451,11 @@ class FuncsEdBox(EdBox):
     """
 
     def get_default_text(self, newname):
-        return 'def {}({}):\n    pass'.format(
-            newname,
-            ', '.join(self.editor.params)
-        )
+        return self.editor.get_default_text(newname)
+
+    @staticmethod
+    def valid_name(name):
+        return name and name[0] not in string.digits + string.whitespace + string.punctuation
 
     def subjtyp(self, val):
         if val == 'character':
@@ -381,6 +506,7 @@ Builder.load_string("""
         size_hint_y: None
         orientation: 'vertical'
 <StringInput>:
+    name_wid: stringname
     orientation: 'vertical'
     BoxLayout:
         size_hint_y: 0.05
@@ -389,38 +515,36 @@ Builder.load_string("""
             text: 'Title: '
             size_hint_x: None
             width: self.texture_size[0]
-        TextInput:
+        StringNameInput:
             id: stringname
-            disabled: True
-            text: root.name
+            multiline: False
+            write_tab: False
+            _trigger_save: root._trigger_save
+        Button:
+            text: 'del'
+            size_hint_x: 0.1
+            on_press: root._trigger_delete()
     TextInput:
         id: string
+        disabled: root.disable_text_input
 <StringsEdBox>:
     editor: strings_ed
     storelist: strings_list
-    new_name_wid: newstrname
     orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
-        BoxLayout:
-            orientation: 'vertical'
+        StoreList:
+            id: strings_list
             size_hint_x: 0.2
-            StoreList:
-                id: strings_list
-                table: root.table
-                store: root.store
-                size_hint_y: 0.9
-            TextInput:
-                size_hint_y: 0.05
-                id: newstrname
-            Button:
-                size_hint_y: 0.05
-                text: '+'
-                on_press: root.add_item()
+            table: root.table
+            store: root.store
         StringInput:
             id: strings_ed
             store: root.store
-            name_wid: newstrname
+            disable_text_input: root.disable_text_input
+            validate_name_input: root.validate_name_input
+            _trigger_save: root._trigger_save
+            _trigger_delete: root._trigger_delete
 <StringsEdScreen>:
     name: 'strings'
     BoxLayout:
@@ -435,16 +559,18 @@ Builder.load_string("""
             size_hint_y: 0.05
             Button:
                 text: 'Close'
-                on_press: root.toggle()
+                on_press: edbox.dismiss()
             Label:
                 text_size: self.size
                 halign: 'right'
                 valign: 'middle'
                 text: 'Language: '
-            TextInput:
+            LanguageInput:
                 id: language
+                screen: root
                 hint_text: root.language
-                on_text_validate: root.set_language(self.text)
+                write_tab: False
+                multiline: False
 <Py3CodeInput@CodeInput>:
     lexer: py3lexer()
 <FuncEditor>:
@@ -470,6 +596,8 @@ Builder.load_string("""
             height: self.line_height + self.font_size
             multiline: False
             write_tab: False
+            _trigger_save: root._trigger_save
+            on_text: root.validate_name_input(self.text)
         Py3CodeInput:
             id: params
             text: '(' + ', '.join(root.params) + '):'
@@ -478,6 +606,10 @@ Builder.load_string("""
             height: self.line_height + self.font_size
             background_disabled_normal: ''
             disabled_foreground_color: self.foreground_color
+        Button:
+            text: 'del'
+            size_hint_x: 0.1
+            on_press: root._trigger_delete()
     BoxLayout:
         orientation: 'horizontal'
         Label:
@@ -495,11 +627,11 @@ Builder.load_string("""
             width: self.texture_size[0]
         Py3CodeInput:
             id: code
+            disabled: root.disable_text_input
 <FuncsEdBox>:
     editor: funcs_ed
     storelist: funcs_list
     orientation: 'vertical'
-    new_name_wid: newfuncname
     BoxLayout:
         orientation: 'horizontal'
         BoxLayout:
@@ -509,19 +641,15 @@ Builder.load_string("""
                 id: funcs_list
                 table: root.table
                 store: root.store
-                size_hint_y: 0.9
-            TextInput:
-                id: newfuncname
-                size_hint_y: 0.05
-            Button:
-                text: '+'
-                on_press: root.add_item()
-                size_hint_y: 0.05
         FuncEditor:
             id: funcs_ed
             table: root.table
             store: root.store
             storelist: funcs_list
+            disable_text_input: root.disable_text_input
+            validate_name_input: root.validate_name_input
+            _trigger_save: root._trigger_save
+            _trigger_delete: root._trigger_delete
             on_subject_type: root.subjtyp(self.subject_type)
     BoxLayout:
         size_hint_y: 0.05
