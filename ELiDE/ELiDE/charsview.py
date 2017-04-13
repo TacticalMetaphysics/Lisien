@@ -2,52 +2,17 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 from kivy.lang import Builder
 from kivy.uix.recycleview import RecycleView
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-
-from kivy.properties import AliasProperty, ObjectProperty, StringProperty
+from kivy.properties import ListProperty, ObjectProperty, StringProperty
 
 
 # TODO: Visual preview
 # TODO: Background image chooser
 
-class CharListView(RecycleView):
+class CharactersView(RecycleView):
     character_name = StringProperty()
     set_char = ObjectProperty()
-
-    def on_adapter(self, *args):
-        def selchange(*args):
-            if len(self.adapter.selection) == 0:
-                try:
-                    i = self.adapter.data.index(self.character_name)
-                except ValueError:
-                    return
-                view = self.adapter.get_view(i)
-                self.adapter.select_list([view])
-            elif self.character_name != self.adapter.selection[0].text:
-                self.set_char(self.adapter.selection[0].text)
-        self.adapter.bind(
-            on_selection_change=selchange
-        )
-
-
-class CharactersBox(BoxLayout):
-    engine = ObjectProperty()
-    toggle = ObjectProperty()
-    character = ObjectProperty()
-    select_character = ObjectProperty()
-
-    def _get_character_name(self):
-        if not self.character:
-            return ''
-        return self.character.name
-
-    character_name = AliasProperty(
-        _get_character_name, lambda self, v: None, bind=('character',)
-    )
-
-    def set_char(self, char):
-        self.select_character(self.engine.character[char])
+    selection = ObjectProperty()
 
 
 class CharactersScreen(Screen):
@@ -56,20 +21,20 @@ class CharactersScreen(Screen):
     charsview = ObjectProperty()
     engine = ObjectProperty()
     character = ObjectProperty()
+    character_name = StringProperty()
+    data = ListProperty()
 
-    def on_character(self, *args):
-        pass
+    def set_char(self, char):
+        self.select_character(self.engine.character[char])
 
     def new_character(self, name, *args):
         self.select_character(self.engine.new_character(name))
 
 
 Builder.load_string("""
-<CharButton@Button>:
-    on_press: self.parent.set_char(self.text)
-<CharListView>:
-    viewclass: 'CharButton'
-    RecycleBoxLayout:
+<CharactersView>:
+    viewclass: 'RecycleToggleButton'
+    SelectableRecycleBoxLayout:
         default_size: None, dp(56)
         default_size_hint: 1, None
         size_hint_y: None
@@ -77,27 +42,26 @@ Builder.load_string("""
         orientation: 'vertical'
 <CharactersScreen>:
     name: 'chars'
+    character_name: self.character.name if self.character else ''
     charsview: charsview
-    CharactersBox:
+    BoxLayout:
         id: chars
         orientation: 'vertical'
-        toggle: root.toggle
-        select_character: root.select_character
-        engine: root.engine
-        CharListView:
+        CharactersView:
             id: charsview
-            character_name: chars.character_name
-            set_char: chars.set_char
-        BoxLayout:
-            size_hint_y: 0.05
-            TextInput:
-                id: newname
-                hint_text: 'New character name'
-                write_tab: False
-            Button:
-                text: '+'
-                on_press: root.new_character(self.text)
-            Button:
-                text: 'Close'
-                on_press: root.toggle()
+            size_hint_y: 0.9
+            character_name: root.character_name
+            set_char: root.set_char
+            data: root.data
+        TextInput:
+            id: newname
+            hint_text: 'New character name'
+            write_tab: False
+            multiline: False
+        Button:
+            text: '+'
+            on_press: root.new_character(self.text)
+        Button:
+            text: 'Close'
+            on_press: root.toggle()
 """)

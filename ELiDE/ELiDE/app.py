@@ -199,10 +199,18 @@ class ELiDEApp(App):
             toggle=toggler('rules')
         )
 
+        def get_chars():
+            return [{'index': i, 'text': name} for (i, name) in enumerate(self.engine.character.keys())]
+
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
-            toggle=toggler('chars')
+            toggle=toggler('chars'),
+            data=get_chars()
         )
+
+        @self.engine.character.connect
+        def pull_chars(*args):
+            self.chars.data = get_chars()
 
         self.strings = ELiDE.stores.StringsEdScreen(
             language=self.engine.string.language,
