@@ -25,9 +25,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
-from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
-from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.togglebutton import ToggleButton
 
@@ -41,10 +38,6 @@ from kivy.properties import (
     StringProperty
 )
 from .util import trigger
-
-
-class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
-    pass
 
 
 class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):
@@ -71,11 +64,11 @@ class StoreButton(RecycleToggleButton):
     def on_parent(self, *args):
         if self.name == '+':
             self.state = 'down'
-            self.select(self)
+            self.select(self.index)
 
     def on_state(self, *args):
         if self.state == 'down':
-            self.select(self)
+            self.select(self.index)
 
 
 class StoreList(RecycleView):
@@ -85,20 +78,33 @@ class StoreList(RecycleView):
     """
     table = StringProperty()
     store = ObjectProperty()
-    selection = ObjectProperty()
+    selection_name = StringProperty()
+    boxl = ObjectProperty()
 
     def __init__(self, **kwargs):
         self.bind(table=self._trigger_redata, store=self._trigger_redata)
+        self._i2name = {}
+        self._name2i = {}
         super().__init__(**kwargs)
+
+    def on_boxl(self, *args):
+        self.boxl.bind(selected_nodes=self._pull_selection)
+
+    def _pull_selection(self, *args):
+        if not self.boxl.selected_nodes:
+            return
+        self.selection_name = self._i2name[self.boxl.selected_nodes[0]]
 
     def munge(self, datum):
         i, name = datum
+        self._i2name[i] = name
+        self._name2i[name] = i
         return {
             'store': self.store,
             'table': self.table,
             'text': str(name),
             'name': name,
-            'select': self.select,
+            'select': self.ids.boxl.select_node,
             'index': i
         }
 
@@ -119,21 +125,8 @@ class StoreList(RecycleView):
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 
-    def select(self, inst):
-        self.selection = inst
-        for boxl in self.children:
-            for child in boxl.children:
-                if child != inst and child.state == 'down':
-                    child.state = 'normal'
-
     def select_name(self, name, *args):
-        for boxl in self.children:
-            for child in boxl.children:
-                if child.text == name:
-                    child.state = 'down'
-                    self.selection = child
-                else:
-                    child.state = 'normal'
+        self.select_node(self._name2i[name])
 
     def _trigger_select_name(self, name):
         part = partial(self.select_name, name)
@@ -257,7 +250,7 @@ class EdBox(BoxLayout):
     disable_text_input = BooleanProperty(False)
 
     def on_storelist(self, *args):
-        self.storelist.bind(selection=self._pull_from_storelist)
+        self.storelist.bind(selection_name=self._pull_from_storelist)
 
     @trigger
     def validate_name_input(self, *args):
@@ -267,7 +260,7 @@ class EdBox(BoxLayout):
     def _pull_from_storelist(self, *args):
         self.save()
         # The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
-        self.editor.name_wid.hint_text = self.storelist.selection.name.strip('+')
+        self.editor.name_wid.hint_text = self.storelist.selection_name.strip('+')
         self.editor.name_wid.text = ''
         try:
             self.editor.source = self.store[self.editor.name_wid.hint_text]
@@ -499,7 +492,9 @@ Builder.load_string("""
     height: 30
 <StoreList>:
     viewclass: 'StoreButton'
+    boxl: boxl
     SelectableRecycleBoxLayout:
+        id: boxl
         default_size: None, dp(56)
         default_size_hint: 1, None
         height: self.minimum_height
