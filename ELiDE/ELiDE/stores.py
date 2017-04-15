@@ -112,7 +112,8 @@ class StoreList(RecycleView):
         yield '+'
         yield from sorted(self.store.keys())
 
-    def redata(self, select_name=None, *args):
+    def redata(self, *args, **kwargs):
+        select_name = kwargs.get('select_name')
         if not self.table or self.store is None:
             Clock.schedule_once(self.redata)
             return
@@ -120,13 +121,13 @@ class StoreList(RecycleView):
         if select_name:
             self._trigger_select_name(select_name)
 
-    def _trigger_redata(self, select_name=None, *args):
-        part = partial(self.redata, select_name, *args)
+    def _trigger_redata(self, *args, **kwargs):
+        part = partial(self.redata, *args, **kwargs)
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 
     def select_name(self, name, *args):
-        self.select_node(self._name2i[name])
+        self.boxl.select_node(self._name2i[name])
 
     def _trigger_select_name(self, name):
         part = partial(self.select_name, name)
