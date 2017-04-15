@@ -1520,8 +1520,6 @@ class CharacterMapProxy(MutableMapping):
         return len(self.engine._char_cache)
 
     def __getitem__(self, k):
-        if k not in self:
-            raise KeyError("No character: {}".format(k))
         return self.engine._char_cache[k]
 
     def __setitem__(self, k, v):
@@ -1856,7 +1854,16 @@ class EngineProxy(AbstractEngine):
         )
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
-        self._char_cache = {}
+
+        class LoudCharCache(dict):
+            def __setitem__(self, key, val):
+                print("_char_cache {}={}".format(key, val))
+                super().__setitem__(key, val)
+
+            def __delitem__(self, key):
+                print("_char_cache del {}".format(key))
+                super().__delitem__(key)
+        self._char_cache = LoudCharCache()
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
         charsdiffs = self.handle('get_chardiffs', chars='all')
@@ -2051,6 +2058,8 @@ class EngineProxy(AbstractEngine):
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)
             deleted.discard(char)
+        if 'no_del' in kwargs:
+            return
         for char in deleted:
             del self._char_cache[char]
 
@@ -2129,7 +2138,7 @@ class EngineProxy(AbstractEngine):
             self._time_travel_thread = Thread(
                 target=self._call_with_recv,
                 args=args,
-                kwargs={'branch': branch, 'tick': tick}
+                kwargs={'branch': branch, 'tick': tick, 'no_del': True}
             )
             self._time_travel_thread.start()
             self.send(self.json_dump({
