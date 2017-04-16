@@ -53,7 +53,8 @@ class ELiDEApp(App):
         return self.character.name
 
     def _set_character_name(self, name):
-        self.character = self.engine.character[name]
+        if self.character.name != name:
+            self.character = self.engine.character[name]
 
     character_name = AliasProperty(
         _get_character_name,
@@ -199,18 +200,17 @@ class ELiDEApp(App):
             toggle=toggler('rules')
         )
 
-        def get_chars():
-            return [{'index': i, 'text': name} for (i, name) in enumerate(self.engine.character.keys())]
-
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
             toggle=toggler('chars'),
-            data=get_chars()
+            names=list(self.engine.character)
         )
+        self.bind(character_name=self.chars.setter('character_name'))
+        self.chars.bind(character_name=self.setter('character_name'))
 
         @self.engine.character.connect
         def pull_chars(*args):
-            self.chars.data = get_chars()
+            self.chars.names = list(self.engine.character)
 
         self.strings = ELiDE.stores.StringsEdScreen(
             language=self.engine.string.language,

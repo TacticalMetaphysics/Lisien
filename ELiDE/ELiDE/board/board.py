@@ -1022,6 +1022,7 @@ Builder.load_string(
     keep_selection: board.keep_selection
     adding_portal: board.adding_portal
     reciprocal_portal: board.reciprocal_portal
+    on_character: board.trigger_update()
     Board:
         size_hint: None, None
         id: board
