@@ -1,6 +1,7 @@
 from collections import defaultdict
 from allegedb.cache import (
     Cache,
+    NodesCache,
     PickyDefaultDict,
     StructuredDefaultDict,
     FuturistWindowDict,
@@ -375,9 +376,13 @@ class CharacterRulesHandledCache(object):
         yield from unhandl
 
 
-class ThingsCache(Cache):
+class ThingsCache(NodesCache):
+    def __init__(self, db):
+        Cache.__init__(self, db)
+        self._make_node = db.thing_cls
+
     def store(self, character, thing, branch, tick, loc, nextloc=None):
-        Cache.store(self, character, thing, branch, tick, (loc, nextloc))
+        super().store(character, thing, branch, tick, (loc, nextloc))
 
     def tick_before(self, character, thing, branch, tick):
         self.retrieve(character, thing, branch, tick)
