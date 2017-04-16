@@ -11,7 +11,7 @@ from copy import copy as copier
 from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
-TESTING = False
+TESTING = True
 """Change this to True to validate kecaches whenever they change.
 
 It will make things very slow.
@@ -609,13 +609,17 @@ class Cache(object):
 
 
 class NodesCache(Cache):
+    def __init__(self, db):
+        super().__init__(db)
+        self._make_node = db._make_node
+
     def store(self, graph, node, branch, rev, ex):
         """Store whether a node exists, and create an object for it"""
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
-                = self.db._make_node(self.db.graph[graph], node)
+                = self._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, rev, ex)
         # does this work??
         self._validate_keycache(
