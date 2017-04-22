@@ -121,11 +121,11 @@ class CharMenu(BoxLayout):
         fact.
 
         """
-        self.screen.board.reciprocal_portal = not self.screen.board.reciprocal_portal
-        if self.screen.board.reciprocal_portal:
+        self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
+        if self.screen.boardview.reciprocal_portal:
             assert(self.revarrow is None)
             self.revarrow = ArrowWidget(
-                board=self.screen.board,
+                board=self.screen.boardview.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
             )
@@ -203,7 +203,7 @@ Builder.load_string("""
                 center_y: portaladdbut.center_y
                 size: (0, 0)
             ArrowWidget:
-                board: root.screen.board if root.screen else None
+                board: root.screen.boardview.board if root.screen else None
                 origin: emptyleft
                 destination: emptyright
         Button:

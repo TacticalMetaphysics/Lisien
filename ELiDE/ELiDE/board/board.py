@@ -420,6 +420,8 @@ class Board(RelativeLayout):
         stops.
 
         """
+        if not self.parent:
+            return
         if (
                 not self.tracking_vel and (
                     self.parent.effect_x.velocity > 0 or
@@ -431,6 +433,8 @@ class Board(RelativeLayout):
 
     def upd_pos_when_scrolling_stops(self, *args):
         """Wait for the scroll to stop, then store where it ended."""
+        if not self.parent:
+            return
         if self.parent.effect_x.velocity \
            == self.parent.effect_y.velocity == 0:
             self.character.stat['_scroll_x'] = self.parent.scroll_x
@@ -888,9 +892,9 @@ class BoardView(ScrollView):
     viewed.
 
     """
+    app = ObjectProperty()
     screen = ObjectProperty()
     engine = ObjectProperty()
-    character = ObjectProperty()
     board = ObjectProperty()
     branch = StringProperty('trunk')
     tick = NumericProperty(0)
@@ -1000,6 +1004,22 @@ class BoardView(ScrollView):
             )
         )
 
+    def on_board(self, *args):
+        if not self.app:
+            Clock.schedule_once(self.on_board, 0)
+            return
+        for prop in (
+                'keep_selection', 'adding_portal', 'reciprocal_portal',
+                'branch', 'tick'
+        ):
+            if hasattr(self, '_oldboard'):
+                self.unbind(**{prop: self._oldboard.setter(prop)})
+            self.bind(**{prop: self.board.setter(prop)})
+            setattr(self.board, prop, getattr(self, prop))
+        self._oldboard = self.board
+        self.clear_widgets()
+        self.add_widget(self.board)
+
 
 Builder.load_string(
     """
@@ -1014,24 +1034,12 @@ Builder.load_string(
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
+<Board>:
+    size_hint: None, None
 <BoardView>:
     effect_cls: StiffScrollEffect
-    board: board
-    selection_candidates: board.selection_candidates
-    selection: board.selection
-    keep_selection: board.keep_selection
-    adding_portal: board.adding_portal
-    reciprocal_portal: board.reciprocal_portal
-    on_character: board.trigger_update()
-    Board:
-        size_hint: None, None
-        id: board
-        branch: root.branch
-        tick: root.tick
-        engine: root.engine
-        character: root.character
-        keep_selection: root.keep_selection
-        adding_portal: root.adding_portal
-        reciprocal_portal: root.reciprocal_portal
+    app: app
+    selection_candidates: self.board.selection_candidates if self.board else []
+    selection: self.board.selection if self.board else None
 """
 )

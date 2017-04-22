@@ -27,6 +27,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
+from ELiDE.board.board import Board
 from ELiDE.board.arrow import ArrowWidget
 from ELiDE.board.spot import Spot
 from ELiDE.board.pawn import Pawn
@@ -243,7 +244,12 @@ class ELiDEApp(App):
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            play_speed=int(config['ELiDE']['play_speed'])
+            play_speed=int(config['ELiDE']['play_speed']),
+            boards={
+                name: Board(
+                    character=char
+                ) for name, char in self.engine.character.items()
+            }
         )
         if self.mainscreen.statlist:
             self.statcfg.statlist = self.mainscreen.statlist
@@ -326,19 +332,19 @@ class ELiDEApp(App):
             return
         if isinstance(selection, ArrowWidget):
             self.selection = None
-            self.screen.board.rm_arrow(
+            self.mainscreen.boardview.board.rm_arrow(
                 selection.origin.name,
                 selection.destination.name
             )
             selection.portal.delete()
         elif isinstance(selection, Spot):
             self.selection = None
-            self.screen.board.rm_spot(selection.name)
+            self.mainscreen.boardview.board.rm_spot(selection.name)
             selection.remote.delete()
         else:
             assert isinstance(selection, Pawn)
             self.selection = None
-            self.screen.board.rm_pawn(selection.name)
+            self.mainscreen.boardview.board.rm_pawn(selection.name)
             selection.remote.delete()
 
 
