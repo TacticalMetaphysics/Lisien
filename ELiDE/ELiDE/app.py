@@ -204,7 +204,8 @@ class ELiDEApp(App):
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
             toggle=toggler('chars'),
-            names=list(self.engine.character)
+            names=list(self.engine.character),
+            new_board=self.new_board
         )
         self.bind(character_name=self.chars.setter('character_name'))
         self.chars.bind(character_name=self.setter('character_name'))
@@ -312,6 +313,9 @@ class ELiDEApp(App):
         if self.config['ELiDE']['boardchar'] != self.character_name:
             self.config['ELiDE']['boardchar'] = self.character_name
 
+    def on_character(self, *args):
+        self.selection = None
+
     def on_pause(self):
         """Sync the database with the current state of the game."""
         self.engine.commit()
@@ -346,6 +350,13 @@ class ELiDEApp(App):
             self.selection = None
             self.mainscreen.boardview.board.rm_pawn(selection.name)
             selection.remote.delete()
+
+    def new_board(self, name):
+        """Make a board for a character name, and switch to it."""
+        char = self.engine.character[name]
+        board = Board(character=char)
+        self.mainscreen.boards[name] = board
+        self.character = char
 
 
 kv = """

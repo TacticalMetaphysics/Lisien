@@ -1,12 +1,14 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+from functools import partial
+
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 from kivy.uix.recycleview import RecycleView
 from kivy.properties import ListProperty, ObjectProperty, StringProperty
 
-from .util import trigger, SelectableRecycleBoxLayout
+from .util import SelectableRecycleBoxLayout
 
 
 # TODO: Visual preview
@@ -35,11 +37,11 @@ class CharactersScreen(Screen):
     engine = ObjectProperty()
     character_name = StringProperty()
     names = ListProperty()
+    new_board = ObjectProperty()
 
     def on_character_name(self, *args):
         print('CharactersScreen.character_name = ' + self.character_name)
 
-    @trigger
     def new_character(self, name, *args):
         self.engine.add_character(name)
         self.ids.newname.text = ''
@@ -47,6 +49,13 @@ class CharactersScreen(Screen):
         self.charsview.i2name[i] = name
         self.charsview.name2i[name] = i
         self.charsview.data.append({'index': i, 'text': name})
+        self.names.append(name)
+        self.new_board(name)
+
+    def _trigger_new_character(self, name):
+        part = partial(self.new_character, name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part)
 
     def _munge_names(self, names):
         for i, name in enumerate(names):
@@ -93,7 +102,7 @@ Builder.load_string("""
             multiline: False
         Button:
             text: '+'
-            on_press: root.new_character(newname.text)
+            on_press: root._trigger_new_character(newname.text)
         Button:
             text: 'Close'
             on_press: root.toggle()
