@@ -39,9 +39,7 @@ class CharactersScreen(Screen):
     wallpaper_path = StringProperty()
     names = ListProperty()
     new_board = ObjectProperty()
-
-    def on_character_name(self, *args):
-        print('CharactersScreen.character_name = ' + self.character_name)
+    push_character_name = ObjectProperty()
 
     def new_character(self, name, *args):
         self.engine.add_character(name)
@@ -52,6 +50,7 @@ class CharactersScreen(Screen):
         self.charsview.data.append({'index': i, 'text': name})
         self.names.append(name)
         self.new_board(name)
+        self.push_character_name(name)
 
     def _trigger_new_character(self, name):
         part = partial(self.new_character, name)
@@ -71,7 +70,11 @@ class CharactersScreen(Screen):
         self.charsview.data = list(self._munge_names(self.names))
 
     def on_charsview(self, *args):
+        if not self.push_character_name:
+            Clock.schedule_once(self.on_charsview, 0)
+            return
         self.charsview.bind(character_name=self.setter('character_name'))
+        self.bind(character_name=self.push_character_name)
 
 
 Builder.load_string("""

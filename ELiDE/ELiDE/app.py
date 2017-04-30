@@ -208,7 +208,13 @@ class ELiDEApp(App):
             new_board=self.new_board
         )
         self.bind(character_name=self.chars.setter('character_name'))
-        self.chars.bind(character_name=self.setter('character_name'))
+
+        def chars_push_character_name(*args):
+            self.unbind(character_name=self.chars.setter('character_name'))
+            self.character_name = self.chars.character_name
+            self.bind(character_name=self.chars.setter('character_name'))
+
+        self.chars.push_character_name = chars_push_character_name
 
         @self.engine.character.connect
         def pull_chars(*args):
