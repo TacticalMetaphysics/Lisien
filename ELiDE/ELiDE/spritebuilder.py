@@ -79,6 +79,7 @@ class SpriteSelector(BoxLayout):
 class SpriteBuilder(ScrollView):
     prefix = StringProperty()
     imgpaths = ListProperty()
+    stackhs = ListProperty()
     default_imgpaths = ListProperty()
     data = ListProperty()
     labels = ListProperty()
@@ -106,7 +107,7 @@ class SpriteBuilder(ScrollView):
             self._palbox.clear_widgets()
         self.labels = []
         self.pallets = []
-        for (text, filename) in self.data:
+        for (text, filename, stackh) in self.data:
             label = Label(
                 text=text,
                 size_hint=(None, None),
