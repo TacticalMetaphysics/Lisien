@@ -261,7 +261,10 @@ class ELiDEApp(App):
         if self.mainscreen.statlist:
             self.statcfg.statlist = self.mainscreen.statlist
         self.mainscreen.bind(statlist=self.statcfg.setter('statlist'))
-        self.bind(selection=self.reremote)
+        self.bind(
+            selection=self.reremote,
+            character=self.reremote
+        )
         self.selected_remote = self._get_selected_remote()
         for wid in (
                 self.mainscreen,
