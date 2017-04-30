@@ -23,8 +23,16 @@ class SpriteSelector(BoxLayout):
     prefix = StringProperty()
     pallets = ListProperty()
     imgpaths = ListProperty([])
+    stackhs = ListProperty([])
     default_imgpaths = ListProperty()
     preview = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        self.bind(
+            imgpaths=self._trigger_upd_imgstack,
+            stackhs=self._trigger_upd_imgstack
+        )
+        super().__init__(**kwargs)
 
     def on_prefix(self, *args):
         if 'textbox' not in self.ids:
@@ -32,21 +40,23 @@ class SpriteSelector(BoxLayout):
             return
         self.ids.textbox.text = self.prefix
 
-    def on_imgpaths(self, *args):
+    def upd_imgstack(self, *args):
         if not self.preview:
             Logger.debug(
                 "SpriteSelector: no preview"
             )
-            Clock.schedule_once(self.on_imgpaths, 0)
+            Clock.schedule_once(self.upd_imgstack, 0)
             return
         if hasattr(self, '_imgstack'):
             self.preview.remove_widget(self._imgstack)
         self._imgstack = ImageStack(
             paths=self.imgpaths,
+            stackhs=self.stackhs,
             x=self.preview.center_x - 16,
             y=self.preview.center_y - 16
         )
         self.preview.add_widget(self._imgstack)
+    _trigger_upd_imgstack = trigger(upd_imgstack)
 
     def on_pallets(self, *args):
         for pallet in self.pallets:

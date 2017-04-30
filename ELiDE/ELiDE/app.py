@@ -33,7 +33,6 @@ from ELiDE.board.pawn import Pawn
 from .util import trigger
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
-resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
 
 
 class ELiDEApp(App):
@@ -120,22 +119,28 @@ class ELiDEApp(App):
                 'play_speed': '1',
                 'thing_graphics': json.dumps([
                     ("Marsh Davies' Island", 'marsh_davies_island_fg.atlas'),
-                    ('RLTiles: Body', 'base.atlas'),
-                    ('RLTiles: Basic clothes', 'body.atlas'),
-                    ('RLTiles: Armwear', 'arm.atlas'),
-                    ('RLTiles: Legwear', 'leg.atlas'),
-                    ('RLTiles: Right hand', 'hand1.atlas'),
-                    ('RLTiles: Left hand', 'hand2.atlas'),
-                    ('RLTiles: Boots', 'boot.atlas'),
-                    ('RLTiles: Hair', 'hair.atlas'),
-                    ('RLTiles: Beard', 'beard.atlas'),
-                    ('RLTiles: Headwear', 'head.atlas')
+                    ('RLTiles: Body', 'rltiles/base.atlas'),
+                    ('RLTiles: Basic clothes', 'rltiles/body.atlas'),
+                    ('RLTiles: Armwear', 'rltiles/arm.atlas'),
+                    ('RLTiles: Legwear', 'rltiles/leg.atlas'),
+                    ('RLTiles: Right hand', 'rltiles/hand1.atlas'),
+                    ('RLTiles: Left hand', 'rltiles/hand2.atlas'),
+                    ('RLTiles: Boots', 'rltiles/boot.atlas'),
+                    ('RLTiles: Hair', 'rltiles/hair.atlas'),
+                    ('RLTiles: Beard', 'rltiles/beard.atlas'),
+                    ('RLTiles: Headwear', 'rltiles/head.atlas')
                 ]),
                 'place_graphics': json.dumps([
                     ("Marsh Davies' Island", 'marsh_davies_island_bg.atlas'),
                     ("Marsh Davies' Crypt", 'marsh_davies_crypt.atlas'),
-                    ('RLTiles: Dungeon', 'dungeon.atlas')
-                ])
+                    ('RLTiles: Dungeon', 'rltiles/dungeon.atlas'),
+                    ('Pixel City: Storeys', 'pixelcity/32x_outlineless/floors.atlas'),
+                    ('Pixel City: Ground', 'pixelcity/32x_outlineless/ground.atlas'),
+                    ('Pixel City: Road', 'pixelcity/32x_outlineless/road.atlas')
+                ]),
+                'stacking_heights': json.dumps({
+                    'pixelcity/32x_outlineless/floors.atlas': 8
+                })
             }
         )
         config.write()
@@ -184,14 +189,24 @@ class ELiDEApp(App):
                     self.manager.current = screenname
             return tog
 
+        thing_graphics = json.loads(config['ELiDE']['thing_graphics'])
+        place_graphics = json.loads(config['ELiDE']['place_graphics'])
+        stacking_heights = json.loads(config['ELiDE']['stacking_heights'])
+
         self.pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
             toggle=toggler('pawncfg'),
-            data=json.loads(config['ELiDE']['thing_graphics'])
+            data=[
+                (name, path, stacking_heights.get(path, 0))
+                for name, path in thing_graphics
+            ]
         )
 
         self.spotcfg = ELiDE.spritebuilder.SpotConfigScreen(
             toggle=toggler('spotcfg'),
-            data=json.loads(config['ELiDE']['place_graphics'])
+            data=[
+                (name, path, stacking_heights.get(path, 0))
+                for name, path in place_graphics
+            ]
         )
 
         self.rules = ELiDE.rulesview.RulesScreen(
