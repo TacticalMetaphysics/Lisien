@@ -86,7 +86,7 @@ class KvLayoutBack(FloatLayout):
     By default, shows a static image.
 
     """
-    character = ObjectProperty()
+    wallpaper_path = StringProperty()
 
 
 class KvLayoutFront(FloatLayout):
@@ -105,6 +105,7 @@ class Board(RelativeLayout):
     """
     engine = ObjectProperty()
     character = ObjectProperty()
+    wallpaper_path = StringProperty()
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
@@ -308,10 +309,10 @@ class Board(RelativeLayout):
             return
         self._parented = True
         self.kvlayoutback = KvLayoutBack(
-            character=self.character,
+            wallpaper_path=self.wallpaper_path,
             pos=(0, 0)
         )
-        self.bind(character=self.kvlayoutback.setter('character'))
+        self.bind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
         self.size = self.kvlayoutback.size
         self.kvlayoutback.bind(size=self.setter('size'))
         self.arrowlayout = FloatLayout(**self.widkwargs)
@@ -343,12 +344,25 @@ class Board(RelativeLayout):
             self.parent.scroll_y = self.character.stat.setdefault(
                 '_scroll_y', 0.0
             )
+        self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
+        self.character.stat.connect(self._trigger_pull_wallpaper)
+
+    def pull_wallpaper(self, *args):
+        self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
+
+    def _trigger_pull_wallpaper(self, *args, **kwargs):
+        if kwargs['key'] != 'wallpaper':
+            return
+        Clock.unschedule(self.pull_wallpaper)
+        Clock.schedule_once(self.pull_wallpaper, 0)
 
     @trigger
     def kv_updated(self, *args):
+        self.unbind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
         for wid in self.wids:
             self.remove_widget(wid)
-        self.kvlayoutback = KvLayoutBack(pos=(0, 0))
+        self.kvlayoutback = KvLayoutBack(pos=(0, 0), wallpaper_path=self.wallpaper_path)
+        self.bind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         self.size = self.kvlayoutback.size
         self.kvlayoutback.bind(size=self.setter('size'))
@@ -1030,7 +1044,7 @@ Builder.load_string(
     size_hint: (None, None)
     Image:
         id: wallpaper
-        source: resource_find(root.character.stat.setdefault('wallpaper', 'wallpape.jpg')) if root.character else ''
+        source: resource_find(root.wallpaper_path) or ''
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos

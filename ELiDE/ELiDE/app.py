@@ -305,7 +305,6 @@ class ELiDEApp(App):
         else:
             raise ValueError("Invalid selection: {}".format(self.selection))
 
-    @trigger
     def reremote(self, *args):
         self.selected_remote = self._get_selected_remote()
 

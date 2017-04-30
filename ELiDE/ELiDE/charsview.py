@@ -36,6 +36,7 @@ class CharactersScreen(Screen):
     charsview = ObjectProperty()
     engine = ObjectProperty()
     character_name = StringProperty()
+    wallpaper_path = StringProperty()
     names = ListProperty()
     new_board = ObjectProperty()
 
@@ -74,6 +75,7 @@ class CharactersScreen(Screen):
 
 
 Builder.load_string("""
+#: import resource_find kivy.resources.resource_find
 <CharactersView>:
     viewclass: 'RecycleToggleButton'
     character_name: boxl.character_name

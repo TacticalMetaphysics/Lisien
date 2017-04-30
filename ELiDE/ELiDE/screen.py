@@ -151,6 +151,12 @@ class MainScreen(Screen):
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
 
+    def on_statpanel(self, *args):
+        if not self.app:
+            Clock.schedule_once(self.on_statpanel, 0)
+            return
+        self.app.bind(selected_remote=self.statpanel.setter('remote'))
+
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
 
@@ -358,7 +364,6 @@ Builder.load_string(
         engine: app.engine
         branch: app.branch
         tick: app.tick
-        remote: app.selected_remote
         toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
