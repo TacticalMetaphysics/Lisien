@@ -1506,8 +1506,9 @@ class CharacterProxy(MutableMapping):
         return Facade(self)
 
 
-class CharacterMapProxy(MutableMapping):
+class CharacterMapProxy(MutableMapping, Signal):
     def __init__(self, engine_proxy):
+        super().__init__()
         self.engine = engine_proxy
 
     def __iter__(self):
@@ -1523,8 +1524,6 @@ class CharacterMapProxy(MutableMapping):
         return self.engine._char_cache[k]
 
     def __setitem__(self, k, v):
-        if isinstance(v, CharacterProxy):
-            return
         self.engine.handle(
             command='set_character',
             char=k,
@@ -1532,6 +1531,7 @@ class CharacterMapProxy(MutableMapping):
             silent=True
         )
         self.engine._char_cache[k] = CharacterProxy(self.engine, k)
+        self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         self.engine.handle(
@@ -1541,6 +1541,7 @@ class CharacterMapProxy(MutableMapping):
         )
         if k in self.engine._char_cache:
             del self.engine._char_cache[k]
+        self.send(self, key=k, val=None)
 
 
 class ProxyLanguageDescriptor(AbstractLanguageDescriptor):

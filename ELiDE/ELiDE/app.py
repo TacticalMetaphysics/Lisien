@@ -27,6 +27,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
+from ELiDE.board.board import Board
 from ELiDE.board.arrow import ArrowWidget
 from ELiDE.board.spot import Spot
 from ELiDE.board.pawn import Pawn
@@ -53,7 +54,8 @@ class ELiDEApp(App):
         return self.character.name
 
     def _set_character_name(self, name):
-        self.character = self.engine.character[name]
+        if self.character.name != name:
+            self.character = self.engine.character[name]
 
     character_name = AliasProperty(
         _get_character_name,
@@ -201,8 +203,22 @@ class ELiDEApp(App):
 
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
-            toggle=toggler('chars')
+            toggle=toggler('chars'),
+            names=list(self.engine.character),
+            new_board=self.new_board
         )
+        self.bind(character_name=self.chars.setter('character_name'))
+
+        def chars_push_character_name(*args):
+            self.unbind(character_name=self.chars.setter('character_name'))
+            self.character_name = self.chars.character_name
+            self.bind(character_name=self.chars.setter('character_name'))
+
+        self.chars.push_character_name = chars_push_character_name
+
+        @self.engine.character.connect
+        def pull_chars(*args):
+            self.chars.names = list(self.engine.character)
 
         self.strings = ELiDE.stores.StringsEdScreen(
             language=self.engine.string.language,
@@ -235,12 +251,20 @@ class ELiDEApp(App):
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
-            play_speed=int(config['ELiDE']['play_speed'])
+            play_speed=int(config['ELiDE']['play_speed']),
+            boards={
+                name: Board(
+                    character=char
+                ) for name, char in self.engine.character.items()
+            }
         )
         if self.mainscreen.statlist:
             self.statcfg.statlist = self.mainscreen.statlist
         self.mainscreen.bind(statlist=self.statcfg.setter('statlist'))
-        self.bind(selection=self.reremote)
+        self.bind(
+            selection=self.reremote,
+            character=self.reremote
+        )
         self.selected_remote = self._get_selected_remote()
         for wid in (
                 self.mainscreen,
@@ -290,13 +314,15 @@ class ELiDEApp(App):
         else:
             raise ValueError("Invalid selection: {}".format(self.selection))
 
-    @trigger
     def reremote(self, *args):
         self.selected_remote = self._get_selected_remote()
 
     def on_character_name(self, *args):
         if self.config['ELiDE']['boardchar'] != self.character_name:
             self.config['ELiDE']['boardchar'] = self.character_name
+
+    def on_character(self, *args):
+        self.selection = None
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
@@ -318,20 +344,27 @@ class ELiDEApp(App):
             return
         if isinstance(selection, ArrowWidget):
             self.selection = None
-            self.screen.board.rm_arrow(
+            self.mainscreen.boardview.board.rm_arrow(
                 selection.origin.name,
                 selection.destination.name
             )
             selection.portal.delete()
         elif isinstance(selection, Spot):
             self.selection = None
-            self.screen.board.rm_spot(selection.name)
+            self.mainscreen.boardview.board.rm_spot(selection.name)
             selection.remote.delete()
         else:
             assert isinstance(selection, Pawn)
             self.selection = None
-            self.screen.board.rm_pawn(selection.name)
+            self.mainscreen.boardview.board.rm_pawn(selection.name)
             selection.remote.delete()
+
+    def new_board(self, name):
+        """Make a board for a character name, and switch to it."""
+        char = self.engine.character[name]
+        board = Board(character=char)
+        self.mainscreen.boards[name] = board
+        self.character = char
 
 
 kv = """

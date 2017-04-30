@@ -86,7 +86,7 @@ class KvLayoutBack(FloatLayout):
     By default, shows a static image.
 
     """
-    character = ObjectProperty()
+    wallpaper_path = StringProperty()
 
 
 class KvLayoutFront(FloatLayout):
@@ -105,6 +105,7 @@ class Board(RelativeLayout):
     """
     engine = ObjectProperty()
     character = ObjectProperty()
+    wallpaper_path = StringProperty()
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
@@ -308,10 +309,10 @@ class Board(RelativeLayout):
             return
         self._parented = True
         self.kvlayoutback = KvLayoutBack(
-            character=self.character,
+            wallpaper_path=self.wallpaper_path,
             pos=(0, 0)
         )
-        self.bind(character=self.kvlayoutback.setter('character'))
+        self.bind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
         self.size = self.kvlayoutback.size
         self.kvlayoutback.bind(size=self.setter('size'))
         self.arrowlayout = FloatLayout(**self.widkwargs)
@@ -343,12 +344,29 @@ class Board(RelativeLayout):
             self.parent.scroll_y = self.character.stat.setdefault(
                 '_scroll_y', 0.0
             )
+        self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
+        if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat['_control']:
+            control = self.character.stat.setdefault('_control', {})
+            control['wallpaper'] = 'textinput'
+            self.character.stat['_control'] = control
+        self.character.stat.connect(self._trigger_pull_wallpaper)
+
+    def pull_wallpaper(self, *args):
+        self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
+
+    def _trigger_pull_wallpaper(self, *args, **kwargs):
+        if kwargs['key'] != 'wallpaper':
+            return
+        Clock.unschedule(self.pull_wallpaper)
+        Clock.schedule_once(self.pull_wallpaper, 0)
 
     @trigger
     def kv_updated(self, *args):
+        self.unbind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
         for wid in self.wids:
             self.remove_widget(wid)
-        self.kvlayoutback = KvLayoutBack(pos=(0, 0))
+        self.kvlayoutback = KvLayoutBack(pos=(0, 0), wallpaper_path=self.wallpaper_path)
+        self.bind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         self.size = self.kvlayoutback.size
         self.kvlayoutback.bind(size=self.setter('size'))
@@ -420,6 +438,8 @@ class Board(RelativeLayout):
         stops.
 
         """
+        if not self.parent:
+            return
         if (
                 not self.tracking_vel and (
                     self.parent.effect_x.velocity > 0 or
@@ -431,6 +451,8 @@ class Board(RelativeLayout):
 
     def upd_pos_when_scrolling_stops(self, *args):
         """Wait for the scroll to stop, then store where it ended."""
+        if not self.parent:
+            return
         if self.parent.effect_x.velocity \
            == self.parent.effect_y.velocity == 0:
             self.character.stat['_scroll_x'] = self.parent.scroll_x
@@ -888,9 +910,9 @@ class BoardView(ScrollView):
     viewed.
 
     """
+    app = ObjectProperty()
     screen = ObjectProperty()
     engine = ObjectProperty()
-    character = ObjectProperty()
     board = ObjectProperty()
     branch = StringProperty('trunk')
     tick = NumericProperty(0)
@@ -1000,6 +1022,22 @@ class BoardView(ScrollView):
             )
         )
 
+    def on_board(self, *args):
+        if not self.app:
+            Clock.schedule_once(self.on_board, 0)
+            return
+        for prop in (
+                'keep_selection', 'adding_portal', 'reciprocal_portal',
+                'branch', 'tick'
+        ):
+            if hasattr(self, '_oldboard'):
+                self.unbind(**{prop: self._oldboard.setter(prop)})
+            self.bind(**{prop: self.board.setter(prop)})
+            setattr(self.board, prop, getattr(self, prop))
+        self._oldboard = self.board
+        self.clear_widgets()
+        self.add_widget(self.board)
+
 
 Builder.load_string(
     """
@@ -1010,27 +1048,16 @@ Builder.load_string(
     size_hint: (None, None)
     Image:
         id: wallpaper
-        source: resource_find(root.character.stat.setdefault('wallpaper', 'wallpape.jpg')) if root.character else ''
+        source: resource_find(root.wallpaper_path) or ''
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
+<Board>:
+    size_hint: None, None
 <BoardView>:
     effect_cls: StiffScrollEffect
-    board: board
-    selection_candidates: board.selection_candidates
-    selection: board.selection
-    keep_selection: board.keep_selection
-    adding_portal: board.adding_portal
-    reciprocal_portal: board.reciprocal_portal
-    Board:
-        size_hint: None, None
-        id: board
-        branch: root.branch
-        tick: root.tick
-        engine: root.engine
-        character: root.character
-        keep_selection: root.keep_selection
-        adding_portal: root.adding_portal
-        reciprocal_portal: root.reciprocal_portal
+    app: app
+    selection_candidates: self.board.selection_candidates if self.board else []
+    selection: self.board.selection if self.board else None
 """
 )
