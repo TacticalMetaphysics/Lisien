@@ -345,6 +345,10 @@ class Board(RelativeLayout):
                 '_scroll_y', 0.0
             )
         self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
+        if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat['_control']:
+            control = self.character.stat.setdefault('_control', {})
+            control['wallpaper'] = 'textinput'
+            self.character.stat['_control'] = control
         self.character.stat.connect(self._trigger_pull_wallpaper)
 
     def pull_wallpaper(self, *args):
