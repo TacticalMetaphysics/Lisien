@@ -98,17 +98,20 @@ Builder.load_string("""
         orientation: 'vertical'
         CharactersView:
             id: charsview
-            size_hint_y: 0.9
+            size_hint_y: 0.8
             character_name: root.character_name
         TextInput:
             id: newname
+            size_hint_y: 0.1
             hint_text: 'New character name'
             write_tab: False
             multiline: False
         Button:
             text: '+'
             on_press: root._trigger_new_character(newname.text)
+            size_hint_y: 0.05
         Button:
             text: 'Close'
             on_press: root.toggle()
+            size_hint_y: 0.05
 """)
