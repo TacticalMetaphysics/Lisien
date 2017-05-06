@@ -41,6 +41,9 @@ class ELiDEApp(App):
     """Extensible LiSE Development Environment.
 
     """
+    title = 'ELiDE'
+    icon = 'icon.png'
+
     engine = ObjectProperty()
     branch = StringProperty('trunk')
     tick = NumericProperty(0)
@@ -159,6 +162,20 @@ class ELiDEApp(App):
         if config['ELiDE']['debugger'] == 'yes':
             import pdb
             pdb.set_trace()
+
+
+        if config['ELiDE']['inspector'] == 'yes':
+            from kivy.core.window import Window
+            from kivy.modules import inspector
+            inspector.create_inspector(Window, self.mainscreen)
+        
+        self.manager = ScreenManager()
+        Clock.schedule_once(self._start_subprocess, 0.1)
+        Clock.schedule_once(self._add_screens, 0.2)
+        return self.manager
+
+    def _start_subprocess(self, *args):
+        config = self.config
         self.procman = EngineProcessManager()
         enkw = {'logger': Logger}
         if config['LiSE'].get('logfile'):
@@ -171,13 +188,30 @@ class ELiDEApp(App):
             **enkw
         )
         self.pull_time()
+        
+        @self.engine.time.connect
+        def pull_time(inst, **kwargs):
+            self.branch = inst.branch
+            self.tick = inst.tick
+
+        @self.engine.string.language.connect
+        def pull_lang(inst, **kwargs):
+            self.strings.language = kwargs['language']
+        
+        @self.engine.character.connect
+        def pull_chars(*args):
+            self.chars.names = list(self.engine.character)
+
+        self.bind(
+            branch=self._push_time,
+            tick=self._push_time
+        )
 
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             self.engine.add_character(char)
 
-        self.manager = ScreenManager()
-
+    def _add_screens(self, *args):
         def toggler(screenname):
             def tog(*args):
                 if self.manager.current == screenname:
@@ -185,6 +219,7 @@ class ELiDEApp(App):
                 else:
                     self.manager.current = screenname
             return tog
+        config = self.config
 
         self.pawncfg = ELiDE.spritebuilder.PawnConfigScreen(
             toggle=toggler('pawncfg'),
@@ -215,10 +250,6 @@ class ELiDEApp(App):
             self.bind(character_name=self.chars.setter('character_name'))
 
         self.chars.push_character_name = chars_push_character_name
-
-        @self.engine.character.connect
-        def pull_chars(*args):
-            self.chars.names = list(self.engine.character)
 
         self.strings = ELiDE.stores.StringsEdScreen(
             language=self.engine.string.language,
@@ -277,26 +308,6 @@ class ELiDEApp(App):
                 self.funcs
         ):
             self.manager.add_widget(wid)
-
-        if config['ELiDE']['inspector'] == 'yes':
-            from kivy.core.window import Window
-            from kivy.modules import inspector
-            inspector.create_inspector(Window, self.mainscreen)
-
-        @self.engine.time.connect
-        def pull_time(inst, **kwargs):
-            self.branch = inst.branch
-            self.tick = inst.tick
-
-        @self.engine.string.language.connect
-        def pull_lang(inst, **kwargs):
-            self.strings.language = kwargs['language']
-
-        self.bind(
-            branch=self._push_time,
-            tick=self._push_time
-        )
-        return self.manager
 
     def _set_language(self, lang):
         self.engine.string.language = lang
