@@ -34,9 +34,9 @@ setup(
     ],
     cmdclass={'build_ext': build_ext},
     install_requires=[
-        "LiSE",
+        "LiSE==0.0.0a7",
         "numpy",
-        "kivy",
+        "kivy>=1.10.0",
         "pygments"
     ],
     package_data={
