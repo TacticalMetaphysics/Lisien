@@ -164,12 +164,12 @@ class ELiDEApp(App):
             pdb.set_trace()
 
 
+        self.manager = ScreenManager()
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
-            inspector.create_inspector(Window, self.mainscreen)
+            inspector.create_inspector(Window, self.manager)
         
-        self.manager = ScreenManager()
         Clock.schedule_once(self._start_subprocess, 0.1)
         Clock.schedule_once(self._add_screens, 0.2)
         return self.manager
