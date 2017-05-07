@@ -18,12 +18,13 @@ a = Analysis(['main.py'],
                  ('ELiDE/ELiDE/assets', 'ELiDE/assets'),
                  ('LiSE/LiSE/sqlite.json', 'LiSE')
              ],
-             hiddenimports=['ELiDE.kivygarden.collider', 'ELiDE.kivygarden.stiffscroll', 'ELiDE.kivygarden.texturestack'],
              hookspath=hookspath(),
              runtime_hooks=runtime_hooks(),
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
-             cipher=block_cipher)
+             cipher=block_cipher,
+             **mindeps
+             )
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
