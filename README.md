@@ -95,4 +95,4 @@ LiSE's data model, is available under
 versions of the networkx graph classes are in the ``allegedb``
 directory, and use the same license. The rest of the LiSE source files
 are licensed under the terms of the GNU General Public License version
-3. See the text of the license in the file gpl-3.0.txt
+3. See each directory for a copy of each license.
