@@ -133,6 +133,7 @@ class MainScreen(Screen):
     manager = ObjectProperty()
     boards = DictProperty()
     boardview = ObjectProperty()
+    board = ObjectProperty()
     charmenu = ObjectProperty()
     statlist = ObjectProperty()
     statpanel = ObjectProperty()
@@ -150,6 +151,26 @@ class MainScreen(Screen):
     _touch = ObjectProperty(None, allownone=True)
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+
+    def on_board(self, *args):
+        if not self.charmenu:
+            Clock.schedule_once(self.on_board, 0)
+            return
+        if hasattr(self, '_oldboard'):
+            self.charmenu.unbind(
+                adding_portal=self._oldboard.setter('adding_portal'),
+                reciprocal_portal=self._oldboard.setter('reciprocal_portal')
+            )
+        self.boardview.clear_widgets()
+        self.boardview.add_widget(self.board)
+        self.board.screen = self
+        self.board.adding_portal = self.charmenu.adding_portal
+        self.board.reciprocal_portal = self.charmenu.reciprocal_portal
+        self.charmenu.bind(
+            adding_portal=self.board.setter('adding_portal'),
+            reciprocal_portal=self.board.setter('reciprocal_portal')
+        )
+        self._oldboard = self.board
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -218,7 +239,7 @@ class MainScreen(Screen):
         ):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
-                self.boardview.keep_selection = True
+                self.board.keep_selection = True
                 return True
         return self.boardview.dispatch('on_touch_down', touch)
 
@@ -261,7 +282,7 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_chardiff(self, chardiff, **kwargs):
-        self.boardview.board.trigger_update_from_diff(
+        self.board.trigger_update_from_diff(
             chardiff.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
@@ -285,7 +306,6 @@ class MainScreen(Screen):
 
 Builder.load_string(
     """
-#: import resource_find kivy.resources.resource_find
 <StatListPanel>:
     orientation: 'vertical'
     cfgstatbut: cfgstatbut
@@ -340,25 +360,20 @@ Builder.load_string(
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
     boardview: boardview
+    board: self.boards[app.character_name]
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
     charmenu: charmenu
     statlist: statpanel.statlist
     statpanel: statpanel
     timepanel: timepanel
-    BoardView:
+    StencilView:
         id: boardview
         x: statpanel.right
         y: timepanel.top
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.height
-        screen: root
-        engine: app.engine
-        board: root.boards[app.character_name]
-        branch: app.branch
-        tick: app.tick
-        adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
         engine: app.engine

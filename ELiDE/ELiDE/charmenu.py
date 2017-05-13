@@ -16,6 +16,7 @@ from .util import try_load, dummynum
 class CharMenu(BoxLayout):
     screen = ObjectProperty()
     reciprocal_portal = BooleanProperty()
+    adding_portal = BooleanProperty()
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
@@ -33,24 +34,11 @@ class CharMenu(BoxLayout):
             raise AttributeError("Can't get engine from screen")
         return self.screen.app.engine
 
-    def on_screen(self, *args):
-        if not (
-            self.screen and
-            self.screen.boardview and
-            self.screen.app
-        ):
-            Clock.schedule_once(self.on_screen, 0)
-            return
-        self.reciprocal_portal = self.screen.boardview.reciprocal_portal
-        self.screen.boardview.bind(
-            reciprocal_portal=self.setter('reciprocal_portal')
-        )
-
     def spot_from_dummy(self, dummy):
-        self.screen.boardview.spot_from_dummy(dummy)
+        self.screen.board.spot_from_dummy(dummy)
 
     def pawn_from_dummy(self, dummy):
-        self.screen.boardview.pawn_from_dummy(dummy)
+        self.screen.board.pawn_from_dummy(dummy)
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""
@@ -121,11 +109,12 @@ class CharMenu(BoxLayout):
         fact.
 
         """
-        self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
-        if self.screen.boardview.reciprocal_portal:
+        self.screen.board.reciprocal_portal \
+            = not self.screen.board.reciprocal_portal
+        if self.screen.board.reciprocal_portal:
             assert(self.revarrow is None)
             self.revarrow = ArrowWidget(
-                board=self.screen.boardview.board,
+                board=self.screen.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
             )
@@ -155,12 +144,14 @@ class CharMenu(BoxLayout):
         if not self.dummything.paths:
             self.dummything.paths = ["atlas://rltiles/base.atlas/unseen"]
 
+
 Builder.load_string("""
 <CharMenu>:
     orientation: 'vertical'
     dummyplace: dummyplace
     dummything: dummything
     portaladdbut: portaladdbut
+    adding_portal: portaladdbut.state == 'down'
     portaldirbut: portaldirbut
     Button:
         text: 'Characters'
@@ -203,7 +194,7 @@ Builder.load_string("""
                 center_y: portaladdbut.center_y
                 size: (0, 0)
             ArrowWidget:
-                board: root.screen.boardview.board if root.screen else None
+                board: root.screen.board if root.screen else None
                 origin: emptyleft
                 destination: emptyright
         Button:

@@ -16,9 +16,9 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.vector import Vector
 from kivy.graphics.transformation import Matrix
+from kivy.uix.widget import Widget
 from kivy.uix.scatterlayout import ScatterLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
 from .spot import Spot
 from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
@@ -100,7 +100,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class Board(ScatterLayout):
+class Board(Widget):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
 
@@ -126,7 +126,6 @@ class Board(ScatterLayout):
     spots_unposd = ListProperty([])
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
-    tracking_vel = BooleanProperty(False)
     branch = StringProperty('trunk')
     tick = NumericProperty(0)
     selection_candidates = ListProperty([])
@@ -136,6 +135,8 @@ class Board(ScatterLayout):
     reciprocal_portal = BooleanProperty(False)
     grabbing = BooleanProperty(True)
     grabbed = ObjectProperty(None, allownone=True)
+    app = ObjectProperty()
+    screen = ObjectProperty()
 
     @property
     def widkwargs(self):
@@ -148,9 +149,8 @@ class Board(ScatterLayout):
     def apply_scale(self, scale):
         self.apply_transform(
             Matrix().scale(scale, scale, scale),
-            anchor=Vector(*self.center)
+            anchor=Vector(*self.to_local(self.center))
         )
-        self.size = self.bbox[1]
 
     def on_touch_down(self, touch):
         """Check for collisions and select an appropriate entity."""
@@ -159,7 +159,7 @@ class Board(ScatterLayout):
         if not self.collide_point(*touch.pos):
             return
         if touch.is_mouse_scrolling:
-            scale = 1.1 if touch.button == 'scrollup' else 0.9
+            scale = 1.05 if touch.button == 'scrollup' else 0.95
             new_scale = scale * self.scale
             if new_scale < self.scale_min:
                 scale = self.scale_min / self.scale
@@ -211,6 +211,7 @@ class Board(ScatterLayout):
                 Logger.debug("Board: hit {} arrows".format(len(arrows)))
                 self.selection_candidates = arrows
                 return True
+        return super().on_touch_down(touch)
 
     def on_touch_move(self, touch):
         """If an entity is selected, drag it."""
@@ -233,6 +234,8 @@ class Board(ScatterLayout):
                     cand.hit = cand.selected = True
                     touch.grab(cand)
                     return cand.dispatch('on_touch_move', touch)
+        else:
+            return super().on_touch_move(touch)
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
@@ -287,8 +290,9 @@ class Board(ScatterLayout):
             Logger.debug("Board: on_touch_up making a portal")
             touch.ungrab(self)
             return self.portal_touch_up(touch)
-        if hasattr(self.selection, 'on_touch_up'):
-            self.selection.dispatch('on_touch_up', touch)
+        if hasattr(self.selection, 'on_touch_up') and \
+           self.selection.dispatch('on_touch_up', touch):
+            return True
         while self.selection_candidates:
             candidate = self.selection_candidates.pop(0)
             if candidate.collide_point(*touch.pos):
@@ -318,9 +322,9 @@ class Board(ScatterLayout):
             if hasattr(self.selection, 'hit'):
                 self.selection.hit = False
             self.selection = None
-        self.keep_selection = False
-        touch.ungrab(self)
-        return
+        if not super().on_touch_up(touch):
+            self.keep_selection = False
+            touch.ungrab(self)
 
     def on_parent(self, *args):
         """Create some subwidgets and trigger the first update."""
@@ -451,34 +455,6 @@ class Board(ScatterLayout):
             self.arrow[portal["origin"]] = {}
         self.arrow[portal["origin"]][portal["destination"]] = r
         return r
-
-    def track_vel(self, *args):
-        """Track scrolling once it starts, so that we can tell when it
-        stops.
-
-        """
-        if not self.parent:
-            return
-        if (
-                not self.tracking_vel and (
-                    self.parent.effect_x.velocity > 0 or
-                    self.parent.effect_y.velocity > 0
-                )
-        ):
-            self.upd_pos_when_scrolling_stops()
-            self.tracking_vel = True
-
-    def upd_pos_when_scrolling_stops(self, *args):
-        """Wait for the scroll to stop, then store where it ended."""
-        if not self.parent:
-            return
-        if self.parent.effect_x.velocity \
-           == self.parent.effect_y.velocity == 0:
-            self.character.stat['_scroll_x'] = self.parent.scroll_x
-            self.character.stat['_scroll_y'] = self.parent.scroll_y
-            self.tracking_vel = False
-            return
-        Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
     def rm_arrows_to_and_from(self, name):
         origs = list(self.arrow.keys())
@@ -923,57 +899,30 @@ class Board(ScatterLayout):
             if arrow.collide_point(x, y):
                 yield arrow
 
+    def arrow_from_wid(self, wid):
+        """When the user has released touch after dragging to make an arrow,
+        check whether they've drawn a valid one, and if so, make it.
 
-class BoardView(ScrollView):
-    """A ScrollView that contains the Board for the character being
-    viewed.
+        This doesn't handle touch events. It takes a widget as its
+        argument: the one the user has been dragging to indicate where
+        they want the arrow to go. Said widget ought to be invisible.
 
-    """
-    app = ObjectProperty()
-    screen = ObjectProperty()
-    engine = ObjectProperty()
-    board = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
-    selection_candidates = ListProperty([])
-    selection = ObjectProperty(allownone=True)
-    keep_selection = BooleanProperty(False)
-    adding_portal = BooleanProperty(False)
-    reciprocal_portal = BooleanProperty(False)
-
-    def on_touch_down(self, touch):
-        """See if the board can handle the touch. If not, scroll."""
-        if touch.is_mouse_scrolling:
-            if not self.board:
-                return
-            return self.board.dispatch('on_touch_down', touch)
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
-        if self.board and self.board.dispatch('on_touch_down', touch):
-            touch.pop()
-            return True
-        touch.pop()
-        return super().on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        """See if the board can handle the touch. If not, scroll."""
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
-        if self.board and self.board.dispatch('on_touch_move', touch):
-            touch.pop()
-            return True
-        touch.pop()
-        return super().on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        """See if the board can handle the touch. If not, scroll."""
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
-        if self.board and self.board.dispatch('on_touch_up', touch):
-            touch.pop()
-            return True
-        touch.pop()
-        return super().on_touch_up(touch)
+        """
+        for spot in self.spotlayout.children:
+            if spot.collide_widget(wid):
+                whereto = spot
+                break
+        else:
+            return
+        self.arrowlayout.add_widget(
+            self.make_arrow(
+                self.character.new_portal(
+                    self.grabbed.place.name,
+                    whereto.place.name,
+                    reciprocal=self.reciprocal_portal
+                )
+            )
+        )
 
     def spot_from_dummy(self, dummy):
         """Create a new :class:`board.Spot` instance, along with the
@@ -982,11 +931,11 @@ class BoardView(ScrollView):
 
         """
         (x, y) = self.to_local(*dummy.pos_up)
-        x /= self.board.width
-        y /= self.board.height
-        self.board.spotlayout.add_widget(
-            self.board.make_spot(
-                self.board.character.new_place(
+        x /= self.width
+        y /= self.height
+        self.spotlayout.add_widget(
+            self.make_spot(
+                self.character.new_place(
                     dummy.name,
                     _x=x,
                     _y=y,
@@ -1003,15 +952,15 @@ class BoardView(ScrollView):
 
         """
         dummy.pos = self.to_local(*dummy.pos)
-        for spot in self.board.spotlayout.children:
+        for spot in self.spotlayout.children:
             if spot.collide_widget(dummy):
                 whereat = spot
                 break
         else:
             return
         whereat.add_widget(
-            self.board.make_pawn(
-                self.board.character.new_thing(
+            self.make_pawn(
+                self.character.new_thing(
                     dummy.name,
                     whereat.place.name,
                     _image_paths=list(dummy.paths)
@@ -1020,47 +969,36 @@ class BoardView(ScrollView):
         )
         dummy.num += 1
 
-    def arrow_from_wid(self, wid):
-        """When the user has released touch after dragging to make an arrow,
-        check whether they've drawn a valid one, and if so, make it.
 
-        This doesn't handle touch events. It takes a widget as its
-        argument: the one the user has been dragging to indicate where
-        they want the arrow to go. Said widget ought to be invisible.
+class ScatterBoard(Board, ScatterLayout):
+    tracking_vel = BooleanProperty()
+    # def track_vel(self, *args):
+    #     """Track scrolling once it starts, so that we can tell when it
+    #     stops.
 
-        """
-        for spot in self.board.spotlayout.children:
-            if spot.collide_widget(wid):
-                whereto = spot
-                break
-        else:
-            return
-        self.board.arrowlayout.add_widget(
-            self.board.make_arrow(
-                self.board.character.new_portal(
-                    self.board.grabbed.place.name,
-                    whereto.place.name,
-                    reciprocal=self.reciprocal_portal
-                )
-            )
-        )
+    #     """
+    #     if not self.parent:
+    #         return
+    #     if (
+    #             not self.tracking_vel and (
+    #                 self.parent.effect_x.velocity > 0 or
+    #                 self.parent.effect_y.velocity > 0
+    #             )
+    #     ):
+    #         self.upd_pos_when_scrolling_stops()
+    #         self.tracking_vel = True
 
-    def on_board(self, *args):
-        if not self.app:
-            Clock.schedule_once(self.on_board, 0)
-            return
-        for prop in (
-                'keep_selection', 'adding_portal', 'reciprocal_portal',
-                'branch', 'tick'
-        ):
-            if hasattr(self, '_oldboard'):
-                self.unbind(**{prop: self._oldboard.setter(prop)})
-            self.bind(**{prop: self.board.setter(prop)})
-            setattr(self.board, prop, getattr(self, prop))
-        self._oldboard = self.board
-        self.clear_widgets()
-        self.add_widget(self.board)
-
+    # def upd_pos_when_scrolling_stops(self, *args):
+    #     """Wait for the scroll to stop, then store where it ended."""
+    #     if not self.parent:
+    #         return
+    #     if self.parent.effect_x.velocity \
+    #        == self.parent.effect_y.velocity == 0:
+    #         self.character.stat['_scroll_x'] = self.parent.scroll_x
+    #         self.character.stat['_scroll_y'] = self.parent.scroll_y
+    #         self.tracking_vel = False
+    #         return
+    #     Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
 Builder.load_string(
     """
@@ -1075,16 +1013,11 @@ Builder.load_string(
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
-<Board>:
+<ScatterBoard>:
     size_hint: None, None
     do_rotation: False
-    do_translation: False
     scale_max: 4.0
     scale_min: 0.2
-<BoardView>:
-    effect_cls: StiffScrollEffect
     app: app
-    selection_candidates: self.board.selection_candidates if self.board else []
-    selection: self.board.selection if self.board else None
 """
 )

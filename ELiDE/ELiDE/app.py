@@ -27,7 +27,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
-from ELiDE.board.board import Board
+from ELiDE.board.board import ScatterBoard
 from ELiDE.board.arrow import ArrowWidget
 from ELiDE.board.spot import Spot
 from ELiDE.board.pawn import Pawn
@@ -284,7 +284,7 @@ class ELiDEApp(App):
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
             boards={
-                name: Board(
+                name: ScatterBoard(
                     character=char
                 ) for name, char in self.engine.character.items()
             }
