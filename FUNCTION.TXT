@@ -1,0 +1,59 @@
+Life sims all seem to have two problems in common:
+
+1. Lots of world state
+
+The number of vars the game is tracking -- just for game logic, not 
+graphics or physics or anything -- is very large. Like how The Sims 
+tracks sims' opinions of one another, their likes and dislikes and so forth, 
+even for the ones you never talk to and have shown no interest in. If you 
+streamline a life sim to where it doesn't have extraneous detail 
+complexity you lose a huge part of what makes it lifelike.
+
+This causes trouble for developers when even *they* don't really 
+understand why sims hate each other, and even if they do, failures of 
+bookkeeping can cause technical issues like how damn long it takes to 
+save or load your game in The Sims 3.
+
+To address all those problems, LiSE uses a database. SQLite, specifically, 
+though you never have to write any SQL if you don't want to -- I've 
+written a mapper that lets you access the data through a more natural 
+node-graph interface, similar to the way things work in text adventure 
+systems. This makes it simple to save or load only the part of the data 
+that you need at the moment, which should help address the problems 
+with save files. Further, since it's a *journaling* database, it remembers 
+everything that happens. You can look up the game's state at some 
+particular time, either for debugging, or because you need an NPC to 
+remember something and can't be bothered to save the info yourself. 
+(There are other uses for this that are cool too)
+
+2. Lots and lots of rules
+
+Fans of life sims tend to appreciate complexity. Developers are best 
+served by reducing complexity as much as possible. So LiSE makes it 
+easy to compartmentalize complexity and choose what of it you want to 
+deal with and when.
+
+It is a rules engine, an old concept from business software that lets you 
+determine what conditions cause what effects. Here, conditions are 
+Triggers and effects are Actions, and they're both lists of Python 
+functions. Actions make some change to the state of the world, while 
+Triggers look at the world once-per-turn and return a Boolean to show 
+whether their Actions should happen.
+
+The connection between Trigger and Action is arbitrary, you can mix and 
+match when you want. If you're doing it in the graphical interface, they 
+look sort of like trading cards, so constructing a rule is like deckbuilding. 
+Triggers and Actions exist independent of the game world, and can 
+therefore be moved from one game to another without much fuss. I 
+intend to include a fair number of them with the release version of LiSE, 
+so that you can throw together a toy sim without really writing any code.
+
+--
+
+And apart from all that, a standard convenience that comes with 
+authoring kits: I've implemented (well, am implementing) a standard 
+frontend for Sims-alikes, with rudimentary menus built from data you 
+put into your world model. Essentially, it just lets you edit the world 
+state directly, the expectation being that the game's rules will look at 
+the part of the world that the player is allowed to edit, and will interpret 
+that part as evidence of the player's intent.
