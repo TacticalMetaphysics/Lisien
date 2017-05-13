@@ -14,7 +14,9 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.uix.relativelayout import RelativeLayout
+from kivy.vector import Vector
+from kivy.graphics.transformation import Matrix
+from kivy.uix.scatterlayout import ScatterLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from .spot import Spot
@@ -98,7 +100,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class Board(RelativeLayout):
+class Board(ScatterLayout):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
 
@@ -143,12 +145,29 @@ class Board(RelativeLayout):
             'pos': (0, 0)
         }
 
+    def apply_scale(self, scale):
+        self.apply_transform(
+            Matrix().scale(scale, scale, scale),
+            anchor=Vector(*self.center)
+        )
+        self.size = self.bbox[1]
+
     def on_touch_down(self, touch):
         """Check for collisions and select an appropriate entity."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
         if not self.collide_point(*touch.pos):
             return
+        if touch.is_mouse_scrolling:
+            scale = 1.1 if touch.button == 'scrollup' else 0.9
+            new_scale = scale * self.scale
+            if new_scale < self.scale_min:
+                scale = self.scale_min / self.scale
+            elif new_scale > self.scale_max:
+                scale = self.scale_max / self.scale
+            self.apply_scale(scale)
+            return True
+
         if self.selection:
             self.selection.hit = self.selection.collide_point(*touch.pos)
             if self.selection.hit:
@@ -924,6 +943,10 @@ class BoardView(ScrollView):
 
     def on_touch_down(self, touch):
         """See if the board can handle the touch. If not, scroll."""
+        if touch.is_mouse_scrolling:
+            if not self.board:
+                return
+            return self.board.dispatch('on_touch_down', touch)
         touch.push()
         touch.apply_transform_2d(self.to_local)
         if self.board and self.board.dispatch('on_touch_down', touch):
@@ -1054,6 +1077,10 @@ Builder.load_string(
         pos: root.pos
 <Board>:
     size_hint: None, None
+    do_rotation: False
+    do_translation: False
+    scale_max: 4.0
+    scale_min: 0.2
 <BoardView>:
     effect_cls: StiffScrollEffect
     app: app
