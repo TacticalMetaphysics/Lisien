@@ -50,7 +50,10 @@ class RulesList(RecycleView):
         super().__init__(**kwargs)
 
     def redata(self, *args):
-        self.data = [{'rulesview': self.rulesview, 'rule': rule, 'index': i} for i, rule in enumerate(self.rulebook)]
+        self.data = [
+            {'rulesview': self.rulesview, 'rule': rule, 'index': i}
+            for i, rule in enumerate(self.rulebook)
+        ]
 
 
 class RulesView(FloatLayout):
@@ -71,7 +74,10 @@ class RulesView(FloatLayout):
         if len(rn) == 2:
             (char, node) = rn
             character = self.engine.character[char]
-            if node in {'character', 'avatar', 'character_thing', 'character_place', 'character_node', 'character_portal'}:
+            if node in {
+                    'character', 'avatar', 'character_thing',
+                    'character_place', 'character_node', 'character_portal'
+            }:
                 return "Character: {}, rulebook: {}".format(char, node)
             elif node in character.thing:
                 return "Character: {}, Thing: {}".format(*rn)
