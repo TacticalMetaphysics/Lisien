@@ -5,7 +5,7 @@ from collections import OrderedDict
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import AliasProperty, ObjectProperty, StringProperty, NumericProperty
+from kivy.properties import AliasProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.recycleview import RecycleView
