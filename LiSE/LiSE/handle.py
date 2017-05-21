@@ -29,6 +29,8 @@ def branching(fun):
 
 
 class AbstractHandle(object):
+    character = rulebook = rule = store = NotImplemented
+
     def __init__(self):
         self._muted_chars = set()
         self._node_stat_cache = defaultdict(dict)
@@ -53,6 +55,31 @@ class AbstractHandle(object):
         self._rulebook_cache = defaultdict(list)
         self._stores_cache = defaultdict(dict)
 
+    def pull_branch(self):
+        raise NotImplementedError
+
+    get_branch = pull_branch
+
+    def push_branch(self, branch):
+        raise NotImplementedError
+
+    def pull_tick(self):
+        raise NotImplementedError
+
+    get_tick = pull_tick
+
+    def push_tick(self, tick):
+        raise NotImplementedError
+
+    def pull_parent_branch_and_rev(self, branch=None):
+        raise NotImplementedError
+
+    def json_dump(self, s):
+        raise NotImplementedError
+
+    def json_load(self, o):
+        raise NotImplementedError
+
     def log(self, level, message):
         if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
@@ -71,12 +98,6 @@ class AbstractHandle(object):
 
     def critical(self, message):
         self.log(CRITICAL, message)
-
-    def json_load(self, s):
-        return self._real.json_load(s)
-
-    def json_dump(self, o):
-        return self._real.json_dump(o)
 
     def unwrap_character_stat(self, char, k, v):
         if isinstance(v, JSONReWrapper):
@@ -116,17 +137,11 @@ class AbstractHandle(object):
         else:
             return v
 
-    def time_locked(self):
-        return hasattr(self._real, 'locktime')
-
-    def advance(self):
-        self._real.advance()
-
     def get_chardiffs(self, chars):
         if chars == 'all':
             return {
                 char: self.character_diff(char)
-                for char in self._real.character.keys()
+                for char in self.character.keys()
             }
         else:
             return {
@@ -134,23 +149,8 @@ class AbstractHandle(object):
                 for char in chars
             }
 
-    def next_tick(self, chars=[]):
-        self._real.next_tick()
-        self.tick += 1
-        if chars:
-            return self.get_chardiffs(chars)
-
-    def time_travel(self, branch, tick, chars='all'):
-        self._real.time = (branch, tick)
-        self.branch = branch
-        self.tick = tick
-        if chars:
-            return self.get_chardiffs(chars)
-        else:
-            return {}
-
     def increment_branch(self, chars=[]):
-        branch = self._real.branch
+        branch = self.pull_branch()
         m = match('(.*)([0-9]+)', branch)
         if m:
             stem, n = m.groups()
@@ -158,29 +158,10 @@ class AbstractHandle(object):
         else:
             branch += '1'
         ret = {'branch': branch}
-        self._real.branch = branch
+        self.push_branch(branch)
         if chars:
             ret.update(self.get_chardiffs(chars))
         return ret
-
-    def add_character(self, char, data, attr):
-        character = self._real.new_character(char, **attr)
-        placedata = data.get('place', data.get('node', {}))
-        for place, stats in placedata.items():
-            character.add_place(place, **stats)
-        thingdata = data.get('thing',  {})
-        for thing, stats in thingdata.items():
-            character.add_thing(thing, **stats)
-        portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
-        for orig, dests in portdata.items():
-            for dest, stats in dests.items():
-                character.add_portal(orig, dest, **stats)
-
-    def commit(self):
-        self._real.commit()
-
-    def close(self):
-        self._real.close()
 
     def get_branch(self):
         return self._real.branch
@@ -189,143 +170,72 @@ class AbstractHandle(object):
         return self.branch
 
     def set_branch(self, branch):
-        self._real.branch = branch
+        self.push_branch(branch)
         self.branch = branch
-
-    def get_tick(self):
-        return self._real.tick
 
     def get_watched_tick(self):
         return self.tick
 
     def set_tick(self, tick):
-        self._real.tick = tick
+        self.push_tick(tick)
         self.tick = tick
 
     def get_time(self):
-        return self._real.time
+        return self.pull_branch(), self.pull_tick()
 
     def get_watched_time(self):
         return (self.branch, self.tick)
 
     def get_language(self):
-        return self._real.string.language
+        return self.store['string'].language
 
     def set_language(self, lang):
-        self._real.string.language = lang
+        self.store['string'].language = lang
         return self.strings_diff(lang)
 
     def get_string_ids(self):
-        return list(self._real.string)
+        return list(self.store['string'])
 
     def get_string_lang_items(self, lang):
-        ret = list(self._real.string.lang_items(lang))
+        ret = list(self.store['string'].lang_items(lang))
         for lang, (k, v) in ret:
             self._strings_cache[lang][k] = v
         return ret
 
     def strings_copy(self, lang=None):
         if lang is None:
-            lang = self._real.string.language
+            lang = self.store['string'].language
         return dict(
-            self._real.string.lang_items(lang)
+            self.store['string'].lang_items(lang)
         )
 
     def strings_diff(self, lang=None):
         if lang is None:
-            lang = self._real.string.language
+            lang = self.store['string'].language
         else:
-            assert lang == self._real.string.language
+            assert lang == self.store['string'].language
         old = self._strings_cache.get(lang, {})
         new = self._strings_cache[lang] = self.strings_copy(lang)
         return dict_diff(old, new)
 
     def get_string(self, k):
-        return self._real.string[k]
+        return self.store['string'].string[k]
 
     def have_string(self, k):
-        return k in self._real.string
+        return k in self.store['string']
 
     def set_string(self, k, v):
-        self._real.string[k] = v
-        self._strings_cache[self._real.string.language][k] = v
+        self.store['string'][k] = v
+        self._strings_cache[self.store['string'].language][k] = v
 
     def del_string(self, k):
-        del self._real.string[k]
-        del self._strings_cache[self._real.string.language][k]
-
-    def get_eternal(self, k):
-        ret = self._eternal_cache[k] = self._real.eternal[k]
-        return ret
-
-    def set_eternal(self, k, v):
-        self._real.eternal[k] = v
-        self._eternal_cache[k] = v
-
-    def del_eternal(self, k):
-        del self._real.eternal[k]
-        del self._eternal_cache[k]
-
-    def have_eternal(self, k):
-        return k in self._real.eternal
-
-    def eternal_copy(self):
-        return dict(self._real.eternal)
-
-    def eternal_diff(self):
-        old = self._eternal_cache
-        new = self.eternal_copy()
-        return dict_diff(old, new)
-
-    def get_universal(self, k):
-        ret = self._universal_cache[k] = self._real.universal[k]
-        return ret
-
-    @branching
-    def set_universal(self, k, v):
-        self._real.universal[k] = v
-        self._universal_cache[k] = v
-
-    @branching
-    def del_universal(self, k):
-        del self._real.universal[k]
-        del self._universal_cache[k]
-
-    def universal_copy(self):
-        return dict(self._real.universal)
-
-    def universal_diff(self):
-        old = self._universal_cache
-        new = self.universal_copy()
-        return dict_diff(old, new)
-
-    def init_character(self, char, statdict={}):
-        if char in self._real.character:
-            raise KeyError("Already have character {}".format(char))
-        self._real.character[char] = {}
-        self._real.character[char].stat.update(statdict)
-
-    def del_character(self, char):
-        del self._real.character[char]
-        for cache in (
-                self._char_stat_cache,
-                self._node_stat_cache,
-                self._portal_stat_cache,
-                self._char_av_cache,
-                self._char_rulebooks_cache,
-                self._char_nodes_rulebooks_cache,
-                self._char_portals_rulebooks_cache,
-                self._char_things_cache,
-                self._char_places_cache,
-                self._char_portals_cache
-        ):
-            if char in cache:
-                del cache[char]
+        del self.store['string'][k]
+        del self._strings_cache[self.store['string'].language][k]
 
     def character_stat_copy(self, char):
         return {
             k: self.unwrap_character_stat(char, k, v)
-            for (k, v) in self._real.character[char].stat.items()
+            for (k, v) in self.character[char].stat.items()
         }
 
     @staticmethod
@@ -342,7 +252,7 @@ class AbstractHandle(object):
     def character_avatars_copy(self, char):
         return {
             graph: list(nodes.keys()) for (graph, nodes) in
-            self._real.character[char].avatar.items()
+            self.character[char].avatar.items()
         }
 
     def character_avatars_diff(self, char):
@@ -351,7 +261,7 @@ class AbstractHandle(object):
         )
 
     def character_rulebooks_copy(self, char):
-        chara = self._real.character[char]
+        chara = self.character[char]
         return {
             'character': chara.rulebook.name,
             'avatar': chara.avatar.rulebook.name,
@@ -367,7 +277,7 @@ class AbstractHandle(object):
         )
 
     def character_nodes_rulebooks_copy(self, char, nodes='all'):
-        chara = self._real.character[char]
+        chara = self.character[char]
         if nodes == 'all':
             nodeiter = iter(chara.node.values())
         else:
@@ -381,7 +291,7 @@ class AbstractHandle(object):
         )
 
     def character_portals_rulebooks_copy(self, char, portals='all'):
-        chara = self._real.character[char]
+        chara = self.character[char]
         result = defaultdict(dict)
         if portals == 'all':
             portiter = chara.portals()
@@ -429,16 +339,16 @@ class AbstractHandle(object):
 
     @branching
     def set_character_stat(self, char, k, v):
-        self._real.character[char].stat[k] = v
+        self.character[char].stat[k] = v
         self._char_stat_cache.setdefault(char, {})[k] = v
 
     @branching
     def del_character_stat(self, char, k):
-        del self._real.character[char].stat[k]
+        del self.character[char].stat[k]
         del self._char_stat_cache[char][k]
 
     def update_character_stats(self, char, patch):
-        self._real.character[char].stat.update(patch)
+        self.character[char].stat.update(patch)
         self._char_stat_cache.setdefault(char, {}).update(patch)
 
     def update_character(self, char, patch):
@@ -447,20 +357,20 @@ class AbstractHandle(object):
         self.update_portals(char, patch['portal'])
 
     def characters(self):
-        return list(self._real.character.keys())
+        return list(self.character.keys())
 
     @branching
     def set_character(self, char, v):
-        self._real.character[char] = v
+        self.character[char] = v
 
     @branching
     def set_node_stat(self, char, node, k, v):
-        self._real.character[char].node[node][k] = v
+        self.character[char].node[node][k] = v
         self._node_stat_cache.setdefault(char, {})[node][k] = v
 
     @branching
     def del_node_stat(self, char, node, k):
-        del self._real.character[char].node[node][k]
+        del self.character[char].node[node][k]
         del self._node_stat_cache[char][node][k]
 
     def node_stat_copy(self, node_or_char, node=None):
@@ -468,7 +378,7 @@ class AbstractHandle(object):
         if node is None:
             node = node_or_char
         else:
-            node = self._real.character[node_or_char].node[node]
+            node = self.character[node_or_char].node[node]
         return {
             k: self.unwrap_node_stat(node, k, v)
             for (k, v) in node.items()
@@ -490,7 +400,7 @@ class AbstractHandle(object):
         """
         try:
             old = self._node_stat_cache[char].get(node, {})
-            new = self.node_stat_copy(self._real.character[char].node[node])
+            new = self.node_stat_copy(self.character[char].node[node])
             self._node_stat_cache[char][node] = new
             r = dict_diff(old, new)
             return r
@@ -503,7 +413,7 @@ class AbstractHandle(object):
 
         """
         r = {}
-        for node in self._real.character[char].node:
+        for node in self.character[char].node:
             diff = self.node_stat_diff(char, node)
             if diff:
                 r[node] = diff
@@ -517,7 +427,7 @@ class AbstractHandle(object):
         stat.
 
         """
-        character = self._real.character[char]
+        character = self.character[char]
         if patch is None:
             del character.node[node]
         elif node not in character.node:
@@ -532,19 +442,17 @@ class AbstractHandle(object):
 
         """
         if backdate:
-            parbranch, parrev = self._real._parentbranch_rev.get(
-                self._real.branch, ('trunk', 0)
-            )
-            tick_now = self._real.tick
-            self._real.tick = parrev
+            parbranch, parrev = self.pull_parent_branch_and_rev()
+            tick_now = self.pull_tick()
+            self.push_tick(parrev)
         for (n, npatch) in patch.items():
             self.update_node(char, n, npatch)
         if backdate:
-            self._real.tick = tick_now
+            self.push_tick(tick_now)
 
     def del_node(self, char, node):
         """Remove a node from a character."""
-        del self._real.character[char].node[node]
+        del self.character[char].node[node]
         for cache in (
                 self._char_nodes_rulebooks_cache,
                 self._node_stat_cache,
@@ -588,7 +496,7 @@ class AbstractHandle(object):
                 thing['arrival_time'],
                 thing['next_arrival_time']
             )
-            for (name, thing) in self._real.character[char].thing.items()
+            for (name, thing) in self.character[char].thing.items()
         }
 
     def character_things_diff(self, char):
@@ -608,7 +516,7 @@ class AbstractHandle(object):
             return None
 
     def character_places(self, char):
-        return list(self._real.character[char].place)
+        return list(self.character[char].place)
 
     def character_places_diff(self, char):
         try:
@@ -620,16 +528,16 @@ class AbstractHandle(object):
             return None
 
     def node_predecessors(self, char, node):
-        return list(self._real.character[char].pred[node].keys())
+        return list(self.character[char].pred[node].keys())
 
     def character_set_node_predecessors(self, char, node, preds):
-        self._real.character[char].pred[node] = preds
+        self.character[char].pred[node] = preds
 
     def character_del_node_predecessors(self, char, node):
-        del self._real.character[char].pred[node]
+        del self.character[char].pred[node]
 
     def node_successors(self, char, node):
-        return list(self._real.character[char].portal[node].keys())
+        return list(self.character[char].portal[node].keys())
 
     def node_successors_diff(self, char, node):
         try:
@@ -641,16 +549,16 @@ class AbstractHandle(object):
             return None
 
     def character_set_node_successors(self, char, node, val):
-        self._real.character[char].adj[node] = val
+        self.character[char].adj[node] = val
 
     def character_del_node_successors(self, char, node):
-        del self._real.character[char].adj[node]
+        del self.character[char].adj[node]
 
     def nodes_connected(self, char, orig, dest):
-        return dest in self._real.character[char].portal[orig]
+        return dest in self.character[char].portal[orig]
 
     def init_thing(self, char, thing, statdict={}):
-        if thing in self._real.character[char].thing:
+        if thing in self.character[char].thing:
             raise KeyError(
                 'Already have thing in character {}: {}'.format(
                     char, thing
@@ -660,7 +568,7 @@ class AbstractHandle(object):
 
     @branching
     def set_thing(self, char, thing, statdict):
-        self._real.character[char].thing[thing] = statdict
+        self.character[char].thing[thing] = statdict
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
         loc = statdict.pop('location')
         nxtloc = statdict.pop('next_location', None)
@@ -670,7 +578,7 @@ class AbstractHandle(object):
 
     @branching
     def add_thing(self, char, thing, loc, next_loc, statdict):
-        self._real.character[char].add_thing(
+        self.character[char].add_thing(
             thing, loc, next_loc, **statdict
         )
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
@@ -678,25 +586,25 @@ class AbstractHandle(object):
 
     @branching
     def place2thing(self, char, node, loc):
-        self._real.character[char].place2thing(node, loc)
+        self.character[char].place2thing(node, loc)
 
     @branching
     def thing2place(self, char, node):
-        self._real.character[char].thing2place(node)
+        self.character[char].thing2place(node)
 
     def add_things_from(self, char, seq):
         # TODO: special case of branching
-        self._real.character[char].add_things_from(seq)
+        self.character[char].add_things_from(seq)
 
     def get_thing_location(self, char, thing):
         try:
-            return self._real.character[char].thing[thing]['location']
+            return self.character[char].thing[thing]['location']
         except KeyError:
             return None
 
     @branching
     def set_thing_location(self, char, thing, loc):
-        self._real.character[char].thing[thing]['location'] = loc
+        self.character[char].thing[thing]['location'] = loc
         _, nxtloc, arrt, nxtarrt = self._char_things_cache.setdefault(char, {}).get(
             thing, (loc, None, self.tick, None)
         )
@@ -704,7 +612,7 @@ class AbstractHandle(object):
 
     def get_thing_special_stats(self, char, thing):
         try:
-            thing = self._real.character[char].thing[thing]
+            thing = self.character[char].thing[thing]
         except KeyError:
             return (None, None, None, None)
         return (
@@ -716,26 +624,26 @@ class AbstractHandle(object):
 
     def thing_follow_path(self, char, thing, path, weight):
         # TODO: special case of branching
-        self._real.character[char].thing[thing].follow_path(path, weight)
+        self.character[char].thing[thing].follow_path(path, weight)
 
     def thing_go_to_place(self, char, thing, place, weight):
         # TODO: special case of branching
-        self._real.character[char].thing[thing].go_to_place(place, weight)
+        self.character[char].thing[thing].go_to_place(place, weight)
 
     def thing_travel_to(self, char, thing, dest, weight, graph):
         # TODO: special case of branching
-        self._real.character[char].thing[thing].travel_to(dest, weight, graph)
+        self.character[char].thing[thing].travel_to(dest, weight, graph)
 
     def thing_travel_to_by(
             self, char, thing, dest, arrival_tick, weight, graph
     ):
         # TODO: special case of branching
-        self._real.character[char].thing[thing].travel_to_by(
+        self.character[char].thing[thing].travel_to_by(
             dest, arrival_tick, weight, graph
         )
 
     def init_place(self, char, place, statdict={}):
-        if place in self._real.character[char].place:
+        if place in self.character[char].place:
             raise KeyError(
                 'Already have place in character {}: {}'.format(
                     char, place
@@ -745,17 +653,17 @@ class AbstractHandle(object):
 
     @branching
     def set_place(self, char, place, statdict):
-        self._real.character[char].place[place] = statdict
+        self.character[char].place[place] = statdict
         self._node_stat_cache.setdefault(char, {})[place] = statdict
 
     def add_places_from(self, char, seq):
         # TODO: special case of branching
-        self._real.character[char].add_places_from(seq)
+        self.character[char].add_places_from(seq)
 
     def init_portal(self, char, orig, dest, statdict={}):
         if (
-                orig in self._real.character[char].portal and
-                dest in self._real.character[char].portal[orig]
+                orig in self.character[char].portal and
+                dest in self.character[char].portal[orig]
         ):
             raise KeyError(
                 'Already have portal in character {}: {}->{}'.format(
@@ -766,12 +674,12 @@ class AbstractHandle(object):
 
     @branching
     def set_portal(self, char, orig, dest, statdict):
-        self._real.character[char].portal[orig][dest] = statdict
+        self.character[char].portal[orig][dest] = statdict
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
 
     def character_portals(self, char):
         r = []
-        portal = self._real.character[char].portal
+        portal = self.character[char].portal
         for o in portal:
             for d in portal[o]:
                 r.append((o, d))
@@ -788,34 +696,34 @@ class AbstractHandle(object):
 
     @branching
     def add_portal(self, char, orig, dest, symmetrical, statdict):
-        self._real.character[char].add_portal(
+        self.character[char].add_portal(
             orig, dest, symmetrical, **statdict
         )
 
     def add_portals_from(self, char, seq, symmetrical):
         # TODO: special case of branching
-        self._real.character[char].add_portals_from(seq, symmetrical)
+        self.character[char].add_portals_from(seq, symmetrical)
 
     @branching
     def del_portal(self, char, orig, dest):
-        del self._real.character[char].portal[orig][dest]
+        del self.character[char].portal[orig][dest]
         del self._portal_stat_cache[char][orig][dest]
         del self._char_places_cache[char][orig][dest]
 
     @branching
     def set_portal_stat(self, char, orig, dest, k, v):
-        self._real.character[char].portal[orig][dest][k] = v
+        self.character[char].portal[orig][dest][k] = v
         self._portal_stat_cache.setdefault(char, {}).setdefault(orig, {})[dest][k] = v
 
     @branching
     def del_portal_stat(self, char, orig, dest, k):
-        del self._real.character[char][orig][dest][k]
+        del self.character[char][orig][dest][k]
         del self._portal_stat_cache[char][orig][dest][k]
 
     def portal_stat_copy(self, char, orig, dest):
         return {
             k: self.unwrap_portal_stat(char, orig, dest, k, v)
-            for (k, v) in self._real.character[char].portal[orig][dest].items()
+            for (k, v) in self.character[char].portal[orig][dest].items()
         }
 
     def portal_stat_diff(self, char, orig, dest):
@@ -829,8 +737,8 @@ class AbstractHandle(object):
 
     def character_portals_stat_diff(self, char):
         r = {}
-        for orig in self._real.character[char].portal:
-            for dest in self._real.character[char].portal[orig]:
+        for orig in self.character[char].portal:
+            for dest in self.character[char].portal[orig]:
                 diff = self.portal_stat_diff(char, orig, dest)
                 if diff:
                     if orig not in r:
@@ -840,7 +748,7 @@ class AbstractHandle(object):
 
     @branching
     def update_portal(self, char, orig, dest, patch):
-        character = self._real.character[char]
+        character = self.character[char]
         if patch is None:
             del character.portal[orig][dest]
         elif orig not in character.portal \
@@ -857,22 +765,22 @@ class AbstractHandle(object):
 
     @branching
     def add_avatar(self, char, graph, node):
-        self._real.character[char].add_avatar(graph, node)
+        self.character[char].add_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].add(node)
 
     @branching
     def del_avatar(self, char, graph, node):
-        self._real.character[char].del_avatar(graph, node)
+        self.character[char].del_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)
 
     def new_empty_rule(self, rule):
-        self._real.rule.new_empty(rule)
+        self.rule.new_empty(rule)
 
     def new_empty_rulebook(self, rulebook):
-        self._real.rulebook[rulebook]
+        self.rulebook[rulebook]
 
     def rulebook_copy(self, rulebook):
-        return list(self._real.rulebook[rulebook]._cache)
+        return list(self.rulebook[rulebook]._cache)
 
     def rulebook_diff(self, rulebook):
         # TODO: do actual diffing
@@ -884,57 +792,57 @@ class AbstractHandle(object):
 
     def all_rulebooks_diff(self):
         ret = {}
-        for rulebook in self._real.rulebook.keys():
+        for rulebook in self.rulebook.keys():
             diff = self.rulebook_diff(rulebook)
             if diff:
                 ret[rulebook] = diff
         return ret
 
     def set_rulebook_rule(self, rulebook, i, rule):
-        self._real.rulebook[rulebook][i] = rule
+        self.rulebook[rulebook][i] = rule
 
     def ins_rulebook_rule(self, rulebook, i, rule):
-        self._real.rulebook[rulebook].insert(i, rule)
+        self.rulebook[rulebook].insert(i, rule)
 
     def del_rulebook_rule(self, rulebook, i):
-        del self._real.rulebook[rulebook][i]
+        del self.rulebook[rulebook][i]
         del self._rulebook_cache[rulebook][i]
 
     def set_rule_triggers(self, rule, triggers):
-        self._real.rule[rule].triggers = triggers
+        self.rule[rule].triggers = triggers
 
     def set_rule_prereqs(self, rule, prereqs):
-        self._real.rule[rule].prereqs = prereqs
+        self.rule[rule].prereqs = prereqs
 
     def set_rule_actions(self, rule, actions):
-        self._real.rule[rule].actions = actions
+        self.rule[rule].actions = actions
 
     def set_character_rulebook(self, char, rulebook):
-        self._real.character[char].rulebook = rulebook
+        self.character[char].rulebook = rulebook
 
     def set_avatar_rulebook(self, char, rulebook):
-        self._real.character[char].avatar.rulebook = rulebook
+        self.character[char].avatar.rulebook = rulebook
 
     def set_character_thing_rulebook(self, char, rulebook):
-        self._real.character[char].thing.rulebook = rulebook
+        self.character[char].thing.rulebook = rulebook
 
     def set_character_place_rulebook(self, char, rulebook):
-        self._real.character[char].place.rulebook = rulebook
+        self.character[char].place.rulebook = rulebook
 
     def set_character_node_rulebook(self, char, rulebook):
-        self._real.character[char].node.rulebook = rulebook
+        self.character[char].node.rulebook = rulebook
 
     def set_character_portal_rulebook(self, char, rulebook):
-        self._real.character[char].portal.rulebook = rulebook
+        self.character[char].portal.rulebook = rulebook
 
     def set_node_rulebook(self, char, node, rulebook):
-        self._real.character[char].node[node].rulebook = rulebook
+        self.character[char].node[node].rulebook = rulebook
 
     def set_portal_rulebook(self, char, orig, dest, rulebook):
-        self._real.character[char].portal[orig][dest].rulebook = rulebook
+        self.character[char].portal[orig][dest].rulebook = rulebook
 
     def rule_copy(self, rule):
-        rule = self._real.rule[rule]
+        rule = self.rule[rule]
         return {
             'triggers': list(rule.triggers._cache),
             'prereqs': list(rule.prereqs._cache),
@@ -954,10 +862,10 @@ class AbstractHandle(object):
         return ret
 
     def all_rules_diff(self):
-        return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}
+        return {rule: self.rule_diff(rule) for rule in self.rule.keys()}
 
     def source_copy(self, store):
-        return dict(getattr(self._real, store).iterplain())
+        return dict(self.store[store].iterplain())
 
     def source_diff(self, store):
         old = self._stores_cache.get(store, {})
@@ -965,16 +873,33 @@ class AbstractHandle(object):
         return dict_diff(old, new)
 
     def set_source(self, store, k, v):
-        getattr(self._real, store).set_source(k, v)
+        self.store[store].set_source(k, v)
 
     def del_source(self, store, k):
-        del getattr(self._real, store)[k]
+        del self.store[store][k]
 
-    def install_module(self, module):
-        import_module(module).install(self._real)
+    def init_character(self, char, statdict={}):
+        if char in self.character:
+            raise KeyError("Already have character {}".format(char))
+        self.character[char] = {}
+        self.character[char].stat.update(statdict)
 
-    def do_game_start(self):
-        self._real.game_start()
+    def del_character(self, char):
+        del self.character[char]
+        for cache in (
+                self._char_stat_cache,
+                self._node_stat_cache,
+                self._portal_stat_cache,
+                self._char_av_cache,
+                self._char_rulebooks_cache,
+                self._char_nodes_rulebooks_cache,
+                self._char_portals_rulebooks_cache,
+                self._char_things_cache,
+                self._char_places_cache,
+                self._char_portals_cache
+        ):
+            if char in cache:
+                del cache[char]
 
 
 class EngineHandle(AbstractHandle):
@@ -989,6 +914,16 @@ class EngineHandle(AbstractHandle):
     def __init__(self, eng, loglevel=None, logq=None):
         """Instantiate with a premade :class:`LiSE.Engine`"""
         self._real = eng
+        self.character = self._real.character
+        self.rulebook = self._real.rulebook
+        self.rule = self._real.rule
+        self.store = {
+            'trigger': self._real.trigger,
+            'prereq': self._real.prereq,
+            'action': self._real.action,
+            'function': self._real.function,
+            'string': self._real.string
+        }
         self._logq = logq
         self._loglevel = loglevel
         self.branch = self._real.branch
@@ -1000,3 +935,111 @@ class EngineHandle(AbstractHandle):
         loglevel = kwargs.pop('loglevel')
         logq = kwargs.pop('logq')
         return cls(Engine(*args, **kwargs), loglevel, logq)
+
+    def pull_branch(self):
+        return self._real.branch
+
+    def push_branch(self, branch):
+        self._real.branch = branch
+
+    def pull_tick(self):
+        return self._real.tick
+
+    def push_tick(self, tick):
+        self._real.tick = tick
+
+    def pull_parent_branch_and_rev(self, branch=None):
+        return self._real._parentbranch_rev.get(
+            branch or self._real.branch, ('trunk', 0)
+        )
+
+    def install_module(self, module):
+        import_module(module).install(self._real)
+
+    def do_game_start(self):
+        self._real.game_start()
+
+    def time_locked(self):
+        return hasattr(self._real, 'locktime')
+
+    def advance(self):
+        self._real.advance()
+
+    def json_load(self, s):
+        return self._real.json_load(s)
+
+    def json_dump(self, o):
+        return self._real.json_dump(o)
+
+    def next_tick(self, chars=[]):
+        self._real.next_tick()
+        self.tick += 1
+        if chars:
+            return self.get_chardiffs(chars)
+
+    def time_travel(self, branch, tick, chars='all'):
+        self._real.time = (branch, tick)
+        self.branch = branch
+        self.tick = tick
+        if chars:
+            return self.get_chardiffs(chars)
+        else:
+            return {}
+
+    def get_eternal(self, k):
+        ret = self._eternal_cache[k] = self._real.eternal[k]
+        return ret
+
+    def set_eternal(self, k, v):
+        self._real.eternal[k] = v
+        self._eternal_cache[k] = v
+
+    def del_eternal(self, k):
+        del self._real.eternal[k]
+        del self._eternal_cache[k]
+
+    def have_eternal(self, k):
+        return k in self._real.eternal
+
+    def eternal_copy(self):
+        return dict(self._real.eternal)
+
+    def eternal_diff(self):
+        old = self._eternal_cache
+        new = self.eternal_copy()
+        return dict_diff(old, new)
+
+    def get_universal(self, k):
+        ret = self._universal_cache[k] = self._real.universal[k]
+        return ret
+
+    @branching
+    def set_universal(self, k, v):
+        self._real.universal[k] = v
+        self._universal_cache[k] = v
+
+    @branching
+    def del_universal(self, k):
+        del self._real.universal[k]
+        del self._universal_cache[k]
+
+    def universal_copy(self):
+        return dict(self._real.universal)
+
+    def universal_diff(self):
+        old = self._universal_cache
+        new = self.universal_copy()
+        return dict_diff(old, new)
+
+    def add_character(self, char, data, attr):
+        character = self._real.new_character(char, **attr)
+        placedata = data.get('place', data.get('node', {}))
+        for place, stats in placedata.items():
+            character.add_place(place, **stats)
+        thingdata = data.get('thing',  {})
+        for thing, stats in thingdata.items():
+            character.add_thing(thing, **stats)
+        portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
+        for orig, dests in portdata.items():
+            for dest, stats in dests.items():
+                character.add_portal(orig, dest, **stats)
