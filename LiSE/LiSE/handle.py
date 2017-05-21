@@ -28,29 +28,9 @@ def branching(fun):
     return brancher
 
 
-class EngineHandle(object):
-    """A wrapper for a :class:`LiSE.Engine` object that runs in the same
-    process, but with an API built to be used in a command-processing
-    loop that takes commands from another process.
-
-    It's probably a bad idea to use this class unless you're
-    developing your own API.
-
-    """
-    def __init__(self, args, kwargs={}, logq=None, logfile=None, loglevel=None):
-        """Instantiate an engine with the positional arguments ``args`` and
-        the keyword arguments ``kwargs``.
-
-        ``logq`` is a :class:`Queue` into which I'll put tuples of
-        ``(loglevel, message)``.
-
-        """
-        self._real = Engine(*args, **kwargs)
-        self._logq = logq
-        self._loglevel = loglevel
+class AbstractHandle(object):
+    def __init__(self):
         self._muted_chars = set()
-        self.branch = self._real.branch
-        self.tick = self._real.tick
         self._node_stat_cache = defaultdict(dict)
         self._portal_stat_cache = defaultdict(
             lambda: defaultdict(dict)
@@ -995,3 +975,28 @@ class EngineHandle(object):
 
     def do_game_start(self):
         self._real.game_start()
+
+
+class EngineHandle(AbstractHandle):
+    """A wrapper for a :class:`LiSE.Engine` object that runs in the same
+    process, but with an API built to be used in a command-processing
+    loop that takes commands from another process.
+
+    It's probably a bad idea to use this class unless you're
+    developing your own API.
+
+    """
+    def __init__(self, eng, loglevel=None, logq=None):
+        """Instantiate with a premade :class:`LiSE.Engine`"""
+        self._real = eng
+        self._logq = logq
+        self._loglevel = loglevel
+        self.branch = self._real.branch
+        self.tick = self._real.tick
+        super().__init__()
+
+    @classmethod
+    def instantiate(cls, *args, **kwargs):
+        loglevel = kwargs.pop('loglevel')
+        logq = kwargs.pop('logq')
+        return cls(Engine(*args, **kwargs), loglevel, logq)

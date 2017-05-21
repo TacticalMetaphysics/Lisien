@@ -52,7 +52,8 @@ class LiSEHandleWebService(object):
             (level, data) = logq.get()
             getattr(logger, level)(data)
 
-        engine_handle = EngineHandle(args, kwargs, logq)
+        kwargs['logq'] = logq
+        engine_handle = EngineHandle.instantiate(*args, **kwargs)
         if setup:
             setup(engine_handle._real)
         handle_log_thread = threading.Thread(

@@ -2275,7 +2275,9 @@ def subprocess(
                 repr(type(data))
             )
         logq.put(('debug', logs))
-    engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
+    kwargs['logq'] = logq
+    kwargs['loglevel'] = loglevel
+    engine_handle = EngineHandle.instantiate(*args, **kwargs)
 
     while True:
         inst = handle_out_pipe.recv()
