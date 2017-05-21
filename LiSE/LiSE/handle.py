@@ -932,6 +932,7 @@ class EngineHandle(AbstractHandle):
 
     @classmethod
     def instantiate(cls, *args, **kwargs):
+        """Instantiate with a new engine, initialized with these arguments"""
         loglevel = kwargs.pop('loglevel')
         logq = kwargs.pop('logq')
         return cls(Engine(*args, **kwargs), loglevel, logq)
