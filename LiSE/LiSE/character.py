@@ -824,6 +824,7 @@ class FacadePlace(MutableMapping, Signal):
         Otherwise use a plain dict for the underlying 'place'.
 
         """
+        self.facade = facade
         self._patch = kwargs
         self._masked = set()
         super().__init__()
@@ -832,6 +833,12 @@ class FacadePlace(MutableMapping, Signal):
             self._real = real_or_name
         else:
             self._real = {'name': real_or_name}
+
+    def __getstate__(self):
+        return self.facade, self._patch, self._masked, self._real
+
+    def __setstate__(self, state):
+        (self.facade, self._patch, self._masked, self._real) = state
 
     def __iter__(self):
         seen = set()
@@ -876,7 +883,7 @@ class FacadeThing(FacadePlace):
     def name(self):
         return self._real['name']
 
-    def __init__(self, facade, real_or_name, location=None, *args, **kwargs):
+    def __init__(self, facade, real_or_name, location=None, **kwargs):
         if location is None and not (
                 isinstance(real_or_name, Thing) or
                 isinstance(real_or_name, FacadeThing)
@@ -885,6 +892,7 @@ class FacadeThing(FacadePlace):
                 "FacadeThing needs to wrap a real Thing or another "
                 "FacadeThing, or have a location of its own."
             )
+        self.facade = facade
         self._patch = kwargs
         if hasattr(location, 'name'):
             location = location.name
@@ -989,6 +997,12 @@ class FacadeEntityMapping(MutableMapping, Signal):
         self._patch = {}
         self._masked = set()
 
+    def __getstate__(self):
+        return self.facade, self._patch, self._masked
+
+    def __setstate__(self, state):
+        (self.facade, self._patch, self._masked) = state
+
     def __contains__(self, k):
         return (
             k not in self._masked and (
@@ -1044,6 +1058,12 @@ class FacadePortalSuccessors(FacadeEntityMapping):
         super().__init__(facade)
         self._origname = origname
 
+    def __getstate__(self):
+        return self.facade, self._patch, self._masked, self._origname
+
+    def __setstate__(self, state):
+        (self.facade, self._patch, self._masked, self._origname) = state
+
     def _get_inner_map(self):
         return self.facade.character.portal[self._origname]
 
@@ -1055,6 +1075,12 @@ class FacadePortalPredecessors(FacadeEntityMapping):
     def __init__(self, facade, destname):
         super().__init__(facade)
         self._destname = destname
+
+    def __getstate__(self):
+        return self.facade, self._patch, self._masked, self._destname
+
+    def __setstate__(self, state):
+        (self.facade, self._patch, self._masked, self._destname) = state
 
     def _get_inner_map(self):
         return self.facade.character.preportal[self._destname]
@@ -1120,6 +1146,12 @@ class Facade(AbstractCharacter, nx.DiGraph):
             self.facade = facade
             self._patch = {}
             self._masked = set()
+
+        def __getstate__(self):
+            return self.facade, self._patch, self._masked
+
+        def __setstate__(self, state):
+            (self.facade, self._patch, self._masked) = state
 
         def __iter__(self):
             seen = set()
