@@ -3,6 +3,7 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from blinker import Signal
+import json
 
 
 class NotThatMap(Mapping):
@@ -55,7 +56,6 @@ class AbstractLanguageDescriptor(Signal):
     def __set__(self, inst, val):
         self._set_language(inst, val)
         self.lang = Language(self, val)
-        inst.cache = {}
         self.send(inst, language=val)
 
     def __str__(self):
@@ -78,48 +78,35 @@ class StringStore(MutableMapping, Signal):
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = ['query', 'table', 'cache', 'receivers', 'time']
-
     language = LanguageDescriptor()
 
-    def __init__(self, query, table='strings', lang='eng'):
+    def __init__(self, query, filename, lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
         super().__init__()
         self.query = query
-        self.query.init_string_table(table)
-        self.table = table
+        self._filename = filename
         self._language = lang
-        self.cache = dict(self.query.string_table_lang_items(
-                self.table, self.language
-        ))
-
-    def commit(self):
-        self.query.commit()
+        try:
+            with open(filename, 'r') as inf:
+                self.cache = json.load(inf)
+        except FileNotFoundError:
+            self.cache = {lang: {}}
 
     def __iter__(self):
-        return iter(self.cache)
+        return iter(self.cache[self.language])
 
     def __len__(self):
-        return len(self.cache)
+        return len(self.cache[self.language])
 
     def __getitem__(self, k):
-        """Get the string and format it with other strings here."""
-        if k not in self.cache:
-            v = self.query.string_table_get(
-                self.table, self.language, k
-            )
-            if v is None:
-                raise KeyError("No string named {}".format(k))
-            self.cache[k] = v
-        return self.cache[k].format_map(NotThatMap(self, k))
+        return self.cache[self.language][k].format_map(NotThatMap(self, k))
 
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
-        self.cache[k] = v
-        self.query.string_table_set(self.table, self.language, k, v)
+        self.cache[self.language][k] = v
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
@@ -127,20 +114,18 @@ class StringStore(MutableMapping, Signal):
         cache.
 
         """
-        del self.cache[k]
-        self.query.string_table_del(self.table, self.language, k)
+        del self.cache[self.language][k]
         self.send(self, key=k, val=None)
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
-        if lang == self.language:
-            yield from self.cache.items()
-            return
-        yield from self.query.string_table_lang_items(
-            self.table, lang
-        )
+        yield from self.cache[lang].items()
+
+    def save(self):
+        with open(self._filename, 'w') as outf:
+            json.dump(self.cache, outf, indent=4, sort_keys=True)
 
 
 class StoredPartial(object):
