@@ -3,6 +3,9 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from blinker import Signal
+from astunparse import dump as dumpast
+from ast import parse, Expr, Name, Store
+from inspect import getsource, getmodule
 import json
 
 
@@ -126,6 +129,45 @@ class StringStore(MutableMapping, Signal):
     def save(self):
         with open(self._filename, 'w') as outf:
             json.dump(self.cache, outf, indent=4, sort_keys=True)
+
+
+class FunctionStore(Signal):
+    def __init__(self, filename):
+        self._filename = filename
+        with open(filename, 'r') as inf:
+            self._ast = parse(inf.read(), filename)
+            self._ast_idx = {}
+            for i, node in enumerate(self._ast.body):
+                if hasattr(node, 'value') and hasattr(node.value, 'func'):
+                    self._ast_idx[node.value.func.id] = i
+            self._globl = {}
+            self._locl = {}
+            self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
+
+    def __getattr__(self, k):
+        return self._locl[k]
+
+    def __setattr__(self, k, v):
+        if not callable(v):
+            raise TypeError("FunctionStore only stores functions")
+        self._locl[k] = v
+        expr = Expr(value=parse(getsource(v), getmodule(v).__name__, 'exec'))
+        expr.value.func.id = k
+        if k in self._ast_idx:
+            self._ast.body[self._ast_idx[k]] = expr
+        else:
+            self._ast_idx[k] = len(self._ast.body)
+            self._ast.body.append(expr)
+        self.send(self, attr=k, val=v)
+
+    def __delattr__(self, k):
+        del self._locl[k]
+        delattr(self._ast, k)
+        self.send(self, attr=k, val=None)
+
+    def save(self):
+        with open(self._filename, 'w') as outf:
+            outf.write(dumpast(self._ast))
 
 
 class UniversalMapping(MutableMapping, Signal):
