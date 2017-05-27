@@ -169,8 +169,8 @@ class Encoder(JSONEncoder):
 
 class AbstractEngine(object):
     def __getattr__(self, att):
-        if hasattr(super(), 'method') and att in self.method:
-            return partial(self.method[att], self)
+        if hasattr(super(), 'method') and hasattr(self.method, att):
+            return partial(getattr(self.method, att), self)
         raise AttributeError('No attribute or stored method: {}'.format(att))
 
     @reify

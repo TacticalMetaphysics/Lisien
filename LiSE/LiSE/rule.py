@@ -38,8 +38,8 @@ class RuleFuncList(MutableSequence, Signal):
 
     def _nominate(self, v):
         if callable(v):
-            if v.__name__ in self.funcstore:
-                if self.funcstore[v.__name__] != v:
+            if hasattr(self.funcstore, v.__name__):
+                if getattr(self.funcstore, v.__name__) != v:
                     raise KeyError(
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "
@@ -49,9 +49,9 @@ class RuleFuncList(MutableSequence, Signal):
                         )
                     )
             else:
-                self.funcstore[v.__name__] = v
+                self.funcstore(v)
             v = v.__name__
-        if v not in self.funcstore:
+        if not hasattr(self.funcstore, v):
             raise KeyError("No {typ} function named {n}".format(
                 typ=self.typ, n=v
             ))
@@ -59,7 +59,7 @@ class RuleFuncList(MutableSequence, Signal):
 
     def __iter__(self):
         for funcname in self._cache:
-            yield self.funcstore[funcname]
+            yield getattr(self.funcstore, funcname)
 
     def __len__(self):
         return len(self._cache)
@@ -100,26 +100,26 @@ class TriggerList(RuleFuncList):
 
     @reify
     def _loader(self):
-        return self.funcstore.query.rule_triggers
+        return self.rule.engine.query.rule_triggers
 
     @reify
     def _replacer(self):
-        return self.funcstore.query.replace_rule_trigger
+        return self.rule.engine.query.replace_rule_trigger
 
     @reify
     def _inserter(self):
-        return self.funcstore.query.insert_rule_trigger
+        return self.rule.engine.query.insert_rule_trigger
 
     @reify
     def _deleter(self):
-        return self.funcstore.query.delete_rule_trigger
+        return self.rule.engine.query.delete_rule_trigger
 
     @reify
     def _appender(self):
-        return self.funcstore.query.append_rule_trigger
+        return self.rule.engine.query.append_rule_trigger
 
     def _setall(self, l):
-        self.funcstore.query.replace_all_rule_triggers(self.rule.name, l)
+        self.rule.engine.query.replace_all_rule_triggers(self.rule.name, l)
 
 
 class PrereqList(RuleFuncList):
@@ -129,26 +129,26 @@ class PrereqList(RuleFuncList):
 
     @reify
     def _loader(self):
-        return self.funcstore.query.rule_prereqs
+        return self.rule.engine.query.rule_prereqs
 
     @reify
     def _replacer(self):
-        return self.funcstore.query.replace_rule_prereq
+        return self.rule.engine.query.replace_rule_prereq
 
     @reify
     def _inserter(self):
-        return self.funcstore.query.insert_rule_prereq
+        return self.rule.engine.query.insert_rule_prereq
 
     @reify
     def _deleter(self):
-        return self.funcstore.query.delete_rule_prereq
+        return self.rule.engine.query.delete_rule_prereq
 
     @reify
     def _appender(self):
-        return self.funcstore.query.append_rule_prereq
+        return self.rule.engine.query.append_rule_prereq
 
     def _setall(self, l):
-        self.funcstore.query.replace_all_rule_prereqs(self.rule.name, l)
+        self.rule.engine.query.replace_all_rule_prereqs(self.rule.name, l)
 
 
 class ActionList(RuleFuncList):
@@ -158,26 +158,26 @@ class ActionList(RuleFuncList):
 
     @reify
     def _loader(self):
-        return self.funcstore.query.rule_actions
+        return self.rule.engine.query.rule_actions
 
     @reify
     def _replacer(self):
-        return self.funcstore.query.replace_rule_action
+        return self.rule.engine.query.replace_rule_action
 
     @reify
     def _inserter(self):
-        return self.funcstore.query.insert_rule_action
+        return self.rule.engine.query.insert_rule_action
 
     @reify
     def _deleter(self):
-        return self.funcstore.query.delete_rule_action
+        return self.rule.engine.query.delete_rule_action
 
     @reify
     def _appender(self):
-        return self.funcstore.query.append_rule_action
+        return self.rule.engine.query.append_rule_action
 
     def _setall(self, l):
-        self.funcstore.query.replace_all_rule_actions(self.rule.name, l)
+        self.rule.engine.query.replace_all_rule_actions(self.rule.name, l)
 
 
 class RuleFuncListDescriptor(object):
@@ -235,7 +235,7 @@ class Rule(object):
         self.engine = engine
         self.name = self.__name__ = name
         if name not in self.engine.rule:
-            self.engine.rule.query.set_rule(name)
+            self.engine.query.set_rule(name)
         if triggers:
             self.triggers.extend(triggers)
         if prereqs:
@@ -333,7 +333,7 @@ class Rule(object):
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
         if 'truth' in self.engine.trigger:
-            truth = self.engine.trigger['truth']
+            truth = self.engine.trigger.truth
         else:
             def truth(*args):
                 return True
@@ -549,8 +549,8 @@ class RuleMapping(MutableMapping, Signal):
             return
         elif v in self.engine.rule:
             v = self.engine.rule[v]
-        elif v in self.engine.function:
-            v = self.engine.function[v]
+        elif hasattr(self.engine.function, v):
+            v = getattr(self.engine.function, v)
         if isinstance(v, Rule):
             # may raise ValueError
             try:
@@ -734,12 +734,16 @@ class AllRules(MutableMapping, Signal):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        if v in self.engine.action:
-            v = self.engine.action[v]
-        elif v in self.engine.function:
-            v = self.engine.function[v]
-        elif v in self.engine.rule:
-            v = self.engine.rule[v]
+        # you can use the name of a stored function or rule
+        if isinstance(v, str):
+            if hasattr(self.engine.action, v):
+                v = getattr(self.engine.action, v)
+            elif hasattr(self.engine.function, v):
+                v = getattr(self.engine.function, v)
+            elif hasattr(self.engine.rule, v):
+                v = getattr(self.engine.rule, v)
+            else:
+                raise ValueError("Unknown function: " + v)
         if callable(v):
             if k not in self._cache:
                 self._cache[k] = Rule(self.engine, k)

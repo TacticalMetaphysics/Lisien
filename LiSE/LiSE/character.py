@@ -121,7 +121,7 @@ class AbstractCharacter(object):
 
         """
         if not callable(func):
-            func = self.engine.function[func]
+            func = getattr(self.engine.function, func)
         func(self, *args, **kwargs)
         return self
 
@@ -541,7 +541,7 @@ class AbstractCharacter(object):
         }
         if comparator in ops:
             return ops[comparator]
-        return self.engine.function[comparator]
+        return getattr(self.engine.function, comparator)
 
     def cull_nodes(self, stat, threshold=0.5, comparator=ge):
         """Delete nodes whose stat >= ``threshold`` (default 0.5).
