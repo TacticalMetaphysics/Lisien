@@ -160,6 +160,9 @@ class FunctionStore(Signal):
             self._ast.body.append(expr)
         self.send(self, attr=k, val=v)
 
+    def __call__(self, v):
+        setattr(self, v.__name__, v)
+
     def __delattr__(self, k):
         del self._locl[k]
         delattr(self._ast, k)
