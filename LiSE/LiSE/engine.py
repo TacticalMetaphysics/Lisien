@@ -436,14 +436,23 @@ class Engine(AbstractEngine, gORM):
         self._avatarness_cache = AvatarnessCache(self)
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
-        self.action = FunctionStore(self._action_file)
-        self.prereq = FunctionStore(self._prereq_file)
-        self.trigger = FunctionStore(self._trigger_file)
-        self.function = FunctionStore(self._function_file)
-        self.method = FunctionStore(self._method_file)
+        if hasattr(self, '_action_file'):
+            self.action = FunctionStore(self._action_file)
+        if hasattr(self, '_prereq_file'):
+            self.prereq = FunctionStore(self._prereq_file)
+        if hasattr(self, '_trigger_file'):
+            self.trigger = FunctionStore(self._trigger_file)
+        if hasattr(self, '_function_file'):
+            self.function = FunctionStore(self._function_file)
+        if hasattr(self, '_method_file'):
+            self.method = FunctionStore(self._method_file)
         self.rule = AllRules(self)
         self.rulebook = AllRuleBooks(self)
-        self.string = StringStore(self._string_file, self.eternal.setdefault('language', 'eng'))
+        if hasattr(self, '_string_file'):
+            self.string = StringStore(
+                self._string_file,
+                self.eternal.setdefault('language', 'eng')
+            )
 
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method
@@ -490,12 +499,12 @@ class Engine(AbstractEngine, gORM):
             self,
             worlddb,
             *,
-            string_file='strings.json',
-            function_file='function.py',
-            method_file='method.py',
-            trigger_file='trigger.py',
-            prereq_file='prereq.py',
-            action_file='action.py',
+            string='strings.json',
+            function='function.py',
+            method='method.py',
+            trigger='trigger.py',
+            prereq='prereq.py',
+            action='action.py',
             connect_args={},
             alchemy=False,
             commit_modulus=None,
@@ -507,12 +516,30 @@ class Engine(AbstractEngine, gORM):
         set up listeners; and start a transaction
 
         """
-        self._string_file = string_file
-        self._function_file = function_file
-        self._method_file = method_file
-        self._trigger_file = trigger_file
-        self._prereq_file = prereq_file
-        self._action_file = action_file
+        if isinstance(string, str):
+            self._string_file = string
+        else:
+            self.string = string
+        if isinstance(function, str):
+            self._function_file = function
+        else:
+            self.function = function
+        if isinstance(method, str):
+            self._method_file = method
+        else:
+            self.method = method
+        if isinstance(trigger, str):
+            self._trigger_file = trigger
+        else:
+            self.trigger = trigger
+        if isinstance(prereq, str):
+            self._prereq_file = prereq
+        else:
+            self.prereq = prereq
+        if isinstance(action, str):
+            self._action_file = action
+        else:
+            self.action = action
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
@@ -636,17 +663,13 @@ class Engine(AbstractEngine, gORM):
         return pct / 100 < self.random()
 
     def commit(self):
-        """Commit to both the world and code databases, and begin a new
-        transaction for the world database
-
-        """
-        for store in self.stores:
-            store.commit()
         super().commit()
 
     def close(self):
         """Commit changes and close the database."""
         self.commit()
+        for store in self.stores:
+            store.save()
         super().close()
 
     def __enter__(self):
