@@ -8,6 +8,7 @@ flow of time.
 from random import Random
 from functools import partial
 from json import dumps, loads, JSONEncoder
+from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
 from allegedb import ORM as gORM
 from .xcollections import (
@@ -606,13 +607,27 @@ class Engine(AbstractEngine, gORM):
         for i in range(0, n):
             yield self.roll_die(d)
 
-    def dice_check(self, n, d, target, comparator=lambda x, y: x <= y):
+    def dice_check(self, n, d, target, comparator=le):
         """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
         are <= ``target``.
 
-        If ``comparator`` is provided, use it instead of <=.
+        If ``comparator`` is provided, use it instead of <=. You may
+        use a string like '<' or '>='.
 
         """
+        comps = {
+            '>': gt,
+            '<': lt,
+            '>=': ge,
+            '<=': le,
+            '=': eq,
+            '==': eq,
+            '!=': ne
+        }
+        try:
+            comparator = comps.get(comparator, comparator)
+        except TypeError:
+            pass
         return comparator(sum(self.dice(n, d)), target)
 
     def percent_chance(self, pct):
