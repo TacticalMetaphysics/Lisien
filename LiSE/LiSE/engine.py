@@ -569,6 +569,7 @@ class Engine(AbstractEngine, gORM):
             self.prereq,
             self.trigger,
             self.function,
+            self.method,
             self.string
         )
 
