@@ -412,9 +412,6 @@ class Engine(AbstractEngine, gORM):
 
     def _init_caches(self):
         super()._init_caches()
-        if not hasattr(self, '_code_qe'):
-            self._code_qe = self.query
-        self._node_objs = {}
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
@@ -439,14 +436,14 @@ class Engine(AbstractEngine, gORM):
         self._avatarness_cache = AvatarnessCache(self)
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
-        self.action = FunctionStore(self, self._code_qe, 'actions')
-        self.prereq = FunctionStore(self, self._code_qe, 'prereqs')
-        self.trigger = FunctionStore(self, self._code_qe, 'triggers')
-        self.function = FunctionStore(self, self._code_qe, 'functions')
-        self.method = FunctionStore(self, self._code_qe, 'methods')
-        self.rule = AllRules(self, self._code_qe)
-        self.rulebook = AllRuleBooks(self, self._code_qe)
-        self.string = StringStore(self._code_qe, 'strings', self.eternal.setdefault('language', 'eng'))
+        self.action = FunctionStore(self._action_file)
+        self.prereq = FunctionStore(self._prereq_file)
+        self.trigger = FunctionStore(self._trigger_file)
+        self.function = FunctionStore(self._function_file)
+        self.method = FunctionStore(self._method_file)
+        self.rule = AllRules(self)
+        self.rulebook = AllRuleBooks(self)
+        self.string = StringStore(self._string_file, self.eternal.setdefault('language', 'eng'))
 
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method
@@ -492,7 +489,13 @@ class Engine(AbstractEngine, gORM):
     def __init__(
             self,
             worlddb,
-            codedb=None,
+            *,
+            string_file='strings.json',
+            function_file='function.py',
+            method_file='method.py',
+            trigger_file='trigger.py',
+            prereq_file='prereq.py',
+            action_file='action.py',
             connect_args={},
             alchemy=False,
             commit_modulus=None,
@@ -504,11 +507,12 @@ class Engine(AbstractEngine, gORM):
         set up listeners; and start a transaction
 
         """
-        if codedb:
-            self._code_qe = QueryEngine(
-                codedb, connect_args, alchemy, self.json_dump, self.json_load
-            )
-            self._code_qe.initdb()
+        self._string_file = string_file
+        self._function_file = function_file
+        self._method_file = method_file
+        self._trigger_file = trigger_file
+        self._prereq_file = prereq_file
+        self._action_file = action_file
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
