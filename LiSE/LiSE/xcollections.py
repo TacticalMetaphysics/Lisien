@@ -149,7 +149,8 @@ class FunctionStore(Signal):
 
     def __setattr__(self, k, v):
         if not callable(v):
-            raise TypeError("FunctionStore only stores functions")
+            super().__setattr__(k, v)
+            return
         self._locl[k] = v
         expr = Expr(value=parse(getsource(v), getmodule(v).__name__, 'exec'))
         expr.value.func.id = k
