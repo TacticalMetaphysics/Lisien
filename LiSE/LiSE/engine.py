@@ -669,7 +669,8 @@ class Engine(AbstractEngine, gORM):
         """Commit changes and close the database."""
         self.commit()
         for store in self.stores:
-            store.save()
+            if hasattr(store, 'save'):
+                store.save()
         super().close()
 
     def __enter__(self):
