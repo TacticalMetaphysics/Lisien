@@ -985,10 +985,14 @@ class EngineHandle(object):
         return dict_diff(old, new)
 
     def set_source(self, store, k, v):
-        getattr(self._real, store).set_source(k, v)
+        locl = {}
+        exec(v, globals(), locl)
+        if len(locl) > 1:
+            raise ValueError("Can only set one function at a time")
+        setattr(getattr(self._real, store), k, next(iter(locl.values())))
 
     def del_source(self, store, k):
-        del getattr(self._real, store)[k]
+        delattr(self._real, store, k)
 
     def install_module(self, module):
         import_module(module).install(self._real)
