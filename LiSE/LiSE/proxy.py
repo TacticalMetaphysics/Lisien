@@ -2255,7 +2255,7 @@ class EngineProxy(AbstractEngine):
         self.handle('commit', silent=True)
 
     def close(self):
-        self.handle(command='close', silent=True)
+        self.handle(command='close')
         self.send('shutdown')
 
 
