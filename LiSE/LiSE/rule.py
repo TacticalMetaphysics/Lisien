@@ -548,7 +548,7 @@ class RuleMapping(MutableMapping, Signal):
             return
         elif v in self.engine.rule:
             v = self.engine.rule[v]
-        elif hasattr(self.engine.function, v):
+        elif isinstance(v, str) and hasattr(self.engine.function, v):
             v = getattr(self.engine.function, v)
         if isinstance(v, Rule):
             # may raise ValueError
