@@ -4,7 +4,7 @@
 from collections import Mapping, MutableMapping
 from blinker import Signal
 from astunparse import dump as dumpast
-from ast import parse, Expr, Name, Store
+from ast import parse, Expr, Name, Store, AST
 from inspect import getsource, getmodule
 import json
 
@@ -134,15 +134,21 @@ class StringStore(MutableMapping, Signal):
 class FunctionStore(Signal):
     def __init__(self, filename):
         self._filename = filename
-        with open(filename, 'r') as inf:
-            self._ast = parse(inf.read(), filename)
+        try:
+            with open(filename, 'r') as inf:
+                self._ast = parse(inf.read(), filename)
+                self._ast_idx = {}
+                for i, node in enumerate(self._ast.body):
+                    if hasattr(node, 'value') and hasattr(node.value, 'func'):
+                        self._ast_idx[node.value.func.id] = i
+                self._globl = {}
+                self._locl = {}
+                self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
+        except FileNotFoundError:
+            self._ast = AST()
             self._ast_idx = {}
-            for i, node in enumerate(self._ast.body):
-                if hasattr(node, 'value') and hasattr(node.value, 'func'):
-                    self._ast_idx[node.value.func.id] = i
             self._globl = {}
             self._locl = {}
-            self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
 
     def __getattr__(self, k):
         return self._locl[k]
