@@ -459,15 +459,15 @@ class Engine(AbstractEngine, gORM):
         for row in self.query.things_dump():
             self._things_cache.store(*row)
         super()._init_load()
-        for row in self.rule.query.universal_dump():
+        for row in self.query.universal_dump():
             self._universal_cache.store(*row)
-        for row in self.rule.query.rulebooks_rules():
+        for row in self.query.rulebooks_rules():
             self._rulebooks_cache.store(*row)
-        for row in self.rule.query.characters_rulebooks():
+        for row in self.query.characters_rulebooks():
             self._characters_rulebooks_cache.store(*row)
-        for row in self.rule.query.nodes_rulebooks():
+        for row in self.query.nodes_rulebooks():
             self._nodes_rulebooks_cache.store(*row)
-        for row in self.rule.query.portals_rulebooks():
+        for row in self.query.portals_rulebooks():
             self._portals_rulebooks_cache.store(*row)
         # note the use of the world DB, not the code DB
         for row in self.query.dump_active_rules():

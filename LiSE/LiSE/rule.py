@@ -391,7 +391,6 @@ class RuleBook(MutableSequence, Signal):
     def __init__(self, engine, name):
         super().__init__()
         self.engine = engine
-        self.query = engine.rule.query
         self.name = name
         self._listeners = []
 
@@ -426,7 +425,7 @@ class RuleBook(MutableSequence, Signal):
 
     def __setitem__(self, i, v):
         rule = self._coerce_rule(v)
-        self.query.rulebook_set(self.name, i, rule)
+        self.engine.query.rulebook_set(self.name, i, rule)
         cache = self._cache
         while len(cache) <= i:
             cache.append(None)
@@ -438,7 +437,7 @@ class RuleBook(MutableSequence, Signal):
     def insert(self, i, v):
         rule = self._coerce_rule(v)
         self._cache.insert(i, rule)
-        self.query.rulebook_ins(self.name, i, rule.name)
+        self.engine.query.rulebook_ins(self.name, i, rule.name)
         self._activate_rule(rule)
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
@@ -460,7 +459,7 @@ class RuleBook(MutableSequence, Signal):
 
     def __delitem__(self, i):
         del self._cache[i]
-        self.query.rulebook_del(self.name, i)
+        self.engine.query.rulebook_del(self.name, i)
         self.engine.rulebook.send(self, i=i, v=None)
         self.send(self, i=i, v=None)
 
@@ -676,13 +675,12 @@ class RuleFollower(object):
 
 
 class AllRuleBooks(Mapping, Signal):
-    __slots__ = ['engine', 'query', '_cache']
+    __slots__ = ['engine', '_cache']
 
-    def __init__(self, engine, query):
+    def __init__(self, engine):
         super().__init__()
         self.engine = engine
-        self.query = query
-        self.query.init_table('rulebooks')
+        self.engine.query.init_table('rulebooks')
         self._cache = {}
 
     def __iter__(self):
@@ -706,23 +704,22 @@ class AllRuleBooks(Mapping, Signal):
 # to a null rulebook in the database. That's not very useful and might
 # cause bad effects later on.
 class AllRules(MutableMapping, Signal):
-    def __init__(self, engine, query):
+    def __init__(self, engine):
         super().__init__()
         self.engine = engine
-        self.query = query
-        self.query.init_table('rules')
-        self.query.init_table('rulebooks')
+        self.engine.query.init_table('rules')
+        self.engine.query.init_table('rulebooks')
         self._cache = {}
 
     def __iter__(self):
-        yield from self.query.allrules()
+        yield from self.engine.query.allrules()
 
     def __len__(self):
-        return self.query.ctrules()
+        return self.engine.query.ctrules()
 
     def __contains__(self, k):
         try:
-            return self.query.haverule(k)
+            return self.engine.query.haverule(k)
         except TypeError:
             return False
 
