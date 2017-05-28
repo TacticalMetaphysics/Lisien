@@ -110,7 +110,7 @@ class StoreList(RecycleView):
 
     def _iter_keys(self):
         yield '+'
-        yield from sorted(self.store.keys())
+        yield from sorted(self.store._cache.keys())
 
     def redata(self, *args, **kwargs):
         select_name = kwargs.get('select_name')
@@ -174,7 +174,7 @@ class Editor(BoxLayout):
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
             return
         do_redata = self.name_wid.hint_text == ''
-        if self.name_wid.text not in self.store:
+        if not hasattr(self.store, self.name_wid.text):
             do_redata = self.name_wid.text
         if (
             self.name_wid.text and
@@ -185,13 +185,11 @@ class Editor(BoxLayout):
             del self.store[self.name_wid.hint_text]
             do_redata = self.name_wid.text
         if self.name_wid.text and (
-            self.name_wid.text not in self.store or
-            self.source != self.store[self.name_wid.text]
+                not hasattr(self.store, self.name_wid.text) or
+                getattr(self.store, self.name_wid.text) != self.source
         ):
             Logger.debug("{}: Saving!".format(type(self).__name__))
-            self.store[self.name_wid.text] = self.source
-        else:
-            self.store[self.name_wid.hint_text] = self.source
+            setattr(self.store, self.name_wid.hint_text, self.source)
         return do_redata
 
     def delete(self, *args):
@@ -264,8 +262,10 @@ class EdBox(BoxLayout):
         self.editor.name_wid.hint_text = self.storelist.selection_name.strip('+')
         self.editor.name_wid.text = ''
         try:
-            self.editor.source = self.store[self.editor.name_wid.hint_text]
-        except KeyError:
+            self.editor.source = getattr(
+                self.store, self.editor.name_wid.hint_text
+            )
+        except AttributeError:
             self.editor.source = self.get_default_text(self.editor.name_wid.hint_text)
         self.disable_text_input = not self.valid_name(self.editor.name_wid.hint_text)
         if hasattr(self, '_lock_save'):

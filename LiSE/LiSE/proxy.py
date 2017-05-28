@@ -1704,28 +1704,32 @@ class AllRulesProxy(Mapping):
         return self._proxy_cache[k]
 
 
-class FuncStoreProxy(MutableMapping):
+class FuncStoreProxy(Signal):
     def __init__(self, engine_proxy, store):
         self.engine = engine_proxy
         self._store = store
         self._cache = self.engine.handle('source_diff', store=store)
 
-    def __iter__(self):
-        return iter(self._cache)
+    def __getattr__(self, k):
+        try:
+            return self._cache[k]
+        except KeyError:
+            raise AttributeError
 
-    def __len__(self):
-        return len(self._cache)
-
-    def __getitem__(self, k):
-        return self._cache[k]
-
-    def __setitem__(self, func_name, source):
+    def __setattr__(self, func_name, source):
+        if func_name in ('engine', '_store', '_cache'):
+            super().__setattr__(func_name, source)
+            return
         self.engine.handle(
-            command='set_source', store=self._store, k=func_name, v=source, silent=True
+            command='store_source',
+            store=self._store,
+            v=source,
+            name=func_name,
+            silent=True
         )
         self._cache[func_name] = source
 
-    def __delitem__(self, func_name):
+    def __delattr__(self, func_name):
         self.engine.handle(
             command='del_source', store=self._store, k=func_name, silent=True
         )
