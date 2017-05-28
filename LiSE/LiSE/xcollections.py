@@ -3,9 +3,9 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from blinker import Signal
-from astunparse import dump as dumpast
-from ast import parse, Expr, Name, Store, AST
-from inspect import getsource, getmodule
+from astunparse import unparse
+from ast import parse, Expr, Module
+from inspect import getsourcelines, getmodule
 import json
 
 
@@ -133,6 +133,7 @@ class StringStore(MutableMapping, Signal):
 
 class FunctionStore(Signal):
     def __init__(self, filename):
+        super().__init__()
         self._filename = filename
         try:
             with open(filename, 'r') as inf:
@@ -145,21 +146,37 @@ class FunctionStore(Signal):
                 self._locl = {}
                 self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
         except FileNotFoundError:
-            self._ast = AST()
+            self._ast = Module(body=[])
             self._ast_idx = {}
             self._globl = {}
             self._locl = {}
 
     def __getattr__(self, k):
-        return self._locl[k]
+        try:
+            return self._locl[k]
+        except KeyError:
+            raise AttributeError
 
     def __setattr__(self, k, v):
         if not callable(v):
             super().__setattr__(k, v)
             return
         self._locl[k] = v
-        expr = Expr(value=parse(getsource(v), getmodule(v).__name__, 'exec'))
-        expr.value.func.id = k
+        sourcelines, _ = getsourcelines(v)
+        indent = 999
+        for line in sourcelines:
+            lineindent = 0
+            for char in line:
+                if char not in ' \t':
+                    break
+                lineindent += 1
+            else:
+                indent = 0
+                break
+            indent = min((indent, lineindent))
+        outdented = ''.join(line[indent:] for line in sourcelines)
+        expr = Expr(parse(outdented))
+        expr.value.body[0].name = k
         if k in self._ast_idx:
             self._ast.body[self._ast_idx[k]] = expr
         else:
@@ -177,7 +194,7 @@ class FunctionStore(Signal):
 
     def save(self):
         with open(self._filename, 'w') as outf:
-            outf.write(dumpast(self._ast))
+            outf.write(unparse(self._ast))
 
 
 class UniversalMapping(MutableMapping, Signal):
