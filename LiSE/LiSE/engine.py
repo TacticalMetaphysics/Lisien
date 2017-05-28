@@ -567,8 +567,8 @@ class Engine(AbstractEngine, gORM):
         else:
             self.rando.seed(self.random_seed)
             self.universal['rando_state'] = self.rando.getstate()
-        if '__init__' in self.method:
-            self.method['__init__'](self)
+        if hasattr(self.method, 'init'):
+            self.method.init(self)
 
     betavariate = getatt('rando.betavariate')
     choice = getatt('rando.choice')
