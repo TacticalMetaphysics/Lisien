@@ -2119,6 +2119,9 @@ def queries(table, view):
     rule_triggers = table['rule_triggers']
     rule_prereqs = table['rule_prereqs']
     rule_actions = table['rule_actions']
+    r['rule_triggers'] = select([rule_triggers.c.trigger]).where(rule_triggers.c.rule == bindparam('rule'))
+    r['rule_prereqs'] = select([rule_prereqs.c.prereq]).where(rule_prereqs.c.rule == bindparam('rule'))
+    r['rule_actions'] = select([rule_actions.c.action]).where(rule_actions.c.rule == bindparam('rule'))
 
     def rule_something_count(tab):
         """Return query to count the number of functions in a rule table."""
