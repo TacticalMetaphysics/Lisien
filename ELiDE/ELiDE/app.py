@@ -109,7 +109,6 @@ class ELiDEApp(App):
             'LiSE',
             {
                 'world': 'sqlite:///LiSEworld.db',
-                'code': 'LiSEcode.db',
                 'language': 'eng',
                 'logfile': '',
                 'loglevel': 'info'
@@ -184,7 +183,6 @@ class ELiDEApp(App):
             enkw['loglevel'] = config['LiSE']['loglevel']
         self.engine = self.procman.start(
             config['LiSE']['world'],
-            config['LiSE']['code'],
             **enkw
         )
         self.pull_time()
