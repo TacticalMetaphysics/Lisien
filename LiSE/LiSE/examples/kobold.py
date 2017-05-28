@@ -156,9 +156,13 @@ def inittest(
 
 
 if __name__ == '__main__':
-    from utiltest import mkengine, clear_off, seed
-    clear_off()
-    with mkengine(random_seed=seed) as engine:
+    from LiSE.engine import Engine
+    from os import remove
+    try:
+        remove('LiSEworld.db')
+    except FileNotFoundError:
+        pass
+    with Engine('LiSEworld.db', random_seed=69105) as engine:
         inittest(engine)
         engine.commit()
         print('shrub_places beginning: {}'.format(
