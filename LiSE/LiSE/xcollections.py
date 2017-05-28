@@ -5,7 +5,7 @@ from collections import Mapping, MutableMapping
 from blinker import Signal
 from astunparse import unparse
 from ast import parse, Expr, Module
-from inspect import getsourcelines, getmodule
+from inspect import getsource, getsourcelines, getmodule
 import json
 
 
@@ -163,6 +163,18 @@ class FunctionStore(Signal):
             return
         self._locl[k] = v
         sourcelines, _ = getsourcelines(v)
+        outdented = self._dedent_sourcelines(sourcelines)
+        expr = Expr(parse(outdented))
+        expr.value.body[0].name = k
+        if k in self._ast_idx:
+            self._ast.body[self._ast_idx[k]] = expr
+        else:
+            self._ast_idx[k] = len(self._ast.body)
+            self._ast.body.append(expr)
+        self.send(self, attr=k, val=v)
+
+    @staticmethod
+    def _dedent_sourcelines(sourcelines):
         if sourcelines[0].strip().startswith('@'):
             del sourcelines[0]
         indent = 999
@@ -176,15 +188,7 @@ class FunctionStore(Signal):
                 indent = 0
                 break
             indent = min((indent, lineindent))
-        outdented = ''.join(line[indent:] for line in sourcelines)
-        expr = Expr(parse(outdented))
-        expr.value.body[0].name = k
-        if k in self._ast_idx:
-            self._ast.body[self._ast_idx[k]] = expr
-        else:
-            self._ast_idx[k] = len(self._ast.body)
-            self._ast.body.append(expr)
-        self.send(self, attr=k, val=v)
+        return '\n'.join(line[indent:] for line in sourcelines)
 
     def __call__(self, v):
         setattr(self, v.__name__, v)
@@ -197,6 +201,28 @@ class FunctionStore(Signal):
     def save(self):
         with open(self._filename, 'w') as outf:
             outf.write(unparse(self._ast))
+
+    def iterplain(self):
+        for name, func in self._locl.items():
+            yield name, getsource(func)
+
+    def store_source(self, v, name=None):
+        v = self._dedent_sourcelines(v.split('\n'))
+        locl = {}
+        ast = parse(v)
+        if name:
+            ast.body[0].name = name
+        exec(compile(ast, '<LiSE>', 'exec'))
+        self._locl.update(locl)
+        for expr in ast.body:
+            if expr.name in self._ast_idx:
+                self._ast.body[self._ast_idx[expr.name]] = expr
+            else:
+                self._ast_idx[expr.name] = len(self._ast_idx)
+                self._ast.body.append(expr)
+
+    def get_source(self, name):
+        return getsource(getattr(self, name))
 
 
 class UniversalMapping(MutableMapping, Signal):

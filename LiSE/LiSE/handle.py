@@ -984,12 +984,11 @@ class EngineHandle(object):
         new = self._stores_cache[store] = self.source_copy(store)
         return dict_diff(old, new)
 
-    def set_source(self, store, k, v):
-        locl = {}
-        exec(v, globals(), locl)
-        if len(locl) > 1:
-            raise ValueError("Can only set one function at a time")
-        setattr(getattr(self._real, store), k, next(iter(locl.values())))
+    def get_source(self, store, name):
+        return getattr(self._real, store).get_source(name)
+
+    def store_source(self, store, v, name=None):
+        getattr(self._real, store).store_source(v, name)
 
     def del_source(self, store, k):
         delattr(self._real, store, k)
