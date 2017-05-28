@@ -163,6 +163,8 @@ class FunctionStore(Signal):
             return
         self._locl[k] = v
         sourcelines, _ = getsourcelines(v)
+        if sourcelines[0].strip().startswith('@'):
+            del sourcelines[0]
         indent = 999
         for line in sourcelines:
             lineindent = 0
