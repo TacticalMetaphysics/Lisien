@@ -989,9 +989,14 @@ class EngineHandle(object):
 
     def store_source(self, store, v, name=None):
         getattr(self._real, store).store_source(v, name)
+        self._stores_cache.setdefault(store, {})[name or v.__name__] = v
 
     def del_source(self, store, k):
         delattr(self._real, store, k)
+        try:
+            del self._stores_cache[store][k]
+        except KeyError:
+            pass
 
     def install_module(self, module):
         import_module(module).install(self._real)
