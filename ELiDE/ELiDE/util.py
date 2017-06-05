@@ -1,6 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) Zachary Spector, ZacharySpector@gmail.com
 from kivy.clock import Clock
+from kivy.uix.recycleview.layout import LayoutSelectionBehavior
+from kivy.uix.recycleboxlayout import RecycleBoxLayout
+from kivy.uix.behaviors import FocusBehavior
 from functools import partial
 from math import sin, cos, atan, pi
 
@@ -9,6 +12,10 @@ ninety = pi / 2
 
 fortyfive = pi / 4
 """pi / 4"""
+
+
+class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
+    pass
 
 
 class trigger(object):

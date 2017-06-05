@@ -8,6 +8,7 @@ flow of time.
 from random import Random
 from functools import partial
 from json import dumps, loads, JSONEncoder
+from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
 from allegedb import ORM as gORM
 from .xcollections import (
@@ -169,8 +170,8 @@ class Encoder(JSONEncoder):
 
 class AbstractEngine(object):
     def __getattr__(self, att):
-        if hasattr(super(), 'method') and att in self.method:
-            return partial(self.method[att], self)
+        if hasattr(super(), 'method') and hasattr(self.method, att):
+            return partial(getattr(self.method, att), self)
         raise AttributeError('No attribute or stored method: {}'.format(att))
 
     @reify
@@ -412,9 +413,6 @@ class Engine(AbstractEngine, gORM):
 
     def _init_caches(self):
         super()._init_caches()
-        if not hasattr(self, '_code_qe'):
-            self._code_qe = self.query
-        self._node_objs = {}
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
@@ -439,29 +437,38 @@ class Engine(AbstractEngine, gORM):
         self._avatarness_cache = AvatarnessCache(self)
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
-        self.action = FunctionStore(self, self._code_qe, 'actions')
-        self.prereq = FunctionStore(self, self._code_qe, 'prereqs')
-        self.trigger = FunctionStore(self, self._code_qe, 'triggers')
-        self.function = FunctionStore(self, self._code_qe, 'functions')
-        self.method = FunctionStore(self, self._code_qe, 'methods')
-        self.rule = AllRules(self, self._code_qe)
-        self.rulebook = AllRuleBooks(self, self._code_qe)
-        self.string = StringStore(self._code_qe, 'strings', self.eternal.setdefault('language', 'eng'))
+        if hasattr(self, '_action_file'):
+            self.action = FunctionStore(self._action_file)
+        if hasattr(self, '_prereq_file'):
+            self.prereq = FunctionStore(self._prereq_file)
+        if hasattr(self, '_trigger_file'):
+            self.trigger = FunctionStore(self._trigger_file)
+        if hasattr(self, '_function_file'):
+            self.function = FunctionStore(self._function_file)
+        if hasattr(self, '_method_file'):
+            self.method = FunctionStore(self._method_file)
+        self.rule = AllRules(self)
+        self.rulebook = AllRuleBooks(self)
+        if hasattr(self, '_string_file'):
+            self.string = StringStore(
+                self._string_file,
+                self.eternal.setdefault('language', 'eng')
+            )
 
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method
         for row in self.query.things_dump():
             self._things_cache.store(*row)
         super()._init_load()
-        for row in self.rule.query.universal_dump():
+        for row in self.query.universal_dump():
             self._universal_cache.store(*row)
-        for row in self.rule.query.rulebooks_rules():
+        for row in self.query.rulebooks_rules():
             self._rulebooks_cache.store(*row)
-        for row in self.rule.query.characters_rulebooks():
+        for row in self.query.characters_rulebooks():
             self._characters_rulebooks_cache.store(*row)
-        for row in self.rule.query.nodes_rulebooks():
+        for row in self.query.nodes_rulebooks():
             self._nodes_rulebooks_cache.store(*row)
-        for row in self.rule.query.portals_rulebooks():
+        for row in self.query.portals_rulebooks():
             self._portals_rulebooks_cache.store(*row)
         # note the use of the world DB, not the code DB
         for row in self.query.dump_active_rules():
@@ -492,7 +499,13 @@ class Engine(AbstractEngine, gORM):
     def __init__(
             self,
             worlddb,
-            codedb=None,
+            *,
+            string='strings.json',
+            function='function.py',
+            method='method.py',
+            trigger='trigger.py',
+            prereq='prereq.py',
+            action='action.py',
             connect_args={},
             alchemy=False,
             commit_modulus=None,
@@ -504,11 +517,30 @@ class Engine(AbstractEngine, gORM):
         set up listeners; and start a transaction
 
         """
-        if codedb:
-            self._code_qe = QueryEngine(
-                codedb, connect_args, alchemy, self.json_dump, self.json_load
-            )
-            self._code_qe.initdb()
+        if isinstance(string, str):
+            self._string_file = string
+        else:
+            self.string = string
+        if isinstance(function, str):
+            self._function_file = function
+        else:
+            self.function = function
+        if isinstance(method, str):
+            self._method_file = method
+        else:
+            self.method = method
+        if isinstance(trigger, str):
+            self._trigger_file = trigger
+        else:
+            self.trigger = trigger
+        if isinstance(prereq, str):
+            self._prereq_file = prereq
+        else:
+            self.prereq = prereq
+        if isinstance(action, str):
+            self._action_file = action
+        else:
+            self.action = action
         super().__init__(
             worlddb,
             query_engine_class=QueryEngine,
@@ -536,8 +568,8 @@ class Engine(AbstractEngine, gORM):
         else:
             self.rando.seed(self.random_seed)
             self.universal['rando_state'] = self.rando.getstate()
-        if '__init__' in self.method:
-            self.method['__init__'](self)
+        if hasattr(self.method, 'init'):
+            self.method.init(self)
 
     betavariate = getatt('rando.betavariate')
     choice = getatt('rando.choice')
@@ -565,6 +597,7 @@ class Engine(AbstractEngine, gORM):
             self.prereq,
             self.trigger,
             self.function,
+            self.method,
             self.string
         )
 
@@ -606,13 +639,27 @@ class Engine(AbstractEngine, gORM):
         for i in range(0, n):
             yield self.roll_die(d)
 
-    def dice_check(self, n, d, target, comparator=lambda x, y: x <= y):
+    def dice_check(self, n, d, target, comparator=le):
         """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
         are <= ``target``.
 
-        If ``comparator`` is provided, use it instead of <=.
+        If ``comparator`` is provided, use it instead of <=. You may
+        use a string like '<' or '>='.
 
         """
+        comps = {
+            '>': gt,
+            '<': lt,
+            '>=': ge,
+            '<=': le,
+            '=': eq,
+            '==': eq,
+            '!=': ne
+        }
+        try:
+            comparator = comps.get(comparator, comparator)
+        except TypeError:
+            pass
         return comparator(sum(self.dice(n, d)), target)
 
     def percent_chance(self, pct):
@@ -631,17 +678,14 @@ class Engine(AbstractEngine, gORM):
         return pct / 100 < self.random()
 
     def commit(self):
-        """Commit to both the world and code databases, and begin a new
-        transaction for the world database
-
-        """
-        for store in self.stores:
-            store.commit()
         super().commit()
 
     def close(self):
         """Commit changes and close the database."""
         self.commit()
+        for store in self.stores:
+            if hasattr(store, 'save'):
+                store.save()
         super().close()
 
     def __enter__(self):

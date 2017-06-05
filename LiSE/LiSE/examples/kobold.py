@@ -48,6 +48,28 @@ def inittest(
     print('{} shrubberies: {}'.format(n, shrub_places))
     kobold['shrub_places'] = shrub_places
 
+    # Basic day night cycle
+    @engine.action
+    def time_slipping(engine, character, *, daylen: int, nightlen: int, twilightlen: float=0.0):
+        if 'hour' not in character.stat:
+            character.stat['hour'] = 0
+            character.stat['day_period'] = 'dawn' if twilightlen else 'day'
+            return
+        twi_margin = twilightlen / 2
+        hour = character.stat['hour'] = (character.stat['hour'] + 1) % (daylen + nightlen)
+        if twilightlen:
+            if hour < twi_margin or hour > daylen + nightlen - twi_margin:
+                character.stat['day_period'] = 'dawn'
+            elif twi_margin < hour < daylen - twi_margin:
+                character.stat['day_period'] = 'day'
+            elif daylen - twi_margin < hour < daylen + twi_margin:
+                character.stat['day_period'] = 'dusk'
+            else:
+                character.stat['day_period'] = 'night'
+        else:
+            character.stat['day_period'] = 'day' if hour < daylen else 'night'
+
+
     # If the kobold is not in a shrubbery, it will try to get to one.
     # If it is, there's a chance it will try to get to another.
     @kobold.rule
@@ -134,9 +156,13 @@ def inittest(
 
 
 if __name__ == '__main__':
-    from utiltest import mkengine, clear_off, seed
-    clear_off()
-    with mkengine(random_seed=seed) as engine:
+    from LiSE.engine import Engine
+    from os import remove
+    try:
+        remove('LiSEworld.db')
+    except FileNotFoundError:
+        pass
+    with Engine('LiSEworld.db', random_seed=69105) as engine:
         inittest(engine)
         engine.commit()
         print('shrub_places beginning: {}'.format(

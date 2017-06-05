@@ -19,6 +19,7 @@ from kivy.logger import Logger
 from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
+    DictProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
@@ -130,7 +131,7 @@ class MainScreen(Screen):
 
     """
     manager = ObjectProperty()
-    board = ObjectProperty()
+    boards = DictProperty()
     boardview = ObjectProperty()
     charmenu = ObjectProperty()
     statlist = ObjectProperty()
@@ -149,6 +150,12 @@ class MainScreen(Screen):
     _touch = ObjectProperty(None, allownone=True)
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+
+    def on_statpanel(self, *args):
+        if not self.app:
+            Clock.schedule_once(self.on_statpanel, 0)
+            return
+        self.app.bind(selected_remote=self.statpanel.setter('remote'))
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -211,7 +218,7 @@ class MainScreen(Screen):
         ):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
-                self.board.keep_selection = True
+                self.boardview.keep_selection = True
                 return True
         return self.boardview.dispatch('on_touch_down', touch)
 
@@ -254,8 +261,8 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_chardiff(self, chardiff, **kwargs):
-        self.board.trigger_update_from_diff(
-            chardiff.get(self.board.character.name, {})
+        self.boardview.board.trigger_update_from_diff(
+            chardiff.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.pull_time()
@@ -274,12 +281,6 @@ class MainScreen(Screen):
             return
         else:
             del self._old_time
-
-    def on_board(self, *args):
-        if not self.app:
-            Clock.schedule_once(self.on_board, 0)
-            return
-        self.board.bind(selection=self.app.setter('selection'))
 
 
 Builder.load_string(
@@ -338,7 +339,6 @@ Builder.load_string(
     app: app
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
-    board: boardview.board
     boardview: boardview
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
@@ -355,7 +355,7 @@ Builder.load_string(
         height: root.height - timepanel.height
         screen: root
         engine: app.engine
-        character: app.character
+        board: root.boards[app.character_name]
         branch: app.branch
         tick: app.tick
         adding_portal: charmenu.portaladdbut.state == 'down'
@@ -364,7 +364,6 @@ Builder.load_string(
         engine: app.engine
         branch: app.branch
         tick: app.tick
-        remote: app.selected_remote
         toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)

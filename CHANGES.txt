@@ -1,3 +1,8 @@
+=== Alpha 7 | 2017-05-06 ===
+* Restructure everything in LiSE around a new caching strategy.
+* Generally cleaner UI.
+* If all your places are named with pairs of integers, you get automatic grid layout in ELiDE.
+
 === Alpha 6 | 2016-02-01 ===
 * Opening a functions editor no longer crashes the app.
 * All the function editors are now in tabs of one screen.

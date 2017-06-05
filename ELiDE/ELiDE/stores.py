@@ -25,9 +25,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
-from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
-from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.togglebutton import ToggleButton
 
@@ -41,10 +38,6 @@ from kivy.properties import (
     StringProperty
 )
 from .util import trigger
-
-
-class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
-    pass
 
 
 class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):
@@ -71,11 +64,11 @@ class StoreButton(RecycleToggleButton):
     def on_parent(self, *args):
         if self.name == '+':
             self.state = 'down'
-            self.select(self)
+            self.select(self.index)
 
     def on_state(self, *args):
         if self.state == 'down':
-            self.select(self)
+            self.select(self.index)
 
 
 class StoreList(RecycleView):
@@ -85,28 +78,42 @@ class StoreList(RecycleView):
     """
     table = StringProperty()
     store = ObjectProperty()
-    selection = ObjectProperty()
+    selection_name = StringProperty()
+    boxl = ObjectProperty()
 
     def __init__(self, **kwargs):
         self.bind(table=self._trigger_redata, store=self._trigger_redata)
+        self._i2name = {}
+        self._name2i = {}
         super().__init__(**kwargs)
+
+    def on_boxl(self, *args):
+        self.boxl.bind(selected_nodes=self._pull_selection)
+
+    def _pull_selection(self, *args):
+        if not self.boxl.selected_nodes:
+            return
+        self.selection_name = self._i2name[self.boxl.selected_nodes[0]]
 
     def munge(self, datum):
         i, name = datum
+        self._i2name[i] = name
+        self._name2i[name] = i
         return {
             'store': self.store,
             'table': self.table,
             'text': str(name),
             'name': name,
-            'select': self.select,
+            'select': self.ids.boxl.select_node,
             'index': i
         }
 
     def _iter_keys(self):
         yield '+'
-        yield from sorted(self.store.keys())
+        yield from sorted(self.store._cache.keys())
 
-    def redata(self, select_name=None, *args):
+    def redata(self, *args, **kwargs):
+        select_name = kwargs.get('select_name')
         if not self.table or self.store is None:
             Clock.schedule_once(self.redata)
             return
@@ -114,26 +121,13 @@ class StoreList(RecycleView):
         if select_name:
             self._trigger_select_name(select_name)
 
-    def _trigger_redata(self, select_name=None, *args):
-        part = partial(self.redata, select_name, *args)
+    def _trigger_redata(self, *args, **kwargs):
+        part = partial(self.redata, *args, **kwargs)
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 
-    def select(self, inst):
-        self.selection = inst
-        for boxl in self.children:
-            for child in boxl.children:
-                if child != inst and child.state == 'down':
-                    child.state = 'normal'
-
     def select_name(self, name, *args):
-        for boxl in self.children:
-            for child in boxl.children:
-                if child.text == name:
-                    child.state = 'down'
-                    self.selection = child
-                else:
-                    child.state = 'normal'
+        self.boxl.select_node(self._name2i[name])
 
     def _trigger_select_name(self, name):
         part = partial(self.select_name, name)
@@ -169,6 +163,7 @@ class Editor(BoxLayout):
     _trigger_delete = ObjectProperty()
 
     def save(self, *args):
+        """Put text in my store, return True if it changed"""
         if not (self.name_wid and self.store):
             Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
             return
@@ -179,25 +174,30 @@ class Editor(BoxLayout):
             # TODO alert the user to invalid name
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
             return
-        do_redata = self.name_wid.hint_text == ''
-        if self.name_wid.text not in self.store:
-            do_redata = self.name_wid.text
-        if (
-            self.name_wid.text and
-            self.name_wid.hint_text and
-            self.name_wid.hint_text != self.name_wid.text and
-            self.name_wid.hint_text in self.store
-        ):
-            del self.store[self.name_wid.hint_text]
-            do_redata = self.name_wid.text
-        if self.name_wid.text and (
-            self.name_wid.text not in self.store or
-            self.source != self.store[self.name_wid.text]
-        ):
-            Logger.debug("{}: Saving!".format(type(self).__name__))
-            self.store[self.name_wid.text] = self.source
-        else:
-            self.store[self.name_wid.hint_text] = self.source
+        do_redata = False
+        if self.name_wid.text:
+            if (
+                self.name_wid.hint_text and
+                self.name_wid.hint_text != self.name_wid.text and
+                self.name_wid.hint_text in self.store
+            ):
+                del self.store[self.name_wid.hint_text]
+                do_redata = True
+            if (
+                not hasattr(self.store, self.name_wid.text) or
+                getattr(self.store, self.name_wid.text) != self.source
+            ):
+                Logger.debug("{}: Saving!".format(type(self).__name__))
+                setattr(self.store, self.name_wid.text, self.source)
+                do_redata = True
+        elif self.name_wid.hint_text:
+            if (
+                not hasattr(self.store, self.name_wid.hint_text) or
+                getattr(self.store, self.name_wid.hint_text) != self.source
+            ):
+                Logger.debug("{}: Saving!".format(type(self).__name__))
+                setattr(self.store, self.name_wid.hint_text, self.source)
+                do_redata = True
         return do_redata
 
     def delete(self, *args):
@@ -257,7 +257,7 @@ class EdBox(BoxLayout):
     disable_text_input = BooleanProperty(False)
 
     def on_storelist(self, *args):
-        self.storelist.bind(selection=self._pull_from_storelist)
+        self.storelist.bind(selection_name=self._pull_from_storelist)
 
     @trigger
     def validate_name_input(self, *args):
@@ -267,11 +267,13 @@ class EdBox(BoxLayout):
     def _pull_from_storelist(self, *args):
         self.save()
         # The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
-        self.editor.name_wid.hint_text = self.storelist.selection.name.strip('+')
+        self.editor.name_wid.hint_text = self.storelist.selection_name.strip('+')
         self.editor.name_wid.text = ''
         try:
-            self.editor.source = self.store[self.editor.name_wid.hint_text]
-        except KeyError:
+            self.editor.source = getattr(
+                self.store, self.editor.name_wid.hint_text
+            )
+        except AttributeError:
             self.editor.source = self.get_default_text(self.editor.name_wid.hint_text)
         self.disable_text_input = not self.valid_name(self.editor.name_wid.hint_text)
         if hasattr(self, '_lock_save'):
@@ -499,7 +501,9 @@ Builder.load_string("""
     height: 30
 <StoreList>:
     viewclass: 'StoreButton'
+    boxl: boxl
     SelectableRecycleBoxLayout:
+        id: boxl
         default_size: None, dp(56)
         default_size_hint: 1, None
         height: self.minimum_height

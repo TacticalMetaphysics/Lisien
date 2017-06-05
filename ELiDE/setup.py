@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 import sys
 if sys.version_info[0] < 3 or (
         sys.version_info[0] == 3 and sys.version_info[1] < 3
@@ -11,7 +11,7 @@ from Cython.Distutils import build_ext
 
 setup(
     name="ELiDE",
-    version="0.0.0a6",
+    version="0.0.0a7",
     packages=[
         "ELiDE",
         "ELiDE.board",
@@ -34,9 +34,9 @@ setup(
     ],
     cmdclass={'build_ext': build_ext},
     install_requires=[
-        "LiSE",
+        "LiSE==0.0.0a7",
         "numpy",
-        "kivy",
+        "kivy>=1.10.0",
         "pygments"
     ],
     package_data={
