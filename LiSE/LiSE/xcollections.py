@@ -83,13 +83,12 @@ class StringStore(MutableMapping, Signal):
     """
     language = LanguageDescriptor()
 
-    def __init__(self, query, filename, lang='eng'):
+    def __init__(self, filename, lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
         super().__init__()
-        self.query = query
         self._filename = filename
         self._language = lang
         try:
