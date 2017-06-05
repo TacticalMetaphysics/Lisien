@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) Zachary Spector, ZacharySpector@gmail.com
 from collections import OrderedDict
+from inspect import signature
 
 from kivy.lang import Builder
 from kivy.logger import Logger
@@ -256,15 +257,16 @@ class RulesView(FloatLayout):
             Card(
                 ud={
                     'type': 'trigger',
-                    'funcname': name
+                    'funcname': name,
+                    'signature': sig
                 },
                 headline_text=name,
                 show_art=False,
                 midline_text='Trigger',
                 text=source
             )
-            for (name, source) in
-            self.engine.trigger.items()
+            for (name, source, sig) in
+            map(self._inspect_func, self.engine.trigger.items())
         ]
         used_triggers = [
             Card(
@@ -282,6 +284,15 @@ class RulesView(FloatLayout):
         self._trigger_builder.decks = [used_triggers, unused_triggers]
     _trigger_pull_triggers = trigger(pull_triggers)
 
+    def _inspect_func(self, namesrc):
+        (name, src) = namesrc
+        glbls = {}
+        lcls = {}
+        exec(src, glbls, lcls)
+        assert name in lcls
+        func = lcls[name]
+        return name, src, signature(func)
+
     def pull_prereqs(self, *args):
         if not self.rule:
             return
@@ -289,15 +300,16 @@ class RulesView(FloatLayout):
             Card(
                 ud={
                     'type': 'prereq',
-                    'funcname': name
+                    'funcname': name,
+                    'signature': sig
                 },
                 headline_text=name,
                 show_art=False,
                 midline_text='Prereq',
                 text=source
             )
-            for (name, source) in
-            self.engine.prereq.items()
+            for (name, source, sig) in
+            map(self._inspect_func, self.engine.prereq.items())
         ]
         used_prereqs = [
             Card(
@@ -322,15 +334,16 @@ class RulesView(FloatLayout):
             Card(
                 ud={
                     'type': 'action',
-                    'funcname': name
+                    'funcname': name,
+                    'signature': sig
                 },
                 headline_text=name,
                 show_art=False,
                 midline_text='Action',
                 text=source
             )
-            for (name, source) in
-            self.engine.action.items()
+            for (name, source, sig) in
+            map(self._inspect_func, self.engine.action.items())
         ]
         used_actions = [
             Card(

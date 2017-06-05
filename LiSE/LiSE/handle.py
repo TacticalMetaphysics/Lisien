@@ -984,11 +984,19 @@ class EngineHandle(object):
         new = self._stores_cache[store] = self.source_copy(store)
         return dict_diff(old, new)
 
-    def set_source(self, store, k, v):
-        getattr(self._real, store).set_source(k, v)
+    def get_source(self, store, name):
+        return getattr(self._real, store).get_source(name)
+
+    def store_source(self, store, v, name=None):
+        getattr(self._real, store).store_source(v, name)
+        self._stores_cache.setdefault(store, {})[name or v.__name__] = v
 
     def del_source(self, store, k):
-        del getattr(self._real, store)[k]
+        delattr(self._real, store, k)
+        try:
+            del self._stores_cache[store][k]
+        except KeyError:
+            pass
 
     def install_module(self, module):
         import_module(module).install(self._real)

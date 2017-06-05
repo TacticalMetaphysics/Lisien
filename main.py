@@ -1,5 +1,4 @@
 from multiprocessing import freeze_support
-from ELiDE.app import ELiDEApp
 import sys
 import os
 wd = os.getcwd()
@@ -13,6 +12,7 @@ def get_application_config(*args):
 if __name__ == '__main__':
     freeze_support()
 
+    from ELiDE.app import ELiDEApp
     app = ELiDEApp()
     app.get_application_config = get_application_config
     app.run()

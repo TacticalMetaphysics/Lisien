@@ -103,7 +103,6 @@ class Board(RelativeLayout):
     board.
 
     """
-    engine = ObjectProperty()
     character = ObjectProperty()
     wallpaper_path = StringProperty()
     spot = DictProperty({})
@@ -336,6 +335,7 @@ class Board(RelativeLayout):
             Clock.schedule_once(self.on_character, 0)
             return
 
+        self.engine = self.character.engine
         if hasattr(self.parent, 'scroll_x'):
             self.parent.scroll_x = self.character.stat.setdefault(
                 '_scroll_x', 0.0
