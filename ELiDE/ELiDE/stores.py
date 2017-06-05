@@ -163,6 +163,7 @@ class Editor(BoxLayout):
     _trigger_delete = ObjectProperty()
 
     def save(self, *args):
+        """Put text in my store, return True if it changed"""
         if not (self.name_wid and self.store):
             Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
             return
@@ -173,23 +174,30 @@ class Editor(BoxLayout):
             # TODO alert the user to invalid name
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
             return
-        do_redata = self.name_wid.hint_text == ''
-        if not hasattr(self.store, self.name_wid.text):
-            do_redata = self.name_wid.text
-        if (
-            self.name_wid.text and
-            self.name_wid.hint_text and
-            self.name_wid.hint_text != self.name_wid.text and
-            self.name_wid.hint_text in self.store
-        ):
-            del self.store[self.name_wid.hint_text]
-            do_redata = self.name_wid.text
-        if self.name_wid.text and (
+        do_redata = False
+        if self.name_wid.text:
+            if (
+                self.name_wid.hint_text and
+                self.name_wid.hint_text != self.name_wid.text and
+                self.name_wid.hint_text in self.store
+            ):
+                del self.store[self.name_wid.hint_text]
+                do_redata = True
+            if (
                 not hasattr(self.store, self.name_wid.text) or
                 getattr(self.store, self.name_wid.text) != self.source
-        ):
-            Logger.debug("{}: Saving!".format(type(self).__name__))
-            setattr(self.store, self.name_wid.hint_text, self.source)
+            ):
+                Logger.debug("{}: Saving!".format(type(self).__name__))
+                setattr(self.store, self.name_wid.text, self.source)
+                do_redata = True
+        elif self.name_wid.hint_text:
+            if (
+                not hasattr(self.store, self.name_wid.hint_text) or
+                getattr(self.store, self.name_wid.hint_text) != self.source
+            ):
+                Logger.debug("{}: Saving!".format(type(self).__name__))
+                setattr(self.store, self.name_wid.hint_text, self.source)
+                do_redata = True
         return do_redata
 
     def delete(self, *args):
