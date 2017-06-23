@@ -571,7 +571,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         rule = self.json_dump(rule)
         for row in self.sql('rule_triggers', rule):
             yield row[0]
-        return []
 
     def insert_rule_trigger(self, rule, i, trigger):
         rule = self.json_dump(rule)
@@ -606,7 +605,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         rule = self.json_dump(rule)
         for row in self.sql('rule_prereqs', rule):
             yield row[0]
-        return []
 
     def insert_rule_prereq(self, rule, i, prereq):
         rule = self.json_dump(rule)
@@ -641,7 +639,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         rule = self.json_dump(rule)
         for row in self.sql('rule_actions', rule):
             yield row[0]
-        return []
 
     def insert_rule_action(self, rule, i, action):
         rule = self.json_dump(rule)

@@ -42,22 +42,6 @@ import allegedb.alchemy
 
 TEXT = String(50)
 
-functyps = (
-    'actions',
-    'prereqs',
-    'triggers',
-    'functions',
-    'methods'
-)
-"""Names of the different function tables, which are otherwise
-identical.
-
-Function tables hold marshalled bytecode, and usually plain source code,
-for user defined functions.
-
-"""
-
-
 strtyps = (
     'strings',
 )
@@ -116,48 +100,7 @@ def tables_for_meta(meta):
         )
         return r
 
-    def func_store_table(name):
-        """Return a table to store source code and bytecode of Python
-        functions.
-
-        If the 'base' field of a given record is filled in with the
-        name of another function, the function in this record is a
-        partial. These work a bit differently from
-        ``functools.partial``: only keyword arguments may be
-        prefilled, and these are kept in a JSON object in the
-        'plaincode' field.
-
-        """
-        r = Table(
-            name, meta,
-            Column('name', TEXT, primary_key=True),
-            Column(
-                'base', TEXT,
-                ForeignKey('{}.name'.format(name)),
-                nullable=True,
-                default=None
-            ),
-            Column('keywords', TEXT, nullable=False, default='[]'),
-            Column('bytecode', TEXT, nullable=True),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('plaincode', TEXT, nullable=True),
-            Column('version', TEXT, nullable=True),
-        )
-        r.append_constraint(
-            CheckConstraint(or_(
-                r.c.bytecode != None,
-                r.c.plaincode != None
-            ))
-        )
-        return r
-
     r = allegedb.alchemy.tables_for_meta(meta)
-
-    for functyp in functyps:
-        r[functyp] = func_store_table(functyp)
 
     for strtyp in strtyps:
         r[strtyp] = string_store_table(strtyp)
@@ -193,7 +136,6 @@ def tables_for_meta(meta):
         Column('idx', Integer, primary_key=True),
         Column('trigger', TEXT, nullable=False),
         ForeignKeyConstraint(['rule'], ['rules.rule']),
-        ForeignKeyConstraint(['trigger'], ['triggers.name'])
     )
 
     # Table for rules' prereqs, functions with veto power over a rule
@@ -204,7 +146,6 @@ def tables_for_meta(meta):
         Column('idx', Integer, primary_key=True),
         Column('prereq', TEXT, nullable=False),
         ForeignKeyConstraint(['rule'], ['rules.rule']),
-        ForeignKeyConstraint(['prereq'], ['prereqs.name'])
     )
 
     # Table for rules' actions, the functions that do what the rule
@@ -215,7 +156,6 @@ def tables_for_meta(meta):
         Column('idx', Integer, primary_key=True),
         Column('action', TEXT, nullable=False),
         ForeignKeyConstraint(['rule'], ['rules.rule']),
-        ForeignKeyConstraint(['action'], ['actions.name'])
     )
 
     # Table grouping rules into lists called rulebooks.
@@ -784,15 +724,6 @@ def queries(table, view):
         )
 
     r = allegedb.alchemy.queries_for_table_dict(table)
-
-    for functyp in functyps:
-        r['func_{}_name_plaincode'.format(functyp)] \
-            = func_table_name_plaincode(table[functyp])
-        r['func_{}_iter'.format(functyp)] = func_table_iter(table[functyp])
-        r['func_{}_get'.format(functyp)] = func_table_get(table[functyp])
-        r['func_{}_ins'.format(functyp)] = func_table_ins(table[functyp])
-        r['func_{}_upd'.format(functyp)] = func_table_upd(table[functyp])
-        r['func_{}_del'.format(functyp)] = func_table_del(table[functyp])
 
     for strtyp in strtyps:
         r['{}_lang_items'.format(strtyp)] = string_table_lang_items(
@@ -2188,21 +2119,9 @@ def queries(table, view):
     rule_triggers = table['rule_triggers']
     rule_prereqs = table['rule_prereqs']
     rule_actions = table['rule_actions']
-    triggers = table['triggers']
-    prereqs = table['prereqs']
-    actions = table['actions']
-
-    def rule_something(ruletab, tab, something):
-        """Return query to select functions in a rule table."""
-        return select([
-            ruletab.c[something],
-            tab.c.keywords,
-            tab.c.bytecode,
-            tab.c.plaincode
-        ]).where(and_(
-            ruletab.c.rule == bindparam('rule'),
-            ruletab.c[something] == tab.c.name
-        )).order_by(ruletab.c.idx)
+    r['rule_triggers'] = select([rule_triggers.c.trigger]).where(rule_triggers.c.rule == bindparam('rule'))
+    r['rule_prereqs'] = select([rule_prereqs.c.prereq]).where(rule_prereqs.c.rule == bindparam('rule'))
+    r['rule_actions'] = select([rule_actions.c.action]).where(rule_actions.c.rule == bindparam('rule'))
 
     def rule_something_count(tab):
         """Return query to count the number of functions in a rule table."""
@@ -2264,21 +2183,18 @@ def queries(table, view):
         description=bindparam('description')
     ).where(rules.c.rule == bindparam('rule'))
     r['del_rule'] = rules.delete().where(rules.c.rule == bindparam('rule'))
-    r['rule_triggers'] = rule_something(rule_triggers, triggers, 'trigger')
     r['rule_triggers_count'] = rule_something_count(rule_triggers)
     r['rule_triggers_ins'] = rule_something_ins(rule_triggers, 'trigger')
     r['rule_triggers_inc'] = rule_something_inc(rule_triggers)
     r['rule_triggers_dec'] = rule_something_dec(rule_triggers)
     r['rule_triggers_del'] = rule_something_del(rule_triggers)
     r['rule_triggers_del_all'] = rule_something_del_all(rule_triggers)
-    r['rule_prereqs'] = rule_something(rule_prereqs, prereqs, 'prereq')
     r['rule_prereqs_count'] = rule_something_count(rule_prereqs)
     r['rule_prereqs_ins'] = rule_something_ins(rule_prereqs, 'prereq')
     r['rule_prereqs_inc'] = rule_something_inc(rule_prereqs)
     r['rule_prereqs_dec'] = rule_something_dec(rule_prereqs)
     r['rule_prereqs_del'] = rule_something_del(rule_prereqs)
     r['rule_prereqs_del_all'] = rule_something_del_all(rule_prereqs)
-    r['rule_actions'] = rule_something(rule_actions, actions, 'action')
     r['rule_actions_count'] = rule_something_count(rule_actions)
     r['rule_actions_ins'] = rule_something_ins(rule_actions, 'action')
     r['rule_actions_inc'] = rule_something_inc(rule_actions)

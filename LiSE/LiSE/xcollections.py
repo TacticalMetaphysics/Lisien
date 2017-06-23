@@ -3,6 +3,10 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from blinker import Signal
+from astunparse import unparse
+from ast import parse, Expr, Module
+from inspect import getsource, getsourcelines, getmodule
+import json
 
 
 class NotThatMap(Mapping):
@@ -55,7 +59,6 @@ class AbstractLanguageDescriptor(Signal):
     def __set__(self, inst, val):
         self._set_language(inst, val)
         self.lang = Language(self, val)
-        inst.cache = {}
         self.send(inst, language=val)
 
     def __str__(self):
@@ -78,48 +81,34 @@ class StringStore(MutableMapping, Signal):
     braces will cause the other string to be substituted in.
 
     """
-    __slots__ = ['query', 'table', 'cache', 'receivers', 'time']
-
     language = LanguageDescriptor()
 
-    def __init__(self, query, table='strings', lang='eng'):
+    def __init__(self, filename, lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
         super().__init__()
-        self.query = query
-        self.query.init_string_table(table)
-        self.table = table
+        self._filename = filename
         self._language = lang
-        self.cache = dict(self.query.string_table_lang_items(
-                self.table, self.language
-        ))
-
-    def commit(self):
-        self.query.commit()
+        try:
+            with open(filename, 'r') as inf:
+                self.cache = json.load(inf)
+        except FileNotFoundError:
+            self.cache = {lang: {}}
 
     def __iter__(self):
-        return iter(self.cache)
+        return iter(self.cache[self.language])
 
     def __len__(self):
-        return len(self.cache)
+        return len(self.cache[self.language])
 
     def __getitem__(self, k):
-        """Get the string and format it with other strings here."""
-        if k not in self.cache:
-            v = self.query.string_table_get(
-                self.table, self.language, k
-            )
-            if v is None:
-                raise KeyError("No string named {}".format(k))
-            self.cache[k] = v
-        return self.cache[k].format_map(NotThatMap(self, k))
+        return self.cache[self.language][k].format_map(NotThatMap(self, k))
 
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
-        self.cache[k] = v
-        self.query.string_table_set(self.table, self.language, k, v)
+        self.cache[self.language][k] = v
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
@@ -127,156 +116,112 @@ class StringStore(MutableMapping, Signal):
         cache.
 
         """
-        del self.cache[k]
-        self.query.string_table_del(self.table, self.language, k)
+        del self.cache[self.language][k]
         self.send(self, key=k, val=None)
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
-        if lang == self.language:
-            yield from self.cache.items()
-            return
-        yield from self.query.string_table_lang_items(
-            self.table, lang
-        )
+        yield from self.cache[lang].items()
+
+    def save(self):
+        with open(self._filename, 'w') as outf:
+            json.dump(self.cache, outf, indent=4, sort_keys=True)
 
 
-class StoredPartial(object):
-    __slots__ = ['_funcname', 'store', 'keywords', 'kwargs', 'name']
-
-    @property
-    def engine(self):
-        return self.store.engine
-
-    def __init__(self, store, name, **kwargs):
-        self._funcname = name
-        self.store = store
-        self.keywords = list(kwargs.keys())
-        self.kwargs = kwargs
-        self.name = name + self.engine.json_dump(kwargs)
-
-    def __call__(self, *args):
-        return self.store[self._funcname](*args, **self.kwargs)
-
-
-class FunctionStore(MutableMapping, Signal):
-    """Store functions in a SQL database"""
-    __slots__ = ['engine', 'query', '_tab', 'cache']
-
-    def __init__(self, engine, query, table):
-        """Use ``codedb`` as a connection object. Connect to it, and
-        initialize the schema if needed.
-
-        """
+class FunctionStore(Signal):
+    def __init__(self, filename):
         super().__init__()
-        self.engine = engine
-        self.query = query
-        self.query.init_table(table)
-        self._tab = table
-        self.cache = {}
-        self.engine.query.init_func_table(table)
+        self._filename = filename
+        try:
+            with open(filename, 'r') as inf:
+                self._ast = parse(inf.read(), filename)
+                self._ast_idx = {}
+                for i, node in enumerate(self._ast.body):
+                    if hasattr(node, 'value') and hasattr(node.value, 'func'):
+                        self._ast_idx[node.value.func.id] = i
+                self._globl = {}
+                self._locl = {}
+                self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
+        except FileNotFoundError:
+            self._ast = Module(body=[])
+            self._ast_idx = {}
+            self._globl = {}
+            self._locl = {}
 
-    def __len__(self):
-        """Return count of all functions here."""
-        return self.query.count_all_table(self._tab)
+    def __getattr__(self, k):
+        try:
+            return self._locl[k]
+        except KeyError:
+            raise AttributeError
 
-    def __iter__(self):
-        """Iterate over function names in alphabetical order."""
-        for row in self.query.func_table_iter(self._tab):
-            yield row[0]
+    def __setattr__(self, k, v):
+        if not callable(v):
+            super().__setattr__(k, v)
+            return
+        self._locl[k] = v
+        sourcelines, _ = getsourcelines(v)
+        outdented = self._dedent_sourcelines(sourcelines)
+        expr = Expr(parse(outdented))
+        expr.value.body[0].name = k
+        if k in self._ast_idx:
+            self._ast.body[self._ast_idx[k]] = expr
+        else:
+            self._ast_idx[k] = len(self._ast.body)
+            self._ast.body.append(expr)
+        self.send(self, attr=k, val=v)
 
-    def __contains__(self, name):
-        """Check if there's such a function in the database"""
-        if not isinstance(name, str):
-            return False
-        if name in self.cache:
-            return True
-        return self.query.func_table_contains(self._tab, name)
+    @staticmethod
+    def _dedent_sourcelines(sourcelines):
+        if sourcelines[0].strip().startswith('@'):
+            del sourcelines[0]
+        indent = 999
+        for line in sourcelines:
+            lineindent = 0
+            for char in line:
+                if char not in ' \t':
+                    break
+                lineindent += 1
+            else:
+                indent = 0
+                break
+            indent = min((indent, lineindent))
+        return '\n'.join(line[indent:] for line in sourcelines)
 
-    def __getitem__(self, name):
-        """Reconstruct the named function from its code string stored in the
-        code database, and return it.
+    def __call__(self, v):
+        setattr(self, v.__name__, v)
 
-        """
-        if name not in self.cache:
-            try:
-                self.cache[name] = self.query.func_table_get(self._tab, name)
-            except KeyError:
-                d = self.query.func_table_get_all(self._tab, name)
-                if d['base'] not in self.cache:
-                    self.cache[name] = self.query.func_table_get(
-                        self._tab, name
-                    )
-                kwargs = self.engine.json_load(name[len(d['base']):])
-                self.cache[name] = StoredPartial(self, d['base'], **kwargs)
-        return self.cache[name]
+    def __delattr__(self, k):
+        del self._locl[k]
+        delattr(self._ast, k)
+        self.send(self, attr=k, val=None)
 
-    def __call__(self, fun):
-        """Remember the function in the code database. Its key will be its
-        ``__name__``.
-
-        """
-        if fun in self:
-            raise KeyError(
-                "Already have a function by that name. "
-                "If you want to swap it out for this one, "
-                "assign the new function to me like I'm a dictionary."
-            )
-        self.query.func_table_set(self._tab, fun.__name__, fun)
-        self.cache[fun.__name__] = fun
-        self.send(self, key=fun.__name__, val=fun)
-        return fun
-
-    def __setitem__(self, name, fun):
-        """Store the function, marshalled, under the name given."""
-        self.query.func_table_set(self._tab, name, fun)
-        self.cache[name] = fun
-        self.send(self, key=name, val=fun)
-
-    def __delitem__(self, name):
-        """Delete the named function from both the cache and the database.
-
-        Listeners to the named function see this as if the function
-        were set to ``None``.
-
-        """
-        self.query.func_table_del(self._tab, name)
-        if name in self.cache:
-            del self.cache[name]
-        self.send(self, key=name, val=None)
-
-    def plain(self, k):
-        """Return the plain source code of the function."""
-        return self.query.func_table_get_plain(self._tab, k)
+    def save(self):
+        with open(self._filename, 'w') as outf:
+            outf.write(unparse(self._ast))
 
     def iterplain(self):
-        """Iterate over (name, source) where source is in plaintext, not
-        bytecode.
+        for name, func in self._locl.items():
+            yield name, getsource(func)
 
-        """
-        yield from self.query.func_table_name_plaincode(self._tab)
+    def store_source(self, v, name=None):
+        v = self._dedent_sourcelines(v.split('\n'))
+        locl = {}
+        ast = parse(v)
+        if name:
+            ast.body[0].name = name
+        exec(compile(ast, '<LiSE>', 'exec'))
+        self._locl.update(locl)
+        for expr in ast.body:
+            if expr.name in self._ast_idx:
+                self._ast.body[self._ast_idx[expr.name]] = expr
+            else:
+                self._ast_idx[expr.name] = len(self._ast_idx)
+                self._ast.body.append(expr)
 
-    def commit(self):
-        """Tell my ``QueryEngine`` to commit."""
-        self.query.commit()
-
-    def set_source(self, func_name, source):
-        """Set the plain, uncompiled source code of ``func_name`` to
-        ``source``.
-
-        """
-        self.query.func_table_set_source(
-            self._tab,
-            func_name,
-            source
-        )
-
-    def partial(self, funcname, **kwargs):
-        part = StoredPartial(self, funcname, **kwargs)
-        self.cache[funcname + self.engine.json_dump(kwargs)] = part
-        return part
+    def get_source(self, name):
+        return getsource(getattr(self, name))
 
 
 class UniversalMapping(MutableMapping, Signal):

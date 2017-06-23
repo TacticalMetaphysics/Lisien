@@ -109,7 +109,6 @@ class ELiDEApp(App):
             'LiSE',
             {
                 'world': 'sqlite:///LiSEworld.db',
-                'code': 'LiSEcode.db',
                 'language': 'eng',
                 'logfile': '',
                 'loglevel': 'info'
@@ -184,7 +183,6 @@ class ELiDEApp(App):
             enkw['loglevel'] = config['LiSE']['loglevel']
         self.engine = self.procman.start(
             config['LiSE']['world'],
-            config['LiSE']['code'],
             **enkw
         )
         self.pull_time()
@@ -338,10 +336,15 @@ class ELiDEApp(App):
     def on_pause(self):
         """Sync the database with the current state of the game."""
         self.engine.commit()
+        self.strings.save()
+        self.funcs.save()
         self.config.write()
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
+        self.strings.save()
+        self.funcs.save()
+        self.engine.commit()
         self.procman.shutdown()
         self.config.write()
 

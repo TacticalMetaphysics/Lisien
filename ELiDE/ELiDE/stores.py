@@ -110,7 +110,7 @@ class StoreList(RecycleView):
 
     def _iter_keys(self):
         yield '+'
-        yield from sorted(self.store.keys())
+        yield from sorted(self.store._cache.keys())
 
     def redata(self, *args, **kwargs):
         select_name = kwargs.get('select_name')
@@ -163,6 +163,7 @@ class Editor(BoxLayout):
     _trigger_delete = ObjectProperty()
 
     def save(self, *args):
+        """Put text in my store, return True if it changed"""
         if not (self.name_wid and self.store):
             Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
             return
@@ -173,25 +174,30 @@ class Editor(BoxLayout):
             # TODO alert the user to invalid name
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
             return
-        do_redata = self.name_wid.hint_text == ''
-        if self.name_wid.text not in self.store:
-            do_redata = self.name_wid.text
-        if (
-            self.name_wid.text and
-            self.name_wid.hint_text and
-            self.name_wid.hint_text != self.name_wid.text and
-            self.name_wid.hint_text in self.store
-        ):
-            del self.store[self.name_wid.hint_text]
-            do_redata = self.name_wid.text
-        if self.name_wid.text and (
-            self.name_wid.text not in self.store or
-            self.source != self.store[self.name_wid.text]
-        ):
-            Logger.debug("{}: Saving!".format(type(self).__name__))
-            self.store[self.name_wid.text] = self.source
-        else:
-            self.store[self.name_wid.hint_text] = self.source
+        do_redata = False
+        if self.name_wid.text:
+            if (
+                self.name_wid.hint_text and
+                self.name_wid.hint_text != self.name_wid.text and
+                self.name_wid.hint_text in self.store
+            ):
+                del self.store[self.name_wid.hint_text]
+                do_redata = True
+            if (
+                not hasattr(self.store, self.name_wid.text) or
+                getattr(self.store, self.name_wid.text) != self.source
+            ):
+                Logger.debug("{}: Saving!".format(type(self).__name__))
+                setattr(self.store, self.name_wid.text, self.source)
+                do_redata = True
+        elif self.name_wid.hint_text:
+            if (
+                not hasattr(self.store, self.name_wid.hint_text) or
+                getattr(self.store, self.name_wid.hint_text) != self.source
+            ):
+                Logger.debug("{}: Saving!".format(type(self).__name__))
+                setattr(self.store, self.name_wid.hint_text, self.source)
+                do_redata = True
         return do_redata
 
     def delete(self, *args):
@@ -264,8 +270,10 @@ class EdBox(BoxLayout):
         self.editor.name_wid.hint_text = self.storelist.selection_name.strip('+')
         self.editor.name_wid.text = ''
         try:
-            self.editor.source = self.store[self.editor.name_wid.hint_text]
-        except KeyError:
+            self.editor.source = getattr(
+                self.store, self.editor.name_wid.hint_text
+            )
+        except AttributeError:
             self.editor.source = self.get_default_text(self.editor.name_wid.hint_text)
         self.disable_text_input = not self.valid_name(self.editor.name_wid.hint_text)
         if hasattr(self, '_lock_save'):

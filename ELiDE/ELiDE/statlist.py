@@ -203,7 +203,7 @@ default_cfg = {
 }
 
 
-class AbstractStatListView(RecycleView):
+class BaseStatListView(RecycleView):
     control = DictProperty({})
     config = DictProperty({})
     mirror = DictProperty({})
@@ -364,7 +364,7 @@ class AbstractStatListView(RecycleView):
             self.unbind(mirror=self._listeners[w.key])
 
 
-class StatListView(AbstractStatListView):
+class StatListView(BaseStatListView):
     pass
 
 

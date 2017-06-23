@@ -16,7 +16,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
-from .statlist import AbstractStatListView
+from .statlist import BaseStatListView
 
 
 control_txt = {
@@ -154,7 +154,7 @@ class ConfigListItem(BoxLayout):
     )
 
 
-class StatListViewConfigurator(AbstractStatListView):
+class StatListViewConfigurator(BaseStatListView):
     statlist = ObjectProperty()
     _key_cfg_setters = DictProperty()
     _val_text_setters = DictProperty()
