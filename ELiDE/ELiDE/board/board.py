@@ -19,6 +19,7 @@ from kivy.graphics.transformation import Matrix
 from kivy.uix.widget import Widget
 from kivy.uix.scatterlayout import ScatterLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scrollview import ScrollView
 from .spot import Spot
 from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
@@ -148,7 +149,7 @@ class Board(Widget):
     def apply_scale(self, scale):
         self.apply_transform(
             Matrix().scale(scale, scale, scale),
-            anchor=Vector(*self.to_local(self.center))
+            anchor=Vector(*self.to_local(*self.center))
         )
 
     def on_touch_down(self, touch):
@@ -972,33 +973,41 @@ class Board(Widget):
 
 class ScatterBoard(Board, ScatterLayout):
     tracking_vel = BooleanProperty()
-    # def track_vel(self, *args):
-    #     """Track scrolling once it starts, so that we can tell when it
-    #     stops.
 
-    #     """
-    #     if not self.parent:
-    #         return
-    #     if (
-    #             not self.tracking_vel and (
-    #                 self.parent.effect_x.velocity > 0 or
-    #                 self.parent.effect_y.velocity > 0
-    #             )
-    #     ):
-    #         self.upd_pos_when_scrolling_stops()
-    #         self.tracking_vel = True
+    def track_vel(self, *args):
+        """Track scrolling once it starts, so that we can tell when it
+        stops.
 
-    # def upd_pos_when_scrolling_stops(self, *args):
-    #     """Wait for the scroll to stop, then store where it ended."""
-    #     if not self.parent:
-    #         return
-    #     if self.parent.effect_x.velocity \
-    #        == self.parent.effect_y.velocity == 0:
-    #         self.character.stat['_scroll_x'] = self.parent.scroll_x
-    #         self.character.stat['_scroll_y'] = self.parent.scroll_y
-    #         self.tracking_vel = False
-    #         return
-    #     Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
+        """
+        if not self.parent:
+            return
+        if (
+                not self.tracking_vel and (
+                    self.parent.effect_x.velocity > 0 or
+                    self.parent.effect_y.velocity > 0
+                )
+        ):
+            self.upd_pos_when_scrolling_stops()
+            self.tracking_vel = True
+
+    def upd_pos_when_scrolling_stops(self, *args):
+        """Wait for the scroll to stop, then store where it ended."""
+        if not self.parent:
+            return
+        if self.parent.effect_x.velocity \
+           == self.parent.effect_y.velocity == 0:
+            self.character.stat['_scroll_x'] = self.parent.scroll_x
+            self.character.stat['_scroll_y'] = self.parent.scroll_y
+            self.tracking_vel = False
+            return
+        Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
+
+
+class BoardScrollView(ScrollView):
+    def on_touch_down(self, touch):
+        if self.children and touch.is_mouse_scrolling:
+            return self.children[0].dispatch('on_touch_down', touch)
+        return super().on_touch_down(touch)
 
 Builder.load_string(
     """
@@ -1016,6 +1025,7 @@ Builder.load_string(
 <ScatterBoard>:
     size_hint: None, None
     do_rotation: False
+    do_scroll: False
     scale_max: 4.0
     scale_min: 0.2
     app: app

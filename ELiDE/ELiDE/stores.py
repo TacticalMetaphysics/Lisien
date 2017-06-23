@@ -153,6 +153,9 @@ class StringsEdScreen(Screen):
     def on_language(self, *args):
         self.ids.edbox.storelist.redata()
 
+    def save(self):
+        self.ids.edbox.save()
+
 
 class Editor(BoxLayout):
     name_wid = ObjectProperty()
@@ -492,6 +495,11 @@ class FuncsEdBox(EdBox):
 
 class FuncsEdScreen(Screen):
     toggle = ObjectProperty()
+
+    def save(self):
+        self.ids.triggers.save()
+        self.ids.prereqs.save()
+        self.ids.actions.save()
 
 
 Builder.load_string("""

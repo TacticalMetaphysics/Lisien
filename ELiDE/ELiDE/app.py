@@ -151,9 +151,8 @@ class ELiDEApp(App):
         """
         config = self.config
         Logger.debug(
-            "ELiDEApp: starting with world {}, code {}, path {}".format(
+            "ELiDEApp: starting with world {}, path {}".format(
                 config['LiSE']['world'],
-                config['LiSE']['code'],
                 LiSE.__path__[-1]
             )
         )

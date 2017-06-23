@@ -367,13 +367,10 @@ Builder.load_string(
     statlist: statpanel.statlist
     statpanel: statpanel
     timepanel: timepanel
-    StencilView:
+    BoardScrollView:
         id: boardview
         x: statpanel.right
         y: timepanel.top
-        size_hint: (None, None)
-        width: charmenu.x - statpanel.right
-        height: root.height - timepanel.height
     StatListPanel:
         id: statpanel
         engine: app.engine
