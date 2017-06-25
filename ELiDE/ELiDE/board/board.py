@@ -106,6 +106,7 @@ class Board(Widget):
     board.
 
     """
+    # TODO: Make this usable outside of ScatterBoard
     character = ObjectProperty()
     wallpaper_path = StringProperty()
     spot = DictProperty({})
