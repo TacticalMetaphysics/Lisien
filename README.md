@@ -27,9 +27,6 @@ Existing games that LiSE seeks to imitate include:
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
 
-To demonstrate the capabilities of the engine, I will develop the game
-[Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
-
 # Why should I use LiSE for this purpose?
 
 LiSE is a game engine in the sense of RPG Maker or Ren'Py. It assumes
@@ -65,9 +62,9 @@ yourself, after all.
 # Getting started
 
 ```
-# install the development version of kivy
+# install the Kivy app framework
 sudo apt-get install cython3 python3-dev python3-pip python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-pip3 install --user git+https://github.com/kivy/kivy.git
+pip3 install --user kivy
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
