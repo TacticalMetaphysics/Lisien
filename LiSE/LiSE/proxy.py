@@ -2068,7 +2068,10 @@ class EngineProxy(AbstractEngine):
         for char in deleted:
             del self._char_cache[char]
 
-    def _inc_tick(self, *args):
+    def _maybe_inc_tick(self, tick):
+        if tick == self._tick:
+            return
+        assert tick == self._tick + 1
         self._tick += 1
         self.time.send(self, branch=self._branch, tick=self._tick)
 
@@ -2114,22 +2117,25 @@ class EngineProxy(AbstractEngine):
                 'command': 'next_tick',
                 'chars': chars
             }))
-            args = [self._inc_tick, self._upd_char_caches]
+            to_call = [
+                lambda ret: self._maybe_inc_tick(ret[1]),
+                lambda ret: self._upd_char_caches(ret[3])
+            ]
             if cb:
-                args.append(cb)
+                to_call.append(cb)
             if silent:
                 Thread(
                     target=self._call_with_recv,
-                    args=args
+                    args=to_call
                 ).start()
             else:
-                return self._call_with_recv(*args)
+                return self._call_with_recv(*to_call)
         elif silent:
             self.handle(command='next_tick', chars=[], silent=True)
         else:
-            ret = self.handle(command='next_tick', chars='all')
-            self.time.send(self, branch=ret['branch'], tick=ret['tick'])
-            return ret
+            branch, tick, act, ret = self.handle(command='next_tick', chars='all')
+            self.time.send(self, branch=branch, tick=tick)
+            return branch, tick, act, ret
 
     def time_travel(self, branch, tick, chars='all', cb=None, block=True):
         if cb and not chars:

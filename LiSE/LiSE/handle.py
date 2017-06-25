@@ -155,10 +155,15 @@ class EngineHandle(object):
             }
 
     def next_tick(self, chars=[]):
-        self._real.next_tick()
-        self.tick += 1
+        ret = self._real.next_tick()
+        if ret is None:
+            self.tick += 1
+        assert self.branch == self._real.branch
+        assert self.tick == self._real.tick
         if chars:
-            return self.get_chardiffs(chars)
+            return self.branch, self.tick, ret, self.get_chardiffs(chars)
+        else:
+            return self.branch, self.tick, ret, None
 
     def time_travel(self, branch, tick, chars='all'):
         self._real.time = (branch, tick)

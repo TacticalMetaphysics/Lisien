@@ -125,18 +125,16 @@ class NextTick(Signal):
 
     def __call__(self):
         curtick = self.engine.tick
-        r = []
-        while self.engine.tick == curtick:
-            r.append(self.engine.advance())
-        # The last element is always None, but is not a sentinel; any
-        # rule may return None.
+        r = None
+        while self.engine.tick == curtick and not r:
+            r = self.engine.advance()
         self.send(
             self.engine,
             branch=self.engine.branch,
             tick=self.engine.tick,
             result=r
         )
-        return r[:-1]
+        return r
 
 
 class DummyEntity(dict):
