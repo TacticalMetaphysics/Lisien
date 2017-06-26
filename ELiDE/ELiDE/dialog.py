@@ -37,10 +37,14 @@ class DialogMenu(Box, BoxLayout):
     """Some buttons that make the game do things."""
     options = ListProperty()
     """List of pairs of (button_text, partial)"""
+    funcs = DictProperty({})
+    """Dict of functions to be used in place of string partials in the options"""
 
     def on_options(self, *args):
         self.clear_widgets()
         for txt, part in self.options:
+            if not callable(part):
+                part = self.funcs[part]
             self.add_widget(Button(text=txt, on_press=part))
 
 
