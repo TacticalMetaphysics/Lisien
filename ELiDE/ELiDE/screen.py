@@ -26,6 +26,7 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
+from .dialog import Dialog
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -267,6 +268,34 @@ class MainScreen(Screen):
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.pull_time()
 
+    def _update_dialog(self, diargs, **kwargs):
+        layout = self.ids.dialoglayout
+        layout.clear_widgets()
+        if diargs is None:
+            Logger.debug("Screen: null dialog")
+            return
+        if not hasattr(self, '_dia'):
+            self._dia = Dialog()
+        dia = self._dia
+        if isinstance(diargs, str):
+            dia.message_kwargs = {'text': diargs}
+            dia.menu_kwargs = {'options': [('OK', self.clear_dialog)]}
+        elif isinstance(diargs, list):
+            dia.message_kwargs = {'text': 'Select from the following:'}
+            dia.menu_kwargs = {'options': diargs}
+        elif isinstance(diargs, tuple):
+            if len(diargs) != 2:
+                # TODO more informative error
+                raise TypeError('Need a tuple of length 2')
+            dia.message_kwargs, dia.menu_kwargs = diargs
+        else:
+            raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
+        self.ids.dialoglayout.add_widget(dia)
+
+    @trigger
+    def clear_dialog(self, *args):
+        self.ids.dialoglayout.clear_widgets()
+
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
         if self.playbut.state == 'normal':
@@ -377,5 +406,12 @@ Builder.load_string(
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
+    FloatLayout:
+        id: dialoglayout
+        size_hint: None, None
+        x: boardview.x
+        y: boardview.y
+        width: charmenu.x - statpanel.x
+        height: window.height - timepanel.y
 """
 )
