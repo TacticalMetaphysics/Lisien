@@ -17,6 +17,7 @@ code.
 import re
 import string
 from functools import partial
+from ast import parse
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -176,6 +177,12 @@ class Editor(BoxLayout):
         if self.name_wid.text and self.name_wid.text[0] in string.digits + string.whitespace + string.punctuation:
             # TODO alert the user to invalid name
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
+            return
+        try:
+            parse(self.source)
+        except SyntaxError:
+            # TODO alert user to invalid source
+            Logger.debug("{}: Not saving, couldn't parse".format(type(self).__name__))
             return
         do_redata = False
         if self.name_wid.text:
