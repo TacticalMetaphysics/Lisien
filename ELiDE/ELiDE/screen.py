@@ -412,6 +412,6 @@ Builder.load_string(
         x: boardview.x
         y: boardview.y
         width: charmenu.x - statpanel.x
-        height: window.height - timepanel.y
+        height: root.height - timepanel.y
 """
 )
