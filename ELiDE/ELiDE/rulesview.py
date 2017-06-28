@@ -210,7 +210,7 @@ class RulesView(FloatLayout):
             )
             for name in rulefuncnames
         ]
-        return unused, used
+        return used, unused
 
     def pull_triggers(self, *args):
         self._trigger_builder.decks = self._pull_functions('trigger')
