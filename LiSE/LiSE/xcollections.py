@@ -211,7 +211,7 @@ class FunctionStore(Signal):
         ast = parse(v)
         if name:
             ast.body[0].name = name
-        exec(compile(ast, '<LiSE>', 'exec'))
+        exec(compile(ast, '<LiSE>', 'exec'), {}, locl)
         self._locl.update(locl)
         for expr in ast.body:
             if expr.name in self._ast_idx:
