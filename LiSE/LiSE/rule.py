@@ -53,7 +53,7 @@ class RuleFuncList(MutableSequence, Signal):
             v = v.__name__
         if not hasattr(self.funcstore, v):
             raise KeyError("No {typ} function named {n}".format(
-                typ=self.typ, n=v
+                typ=self.funcstore._tab, n=v
             ))
         return v
 
