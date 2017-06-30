@@ -1849,10 +1849,16 @@ class EngineProxy(AbstractEngine):
         self._things_cache = StructuredDefaultDict(1, ThingProxy)
         self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
         self._character_rulebooks_cache = StructuredDefaultDict(
-            1, RuleBookProxy
+            1, RuleBookProxy, kwargs_munger=lambda inst, k: {
+                'engine': self,
+                'bookname': k
+            }
         )
         self._char_node_rulebooks_cache = StructuredDefaultDict(
-            1, RuleBookProxy
+            1, RuleBookProxy, kwargs_munger=lambda inst, k: {
+                'engine': self,
+                'bookname': k
+            }
         )
         self._char_port_rulebooks_cache = StructuredDefaultDict(
             2, RuleBookProxy
