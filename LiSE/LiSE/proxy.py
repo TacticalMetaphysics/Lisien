@@ -1866,15 +1866,7 @@ class EngineProxy(AbstractEngine):
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
 
-        class LoudCharCache(dict):
-            def __setitem__(self, key, val):
-                print("_char_cache {}={}".format(key, val))
-                super().__setitem__(key, val)
-
-            def __delitem__(self, key):
-                print("_char_cache del {}".format(key))
-                super().__delitem__(key)
-        self._char_cache = LoudCharCache()
+        self._char_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
         charsdiffs = self.handle('get_chardiffs', chars='all')
