@@ -288,7 +288,7 @@ class PickyDefaultDict(dict):
     They take arguments ``self`` and the unused key being looked up.
 
     """
-    __slots__ = ['type', 'args_munger', 'kwargs_munger']
+    __slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
     def __init__(
             self, type=object,
@@ -325,7 +325,7 @@ class StructuredDefaultDict(dict):
     This will never accept manual assignments at any layer but the deepest.
 
     """
-    __slots__ = ['layer', 'type', 'args_munger', 'kwargs_munger']
+    __slots__ = ['layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
     def __init__(
             self, layers, type=object,
@@ -351,6 +351,8 @@ class StructuredDefaultDict(dict):
                 self.layer-1, self.type,
                 self.args_munger, self.kwargs_munger
             )
+        ret.parent = self
+        ret.key = k
         super(StructuredDefaultDict, self).__setitem__(k, ret)
         return ret
 
