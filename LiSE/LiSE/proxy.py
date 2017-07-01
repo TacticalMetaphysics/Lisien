@@ -1851,17 +1851,20 @@ class EngineProxy(AbstractEngine):
         self._character_rulebooks_cache = StructuredDefaultDict(
             1, RuleBookProxy, kwargs_munger=lambda inst, k: {
                 'engine': self,
-                'bookname': k
+                'bookname': (inst.key, k)
             }
         )
         self._char_node_rulebooks_cache = StructuredDefaultDict(
             1, RuleBookProxy, kwargs_munger=lambda inst, k: {
                 'engine': self,
-                'bookname': k
+                'bookname': (inst.key, k)
             }
         )
         self._char_port_rulebooks_cache = StructuredDefaultDict(
-            2, RuleBookProxy
+            2, RuleBookProxy, kwargs_munger=lambda inst, k: {
+                'engine': self,
+                'bookname': (inst.parent.key, inst.key, k)
+            }
         )
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
