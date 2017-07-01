@@ -1849,29 +1849,28 @@ class EngineProxy(AbstractEngine):
         self._things_cache = StructuredDefaultDict(1, ThingProxy)
         self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
 
-        def munger(inst, k):
-            return self, k
         self._character_rulebooks_cache = StructuredDefaultDict(
-            1, RuleBookProxy, args_munger=munger
+            1, RuleBookProxy, kwargs_munger=lambda inst, k: {
+                'engine': self,
+                'bookname': (inst.key, k)
+            }
         )
         self._char_node_rulebooks_cache = StructuredDefaultDict(
-            1, RuleBookProxy, args_munger=munger
+            1, RuleBookProxy, kwargs_munger=lambda inst, k: {
+                'engine': self,
+                'bookname': (inst.key, k)
+            }
         )
         self._char_port_rulebooks_cache = StructuredDefaultDict(
-            2, RuleBookProxy, args_munger=munger
+            2, RuleBookProxy, kwargs_munger=lambda inst, k: {
+                'engine': self,
+                'bookname': (inst.parent.key, inst.key, k)
+            }
         )
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
 
-        class LoudCharCache(dict):
-            def __setitem__(self, key, val):
-                print("_char_cache {}={}".format(key, val))
-                super().__setitem__(key, val)
-
-            def __delitem__(self, key):
-                print("_char_cache del {}".format(key))
-                super().__delitem__(key)
-        self._char_cache = LoudCharCache()
+        self._char_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
         charsdiffs = self.handle('get_chardiffs', chars='all')

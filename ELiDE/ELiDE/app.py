@@ -51,6 +51,9 @@ class ELiDEApp(App):
     selection = ObjectProperty(None, allownone=True)
     selected_remote = ObjectProperty()
 
+    def on_selection(self, *args):
+        Logger.debug("App: {} selected".format(self.selection))
+
     def _get_character_name(self, *args):
         if self.character is None:
             return
@@ -330,7 +333,13 @@ class ELiDEApp(App):
             self.config['ELiDE']['boardchar'] = self.character_name
 
     def on_character(self, *args):
+        if not hasattr(self, 'mainscreen'):
+            Clock.schedule_once(self.on_character, 0)
+            return
+        if hasattr(self, '_oldchar'):
+            self.mainscreen.boards[self._oldchar.name].unbind(selection=self.setter('selection'))
         self.selection = None
+        self.mainscreen.boards[self.character.name].bind(selection=self.setter('selection'))
 
     def on_pause(self):
         """Sync the database with the current state of the game."""

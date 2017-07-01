@@ -31,11 +31,15 @@ dbg = Logger.debug
 # How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
     rulesview = ObjectProperty()
+    ruleslist = ObjectProperty()
     rule = ObjectProperty()
 
     def on_state(self, *args):
         if self.state == 'down':
             self.rulesview.rule = self.rule
+            for button in self.ruleslist.children[0].children:
+                if button != self:
+                    button.state = 'normal'
 
 
 class RulesList(RecycleView):
@@ -43,14 +47,15 @@ class RulesList(RecycleView):
     rulesview = ObjectProperty()
 
     def __init__(self, **kwargs):
-        self.bind(rulebook=self.redata)
+        self.bind(rulebook=self._trigger_redata)
         super().__init__(**kwargs)
 
     def redata(self, *args):
         self.data = [
-            {'rulesview': self.rulesview, 'rule': rule, 'index': i}
+            {'rulesview': self.rulesview, 'rule': rule, 'index': i, 'ruleslist': self}
             for i, rule in enumerate(self.rulebook)
         ]
+    _trigger_redata = trigger(redata)
 
 
 class RulesView(FloatLayout):
