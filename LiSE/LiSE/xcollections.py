@@ -104,7 +104,7 @@ class StringStore(MutableMapping, Signal):
         return len(self.cache[self.language])
 
     def __getitem__(self, k):
-        return self.cache[self.language][k].format_map(NotThatMap(self, k))
+        return self.cache[self.language][k]
 
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
@@ -118,6 +118,10 @@ class StringStore(MutableMapping, Signal):
         """
         del self.cache[self.language][k]
         self.send(self, key=k, val=None)
+
+    def format(self, k):
+        """Return a stored string with other strings substituted into it."""
+        return self[k].format_map(NotThatMap(self, k))
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
