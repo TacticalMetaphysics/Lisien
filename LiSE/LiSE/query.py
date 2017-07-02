@@ -925,6 +925,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         ) in self.sql('handled_{}_rules'.format(typ)):
             yield (
                 self.json_load(character),
+                typ,
                 self.json_load(rulebook),
                 self.json_load(rule),
                 branch,
