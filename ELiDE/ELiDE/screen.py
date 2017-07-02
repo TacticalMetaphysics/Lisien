@@ -100,7 +100,7 @@ class TimePanel(BoxLayout):
     def next_tick(self, *args):
         self.screen.app.engine.next_tick(
             chars=[self.screen.app.character_name],
-            cb=lambda ret: self.screen._update_from_chardiff(ret[3])
+            cb=self.screen._update_from_next_tick
         )
 
     def _upd_branch_hint(self, *args):
@@ -260,6 +260,10 @@ class MainScreen(Screen):
     def _propagate_place_paths(self, *args):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
+
+    def _update_from_next_tick(self, ret):
+        self._update_dialog(ret[2])
+        self._update_from_chardiff(ret[3])
 
     def _update_from_chardiff(self, chardiff, **kwargs):
         self.boardview.board.trigger_update_from_diff(
