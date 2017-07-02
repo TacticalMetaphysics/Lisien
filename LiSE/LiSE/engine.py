@@ -918,11 +918,8 @@ class Engine(AbstractEngine, gORM):
         (branch, tick) = self.time
         rules = list(self._poll_rules())
         for (typ, character, entity, rulebook, rule) in rules:
-            def follow(*args):
-                return (rule(self, *args), rule.name, typ, rulebook)
-
             if typ in ('thing', 'place', 'portal'):
-                yield follow(character, entity)
+                yield rule(self, character, entity)
                 if typ == 'thing':
                     self._handled_thing_rule(
                         character.name,
@@ -953,22 +950,22 @@ class Engine(AbstractEngine, gORM):
                     )
             else:
                 if typ == 'character':
-                    yield follow(character)
+                    yield rule(self, character)
                 elif typ == 'avatar':
                     for avatar in character.avatars():
-                        yield follow(character, avatar)
+                        yield rule(self, character, avatar)
                 elif typ == 'character_thing':
                     for thing in character.thing.values():
-                        yield follow(character, thing)
+                        yield rule(self, character, thing)
                 elif typ == 'character_place':
                     for place in character.place.values():
-                        yield follow(character, place)
+                        yield rule(self, character, place)
                 elif typ == 'character_node':
                     for node in character.node.values():
-                        yield follow(character, node)
+                        yield rule(self, character, node)
                 elif typ == 'character_portal':
                     for portal in character.portal.values():
-                        yield follow(character, portal)
+                        yield rule(self, character, portal)
                 else:
                     raise ValueError('Unknown type of rule')
                 self._handled_character_rule(
