@@ -290,9 +290,9 @@ class Rule(object):
 
         """
         if not self.check_triggers(engine, *args):
-            return []
+            return
         if not self.check_prereqs(engine, *args):
-            return []
+            return
             # maybe a result object that informs you as to why I
             # didn't run?
         return self.run_actions(engine, *args)
