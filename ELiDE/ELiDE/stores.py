@@ -464,6 +464,9 @@ class FuncsEdBox(EdBox):
     or close the screen.
 
     """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._init_set()
 
     def get_default_text(self, newname):
         return self.editor.get_default_text(newname)
@@ -481,6 +484,12 @@ class FuncsEdBox(EdBox):
             self.ids.place.active = True
         elif val == 'portal':
             self.ids.port.active = True
+
+    def _init_set(self, *args):
+        if 'char' not in self.ids:
+            Clock.schedule_once(self._init_set, 0)
+            return
+        self.ids.char.active = True
 
     def _trigger_subjtyp(self, val):
         part = partial(self.subjtyp, val)
