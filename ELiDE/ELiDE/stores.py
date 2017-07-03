@@ -189,7 +189,7 @@ class Editor(BoxLayout):
             if (
                 self.name_wid.hint_text and
                 self.name_wid.hint_text != self.name_wid.text and
-                self.name_wid.hint_text in self.store
+                hasattr(self.store, self.name_wid.hint_text)
             ):
                 del self.store[self.name_wid.hint_text]
                 do_redata = True
