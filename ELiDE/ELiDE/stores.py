@@ -189,7 +189,7 @@ class Editor(BoxLayout):
             if (
                 self.name_wid.hint_text and
                 self.name_wid.hint_text != self.name_wid.text and
-                self.name_wid.hint_text in self.store
+                hasattr(self.store, self.name_wid.hint_text)
             ):
                 del self.store[self.name_wid.hint_text]
                 do_redata = True
@@ -302,7 +302,7 @@ class EdBox(BoxLayout):
         save_select = self.editor.save()
         if save_select:
             name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
-            self.storelist.redata(name)
+            self.storelist.redata(select_name=name)
         else:
             del self._lock_save
 
@@ -428,8 +428,11 @@ class FuncEditor(Editor):
 
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
-        for line in self._text.split('\n'):
-            code += (' ' * 4 + line + '\n')
+        if self._text:
+            for line in self._text.split('\n'):
+                code += (' ' * 4 + line + '\n')
+        else:
+            code += ' ' * 4 + 'pass'
         return code.rstrip(' \n\t')
 
     def _set_source(self, v):
@@ -461,6 +464,9 @@ class FuncsEdBox(EdBox):
     or close the screen.
 
     """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._init_set()
 
     def get_default_text(self, newname):
         return self.editor.get_default_text(newname)
@@ -478,6 +484,17 @@ class FuncsEdBox(EdBox):
             self.ids.place.active = True
         elif val == 'portal':
             self.ids.port.active = True
+
+    def _init_set(self, *args):
+        if 'char' not in self.ids:
+            Clock.schedule_once(self._init_set, 0)
+            return
+        self.ids.char.active = True
+
+    def _trigger_subjtyp(self, val):
+        part = partial(self.subjtyp, val)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def setchar(self, active):
         if not active:
