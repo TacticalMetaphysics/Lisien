@@ -147,6 +147,7 @@ class MainScreen(Screen):
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
+    dialoglayout = ObjectProperty()
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
     rules_per_frame = BoundedNumericProperty(10, min=1)
@@ -215,7 +216,8 @@ class MainScreen(Screen):
             self.charmenu,
             self.statpanel,
             self.dummyplace,
-            self.dummything
+            self.dummything,
+            self.dialoglayout
         ):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
@@ -379,6 +381,7 @@ Builder.load_string(
     statlist: statpanel.statlist
     statpanel: statpanel
     timepanel: timepanel
+    dialoglayout: dialoglayout
     BoardView:
         id: boardview
         x: statpanel.right
