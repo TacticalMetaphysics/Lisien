@@ -53,12 +53,13 @@ class Dialog(BoxLayout):
     message_kwargs = DictProperty({})
     menu_kwargs = DictProperty({})
 
-    # I'm worried that updating this way won't set the kivy.properties correctly
     def on_message_kwargs(self, *args):
-        self.ids.msg.__dict__.update(self.message_kwargs)
+        for k, v in self.message_kwargs.items():
+            setattr(self.ids.msg, k, v)
 
     def on_menu_kwargs(self, *args):
-        self.ids.menu.__dict__.update(self.menu_kwargs)
+        for k, v in self.menu_kwargs.items():
+            setattr(self.ids.menu, k, v)
 
 
 Builder.load_string("""
