@@ -413,12 +413,12 @@ Builder.load_string(
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
-    RelativeLayout:
+    FloatLayout:
         id: dialoglayout
         size_hint: None, None
         x: statpanel.right
         y: timepanel.top
         width: charmenu.x - statpanel.right
-        height: root.height - timepanel.y
+        height: root.height - timepanel.top
 """
 )

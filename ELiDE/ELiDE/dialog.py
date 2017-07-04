@@ -9,6 +9,7 @@ from kivy.core.text import DEFAULT_FONT
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
+from kivy.uix.scrollview import ScrollView
 from kivy.lang import Builder
 
 
@@ -23,6 +24,14 @@ class Box(Widget):
     foreground_color = ListProperty([0, 0, 0, 1])
 
 
+class ScrollableLabel(ScrollView):
+    font_size = StringProperty('15sp')
+    font_name = StringProperty(DEFAULT_FONT)
+    color = ListProperty([0, 0, 0, 1])
+    line_spacing = NumericProperty(0)
+    text = StringProperty()
+
+
 class MessageBox(Box):
     """Looks like a TextInput but doesn't accept any input.
 
@@ -33,7 +42,7 @@ class MessageBox(Box):
     text = StringProperty()
 
 
-class DialogMenu(Box, BoxLayout):
+class DialogMenu(Box):
     """Some buttons that make the game do things."""
     options = ListProperty()
     """List of pairs of (button_text, partial)"""
@@ -42,10 +51,16 @@ class DialogMenu(Box, BoxLayout):
 
     def on_options(self, *args):
         self.clear_widgets()
+        if not hasattr(self, '_sv'):
+            self._sv = ScrollView(size=self.size, pos=self.pos)
+            self.bind(size=self._sv.setter('size'), pos=self._sv.setter('pos'))
+            self._sv.add_widget(BoxLayout(orientation='vertical'))
+        layout = self._sv.children[0]
         for txt, part in self.options:
             if not callable(part):
                 part = self.funcs[part]
-            self.add_widget(Button(text=txt, on_press=part))
+            layout.add_widget(Button(text=txt, on_press=part, font_name=self.font_name, font_size=self.font_size))
+        self.add_widget(self._sv)
 
 
 class Dialog(BoxLayout):
@@ -63,46 +78,40 @@ class Dialog(BoxLayout):
 
 
 Builder.load_string("""
+<Box>:
+    canvas.before:
+        Color:
+            rgba: self.background_color
+        BorderImage:
+            border: self.border
+            pos: self.pos
+            size: self.size
+            source: self.background
+        Color:
+            rgba: 1, 1, 1, 1
+<ScrollableLabel>:
+    Label:
+        size_hint_y: None
+        height: self.texture_size[1]
+        text_size: self.width, None
+        text: root.text
+        color: root.color
 <MessageBox>:
-    canvas.before:
-        Color:
-            rgba: self.background_color
-        BorderImage:
-            border: self.border
-            pos: self.pos
-            size: self.size
-            source: self.background
-    ScrollView:
-        id: sv
-        do_scroll_x: False
-        size: root.width - root.border[1] - root.border[3], root.height - root.border[0] - root.border[2]
-        Label:
-            markup: True
-            text: root.text
-            font_name: root.font_name
-            font_size: root.font_size
-            line_spacing: root.line_spacing
-            width: sv.width
-            size_hint_y: None
-            text_size: self.size
-<DialogMenu>:
-    canvas.before:
-        Color:
-            rgba: self.background_color
-        BorderImage:
-            border: self.border
-            pos: self.pos
-            size: self.size
-            source: self.background
-    orientation: 'vertical'
+    ScrollableLabel:
+        x: root.x + root.padding[0]
+        y: root.y + root.padding[3]
+        width: root.width - root.padding[2]
+        height: root.height - root.padding[1]
+        text: root.text
+        color: root.foreground_color
 <Dialog>:
     orientation: 'vertical'
+    pos_hint: {'x': 0, 'y': 0}
+    size_hint: 1, 0.3
     MessageBox:
         id: msg
-    ScrollView:
-        DialogMenu:
-            size_hint_y: None
-            id: menu
+    DialogMenu:
+        id: menu
 """)
 
 
