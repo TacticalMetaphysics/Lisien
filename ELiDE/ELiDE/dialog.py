@@ -96,6 +96,7 @@ Builder.load_string("""
             source: self.background
     orientation: 'vertical'
 <Dialog>:
+    orientation: 'vertical'
     MessageBox:
         id: msg
     ScrollView:
