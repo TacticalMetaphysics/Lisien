@@ -14,6 +14,9 @@ class UniversalCache(Cache):
     def store(self, key, branch, tick, value):
         super().store(None, key, branch, tick, value)
 
+    def retrieve(self, *args):
+        return super().retrieve(*(None,)+args)
+
 
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
