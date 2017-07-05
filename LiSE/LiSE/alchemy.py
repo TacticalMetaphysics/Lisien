@@ -768,9 +768,9 @@ def queries(table, view):
             table['lise_globals'].c.value
         ]
     ).order_by(
-        table['lise_globals'].c.key,
         table['lise_globals'].c.branch,
-        table['lise_globals'].c.tick
+        table['lise_globals'].c.tick,
+        table['lise_globals'].c.key
     )
 
     r['universal_items'] = select(
