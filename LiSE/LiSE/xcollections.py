@@ -210,19 +210,24 @@ class FunctionStore(Signal):
             yield name, getsource(func)
 
     def store_source(self, v, name=None):
-        v = self._dedent_sourcelines(v.split('\n'))
+        outdented = self._dedent_sourcelines(v.split('\n'))
+        mod = parse(outdented)
+        expr = Expr(mod)
+        if len(expr.value.body) != 1:
+            raise ValueError("Tried to store more than one function")
+        if name is None:
+            name = expr.value.body[0].name
+        else:
+            expr.value.body[0].name = name
+        if name in self._ast_idx:
+            self._ast.body[self._ast_idx[name]] = expr
+        else:
+            self._ast_idx[name] = len(self._ast.body)
+            self._ast.body.append(expr)
         locl = {}
-        ast = parse(v)
-        if name:
-            ast.body[0].name = name
-        exec(compile(ast, '<LiSE>', 'exec'), {}, locl)
+        exec(compile(mod, '<LiSE>', 'exec'), {}, locl)
         self._locl.update(locl)
-        for expr in ast.body:
-            if expr.name in self._ast_idx:
-                self._ast.body[self._ast_idx[expr.name]] = expr
-            else:
-                self._ast_idx[expr.name] = len(self._ast_idx)
-                self._ast.body.append(expr)
+        self.send(self, attr=name, val=locl[name])
 
     def get_source(self, name):
         return getsource(getattr(self, name))
