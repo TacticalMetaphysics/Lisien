@@ -4,6 +4,7 @@ Mostly these will be added as children of KvLayoutFront but you
 could use them independently if you wanted.
 
 """
+from functools import partial
 from kivy.properties import DictProperty, ListProperty, StringProperty, NumericProperty, VariableListProperty
 from kivy.core.text import DEFAULT_FONT
 from kivy.uix.boxlayout import BoxLayout
@@ -58,7 +59,16 @@ class DialogMenu(Box):
         layout = self._sv.children[0]
         for txt, part in self.options:
             if not callable(part):
-                part = self.funcs[part]
+                if isinstance(part, tuple):
+                    fun = part[0]
+                    args = part[1]
+                    if len(part) == 3:
+                        kwargs = part[2]
+                        part = partial(fun, *args, **kwargs)
+                    else:
+                        part = partial(fun, *args)
+                else:
+                    part = self.funcs[part]
             layout.add_widget(Button(text=txt, on_press=part, font_name=self.font_name, font_size=self.font_size))
         self.add_widget(self._sv)
 
