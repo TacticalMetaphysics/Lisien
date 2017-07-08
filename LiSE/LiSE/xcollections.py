@@ -3,7 +3,7 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from blinker import Signal
-from astunparse import unparse
+from astunparse import Unparser
 from ast import parse, Expr, Module
 from inspect import getsource, getsourcelines, getmodule
 import json
@@ -203,7 +203,7 @@ class FunctionStore(Signal):
 
     def save(self):
         with open(self._filename, 'w') as outf:
-            outf.write(unparse(self._ast))
+            Unparser(self._ast, outf)
 
     def iterplain(self):
         for name, func in self._locl.items():
