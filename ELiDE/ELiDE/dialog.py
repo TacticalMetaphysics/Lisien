@@ -12,6 +12,7 @@ from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 from kivy.uix.scrollview import ScrollView
 from kivy.lang import Builder
+from .util import trigger
 
 
 class Box(Widget):
@@ -78,11 +79,26 @@ class Dialog(BoxLayout):
     message_kwargs = DictProperty({})
     menu_kwargs = DictProperty({})
 
-    def on_message_kwargs(self, *args):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            message_kwargs=self._propagate_msg_kwargs,
+            menu_kwargs=self._propagate_menu_kwargs
+        )
+
+    @trigger
+    def _propagate_msg_kwargs(self, *args):
+        if 'msg' not in self.ids:
+            self._propagate_msg_kwargs()
+            return
         for k, v in self.message_kwargs.items():
             setattr(self.ids.msg, k, v)
 
-    def on_menu_kwargs(self, *args):
+    @trigger
+    def _propagate_menu_kwargs(self, *args):
+        if 'menu' not in self.ids:
+            self._propagate_menu_kwargs()
+            return
         for k, v in self.menu_kwargs.items():
             setattr(self.ids.menu, k, v)
 
