@@ -13,7 +13,6 @@ from kivy.uix.widget import Widget
 from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 from kivy.lang import Builder
-from .util import trigger
 
 
 class Box(Widget):
@@ -21,8 +20,7 @@ class Box(Widget):
     border = ListProperty([4, 4, 4, 4])
     font_size = StringProperty('15sp')
     font_name = StringProperty(DEFAULT_FONT)
-    background = StringProperty(
-        'atlas://data/images/defaulttheme/textinput')
+    background = StringProperty()
     background_color = ListProperty([1, 1, 1, 1])
     foreground_color = ListProperty([0, 0, 0, 1])
 
@@ -52,11 +50,19 @@ class DialogMenu(Box):
     funcs = DictProperty({})
     """Dict of functions to be used in place of string partials in the options"""
 
+    def _set_sv_size(self, *args):
+        self._sv.width = self.width - self.padding[0] - self.padding[2]
+        self._sv.height = self.height - self.padding[1] - self.padding[3]
+
+    def _set_sv_pos(self, *args):
+        self._sv.x = self.x + self.padding[0]
+        self._sv.y = self.y + self.padding[3]
+
     def on_options(self, *args):
         self.clear_widgets()
         if not hasattr(self, '_sv'):
             self._sv = ScrollView(size=self.size, pos=self.pos)
-            self.bind(size=self._sv.setter('size'), pos=self._sv.setter('pos'))
+            self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
             self._sv.add_widget(BoxLayout(orientation='vertical'))
         layout = self._sv.children[0]
         for txt, part in self.options:
@@ -138,7 +144,9 @@ Builder.load_string("""
     pos_hint: {'x': 0, 'y': 0}
     size_hint: 1, 0.3
     MessageBox:
+        background: 'atlas://data/images/defaulttheme/textinput'
         id: msg
     DialogMenu:
+        background: 'atlas://data/images/defaulttheme/vkeyboard_background'
         id: menu
 """)
