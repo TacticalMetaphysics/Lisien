@@ -557,6 +557,10 @@ def queries(table, view):
             [getattr(t.c, col) for col in selcols]
         ).where(and_(*wheres))
 
+    def dump(t):
+        """Return a ``SELECT`` statement that gets everything from the table"""
+        return select(list(t.c.keys()))
+
     def update_where(t, updcols, wherecols):
         """Return an ``UPDATE`` statement that updates the columns ``updcols``
         (with bindparams for each) in the table ``t`` in which the
@@ -632,25 +636,6 @@ def queries(table, view):
         table['characters'].c.character == bindparam('character')
     )
 
-    active_rules = table['active_rules']
-    r['dump_active_rules'] = select([
-        active_rules.c.rulebook,
-        active_rules.c.rule,
-        active_rules.c.branch,
-        active_rules.c.tick,
-        active_rules.c.active
-    ])
-
-    node_rules_handled = view['node_rules_handled']
-    r['dump_node_rules_handled'] = select([
-        node_rules_handled.c.character,
-        node_rules_handled.c.node,
-        node_rules_handled.c.rulebook,
-        node_rules_handled.c.rule,
-        node_rules_handled.c.branch,
-        node_rules_handled.c.tick
-    ])
-
     cnrh = view['character_node_rules_handled']
     r['dump_character_node_rules_handled'] = select([
         cnrh.c.character,
@@ -660,9 +645,6 @@ def queries(table, view):
         cnrh.c.branch,
         cnrh.c.tick
     ])
-
-    node_rulebook = table['node_rulebook']
-    rulebooks = table['rulebooks']
 
     portal_rulebook = table['portal_rulebook']
 
@@ -693,28 +675,8 @@ def queries(table, view):
         ['character', 'nodeA', 'nodeB', 'idx']
     )
 
-    portal_rules_handled = table['portal_rules_handled']
-    r['dump_portal_rules_handled'] = select([
-        portal_rules_handled.c.character,
-        portal_rules_handled.c.nodeA,
-        portal_rules_handled.c.nodeB,
-        portal_rules_handled.c.idx,
-        portal_rules_handled.c.rulebook,
-        portal_rules_handled.c.rule,
-        portal_rules_handled.c.branch,
-        portal_rules_handled.c.tick
-    ])
-    cporh = table['character_portal_rules_handled']
-    r['dump_character_portal_rules_handled'] = select([
-        cporh.c.character,
-        cporh.c.rulebook,
-        cporh.c.rule,
-        cporh.c.nodeA,
-        cporh.c.nodeB,
-        cporh.c.idx,
-        cporh.c.branch,
-        cporh.c.tick
-    ])
+    for name, tab in table.items():
+        r['dump_'+name] = dump(tab)
 
     for what in (
         'thing',
