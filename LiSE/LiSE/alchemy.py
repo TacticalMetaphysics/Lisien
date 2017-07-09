@@ -425,15 +425,6 @@ def indices_for_table_dict(table):
                 table['senses'].c.sense
             ),
             Index(
-                'travel_reqs_idx',
-                table['travel_reqs'].c.character
-            ),
-            Index(
-                'things_idx',
-                table['things'].c.character,
-                table['things'].c.thing
-            ),
-            Index(
                 'avatars_idx',
                 table['avatars'].c.character_graph,
                 table['avatars'].c.avatar_graph,
