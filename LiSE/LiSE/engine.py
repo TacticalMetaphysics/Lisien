@@ -631,7 +631,7 @@ class Engine(AbstractEngine, gORM):
         """Roll ``n`` dice with ``d`` faces, and yield the results.
 
         This is an iterator. You'll get the result of each die in
-        successon.
+        succession.
 
         """
         for i in range(0, n):
