@@ -840,17 +840,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 )
             )
 
-    def get_rulebook_char(self, rulemap, character):
-        character = self.json_dump(character)
-        for (book,) in self.sql(
-                'rulebook_get_{}'.format(rulemap), character
-        ):
-            return self.json_load(book)
-        raise KeyError("No rulebook")
-
-    def upd_rulebook_char(self, rulemap, character):
-        return self.sql('upd_rulebook_char_fmt', character, rulemap=rulemap)
-
     def things_dump(self):
         for (
                 character, thing, branch, tick, loc, nextloc
