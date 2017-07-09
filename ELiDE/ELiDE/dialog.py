@@ -142,11 +142,3 @@ Builder.load_string("""
     DialogMenu:
         id: menu
 """)
-
-
-if __name__ == "__main__":
-    from kivy.base import runTouchApp
-    dia = Dialog(
-        message_kwargs={'text': 'I am a dialog'},
-        menu_kwargs={'options': [('one', lambda: None), ('two', lambda: None)]}
-    )
