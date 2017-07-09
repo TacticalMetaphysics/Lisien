@@ -11,6 +11,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 from kivy.uix.scrollview import ScrollView
+from kivy.clock import Clock
 from kivy.lang import Builder
 from .util import trigger
 
@@ -85,19 +86,21 @@ class Dialog(BoxLayout):
             message_kwargs=self._propagate_msg_kwargs,
             menu_kwargs=self._propagate_menu_kwargs
         )
+        if 'message_kwargs' in kwargs:
+            self._propagate_msg_kwargs()
+        if 'menu_kwargs' in kwargs:
+            self._propagate_menu_kwargs()
 
-    @trigger
     def _propagate_msg_kwargs(self, *args):
         if 'msg' not in self.ids:
-            self._propagate_msg_kwargs()
+            Clock.schedule_once(self._propagate_msg_kwargs, 0)
             return
         for k, v in self.message_kwargs.items():
             setattr(self.ids.msg, k, v)
 
-    @trigger
     def _propagate_menu_kwargs(self, *args):
         if 'menu' not in self.ids:
-            self._propagate_menu_kwargs()
+            Clock.schedule_once(self._propagate_menu_kwargs, 0)
             return
         for k, v in self.menu_kwargs.items():
             setattr(self.ids.menu, k, v)
