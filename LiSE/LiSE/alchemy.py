@@ -163,7 +163,6 @@ def tables_for_meta(meta):
         Column('avatar_rulebook', TEXT, nullable=False),
         Column('character_thing_rulebook', TEXT, nullable=False),
         Column('character_place_rulebook', TEXT, nullable=False),
-        Column('character_node_rulebook', TEXT, nullable=False),
         Column('character_portal_rulebook', TEXT, nullable=False),
         ForeignKeyConstraint(['character'], ['graphs.graph']),
         ForeignKeyConstraint(
@@ -181,43 +180,69 @@ def tables_for_meta(meta):
         )
     )
 
-    # Rules handled within the rulebook associated with one thing in
-    # particular.
-    r['thing_rules_handled'] = Table(
-        'thing_rules_handled', meta,
+    r['character_rules_handled'] = Table(
+        'character_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
-        Column('thing', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
 
-    # Rules handled within the rulebook associated with one place in
-    # particular.
-    r['place_rules_handled'] = Table(
-        'place_rules_handled', meta,
+    r['avatar_rules_handled'] = Table(
+        'avatar_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
-        Column('place', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
+        Column('graph', TEXT, primary_key=True),
+        Column('avatar', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
 
-    # Rules handled within the rulebook associated with one portal in
-    # particular.
-    r['portal_rules_handled'] = Table(
-        'portal_rules_handled', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('nodeA', TEXT, primary_key=True),
-        Column('nodeB', TEXT, primary_key=True),
-        Column('idx', Integer, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', Integer, primary_key=True)
-    )
+    def thing_rules_handled_tab(name):
+        r[name] = Table(
+            name, meta,
+            Column('character', TEXT, primary_key=True),
+            Column('rulebook', TEXT, primary_key=True),
+            Column('thing', TEXT, primary_key=True),
+            Column('rule', TEXT, primary_key=True),
+            Column('branch', TEXT, primary_key=True),
+            Column('tick', Integer, primary_key=True)
+        )
+
+    thing_rules_handled_tab('thing_rules_handled')
+    thing_rules_handled_tab('character_thing_rules_handled')
+
+    def place_rules_handled_tab(name):
+        r[name] = Table(
+            name, meta,
+            Column('character', TEXT, primary_key=True),
+            Column('rulebook', TEXT, primary_key=True),
+            Column('place', TEXT, primary_key=True),
+            Column('rule', TEXT, primary_key=True),
+            Column('branch', TEXT, primary_key=True),
+            Column('tick', Integer, primary_key=True)
+        )
+
+    place_rules_handled_tab('place_rules_handled')
+    place_rules_handled_tab('character_place_rules_handled')
+
+    def portal_rules_handled_tab(name):
+        r[name] = Table(
+            name, meta,
+            Column('character', TEXT, primary_key=True),
+            Column('rulebook', TEXT, primary_key=True),
+            Column('nodeA', TEXT, primary_key=True),
+            Column('nodeB', TEXT, primary_key=True),
+            Column('idx', Integer, primary_key=True),
+            Column('rule', TEXT, primary_key=True),
+            Column('branch', TEXT, primary_key=True),
+            Column('tick', Integer, primary_key=True)
+        )
+
+    portal_rules_handled_tab('portal_rules_handled')
+    portal_rules_handled_tab('character_portal_rules_handled')
 
     # The function to use for a given sense.
     #
@@ -350,16 +375,6 @@ def tables_for_meta(meta):
         )
     )
 
-    for tab in (
-        handled_table('character'),
-        handled_table('avatar'),
-        handled_table('character_thing'),
-        handled_table('character_place'),
-        handled_table('character_node'),
-        handled_table('character_portal'),
-    ):
-        r[tab.name] = tab
-
     return r
 
 
@@ -390,6 +405,26 @@ def views_for_table_dict(table):
             ]
         )
     )
+    ctrh = table['character_thing_rules_handled']
+    cprh = table['character_place_rules_handled']
+    r['character_node_rules_handled'] = union(
+        select([
+            cprh.c.character,
+            cprh.c.rulebook,
+            cprh.c.rule,
+            cprh.c.place.label('node'),
+            cprh.c.branch,
+            cprh.c.tick
+        ]),
+        select([
+            ctrh.c.character,
+            ctrh.c.rulebook,
+            ctrh.c.rule,
+            ctrh.c.thing.label('node'),
+            ctrh.c.branch,
+            ctrh.c.tick
+        ])
+    )
     return r
 
 
@@ -398,67 +433,94 @@ def indices_for_table_dict(table):
     return a dictionary of indices for the tables.
 
     """
-    def handled_idx(prefix):
-        """Return an index for the _rules_handled table with the given
-        prefix.
-
-        """
-        t = table['{}_rules_handled'.format(prefix)]
-        return Index(
-            "{}_rules_handled_idx".format(prefix),
-            t.c.character,
-            t.c.rulebook,
-            t.c.rule
-        )
 
     r = allegedb.alchemy.indices_for_table_dict(table)
+    crh = table['character_rules_handled']
+    arh = table['avatar_rules_handled']
+    ctrh = table['character_thing_rules_handled']
+    cprh = table['character_place_rules_handled']
+    cporh = table['character_portal_rules_handled']
 
     for idx in (
-            Index(
-                'active_rules_idx',
-                table['active_rules'].c.rulebook,
-                table['active_rules'].c.rule
-            ),
-            Index(
-                'senses_idx',
-                table['senses'].c.character,
-                table['senses'].c.sense
-            ),
-            Index(
-                'avatars_idx',
-                table['avatars'].c.character_graph,
-                table['avatars'].c.avatar_graph,
-                table['avatars'].c.avatar_node
-            ),
-            handled_idx('character'),
-            handled_idx('avatar'),
-            handled_idx('character_thing'),
-            handled_idx('character_place'),
-            handled_idx('character_node'),
-            handled_idx('character_portal'),
-            Index(
-                'thing_rules_handled_idx',
-                table['thing_rules_handled'].c.character,
-                table['thing_rules_handled'].c.thing,
-                table['thing_rules_handled'].c.rulebook,
-                table['thing_rules_handled'].c.rule
-            ),
-            Index(
-                'place_rules_handled_idx',
-                table['place_rules_handled'].c.character,
-                table['place_rules_handled'].c.place,
-                table['place_rules_handled'].c.rulebook,
-                table['place_rules_handled'].c.rule
-            ),
-            Index(
-                'portal_rules_handled_idx',
-                table['portal_rules_handled'].c.character,
-                table['portal_rules_handled'].c.nodeA,
-                table['portal_rules_handled'].c.nodeB,
-                table['portal_rules_handled'].c.idx,
-                table['portal_rules_handled'].c.rulebook,
-                table['portal_rules_handled'].c.rule
-            )
+        Index(
+            'active_rules_idx',
+            table['active_rules'].c.rulebook,
+            table['active_rules'].c.rule
+        ),
+        Index(
+            'senses_idx',
+            table['senses'].c.character,
+            table['senses'].c.sense
+        ),
+        Index(
+            'things_idx',
+            table['things'].c.character,
+            table['things'].c.thing
+        ),
+        Index(
+            'avatars_idx',
+            table['avatars'].c.character_graph,
+            table['avatars'].c.avatar_graph,
+            table['avatars'].c.avatar_node
+        ),
+        Index(
+            'character_rules_handled_idx',
+            crh.c.character,
+            crh.c.rulebook,
+            crh.c.rule
+        ),
+        Index(
+            'avatar_rules_handled_idx',
+            arh.c.character,
+            arh.c.rulebook,
+            arh.c.rule,
+            arh.c.avatar
+        ),
+        Index(
+            'character_thing_rules_handled_idx',
+            ctrh.c.character,
+            ctrh.c.rulebook,
+            ctrh.c.rule,
+            ctrh.c.thing
+        ),
+        Index(
+            'character_place_rules_handled_idx',
+            cprh.c.character,
+            cprh.c.rulebook,
+            cprh.c.rule,
+            cprh.c.place
+        ),
+        Index(
+            'character_portal_rules_handled_idx',
+            cporh.c.character,
+            cporh.c.rulebook,
+            cporh.c.rule,
+            cporh.c.nodeA,
+            cporh.c.nodeB
+        ),
+        Index(
+            'thing_rules_handled_idx',
+            table['thing_rules_handled'].c.character,
+            table['thing_rules_handled'].c.thing,
+            table['thing_rules_handled'].c.rulebook,
+            table['thing_rules_handled'].c.rule
+        ),
+        Index(
+            'place_rules_handled_idx',
+            table['place_rules_handled'].c.character,
+            table['place_rules_handled'].c.place,
+            table['place_rules_handled'].c.rulebook,
+            table['place_rules_handled'].c.rule
+        ),
+        Index(
+            'portal_rules_handled_idx',
+            table['portal_rules_handled'].c.character,
+            table['portal_rules_handled'].c.nodeA,
+            table['portal_rules_handled'].c.nodeB,
+            table['portal_rules_handled'].c.idx,
+            table['portal_rules_handled'].c.rulebook,
+            table['portal_rules_handled'].c.rule
+        )
     ):
         r[idx.table.name] = idx
 
@@ -549,7 +611,6 @@ def queries(table, view):
         characters.c.avatar_rulebook,
         characters.c.character_thing_rulebook,
         characters.c.character_place_rulebook,
-        characters.c.character_node_rulebook,
         characters.c.character_portal_rulebook
     ])
 
@@ -558,7 +619,6 @@ def queries(table, view):
         characters.c.avatar_rulebook,
         characters.c.character_thing_rulebook,
         characters.c.character_place_rulebook,
-        characters.c.character_node_rulebook,
         characters.c.character_portal_rulebook
     ]).where(
         table['characters'].c.character == bindparam('character')
@@ -589,6 +649,16 @@ def queries(table, view):
         node_rules_handled.c.rule,
         node_rules_handled.c.branch,
         node_rules_handled.c.tick
+    ])
+
+    cnrh = view['character_node_rules_handled']
+    r['dump_character_node_rules_handled'] = select([
+        cnrh.c.character,
+        cnrh.c.rulebook,
+        cnrh.c.rule,
+        cnrh.c.node,
+        cnrh.c.branch,
+        cnrh.c.tick
     ])
 
     node_rulebook = table['node_rulebook']
@@ -634,6 +704,17 @@ def queries(table, view):
         portal_rules_handled.c.branch,
         portal_rules_handled.c.tick
     ])
+    cporh = table['character_portal_rules_handled']
+    r['dump_character_portal_rules_handled'] = select([
+        cporh.c.character,
+        cporh.c.rulebook,
+        cporh.c.rule,
+        cporh.c.nodeA,
+        cporh.c.nodeB,
+        cporh.c.idx,
+        cporh.c.branch,
+        cporh.c.tick
+    ])
 
     for what in (
         'thing',
@@ -665,7 +746,6 @@ def queries(table, view):
     r['rulebook_get_avatar'] = rulebook_get_char('avatar')
     r['rulebook_get_character_thing'] = rulebook_get_char('character_thing')
     r['rulebook_get_character_place'] = rulebook_get_char('character_place')
-    r['rulebook_get_character_node'] = rulebook_get_char('character_node')
     r['rulebook_get_character_portal'] = rulebook_get_char('character_portal')
 
     def upd_rulebook_char(rulemap):
@@ -733,6 +813,8 @@ def queries(table, view):
         ['key', 'rev', 'value'],
         ['graph', 'node', 'branch']
     )
+
+    node_rulebook = table['node_rulebook']
 
     r['node_rulebook'] = select_where(
         node_rulebook,
@@ -868,7 +950,6 @@ def queries(table, view):
         'avatar_rulebook',
         'character_thing_rulebook',
         'character_place_rulebook',
-        'character_node_rulebook',
         'character_portal_rulebook'
     )
 
@@ -980,6 +1061,8 @@ def queries(table, view):
     r['rule_actions_dec'] = rule_something_dec(rule_actions)
     r['rule_actions_del'] = rule_something_del(rule_actions)
     r['rule_actions_del_all'] = rule_something_del_all(rule_actions)
+
+    rulebooks = table['rulebooks']
 
     r['rulebooks'] = select([rulebooks.c.rulebook])
 
