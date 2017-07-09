@@ -675,9 +675,6 @@ class Engine(AbstractEngine, gORM):
             return True
         return pct / 100 < self.random()
 
-    def commit(self):
-        super().commit()
-
     def close(self):
         """Commit changes and close the database."""
         self.commit()
