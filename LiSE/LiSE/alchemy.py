@@ -559,7 +559,7 @@ def queries(table, view):
 
     def dump(t):
         """Return a ``SELECT`` statement that gets everything from the table"""
-        return select(list(t.c.keys()))
+        return select(list(t.c.values()))
 
     def update_where(t, updcols, wherecols):
         """Return an ``UPDATE`` statement that updates the columns ``updcols``
