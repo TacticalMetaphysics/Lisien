@@ -471,8 +471,6 @@ class Engine(AbstractEngine, gORM):
         # note the use of the world DB, not the code DB
         for row in self.query.dump_active_rules():
             self._active_rules_cache.store(*row)
-        for row in self.query.dump_node_rules_handled():
-            self._node_rules_handled_cache.store(*row)
         for row in self.query.dump_portal_rules_handled():
             self._portal_rules_handled_cache.store(*row)
         for row in self.query.dump_character_rules_handled():
