@@ -710,6 +710,117 @@ class QueryEngine(allegedb.query.QueryEngine):
                 'active_rules_upd', active, rulebook, rule, branch, tick
             )
 
+    def dump_character_rules_handled(self):
+        for (
+            character,
+            rulebook,
+            rule,
+            branch,
+            tick
+        ) in self.sql('dump_character_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                branch,
+                tick
+            )
+
+    def dump_avatar_rules_handled(self):
+        for (
+            character,
+            rulebook,
+            rule,
+            graph,
+            avatar,
+            branch,
+            tick
+        ) in self.sql('dump_avatar_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                self.json_load(graph),
+                self.json_load(avatar),
+                branch,
+                tick
+            )
+
+    def dump_character_thing_rules_handled(self):
+        for (
+            character,
+            rulebook,
+            rule,
+            thing,
+            branch,
+            tick
+        ) in self.sql('dump_character_thing_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                self.json_load(thing),
+                branch,
+                tick
+            )
+
+    def dump_character_place_rules_handled(self):
+        for (
+            character,
+            rulebook,
+            rule,
+            place,
+            branch,
+            tick
+        ) in self.sql('dump_character_place_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                self.json_load(place),
+                branch,
+                tick
+            )
+
+    def dump_character_node_rules_handled(self):
+        for (
+            character,
+            rulebook,
+            rule,
+            node,
+            branch,
+            tick
+        ) in self.sql('dump_character_node_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                self.json_load(node),
+                branch,
+                tick
+            )
+
+    def dump_character_portal_rules_handled(self):
+        for (
+            character,
+            rulebook,
+            rule,
+            nodeA,
+            nodeB,
+            idx,
+            branch,
+            tick
+        ) in self.sql('dump_character_portal_rules_handled'):
+            yield (
+                self.json_load(character),
+                self.json_load(rulebook),
+                self.json_load(rule),
+                self.json_load(nodeA),
+                self.json_load(nodeB),
+                idx,
+                branch,
+                tick
+            )
 
     def dump_node_rules_handled(self):
         for (
