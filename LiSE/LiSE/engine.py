@@ -475,19 +475,17 @@ class Engine(AbstractEngine, gORM):
             self._node_rules_handled_cache.store(*row)
         for row in self.query.dump_portal_rules_handled():
             self._portal_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_rules():
+        for row in self.query.dump_character_rules_handled():
             self._character_rules_handled_cache.store(*row)
-        for row in self.query.handled_avatar_rules():
+        for row in self.query.dump_avatar_rules_handled():
             self._avatar_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_thing_rules():
+        for row in self.query.dump_character_thing_rules_handled():
             self._character_thing_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_place_rules():
+        for row in self.query.dump_character_place_rules_handled():
             self._character_place_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_node_rules():
-            self._character_node_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_portal_rules():
+        for row in self.query.dump_character_portal_rules_handled():
             self._character_portal_rules_handled_cache.store(*row)
-        for row in self.query.avatarness_dump():
+        for row in self.query.dump_avatars():
             self._avatarness_cache.store(*row)
 
     def _load_graphs(self):
