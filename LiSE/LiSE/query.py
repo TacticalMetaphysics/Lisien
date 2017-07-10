@@ -544,8 +544,8 @@ class QueryEngine(allegedb.query.QueryEngine):
                     yield (self.json_load(k), self.json_load(v))
                 seen.add(k)
 
-    def universal_dump(self):
-        for key, branch, tick, value in self.sql('universal_dump'):
+    def dump_universal(self):
+        for key, branch, tick, value in self.sql('dump_universal'):
             yield self.json_load(key), branch, tick, self.json_load(value)
 
     def universal_get(self, key, branch, tick):
@@ -951,10 +951,10 @@ class QueryEngine(allegedb.query.QueryEngine):
                 )
             )
 
-    def things_dump(self):
+    def dump_things(self):
         for (
                 character, thing, branch, tick, loc, nextloc
-        ) in self.sql('things_dump'):
+        ) in self.sql('dump_things'):
             yield (
                 self.json_load(character),
                 self.json_load(thing),
@@ -1059,7 +1059,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         for (g, n, b, t, a) in self.sql('avatars_ever', character):
             yield (self.json_load(g), self.json_load(n), b, t, a)
 
-    def avatarness_dump(self):
+    def dump_avatars(self):
         for (
                 character,
                 graph,
@@ -1067,7 +1067,7 @@ class QueryEngine(allegedb.query.QueryEngine):
                 branch,
                 tick,
                 is_avatar
-        ) in self.sql('avatarness_dump'):
+        ) in self.sql('dump_avatars'):
             yield (
                 self.json_load(character),
                 self.json_load(graph),
