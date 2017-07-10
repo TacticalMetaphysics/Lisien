@@ -455,10 +455,10 @@ class Engine(AbstractEngine, gORM):
 
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method
-        for row in self.query.things_dump():
+        for row in self.query.dump_things():
             self._things_cache.store(*row)
         super()._init_load()
-        for row in self.query.universal_dump():
+        for row in self.query.dump_universal():
             self._universal_cache.store(*row)
         for row in self.query.rulebooks_rules():
             self._rulebooks_cache.store(*row)

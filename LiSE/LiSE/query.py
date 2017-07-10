@@ -1191,7 +1191,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         """
         super().initdb()
         for table in (
-            'lise_globals',
+            'universal',
             'rules',
             'rulebooks',
             'active_rules',

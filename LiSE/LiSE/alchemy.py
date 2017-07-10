@@ -65,8 +65,8 @@ def tables_for_meta(meta):
     r = allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
-    r['lise_globals'] = Table(
-        'lise_globals', meta,
+    r['universal'] = Table(
+        'universal', meta,
         Column('key', TEXT, primary_key=True),
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
@@ -580,19 +580,19 @@ def queries(table, view):
 
     r['universal_dump'] = select(
         [
-            table['lise_globals'].c.key,
-            table['lise_globals'].c.branch,
-            table['lise_globals'].c.tick,
-            table['lise_globals'].c.value
+            table['universal'].c.key,
+            table['universal'].c.branch,
+            table['universal'].c.tick,
+            table['universal'].c.value
         ]
     ).order_by(
-        table['lise_globals'].c.branch,
-        table['lise_globals'].c.tick,
-        table['lise_globals'].c.key
+        table['universal'].c.branch,
+        table['universal'].c.tick,
+        table['universal'].c.key
     )
 
     r['universal_ins'] = insert_cols(
-        table['lise_globals'],
+        table['universal'],
         'key',
         'branch',
         'tick',
@@ -600,7 +600,7 @@ def queries(table, view):
     )
 
     r['universal_upd'] = update_where(
-        table['lise_globals'],
+        table['universal'],
         ['value'],
         ['key', 'branch', 'tick']
     )
