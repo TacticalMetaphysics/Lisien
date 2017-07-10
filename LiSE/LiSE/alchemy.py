@@ -723,37 +723,6 @@ def queries(table, view):
     r['upd_rulebook_character_place'] = upd_rulebook_char('character_place')
     r['upd_rulebook_character_portal'] = upd_rulebook_char('character_portal')
 
-    avatars = table['avatars']
-
-    r['avatarness_dump'] = select([
-        avatars.c.character_graph,
-        avatars.c.avatar_graph,
-        avatars.c.avatar_node,
-        avatars.c.branch,
-        avatars.c.tick,
-        avatars.c.is_avatar
-    ]).order_by(
-        avatars.c.character_graph,
-        avatars.c.avatar_graph,
-        avatars.c.avatar_node,
-        avatars.c.branch,
-        avatars.c.tick
-    )
-
-    r['things_dump'] = select([
-        things.c.character,
-        things.c.thing,
-        things.c.branch,
-        things.c.tick,
-        things.c.location,
-        things.c.next_location
-    ]).order_by(
-        things.c.character,
-        things.c.thing,
-        things.c.branch,
-        things.c.tick
-    )
-
     r['thing_loc_and_next_ins'] = insert_cols(
         things,
         'character',
@@ -859,6 +828,8 @@ def queries(table, view):
             things.c.branch == bindparam('branch')
         )
     )
+
+    avatars = table['avatars']
 
     r['avatars_ever'] = select(
         [
