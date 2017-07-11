@@ -20,6 +20,7 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
+    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
@@ -150,6 +151,7 @@ class MainScreen(Screen):
     dialoglayout = ObjectProperty()
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
+    _dialog_todo = ListProperty([])
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
 
@@ -264,8 +266,9 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_next_tick(self, ret):
-        self._update_dialog(ret[2])
+        self._dialog_todo = ret[2]
         self._update_from_chardiff(ret[3])
+        self._advance_dialog()
 
     def _update_from_chardiff(self, chardiff, **kwargs):
         self.boardview.board.trigger_update_from_diff(
@@ -274,9 +277,13 @@ class MainScreen(Screen):
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.pull_time()
 
+    def _advance_dialog(self):
+        self.ids.dialoglayout.clear_widgets()
+        if not self._dialog_todo:
+            return
+        self._update_dialog(self._dialog_todo.pop(0))
+
     def _update_dialog(self, diargs, **kwargs):
-        layout = self.ids.dialoglayout
-        layout.clear_widgets()
         if diargs is None:
             Logger.debug("Screen: null dialog")
             return
@@ -313,6 +320,8 @@ class MainScreen(Screen):
                 cb=lambda ret: self._update_from_chardiff(ret[3])
             )
         elif self._old_time == (self.app.branch, self.app.tick):
+            return
+        elif self._dialog_todo:
             return
         else:
             del self._old_time

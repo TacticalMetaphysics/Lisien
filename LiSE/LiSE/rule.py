@@ -371,11 +371,11 @@ class Rule(object):
 
         """
         curtime = engine.time
-        r = None
+        r = []
         for action in self.actions:
-            r = action(engine, *args)
-            if r is not None:
-                break
+            result = action(engine, *args)
+            if result:
+                r.append(result)
             engine.time = curtime
         return r
 
