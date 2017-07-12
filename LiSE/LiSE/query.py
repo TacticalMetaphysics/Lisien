@@ -1032,7 +1032,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         avatar_rulebook = avatar_rulebook or (character, 'avatar')
         thing_rulebook = thing_rulebook or (character, 'character_thing')
         place_rulebook = place_rulebook or (character, 'character_place')
-        node_rulebook = node_rulebook or (character, 'character_node')
         portal_rulebook = portal_rulebook or (character, 'character_portal')
         (character, character_rulebook, avatar_rulebook, thing_rulebook,
          place_rulebook, node_rulebook, portal_rulebook) = map(
@@ -1048,7 +1047,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 avatar_rulebook,
                 thing_rulebook,
                 place_rulebook,
-                node_rulebook,
                 portal_rulebook
             )
         except IntegrityError:
