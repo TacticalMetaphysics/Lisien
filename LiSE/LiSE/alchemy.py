@@ -725,6 +725,9 @@ def queries(table, view):
 
     r = allegedb.alchemy.queries_for_table_dict(table)
 
+    for t in table.values():
+        r[t.name + '_dump'] = select().select_from(t)
+
     for strtyp in strtyps:
         r['{}_lang_items'.format(strtyp)] = string_table_lang_items(
             table[strtyp]
@@ -759,19 +762,6 @@ def queries(table, view):
             table['lise_globals'].c.key,
             table['lise_globals'].c.branch
         )
-
-    r['universal_dump'] = select(
-        [
-            table['lise_globals'].c.key,
-            table['lise_globals'].c.branch,
-            table['lise_globals'].c.tick,
-            table['lise_globals'].c.value
-        ]
-    ).order_by(
-        table['lise_globals'].c.key,
-        table['lise_globals'].c.branch,
-        table['lise_globals'].c.tick
-    )
 
     r['universal_items'] = select(
         [
@@ -984,21 +974,6 @@ def queries(table, view):
 
     avatars = table['avatars']
 
-    r['avatarness_dump'] = select([
-        avatars.c.character_graph,
-        avatars.c.avatar_graph,
-        avatars.c.avatar_node,
-        avatars.c.branch,
-        avatars.c.tick,
-        avatars.c.is_avatar
-    ]).order_by(
-        avatars.c.character_graph,
-        avatars.c.avatar_graph,
-        avatars.c.avatar_node,
-        avatars.c.branch,
-        avatars.c.tick
-    )
-
     def hitick_avatars(*cols):
         """Return query to get the time of the latest change to the avatars table.
 
@@ -1083,20 +1058,6 @@ def queries(table, view):
                 things.c.tick == ctb_hitick.c.tick
             )
         )
-    )
-
-    r['things_dump'] = select([
-        things.c.character,
-        things.c.thing,
-        things.c.branch,
-        things.c.tick,
-        things.c.location,
-        things.c.next_location
-    ]).order_by(
-        things.c.character,
-        things.c.thing,
-        things.c.branch,
-        things.c.tick
     )
 
     r['thing_loc_and_next_ins'] = insert_cols(
