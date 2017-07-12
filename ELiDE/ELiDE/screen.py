@@ -8,7 +8,7 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
-
+from importlib import import_module
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -154,6 +154,8 @@ class MainScreen(Screen):
     _dialog_todo = ListProperty([])
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+    usermod = StringProperty('user')
+    userpkg = StringProperty(None, allownone=True)
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -293,22 +295,55 @@ class MainScreen(Screen):
         dia = self._dia
         if isinstance(diargs, str):
             dia.message_kwargs = {'text': diargs}
-            dia.menu_kwargs = {'options': [('OK', self.clear_dialog)]}
+            dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
         elif isinstance(diargs, list):
             dia.message_kwargs = {'text': 'Select from the following:'}
-            dia.menu_kwargs = {'options': diargs}
+            dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
         elif isinstance(diargs, tuple):
             if len(diargs) != 2:
                 # TODO more informative error
                 raise TypeError('Need a tuple of length 2')
-            dia.message_kwargs, dia.menu_kwargs = diargs
+            msgkwargs, mnukwargs = diargs
+            dia.message_kwargs = msgkwargs
+            mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
+            dia.menu_kwargs = mnukwargs
         else:
             raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
         self.ids.dialoglayout.add_widget(dia)
 
-    @trigger
-    def clear_dialog(self, *args):
+    def ok(self, cb=None, *args):
         self.ids.dialoglayout.clear_widgets()
+        if cb:
+            cb()
+        self._advance_dialog()
+
+    def _trigger_ok(self, cb=None):
+        part = partial(self.ok, cb)
+        Clock.unschedule(part)
+        Clock.schedule_once(part)
+
+    def _lookup_func(self, funcname):
+        if not hasattr(self, '_usermod'):
+            self.usermod = import_module(self.usermod, self.userpkg)
+        return getattr(self.usermod, funcname)
+
+    def _munge_menu_option(self, option):
+        name, func = option
+        if callable(func):
+            return name, partial(self._trigger_ok, func)
+        if isinstance(func, tuple):
+            fun = func[0]
+            if isinstance(fun, str):
+                fun = self._lookup_func(fun)
+            args = func[1]
+            if len(func) == 3:
+                kwargs = func[2]
+                func = partial(fun, *args, **kwargs)
+            else:
+                func = partial(fun, *args)
+        if isinstance(func, str):
+            func = self._lookup_func(func)
+        return name, partial(self._trigger_ok, func)
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""

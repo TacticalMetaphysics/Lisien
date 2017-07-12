@@ -47,8 +47,6 @@ class DialogMenu(Box):
     """Some buttons that make the game do things."""
     options = ListProperty()
     """List of pairs of (button_text, partial)"""
-    funcs = DictProperty({})
-    """Dict of functions to be used in place of string partials in the options"""
 
     def _set_sv_size(self, *args):
         self._sv.width = self.width - self.padding[0] - self.padding[2]
@@ -67,16 +65,7 @@ class DialogMenu(Box):
         layout = self._sv.children[0]
         for txt, part in self.options:
             if not callable(part):
-                if isinstance(part, tuple):
-                    fun = part[0]
-                    args = part[1]
-                    if len(part) == 3:
-                        kwargs = part[2]
-                        part = partial(fun, *args, **kwargs)
-                    else:
-                        part = partial(fun, *args)
-                else:
-                    part = self.funcs[part]
+                raise TypeError("Menu options must be callable")
             layout.add_widget(Button(text=txt, on_press=part, font_name=self.font_name, font_size=self.font_size))
         self.add_widget(self._sv)
 
