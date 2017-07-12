@@ -941,37 +941,6 @@ def queries(table, view):
         )
     )
 
-    def rulebook_get_char(rulemap):
-        """Return query to get a rulebook of a character."""
-        return select(
-            [getattr(characters.c, '{}_rulebook'.format(rulemap))]
-        ).where(
-            characters.c.character == bindparam('character')
-        )
-
-    r['character_rulebook'] = select(
-        [characters.c.character_rulebook]
-    ).where(characters.c.character == bindparam('character'))
-    r['rulebook_get_character'] = rulebook_get_char('character')
-    r['rulebook_get_avatar'] = rulebook_get_char('avatar')
-    r['rulebook_get_character_thing'] = rulebook_get_char('character_thing')
-    r['rulebook_get_character_place'] = rulebook_get_char('character_place')
-    r['rulebook_get_character_node'] = rulebook_get_char('character_node')
-    r['rulebook_get_character_portal'] = rulebook_get_char('character_portal')
-
-    def upd_rulebook_char(rulemap):
-        """Return query to update one of the rulebooks of a character."""
-        kwvalues = {'{}_rulebook'.format(rulemap): bindparam('rulebook')}
-        return characters.update().values(**kwvalues).where(
-            characters.c.character == bindparam('character')
-        )
-
-    r['upd_rulebook_character'] = upd_rulebook_char('character')
-    r['upd_rulebook_avatar'] = upd_rulebook_char('avatar')
-    r['upd_rulebook_character_thing'] = upd_rulebook_char('character_thing')
-    r['upd_rulebook_character_place'] = upd_rulebook_char('character_place')
-    r['upd_rulebook_character_portal'] = upd_rulebook_char('character_portal')
-
     avatars = table['avatars']
 
     def hitick_avatars(*cols):
