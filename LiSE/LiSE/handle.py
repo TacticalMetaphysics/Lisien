@@ -156,7 +156,7 @@ class EngineHandle(object):
 
     def next_tick(self, chars=[]):
         ret = self._real.next_tick()
-        if ret is None:
+        if not ret:
             self.tick += 1
         assert self.branch == self._real.branch
         assert self.tick == self._real.tick

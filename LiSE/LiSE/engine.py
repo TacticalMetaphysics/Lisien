@@ -975,14 +975,9 @@ class Engine(AbstractEngine, gORM):
             self.universal['rando_state'] = self.rando.getstate()
             if self.commit_modulus and self.tick % self.commit_modulus == 0:
                 self.commit()
-            r = None
-        if r is not None:
-            if '_action_return_values' not in self.universal:
-                self.universal['_action_return_values'] = []
-            cache = self._universal_cache.branches[(None, '_action_return_values')]
-            if self.branch not in cache or cache[self.branch].rev_before(self.tick) != self.tick:
-                self.universal['_action_return_values'] = []
-            self.universal['_action_return_values'].append(r)
+            r = []
+        if r:
+            self.universal['_action_return_values'] = r
         return r
 
     def new_character(self, name, **kwargs):
