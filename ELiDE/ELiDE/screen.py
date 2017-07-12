@@ -218,13 +218,14 @@ class MainScreen(Screen):
             self.charmenu,
             self.statpanel,
             self.dummyplace,
-            self.dummything,
-            self.dialoglayout
+            self.dummything
         ):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
                 self.boardview.keep_selection = True
                 return True
+        if self.dialoglayout.dispatch('on_touch_down', touch):
+            return True
         return self.boardview.dispatch('on_touch_down', touch)
 
     def on_touch_up(self, touch):
