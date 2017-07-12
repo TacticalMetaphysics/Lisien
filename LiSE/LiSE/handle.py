@@ -992,7 +992,7 @@ class EngineHandle(object):
         self._stores_cache.setdefault(store, {})[name or v.__name__] = v
 
     def del_source(self, store, k):
-        delattr(self._real, store, k)
+        delattr(getattr(self._real, store), k)
         try:
             del self._stores_cache[store][k]
         except KeyError:

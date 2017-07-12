@@ -198,7 +198,8 @@ class FunctionStore(Signal):
 
     def __delattr__(self, k):
         del self._locl[k]
-        delattr(self._ast, k)
+        del self._ast.body[self._ast_idx[k]]
+        del self._ast_idx[k]
         self.send(self, attr=k, val=None)
 
     def save(self):
