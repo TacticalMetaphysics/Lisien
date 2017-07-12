@@ -706,8 +706,9 @@ class QueryEngine(allegedb.query.QueryEngine):
                     yield (self.json_load(k), self.json_load(v))
                 seen.add(k)
 
-    def universal_dump(self):
-        for key, branch, tick, value in self.sql('universal_dump'):
+
+    def dump_universal(self):
+        for key, branch, tick, date, creator, description, value in self.sql('dump_universal'):
             yield self.json_load(key), branch, tick, self.json_load(value)
 
     def universal_get(self, key, branch, tick):
