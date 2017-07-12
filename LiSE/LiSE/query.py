@@ -545,7 +545,7 @@ class QueryEngine(allegedb.query.QueryEngine):
                 seen.add(k)
 
     def dump_universal(self):
-        for key, branch, tick, value in self.sql('dump_universal'):
+        for key, branch, tick, date, creator, description, value in self.sql('dump_universal'):
             yield self.json_load(key), branch, tick, self.json_load(value)
 
     def universal_get(self, key, branch, tick):
