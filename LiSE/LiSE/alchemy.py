@@ -1089,112 +1089,6 @@ def queries(table, view):
 
     characters = table['characters']
 
-    def handled_char_rules(typ=None):
-        rules_handled = table['character_rules_handled']
-        r = select([
-            rules_handled.c.character,
-            rules_handled.c.rulebook,
-            rules_handled.c.rule,
-            rules_handled.c.branch,
-            rules_handled.c.tick
-        ])
-        if typ is None:
-            return r
-        return r.select_from(
-            rules_handled.join(
-                characters,
-                characters.c['{}_rulebook'.format(typ)] == rules_handled.c.rulebook
-            )
-        )
-
-    def poll_char_rules(prefix):
-        """Return query to get all a character's rules yet to be handled."""
-        _rulebook = '{}_rulebook'.format(prefix)
-        rules_handled = table['character_rules_handled']
-        crhandle = select(
-            [
-                rules_handled.c.character,
-                rules_handled.c.rulebook,
-                rules_handled.c.rule,
-                column('1').label('handled')
-            ]
-        ).where(
-            and_(
-                rules_handled.c.branch == bindparam('branch'),
-                rules_handled.c.tick == bindparam('tick')
-            )
-        ).alias('handle')
-        return select(
-            [
-                characters.c.character,
-                getattr(characters.c, _rulebook),
-                current_active_rules.c.rule,
-                current_active_rules.c.active,
-                crhandle.c.handled
-            ]
-        ).select_from(
-            characters.join(
-                current_active_rules,
-                getattr(characters.c, _rulebook) ==
-                current_active_rules.c.rulebook
-            ).join(
-                rulebooks,
-                and_(
-                    rulebooks.c.rulebook == getattr(characters.c, _rulebook),
-                    rulebooks.c.rule == current_active_rules.c.rule
-                ),
-                isouter=True
-            ).join(
-                crhandle,
-                and_(
-                    crhandle.c.character == characters.c.character,
-                    crhandle.c.rulebook == getattr(characters.c, _rulebook),
-                    crhandle.c.rule == current_active_rules.c.rule
-                ),
-                isouter=True
-            )
-        ).where(
-            crhandle.c.handled == null()
-        ).order_by(
-            characters.c.character,
-            rulebooks.c.rulebook,
-            rulebooks.c.idx
-        )
-
-    def char_rule_handled(typ):
-        """Return query to check whether a character rule has been handled."""
-        rules_handled = table['character_rules_handled']
-        return select([func.count()]).select_from(
-            rules_handled.join(
-                characters,
-                characters.c['{}_rulebook'.format(typ)] == rules_handled.c.rulebook
-            )).where(and_(
-                rules_handled.c.character == bindparam('character'),
-                rules_handled.c.rule == bindparam('rule'),
-                rules_handled.c.branch == bindparam('branch'),
-                rules_handled.c.tick == bindparam('tick')
-            ))
-
-    r['poll_character_rules'] = poll_char_rules('character')
-    r['handled_character_rules'] = handled_char_rules('character')
-    r['character_rule_handled'] = char_rule_handled('character')
-    r['poll_avatar_rules'] = poll_char_rules('avatar')
-    r['handled_avatar_rules'] = handled_char_rules('avatar')
-    r['avatar_rule_handled'] = char_rule_handled('avatar')
-    r['poll_character_node_rules'] = poll_char_rules('character_node')
-    r['handled_character_node_rules'] = handled_char_rules('character_node')
-    r['character_node_rule_handled'] = char_rule_handled('character_node')
-    r['poll_character_thing_rules'] = poll_char_rules('character_thing')
-    r['handled_character_thing_rules'] = handled_char_rules('character_thing')
-    r['character_thing_rule_handled'] = char_rule_handled('character_thing')
-    r['poll_character_place_rules'] = poll_char_rules('character_place')
-    r['handled_character_place_rules'] = handled_char_rules('character_place')
-    r['character_place_rule_handled'] = char_rule_handled('character_place')
-    r['poll_character_portal_rules'] = poll_char_rules('character_portal')
-    r['handled_character_portal_rules'] \
-        = handled_char_rules('character_portal')
-    r['character_portal_rule_handled'] = char_rule_handled('character_portal')
-
     def handled_character_ruletyp(typ):
         """Return query to declare that a rule of this type was handled."""
         tab = table['{}_rules_handled'.format(typ)]
@@ -1207,8 +1101,6 @@ def queries(table, view):
             'tick'
         )
 
-    r['handled_character_rule'] = handled_character_ruletyp('character')
-    r['handled_avatar_rule'] = handled_character_ruletyp('avatar')
     r['handled_character_thing_rule'] \
         = handled_character_ruletyp('character_thing')
     r['handled_character_place_rule'] \
