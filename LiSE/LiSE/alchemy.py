@@ -433,50 +433,38 @@ def queries(table, view):
     of all the rest of the queries I need.
 
     """
-    def insert_cols(t, *cols):
-        """Return an ``INSERT`` statement into table ``t`` with
-        bind-parameters for the columns ``cols``, which must be actual
-        columns in ``t``.
-
-        """
-        vmap = {
-            col: bindparam(col) for col in cols
-        }
-        return t.insert().values(**vmap)
-
-    def select_where(t, selcols, wherecols):
+    def select_where(selcols, wherecols):
         """Return a ``SELECT`` statement that selects the columns ``selcols``
-        from the table ``t`` where the columns in ``wherecols`` equal
-        the bound parameters.
+        where the columns in ``wherecols`` equal the bound parameters.
+
+        Bound parameters have the same names as the columns.
 
         """
         wheres = [
-            getattr(t.c, col) == bindparam(col)
-            for col in wherecols
+            c == bindparam(c.name) for c in wherecols
         ]
-        return select(
-            [getattr(t.c, col) for col in selcols]
-        ).where(and_(*wheres))
+        return select(selcols).where(and_(*wheres))
 
-    def update_where(t, updcols, wherecols):
+    def update_where(updcols, wherecols):
         """Return an ``UPDATE`` statement that updates the columns ``updcols``
-        (with bindparams for each) in the table ``t`` in which the
-        columns ``wherecols`` equal the bound parameters.
+        when the ``wherecols`` match. Every column has a bound parameter of
+        the same name.
 
         """
         vmap = {
             col: bindparam(col) for col in updcols
         }
         wheres = [
-            getattr(t.c, col) == bindparam(col)
-            for col in wherecols
+            c == bindparam(c.name) for c in wherecols
         ]
-        return t.update().values(**vmap).where(and_(*wheres))
+        return update().values(**vmap).where(and_(*wheres))
 
     r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select().select_from(t)
+        r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
+        r['count_all_{}'.format(n)] = select().select_from(t).count()
 
     characters = table['characters']
 
@@ -503,83 +491,37 @@ def queries(table, view):
         table['characters'].c.character == bindparam('character')
     )
 
-    r['ct_characters'] = select([func.COUNT(table['characters'].c.character)])
-
     r['ct_character'] = select(
         [func.COUNT(table['characters'].c.character)]
     ).where(
         table['characters'].c.character == bindparam('character')
     )
 
-    node_rulebook = table['node_rulebook']
     rulebooks = table['rulebooks']
 
 
     # Note that you have to pass in the branch and tick *twice*, and
     # prior to the character and node, if you're using sqlite
 
-    portal_rulebook = table['portal_rulebook']
+    pr = table['portal_rulebook']
 
     r['portal_rulebook'] = select_where(
-        portal_rulebook,
-        ['rulebook'],
-        ['character', 'nodeA', 'nodeB', 'idx']
-    )
+        [pr.c.rulebook],
+        [pr.c.character, pr.c.nodeA, pr.c.nodeB]
+    )  # assumes idx always == 0
     r['portals_rulebooks'] = select([
-        portal_rulebook.c.character,
-        portal_rulebook.c.nodeA,
-        portal_rulebook.c.nodeB,
-        portal_rulebook.c.rulebook
+        pr.c.character,
+        pr.c.nodeA,
+        pr.c.nodeB,
+        pr.c.rulebook
     ])
 
-    r['ins_portal_rulebook'] = insert_cols(
-        portal_rulebook,
-        'character',
-        'nodeA',
-        'nodeB',
-        'idx',
-        'rulebook'
-    )
-
     r['upd_portal_rulebook'] = update_where(
-        portal_rulebook,
         ['rulebook'],
-        ['character', 'nodeA', 'nodeB', 'idx']
+        [pr.c.character, pr.c.nodeA, pr.c.nodeB]
     )
 
     characters = table['characters']
-
-    r['handled_thing_rule'] = insert_cols(
-        table['thing_rules_handled'],
-        'character',
-        'thing',
-        'rulebook',
-        'rule',
-        'branch',
-        'tick'
-    )
-
-    r['handled_place_rule'] = insert_cols(
-        table['place_rules_handled'],
-        'character',
-        'place',
-        'rulebook',
-        'rule',
-        'branch',
-        'tick'
-    )
-
-    r['handled_portal_rule'] = insert_cols(
-        table['portal_rules_handled'],
-        'character',
-        'nodeA',
-        'nodeB',
-        'idx',
-        'rulebook',
-        'rule',
-        'branch',
-        'tick'
-    )
 
     r['del_char_things'] = table['things'].delete().where(
         table['things'].c.character == bindparam('character')
@@ -617,26 +559,16 @@ def queries(table, view):
         )
     )
 
-    r['thing_loc_and_next_ins'] = insert_cols(
-        things,
-        'character',
-        'thing',
-        'branch',
-        'tick',
-        'location',
-        'next_location'
+    r['thing_loc_and_next_upd'] = update_where(
+        ['location', 'next_location'],
+        [things.c.character, things.c.thing, things.c.branch, things.c.tick]
     )
 
-    r['thing_loc_and_next_upd'] = update_where(
-        things,
-        ['location', 'next_location'],
-        ['character', 'thing', 'branch', 'tick']
-    )
+    nv = table['node_val']
 
     r['node_val_data_branch'] = select_where(
-        table['node_val'],
         ['key', 'rev', 'value'],
-        ['graph', 'node', 'branch']
+        [nv.c.graph, nv.c.node, nv.c.branch]
     )
 
     graph_val = table['graph_val']
@@ -711,88 +643,55 @@ def queries(table, view):
 
     senses = table['senses']
 
-    r['sense_fun_ins'] = insert_cols(
-        senses,
-        'character',
-        'sense',
-        'branch',
-        'tick',
-        'function',
-        'active'
-    )
-
     r['sense_fun_upd'] = update_where(
-        senses,
         ['function', 'active'],
-        ['character', 'sense', 'branch', 'tick']
-    )
-
-    r['sense_ins'] = insert_cols(
-        senses,
-        'character',
-        'sense',
-        'branch',
-        'tick',
-        'active'
+        [senses.c.character, senses.c.sense, senses.c.branch, senses.c.tick]
     )
 
     r['sense_upd'] = update_where(
-        senses,
         ['active'],
-        ['character', 'sense', 'branch', 'tick']
-    )
-
-    r['character_ins'] = insert_cols(
-        characters,
-        'character',
-        'character_rulebook',
-        'avatar_rulebook',
-        'character_thing_rulebook',
-        'character_place_rulebook',
-        'character_node_rulebook',
-        'character_portal_rulebook'
-    )
-
-    r['avatar_ins'] = insert_cols(
-        avatars,
-        'character_graph',
-        'avatar_graph',
-        'avatar_node',
-        'branch',
-        'tick',
-        'is_avatar'
+        [senses.c.character, senses.c.sense, senses.c.branch, senses.c.tick]
     )
 
     r['avatar_upd'] = update_where(
-        avatars,
         ['is_avatar'],
         [
-            'character_graph',
-            'avatar_graph',
-            'avatar_node',
-            'branch',
-            'tick'
+            avatars.c.character_graph,
+            avatars.c.avatar_graph,
+            avatars.c.avatar_node,
+            avatars.c.branch,
+            avatars.c.tick
         ]
     )
 
     rule_triggers = table['rule_triggers']
     rule_prereqs = table['rule_prereqs']
     rule_actions = table['rule_actions']
-    r['rule_triggers'] = select([rule_triggers.c.triggers]).where(rule_triggers.c.rule == bindparam('rule'))
-    r['rule_prereqs'] = select([rule_prereqs.c.prereqs]).where(rule_prereqs.c.rule == bindparam('rule'))
-    r['rule_actions'] = select([rule_actions.c.actions]).where(rule_actions.c.rule == bindparam('rule'))
+    r['rule_triggers'] = select([rule_triggers.c.triggers]).where(and_(
+        rule_triggers.c.rule == bindparam('rule'),
+        rule_triggers.c.branch == bindparam('branch'),
+        rule_triggers.c.tick == bindparam('tick')
+    ))
+    r['rule_prereqs'] = select([rule_prereqs.c.prereqs]).where(and_(
+        rule_prereqs.c.rule == bindparam('rule'),
+        rule_prereqs.c.branch == bindparam('branch'),
+        rule_triggers.c.tick == bindparam('tick')
+    ))
+    r['rule_actions'] = select([rule_actions.c.actions]).where(and_(
+        rule_actions.c.rule == bindparam('rule'),
+        rule_actions.c.branch == bindparam('branch'),
+        rule_actions.c.tick == bindparam('tick')
+    ))
 
     r['rulebooks'] = select([rulebooks.c.rulebook])
-
-    r['ct_rulebooks'] = select([func.COUNT(distinct(rulebooks.c.rulebook))])
 
     r['rulebook_rules'] = select(
         [rulebooks.c.rules]
     ).where(
-        rulebooks.c.rulebook == bindparam('rulebook')
+        rulebooks.c.rulebook == bindparam('rulebook'),
+        rulebooks.c.branch == bindparam('branch'),
+        rulebooks.c.tick == bindparam('tick')
     )
-
-    r['set_rulebook_rules'] = rulebooks.insert().values(*(tuple(bindparam(cname) for cname in rulebooks.c)))
 
     branches = table['branches']
 
@@ -801,11 +700,6 @@ def queries(table, view):
     ).where(
         branches.c.parent == bindparam('branch')
     )
-
-    for (n, t) in table.items():
-        r['count_all_{}'.format(n)] = select(
-            [getattr(t.c, col) for col in t.c.keys()]
-        ).count()
 
     return r
 
