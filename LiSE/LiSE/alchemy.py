@@ -737,57 +737,6 @@ def queries(table, view):
         r['{}_upd'.format(strtyp)] = string_table_upd(table[strtyp])
         r['{}_del'.format(strtyp)] = string_table_del(table[strtyp])
 
-    def universal_hitick(*columns):
-        """Return a query to find the time of the most recent change for some
-        columns in the 'lise_globals' table, called 'universal' in the
-        ORM.
-
-        """
-        whereclause = [
-            getattr(table['lise_globals'].c, col) == bindparam(col)
-            for col in columns
-        ]
-        whereclause.append(
-            table['lise_globals'].c.tick <= bindparam('tick')
-        )
-        return select(
-            [
-                table['lise_globals'].c.key,
-                table['lise_globals'].c.branch,
-                func.MAX(table['lise_globals'].c.tick).label('tick')
-            ]
-        ).where(
-            and_(*whereclause)
-        ).group_by(
-            table['lise_globals'].c.key,
-            table['lise_globals'].c.branch
-        )
-
-    r['universal_items'] = select(
-        [
-            table['lise_globals'].c.key,
-            table['lise_globals'].c.value
-        ]
-    ).select_from(universal_hitick('branch'))
-
-    r['universal_get'] = select(
-        [table['lise_globals'].c.value]
-    ).select_from(universal_hitick('key', 'branch'))
-
-    r['universal_ins'] = insert_cols(
-        table['lise_globals'],
-        'key',
-        'branch',
-        'tick',
-        'value'
-    )
-
-    r['universal_upd'] = update_where(
-        table['lise_globals'],
-        ['value'],
-        ['key', 'branch', 'tick']
-    )
-
     characters = table['characters']
 
     r['characters'] = select([table['characters'].c.character])
@@ -901,92 +850,7 @@ def queries(table, view):
 
     things = table['things']
 
-    def things_hitick(*cols):
-        """Return query to get the time of the latest change to the things table.
-
-        Pass in column names to filter the query by testing bound
-        parameters for equality with the columns.
-
-        """
-        wheres = [
-            getattr(things.c, col) == bindparam(col)
-            for col in cols
-        ] + [things.c.tick <= bindparam('tick')]
-        return select(
-            [
-                things.c.character,
-                things.c.thing,
-                things.c.branch,
-                func.MAX(things.c.tick).label('tick')
-            ]
-        ).where(and_(*wheres)).group_by(
-            things.c.character,
-            things.c.thing,
-            things.c.branch
-        ).alias('hitick')
-
-    ctb_hitick = things_hitick('character', 'thing', 'branch')
-
-    r['node_is_thing'] = select(
-        [things.c.location]
-    ).select_from(
-        things.join(
-            ctb_hitick,
-            and_(
-                things.c.character == ctb_hitick.c.character,
-                things.c.thing == ctb_hitick.c.thing,
-                things.c.branch == ctb_hitick.c.branch,
-                things.c.tick == ctb_hitick.c.tick
-            )
-        )
-    )
-
     avatars = table['avatars']
-
-    def hitick_avatars(*cols):
-        """Return query to get the time of the latest change to the avatars table.
-
-        Pass in names of columns to test them for equality with bound
-        parameters.
-
-        """
-        wheres = [
-            getattr(avatars.c, col) == bindparam(col)
-            for col in cols
-        ] + [avatars.c.tick <= bindparam('tick')]
-        return select(
-            [
-                avatars.c.character_graph,
-                avatars.c.avatar_graph,
-                avatars.c.avatar_node,
-                avatars.c.branch,
-                func.MAX(avatars.c.tick).label('tick')
-            ]
-        ).where(and_(*wheres)).group_by(
-            avatars.c.character_graph,
-            avatars.c.avatar_graph,
-            avatars.c.avatar_node,
-            avatars.c.branch
-        ).alias('hitick')
-
-    au_hitick = hitick_avatars('avatar_graph', 'avatar_node', 'branch')
-
-    r['avatar_users'] = select(
-        [
-            avatars.c.character_graph
-        ]
-    ).select_from(
-        avatars.join(
-            au_hitick,
-            and_(
-                avatars.c.character_graph == au_hitick.c.character_graph,
-                avatars.c.avatar_graph == au_hitick.c.avatar_graph,
-                avatars.c.avatar_node == au_hitick.c.avatar_node,
-                avatars.c.branch == au_hitick.c.branch,
-                avatars.c.tick == au_hitick.c.tick
-            )
-        )
-    )
 
     r['arrival_time_get'] = select(
         [func.MAX(things.c.tick)]
@@ -1012,23 +876,6 @@ def queries(table, view):
         )
     )
 
-    r['thing_loc_and_next_get'] = select(
-        [
-            things.c.location,
-            things.c.next_location
-        ]
-    ).select_from(
-        things.join(
-            ctb_hitick,
-            and_(
-                things.c.character == ctb_hitick.c.character,
-                things.c.thing == ctb_hitick.c.thing,
-                things.c.branch == ctb_hitick.c.branch,
-                things.c.tick == ctb_hitick.c.tick
-            )
-        )
-    )
-
     r['thing_loc_and_next_ins'] = insert_cols(
         things,
         'character',
@@ -1044,97 +891,6 @@ def queries(table, view):
         ['location', 'next_location'],
         ['character', 'thing', 'branch', 'tick']
     )
-
-    nodes = table['nodes']
-
-    def hirev_nodes_extant_cols(*cols):
-        """Return query to get the time of the latest change to a node's existence.
-
-        Pass in names of columns to restrict the query to bound values
-        of those columns.
-
-        """
-        wheres = [
-            getattr(nodes.c, col) == bindparam(col)
-            for col in cols
-        ]
-        return select(
-            [
-                nodes.c.graph,
-                nodes.c.node,
-                nodes.c.branch,
-                func.MAX(nodes.c.rev).label('rev')
-            ]
-        ).where(
-            and_(
-                nodes.c.rev <= bindparam('rev'),
-                *wheres
-            )
-        ).group_by(
-            nodes.c.graph,
-            nodes.c.node,
-            nodes.c.branch
-        ).alias('ext_hirev')
-
-    def nodes_existence_cols(*cols):
-        """Return query to check whether nodes exist as of some sim-time.
-
-        You can narrow down which nodes to check by passing in
-        names of columns. They will become bind parameters, and
-        the columns will be tested for equality with the values
-        bound.
-
-        """
-        hirev = hirev_nodes_extant_cols(*cols)
-        return select(
-            [
-                nodes.c.graph,
-                nodes.c.node,
-                nodes.c.branch,
-                nodes.c.rev,
-                nodes.c.extant
-            ]
-        ).select_from(
-            nodes.join(
-                hirev,
-                and_(
-                    nodes.c.graph == hirev.c.graph,
-                    nodes.c.node == hirev.c.node,
-                    nodes.c.branch == hirev.c.branch,
-                    nodes.c.rev == hirev.c.rev
-                )
-            )
-        ).alias('existence')
-
-    nodes_existence = nodes_existence_cols('graph', 'branch')
-
-    node_existence = nodes_existence_cols('graph', 'node', 'branch')
-
-    cb_hitick = things_hitick('character', 'branch')
-
-    r['thing_loc_items'] = select(
-        [
-            things.c.thing,
-            things.c.location
-        ]
-    ).select_from(
-        things.join(
-            cb_hitick,
-            and_(
-                things.c.character == cb_hitick.c.character,
-                things.c.thing == cb_hitick.c.thing,
-                things.c.branch == cb_hitick.c.branch,
-                things.c.tick == cb_hitick.c.tick
-            )
-        ).join(
-            nodes_existence,
-            and_(
-                things.c.character == nodes_existence.c.graph,
-                things.c.thing == nodes_existence.c.node
-            ),
-            isouter=True
-        )
-    ).where(nodes_existence.c.extant)
 
     r['node_val_data_branch'] = select_where(
         table['node_val'],
@@ -1164,47 +920,6 @@ def queries(table, view):
         node_rulebook,
         ['rulebook'],
         ['character', 'node']
-    )
-
-    r['thing_and_loc'] = select(
-        [
-            things.c.thing,
-            things.c.location
-        ]
-    ).select_from(
-        things.join(
-            ctb_hitick,
-            and_(
-                things.c.character == ctb_hitick.c.character,
-                things.c.thing == ctb_hitick.c.thing,
-                things.c.branch == ctb_hitick.c.branch,
-                things.c.tick == ctb_hitick.c.tick
-            )
-        ).join(
-            node_existence,
-            and_(
-                things.c.character == node_existence.c.graph,
-                things.c.thing == node_existence.c.node
-            ),
-            isouter=True
-        )
-    ).where(node_existence.c.extant)
-
-    r['character_things_items'] = select(
-        [
-            things.c.thing,
-            things.c.location
-        ]
-    ).select_from(
-        things.join(
-            cb_hitick,
-            and_(
-                things.c.character == cb_hitick.c.character,
-                things.c.thing == cb_hitick.c.thing,
-                things.c.branch == cb_hitick.c.branch,
-                things.c.tick == cb_hitick.c.tick
-            )
-        )
     )
 
     graph_val = table['graph_val']
@@ -1265,46 +980,6 @@ def queries(table, view):
         )
     )
 
-    gb_hitick = hitick_avatars('character_graph', 'branch')
-
-    avatars_recent = avatars.join(
-        gb_hitick,
-        and_(
-            avatars.c.character_graph == gb_hitick.c.character_graph,
-            avatars.c.avatar_graph == gb_hitick.c.avatar_graph,
-            avatars.c.avatar_node == gb_hitick.c.avatar_node,
-            avatars.c.branch == gb_hitick.c.branch,
-            avatars.c.tick == gb_hitick.c.tick
-        )
-    )
-
-    r['avatarness'] = select(
-        [
-            avatars.c.avatar_graph,
-            avatars.c.avatar_node,
-            avatars.c.is_avatar
-        ]
-    ).select_from(
-        avatars_recent
-    )
-
-    r['avatars_now'] = select(
-        [
-            avatars.c.avatar_graph,
-            avatars.c.avatar_node,
-            avatars.c.is_avatar
-        ]
-    ).select_from(
-        avatars_recent.join(
-            nodes_existence,
-            and_(
-                avatars.c.avatar_graph == nodes_existence.c.graph,
-                avatars.c.avatar_node == nodes_existence.c.node
-            ),
-            isouter=True
-        )
-    ).where(nodes_existence.c.extant)
-
     r['avatars_ever'] = select(
         [
             avatars.c.avatar_graph,
@@ -1317,134 +992,7 @@ def queries(table, view):
         avatars.c.character_graph == bindparam('character')
     )
 
-    big_av_hitick = hitick_avatars(
-        'character_graph', 'avatar_graph', 'avatar_node', 'branch'
-    )
-
-    r['is_avatar_of'] = select(
-        [avatars.c.is_avatar]
-    ).select_from(
-        avatars.join(
-            big_av_hitick,
-            and_(
-                avatars.c.character_graph == big_av_hitick.c.character_graph,
-                avatars.c.avatar_graph == big_av_hitick.c.avatar_graph,
-                avatars.c.avatar_node == big_av_hitick.c.avatar_node,
-                avatars.c.branch == big_av_hitick.c.branch,
-                avatars.c.tick == big_av_hitick.c.tick
-            )
-        )
-    )
-
     senses = table['senses']
-
-    def senses_hitick(*cols):
-        """Return query to get the time of the latest change to the senses table.
-
-        Pass column names in, and the query will be narrowed down by
-        testing the columns for equality with bound parameters.
-
-        """
-        wheres = [
-            getattr(senses.c, col) == bindparam(col)
-            for col in cols
-        ] + [senses.c.tick <= bindparam('tick')]
-        return select(
-            [
-                senses.c.character,
-                senses.c.sense,
-                senses.c.branch,
-                func.MAX(senses.c.tick).label('tick')
-            ]
-        ).where(and_(*wheres)).group_by(
-            senses.c.character,
-            senses.c.sense,
-            senses.c.branch
-        ).alias('hitick')
-
-    senses_hitick_csb = senses_hitick('character', 'sense', 'branch')
-
-    r['sense_func_get'] = select(
-        [senses.c.function]
-    ).select_from(
-        senses.join(
-            senses_hitick_csb,
-            and_(
-                senses.c.character == senses_hitick_csb.c.character,
-                senses.c.sense == senses_hitick_csb.c.sense,
-                senses.c.branch == senses_hitick_csb.c.branch,
-                senses.c.tick == senses_hitick_csb.c.tick
-            )
-        )
-    )
-
-    def sense_active_hitick(*cols):
-        """Return query to get the time of the latest change to a sense.
-
-        Pass names of columns to have them checked for equality. Each
-        will get its own bind parameter.
-
-        """
-        wheres = [
-            getattr(senses.c, col) == bindparam(col)
-            for col in cols
-        ]
-        return select(
-            [
-                senses.c.character,
-                senses.c.sense,
-                senses.c.branch,
-                func.MAX(senses.c.tick).label('tick')
-            ]
-        ).where(
-            and_(
-                or_(
-                    senses.c.character == null(),
-                    senses.c.character == bindparam('character')
-                ),
-                senses.c.tick <= bindparam('tick'),
-                *wheres
-            )
-        ).group_by(
-            senses.c.character,
-            senses.c.sense,
-            senses.c.branch
-        ).alias('hitick')
-
-    saht_general = sense_active_hitick('branch')
-
-    r['sense_active_items'] = select(
-        [
-            senses.c.sense,
-            senses.c.active
-        ]
-    ).select_from(
-        senses.join(
-            saht_general,
-            and_(
-                senses.c.character == saht_general.c.character,
-                senses.c.sense == saht_general.c.sense,
-                senses.c.branch == saht_general.c.branch,
-                senses.c.tick == saht_general.c.tick
-            )
-        )
-    )
-
-    saht_specific = sense_active_hitick('sense', 'branch')
-
-    r['sense_is_active'] = select(
-        [senses.c.active]
-    ).select_from(
-        senses.join(
-            saht_specific,
-            and_(
-                senses.c.character == saht_specific.c.character,
-                senses.c.sense == saht_specific.c.sense,
-                senses.c.branch == saht_specific.c.branch,
-                senses.c.tick == saht_specific.c.tick
-            )
-        )
-    )
 
     r['sense_fun_ins'] = insert_cols(
         senses,
@@ -1701,23 +1249,6 @@ def queries(table, view):
     r['ruleins'] = rules.insert().values(rule=bindparam('rule'))
 
     r['ruledel'] = rules.delete().where(rules.c.rule == bindparam('rule'))
-
-    cab_hitick = hitick_avatars('character_graph', 'avatar_graph', 'branch')
-
-    r['avatar_branch_data'] = select(
-        [avatars.c.avatar_node, avatars.c.is_avatar]
-    ).select_from(
-        avatars.join(
-            cab_hitick,
-            and_(
-                avatars.c.character_graph == cab_hitick.c.character_graph,
-                avatars.c.avatar_graph == cab_hitick.c.avatar_graph,
-                avatars.c.avatar_node == cab_hitick.c.avatar_node,
-                avatars.c.branch == cab_hitick.c.branch,
-                avatars.c.tick == cab_hitick.c.tick
-            )
-        )
-    )
 
     branches = table['branches']
 
