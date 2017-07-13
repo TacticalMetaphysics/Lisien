@@ -771,26 +771,6 @@ class QueryEngine(allegedb.query.QueryEngine):
     def ct_rulebooks(self):
         return self.sql('ct_rulebooks').fetchone()[0]
 
-    def active_rules_rulebook(self, rulebook, branch, tick):
-        rulebook = self.json_dump(rulebook)
-        seen = set()
-        for (b, t) in self.active_branches(branch, tick):
-            for (rule, active) in self.sql(
-                    'active_rules_rulebook', rulebook, branch, tick
-            ):
-                if active and rule not in seen:
-                    yield self.json_load(rule)
-                seen.add(rule)
-
-    def active_rule_rulebook(self, rulebook, rule, branch, tick):
-        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
-        for (b, t) in self.active_branches(branch, tick):
-            for (active,) in self.sql(
-                    'active_rule_rulebook', rulebook, rule, branch, tick
-            ):
-                return bool(active)
-        return False
-
     def node_rulebook(self, character, node):
         (character, node) = map(self.json_dump, (character, node))
         r = self.sql('node_rulebook', character, node).fetchone()
@@ -861,37 +841,10 @@ class QueryEngine(allegedb.query.QueryEngine):
                 0
             )
 
-    def dump_active_rules(self):
-        for (
-                rulebook,
-                rule,
-                branch,
-                tick,
-                active
-        ) in self.sql('dump_active_rules'):
-            yield (
-                self.json_load(rulebook),
-                self.json_load(rule),
-                branch,
-                tick,
-                bool(active)
-            )
-
     def character_rulebook(self, character):
         character = self.json_dump(character)
         for (rb,) in self.sql('character_rulebook', character):
             return self.json_load(rb)
-
-    def set_rule_activeness(self, rulebook, rule, branch, tick, active):
-        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
-        try:
-            self.sql(
-                'active_rules_ins', rulebook, rule, branch, tick, active
-            )
-        except IntegrityError:
-            self.sql(
-                'active_rules_upd', active, rulebook, rule, branch, tick
-            )
 
     def poll_char_rules(self, branch, tick):
         """Poll character-wide rules for all the entity types."""
@@ -1708,7 +1661,6 @@ class QueryEngine(allegedb.query.QueryEngine):
             'universals',
             'rules',
             'rulebooks',
-            'active_rules',
             'characters',
             'senses',
             'travel_reqs',
@@ -1735,7 +1687,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         except OperationalError:
             pass
         for idx in (
-            'active_rules',
             'senses',
             'travel_reqs',
             'things',

@@ -170,26 +170,6 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(['rule'], ['rules.rule'])
     )
 
-    # Rules within a given rulebook that are active at a particular
-    # (branch, tick).
-    r['active_rules'] = Table(
-        'active_rules', meta,
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column(
-            'branch', TEXT, primary_key=True, default='trunk'
-        ),
-        Column('tick', Integer, primary_key=True, default=0),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
-        Column('active', Boolean, default=True),
-        ForeignKeyConstraint(
-            ['rulebook', 'rule'],
-            ['rulebooks.rulebook', 'rulebooks.rule']
-        )
-    )
-
     # The top level of the LiSE world model, the character. Includes
     # rulebooks for the character itself, its avatars, and all the things,
     # places, and portals it contains--though those may have their own
@@ -476,11 +456,6 @@ def indices_for_table_dict(table):
     r = allegedb.alchemy.indices_for_table_dict(table)
 
     for idx in (
-            Index(
-                'active_rules_idx',
-                table['active_rules'].c.rulebook,
-                table['active_rules'].c.rule
-            ),
             Index(
                 'senses_idx',
                 table['senses'].c.character,
