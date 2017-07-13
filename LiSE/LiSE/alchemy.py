@@ -91,9 +91,6 @@ def tables_for_meta(meta):
             'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('date', DateTime, nullable=True),
-        Column('creator', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('value', TEXT, nullable=True)
     )
 
@@ -101,9 +98,6 @@ def tables_for_meta(meta):
     r['rules'] = Table(
         'rules', meta,
         Column('rule', TEXT, primary_key=True),
-        Column('date', DateTime, nullable=True, default=None),
-        Column('creator', TEXT, nullable=True, default=None),
-        Column('description', TEXT, nullable=True, default=None)
     )
 
     # Table for rules' triggers, those functions that return True only
@@ -141,9 +135,6 @@ def tables_for_meta(meta):
         'rulebooks', meta,
         Column('rulebook', TEXT, primary_key=True),
         Column('idx', Integer, primary_key=True),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('rule', TEXT),
         ForeignKeyConstraint(['rule'], ['rules.rule'])
     )
@@ -155,9 +146,6 @@ def tables_for_meta(meta):
     r['characters'] = Table(
         'characters', meta,
         Column('character', TEXT, primary_key=True),
-        Column('date', DateTime, nullable=True),
-        Column('creator', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('character_rulebook', TEXT, nullable=False),
         Column('avatar_rulebook', TEXT, nullable=False),
         Column('character_thing_rulebook', TEXT, nullable=False),
@@ -240,9 +228,6 @@ def tables_for_meta(meta):
             'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('function', TEXT),
         Column('active', Boolean, default=True),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
@@ -262,9 +247,6 @@ def tables_for_meta(meta):
         Column(
             'character', TEXT, primary_key=True, nullable=True
         ),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('reqs', TEXT, default='[]'),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
@@ -284,9 +266,6 @@ def tables_for_meta(meta):
             'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         # when location is null, this node is not a thing, but a place
         Column('location', TEXT, nullable=True),
         # when next_location is not null, thing is en route between
@@ -308,9 +287,6 @@ def tables_for_meta(meta):
         'node_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
@@ -329,9 +305,6 @@ def tables_for_meta(meta):
         Column('nodeA', TEXT, primary_key=True),
         Column('nodeB', TEXT, primary_key=True),
         Column('idx', Integer, primary_key=True, default=0),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'nodeA', 'nodeB', 'idx'],
@@ -359,9 +332,6 @@ def tables_for_meta(meta):
             'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('date', DateTime, nullable=True),
-        Column('contributor', TEXT, nullable=True),
-        Column('description', TEXT, nullable=True),
         Column('is_avatar', Boolean),
         ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
         ForeignKeyConstraint(
@@ -1067,17 +1037,8 @@ def queries(table, view):
         """Return a query to delete all functions in a rule."""
         return tab.delete().where(tab.c.rule == bindparam('rule'))
 
-    r['ins_rule'] = rules.insert().values(
-        rule=bindparam('rule'),
-        date=bindparam('date'),
-        creator=bindparam('creator'),
-        description=bindparam('description')
-    )
-    r['upd_rule'] = rules.update().values(
-        date=bindparam('date'),
-        creator=bindparam('creator'),
-        description=bindparam('description')
-    ).where(rules.c.rule == bindparam('rule'))
+    r['ins_rule'] = rules.insert().values(rule=bindparam('rule'))
+    r['upd_rule'] = rules.update().values().where(rules.c.rule == bindparam('rule'))
     r['del_rule'] = rules.delete().where(rules.c.rule == bindparam('rule'))
     r['rule_triggers_count'] = rule_something_count(rule_triggers)
     r['rule_triggers_ins'] = rule_something_ins(rule_triggers, 'trigger')
