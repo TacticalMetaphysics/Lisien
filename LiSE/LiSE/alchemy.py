@@ -11,31 +11,9 @@ where LiSE will look for it, as in:
 ``python3 sqlalchemy.py >sqlite.json``
 
 """
-from sqlalchemy import (
-    Table,
-    Index,
-    Column,
-    CheckConstraint,
-    ForeignKey,
-    ForeignKeyConstraint,
-    Integer,
-    Boolean,
-    String,
-    DateTime,
-    MetaData,
-    select,
-    distinct,
-    func,
-    and_,
-    or_,
-    null
-)
-from sqlalchemy import create_engine
+from sqlalchemy import *
 from json import dumps
 
-from sqlalchemy.sql import bindparam, column
-from sqlalchemy.sql.ddl import CreateTable, CreateIndex
-from sqlalchemy.sql.expression import union
 import allegedb.alchemy
 
 # Constants
