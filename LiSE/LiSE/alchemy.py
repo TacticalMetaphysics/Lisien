@@ -497,9 +497,6 @@ def queries(table, view):
 
     rulebooks = table['rulebooks']
 
-    # Note that you have to pass in the branch and tick *twice*, and
-    # prior to the character and node, if you're using sqlite
-
     pr = table['portal_rulebook']
 
     r['portal_rulebook'] = select_where(
