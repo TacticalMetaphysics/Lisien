@@ -11,7 +11,14 @@ where LiSE will look for it, as in:
 ``python3 sqlalchemy.py >sqlite.json``
 
 """
+from functools import partial
 from sqlalchemy import *
+
+
+BaseColumn = Column
+Column = partial(BaseColumn, nullable=False)
+
+
 from json import dumps
 
 import allegedb.alchemy

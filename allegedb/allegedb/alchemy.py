@@ -1,5 +1,6 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector.
+from functools import partial
 from sqlalchemy import (
     Table,
     Index,
@@ -17,6 +18,12 @@ from sqlalchemy import (
     and_,
     null
 )
+
+
+BaseColumn = Column
+Column = partial(BaseColumn, nullable=False)
+
+
 from sqlalchemy.sql import bindparam
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 from sqlalchemy import create_engine
