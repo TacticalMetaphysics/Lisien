@@ -639,30 +639,6 @@ def queries(table, view):
         ['graph', 'node', 'branch']
     )
 
-    r['node_rulebook'] = select_where(
-        node_rulebook,
-        ['rulebook'],
-        ['character', 'node']
-    )
-    r['nodes_rulebooks'] = select([
-        node_rulebook.c.character,
-        node_rulebook.c.node,
-        node_rulebook.c.rulebook
-    ])
-
-    r['ins_node_rulebook'] = insert_cols(
-        node_rulebook,
-        'character',
-        'node',
-        'rulebook'
-    )
-
-    r['upd_node_rulebook'] = update_where(
-        node_rulebook,
-        ['rulebook'],
-        ['character', 'node']
-    )
-
     graph_val = table['graph_val']
 
     r['char_stat_branch_data'] = select(
