@@ -106,8 +106,8 @@ def tables_for_meta(meta):
         r[strtyp] = string_store_table(strtyp)
 
     # Table for global variables that are not sensitive to sim-time.
-    r['lise_globals'] = Table(
-        'lise_globals', meta,
+    r['universals'] = Table(
+        'universals', meta,
         Column('key', TEXT, primary_key=True),
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
