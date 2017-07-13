@@ -846,29 +846,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         for (rb,) in self.sql('character_rulebook', character):
             return self.json_load(rb)
 
-    def poll_char_rules(self, branch, tick):
-        """Poll character-wide rules for all the entity types."""
-        for rulemap in (
-                'character',
-                'avatar',
-                'character_thing',
-                'character_place',
-                'character_node',
-                'character_portal'
-        ):
-            seen = set()
-            for (b, t) in self.active_branches(branch, tick):
-                for (c, rulebook, rule, active, handled) in self.sql(
-                        'poll_{}_rules'.format(rulemap), b, t, b, t
-                ):
-                    if (c, rulebook, rule) in seen:
-                        continue
-                    seen.add((c, rulebook, rule))
-                    if active:
-                        yield (rulemap,) + tuple(map(
-                            self.json_load, (c, rulebook, rule)
-                        ))
-
     def handled_rules_on_characters(self, typ):
         for (
                 character,
@@ -904,22 +881,6 @@ class QueryEngine(allegedb.query.QueryEngine):
     def handled_character_portal_rules(self):
         return self.handled_rules_on_characters('character_portal')
 
-    def poll_node_rules(self, branch, tick):
-        """Poll rules assigned to particular Places or Things."""
-        seen = set()
-        for (b, t) in self.active_branches(branch, tick):
-            for (char, n, rulebook, rule, active) in self.sql(
-                    'poll_node_rules', b, t, b, t
-            ):
-                if (char, n, rulebook, rule) in seen:
-                    continue
-                seen.add((char, n, rulebook, rule))
-                if active:
-                    yield tuple(map(
-                        self.json_load,
-                        (char, n, rulebook, rule)
-                    ))
-
     def node_rules(self, character, node, branch, tick):
         (character, node) = map(self.json_dump, (character, node))
         seen = set()
@@ -952,26 +913,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 branch,
                 tick
             )
-
-    def poll_portal_rules(self, branch, tick):
-        """Poll rules assigned to particular portals."""
-        seen = set()
-        for (b, t) in self.active_branches(branch, tick):
-            for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
-                'poll_portal_rules', b, t, b, t
-            ):
-                if (char, a, b, i, rulebook, rule) in seen:
-                    continue
-                seen.add((char, a, b, i, rulebook, rule))
-                if active:
-                    yield (
-                        self.json_load(char),
-                        self.json_load(a),
-                        self.json_load(b),
-                        i,
-                        self.json_load(rulebook),
-                        self.json_load(rule)
-                    )
 
     def dump_portal_rules_handled(self):
         for (

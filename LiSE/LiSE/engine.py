@@ -510,7 +510,6 @@ class Engine(AbstractEngine, gORM):
             alchemy=False,
             commit_modulus=None,
             random_seed=None,
-            sql_rule_polling=False,
             logfun=None
     ):
         """Store the connections for the world database and the code database;
@@ -557,7 +556,6 @@ class Engine(AbstractEngine, gORM):
             def logfun(level, msg):
                 getattr(logger, level)(msg)
         self.log = logfun
-        self._sql_polling = sql_rule_polling
         self.commit_modulus = commit_modulus
         self.random_seed = random_seed
         self._rules_iter = self._follow_rules()
@@ -768,10 +766,6 @@ class Engine(AbstractEngine, gORM):
         ) is True
 
     def _poll_char_rules(self):
-        if self._sql_polling:
-            yield from self.query.poll_char_rules(*self.time)
-            return
-
         unhandled_iter = self._character_rules_handled_cache.\
                          iter_unhandled_rules
         for char in self.character:
@@ -785,10 +779,6 @@ class Engine(AbstractEngine, gORM):
                     yield (rulemap, char, rulebook, rule)
 
     def _poll_node_rules(self):
-        if self._sql_polling:
-            yield from self.query.poll_node_rules(*self.time)
-            return
-
         unhandled_iter = self._node_rules_handled_cache.iter_unhandled_rules
         for chara in self.character.values():
             char = chara.name
@@ -803,10 +793,6 @@ class Engine(AbstractEngine, gORM):
                     yield (char, node, rulebook, rule)
 
     def _poll_portal_rules(self):
-        if self._sql_polling:
-            yield from self.query.poll_portal_rules(*self.time)
-            return
-
         cache = self._portals_rulebooks_cache
         for chara in self.character.values():
             for nodeA in chara.portal:
