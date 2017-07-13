@@ -20,19 +20,6 @@ import allegedb.alchemy
 
 TEXT = String(50)
 
-strtyps = (
-    'strings',
-)
-"""Names of the different string tables, currently just 'strings'.
-
-String tables store text to be used in the game, probably displayed to the
-player. There's accommodation for more than one such table in case it
-becomes useful to handle different kinds of text differently,
-such as text meant to be used in format strings vs. text meant to be
-displayed as written.
-
-"""
-
 
 def tables_for_meta(meta):
     """Return a dictionary full of all the tables I need for LiSE. Use the
@@ -62,26 +49,7 @@ def tables_for_meta(meta):
         )
         return r
 
-    def string_store_table(name):
-        """Return a Table for storing strings, some of which may have
-        different versions for different languages.
-
-        """
-        r = Table(
-            name, meta,
-            Column('id', TEXT, primary_key=True),
-            Column('language', TEXT, primary_key=True, default='eng'),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('string', TEXT)
-        )
-        return r
-
     r = allegedb.alchemy.tables_for_meta(meta)
-
-    for strtyp in strtyps:
-        r[strtyp] = string_store_table(strtyp)
 
     # Table for global variables that are not sensitive to sim-time.
     r['universals'] = Table(
@@ -504,161 +472,10 @@ def queries(table, view):
         ]
         return t.update().values(**vmap).where(and_(*wheres))
 
-    def func_table_iter(t):
-        """Select the ``name`` column."""
-        return select(
-            [t.c.name]
-        )
-
-    def func_table_name_plaincode(t):
-        """Select the ``name`` and ``plaincode`` columns."""
-        return select(
-            [t.c.name, t.c.plaincode]
-        )
-
-    def func_table_get(t):
-        """Get all columns for a given function (except ``name``).
-
-        * ``bytecode``
-        * ``base``
-        * ``keywords``
-        * ``date``
-        * ``creator``
-        * ``contributor``
-        * ``description``
-        * ``plaincode``
-        * ``version``
-
-        """
-        return select(
-            [
-                t.c.bytecode,
-                t.c.base,
-                t.c.keywords,
-                t.c.date,
-                t.c.creator,
-                t.c.contributor,
-                t.c.description,
-                t.c.plaincode,
-                t.c.version
-            ]
-        ).where(
-            t.c.name == bindparam('name')
-        )
-
-    def func_table_ins(t):
-        """Return an ``INSERT`` statement for a function table.
-
-        Inserts the fields:
-
-        * ``name``
-        * ``bytecode``
-        * ``plaincode``
-
-        """
-        return t.insert().values(
-            name=bindparam('name'),
-            keywords=bindparam('keywords'),
-            bytecode=bindparam('bytecode'),
-            plaincode=bindparam('plaincode')
-        )
-
-    def func_table_upd(t):
-        """Return an ``UPDATE`` statement to change the ``bytecode`` and
-        ``plaincode`` for a function of a given name.
-
-        """
-        return t.update().values(
-            keywords=bindparam('keywords'),
-            bytecode=bindparam('bytecode'),
-            plaincode=bindparam('plaincode')
-        ).where(
-            t.c.name == bindparam('name')
-        )
-
-    def func_table_del(t):
-        """Return a ``DELETE`` statement to delete the function by a given
-        name.
-
-        """
-        return t.delete().where(
-            t.c.name == bindparam('name')
-        )
-
-    def string_table_lang_items(t):
-        """Return all the strings and their IDs for a given language."""
-        return select(
-            [t.c.id, t.c.string]
-        ).where(
-            t.c.language == bindparam('language')
-        ).order_by(
-            t.c.id
-        )
-
-    def string_table_get(t):
-        """Return a ``SELECT`` statement to get a string based on its language
-        and ID.
-
-        """
-        return select(
-            [t.c.string]
-        ).where(
-            and_(
-                t.c.language == bindparam('language'),
-                t.c.id == bindparam('id')
-            )
-        )
-
-    def string_table_ins(t):
-        """Return an ``INSERT`` statement for a string's ID, its language, and
-        the string itself.
-
-        """
-        return t.insert().values(
-            id=bindparam('id'),
-            language=bindparam('language'),
-            string=bindparam('string')
-        )
-
-    def string_table_upd(t):
-        """Return an ``UPDATE`` statement to change a string in a given
-        language, with a given ID.
-
-        """
-        return t.update().values(
-            string=bindparam('string')
-        ).where(
-            and_(
-                t.c.language == bindparam('language'),
-                t.c.id == bindparam('id')
-            )
-        )
-
-    def string_table_del(t):
-        """Return a ``DELETE`` statement to get rid of a string in a given
-        language, with a given ID.
-
-        """
-        return t.delete().where(
-            and_(
-                t.c.language == bindparam('language'),
-                t.c.id == bindparam('id')
-            )
-        )
-
     r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select().select_from(t)
-
-    for strtyp in strtyps:
-        r['{}_lang_items'.format(strtyp)] = string_table_lang_items(
-            table[strtyp]
-        )
-        r['{}_get'.format(strtyp)] = string_table_get(table[strtyp])
-        r['{}_ins'.format(strtyp)] = string_table_ins(table[strtyp])
-        r['{}_upd'.format(strtyp)] = string_table_upd(table[strtyp])
-        r['{}_del'.format(strtyp)] = string_table_del(table[strtyp])
 
     characters = table['characters']
 
