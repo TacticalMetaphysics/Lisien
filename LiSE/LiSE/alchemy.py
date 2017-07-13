@@ -13,6 +13,7 @@ where LiSE will look for it, as in:
 """
 from functools import partial
 from sqlalchemy import *
+from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 
 
 BaseColumn = Column
@@ -379,10 +380,6 @@ def indices_for_table_dict(table):
                 table['senses'].c.sense
             ),
             Index(
-                'travel_reqs_idx',
-                table['travel_reqs'].c.character
-            ),
-            Index(
                 'things_idx',
                 table['things'].c.character,
                 table['things'].c.thing
@@ -457,14 +454,15 @@ def queries(table, view):
         wheres = [
             c == bindparam(c.name) for c in wherecols
         ]
-        return update().values(**vmap).where(and_(*wheres))
+        tab = wherecols[0].table
+        return tab.update().values(**vmap).where(and_(*wheres))
 
     r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select().select_from(t)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
-        r['count_all_{}'.format(n)] = select().select_from(t).count()
+        r['count_all_{}'.format(n)] = select([func.COUNT('*')]).select_from(t)
 
     characters = table['characters']
 
@@ -499,7 +497,6 @@ def queries(table, view):
 
     rulebooks = table['rulebooks']
 
-
     # Note that you have to pass in the branch and tick *twice*, and
     # prior to the character and node, if you're using sqlite
 
@@ -520,8 +517,6 @@ def queries(table, view):
         ['rulebook'],
         [pr.c.character, pr.c.nodeA, pr.c.nodeB]
     )
-
-    characters = table['characters']
 
     r['del_char_things'] = table['things'].delete().where(
         table['things'].c.character == bindparam('character')
@@ -687,11 +682,11 @@ def queries(table, view):
 
     r['rulebook_rules'] = select(
         [rulebooks.c.rules]
-    ).where(
+    ).where(and_(
         rulebooks.c.rulebook == bindparam('rulebook'),
         rulebooks.c.branch == bindparam('branch'),
         rulebooks.c.tick == bindparam('tick')
-    )
+    ))
 
     branches = table['branches']
 
