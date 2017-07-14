@@ -11,6 +11,7 @@ where LiSE will look for it, as in:
 ``python3 sqlalchemy.py >sqlite.json``
 
 """
+from collections import OrderedDict
 from functools import partial
 from sqlalchemy import *
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
@@ -448,9 +449,9 @@ def queries(table, view):
         the same name.
 
         """
-        vmap = {
-            col: bindparam(col) for col in updcols
-        }
+        vmap = OrderedDict()
+        for col in updcols:
+            vmap[col] = bindparam(col)
         wheres = [
             c == bindparam(c.name) for c in wherecols
         ]
@@ -464,51 +465,9 @@ def queries(table, view):
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r['{}_count'.format(t.name)] = select([func.COUNT('*')]).select_from(t)
 
-    characters = table['characters']
-
-    r['characters'] = select([table['characters'].c.character])
-
-    r['characters_rulebooks'] = select([
-        characters.c.character,
-        characters.c.character_rulebook,
-        characters.c.avatar_rulebook,
-        characters.c.character_thing_rulebook,
-        characters.c.character_place_rulebook,
-        characters.c.character_node_rulebook,
-        characters.c.character_portal_rulebook
-    ])
-
-    r['character_rulebooks'] = select([
-        characters.c.character_rulebook,
-        characters.c.avatar_rulebook,
-        characters.c.character_thing_rulebook,
-        characters.c.character_place_rulebook,
-        characters.c.character_node_rulebook,
-        characters.c.character_portal_rulebook
-    ]).where(
-        table['characters'].c.character == bindparam('character')
-    )
-
-    r['ct_character'] = select(
-        [func.COUNT(table['characters'].c.character)]
-    ).where(
-        table['characters'].c.character == bindparam('character')
-    )
-
     rulebooks = table['rulebooks']
 
     pr = table['portal_rulebook']
-
-    r['portal_rulebook'] = select_where(
-        [pr.c.rulebook],
-        [pr.c.character, pr.c.nodeA, pr.c.nodeB]
-    )  # assumes idx always == 0
-    r['portals_rulebooks'] = select([
-        pr.c.character,
-        pr.c.nodeA,
-        pr.c.nodeB,
-        pr.c.rulebook
-    ])
 
     r['upd_portal_rulebook'] = update_where(
         ['rulebook'],
