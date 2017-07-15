@@ -231,41 +231,41 @@ class PortalRulesHandledCache(object):
         self.shallow = {}
         self.unhandled = StructuredDefaultDict(1, dict)
 
-    def store(self, character, nodeA, nodeB, rulebook, rule, branch, tick):
+    def store(self, character, orig, dest, rulebook, rule, branch, tick):
         the_set = self.shallow[
-            (character, nodeA, nodeB, rulebook, rule, branch)
-        ] = self._data[character][nodeA][nodeB][rulebook][rule][branch]
+            (character, orig, dest, rulebook, rule, branch)
+        ] = self._data[character][orig][dest][rulebook][rule][branch]
         the_set.add(tick)
-        if tick not in self.unhandled[(character, nodeA, nodeB)][branch]:
-            self.unhandled[(character, nodeA, nodeB)][branch][tick] = set(
+        if tick not in self.unhandled[(character, orig, dest)][branch]:
+            self.unhandled[(character, orig, dest)][branch][tick] = set(
                 self.engine._active_rules_cache[rulebook][branch][tick]
             )
-        self.unhandled[(character, nodeA, nodeB)][branch][tick].remove(rule)
+        self.unhandled[(character, orig, dest)][branch][tick].remove(rule)
 
-    def retrieve(self, character, nodeA, nodeB, rulebook, rule, branch):
-        return self.shallow[(character, nodeA, nodeB, rulebook, rule, branch)]
+    def retrieve(self, character, orig, dest, rulebook, rule, branch):
+        return self.shallow[(character, orig, dest, rulebook, rule, branch)]
 
     def check_handled(
-            self, character, nodeA, nodeB, rulebook, rule, branch, tick
+            self, character, orig, dest, rulebook, rule, branch, tick
     ):
         try:
             ret = tick in self.shallow[
-                (character, nodeA, nodeB, rulebook, rule, branch)]
+                (character, orig, dest, rulebook, rule, branch)]
         except KeyError:
             ret = False
         assert ret is rule not in self.unhandled[
-            (character, nodeA, nodeB)][branch][tick]
+            (character, orig, dest)][branch][tick]
         return ret
 
     def iter_unhandled_rules(
-            self, character, nodeA, nodeB, rulebook, branch, tick
+            self, character, orig, dest, rulebook, branch, tick
     ):
         try:
-            unhandl = self.unhandled[(character, nodeA, nodeB)][branch][tick]
+            unhandl = self.unhandled[(character, orig, dest)][branch][tick]
         except KeyError:
             try:
                 unhandl = self.unhandled[
-                    (character, nodeA, nodeB)][branch][tick] \
+                    (character, orig, dest)][branch][tick] \
                     = self.engine._active_rules_cache.retrieve(
                         rulebook, branch, tick
                     ).copy()
@@ -295,12 +295,12 @@ class PortalRulebookCache(object):
         self._data = defaultdict(lambda: defaultdict(dict))
         self.shallow = {}
 
-    def store(self, character, nodeA, nodeB, rulebook):
-        self._data[character][nodeA][nodeB] \
-            = self.shallow[(character, nodeA, nodeB)] = rulebook
+    def store(self, character, orig, dest, rulebook):
+        self._data[character][orig][dest] \
+            = self.shallow[(character, orig, dest)] = rulebook
 
-    def retrieve(self, character, nodeA, nodeB):
-        return self.shallow[(character, nodeA, nodeB)]
+    def retrieve(self, character, orig, dest):
+        return self.shallow[(character, orig, dest)]
 
 
 class ActiveRulesCache(Cache):

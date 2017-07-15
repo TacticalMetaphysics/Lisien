@@ -168,8 +168,8 @@ def tables_for_meta(meta):
     r['portal_rules_handled'] = Table(
         'portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
-        Column('nodeA', TEXT, primary_key=True),
-        Column('nodeB', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
         Column('idx', Integer, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
@@ -255,13 +255,13 @@ def tables_for_meta(meta):
     r['portal_rulebook'] = Table(
         'portal_rulebook', meta,
         Column('character', TEXT, primary_key=True),
-        Column('nodeA', TEXT, primary_key=True),
-        Column('nodeB', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
         Column('idx', Integer, primary_key=True, default=0),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
-            ['character', 'nodeA', 'nodeB', 'idx'],
-            ['edges.graph', 'edges.nodeA', 'edges.nodeB', 'edges.idx']
+            ['character', 'orig', 'dest', 'idx'],
+            ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
         )
     )
 
@@ -396,8 +396,8 @@ def indices_for_table_dict(table):
             Index(
                 'portal_rules_handled_idx',
                 table['portal_rules_handled'].c.character,
-                table['portal_rules_handled'].c.nodeA,
-                table['portal_rules_handled'].c.nodeB,
+                table['portal_rules_handled'].c.orig,
+                table['portal_rules_handled'].c.dest,
                 table['portal_rules_handled'].c.idx,
                 table['portal_rules_handled'].c.rulebook,
                 table['portal_rules_handled'].c.rule
@@ -441,7 +441,7 @@ def queries(table, view):
 
     r['upd_portal_rulebook'] = update_where(
         ['rulebook'],
-        [pr.c.character, pr.c.nodeA, pr.c.nodeB]
+        [pr.c.character, pr.c.orig, pr.c.dest]
     )
 
     r['del_char_things'] = table['things'].delete().where(

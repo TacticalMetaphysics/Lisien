@@ -1433,27 +1433,27 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         character = getatt('graph')
         engine = getatt('graph.engine')
 
-        def __getitem__(self, nodeA):
+        def __getitem__(self, orig):
             if self.engine._node_exists(
                     self.graph.name,
-                    nodeA
+                    orig
             ):
-                if nodeA not in self._cache:
-                    self._cache[nodeA] = self.Successors(self, nodeA)
-                return self._cache[nodeA]
+                if orig not in self._cache:
+                    self._cache[orig] = self.Successors(self, orig)
+                return self._cache[orig]
             raise KeyError("No such node")
 
-        def __setitem__(self, nodeA, val):
-            if nodeA not in self._cache:
-                self._cache[nodeA] = self.Successors(self, nodeA)
-            sucs = self._cache[nodeA]
+        def __setitem__(self, orig, val):
+            if orig not in self._cache:
+                self._cache[orig] = self.Successors(self, orig)
+            sucs = self._cache[orig]
             sucs.clear()
             sucs.update(val)
-            self.send(self, key=nodeA, val=sucs)
+            self.send(self, key=orig, val=sucs)
 
-        def __delitem__(self, nodeA):
-            super().__delitem__(nodeA)
-            self.send(self, key=nodeA, val=None)
+        def __delitem__(self, orig):
+            super().__delitem__(orig)
+            self.send(self, key=orig, val=None)
 
         class Successors(GraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
@@ -1466,53 +1466,53 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             @staticmethod
             def send(self, **kwargs):
-                """Call all listeners to ``nodeB`` and to my ``nodeA``."""
+                """Call all listeners to ``dest`` and to my ``orig``."""
                 super().send(self, **kwargs)
                 self.container.send(self, **kwargs)
 
-            def __getitem__(self, nodeB):
-                key = (self.graph.name, self.nodeA, nodeB)
-                if nodeB in self:
+            def __getitem__(self, dest):
+                key = (self.graph.name, self.orig, dest)
+                if dest in self:
                     if key not in self.engine._portal_objs:
                         self.engine._portal_objs[key] = Portal(
-                            self.graph, self.nodeA, nodeB
+                            self.graph, self.orig, dest
                         )
                     return self.engine._portal_objs[key]
                 raise KeyError("No such portal: {}->{}".format(
-                    self.nodeA, nodeB
+                    self.orig, dest
                 ))
 
-            def __setitem__(self, nodeB, value):
+            def __setitem__(self, dest, value):
                 self.engine._exist_edge(
                     self.graph.name,
-                    self.nodeA,
-                    nodeB
+                    self.orig,
+                    dest
                 )
-                key = (self.graph.name, self.nodeA, nodeB)
+                key = (self.graph.name, self.orig, dest)
                 if key not in self.engine._portal_objs:
                     self.engine._portal_objs[key] = Portal(
-                        self.graph, self.nodeA, nodeB
+                        self.graph, self.orig, dest
                     )
                 p = self.engine._portal_objs[key]
                 p.clear()
                 p.update(value)
-                self.send(self, key=nodeB, val=p)
+                self.send(self, key=dest, val=p)
 
-            def __delitem__(self, nodeB):
+            def __delitem__(self, dest):
                 (branch, tick) = self.engine.time
                 self.engine._exist_edge(
                     self.graph.name,
-                    self.nodeA,
-                    nodeB,
+                    self.orig,
+                    dest,
                     False
                 )
                 try:
                     del self.engine._portal_objs[
-                        (self.graph.name, self.nodeA, nodeB)
+                        (self.graph.name, self.orig, dest)
                     ]
                 except KeyError:
                     pass
-                self.send(self, key=nodeB, val=None)
+                self.send(self, key=dest, val=None)
 
     class PortalPredecessorsMapping(
             DiGraphPredecessorsMapping,
@@ -1528,18 +1528,18 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         class Predecessors(DiGraphPredecessorsMapping.Predecessors):
             """Mapping of possible origins from some destination."""
-            def __setitem__(self, nodeA, value):
-                key = (self.graph.name, nodeA, self.nodeB)
+            def __setitem__(self, orig, value):
+                key = (self.graph.name, orig, self.dest)
                 if key not in self.engine._portal_objs:
                     self.engine._portal_objs[key] = Portal(
                         self.graph,
-                        nodeA,
-                        self.nodeB
+                        orig,
+                        self.dest
                     )
                 p = self.engine._portal_objs[key]
                 p.clear()
                 p.update(value)
-                p.engine._exist_edge(self.graph.name, self.nodeB, nodeA)
+                p.engine._exist_edge(self.graph.name, self.dest, orig)
 
     class AvatarGraphMapping(Mapping, RuleFollower):
         """A mapping of other characters in which one has an avatar.

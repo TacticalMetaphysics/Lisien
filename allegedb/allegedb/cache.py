@@ -646,15 +646,15 @@ class EdgesCache(Cache):
         self.predecessors = StructuredDefaultDict(3, FuturistWindowDict)
 
     def _slow_iter_successors(self, cache, branch, rev):
-        for nodeB, nodeBs in cache.items():
-            for idx in self._slow_iter_keys(nodeBs, branch, rev):
-                yield nodeB
+        for dest, dests in cache.items():
+            for idx in self._slow_iter_keys(dests, branch, rev):
+                yield dest
                 break
 
     def _slow_iter_predecessors(self, cache, branch, rev):
-        for nodeA, nodeAs in cache.items():
-            for idx in self._slow_iter_keys(nodeAs, branch, rev):
-                yield nodeA
+        for orig, origs in cache.items():
+            for idx in self._slow_iter_keys(origs, branch, rev):
+                yield orig
                 break
 
     def _forward_destcache(self, graph, orig, branch, rev):
@@ -717,7 +717,7 @@ class EdgesCache(Cache):
         self._forward_keycachelike(self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest), branch, rev)
         return orig in self.origcache[(graph, orig, branch)][rev]
 
-    def store(self, graph, nodeA, nodeB, idx, branch, rev, ex):
+    def store(self, graph, orig, dest, idx, branch, rev, ex):
         """Store whether an edge exists, and create an object for it
 
         Also stores predecessors for every edge.
@@ -725,15 +725,15 @@ class EdgesCache(Cache):
         """
         if not ex:
             ex = None
-        if (graph, nodeA, nodeB, idx) not in self.db._edge_objs:
-            self.db._edge_objs[(graph, nodeA, nodeB, idx)] \
-                = self.db._make_edge(self.db.graph[graph], nodeA, nodeB, idx)
-        Cache.store(self, graph, nodeA, nodeB, idx, branch, rev, ex)
-        self.predecessors[(graph, nodeB)][nodeA][idx][branch][rev] = ex
-        oc = self._update_origcache(graph, nodeB, branch, rev, nodeA, ex)
-        dc = self._update_destcache(graph, nodeA, branch, rev, nodeB, ex)
+        if (graph, orig, dest, idx) not in self.db._edge_objs:
+            self.db._edge_objs[(graph, orig, dest, idx)] \
+                = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
+        Cache.store(self, graph, orig, dest, idx, branch, rev, ex)
+        self.predecessors[(graph, dest)][orig][idx][branch][rev] = ex
+        oc = self._update_origcache(graph, dest, branch, rev, orig, ex)
+        dc = self._update_destcache(graph, orig, branch, rev, dest, ex)
         if TESTING:
-            correct_oc = set(self._slow_iter_predecessors(self.predecessors[(graph, nodeB)], branch, rev))
+            correct_oc = set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, rev))
             assert correct_oc == oc
-            correct_dc = set(self._slow_iter_successors(self.successors[(graph, nodeA)], branch, rev))
+            correct_dc = set(self._slow_iter_successors(self.successors[(graph, orig)], branch, rev))
             assert correct_dc == dc

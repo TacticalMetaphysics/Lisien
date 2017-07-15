@@ -44,7 +44,7 @@ class Portal(Edge, RuleFollower):
     @property
     def _cache(self):
         return self.db._edge_val_cache[
-            self.character.name][self.nodeA][self.nodeB][0]
+            self.character.name][self.orig][self.dest][0]
 
     def _rule_name_activeness(self):
         rulebook_name = self._get_rulebook_name()
@@ -87,11 +87,11 @@ class Portal(Edge, RuleFollower):
 
     @property
     def _origin(self):
-        return self.nodeA
+        return self.orig
 
     @property
     def _destination(self):
-        return self.nodeB
+        return self.dest
 
     @property
     def character(self):

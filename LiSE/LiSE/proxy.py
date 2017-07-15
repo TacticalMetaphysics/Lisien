@@ -473,10 +473,10 @@ class PortalProxy(CachingEntityProxy):
             branching=True
         )
 
-    def __init__(self, engine_proxy, charname, nodeAname, nodeBname):
+    def __init__(self, engine_proxy, charname, origname, destname):
         self._charname = charname
-        self._origin = nodeAname
-        self._destination = nodeBname
+        self._origin = origname
+        self._destination = destname
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
@@ -757,11 +757,11 @@ class SuccessorsProxy(CachingProxy):
     @property
     def _cache(self):
         return self.engine._character_portals_cache.successors[
-            self._charname][self._nodeA]
+            self._charname][self._orig]
 
-    def __init__(self, engine_proxy, charname, nodeAname):
+    def __init__(self, engine_proxy, charname, origname):
         self._charname = charname
-        self._nodeA = nodeAname
+        self._orig = origname
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
@@ -769,17 +769,17 @@ class SuccessorsProxy(CachingProxy):
             isinstance(other, SuccessorsProxy) and
             self.engine is other.engine and
             self._charname == other._charname and
-            self._nodeA == other._nodeA
+            self._orig == other._orig
         )
 
     def _get_state(self):
         return {
             node: self._cache[node] if node in self._cache else
-            PortalProxy(self.engine, self._charname, self._nodeA, node)
+            PortalProxy(self.engine, self._charname, self._orig, node)
             for node in self.engine.handle(
                 command='node_successors',
                 char=self._charname,
-                node=self._nodeA
+                node=self._orig
             )
         }
 
@@ -792,34 +792,34 @@ class SuccessorsProxy(CachingProxy):
         return self.engine.handle(
             command='node_successors_diff',
             char=self._charname,
-            node=self._nodeA
+            node=self._orig
         )
 
     def _cache_munge(self, k, v):
         if isinstance(v, PortalProxy):
-            assert v._origin == self._nodeA
+            assert v._origin == self._orig
             assert v._destination == k
             return v
         return PortalProxy(
             self.engine,
             self._charname,
-            self._nodeA,
+            self._orig,
             k
         )
 
-    def _set_item(self, nodeB, value):
+    def _set_item(self, dest, value):
         self.engine.handle(
             command='set_portal',
             char=self._charname,
-            orig=self._nodeA,
-            dest=nodeB,
+            orig=self._orig,
+            dest=dest,
             statdict=value,
             silent=True,
             branching=True
         )
 
-    def _del_item(self, nodeB):
-        self.engine.del_portal(self._charname, self._nodeA, nodeB)
+    def _del_item(self, dest):
+        self.engine.del_portal(self._charname, self._orig, dest)
 
 
 class CharSuccessorsMappingProxy(CachingProxy):
@@ -895,19 +895,19 @@ class CharSuccessorsMappingProxy(CachingProxy):
             character=self.name
         )
 
-    def _set_item(self, nodeA, val):
+    def _set_item(self, orig, val):
         self.engine.handle(
             command='character_set_node_successors',
             character=self.name,
-            node=nodeA,
+            node=orig,
             val=val,
             silent=True,
             branching=True
         )
 
-    def _del_item(self, nodeA):
-        for nodeB in self[nodeA]:
-            self.engine.del_portal(self.name, nodeA, nodeB)
+    def _del_item(self, orig):
+        for dest in self[orig]:
+            self.engine.del_portal(self.name, orig, dest)
 
 
 class PredecessorsProxy(MutableMapping):
@@ -915,10 +915,10 @@ class PredecessorsProxy(MutableMapping):
     def character(self):
         return self.engine.character[self._charname]
 
-    def __init__(self, engine_proxy, charname, nodeBname):
+    def __init__(self, engine_proxy, charname, destname):
         self.engine = engine_proxy
         self._charname = charname
-        self.name = nodeBname
+        self.name = destname
 
     def __iter__(self):
         return iter(self.engine._character_portals_cache.predecessors[
@@ -2037,8 +2037,8 @@ class EngineProxy(AbstractEngine):
                     return cls(thing, k, v)
                 else:
                     assert (r[1] == 'portal')
-                    (char, nodeA, nodeB, k, v) = r[2:]
-                    return cls(PortalProxy(self, char, nodeA, nodeB), k, v)
+                    (char, orig, dest, k, v) = r[2:]
+                    return cls(PortalProxy(self, char, orig, dest), k, v)
             else:
                 return tuple(self.json_rewrap(v) for v in r)
         elif isinstance(r, dict):

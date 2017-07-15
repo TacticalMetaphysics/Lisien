@@ -430,7 +430,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
 
     def count_all_table(self, tbl):
-        return self.sql('count_all_{}'.format(tbl)).fetchone()[0]
+        return self.sql('{}_count'.format(tbl)).fetchone()[0]
 
     def init_table(self, tbl):
         try:
@@ -476,7 +476,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         self.sql('{}_del'.format(tbl), lang, key)
 
     def dump_universal(self):
-        for key, branch, tick, date, creator, description, value in self.sql('dump_universal'):
+        for key, branch, tick, date, creator, description, value in self.sql('universal_dump'):
             yield self.json_load(key), branch, tick, self.json_load(value)
 
     def characters(self):
@@ -530,21 +530,21 @@ class QueryEngine(allegedb.query.QueryEngine):
         except IntegrityError:
             return self.sql('upd_node_rulebook', rulebook, character, node)
 
-    def portal_rulebook(self, character, nodeA, nodeB):
-        (character, nodeA, nodeB) = map(
-            self.json_dump, (character, nodeA, nodeB)
+    def portal_rulebook(self, character, orig, dest):
+        (character, orig, dest) = map(
+            self.json_dump, (character, orig, dest)
         )
         r = self.sql(
             'portal_rulebook',
             character,
-            nodeA,
-            nodeB,
+            orig,
+            dest,
             0
         ).fetchone()
         if r is None:
             raise KeyError(
                 "No rulebook for portal {}->{} in character {}".format(
-                    nodeA, nodeB, character
+                    orig, dest, character
                 )
             )
         return self.json_load(r[0])
@@ -553,16 +553,16 @@ class QueryEngine(allegedb.query.QueryEngine):
         for row in self.sql('portals_rulebooks'):
             yield map(self.json_load, row)
 
-    def set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
-        (character, nodeA, nodeB, rulebook) = map(
-            self.json_dump, (character, nodeA, nodeB, rulebook)
+    def set_portal_rulebook(self, character, orig, dest, rulebook):
+        (character, orig, dest, rulebook) = map(
+            self.json_dump, (character, orig, dest, rulebook)
         )
         try:
             return self.sql(
                 'ins_portal_rulebook',
                 character,
-                nodeA,
-                nodeB,
+                orig,
+                dest,
                 0,
                 rulebook
             )
@@ -571,8 +571,8 @@ class QueryEngine(allegedb.query.QueryEngine):
                 'upd_portal_rulebook',
                 rulebook,
                 character,
-                nodeA,
-                nodeB,
+                orig,
+                dest,
                 0
             )
 
@@ -637,8 +637,8 @@ class QueryEngine(allegedb.query.QueryEngine):
     def dump_portal_rules_handled(self):
         for (
                 character,
-                nodeA,
-                nodeB,
+                orig,
+                dest,
                 idx,
                 rulebook,
                 rule,
@@ -647,8 +647,8 @@ class QueryEngine(allegedb.query.QueryEngine):
         ) in self.sql('dump_portal_rules_handled'):
             yield (
                 self.json_load(character),
-                self.json_load(nodeA),
-                self.json_load(nodeB),
+                self.json_load(orig),
+                self.json_load(dest),
                 idx,
                 self.json_load(rulebook),
                 self.json_load(rule),
@@ -741,17 +741,17 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
 
     def handled_portal_rule(
-            self, character, nodeA, nodeB, rulebook, rule, branch, tick
+            self, character, orig, dest, rulebook, rule, branch, tick
     ):
-        (character, nodeA, nodeB, rulebook, rule) = map(
-            self.json_dump, (character, nodeA, nodeB, rulebook, rule)
+        (character, orig, dest, rulebook, rule) = map(
+            self.json_dump, (character, orig, dest, rulebook, rule)
         )
         try:
             return self.sql(
                 'handled_portal_rule',
                 character,
-                nodeA,
-                nodeB,
+                orig,
+                dest,
                 0,
                 rulebook,
                 rule,
@@ -761,10 +761,10 @@ class QueryEngine(allegedb.query.QueryEngine):
         except IntegrityError:
             raise RedundantRuleError(
                 "Already handled rule {rule} in rulebook {book} "
-                "for portal from {nodeA} to {nodeB} "
+                "for portal from {orig} to {dest} "
                 "at tick {tick} of branch {branch}".format(
-                    nodeA=nodeA,
-                    nodeB=nodeB,
+                    orig=orig,
+                    dest=dest,
                     book=rulebook,
                     rule=rule,
                     branch=branch,

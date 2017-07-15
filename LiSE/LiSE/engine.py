@@ -365,9 +365,9 @@ class Engine(AbstractEngine, gORM):
         self._nodes_rulebooks_cache.store(character, node, rulebook)
         self.engine.query.set_node_rulebook(character, node, rulebook)
 
-    def _set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
-        self._portals_rulebooks_cache.store(character, nodeA, nodeB, rulebook)
-        self.query.set_portal_rulebook(character, nodeA, nodeB, rulebook)
+    def _set_portal_rulebook(self, character, orig, dest, rulebook):
+        self._portals_rulebooks_cache.store(character, orig, dest, rulebook)
+        self.query.set_portal_rulebook(character, orig, dest, rulebook)
 
     def _remember_avatarness(
             self, character, graph, node,
@@ -795,21 +795,21 @@ class Engine(AbstractEngine, gORM):
     def _poll_portal_rules(self):
         cache = self._portals_rulebooks_cache
         for chara in self.character.values():
-            for nodeA in chara.portal:
-                for nodeB in chara.portal[nodeA]:
+            for orig in chara.portal:
+                for dest in chara.portal[orig]:
                     try:
-                        rulebook = cache.retrieve(chara.name, nodeA, nodeB)
+                        rulebook = cache.retrieve(chara.name, orig, dest)
                     except KeyError:
-                        rulebook = (chara.name, nodeA, nodeB)
+                        rulebook = (chara.name, orig, dest)
                     unhanditer = self._portal_rules_handled_cache.\
                                  iter_unhandled_rules
                     for rule in unhanditer(
-                            chara.name, nodeA, nodeB, rulebook, *self.time
+                            chara.name, orig, dest, rulebook, *self.time
                     ):
                         yield (
                             chara,
-                            nodeA,
-                            nodeB,
+                            orig,
+                            dest,
                             rulebook,
                             rule
                         )
@@ -874,13 +874,13 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _handled_portal_rule(
-            self, char, nodeA, nodeB, rulebook, rule, branch, tick
+            self, char, orig, dest, rulebook, rule, branch, tick
     ):
         self._portal_rules_handled_cache.store(
-            char, nodeA, nodeB, rulebook, rule, branch, tick
+            char, orig, dest, rulebook, rule, branch, tick
         )
         self.query.handled_portal_rule(
-            char, nodeA, nodeB, rulebook, rule, branch, tick
+            char, orig, dest, rulebook, rule, branch, tick
         )
 
     def _handled_character_rule(
@@ -1040,21 +1040,21 @@ class Engine(AbstractEngine, gORM):
         self._nodes_cache.store(character, node, branch, tick, exist)
 
     def _exist_edge(
-            self, character, nodeA, nodeB, exist=True, branch=None, tick=None
+            self, character, orig, dest, exist=True, branch=None, tick=None
     ):
         branch = branch or self.branch
         tick = tick or self.tick
         self.query.exist_edge(
             character,
-            nodeA,
-            nodeB,
+            orig,
+            dest,
             0,
             branch,
             tick,
             exist
         )
         self._edges_cache.store(
-            character, nodeA, nodeB, 0, branch, tick, exist
+            character, orig, dest, 0, branch, tick, exist
         )
 
     def alias(self, v, stat='dummy'):
