@@ -463,7 +463,7 @@ def queries(table, view):
     for t in table.values():
         r[t.name + '_dump'] = select(['*']).select_from(t)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
-        r['{}_count'.format(t.name)] = select([func.COUNT('*')]).select_from(t)
+        r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 
     rulebooks = table['rulebooks']
 
