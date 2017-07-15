@@ -204,24 +204,6 @@ def tables_for_meta(meta):
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
 
-    # A list of tests that Things have to pass in order to move.
-    #
-    # Whenever a Thing tries to set its ``next_location``, its character
-    # will pass the Thing itself and the Portal it wants to travel
-    # into each of these functions, and will only allow it if all
-    # return True (or if there are no functions in travel_reqs for the
-    # character).
-    #
-    # Not used as of 2015-11-09
-    r['travel_reqs'] = Table(
-        'travel_reqs', meta,
-        Column(
-            'character', TEXT, primary_key=True, nullable=True
-        ),
-        Column('reqs', TEXT, default='[]'),
-        ForeignKeyConstraint(['character'], ['graphs.graph'])
-    )
-
     # Table for Things, being those nodes in a Character graph that have
     # locations.
     #
