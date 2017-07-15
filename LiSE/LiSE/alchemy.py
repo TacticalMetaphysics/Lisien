@@ -431,18 +431,6 @@ def queries(table, view):
     of all the rest of the queries I need.
 
     """
-    def select_where(selcols, wherecols):
-        """Return a ``SELECT`` statement that selects the columns ``selcols``
-        where the columns in ``wherecols`` equal the bound parameters.
-
-        Bound parameters have the same names as the columns.
-
-        """
-        wheres = [
-            c == bindparam(c.name) for c in wherecols
-        ]
-        return select(selcols).where(and_(*wheres))
-
     def update_where(updcols, wherecols):
         """Return an ``UPDATE`` statement that updates the columns ``updcols``
         when the ``wherecols`` match. Every column has a bound parameter of
