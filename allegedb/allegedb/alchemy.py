@@ -194,147 +194,6 @@ def indices_for_table_dict(table):
 
 
 def queries_for_table_dict(table):
-    def hirev_nodes_join(wheres):
-        hirev = select(
-            [
-                table['nodes'].c.graph,
-                table['nodes'].c.node,
-                table['nodes'].c.branch,
-                func.MAX(table['nodes'].c.rev).label('rev')
-            ]
-        ).where(and_(*wheres)).group_by(
-            table['nodes'].c.graph,
-            table['nodes'].c.node,
-            table['nodes'].c.branch
-        ).alias('hirev')
-        return table['nodes'].join(
-            hirev,
-            and_(
-                table['nodes'].c.graph == hirev.c.graph,
-                table['nodes'].c.node == hirev.c.node,
-                table['nodes'].c.branch == hirev.c.branch,
-                table['nodes'].c.rev == hirev.c.rev
-            )
-        )
-
-    def hirev_graph_val_join(wheres):
-        hirev = select(
-            [
-                table['graph_val'].c.graph,
-                table['graph_val'].c.key,
-                table['graph_val'].c.branch,
-                func.MAX(table['graph_val'].c.rev).label('rev')
-            ]
-        ).where(and_(*wheres)).group_by(
-            table['graph_val'].c.graph,
-            table['graph_val'].c.key,
-            table['graph_val'].c.branch
-        ).alias('hirev')
-        return table['graph_val'].join(
-            hirev,
-            and_(
-                table['graph_val'].c.graph == hirev.c.graph,
-                table['graph_val'].c.key == hirev.c.key,
-                table['graph_val'].c.branch == hirev.c.branch,
-                table['graph_val'].c.rev == hirev.c.rev
-            )
-        )
-
-    def node_val_hirev_join(wheres):
-        hirev = select(
-            [
-                table['node_val'].c.graph,
-                table['node_val'].c.node,
-                table['node_val'].c.branch,
-                table['node_val'].c.key,
-                func.MAX(table['node_val'].c.rev).label('rev')
-            ]
-        ).where(and_(*wheres)).group_by(
-            table['node_val'].c.graph,
-            table['node_val'].c.node,
-            table['node_val'].c.branch,
-            table['node_val'].c.key
-        ).alias('hirev')
-
-        return table['node_val'].join(
-            hirev,
-            and_(
-                table['node_val'].c.graph == hirev.c.graph,
-                table['node_val'].c.node == hirev.c.node,
-                table['node_val'].c.key == hirev.c.key,
-                table['node_val'].c.branch == hirev.c.branch,
-                table['node_val'].c.rev == hirev.c.rev
-            )
-        )
-
-    def edges_recent_join(wheres=None):
-        hirev = select(
-            [
-                table['edges'].c.graph,
-                table['edges'].c.orig,
-                table['edges'].c.dest,
-                table['edges'].c.idx,
-                table['edges'].c.branch,
-                func.MAX(table['edges'].c.rev).label('rev')
-            ]
-        )
-        if wheres:
-            hirev = hirev.where(and_(*wheres))
-        hirev = hirev.group_by(
-            table['edges'].c.graph,
-            table['edges'].c.orig,
-            table['edges'].c.dest,
-            table['edges'].c.idx,
-            table['edges'].c.branch
-        ).alias('hirev')
-        return table['edges'].join(
-            hirev,
-            and_(
-                table['edges'].c.graph == hirev.c.graph,
-                table['edges'].c.orig == hirev.c.orig,
-                table['edges'].c.dest == hirev.c.dest,
-                table['edges'].c.idx == hirev.c.idx,
-                table['edges'].c.branch == hirev.c.branch,
-                table['edges'].c.rev == hirev.c.rev
-            )
-        )
-
-    def edge_val_recent_join(wheres=None):
-        hirev = select(
-            [
-                table['edge_val'].c.graph,
-                table['edge_val'].c.orig,
-                table['edge_val'].c.dest,
-                table['edge_val'].c.idx,
-                table['edge_val'].c.key,
-                table['edge_val'].c.branch,
-                func.MAX(table['edge_val'].c.rev).label('rev')
-            ]
-        )
-        if wheres:
-            hirev = hirev.where(
-                and_(*wheres)
-            )
-        hirev = hirev.group_by(
-            table['edge_val'].c.graph,
-            table['edge_val'].c.orig,
-            table['edge_val'].c.dest,
-            table['edge_val'].c.idx,
-            table['edge_val'].c.key,
-            table['edge_val'].c.branch
-        ).alias('hirev')
-        return table['edge_val'].join(
-            hirev,
-            and_(
-                table['edge_val'].c.graph == hirev.c.graph,
-                table['edge_val'].c.orig == hirev.c.orig,
-                table['edge_val'].c.dest == hirev.c.dest,
-                table['edge_val'].c.idx == hirev.c.idx,
-                table['edge_val'].c.branch == hirev.c.branch,
-                table['edge_val'].c.rev == hirev.c.rev
-            )
-        )
-
     return {
         'ctbranch': select(
             [func.COUNT(table['branches'].c.branch)]
@@ -441,31 +300,6 @@ def queries_for_table_dict(table):
         'global_del': table['global'].delete().where(
             table['global'].c.key == bindparam('key')
         ),
-        'nodes_extant': select(
-            [table['nodes'].c.node]
-        ).select_from(
-            hirev_nodes_join(
-                [
-                    table['nodes'].c.graph == bindparam('graph'),
-                    table['nodes'].c.branch == bindparam('branch'),
-                    table['nodes'].c.rev <= bindparam('rev')
-                ]
-            )
-        ).where(
-            table['nodes'].c.extant
-        ),
-        'node_exists': select(
-            [table['nodes'].c.extant]
-        ).select_from(
-            hirev_nodes_join(
-                [
-                    table['nodes'].c.graph == bindparam('graph'),
-                    table['nodes'].c.node == bindparam('node'),
-                    table['nodes'].c.branch == bindparam('branch'),
-                    table['nodes'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
         'exist_node_ins': table['nodes'].insert().prefix_with('OR REPLACE').values(
             graph=bindparam('graph'),
             node=bindparam('node'),
@@ -499,20 +333,6 @@ def queries_for_table_dict(table):
             table['nodes'].c.rev,
             table['nodes'].c.node
         ),
-        'graph_val_items': select(
-            [
-                table['graph_val'].c.key,
-                table['graph_val'].c.value
-            ]
-        ).select_from(
-            hirev_graph_val_join(
-                [
-                    table['graph_val'].c.graph == bindparam('graph'),
-                    table['graph_val'].c.branch == bindparam('branch'),
-                    table['graph_val'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
         'graph_val_dump': select([
             table['graph_val'].c.graph,
             table['graph_val'].c.key,
@@ -524,20 +344,6 @@ def queries_for_table_dict(table):
             table['graph_val'].c.branch,
             table['graph_val'].c.rev,
             table['graph_val'].c.key
-        ),
-        'graph_val_get': select(
-            [
-                table['graph_val'].c.value
-            ]
-        ).select_from(
-            hirev_graph_val_join(
-                [
-                    table['graph_val'].c.graph == bindparam('graph'),
-                    table['graph_val'].c.key == bindparam('key'),
-                    table['graph_val'].c.branch == bindparam('branch'),
-                    table['graph_val'].c.rev <= bindparam('rev')
-                ]
-            )
         ),
         'graph_val_ins': table['graph_val'].insert().prefix_with('OR REPLACE').values(
             graph=bindparam('graph'),
@@ -556,21 +362,6 @@ def queries_for_table_dict(table):
                 table['graph_val'].c.rev == bindparam('rev')
             )
         ),
-        'node_val_items': select(
-            [
-                table['node_val'].c.key,
-                table['node_val'].c.value
-            ]
-        ).select_from(
-            node_val_hirev_join(
-                [
-                    table['node_val'].c.graph == bindparam('graph'),
-                    table['node_val'].c.node == bindparam('node'),
-                    table['node_val'].c.branch == bindparam('branch'),
-                    table['node_val'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
         'node_val_dump': select([
             table['node_val'].c.graph,
             table['node_val'].c.node,
@@ -585,23 +376,6 @@ def queries_for_table_dict(table):
             table['node_val'].c.rev,
             table['node_val'].c.key
         ),
-        'node_val_get': select(
-            [
-                table['node_val'].c.value
-            ]
-        ).select_from(
-            node_val_hirev_join(
-                [
-                    table['node_val'].c.graph == bindparam('graph'),
-                    table['node_val'].c.node == bindparam('node'),
-                    table['node_val'].c.key == bindparam('key'),
-                    table['node_val'].c.branch == bindparam('branch'),
-                    table['node_val'].c.rev <= bindparam('rev')
-                ]
-            )
-        ).where(
-            table['node_val'].c.value != null()
-        ),
         'node_val_ins': table['node_val'].insert().prefix_with('OR REPLACE').values(
             graph=bindparam('graph'),
             node=bindparam('node'),
@@ -609,80 +383,6 @@ def queries_for_table_dict(table):
             branch=bindparam('branch'),
             rev=bindparam('rev'),
             value=bindparam('value')
-        ),
-        'edge_exists': select(
-            [table['edges'].c.extant]
-        ).select_from(
-            edges_recent_join(
-                [
-                    table['edges'].c.graph == bindparam('graph'),
-                    table['edges'].c.orig == bindparam('orig'),
-                    table['edges'].c.dest == bindparam('dest'),
-                    table['edges'].c.idx == bindparam('idx'),
-                    table['edges'].c.branch == bindparam('branch'),
-                    table['edges'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
-        'edges_extant': select(
-            [
-                table['edges'].c.orig,
-                table['edges'].c.extant
-            ]
-        ).select_from(
-            edges_recent_join(
-                [
-                    table['edges'].c.graph == bindparam('graph'),
-                    table['edges'].c.branch == bindparam('branch'),
-                    table['edges'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
-        'origs': select(
-            [
-                table['edges'].c.orig,
-                table['edges'].c.extant
-            ]
-        ).select_from(
-            edges_recent_join(
-                [
-                    table['edges'].c.graph == bindparam('graph'),
-                    table['edges'].c.dest == bindparam('dest'),
-                    table['edges'].c.branch == bindparam('branch'),
-                    table['edges'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
-        'dests': select(
-            [
-                table['edges'].c.dest,
-                table['edges'].c.extant
-            ]
-        ).select_from(
-            edges_recent_join(
-                [
-                    table['edges'].c.graph == bindparam('graph'),
-                    table['edges'].c.orig == bindparam('orig'),
-                    table['edges'].c.branch == bindparam('branch'),
-                    table['edges'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
-        'multi_edges': select(
-            [
-                table['edges'].c.idx,
-                table['edges'].c.extant
-            ]
-        ).select_from(
-            edges_recent_join(
-                [
-                    table['edges'].c.graph == bindparam('graph'),
-                    table['edges'].c.orig == bindparam('orig'),
-                    table['edges'].c.dest == bindparam('dest'),
-                    table['edges'].c.branch == bindparam('branch'),
-                    table['edges'].c.rev <= bindparam('rev')
-                ]
-            )
         ),
         'edges_dump': select([
             table['edges'].c.graph,
@@ -738,40 +438,6 @@ def queries_for_table_dict(table):
             table['edge_val'].c.branch,
             table['edge_val'].c.rev,
             table['edge_val'].c.key
-        ),
-        'edge_val_items': select(
-            [
-                table['edge_val'].c.key,
-                table['edge_val'].c.value
-            ]
-        ).select_from(
-            edge_val_recent_join(
-                [
-                    table['edge_val'].c.graph == bindparam('graph'),
-                    table['edge_val'].c.orig == bindparam('orig'),
-                    table['edge_val'].c.dest == bindparam('dest'),
-                    table['edge_val'].c.idx == bindparam('idx'),
-                    table['edge_val'].c.branch == bindparam('branch'),
-                    table['edge_val'].c.rev <= bindparam('rev')
-                ]
-            )
-        ),
-        'edge_val_get': select(
-            [
-                table['edge_val'].c.value
-            ]
-        ).select_from(
-            edge_val_recent_join(
-                [
-                    table['edge_val'].c.graph == bindparam('graph'),
-                    table['edge_val'].c.orig == bindparam('orig'),
-                    table['edge_val'].c.dest == bindparam('dest'),
-                    table['edge_val'].c.idx == bindparam('idx'),
-                    table['edge_val'].c.key == bindparam('key'),
-                    table['edge_val'].c.branch == bindparam('branch'),
-                    table['edge_val'].c.rev <= bindparam('rev')
-                ]
-            )
         )
     }
 
