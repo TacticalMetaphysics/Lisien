@@ -121,7 +121,6 @@ def tables_for_meta(meta):
         Column('avatar_rulebook', TEXT, nullable=False),
         Column('character_thing_rulebook', TEXT, nullable=False),
         Column('character_place_rulebook', TEXT, nullable=False),
-        Column('character_node_rulebook', TEXT, nullable=False),
         Column('character_portal_rulebook', TEXT, nullable=False),
         ForeignKeyConstraint(['character'], ['graphs.graph']),
         ForeignKeyConstraint(
@@ -298,7 +297,6 @@ def tables_for_meta(meta):
         handled_table('avatar'),
         handled_table('character_thing'),
         handled_table('character_place'),
-        handled_table('character_node'),
         handled_table('character_portal'),
     ):
         r[tab.name] = tab
@@ -377,7 +375,6 @@ def indices_for_table_dict(table):
             handled_idx('avatar'),
             handled_idx('character_thing'),
             handled_idx('character_place'),
-            handled_idx('character_node'),
             handled_idx('character_portal'),
             Index(
                 'thing_rules_handled_idx',
