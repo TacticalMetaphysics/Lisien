@@ -36,98 +36,97 @@ TEXT = String(length)
 
 
 def tables_for_meta(meta):
-    return {
-        'global': Table(
-            'global', meta,
-            Column('key', TEXT, primary_key=True),
-            Column('value', TEXT, nullable=True)
+    Table(
+        'global', meta,
+        Column('key', TEXT, primary_key=True),
+        Column('value', TEXT, nullable=True)
+    )
+    Table(
+        'branches', meta,
+        Column(
+            'branch', TEXT, ForeignKey('branches.parent'),
+            primary_key=True, default='trunk'
         ),
-        'branches': Table(
-            'branches', meta,
-            Column(
-                'branch', TEXT, ForeignKey('branches.parent'),
-                primary_key=True, default='trunk'
-            ),
-            Column('parent', TEXT, default='trunk'),
-            Column('parent_rev', Integer, default=0),
-            CheckConstraint('branch<>parent')
-        ),
-        'graphs': Table(
-            'graphs', meta,
-            Column('graph', TEXT, primary_key=True),
-            Column('type', TEXT, default='Graph'),
-            CheckConstraint(
-                "type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"
-            )
-        ),
-        'graph_val': Table(
-            'graph_val', meta,
-            Column('graph', TEXT, ForeignKey('graphs.graph'),
-                   primary_key=True),
-            Column('key', TEXT, primary_key=True),
-            Column('branch', TEXT, ForeignKey('branches.branch'),
-                   primary_key=True, default='trunk'),
-            Column('rev', Integer, primary_key=True, default=0),
-            Column('value', TEXT, nullable=True)
-        ),
-        'nodes': Table(
-            'nodes', meta,
-            Column('graph', TEXT, ForeignKey('graphs.graph'),
-                   primary_key=True),
-            Column('node', TEXT, primary_key=True),
-            Column('branch', TEXT, ForeignKey('branches.branch'),
-                   primary_key=True, default='trunk'),
-            Column('rev', Integer, primary_key=True, default=0),
-            Column('extant', Boolean)
-        ),
-        'node_val': Table(
-            'node_val', meta,
-            Column('graph', TEXT, primary_key=True),
-            Column('node', TEXT, primary_key=True),
-            Column('key', TEXT, primary_key=True),
-            Column('branch', TEXT, ForeignKey('branches.branch'),
-                   primary_key=True, default='trunk'),
-            Column('rev', Integer, primary_key=True, default=0),
-            Column('value', TEXT, nullable=True),
-            ForeignKeyConstraint(
-                ['graph', 'node'], ['nodes.graph', 'nodes.node']
-            )
-        ),
-        'edges': Table(
-            'edges', meta,
-            Column('graph', TEXT, ForeignKey('graphs.graph'),
-                   primary_key=True),
-            Column('orig', TEXT, primary_key=True),
-            Column('dest', TEXT, primary_key=True),
-            Column('idx', Integer, primary_key=True),
-            Column('branch', TEXT, ForeignKey('branches.branch'),
-                   primary_key=True, default='trunk'),
-            Column('rev', Integer, primary_key=True, default=0),
-            Column('extant', Boolean),
-            ForeignKeyConstraint(
-                ['graph', 'orig'], ['nodes.graph', 'nodes.node']
-            ),
-            ForeignKeyConstraint(
-                ['graph', 'dest'], ['nodes.graph', 'nodes.node']
-            )
-        ),
-        'edge_val': Table(
-            'edge_val', meta,
-            Column('graph', TEXT, primary_key=True),
-            Column('orig', TEXT, primary_key=True),
-            Column('dest', TEXT, primary_key=True),
-            Column('idx', Integer, primary_key=True),
-            Column('key', TEXT, primary_key=True),
-            Column('branch', TEXT, ForeignKey('branches.branch'),
-                   primary_key=True, default='trunk'),
-            Column('rev', Integer, primary_key=True, default=0),
-            Column('value', TEXT, nullable=True),
-            ForeignKeyConstraint(
-                ['graph', 'orig', 'dest', 'idx'],
-                ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
-            )
+        Column('parent', TEXT, default='trunk'),
+        Column('parent_rev', Integer, default=0),
+        CheckConstraint('branch<>parent')
+    )
+    Table(
+        'graphs', meta,
+        Column('graph', TEXT, primary_key=True),
+        Column('type', TEXT, default='Graph'),
+        CheckConstraint(
+            "type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"
         )
-    }
+    )
+    Table(
+        'graph_val', meta,
+        Column('graph', TEXT, ForeignKey('graphs.graph'),
+               primary_key=True),
+        Column('key', TEXT, primary_key=True),
+        Column('branch', TEXT, ForeignKey('branches.branch'),
+               primary_key=True, default='trunk'),
+        Column('rev', Integer, primary_key=True, default=0),
+        Column('value', TEXT, nullable=True)
+    )
+    Table(
+        'nodes', meta,
+        Column('graph', TEXT, ForeignKey('graphs.graph'),
+               primary_key=True),
+        Column('node', TEXT, primary_key=True),
+        Column('branch', TEXT, ForeignKey('branches.branch'),
+               primary_key=True, default='trunk'),
+        Column('rev', Integer, primary_key=True, default=0),
+        Column('extant', Boolean)
+    )
+    Table(
+        'node_val', meta,
+        Column('graph', TEXT, primary_key=True),
+        Column('node', TEXT, primary_key=True),
+        Column('key', TEXT, primary_key=True),
+        Column('branch', TEXT, ForeignKey('branches.branch'),
+               primary_key=True, default='trunk'),
+        Column('rev', Integer, primary_key=True, default=0),
+        Column('value', TEXT, nullable=True),
+        ForeignKeyConstraint(
+            ['graph', 'node'], ['nodes.graph', 'nodes.node']
+        )
+    )
+    Table(
+        'edges', meta,
+        Column('graph', TEXT, ForeignKey('graphs.graph'),
+               primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('branch', TEXT, ForeignKey('branches.branch'),
+               primary_key=True, default='trunk'),
+        Column('rev', Integer, primary_key=True, default=0),
+        Column('extant', Boolean),
+        ForeignKeyConstraint(
+            ['graph', 'orig'], ['nodes.graph', 'nodes.node']
+        ),
+        ForeignKeyConstraint(
+            ['graph', 'dest'], ['nodes.graph', 'nodes.node']
+        )
+    )
+    Table(
+        'edge_val', meta,
+        Column('graph', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('key', TEXT, primary_key=True),
+        Column('branch', TEXT, ForeignKey('branches.branch'),
+               primary_key=True, default='trunk'),
+        Column('rev', Integer, primary_key=True, default=0),
+        Column('value', TEXT, nullable=True),
+        ForeignKeyConstraint(
+            ['graph', 'orig', 'dest', 'idx'],
+            ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
+        )
+    )
+    return meta.tables
 
 
 def indices_for_table_dict(table):

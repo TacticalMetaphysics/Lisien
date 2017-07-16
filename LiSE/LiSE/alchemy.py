@@ -40,9 +40,8 @@ def tables_for_meta(meta):
         rule has been handled on a particular tick.
 
         """
-        name = "{}_rules_handled".format(prefix)
-        r = Table(
-            name, meta,
+        Table(
+            "{}_rules_handled".format(prefix), meta,
             Column('character', TEXT, primary_key=True),
             Column('rulebook', TEXT, primary_key=True),
             Column('rule', TEXT, primary_key=True),
@@ -56,12 +55,11 @@ def tables_for_meta(meta):
                 ]
             )
         )
-        return r
 
-    r = allegedb.alchemy.tables_for_meta(meta)
+    allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
-    r['universals'] = Table(
+    Table(
         'universals', meta,
         Column('key', TEXT, primary_key=True),
         Column(
@@ -72,7 +70,7 @@ def tables_for_meta(meta):
     )
 
     # Table grouping rules into lists called rulebooks.
-    r['rulebooks'] = Table(
+    Table(
         'rulebooks', meta,
         Column('rulebook', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
@@ -82,7 +80,7 @@ def tables_for_meta(meta):
 
     # Table for rules' triggers, those functions that return True only
     # when their rule should run (or at least check its prereqs).
-    r['rule_triggers'] = Table(
+    Table(
         'rule_triggers', meta,
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
@@ -92,7 +90,7 @@ def tables_for_meta(meta):
 
     # Table for rules' prereqs, functions with veto power over a rule
     # being followed
-    r['rule_prereqs'] = Table(
+    Table(
         'rule_prereqs', meta,
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
@@ -102,7 +100,7 @@ def tables_for_meta(meta):
 
     # Table for rules' actions, the functions that do what the rule
     # does.
-    r['rule_actions'] = Table(
+    Table(
         'rule_actions', meta,
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
@@ -114,7 +112,7 @@ def tables_for_meta(meta):
     # rulebooks for the character itself, its avatars, and all the things,
     # places, and portals it contains--though those may have their own
     # rulebooks as well.
-    r['characters'] = Table(
+    Table(
         'characters', meta,
         Column('character', TEXT, primary_key=True),
         Column('character_rulebook', TEXT, nullable=False),
@@ -140,7 +138,7 @@ def tables_for_meta(meta):
 
     # Rules handled within the rulebook associated with one thing in
     # particular.
-    r['thing_rules_handled'] = Table(
+    Table(
         'thing_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('thing', TEXT, primary_key=True),
@@ -152,7 +150,7 @@ def tables_for_meta(meta):
 
     # Rules handled within the rulebook associated with one place in
     # particular.
-    r['place_rules_handled'] = Table(
+    Table(
         'place_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('place', TEXT, primary_key=True),
@@ -164,7 +162,7 @@ def tables_for_meta(meta):
 
     # Rules handled within the rulebook associated with one portal in
     # particular.
-    r['portal_rules_handled'] = Table(
+    Table(
         'portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
@@ -187,7 +185,7 @@ def tables_for_meta(meta):
     # Just which function to use for a given sense may change over time,
     # and a sense might not be usable all the time, in which case the
     # 'active' field will be ``False``.
-    r['senses'] = Table(
+    Table(
         'senses', meta,
         # null character field means all characters have this sense
         Column(
@@ -210,7 +208,7 @@ def tables_for_meta(meta):
     # as it's in the same Character. Things also have a
     # ``next_location``, defaulting to ``None``, which when set
     # indicates that the thing is in transit to that location.
-    r['things'] = Table(
+    Table(
         'things', meta,
         Column('character', TEXT, primary_key=True),
         Column('thing', TEXT, primary_key=True),
@@ -235,7 +233,7 @@ def tables_for_meta(meta):
     )
 
     # The rulebook followed by a given node.
-    r['node_rulebook'] = Table(
+    Table(
         'node_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
@@ -251,7 +249,7 @@ def tables_for_meta(meta):
     # graphs it uses. The name is different to distinguish them from
     # Edge objects, which exist in an underlying object-relational
     # mapper called allegedb, and have a different API.
-    r['portal_rulebook'] = Table(
+    Table(
         'portal_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
@@ -275,7 +273,7 @@ def tables_for_meta(meta):
     # you like, you can make rules that affect all avatars of some
     # Character, irrespective of what Character the avatar is actually
     # *in*.
-    r['avatars'] = Table(
+    Table(
         'avatars', meta,
         Column('character_graph', TEXT, primary_key=True),
         Column('avatar_graph', TEXT, primary_key=True),
@@ -292,16 +290,13 @@ def tables_for_meta(meta):
         )
     )
 
-    for tab in (
-        handled_table('character'),
-        handled_table('avatar'),
-        handled_table('character_thing'),
-        handled_table('character_place'),
-        handled_table('character_portal'),
-    ):
-        r[tab.name] = tab
+    handled_table('character')
+    handled_table('avatar')
+    handled_table('character_thing')
+    handled_table('character_place')
+    handled_table('character_portal')
 
-    return r
+    return meta.tables
 
 
 def views_for_table_dict(table):
@@ -352,7 +347,7 @@ def indices_for_table_dict(table):
             t.c.rule
         )
 
-    r = allegedb.alchemy.indices_for_table_dict(table)
+    allegedb.alchemy.indices_for_table_dict(table)
 
     for idx in (
             Index(
