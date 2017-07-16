@@ -26,6 +26,7 @@
     "character_thing_rules_handled_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM character_thing_rules_handled",
     "character_thing_rules_handled_dump": "SELECT * \nFROM character_thing_rules_handled",
     "character_thing_rules_handled_insert": "INSERT INTO character_thing_rules_handled (character, rulebook, rule, branch, tick) VALUES (?, ?, ?, ?, ?)",
+    "characters": "SELECT characters.character \nFROM characters",
     "characters_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM characters",
     "characters_dump": "SELECT * \nFROM characters",
     "characters_insert": "INSERT INTO characters (character, character_rulebook, avatar_rulebook, character_thing_rulebook, character_place_rulebook, character_node_rulebook, character_portal_rulebook) VALUES (?, ?, ?, ?, ?, ?, ?)",
