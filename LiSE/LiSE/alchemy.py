@@ -254,11 +254,10 @@ def tables_for_meta(meta):
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
-        Column('idx', Integer, primary_key=True, default=0),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
-            ['character', 'orig', 'dest', 'idx'],
-            ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
+            ['character', 'orig', 'dest'],
+            ['edges.graph', 'edges.orig', 'edges.dest']
         )
     )
 
