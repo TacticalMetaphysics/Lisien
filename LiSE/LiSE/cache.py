@@ -131,16 +131,9 @@ class AvatarnessCache(Cache):
                 yield character
 
 
-class RulebooksCache(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self._data = defaultdict(list)
-
-    def store(self, rulebook, rule):
-        self._data[rulebook].append(rule)
-
-    def retrieve(self, rulebook):
-        return self._data[rulebook]
+class RulebooksCache(Cache):
+    def store(self, rulebook, branch, tick, rules):
+        super().store(None, rulebook, branch, tick, rules)
 
 
 class CharacterRulebooksCache(object):
@@ -272,35 +265,6 @@ class PortalRulesHandledCache(object):
             except KeyError:
                 return
         yield from unhandl
-
-
-class NodeRulebookCache(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self._data = defaultdict(dict)
-        self.shallow = {}
-
-    def store(self, character, node, rulebook):
-        self._data[character][node] \
-            = self.shallow[(character, node)] \
-            = rulebook
-
-    def retrieve(self, character, node):
-        return self.shallow[(character, node)]
-
-
-class PortalRulebookCache(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self._data = defaultdict(lambda: defaultdict(dict))
-        self.shallow = {}
-
-    def store(self, character, orig, dest, rulebook):
-        self._data[character][orig][dest] \
-            = self.shallow[(character, orig, dest)] = rulebook
-
-    def retrieve(self, character, orig, dest):
-        return self.shallow[(character, orig, dest)]
 
 
 class ActiveRulesCache(Cache):

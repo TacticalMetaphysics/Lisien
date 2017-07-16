@@ -25,12 +25,11 @@ from .rule import AllRuleBooks, AllRules
 from .query import Query, QueryEngine
 from .util import getatt, reify, EntityStatAccessor
 from .cache import (
+    Cache,
     UniversalCache,
     AvatarnessCache,
     RulebooksCache,
     CharacterRulebooksCache,
-    NodeRulebookCache,
-    PortalRulebookCache,
     ActiveRulesCache,
     NodeRulesHandledCache,
     PortalRulesHandledCache,
@@ -419,8 +418,8 @@ class Engine(AbstractEngine, gORM):
         self._universal_cache = UniversalCache(self)
         self._rulebooks_cache = RulebooksCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
-        self._nodes_rulebooks_cache = NodeRulebookCache(self)
-        self._portals_rulebooks_cache = PortalRulebookCache(self)
+        self._nodes_rulebooks_cache = Cache(self)
+        self._portals_rulebooks_cache = Cache(self)
         self._active_rules_cache = ActiveRulesCache(self)
         self._node_rules_handled_cache = NodeRulesHandledCache(self)
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
