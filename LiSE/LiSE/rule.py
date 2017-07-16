@@ -707,7 +707,6 @@ class AllRules(MutableMapping, Signal):
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
-        self.engine.query.init_table('rules')
         self.engine.query.init_table('rulebooks')
         self._cache = {}
 

@@ -957,11 +957,9 @@ class QueryEngine(allegedb.query.QueryEngine):
         super().initdb()
         for table in (
             'universals',
-            'rules',
             'rulebooks',
             'characters',
             'senses',
-            'travel_reqs',
             'things',
             'node_rulebook',
             'portal_rulebook',
@@ -986,7 +984,6 @@ class QueryEngine(allegedb.query.QueryEngine):
             pass
         for idx in (
             'senses',
-            'travel_reqs',
             'things',
             'avatars',
             'character_rules_handled',
