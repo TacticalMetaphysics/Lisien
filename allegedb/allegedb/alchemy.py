@@ -40,9 +40,6 @@ def tables_for_meta(meta):
         'global': Table(
             'global', meta,
             Column('key', TEXT, primary_key=True),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('value', TEXT, nullable=True)
         ),
         'branches': Table(
@@ -51,9 +48,6 @@ def tables_for_meta(meta):
                 'branch', TEXT, ForeignKey('branches.parent'),
                 primary_key=True, default='trunk'
             ),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('parent', TEXT, default='trunk'),
             Column('parent_rev', Integer, default=0),
             CheckConstraint('branch<>parent')
@@ -61,9 +55,6 @@ def tables_for_meta(meta):
         'graphs': Table(
             'graphs', meta,
             Column('graph', TEXT, primary_key=True),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('type', TEXT, default='Graph'),
             CheckConstraint(
                 "type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"
@@ -77,9 +68,6 @@ def tables_for_meta(meta):
             Column('branch', TEXT, ForeignKey('branches.branch'),
                    primary_key=True, default='trunk'),
             Column('rev', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('value', TEXT, nullable=True)
         ),
         'nodes': Table(
@@ -90,9 +78,6 @@ def tables_for_meta(meta):
             Column('branch', TEXT, ForeignKey('branches.branch'),
                    primary_key=True, default='trunk'),
             Column('rev', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('extant', Boolean)
         ),
         'node_val': Table(
@@ -103,9 +88,6 @@ def tables_for_meta(meta):
             Column('branch', TEXT, ForeignKey('branches.branch'),
                    primary_key=True, default='trunk'),
             Column('rev', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('value', TEXT, nullable=True),
             ForeignKeyConstraint(
                 ['graph', 'node'], ['nodes.graph', 'nodes.node']
@@ -121,9 +103,6 @@ def tables_for_meta(meta):
             Column('branch', TEXT, ForeignKey('branches.branch'),
                    primary_key=True, default='trunk'),
             Column('rev', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('extant', Boolean),
             ForeignKeyConstraint(
                 ['graph', 'orig'], ['nodes.graph', 'nodes.node']
@@ -142,9 +121,6 @@ def tables_for_meta(meta):
             Column('branch', TEXT, ForeignKey('branches.branch'),
                    primary_key=True, default='trunk'),
             Column('rev', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
             Column('value', TEXT, nullable=True),
             ForeignKeyConstraint(
                 ['graph', 'orig', 'dest', 'idx'],
