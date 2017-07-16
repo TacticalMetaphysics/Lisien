@@ -906,33 +906,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 'avatar_upd', isav, character, graph, node, branch, tick
             )
 
-    def rulebook_ins(self, rulebook, idx, rule):
-        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
-        self.sql('rulebook_inc', rulebook, idx)
-        try:
-            return self.sql('rulebook_ins', rulebook, idx, rule)
-        except IntegrityError:
-            return self.sql('rulebook_upd', rule, rulebook, idx)
-
-    def rulebook_set(self, rulebook, idx, rule):
-        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
-        try:
-            return self.sql('rulebook_ins', rulebook, idx, rule)
-        except IntegrityError:
-            return self.sql('rulebook_upd', rule, rulebook, idx)
-
-    def rulebook_decr(self, rulebook, idx):
-        self.sql('rulebook_dec', self.json_dump(rulebook), idx)
-
-    def rulebook_del(self, rulebook, idx):
-        rulebook = self.json_dump(rulebook)
-        self.sql('rulebook_del', rulebook, idx)
-        self.sql('rulebook_dec', rulebook, idx)
-
-    def rulebook_rules(self, rulebook):
-        pass
-        # TODO
-
     def rulebooks_rules(self):
         for (rulebook, rule) in self.sql('rulebooks_rules'):
             yield map(self.json_load, (rulebook, rule))
