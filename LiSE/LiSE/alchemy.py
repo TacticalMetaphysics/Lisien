@@ -136,24 +136,12 @@ def tables_for_meta(meta):
         )
     )
 
-    # Rules handled within the rulebook associated with one thing in
+    # Rules handled within the rulebook associated with one node in
     # particular.
     Table(
-        'thing_rules_handled', meta,
+        'node_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
-        Column('thing', TEXT, primary_key=True),
-        Column('rulebook', TEXT, primary_key=True),
-        Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', Integer, primary_key=True)
-    )
-
-    # Rules handled within the rulebook associated with one place in
-    # particular.
-    Table(
-        'place_rules_handled', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('place', TEXT, primary_key=True),
+        Column('node', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
@@ -298,36 +286,6 @@ def tables_for_meta(meta):
     return meta.tables
 
 
-def views_for_table_dict(table):
-    """Create queries to use in views"""
-    r = {}
-    prh = table['place_rules_handled']
-    trh = table['thing_rules_handled']
-    r['node_rules_handled'] = union(
-        select(
-            [
-                prh.c.character,
-                prh.c.place.label('node'),
-                prh.c.rulebook,
-                prh.c.rule,
-                prh.c.branch,
-                prh.c.tick
-            ]
-        ),
-        select(
-            [
-                trh.c.character,
-                trh.c.thing.label('node'),
-                trh.c.rulebook,
-                trh.c.rule,
-                trh.c.branch,
-                trh.c.tick
-            ]
-        )
-    )
-    return r
-
-
 def indices_for_table_dict(table):
     """Given the dictionary of tables returned by ``tables_for_meta``,
     return a dictionary of indices for the tables.
@@ -399,7 +357,7 @@ def indices_for_table_dict(table):
     return r
 
 
-def queries(table, view):
+def queries(table):
     """Given dictionaries of tables and view-queries, return a dictionary
     of all the rest of the queries I need.
 
@@ -538,13 +496,7 @@ if __name__ == '__main__':
             )
         )
         x.create(e)
-    viewquery = views_for_table_dict(table)
-    for (n, v) in viewquery.items():
-        r["view_" + n] = "CREATE VIEW {} AS ".format(n) + str(
-            v.compile(dialect=e.dialect)
-        )
-        e.execute(r["view_" + n])
-    query = queries(table, viewquery)
+    query = queries(table)
     for (n, q) in query.items():
         r[n] = str(q.compile(dialect=e.dialect))
     print(dumps(r, sort_keys=True, indent=4))
