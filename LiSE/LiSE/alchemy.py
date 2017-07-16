@@ -155,7 +155,6 @@ def tables_for_meta(meta):
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
-        Column('idx', Integer, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
