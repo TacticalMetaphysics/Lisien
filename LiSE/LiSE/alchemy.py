@@ -69,6 +69,13 @@ def tables_for_meta(meta):
         Column('value', TEXT, nullable=True)
     )
 
+    Table(
+        'rules', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('type', TEXT, default='character'),
+        CheckConstraint("type IN ('character', 'node', 'portal')")
+    )
+
     # Table grouping rules into lists called rulebooks.
     Table(
         'rulebooks', meta,
@@ -85,7 +92,10 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('triggers', TEXT, default='[]')
+        Column('triggers', TEXT, default='[]'),
+        ForeignKeyConstraint(
+            ['rule'], ['rules.rule']
+        )
     )
 
     # Table for rules' prereqs, functions with veto power over a rule
@@ -95,7 +105,10 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('prereqs', TEXT, default='[]')
+        Column('prereqs', TEXT, default='[]'),
+        ForeignKeyConstraint(
+            ['rule'], ['rules.rule']
+        )
     )
 
     # Table for rules' actions, the functions that do what the rule
@@ -105,7 +118,10 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('actions', TEXT, default='[]')
+        Column('actions', TEXT, default='[]'),
+        ForeignKeyConstraint(
+            ['rule'], ['rules.rule']
+        )
     )
 
     # The top level of the LiSE world model, the character. Includes
@@ -155,7 +171,13 @@ def tables_for_meta(meta):
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
-        Column('tick', Integer, primary_key=True)
+        Column('tick', Integer, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'node'], ['nodes.graph', 'nodes.node']
+        ),
+        ForeignKeyConstraint(
+            ['rulebook', "'node'"], ['rulebooks.rulebook', 'rulebooks.type']
+        )
     )
 
     # Rules handled within the rulebook associated with one portal in
@@ -168,7 +190,13 @@ def tables_for_meta(meta):
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
-        Column('tick', Integer, primary_key=True)
+        Column('tick', Integer, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
+        ),
+        ForeignKeyConstraint(
+            ['rulebook', "'portal'"], ['rulebooks.rulebook', 'rulebooks.type']
+        )
     )
 
     # The function to use for a given sense.
