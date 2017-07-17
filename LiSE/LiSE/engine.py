@@ -469,26 +469,21 @@ class Engine(AbstractEngine, gORM):
             self._nodes_rulebooks_cache.store(*row)
         for row in self.query.portal_rulebook_dump():
             self._portals_rulebooks_cache.store(*row)
-        # note the use of the world DB, not the code DB
-        for row in self.query.dump_active_rules():
-            self._active_rules_cache.store(*row)
-        for row in self.query.dump_node_rules_handled():
+        for row in self.query.node_rules_handled_dump():
             self._node_rules_handled_cache.store(*row)
-        for row in self.query.dump_portal_rules_handled():
+        for row in self.query.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_rules():
+        for row in self.query.character_rules_handled_dump():
             self._character_rules_handled_cache.store(*row)
-        for row in self.query.handled_avatar_rules():
+        for row in self.query.avatar_rules_handled_dump():
             self._avatar_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_thing_rules():
+        for row in self.query.character_thing_rules_handled_dump():
             self._character_thing_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_place_rules():
+        for row in self.query.character_place_rules_handled_dump():
             self._character_place_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_node_rules():
-            self._character_node_rules_handled_cache.store(*row)
-        for row in self.query.handled_character_portal_rules():
+        for row in self.query.character_portal_rules_handled_dump():
             self._character_portal_rules_handled_cache.store(*row)
-        for row in self.query.avatarness_dump():
+        for row in self.query.avatars_dump():
             self._avatarness_cache.store(*row)
 
     def _load_graphs(self):
