@@ -175,10 +175,6 @@ def tables_for_meta(meta):
     # character under observation; the function munges this facade to
     # make it look as it does through the sense in question, and returns
     # that.
-    #
-    # Just which function to use for a given sense may change over time,
-    # and a sense might not be usable all the time, in which case the
-    # 'active' field will be ``False``.
     Table(
         'senses', meta,
         # null character field means all characters have this sense
@@ -485,13 +481,8 @@ def queries(table):
 
     senses = table['senses']
 
-    r['sense_fun_upd'] = update_where(
-        ['function', 'active'],
-        [senses.c.character, senses.c.sense, senses.c.branch, senses.c.tick]
-    )
-
     r['sense_upd'] = update_where(
-        ['active'],
+        ['function'],
         [senses.c.character, senses.c.sense, senses.c.branch, senses.c.tick]
     )
 
