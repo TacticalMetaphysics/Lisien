@@ -114,27 +114,37 @@ def tables_for_meta(meta):
     # rulebooks as well.
     Table(
         'characters', meta,
-        Column('character', TEXT, primary_key=True),
-        Column('character_rulebook', TEXT, nullable=False),
-        Column('avatar_rulebook', TEXT, nullable=False),
-        Column('character_thing_rulebook', TEXT, nullable=False),
-        Column('character_place_rulebook', TEXT, nullable=False),
-        Column('character_portal_rulebook', TEXT, nullable=False),
-        ForeignKeyConstraint(['character'], ['graphs.graph']),
-        ForeignKeyConstraint(
-            ['character_rulebook'], ['rulebooks.rulebook']
-        ),
-        ForeignKeyConstraint(['avatar_rulebook'], ['rulebooks.rulebook']),
-        ForeignKeyConstraint(
-            ['character_thing_rulebook'], ['rulebooks.rulebook']
-        ),
-        ForeignKeyConstraint(
-            ['character_place_rulebook'], ['rulebooks.rulebook']
-        ),
-        ForeignKeyConstraint(
-            ['character_portal_rulebook'], ['rulebooks.rulebook']
-        )
+        Column('character', TEXT, primary_key=True)
     )
+
+    def char_rb_tab(name, extra_constraint):
+        Table(
+            name, meta,
+            Column('character', TEXT, primary_key=True),
+            Column('branch', TEXT, primary_key=True),
+            Column('tick', INT, primary_key=True),
+            Column('rulebook', TEXT),
+            ForeignKeyConstraint(
+                ['character'], ['characters.character']
+            ),
+            extra_constraint
+        )
+
+    char_rb_tab(
+        'character_rulebook',
+        ForeignKeyConstraint(['rulebook', "'character'"], ['rulebooks.rulebook', 'rulebooks.type'])
+    )
+    char_rb_tab(
+        'character_portal_rulebook',
+        ForeignKeyConstraint(['rulebook', "'portal'"], ['rulebooks.rulebook', 'rulebooks.type'])
+    )
+
+    for rb in (
+        'avatar_rulebook',
+        'character_thing_rulebook',
+        'character_place_rulebook',
+    ):
+        char_rb_tab(rb, ForeignKeyConstraint(['rulebook', "'node'"], ['rulebooks.rulebook', 'rulebooks.type']))
 
     # Rules handled within the rulebook associated with one node in
     # particular.
@@ -224,6 +234,8 @@ def tables_for_meta(meta):
         'node_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
@@ -241,6 +253,8 @@ def tables_for_meta(meta):
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'],
