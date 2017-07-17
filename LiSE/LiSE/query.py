@@ -498,7 +498,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         for character, thing, branch, tick, location, next_location in self.sql('things_dump'):
             yield (
                 self.json_load(character), self.json_load(thing), branch, tick,
-                self.json_load(location), self.json_load(next_location)
+                self.json_load(location), self.json_load(next_location) if next_location else None
             )
 
     def avatars_dump(self):
