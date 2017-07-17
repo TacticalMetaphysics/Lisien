@@ -511,16 +511,16 @@ class QueryEngine(allegedb.query.QueryEngine):
     def universal_set(self, key, branch, tick, val):
         key, val = map(self.json_dump, (key, val))
         try:
-            self.sql('universal_ins', key, branch, tick, val)
+            self.sql('universals_insert', key, branch, tick, val)
         except IntegrityError:
-            self.sql('universal_upd', val, key, branch, tick)
+            self.sql('universals_update', val, key, branch, tick)
 
     def universal_del(self, key, branch, tick):
         key = self.json_dump(key)
         try:
-            self.sql('universal_ins', key, branch, tick, None)
+            self.sql('universals_insert', key, branch, tick, None)
         except IntegrityError:
-            self.sql('universal_upd', None, key, branch, tick)
+            self.sql('universals_update', None, key, branch, tick)
 
     def comparison(
             self, entity0, stat0, entity1,

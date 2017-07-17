@@ -193,6 +193,7 @@
     "things_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM things",
     "things_dump": "SELECT * \nFROM things",
     "things_insert": "INSERT INTO things (character, thing, branch, tick, location, next_location) VALUES (?, ?, ?, ?, ?, ?)",
+    "universal_update": "UPDATE universals SET value=? WHERE universals.\"key\" = ? AND universals.branch = ? AND universals.tick = ?",
     "universals_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM universals",
     "universals_dump": "SELECT * \nFROM universals",
     "universals_insert": "INSERT INTO universals (\"key\", branch, tick, value) VALUES (?, ?, ?, ?)",

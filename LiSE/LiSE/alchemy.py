@@ -433,6 +433,8 @@ def queries(table):
         when the ``wherecols`` match. Every column has a bound parameter of
         the same name.
 
+        updcols are strings, wherecols are column objects
+
         """
         vmap = OrderedDict()
         for col in updcols:
@@ -449,6 +451,12 @@ def queries(table):
         r[t.name + '_dump'] = select(['*']).select_from(t)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
+
+    univ = table['universals']
+    r['universal_update'] = update_where(
+        ['value'],
+        [univ.c.key, univ.c.branch, univ.c.tick]
+    )
 
     characters = table['characters']
     r['characters'] = select([characters.c.character])
