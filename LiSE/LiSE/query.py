@@ -563,22 +563,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         for row in self.sql('rule_actions', rule):
             yield row[0]
 
-    def string_table_lang_items(self, tbl, lang):
-        return self.sql('{}_lang_items'.format(tbl), lang)
-
-    def string_table_get(self, tbl, lang, key):
-        for row in self.sql('{}_get'.format(tbl), lang, key):
-            return row[0]
-
-    def string_table_set(self, tbl, lang, key, value):
-        try:
-            self.sql('{}_ins'.format(tbl), key, lang, value)
-        except IntegrityError:
-            self.sql('{}_upd'.format(tbl), value, lang, key)
-
-    def string_table_del(self, tbl, lang, key):
-        self.sql('{}_del'.format(tbl), lang, key)
-
     def characters(self):
         for (ch,) in self.sql('characters'):
             yield self.json_load(ch)
