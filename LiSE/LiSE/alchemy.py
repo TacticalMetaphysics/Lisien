@@ -190,8 +190,7 @@ def tables_for_meta(meta):
             'branch', TEXT, primary_key=True, default='trunk'
         ),
         Column('tick', Integer, primary_key=True, default=0),
-        Column('function', TEXT),
-        Column('active', Boolean, default=True),
+        Column('function', TEXT, nullable=True),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
 
