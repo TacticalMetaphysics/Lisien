@@ -383,7 +383,7 @@ def indices_for_table_dict(table):
             t.c.rule
         )
 
-    allegedb.alchemy.indices_for_table_dict(table)
+    r = allegedb.alchemy.indices_for_table_dict(table)
 
     for idx in (
             Index(
@@ -408,25 +408,17 @@ def indices_for_table_dict(table):
             handled_idx('character_place'),
             handled_idx('character_portal'),
             Index(
-                'thing_rules_handled_idx',
-                table['thing_rules_handled'].c.character,
-                table['thing_rules_handled'].c.thing,
-                table['thing_rules_handled'].c.rulebook,
-                table['thing_rules_handled'].c.rule
-            ),
-            Index(
-                'place_rules_handled_idx',
-                table['place_rules_handled'].c.character,
-                table['place_rules_handled'].c.place,
-                table['place_rules_handled'].c.rulebook,
-                table['place_rules_handled'].c.rule
+                'node_rules_handled_idx',
+                table['node_rules_handled'].c.character,
+                table['node_rules_handled'].c.node,
+                table['node_rules_handled'].c.rulebook,
+                table['node_rules_handled'].c.rule
             ),
             Index(
                 'portal_rules_handled_idx',
                 table['portal_rules_handled'].c.character,
                 table['portal_rules_handled'].c.orig,
                 table['portal_rules_handled'].c.dest,
-                table['portal_rules_handled'].c.idx,
                 table['portal_rules_handled'].c.rulebook,
                 table['portal_rules_handled'].c.rule
             )
