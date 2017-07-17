@@ -35,27 +35,6 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    def handled_table(prefix):
-        """Return a Table for recording the fact that a particular type of
-        rule has been handled on a particular tick.
-
-        """
-        Table(
-            "{}_rules_handled".format(prefix), meta,
-            Column('character', TEXT, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True, default='trunk'),
-            Column('tick', Integer, primary_key=True, default=0),
-            ForeignKeyConstraint(
-                ['character', 'rulebook'],
-                [
-                    'characters.character',
-                    'characters.{}_rulebook'.format(prefix)
-                ]
-            )
-        )
-
     allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
@@ -318,11 +297,80 @@ def tables_for_meta(meta):
         )
     )
 
-    handled_table('character')
-    handled_table('avatar')
-    handled_table('character_thing')
-    handled_table('character_place')
-    handled_table('character_portal')
+    Table(
+        'character_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'rulebook'], ['character_rulebook.character', 'character_rulebook.rulebook']
+        )
+    )
+
+    Table(
+        'avatar_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('graph', TEXT, primary_key=True),
+        Column('avatar', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'rulebook'], ['avatar_rulebook.character', 'avatar_rulebook.rulebook']
+        )
+    )
+
+    Table(
+        'character_thing_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('thing', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'rulebook'], ['character_thing_rulebook.character', 'character_thing_rulebook.rulebook']
+        ),
+        ForeignKeyConstraint(
+            ['character', 'thing'], ['things.character', 'things.thing']
+        )
+    )
+
+    Table(
+        'character_place_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('place', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'rulebook'], ['character_place_rulebook.character', 'character_place_rulebook.rulebook']
+        ),
+        ForeignKeyConstraint(
+            ['character', 'place'], ['nodes.graph', 'nodes.node']
+        )
+    )
+
+    Table(
+        'character_portal_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ['character', 'rulebook'], ['character_portal_rulebook.character', 'character_portal_rulebook.rulebook']
+        ),
+        ForeignKeyConstraint(
+            ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
+        )
+    )
 
     return meta.tables
 
