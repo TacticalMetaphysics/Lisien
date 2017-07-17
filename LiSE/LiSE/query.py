@@ -625,10 +625,6 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
         return self.json_load(r[0])
 
-    def portals_rulebooks(self):
-        for row in self.sql('portals_rulebooks'):
-            yield map(self.json_load, row)
-
     def set_portal_rulebook(self, character, orig, dest, rulebook):
         (character, orig, dest, rulebook) = map(
             self.json_dump, (character, orig, dest, rulebook)
@@ -650,46 +646,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 orig,
                 dest,
                 0
-            )
-
-    def dump_node_rules_handled(self):
-        for (
-                character,
-                node,
-                rulebook,
-                rule,
-                branch,
-                tick
-        ) in self.sql("dump_node_rules_handled"):
-            yield (
-                self.json_load(character),
-                self.json_load(node),
-                self.json_load(rulebook),
-                self.json_load(rule),
-                branch,
-                tick
-            )
-
-    def dump_portal_rules_handled(self):
-        for (
-                character,
-                orig,
-                dest,
-                idx,
-                rulebook,
-                rule,
-                branch,
-                tick
-        ) in self.sql('dump_portal_rules_handled'):
-            yield (
-                self.json_load(character),
-                self.json_load(orig),
-                self.json_load(dest),
-                idx,
-                self.json_load(rulebook),
-                self.json_load(rule),
-                branch,
-                tick
             )
 
     def handled_character_rule(
@@ -819,19 +775,6 @@ class QueryEngine(allegedb.query.QueryEngine):
     def upd_rulebook_char(self, rulemap, character):
         return self.sql('upd_rulebook_char_fmt', character, rulemap=rulemap)
 
-    def things_dump(self):
-        for (
-                character, thing, branch, tick, loc, nextloc
-        ) in self.sql('things_dump'):
-            yield (
-                self.json_load(character),
-                self.json_load(thing),
-                branch,
-                tick,
-                self.json_load(loc),
-                self.json_load(nextloc) if nextloc else None
-            )
-
     def thing_loc_and_next_set(
             self, character, thing, branch, tick, loc, nextloc
     ):
@@ -862,72 +805,7 @@ class QueryEngine(allegedb.query.QueryEngine):
                 tick
             )
 
-    def sense_fun_set(self, character, sense, branch, tick, funn, active):
-        character = self.json_dump(character)
-        try:
-            self.sql(
-                'sense_fun_ins', character, sense, branch, tick, funn, active
-            )
-        except IntegrityError:
-            self.sql(
-                'sense_fun_upd', funn, active, character, sense, branch, tick
-            )
-
-    def sense_set(self, character, sense, branch, tick, active):
-        character = self.json_dump(character)
-        try:
-            self.sql('sense_ins', character, sense, branch, tick, active)
-        except IntegrityError:
-            self.sql('sense_upd', active, character, sense, branch, tick)
-
-    def init_character(
-            self, character, character_rulebook=None, avatar_rulebook=None,
-            thing_rulebook=None, place_rulebook=None, node_rulebook=None,
-            portal_rulebook=None
-    ):
-        character_rulebook = character_rulebook or (character, 'character')
-        avatar_rulebook = avatar_rulebook or (character, 'avatar')
-        thing_rulebook = thing_rulebook or (character, 'character_thing')
-        place_rulebook = place_rulebook or (character, 'character_place')
-        node_rulebook = node_rulebook or (character, 'character_node')
-        portal_rulebook = portal_rulebook or (character, 'character_portal')
-        (character, character_rulebook, avatar_rulebook, thing_rulebook,
-         place_rulebook, node_rulebook, portal_rulebook) = map(
-            self.json_dump,
-            (character, character_rulebook, avatar_rulebook, thing_rulebook,
-             place_rulebook, node_rulebook, portal_rulebook)
-        )
-        try:
-            return self.sql(
-                'character_ins',
-                character,
-                character_rulebook,
-                avatar_rulebook,
-                thing_rulebook,
-                place_rulebook,
-                node_rulebook,
-                portal_rulebook
-            )
-        except IntegrityError:
-            pass
-
-    def avatarness_dump(self):
-        for (
-                character,
-                graph,
-                node,
-                branch,
-                tick,
-                is_avatar
-        ) in self.sql('avatarness_dump'):
-            yield (
-                self.json_load(character),
-                self.json_load(graph),
-                self.json_load(node),
-                branch,
-                tick,
-                bool(is_avatar)
-            )
+    # TODO character_init, sense_fun stuff
 
     def avatar_set(self, character, graph, node, branch, tick, isav):
         (character, graph, node) = map(
