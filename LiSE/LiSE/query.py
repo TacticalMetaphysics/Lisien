@@ -548,6 +548,9 @@ class QueryEngine(allegedb.query.QueryEngine):
         except OperationalError:
             pass
 
+    def rules_dump(self):
+        return self.sql('rules_dump')
+
     def rule_triggers(self, rule):
         rule = self.json_dump(rule)
         for row in self.sql('rule_triggers', rule):

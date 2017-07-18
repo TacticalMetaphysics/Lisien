@@ -708,25 +708,18 @@ class AllRules(MutableMapping, Signal):
         super().__init__()
         self.engine = engine
         self.engine.query.init_table('rulebooks')
-        self._cache = {}
+        self._cache = {name: Rule(engine, name) for name in self.engine.query.rules_dump()}
 
     def __iter__(self):
-        yield from self.engine.query.allrules()
+        yield from self._cache
 
     def __len__(self):
-        return self.engine.query.ctrules()
+        return len(self._cache)
 
     def __contains__(self, k):
-        try:
-            return self.engine.query.haverule(k)
-        except TypeError:
-            return False
+        return k in self._cache
 
     def __getitem__(self, k):
-        if k not in self:
-            raise KeyError("No such rule: {}".format(k))
-        if k not in self._cache:
-            self._cache[k] = Rule(self.engine, k)
         return self._cache[k]
 
     def __setitem__(self, k, v):
@@ -752,14 +745,14 @@ class AllRules(MutableMapping, Signal):
             raise TypeError(
                 "Don't know how to store {} as a rule.".format(type(v))
             )
-        self.send(self, key=new, rule=v, active=True)
+        self.send(self, key=new, rule=v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such rule")
-        old = self[k]
+        del self._cache[k]
         self.engine._rulebook_del_rule(self.name, self.index(k))
-        self.send(self, key=k, rule=old, active=False)
+        self.send(self, key=k, rule=None)
 
     def __call__(self, v=None, name=None):
         if v is None and name is not None:
