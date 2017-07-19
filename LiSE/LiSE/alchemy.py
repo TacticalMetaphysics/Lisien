@@ -107,10 +107,6 @@ def tables_for_meta(meta):
     # rulebooks for the character itself, its avatars, and all the things,
     # places, and portals it contains--though those may have their own
     # rulebooks as well.
-    Table(
-        'characters', meta,
-        Column('character', TEXT, primary_key=True)
-    )
 
     def char_rb_tab(name):
         Table(
@@ -120,7 +116,7 @@ def tables_for_meta(meta):
             Column('tick', INT, primary_key=True),
             Column('rulebook', TEXT),
             ForeignKeyConstraint(
-                ['character'], ['characters.character']
+                ['character'], ['graphs.graph']
             ),
             ForeignKeyConstraint(
                 ['rulebook'], ['rulebooks.rulebook']
@@ -457,9 +453,6 @@ def queries(table):
         ['value'],
         [univ.c.key, univ.c.branch, univ.c.tick]
     )
-
-    characters = table['characters']
-    r['characters'] = select([characters.c.character])
 
     rulebooks = table['rulebooks']
 
