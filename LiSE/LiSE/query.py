@@ -415,8 +415,9 @@ class QueryEngine(allegedb.query.QueryEngine):
         return self._rule_dump('actions')
 
     def characters_dump(self):
-        for character in self.sql('characters_dump'):
-            yield self.json_load(character)
+        for graph, typ in self.sql('graphs_dump'):
+            if typ == 'digraph':
+                yield self.json_load(graph)
 
     def node_rulebook_dump(self):
         for character, node, branch, tick, rulebook in self.sql('node_rulebook_dump'):
@@ -558,10 +559,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         for row in self.sql('rule_actions', rule):
             yield row[0]
 
-    def characters(self):
-        for (ch,) in self.sql('characters'):
-            yield self.json_load(ch)
-
     def init_character(self, name, branch='trunk', tick=0, **stats):
         self.sql('new_graph', name, 'digraph')
         for rbtyp in (
@@ -589,8 +586,8 @@ class QueryEngine(allegedb.query.QueryEngine):
     set_character_place_rulebook = partialmethod(_set_rulebook, 'character_place')
     set_character_portal_rulebook = partialmethod(_set_rulebook, 'character_portal')
 
-    def del_character(self, name):
-        #TODO
+    def del_character(self, name, branch='trunk', tick=0):
+
 
     def rulebooks(self):
         for book in self.sql('rulebooks'):
