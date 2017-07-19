@@ -418,6 +418,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         for graph, typ in self.sql('graphs_dump'):
             if typ == 'digraph':
                 yield self.json_load(graph)
+    characters = characters_dump
 
     def node_rulebook_dump(self):
         for character, node, branch, tick, rulebook in self.sql('node_rulebook_dump'):
