@@ -841,7 +841,6 @@ class QueryEngine(allegedb.query.QueryEngine):
             'universals',
             'rules',
             'rulebooks',
-            'characters',
             'senses',
             'things',
             'character_rulebook',
