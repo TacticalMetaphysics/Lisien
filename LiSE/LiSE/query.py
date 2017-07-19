@@ -431,23 +431,14 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
 
     def _charactery_rulebook_dump(self, qry):
-        for character, branch, tick, rulebook in self.sql(qry):
+        for character, branch, tick, rulebook in self.sql(qry+'_rulebook_dump'):
             yield self.json_load(character), branch, tick, rulebook
 
-    def character_rulebook_dump(self):
-        return self._charactery_rulebook_dump('character_rulebook_dump')
-
-    def avatar_rulebook_dump(self):
-        return self._charactery_rulebook_dump('avatar_rulebook_dump')
-
-    def character_thing_rulebook_dump(self):
-        return self._charactery_rulebook_dump('character_thing_rulebook_dump')
-
-    def character_place_rulebook_dump(self):
-        return self._charactery_rulebook_dump('character_place_rulebook_dump')
-
-    def character_portal_rulebook_dump(self):
-        return self._charactery_rulebook_dump('character_portal_rulebook_dump')
+    character_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character')
+    avatar_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'avatar')
+    character_thing_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character_thing')
+    character_place_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character_place')
+    character_portal_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character_portal')
 
     def character_rules_handled_dump(self):
         for character, rulebook, rule, branch, tick in self.sql('character_rules_handled_dump'):
@@ -585,9 +576,6 @@ class QueryEngine(allegedb.query.QueryEngine):
     set_character_thing_rulebook = partialmethod(_set_rulebook, 'character_thing')
     set_character_place_rulebook = partialmethod(_set_rulebook, 'character_place')
     set_character_portal_rulebook = partialmethod(_set_rulebook, 'character_portal')
-
-    def del_character(self, name, branch='trunk', tick=0):
-
 
     def rulebooks(self):
         for book in self.sql('rulebooks'):
