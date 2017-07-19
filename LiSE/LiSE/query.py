@@ -13,10 +13,6 @@ from .exc import (
 from .util import EntityStatAccessor
 import LiSE
 
-string_defaults = {
-    'strings': {'eng': [('README', 'Write release notes for your game here.')]}
-}
-
 
 def windows_union(windows):
     def fix_overlap(left, right):
