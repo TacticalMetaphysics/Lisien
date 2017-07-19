@@ -854,6 +854,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         super().initdb()
         for table in (
             'universals',
+            'rules',
             'rulebooks',
             'characters',
             'senses',
