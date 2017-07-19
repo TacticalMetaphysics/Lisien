@@ -2,6 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """The query engine provides Pythonic methods to access the database."""
 from operator import gt, lt, eq, ne, le, ge
+from functools import partialmethod
 
 import allegedb.query
 
@@ -561,20 +562,35 @@ class QueryEngine(allegedb.query.QueryEngine):
         for (ch,) in self.sql('characters'):
             yield self.json_load(ch)
 
-    def del_character(self, name):
-        name = self.json_dump(name)
-        self.sql('del_char_things', name)
-        self.sql('del_char_avatars', name)
-        for tbl in (
-                "node_val",
-                "edge_val",
-                "edges",
-                "nodes",
-                "graph_val",
-                "characters",
-                "graph"
+    def init_character(self, name, branch='trunk', tick=0, **stats):
+        self.sql('new_graph', name, 'digraph')
+        for rbtyp in (
+            'character',
+            'avatar',
+            'character_thing',
+            'character_place',
+            'character_portal'
         ):
-            self.sql('char_del_fmt', name, tbl=tbl)
+            self.sql('rulebooks_insert', (name, rbtyp), branch, tick)
+            self.sql(rbtyp + '_rulebook_insert', name, (name, rbtyp))
+        for k, v in stats.items():
+            self.graph_val_set(name, k, branch, tick, v)
+
+    def _set_rulebook(self, rbtyp, char, rb, branch, tick):
+        char, rb = map(self.json_dump, (char, rb))
+        try:
+            self.sql(rbtyp + '_rulebook_insert', char, rb, branch, tick)
+        except IntegrityError:
+            self.sql(rbtyp + '_rulebook_update', rb, char, branch, tick)
+
+    set_character_rulebook = partialmethod(_set_rulebook, 'character')
+    set_avatar_rulebook = partialmethod(_set_rulebook, 'avatar')
+    set_character_thing_rulebook = partialmethod(_set_rulebook, 'character_thing')
+    set_character_place_rulebook = partialmethod(_set_rulebook, 'character_place')
+    set_character_portal_rulebook = partialmethod(_set_rulebook, 'character_portal')
+
+    def del_character(self, name):
+        #TODO
 
     def rulebooks(self):
         for book in self.sql('rulebooks'):
