@@ -1,10 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """The query engine provides Pythonic methods to access the database."""
-from inspect import getsource
-from types import FunctionType
-from marshal import loads as unmarshalled
-from marshal import dumps as marshalled
 from operator import gt, lt, eq, ne, le, ge
 
 import allegedb.query
@@ -12,8 +8,7 @@ import allegedb.query
 from .exc import (
     IntegrityError,
     OperationalError,
-    RedundantRuleError,
-    UserFunctionError
+    RedundantRuleError
 )
 from .util import EntityStatAccessor
 import LiSE
