@@ -416,7 +416,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def characters_dump(self):
         for graph, typ in self.sql('graphs_dump'):
-            if typ == 'digraph':
+            if typ == 'DiGraph':
                 yield self.json_load(graph)
     characters = characters_dump
 
@@ -552,7 +552,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield row[0]
 
     def init_character(self, name, branch='trunk', tick=0, **stats):
-        self.sql('new_graph', name, 'digraph')
+        self.sql('new_graph', name, 'DiGraph')
         for rbtyp in (
             'character',
             'avatar',
