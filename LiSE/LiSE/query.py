@@ -602,14 +602,14 @@ class QueryEngine(allegedb.query.QueryEngine):
         if extant and not keep_rulebook:
             self.set_portal_rulebook(character, orig, dest, branch, tick, (character, orig, dest))
 
-    def set_node_rulebook(self, character, node, rulebook):
+    def set_node_rulebook(self, character, node, branch, tick, rulebook):
         (character, node, rulebook) = map(
             self.json_dump, (character, node, rulebook)
         )
         try:
-            return self.sql('ins_node_rulebook', character, node, rulebook)
+            return self.sql('node_rulebook_insert', character, node, rulebook, branch, tick)
         except IntegrityError:
-            return self.sql('upd_node_rulebook', rulebook, character, node)
+            return self.sql('node_rulebook_update', rulebook, character, node, branch, tick)
 
     def portal_rulebook(self, character, orig, dest):
         (character, orig, dest) = map(
