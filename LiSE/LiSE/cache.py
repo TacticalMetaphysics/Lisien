@@ -131,11 +131,6 @@ class AvatarnessCache(Cache):
                 yield character
 
 
-class RulebooksCache(Cache):
-    def store(self, rulebook, branch, tick, rules):
-        super().store(None, rulebook, branch, tick, rules)
-
-
 class CharacterRulebooksCache(object):
     def __init__(self, engine):
         self.engine = engine

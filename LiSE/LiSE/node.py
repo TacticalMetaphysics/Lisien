@@ -106,11 +106,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
-        cache = self.engine._nodes_rulebooks_cache._data
-        key = (self.character.name, self.name)
-        if key not in cache:
-            return key
-        return cache[key]
+        return self.engine._nodes_rulebooks_cache.retrieve(self.character.name, self.name, *self.engine.time)
 
     def _get_rulebook(self):
         return rule.RuleBook(

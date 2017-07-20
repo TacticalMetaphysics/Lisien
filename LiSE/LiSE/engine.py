@@ -28,7 +28,6 @@ from .cache import (
     Cache,
     EntitylessCache,
     AvatarnessCache,
-    RulebooksCache,
     CharacterRulebooksCache,
     ActiveRulesCache,
     NodeRulesHandledCache,
@@ -415,8 +414,8 @@ class Engine(AbstractEngine, gORM):
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
-        self._rulebooks_cache = RulebooksCache(self)
         self._universal_cache = EntitylessCache(self)
+        self._rulebooks_cache = Cache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)
