@@ -143,6 +143,7 @@
     "node_rulebook_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM node_rulebook",
     "node_rulebook_dump": "SELECT * \nFROM node_rulebook",
     "node_rulebook_insert": "INSERT INTO node_rulebook (character, node, branch, tick, rulebook) VALUES (?, ?, ?, ?, ?)",
+    "node_rulebook_update": "UPDATE node_rulebook SET rulebook=? WHERE node_rulebook.character = ? AND node_rulebook.node = ? AND node_rulebook.branch = ? AND node_rulebook.tick = ?",
     "node_rules_handled_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM node_rules_handled",
     "node_rules_handled_dump": "SELECT * \nFROM node_rules_handled",
     "node_rules_handled_insert": "INSERT INTO node_rules_handled (character, node, rulebook, rule, branch, tick) VALUES (?, ?, ?, ?, ?, ?)",

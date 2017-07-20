@@ -463,6 +463,13 @@ def queries(table):
         [pr.c.character, pr.c.orig, pr.c.dest, pr.c.branch, pr.c.tick]
     )
 
+    nr = table['node_rulebook']
+
+    r['node_rulebook_update'] = update_where(
+        ['rulebook'],
+        [nr.c.character, nr.c.node, nr.c.branch, nr.c.tick]
+    )
+
     r['del_char_things'] = table['things'].delete().where(
         table['things'].c.character == bindparam('character')
     )
