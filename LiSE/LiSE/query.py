@@ -782,7 +782,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         nextloc = self.json_dump(nextloc) if nextloc else None
         try:
             return self.sql(
-                'thing_loc_and_next_ins',
+                'things_insert',
                 character,
                 thing,
                 branch,
@@ -792,7 +792,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
         except IntegrityError:
             return self.sql(
-                'thing_loc_and_next_upd',
+                'things_update',
                 loc,
                 nextloc,
                 character,
