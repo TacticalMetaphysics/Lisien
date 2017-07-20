@@ -162,6 +162,7 @@
     "portal_rulebook_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM portal_rulebook",
     "portal_rulebook_dump": "SELECT * \nFROM portal_rulebook",
     "portal_rulebook_insert": "INSERT INTO portal_rulebook (character, orig, dest, branch, tick, rulebook) VALUES (?, ?, ?, ?, ?, ?)",
+    "portal_rulebook_update": "UPDATE portal_rulebook SET rulebook=? WHERE portal_rulebook.character = ? AND portal_rulebook.orig = ? AND portal_rulebook.dest = ? AND portal_rulebook.branch = ? AND portal_rulebook.tick = ?",
     "portal_rules_handled_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM portal_rules_handled",
     "portal_rules_handled_dump": "SELECT * \nFROM portal_rules_handled",
     "portal_rules_handled_insert": "INSERT INTO portal_rules_handled (character, orig, dest, rulebook, rule, branch, tick) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -196,6 +197,5 @@
     "universal_update": "UPDATE universals SET value=? WHERE universals.\"key\" = ? AND universals.branch = ? AND universals.tick = ?",
     "universals_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM universals",
     "universals_dump": "SELECT * \nFROM universals",
-    "universals_insert": "INSERT INTO universals (\"key\", branch, tick, value) VALUES (?, ?, ?, ?)",
-    "upd_portal_rulebook": "UPDATE portal_rulebook SET rulebook=? WHERE portal_rulebook.character = ? AND portal_rulebook.orig = ? AND portal_rulebook.dest = ?"
+    "universals_insert": "INSERT INTO universals (\"key\", branch, tick, value) VALUES (?, ?, ?, ?)"
 }

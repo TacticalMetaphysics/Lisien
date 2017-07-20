@@ -458,9 +458,9 @@ def queries(table):
 
     pr = table['portal_rulebook']
 
-    r['upd_portal_rulebook'] = update_where(
+    r['portal_rulebook_update'] = update_where(
         ['rulebook'],
-        [pr.c.character, pr.c.orig, pr.c.dest]
+        [pr.c.character, pr.c.orig, pr.c.dest, pr.c.branch, pr.c.tick]
     )
 
     r['del_char_things'] = table['things'].delete().where(
