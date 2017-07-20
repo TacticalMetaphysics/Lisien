@@ -10,7 +10,7 @@ from allegedb.cache import (
 from .util import singleton_get
 
 
-class UniversalCache(Cache):
+class EntitylessCache(Cache):
     def store(self, key, branch, tick, value):
         super().store(None, key, branch, tick, value)
 

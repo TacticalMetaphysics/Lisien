@@ -26,7 +26,7 @@ from .query import Query, QueryEngine
 from .util import getatt, reify, EntityStatAccessor
 from .cache import (
     Cache,
-    UniversalCache,
+    EntitylessCache,
     AvatarnessCache,
     RulebooksCache,
     CharacterRulebooksCache,
@@ -415,8 +415,8 @@ class Engine(AbstractEngine, gORM):
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
-        self._universal_cache = UniversalCache(self)
         self._rulebooks_cache = RulebooksCache(self)
+        self._universal_cache = EntitylessCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)
