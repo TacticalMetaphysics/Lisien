@@ -560,8 +560,8 @@ class QueryEngine(allegedb.query.QueryEngine):
             'character_place',
             'character_portal'
         ):
-            self.sql('rulebooks_insert', (name, rbtyp), branch, tick)
-            self.sql(rbtyp + '_rulebook_insert', name, (name, rbtyp))
+            self.sql('rulebooks_insert', self.json_dump((name, rbtyp)), branch, tick, '[]')
+            self.sql(rbtyp + '_rulebook_insert', name, branch, tick, self.json_dump((name, rbtyp)))
         for k, v in stats.items():
             self.graph_val_set(name, k, branch, tick, v)
 
