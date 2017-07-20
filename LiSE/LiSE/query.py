@@ -551,6 +551,13 @@ class QueryEngine(allegedb.query.QueryEngine):
         for row in self.sql('rule_actions', rule):
             yield row[0]
 
+    def set_rulebook(self, name, branch='trunk', tick=0, rules=None):
+        name, rules = map(self.json_dump, (name, rules or []))
+        try:
+            self.sql('rulebooks_insert', name, branch, tick, rules)
+        except IntegrityError:
+            self.sql('rulebooks_update', rules, name, branch, tick)
+
     def init_character(self, name, branch='trunk', tick=0, **stats):
         self.sql('new_graph', name, 'DiGraph')
         for rbtyp in (
@@ -560,7 +567,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             'character_place',
             'character_portal'
         ):
-            self.sql('rulebooks_insert', self.json_dump((name, rbtyp)), branch, tick, '[]')
+            self.set_rulebook((name, rbtyp), branch, tick)
             self.sql(rbtyp + '_rulebook_insert', name, branch, tick, self.json_dump((name, rbtyp)))
         for k, v in stats.items():
             self.graph_val_set(name, k, branch, tick, v)
@@ -621,27 +628,29 @@ class QueryEngine(allegedb.query.QueryEngine):
             )
         return self.json_load(r[0])
 
-    def set_portal_rulebook(self, character, orig, dest, rulebook):
+    def set_portal_rulebook(self, character, orig, dest, branch, tick, rulebook):
         (character, orig, dest, rulebook) = map(
             self.json_dump, (character, orig, dest, rulebook)
         )
         try:
             return self.sql(
-                'ins_portal_rulebook',
+                'portal_rulebook_insert',
                 character,
                 orig,
                 dest,
-                0,
+                branch,
+                tick,
                 rulebook
             )
         except IntegrityError:
             return self.sql(
-                'upd_portal_rulebook',
+                'portal_rulebook_update',
                 rulebook,
                 character,
                 orig,
                 dest,
-                0
+                branch,
+                tick
             )
 
     def handled_character_rule(
