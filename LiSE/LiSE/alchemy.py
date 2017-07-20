@@ -475,19 +475,19 @@ def queries(table):
 
     avatars = table['avatars']
 
-    r['things_upd'] = update_where(
+    r['things_update'] = update_where(
         ['location', 'next_location'],
         [things.c.character, things.c.thing, things.c.branch, things.c.tick]
     )
 
     senses = table['senses']
 
-    r['sense_upd'] = update_where(
+    r['sense_update'] = update_where(
         ['function'],
         [senses.c.character, senses.c.sense, senses.c.branch, senses.c.tick]
     )
 
-    r['avatar_upd'] = update_where(
+    r['avatar_update'] = update_where(
         ['is_avatar'],
         [
             avatars.c.character_graph,
