@@ -589,17 +589,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         for book in self.sql('rulebooks'):
             yield self.json_load(book)
 
-    def node_rulebook(self, character, node):
-        (character, node) = map(self.json_dump, (character, node))
-        r = self.sql('node_rulebook', character, node).fetchone()
-        if r is None:
-            raise KeyError(
-                'No rulebook for node {} in character {}'.format(
-                    node, character
-                )
-            )
-        return self.json_load(r[0])
-
     def set_node_rulebook(self, character, node, rulebook):
         (character, node, rulebook) = map(
             self.json_dump, (character, node, rulebook)
