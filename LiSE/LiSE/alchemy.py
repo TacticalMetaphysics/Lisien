@@ -475,7 +475,7 @@ def queries(table):
 
     avatars = table['avatars']
 
-    r['thing_loc_and_next_upd'] = update_where(
+    r['things_upd'] = update_where(
         ['location', 'next_location'],
         [things.c.character, things.c.thing, things.c.branch, things.c.tick]
     )
