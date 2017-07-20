@@ -589,6 +589,19 @@ class QueryEngine(allegedb.query.QueryEngine):
         for book in self.sql('rulebooks'):
             yield self.json_load(book)
 
+    def exist_node(self, character, node, branch, tick, extant, keep_rulebook=False):
+        super().exist_node(character, node, branch, tick, extant)
+        if extant and not keep_rulebook:
+            self.set_node_rulebook(character, node, branch, tick, (character, node))
+
+    def exist_edge(self, character, orig, dest, idx, branch, tick, extant=None, keep_rulebook=False):
+        if extant is None:
+            branch, tick, extant = idx, branch, tick
+            idx = None
+        super().exist_edge(character, orig, dest, idx, branch, tick, extant)
+        if extant and not keep_rulebook:
+            self.set_portal_rulebook(character, orig, dest, branch, tick, (character, orig, dest))
+
     def set_node_rulebook(self, character, node, rulebook):
         (character, node, rulebook) = map(
             self.json_dump, (character, node, rulebook)
