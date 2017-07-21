@@ -751,7 +751,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 character,
                 orig,
                 dest,
-                0,
                 rulebook,
                 rule,
                 branch,
