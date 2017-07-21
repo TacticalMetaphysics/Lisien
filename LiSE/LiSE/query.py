@@ -611,25 +611,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         except IntegrityError:
             return self.sql('node_rulebook_update', rulebook, character, node, branch, tick)
 
-    def portal_rulebook(self, character, orig, dest):
-        (character, orig, dest) = map(
-            self.json_dump, (character, orig, dest)
-        )
-        r = self.sql(
-            'portal_rulebook',
-            character,
-            orig,
-            dest,
-            0
-        ).fetchone()
-        if r is None:
-            raise KeyError(
-                "No rulebook for portal {}->{} in character {}".format(
-                    orig, dest, character
-                )
-            )
-        return self.json_load(r[0])
-
     def set_portal_rulebook(self, character, orig, dest, branch, tick, rulebook):
         (character, orig, dest, rulebook) = map(
             self.json_dump, (character, orig, dest, rulebook)
@@ -777,9 +758,6 @@ class QueryEngine(allegedb.query.QueryEngine):
         ):
             return self.json_load(book)
         raise KeyError("No rulebook")
-
-    def upd_rulebook_char(self, rulemap, character):
-        return self.sql('upd_rulebook_char_fmt', character, rulemap=rulemap)
 
     def thing_loc_and_next_set(
             self, character, thing, branch, tick, loc, nextloc
