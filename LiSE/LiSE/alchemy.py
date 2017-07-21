@@ -513,16 +513,34 @@ def queries(table):
         rule_triggers.c.branch == bindparam('branch'),
         rule_triggers.c.tick == bindparam('tick')
     ))
+    r['rule_triggers_update'] = update_where(
+        ['triggers'],
+        [rule_triggers.c.rule, rule_triggers.c.branch, rule_triggers.c.tick]
+    )
     r['rule_prereqs'] = select([rule_prereqs.c.prereqs]).where(and_(
         rule_prereqs.c.rule == bindparam('rule'),
         rule_prereqs.c.branch == bindparam('branch'),
         rule_triggers.c.tick == bindparam('tick')
     ))
+    r['rule_prereqs_update'] = update_where(
+        ['prereqs'],
+        [rule_prereqs.c.rule, rule_prereqs.c.branch, rule_prereqs.c.tick]
+    )
     r['rule_actions'] = select([rule_actions.c.actions]).where(and_(
         rule_actions.c.rule == bindparam('rule'),
         rule_actions.c.branch == bindparam('branch'),
         rule_actions.c.tick == bindparam('tick')
     ))
+    r['rule_actions_update'] = update_where(
+        ['actions'],
+        [rule_actions.c.rule, rule_actions.c.branch, rule_actions.c.tick]
+    )
+
+    rules = table['rules']
+    r['rules_update'] = update_where(
+        ['type'],
+        [rules.c.rule]
+    )
 
     r['rulebooks'] = select([rulebooks.c.rulebook])
 
