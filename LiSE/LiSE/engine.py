@@ -1031,6 +1031,7 @@ class Engine(AbstractEngine, gORM):
             exist
         )
         self._nodes_cache.store(character, node, branch, tick, exist)
+        self._nodes_rulebooks_cache.store(character, node, branch, tick, (character, node))
 
     def _exist_edge(
             self, character, orig, dest, exist=True, branch=None, tick=None
