@@ -286,6 +286,7 @@ class CharacterMapping(MutableMapping, Signal):
         """Store the engine, initialize caches"""
         super().__init__()
         self.engine = engine
+        self._cache = None
 
     def __iter__(self):
         """Iterate over every character name."""
@@ -293,9 +294,13 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __contains__(self, name):
         """Has this character been created?"""
-        if name in self.engine._graph_objs:
-            return True
-        return self.engine.query.have_character(name)
+        if self.engine._graph_objs:
+            self._cache = None
+            return name in self.engine._graph_objs
+        # hack to make initial load work
+        if self._cache is None:
+            self._cache = [ch for ch, typ in self.engine.query.graphs_types() if typ == 'DiGraph']
+        return name in self._cache
 
     def __len__(self):
         """How many characters have been created?"""
