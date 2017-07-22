@@ -166,8 +166,10 @@ class RuleFuncListDescriptor(object):
             setattr(obj, self.flid, self.cls(obj))
         flist = getattr(obj, self.flid)
         namey_value = [flist._nominate(v) for v in value]
-        flist._setall(namey_value)
-        flist._cache = namey_value
+        flist._set(namey_value)
+        branch, tick = obj.engine.time
+        flist._cache.store(obj.name, branch, tick, namey_value)
+        flist.send(flist)
 
     def __delete__(self, obj):
         raise TypeError("Rules must have their function lists")
