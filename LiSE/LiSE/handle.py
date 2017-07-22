@@ -954,11 +954,11 @@ class EngineHandle(object):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
     def rule_copy(self, rule):
-        rule = self._real.rule[rule]
+        branch, tick = self.branch, self.tick
         return {
-            'triggers': list(rule.triggers._cache),
-            'prereqs': list(rule.prereqs._cache),
-            'actions': list(rule.actions._cache)
+            'triggers': list(self._real._triggers_cache.retrieve(rule, branch, tick)),
+            'prereqs': list(self._real._prereqs_cache.retrieve(rule, branch, tick)),
+            'actions': list(self._real._actions_cache.retrieve(rule, branch, tick))
         }
 
     def rule_diff(self, rule):
