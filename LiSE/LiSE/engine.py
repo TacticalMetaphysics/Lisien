@@ -993,8 +993,8 @@ class Engine(AbstractEngine, gORM):
 
         """
         self._init_graph(name, 'DiGraph')
-        self.engine.query.init_character(
-            self.name,
+        self.query.init_character(
+            name,
             *self.time,
             **kwargs
         )
