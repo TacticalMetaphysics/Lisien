@@ -1213,10 +1213,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 d[mapp] = rulebook.name \
                     if isinstance(rulebook, RuleBook) \
                     else rulebook
-        self.engine.query.init_character(
-            self.name,
-            **d
-        )
         for rulebook in (
                 'character', 'avatar', 'character_thing',
                 'character_place', 'character_node', 'character_portal'

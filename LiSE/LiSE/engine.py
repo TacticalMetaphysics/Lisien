@@ -995,6 +995,11 @@ class Engine(AbstractEngine, gORM):
 
         """
         self._init_graph(name, 'DiGraph')
+        self.engine.query.init_character(
+            self.name,
+            *self.time,
+            **kwargs
+        )
         self._graph_objs[name] = Character(self, name, data, **kwargs)
 
     def del_character(self, name):
