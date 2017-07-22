@@ -643,11 +643,6 @@ class AllRuleBooks(Mapping, Signal):
         return self._cache[k]
 
 
-# TODO: fix null rulebooks
-#
-# It appears that when you create a rule here it gets assigned
-# to a null rulebook in the database. That's not very useful and might
-# cause bad effects later on.
 class AllRules(MutableMapping, Signal):
     def __init__(self, engine):
         super().__init__()
