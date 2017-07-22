@@ -552,6 +552,15 @@ def queries(table):
         rulebooks.c.tick == bindparam('tick')
     ))
 
+    r['rulebooks_update'] = update_where(
+        ['rules'],
+        [
+            rulebooks.c.rulebook,
+            rulebooks.c.branch,
+            rulebooks.c.tick
+        ]
+    )
+
     for rbtabn in (
         'character_rulebook',
         'avatar_rulebook',

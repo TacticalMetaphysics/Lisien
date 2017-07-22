@@ -187,6 +187,7 @@
     "rulebooks_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM rulebooks",
     "rulebooks_dump": "SELECT * \nFROM rulebooks",
     "rulebooks_insert": "INSERT INTO rulebooks (rulebook, branch, tick, rules) VALUES (?, ?, ?, ?)",
+    "rulebooks_update": "UPDATE rulebooks SET rules=? WHERE rulebooks.rulebook = ? AND rulebooks.branch = ? AND rulebooks.tick = ?",
     "rules_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM rules",
     "rules_dump": "SELECT * \nFROM rules",
     "rules_insert": "INSERT INTO rules (rule, type) VALUES (?, ?)",
