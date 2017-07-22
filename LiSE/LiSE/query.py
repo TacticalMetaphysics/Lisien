@@ -399,7 +399,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def rulebooks_dump(self):
         for rulebook, branch, tick, rules in self.sql('rulebooks_dump'):
-            yield rulebook, branch, tick, self.json_load(rules)
+            yield self.json_load(rulebook), branch, tick, self.json_load(rules)
 
     def _rule_dump(self, typ):
         for rule, branch, tick, lst in self.sql('rule_{}_dump'.format(typ)):
