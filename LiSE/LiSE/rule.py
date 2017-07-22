@@ -29,155 +29,117 @@ from .util import reify
 
 
 class RuleFuncList(MutableSequence, Signal):
-    __slots__ = ['rule', '_cache']
+    __slots__ = ['rule']
 
     def __init__(self, rule):
         super().__init__()
         self.rule = rule
-        self._cache = list(self._loader(self.rule.name))
 
     def _nominate(self, v):
         if callable(v):
-            if hasattr(self.funcstore, v.__name__):
-                if getattr(self.funcstore, v.__name__) != v:
+            if hasattr(self._funcstore, v.__name__):
+                if getattr(self._funcstore, v.__name__) != v:
                     raise KeyError(
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "
                         "engine.{typ}[{n}]".format(
-                            typ=self.funcstore._tab,
+                            typ=self._funcstore._tab,
                             n=v.__name__
                         )
                     )
             else:
-                self.funcstore(v)
+                self._funcstore(v)
             v = v.__name__
-        if not hasattr(self.funcstore, v):
+        if not hasattr(self._funcstore, v):
             raise KeyError("No {typ} function named {n}".format(
-                typ=self.funcstore._tab, n=v
+                typ=self._funcstore._tab, n=v
             ))
         return v
 
+    def _get(self):
+        return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
+
+    def _set(self, v):
+        branch, tick = self.rule.engine.time
+        self._cache.store(self.rule.name, branch, tick, v)
+        self._setter(self.rule.name, branch, tick, v)
+
     def __iter__(self):
-        for funcname in self._cache:
-            yield getattr(self.funcstore, funcname)
+        for funcname in self._get():
+            yield getattr(self._funcstore, funcname)
 
     def __len__(self):
-        return len(self._cache)
+        return len()
 
     def __getitem__(self, i):
-        return self._cache[i]
+        return self._get()[i]
 
     def __setitem__(self, i, v):
-        while i < 0:
-            i += len(self)
         v = self._nominate(v)
-        self._replacer(self.rule.name, i, v)
-        self._cache[i] = v
+        l = self._get()
+        l[i] = v
+        self._set(l)
+        self.send(self)
 
     def __delitem__(self, i):
-        while i < 0:
-            i += len(self)
-        self._deleter(self.rule.name, i)
-        del self._cache[i]
+        l = self._get()
+        del l[i]
+        self._set(l)
+        self.send(self)
 
     def insert(self, i, v):
-        while i < 0:
-            i += len(self)
-        v = self._nominate(v)
-        self._inserter(self.rule.name, i, v)
-        self._cache.insert(i, v)
+        l = self._get()
+        l.insert(i, self._nominate(v))
+        self._set(l)
+        self.send(self)
 
     def append(self, v):
-        v = self._nominate(v)
-        self._appender(self.rule.name, v)
-        self._cache.append(v)
+        l = self._get()
+        l.append(self._nominate(v))
+        self._set(l)
+        self.send(self)
 
 
 class TriggerList(RuleFuncList):
     @reify
-    def funcstore(self):
+    def _funcstore(self):
         return self.rule.engine.trigger
 
     @reify
-    def _loader(self):
-        return self.rule.engine.query.rule_triggers
+    def _cache(self):
+        return self.rule.engine._triggers_cache
 
     @reify
-    def _replacer(self):
-        return self.rule.engine.query.replace_rule_trigger
-
-    @reify
-    def _inserter(self):
-        return self.rule.engine.query.insert_rule_trigger
-
-    @reify
-    def _deleter(self):
-        return self.rule.engine.query.delete_rule_trigger
-
-    @reify
-    def _appender(self):
-        return self.rule.engine.query.append_rule_trigger
-
-    def _setall(self, l):
-        self.rule.engine.query.replace_all_rule_triggers(self.rule.name, l)
+    def _setter(self):
+        return self.rule.engine.query.set_rule_triggers
 
 
 class PrereqList(RuleFuncList):
     @reify
-    def funcstore(self):
+    def _funcstore(self):
         return self.rule.engine.prereq
 
     @reify
-    def _loader(self):
-        return self.rule.engine.query.rule_prereqs
+    def _cache(self):
+        return self.rule.engine._prereqs_cache
 
     @reify
-    def _replacer(self):
-        return self.rule.engine.query.replace_rule_prereq
-
-    @reify
-    def _inserter(self):
-        return self.rule.engine.query.insert_rule_prereq
-
-    @reify
-    def _deleter(self):
-        return self.rule.engine.query.delete_rule_prereq
-
-    @reify
-    def _appender(self):
-        return self.rule.engine.query.append_rule_prereq
-
-    def _setall(self, l):
-        self.rule.engine.query.replace_all_rule_prereqs(self.rule.name, l)
+    def _setter(self):
+        return self.rule.engine.query.set_rule_prereqs
 
 
 class ActionList(RuleFuncList):
     @reify
-    def funcstore(self):
+    def _funcstore(self):
         return self.rule.engine.action
 
     @reify
-    def _loader(self):
-        return self.rule.engine.query.rule_actions
+    def _cache(self):
+        return self.rule.engine._actions_cache
 
     @reify
-    def _replacer(self):
-        return self.rule.engine.query.replace_rule_action
-
-    @reify
-    def _inserter(self):
-        return self.rule.engine.query.insert_rule_action
-
-    @reify
-    def _deleter(self):
-        return self.rule.engine.query.delete_rule_action
-
-    @reify
-    def _appender(self):
-        return self.rule.engine.query.append_rule_action
-
-    def _setall(self, l):
-        self.rule.engine.query.replace_all_rule_actions(self.rule.name, l)
+    def _setter(self):
+        return self.rule.engine.query.set_rule_actions
 
 
 class RuleFuncListDescriptor(object):
@@ -223,6 +185,7 @@ class Rule(object):
             self,
             engine,
             name,
+            typ='character',
             triggers=None,
             prereqs=None,
             actions=None
@@ -234,14 +197,8 @@ class Rule(object):
         """
         self.engine = engine
         self.name = self.__name__ = name
-        if name not in self.engine.rule:
-            self.engine.query.set_rule(name)
-        if triggers:
-            self.triggers.extend(triggers)
-        if prereqs:
-            self.prereqs.extend(prereqs)
-        if actions:
-            self.actions.extend(actions)
+        self.type = typ
+        self.engine.query.set_rule(name, typ, triggers, prereqs, actions, *self.engine.time)
 
     def __eq__(self, other):
         return (

@@ -419,7 +419,9 @@ class Engine(AbstractEngine, gORM):
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)
-        self._active_rules_cache = ActiveRulesCache(self)
+        self._triggers_cache = Cache(self)
+        self._prereqs_cache = Cache(self)
+        self._actions_cache = Cache(self)
         self._node_rules_handled_cache = NodeRulesHandledCache(self)
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)
@@ -472,6 +474,12 @@ class Engine(AbstractEngine, gORM):
             self._node_rules_handled_cache.store(*row)
         for row in self.query.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(*row)
+        for row in self.query.rule_triggers_dump():
+            self._triggers_cache.store(*row)
+        for row in self.query.rule_prereqs_dump():
+            self._prereqs_cache.store(*row)
+        for row in self.query.rule_actions_dump():
+            self._actions_cache.store(*row)
         for row in self.query.character_rules_handled_dump():
             self._character_rules_handled_cache.store(*row)
         for row in self.query.avatar_rules_handled_dump():
