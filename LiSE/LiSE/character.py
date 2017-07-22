@@ -1739,12 +1739,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def facade(self):
         return Facade(self)
 
-    def add_place(self, name, **kwargs):
-        """Create a new Place by the given name, and set its initial
-        attributes based on the keyword arguments (if any).
-
-        """
-        self.place[name] = kwargs
+    def add_node(self, n, attr_dict=None, **kwargs):
+        super().add_node(n, attr_dict, **kwargs)
+        branch, tick = self.engine.time
+        self.engine._nodes_rulebooks_cache.store(self.name, n, branch, tick, (self.name, n))
+        self.engine._rulebooks_cache.store((self.name, n), branch, tick, [])
+    add_place = add_node
 
     def add_places_from(self, seq):
         """Take a series of place names and add the lot."""
@@ -1774,7 +1774,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             raise WorldIntegrityError(
                 "Already have a Thing named {}".format(name)
             )
-        super().add_node(name, **kwargs)
+        self.add_node(name, **kwargs)
         if isinstance(location, Node):
             location = location.name
         self.place2thing(name, location)

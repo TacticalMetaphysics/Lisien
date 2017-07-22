@@ -415,7 +415,7 @@ class Engine(AbstractEngine, gORM):
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
-        self._rulebooks_cache = Cache(self)
+        self._rulebooks_cache = EntitylessCache(self)
         self._characters_rulebooks_cache = CharacterRulebooksCache(self)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)

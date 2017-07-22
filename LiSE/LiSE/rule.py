@@ -204,7 +204,14 @@ class Rule(object):
         self.engine = engine
         self.name = self.__name__ = name
         self.type = typ
-        self.engine.query.set_rule(name, typ, triggers, prereqs, actions, *self.engine.time)
+        branch, tick = engine.time
+        triggers = triggers or []
+        prereqs = prereqs or []
+        actions = actions or []
+        self.engine.query.set_rule(name, typ, triggers, prereqs, actions, branch, tick)
+        self.engine._triggers_cache.store(name, branch, tick, triggers)
+        self.engine._prereqs_cache.store(name, branch, tick, prereqs)
+        self.engine._actions_cache.store(name, branch, tick, actions)
 
     def __eq__(self, other):
         return (
@@ -349,18 +356,19 @@ class RuleBook(MutableSequence, Signal):
 
     @property
     def _cache(self):
-        return self.engine._rulebooks_cache.retrieve(self.name)
+        return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.time)
+    @_cache.setter
+    def _cache(self, v):
+        branch, tick = self.engine.time
+        self.engine._rulebooks_cache.store(self.name, branch, tick, v)
 
     def __init__(self, engine, name):
         super().__init__()
         self.engine = engine
         self.name = name
-        self._listeners = []
 
     def __contains__(self, v):
-        if not isinstance(v, Rule):
-            v = self.engine.rule[v]
-        return v in self._cache
+        return getattr(v, 'name', v) in self._cache
 
     def __iter__(self):
         return iter(self._cache)
@@ -371,13 +379,6 @@ class RuleBook(MutableSequence, Signal):
     def __getitem__(self, i):
         return self.engine.rule[self._cache[i]]
 
-    def _activate_rule(self, rule, active=True):
-        self.engine._set_rule_activeness(
-            self.name,
-            rule.name,
-            active
-        )
-
     def _coerce_rule(self, v):
         if isinstance(v, Rule):
             return v
@@ -387,42 +388,36 @@ class RuleBook(MutableSequence, Signal):
             return Rule(self.engine, v)
 
     def __setitem__(self, i, v):
-        rule = self._coerce_rule(v)
-        self.engine.query.rulebook_set(self.name, i, rule)
+        v = getattr(v, 'name', v)
         cache = self._cache
-        while len(cache) <= i:
-            cache.append(None)
-        cache[i] = rule
-        self._activate_rule(rule)
+        cache[i] = v
+        branch, tick = self.engine.time
+        self.engine.query.set_rulebook(self.name, branch, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
     def insert(self, i, v):
-        rule = self._coerce_rule(v)
-        self._cache.insert(i, rule)
-        self.engine.query.rulebook_ins(self.name, i, rule.name)
-        self._activate_rule(rule)
+        v = getattr(v, 'name', v)
+        cache = self._cache
+        cache.insert(i, v)
+        branch, tick = self.engine.time
+        self.engine.query.set_rulebook(self.name, branch, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
     def index(self, v):
         if isinstance(v, str):
-            i = 0
-            for rule in self:
-                if rule.name == v:
-                    return i
-                i += 1
-            else:
-                raise ValueError(
-                    "No rule named {} in rulebook {}".format(
-                        v, self.name
-                    )
-                )
+            return self._cache.index(v)
         return super().index(v)
 
     def __delitem__(self, i):
-        del self._cache[i]
-        self.engine.query.rulebook_del(self.name, i)
+        cache = self._cache
+        del cache[i]
+        branch, tick = self.engine.time
+        self.engine.query.set_rulebook(self.name, branch, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
         self.engine.rulebook.send(self, i=i, v=None)
         self.send(self, i=i, v=None)
 
@@ -499,29 +494,11 @@ class RuleMapping(MutableMapping, Signal):
             raise AttributeError
 
     def __setitem__(self, k, v):
-        if isinstance(v, bool):
-            if k not in self:
-                raise KeyError(
-                    "Can't activate or deactivate {}, "
-                    "because it is not in my rulebook ({}).".format(
-                        k, self.rulebook.name
-                    )
-                )
-            self._activate_rule(k, v)
-            return
-        elif v in self.engine.rule:
+        if v in self.engine.rule:
             v = self.engine.rule[v]
         elif isinstance(v, str) and hasattr(self.engine.function, v):
             v = getattr(self.engine.function, v)
-        if isinstance(v, Rule):
-            # may raise ValueError
-            try:
-                i = self.rulebook.index(k)
-                if self.rulebook[i] != v:
-                    self.rulebook[i] = v
-            except ValueError:
-                self._activate_rule(v)
-        elif callable(v):
+        if not isinstance(v, Rule) and callable(v):
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {name}. "
@@ -530,8 +507,14 @@ class RuleMapping(MutableMapping, Signal):
                 )
             # create a new rule, named k, performing action v
             self.engine.rule[k] = v
-            rule = self.engine.rule[k]
-            self._activate_rule(rule)
+            v = self.engine.rule[k]
+        assert isinstance(v, Rule)
+        if len(self.rulebook) == 0:
+            self.rulebook.append(v)
+        elif isinstance(k, int):
+            self.rulebook[k] = v
+        else:
+            self.rulebook[0] = v
 
     def __call__(self, v=None, name=None, always=False):
         def wrap(name, always, v):
