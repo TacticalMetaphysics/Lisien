@@ -585,7 +585,6 @@ class QueryEngine(allegedb.query.QueryEngine):
             self.sql('rulebooks_update', rules, name, branch, tick)
 
     def init_character(self, name, branch='trunk', tick=0, **stats):
-        self.sql('new_graph', name, 'DiGraph')
         for rbtyp in (
             'character',
             'avatar',
