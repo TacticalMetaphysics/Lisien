@@ -464,8 +464,6 @@ class Engine(AbstractEngine, gORM):
             self._universal_cache.store(*row)
         for row in self.query.rulebooks_dump():
             self._rulebooks_cache.store(*row)
-        for row in self.query.characters_dump():
-            self._characters_rulebooks_cache.store(*row)
         for row in self.query.node_rulebook_dump():
             self._nodes_rulebooks_cache.store(*row)
         for row in self.query.portal_rulebook_dump():
