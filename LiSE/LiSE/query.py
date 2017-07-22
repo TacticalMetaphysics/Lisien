@@ -632,7 +632,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             self.json_dump, (character, node, rulebook)
         )
         try:
-            return self.sql('node_rulebook_insert', character, node, rulebook, branch, tick)
+            return self.sql('node_rulebook_insert', character, node, branch, tick, rulebook)
         except IntegrityError:
             return self.sql('node_rulebook_update', rulebook, character, node, branch, tick)
 
