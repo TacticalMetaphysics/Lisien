@@ -17,6 +17,10 @@ class EntitylessCache(Cache):
     def retrieve(self, key, branch, tick):
         return super().retrieve(None, key, branch, tick)
 
+    def iter_entities_or_keys(self, branch, tick):
+        return super().iter_entities_or_keys(None, branch, tick)
+    iter_entities = iter_keys = iter_entities_or_keys
+
 
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
