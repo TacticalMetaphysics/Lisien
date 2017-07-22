@@ -534,7 +534,8 @@ class QueryEngine(allegedb.query.QueryEngine):
             pass
 
     def rules_dump(self):
-        return self.sql('rules_dump')
+        for rule, typ in self.sql('rules_dump'):
+            yield self.json_load(rule), typ
 
     def rule_triggers(self, rule):
         rule = self.json_dump(rule)

@@ -626,7 +626,6 @@ class AllRuleBooks(Mapping, Signal):
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
-        self.engine.query.init_table('rulebooks')
         self._cache = {}
 
     def __iter__(self):
@@ -653,8 +652,7 @@ class AllRules(MutableMapping, Signal):
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
-        self.engine.query.init_table('rulebooks')
-        self._cache = {name: Rule(engine, name) for name in self.engine.query.rules_dump()}
+        self._cache = {name: Rule(engine, name, typ) for name, typ in self.engine.query.rules_dump()}
 
     def __iter__(self):
         yield from self._cache
