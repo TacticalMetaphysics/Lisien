@@ -190,7 +190,7 @@ class FunctionStore(Signal):
                 indent = 0
                 break
             indent = min((indent, lineindent))
-        return '\n'.join(line[indent:] for line in sourcelines)
+        return '\n'.join(line[indent:].strip('\n') for line in sourcelines) + '\n'
 
     def __call__(self, v):
         setattr(self, v.__name__, v)

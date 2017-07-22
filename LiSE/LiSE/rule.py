@@ -23,6 +23,9 @@ from collections import (
     defaultdict
 )
 from functools import partial
+from inspect import getsource, getsourcelines
+from ast import parse
+from astunparse import unparse
 from blinker import Signal
 
 from .util import reify
@@ -38,12 +41,13 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                if getattr(self._funcstore, v.__name__) != v:
+                if unparse(parse(getsource(getattr(self._funcstore, v.__name__)))) \
+                        != unparse(parse(self._funcstore._dedent_sourcelines(getsourcelines(v)[0]))):
                     raise KeyError(
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "
                         "engine.{typ}[{n}]".format(
-                            typ=self._funcstore._tab,
+                            typ=self._funcstore._filename.rstrip('.py'),
                             n=v.__name__
                         )
                     )
@@ -52,7 +56,7 @@ class RuleFuncList(MutableSequence, Signal):
             v = v.__name__
         if not hasattr(self._funcstore, v):
             raise KeyError("No {typ} function named {n}".format(
-                typ=self._funcstore._tab, n=v
+                typ=self._funcstore._filename.rstrip('.py'), n=v
             ))
         return v
 
