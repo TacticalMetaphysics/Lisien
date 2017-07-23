@@ -297,7 +297,7 @@ class CharacterRulesHandledCache(object):
         self.engine = engine
         self._data = StructuredDefaultDict(3, set)
         self.shallow = {}
-        self.unhandled = StructuredDefaultDict(2, dict)
+        self.unhandled = StructuredDefaultDict(3, dict)
 
     def store(self, character, ruletype, rulebook, rule, branch, tick):
         the_set = self.shallow[
@@ -331,14 +331,8 @@ class CharacterRulesHandledCache(object):
         try:
             unhandl = self.unhandled[character][ruletype][branch][tick]
         except KeyError:
-            try:
-                unhandl \
-                    = self.unhandled[character][ruletype][branch][tick] \
-                    = self.engine._active_rules_cache.retrieve(
-                        rulebook, branch, tick
-                    ).copy()
-            except KeyError:
-                return
+            unhandl = self.unhandled[character][ruletype][branch][tick] \
+                = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
         yield from unhandl
 
 
