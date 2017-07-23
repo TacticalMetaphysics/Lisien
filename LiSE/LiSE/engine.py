@@ -29,7 +29,6 @@ from .cache import (
     EntitylessCache,
     AvatarnessCache,
     CharacterRulebooksCache,
-    ActiveRulesCache,
     NodeRulesHandledCache,
     PortalRulesHandledCache,
     CharacterRulesHandledCache,
@@ -400,15 +399,6 @@ class Engine(AbstractEngine, gORM):
             is_avatar
         )
 
-    def _set_rule_activeness(
-            self, rulebook, rule, active, branch=None, tick=None
-    ):
-        branch = branch or self.branch
-        tick = tick if tick is not None else self.tick
-        self._active_rules_cache.store(rulebook, rule, branch, tick, active)
-        # note the use of the world DB, not the code DB
-        self.query.set_rule_activeness(rulebook, rule, branch, tick, active)
-
     def _init_caches(self):
         super()._init_caches()
         self._portal_objs = {}
@@ -754,15 +744,6 @@ class Engine(AbstractEngine, gORM):
                 branch_now=branch_then,
                 tick_now=v
             )
-
-    def _rule_active(self, rulebook, rule):
-        if hasattr(rulebook, 'name'):
-            rulebook = rulebook.name
-        if hasattr(rule, 'name'):
-            rule = rule.name
-        return self._active_rules_cache.retrieve(
-            rulebook, rule, *self.time
-        ) is True
 
     def _poll_char_rules(self):
         unhandled_iter = self._character_rules_handled_cache.\
