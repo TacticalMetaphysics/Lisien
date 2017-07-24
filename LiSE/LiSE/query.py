@@ -814,8 +814,6 @@ class QueryEngine(allegedb.query.QueryEngine):
                 tick
             )
 
-    # TODO character_init, sense_fun stuff
-
     def avatar_set(self, character, graph, node, branch, tick, isav):
         (character, graph, node) = map(
             self.json_dump, (character, graph, node)

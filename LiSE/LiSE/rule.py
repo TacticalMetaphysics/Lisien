@@ -629,13 +629,13 @@ class AllRuleBooks(Mapping, Signal):
         self._cache = {}
 
     def __iter__(self):
-        return iter(self.engine._rulebooks_cache._data.keys())
+        return self.engine._rulebooks_cache.iter_entities(*self.engine.time)
 
     def __len__(self):
-        return len(self.engine._rulebooks_cache._data)
+        return len(list(self))
 
     def __contains__(self, k):
-        return k in self.engine._rulebooks_cache._data
+        return self.engine._rulebooks_cache.contains_entity(k, *self.engine.time)
 
     def __getitem__(self, k):
         if k not in self._cache:
@@ -689,8 +689,12 @@ class AllRules(MutableMapping, Signal):
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such rule")
+        for rulebook in self.engine.rulebooks.values():
+            try:
+                del rulebook[rulebook.index(k)]
+            except IndexError:
+                pass
         del self._cache[k]
-        self.engine._rulebook_del_rule(self.name, self.index(k))
         self.send(self, key=k, rule=None)
 
     def __call__(self, v=None, name=None):

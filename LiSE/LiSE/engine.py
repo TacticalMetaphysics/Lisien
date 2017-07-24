@@ -28,7 +28,11 @@ from .cache import (
     Cache,
     EntitylessCache,
     AvatarnessCache,
-    CharacterRulebooksCache,
+    CharacterRulesHandledCache,
+    AvatarRulesHandledCache,
+    CharacterThingRulesHandledCache,
+    CharacterPlaceRulesHandledCache,
+    CharacterPortalRulesHandledCache,
     NodeRulesHandledCache,
     PortalRulesHandledCache,
     CharacterRulesHandledCache,
@@ -406,7 +410,11 @@ class Engine(AbstractEngine, gORM):
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = EntitylessCache(self)
-        self._characters_rulebooks_cache = CharacterRulebooksCache(self)
+        self._characters_rulebooks_cache = Cache(self)
+        self._avatars_rulebooks_cache = Cache(self)
+        self._characters_things_rulebooks_cache = Cache(self)
+        self._characters_places_rulebooks_cache = Cache(self)
+        self._characters_portals_rulebooks_cache = Cache(self)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)
         self._triggers_cache = EntitylessCache(self)
@@ -415,15 +423,13 @@ class Engine(AbstractEngine, gORM):
         self._node_rules_handled_cache = NodeRulesHandledCache(self)
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)
-        self._avatar_rules_handled_cache = CharacterRulesHandledCache(self)
+        self._avatar_rules_handled_cache = AvatarRulesHandledCache(self)
         self._character_thing_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
+            = CharacterThingRulesHandledCache(self)
         self._character_place_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
-        self._character_node_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
+            = CharacterPlaceRulesHandledCache(self)
         self._character_portal_rules_handled_cache \
-            = CharacterRulesHandledCache(self)
+            = CharacterPortalRulesHandledCache(self)
         self._avatarness_cache = AvatarnessCache(self)
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
@@ -454,6 +460,16 @@ class Engine(AbstractEngine, gORM):
             self._universal_cache.store(*row)
         for row in self.query.rulebooks_dump():
             self._rulebooks_cache.store(*row)
+        for row in self.query.character_rulebook_dump():
+            self._characters_rulebooks_cache.store(*row)
+        for row in self.query.avatar_rulebook_dump():
+            self._avatars_rulebooks_cache.store(*row)
+        for row in self.query.character_thing_rulebook_dump():
+            self._characters_things_rulebooks_cache.store(*row)
+        for row in self.query.character_place_rulebook_dump():
+            self._characters_places_rulebooks_cache.store(*row)
+        for row in self.query.character_portal_rulebook_dump():
+            self._characters_portals_rulebooks_cache.store(*row)
         for row in self.query.node_rulebook_dump():
             self._nodes_rulebooks_cache.store(*row)
         for row in self.query.portal_rulebook_dump():
@@ -745,54 +761,47 @@ class Engine(AbstractEngine, gORM):
                 tick_now=v
             )
 
-    def _poll_char_rules(self):
+    def _poll_char_rules(self, branch, tick):
         unhandled_iter = self._character_rules_handled_cache.\
                          iter_unhandled_rules
         for char in self.character:
-            for (
-                    rulemap,
-                    rulebook
-            ) in self._characters_rulebooks_cache.retrieve(char).items():
-                for rule in unhandled_iter(
-                        char, rulemap, rulebook, *self.time
-                ):
-                    yield (rulemap, char, rulebook, rule)
+            yield from unhandled_iter(char, branch, tick)
 
-    def _poll_node_rules(self):
+    def _poll_avatar_rules(self, branch, tick):
+        unhandled_iter = self._avatar_rules_handled_cache.\
+            iter_unhandled_rules
+        for char in self.character:
+            yield from unhandled_iter(char, branch, tick)
+
+    def _poll_char_thing_rules(self, branch, tick):
+        unhandled_iter = self._character_thing_rules_handled_cache.\
+            iter_unhandled_rules
+        for char in self.character:
+            yield from unhandled_iter(char, branch, tick)
+
+    def _poll_char_place_rules(self, branch, tick):
+        unhandled_iter = self._character_place_rules_handled_cache.\
+            iter_unhandled_rules
+        for char in self.character:
+            yield from unhandled_iter(char, branch, tick)
+
+    def _poll_char_portal_rules(self, branch, tick):
+        unhandled_iter = self._character_portal_rules_handled_cache.\
+            iter_unhandled_rules
+        for char in self.character:
+            yield from unhandled_iter(char, branch, tick)
+
+    def _poll_node_rules(self, branch, tick):
         unhandled_iter = self._node_rules_handled_cache.iter_unhandled_rules
-        for chara in self.character.values():
-            char = chara.name
+        for char, chara in self.character.items():
             for node in chara.node:
-                try:
-                    rulebook = self._nodes_rulebooks_cache.retrieve(char, node)
-                except KeyError:
-                    rulebook = (char, node)
-                for rule in unhandled_iter(
-                    char, node, rulebook, *self.time
-                ):
-                    yield (char, node, rulebook, rule)
+                yield from unhandled_iter(char, node, branch, tick)
 
-    def _poll_portal_rules(self):
-        cache = self._portals_rulebooks_cache
-        for chara in self.character.values():
-            for orig in chara.portal:
-                for dest in chara.portal[orig]:
-                    try:
-                        rulebook = cache.retrieve(chara.name, orig, dest)
-                    except KeyError:
-                        rulebook = (chara.name, orig, dest)
-                    unhanditer = self._portal_rules_handled_cache.\
-                                 iter_unhandled_rules
-                    for rule in unhanditer(
-                            chara.name, orig, dest, rulebook, *self.time
-                    ):
-                        yield (
-                            chara,
-                            orig,
-                            dest,
-                            rulebook,
-                            rule
-                        )
+    def _poll_portal_rules(self, branch, tick):
+        unhandled_iter = self._portal_rules_handled_cache.iter_unhandled_rules
+        for char in self.character:
+            for (orig, dest) in self._edges_cache.iter_keys(char, branch, tick):
+                yield from unhandled_iter(char, orig, dest, branch, tick)
 
     def _poll_rules(self):
         """Iterate over tuples containing rules yet unresolved in the current tick.
@@ -805,9 +814,10 @@ class Engine(AbstractEngine, gORM):
         to. For character-wide rules it is ``None``.
 
         """
+        branch, tick = self.time
         for (
-                rulemap, character, rulebook, rule
-        ) in self._poll_char_rules():
+                character, rule
+        ) in self._poll_char_rules(branch, tick):
             try:
                 yield (
                     rulemap,

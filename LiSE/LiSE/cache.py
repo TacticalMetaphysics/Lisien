@@ -138,202 +138,108 @@ class AvatarnessCache(Cache):
                 yield character
 
 
-class CharacterRulebooksCache(object):
+class RulesHandledCache(object):
+    depth = 1
+
     def __init__(self, engine):
         self.engine = engine
-        self._data = {}
-
-    def store(
-            self, char,
-            character=None,
-            avatar=None,
-            character_thing=None,
-            character_place=None,
-            character_node=None,
-            character_portal=None
-    ):
-        if char in self._data:
-            old = self._data[char]
-            character = character or old['character']
-            avatar = avatar or old['avatar']
-            character_thing = character_thing or old['character_thing']
-            character_place = character_place or old['character_place']
-            character_portal = character_portal or old['character_portal']
-            character_node = character_node or old['character_node']
-        self._data[char] = {
-            'character': character or (char, 'character'),
-            'avatar': avatar or (char, 'avatar'),
-            'character_thing': character_thing or (char, 'character_thing'),
-            'character_place': character_place or (char, 'character_place'),
-            'character_portal': character_portal or (char, 'character_portal'),
-            'character_node': character_node or (char, 'character_node')
-        }
-
-    def retrieve(self, char):
-        if char not in self._data:
-            self.store(char)
-        return self._data[char]
-
-
-class NodeRulesHandledCache(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self._data = StructuredDefaultDict(4, set)
         self.shallow = {}
-        self.unhandled = StructuredDefaultDict(1, dict)
+        self.unhandled = StructuredDefaultDict(self.depth, dict)
 
-    def store(self, character, node, rulebook, rule, branch, tick):
-        the_set = self.shallow[(character, node, rulebook, rule, branch)] \
-                  = self._data[character][node][rulebook][rule][branch]
-        the_set.add(tick)
-        if tick not in self.unhandled[(character, node)][branch]:
-            self.unhandled[(character, node)][branch][tick] = set(
-                self.engine._active_rules_cache.active_sets[
-                    rulebook][branch][tick]
-            )
-        self.unhandled[(character, node)][branch][tick].remove(rule)
+    def store(self, *args):
+        entity = args[:-3]
+        rule, branch, tick = args[-3:]
+        shalo = self.shallow.setdefault(entity + (rule, branch), set())
+        unhandl = self.unhandled
+        for spot in entity:
+            unhandl = unhandl[spot]
+        if tick not in unhandl[branch]:
+            itargs = entity + (branch, tick)
+            unhandl[branch][tick] = list(self._iter_rulebook(*itargs))
+        unhandl.remove(rule)
+        shalo.add(rule)
 
-    def retrieve(self, character, node, rulebook, rule, branch):
-        return self.shallow[(character, node, rulebook, rule, branch)]
+    def retrieve(self, *args):
+        return self.shallow[args]
 
-    def check_handled(self, character, node, rulebook, rule, branch, tick):
+    def check_handled(self, *args):
+        rule = args[-1]
+        return rule in self.shallow.get(args[:-1], [])
+
+    def iter_unhandled_rules(self, *args):
         try:
-            ret = tick in self.shallow[
-                (character, node, rulebook, rule, branch)]
-        except KeyError:
-            ret = False
-        assert ret is rule not in self.unhandled[
-            (character, node)][branch][tick]
-        return ret
-
-    def iter_unhandled_rules(self, character, node, rulebook, branch, tick):
-        try:
-            unhandl = self.unhandled[(character, node)][branch][tick]
+            unhandl = self.unhandled
+            for spot in args:
+                unhandl = unhandl[spot]
         except KeyError:
             try:
-                unhandl = self.unhandled[(character, node)][branch][tick] \
-                          = self.engine._active_rules_cache.active_sets[
-                              rulebook][branch][tick].copy()
+                unhandl = list(self._iter_rulebook(*args))
             except KeyError:
                 return
         yield from unhandl
 
-
-class PortalRulesHandledCache(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self._data = StructuredDefaultDict(5, set)
-        self.shallow = {}
-        self.unhandled = StructuredDefaultDict(1, dict)
-
-    def store(self, character, orig, dest, rulebook, rule, branch, tick):
-        the_set = self.shallow[
-            (character, orig, dest, rulebook, rule, branch)
-        ] = self._data[character][orig][dest][rulebook][rule][branch]
-        the_set.add(tick)
-        if tick not in self.unhandled[(character, orig, dest)][branch]:
-            self.unhandled[(character, orig, dest)][branch][tick] = set(
-                self.engine._active_rules_cache[rulebook][branch][tick]
-            )
-        self.unhandled[(character, orig, dest)][branch][tick].remove(rule)
-
-    def retrieve(self, character, orig, dest, rulebook, rule, branch):
-        return self.shallow[(character, orig, dest, rulebook, rule, branch)]
-
-    def check_handled(
-            self, character, orig, dest, rulebook, rule, branch, tick
-    ):
-        try:
-            ret = tick in self.shallow[
-                (character, orig, dest, rulebook, rule, branch)]
-        except KeyError:
-            ret = False
-        assert ret is rule not in self.unhandled[
-            (character, orig, dest)][branch][tick]
-        return ret
-
-    def iter_unhandled_rules(
-            self, character, orig, dest, rulebook, branch, tick
-    ):
-        try:
-            unhandl = self.unhandled[(character, orig, dest)][branch][tick]
-        except KeyError:
-            try:
-                unhandl = self.unhandled[
-                    (character, orig, dest)][branch][tick] \
-                    = self.engine._active_rules_cache.retrieve(
-                        rulebook, branch, tick
-                    ).copy()
-            except KeyError:
-                return
-        yield from unhandl
+    def _iter_rulebook(self, *args):
+        raise NotImplementedError
 
 
-class ActiveRulesCache(Cache):
-    iter_rules = iter_active_rules = Cache.iter_keys
-    
-    def __init__(self, engine):
-        Cache.__init__(self, engine)
-        self.active_sets = StructuredDefaultDict(1, FuturistWindowDict)
-
-    def store(self, rulebook, rule, branch, tick, active):
-        if not active:
-            active = None
-        Cache.store(self, rulebook, rule, branch, tick, active)
-        auh = self.active_sets[rulebook][branch].setdefault(tick, set())
-        if self.active_sets[rulebook][branch].rev_before(tick) != tick:
-            auh = self.active_sets[rulebook][branch][tick] = auh.copy()
-        if active:
-            auh.add(rule)
-        else:
-            auh.discard(rule)
-
-    def retrieve(self, rulebook, branch, tick):
-        return self.active_sets[rulebook][branch][tick]
+class CharacterRulesHandledCache(RulesHandledCache):
+    def _iter_rulebook(self, character, branch, tick):
+        for rule in self.engine._characters_rulebooks_cache.retrieve(character, branch, tick):
+            yield character, rule
 
 
-class CharacterRulesHandledCache(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self._data = StructuredDefaultDict(3, set)
-        self.shallow = {}
-        self.unhandled = StructuredDefaultDict(3, dict)
+class AvatarRulesHandledCache(RulesHandledCache):
+    depth = 3
 
-    def store(self, character, ruletype, rulebook, rule, branch, tick):
-        the_set = self.shallow[
-            (character, ruletype, rule, branch)
-        ] = self._data[character][ruletype][rule][branch]
-        the_set.add(tick)
-        if tick not in self.unhandled[character][ruletype][branch]:
-            self.unhandled[character][ruletype][branch][tick] = set(
-                self.engine._active_rules_cache.active_sets[
-                    rulebook][branch][tick]
-            )
-        self.unhandled[character][ruletype][branch][tick].remove(rule)
+    def _iter_rulebook(self, character, branch, tick):
+        for graph in self.engine.character[character].avatar:
+            for avatar in self.engine.character[character].avatar[graph]:
+                for rule in self.engine._avatars_rulebooks_cache.retrieve(character, branch, tick):
+                    yield character, graph, avatar, rule
 
-    def retrieve(self, character, ruletype, rulebook, rule, branch):
-        return self.shallow[(character, ruletype, rule, branch)]
 
-    def check_rule_handled(
-            self, character, ruletype, rulebook, rule, branch, tick
-    ):
-        try:
-            ret = tick in self.shallow[(character, ruletype, rule, branch)]
-        except KeyError:
-            ret = False
-        assert ret is rule not in self.unhandled[
-            character][ruletype][branch][tick]
-        return ret
+class CharacterThingRulesHandledCache(RulesHandledCache):
+    depth = 2
 
-    def iter_unhandled_rules(
-            self, character, ruletype, rulebook, branch, tick
-    ):
-        try:
-            unhandl = self.unhandled[character][ruletype][branch][tick]
-        except KeyError:
-            unhandl = self.unhandled[character][ruletype][branch][tick] \
-                = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
-        yield from unhandl
+    def _iter_rulebook(self, character, thing, branch, tick):
+        for thing in self.engine.character[character].thing:
+            for rule in self.engine._characters_things_rulebooks_cache.retrieve(character, branch, tick):
+                yield character, thing, rule
+
+
+class CharacterPlaceRulesHandledCache(RulesHandledCache):
+    depth = 2
+
+    def _iter_rulebook(self, character, branch, tick):
+        for place in self.engine.character[character].place:
+            for rule in self.engine._characters_places_rulebooks_cache.retrieve(character, branch, tick):
+                yield character, place, rule
+
+
+class CharacterPortalRulesHandledCache(RulesHandledCache):
+    depth = 4
+
+    def _iter_rulebook(self, character, branch, tick):
+        for orig in self.engine.character[character].portal:
+            for dest in self.engine.character[character].portal[orig]:
+                for rule in self.engine._characters_portals_rulebooks_cache.retrieve(character, branch, tick):
+                    yield character, orig, dest, rule
+
+
+class NodeRulesHandledCache(RulesHandledCache):
+    depth = 2
+
+    def _iter_rulebook(self, character, node, branch, tick):
+        for rule in self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, tick):
+            yield character, node, rule
+
+
+class PortalRulesHandledCache(RulesHandledCache):
+    depth = 4
+
+    def _iter_rulebook(self, character, orig, dest, branch, tick):
+        for rule in self.engine._portals_rulebooks_cache.retrieve(character, orig, dest, branch, tick):
+            yield character, orig, dest, rule
 
 
 class ThingsCache(NodesCache):
