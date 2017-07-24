@@ -973,7 +973,7 @@ class Engine(AbstractEngine, gORM):
         Any keyword arguments will be set as stats of the new character.
 
         """
-        self._init_graph(name, 'DiGraph')
+        self._init_graph(self.json_dump(name), 'DiGraph')
         self.query.init_character(
             name,
             *self.time,
