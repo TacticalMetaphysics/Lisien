@@ -433,7 +433,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def _charactery_rulebook_dump(self, qry):
         for character, branch, tick, rulebook in self.sql(qry+'_rulebook_dump'):
-            yield self.json_load(character), branch, tick, rulebook
+            yield self.json_load(character), branch, tick, self.json_load(rulebook)
 
     character_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character')
     avatar_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'avatar')
@@ -593,7 +593,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             'character_portal'
         ):
             self.set_rulebook((name, rbtyp), branch, tick)
-            self.sql(rbtyp + '_rulebook_insert', name, branch, tick, self.json_dump((name, rbtyp)))
+            self.sql(rbtyp + '_rulebook_insert', self.json_dump(name), branch, tick, self.json_dump((name, rbtyp)))
         for k, v in stats.items():
             self.graph_val_set(name, k, branch, tick, v)
 

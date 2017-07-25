@@ -410,11 +410,11 @@ class Engine(AbstractEngine, gORM):
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = EntitylessCache(self)
-        self._characters_rulebooks_cache = Cache(self)
-        self._avatars_rulebooks_cache = Cache(self)
-        self._characters_things_rulebooks_cache = Cache(self)
-        self._characters_places_rulebooks_cache = Cache(self)
-        self._characters_portals_rulebooks_cache = Cache(self)
+        self._characters_rulebooks_cache = EntitylessCache(self)
+        self._avatars_rulebooks_cache = EntitylessCache(self)
+        self._characters_things_rulebooks_cache = EntitylessCache(self)
+        self._characters_places_rulebooks_cache = EntitylessCache(self)
+        self._characters_portals_rulebooks_cache = EntitylessCache(self)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)
         self._triggers_cache = EntitylessCache(self)
@@ -975,7 +975,7 @@ class Engine(AbstractEngine, gORM):
         Any keyword arguments will be set as stats of the new character.
 
         """
-        self._init_graph(self.json_dump(name), 'DiGraph')
+        self._init_graph(name, 'DiGraph')
         self.query.init_character(
             name,
             *self.time,
