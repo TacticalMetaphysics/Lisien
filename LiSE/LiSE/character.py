@@ -636,7 +636,7 @@ class RuleFollower(BaseRuleFollower):
 
     def _get_rulebook_name(self):
         return self.engine._characters_rulebooks_cache.retrieve(
-            self.character.name
+            self.character.name, *self.engine.time
         ).setdefault(
             self._book, (self.character.name, self._book)
         )

@@ -804,48 +804,40 @@ class Engine(AbstractEngine, gORM):
                 yield from unhandled_iter(char, orig, dest, branch, tick)
 
     def _poll_rules(self):
-        """Iterate over tuples containing rules yet unresolved in the current tick.
-
-        The tuples are of the form: ``(ruletype, character, entity,
-        rulebook, rule)`` where ``ruletype`` is what kind of entity
-        the rule is about (character', 'thing', 'place', or
-        'portal'), and ``entity`` is the :class:`Place`,
-        :class:`Thing`, or :class:`Portal` that the rule is attached
-        to. For character-wide rules it is ``None``.
-
-        """
         branch, tick = self.time
+        charmap = self.character
+        rulemap = self.rule
         for (
                 character, rule
         ) in self._poll_char_rules(branch, tick):
-            try:
-                yield (
-                    rulemap,
-                    self.character[character],
-                    None,
-                    rulebook,
-                    self.rule[rule]
-                )
-            except KeyError:
-                continue
+            yield charmap[character], rulemap[rule]
         for (
-                character, node, rulebook, rule
-        ) in self._poll_node_rules():
-            try:
-                c = self.character[character]
-                n = c.node[node]
-            except KeyError:
-                continue
-            typ = 'thing' if hasattr(n, 'location') else 'place'
-            yield typ, c, n, rulebook, self.rule[rule]
+            character, graph, avatar, rule
+        ) in self._poll_avatar_rules(branch, tick):
+            character = charmap[character]
+            graph = charmap[graph]
+            yield character, graph, graph.node[avatar], rulemap[rule]
         for (
-                character, a, b, i, rulebook, rule
-        ) in self._poll_portal_rules():
-            try:
-                c = self.character[character]
-                yield 'portal', c, c.portal[a][b], rulebook, self.rule[rule]
-            except KeyError:
-                continue
+            character, thing, rule
+        ) in self._poll_char_thing_rules(branch, tick):
+            character = charmap[character]
+            yield character, character.thing[thing], rulemap[rule]
+        for (
+            character, place, rule
+        ) in self._poll_char_place_rules(branch, tick):
+            character = charmap[character]
+            yield character, character.place[place], rulemap[rule]
+        for (
+                character, node, rule
+        ) in self._poll_node_rules(branch, tick):
+            character = charmap[character]
+            node = character.node[node]
+            yield character, node, rulemap[rule]
+        for (
+                character, orig, dest, rule
+        ) in self._poll_portal_rules(branch, tick):
+            character = charmap[character]
+            yield character, character.portal[orig][dest], rulemap[rule]
 
     def _handled_thing_rule(self, char, thing, rulebook, rule, branch, tick):
         self._node_rules_handled_cache.store(
