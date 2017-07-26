@@ -806,143 +806,87 @@ class Engine(AbstractEngine, gORM):
     def _poll_rules(self):
         branch, tick = self.time
         charmap = self.character
-        rbmap = self.rulebook
         rulemap = self.rule
         for character, rulebook, rule in self._poll_char_rules(branch, tick):
-            yield 'character', charmap[character], rbmap[rulebook], rulemap[rule]
+            res = rulemap[rule](self, charmap[character])
+            self._character_rules_handled_cache.store(
+                character, rulebook, rule, branch, tick
+            )
+            self.query.handled_character_rule(
+                character, rulebook, rule, branch, tick
+            )
+            yield res
         for (
             character, graph, avatar, rulebook, rule
         ) in self._poll_avatar_rules(branch, tick):
-            character = charmap[character]
-            graph = charmap[graph]
-            yield character, graph, graph.node[avatar], rbmap[rulebook], rulemap[rule]
+            res = rulemap[rule](self, charmap[character], charmap[graph].node[avatar])
+            self._avatar_rules_handled_cache.store(
+                character, rulebook, rule, graph, avatar, branch, tick
+            )
+            self.query.handled_avatar_rule(
+                character, rulebook, rule, graph, avatar, branch, tick
+            )
+            yield res
         for (
             character, thing, rulebook, rule
         ) in self._poll_char_thing_rules(branch, tick):
-            character = charmap[character]
-            yield character, character.thing[thing], rbmap[rulebook], rulemap[rule]
+            c = charmap[character]
+            res = rulemap[rule](self, c, c.thing[thing])
+            self._character_thing_rules_handled_cache.store(
+                character, rulebook, rule, thing, branch, tick
+            )
+            self.query.handled_character_thing_rule(
+                character, rulebook, rule, thing, branch, tick
+            )
+            yield res
         for (
             character, place, rulebook, rule
         ) in self._poll_char_place_rules(branch, tick):
-            character = charmap[character]
-            yield character, character.place[place], rbmap[rulebook], rulemap[rule]
+            c = charmap[character]
+            res = rulemap[rule](self, c, c.place[place])
+            self._character_place_rules_handled_cache.store(
+                character, rulebook, rule, place, branch, tick
+            )
+            self.query.handled_character_place_rule(
+                character, rulebook, rule, place, branch, tick
+            )
+            yield res
+        for (
+            character, orig, dest, rulebook, rule
+        ) in self._poll_char_portal_rules(branch, tick):
+            c = charmap[character]
+            res = rulemap[rule](self, c, c.portal[orig][dest])
+            self._character_portal_rules_handled_cache.store(
+                character, rulebook, rule, orig, dest, branch, tick
+            )
+            self.query.handled_character_portal_rule(
+                character, rulebook, rule, orig, dest, branch, tick
+            )
+            yield res
         for (
                 character, node, rulebook, rule
         ) in self._poll_node_rules(branch, tick):
-            character = charmap[character]
-            node = character.node[node]
-            yield character, node, rbmap[rulebook], rulemap[rule]
+            c = charmap[character]
+            res = rulemap[rule](self, c, c.node[node])
+            self._node_rules_handled_cache.store(
+                character, node, rulebook, rule, branch, tick
+            )
+            self.query.handled_node_rule(
+                character, node, rulebook, rule, branch, tick
+            )
+            yield res
         for (
                 character, orig, dest, rulebook, rule
         ) in self._poll_portal_rules(branch, tick):
-            character = charmap[character]
-            yield character, character.portal[orig][dest], rbmap[rulebook], rulemap[rule]
-
-    def _handled_thing_rule(self, char, thing, rulebook, rule, branch, tick):
-        self._node_rules_handled_cache.store(
-            char, thing, rulebook, rule, branch, tick
-        )
-        self.query.handled_thing_rule(
-            char, thing, rulebook, rule, branch, tick
-        )
-
-    def _handled_place_rule(self, char, place, rulebook, rule, branch, tick):
-        self._node_rules_handled_cache.store(
-            char, place, rulebook, rule, branch, tick
-        )
-        self.query.handled_place_rule(
-            char, place, rulebook, rule, branch, tick
-        )
-
-    def _handled_portal_rule(
-            self, char, orig, dest, rulebook, rule, branch, tick
-    ):
-        self._portal_rules_handled_cache.store(
-            char, orig, dest, rulebook, rule, branch, tick
-        )
-        self.query.handled_portal_rule(
-            char, orig, dest, rulebook, rule, branch, tick
-        )
-
-    def _handled_character_rule(
-            self, typ, char, rulebook, rule, branch, tick
-    ):
-        self._character_rules_handled_cache.store(
-            char, typ, rulebook, rule, branch, tick
-        )
-        self.query.handled_character_rule(
-            typ, char, rulebook, rule, branch, tick
-        )
-
-    def _follow_rules(self):
-        """For each rule in play at the present tick, call it and yield a
-        tuple describing the results.
-
-        Tuples are of the form: ``(returned, rulename, ruletype,
-        rulebook)`` where ``returned`` is whatever the rule itself
-        returned upon being called, and ``ruletype`` is what sort of
-        entity the rule applies to.
-
-        """
-        (branch, tick) = self.time
-        rules = list(self._poll_rules())
-        for (typ, character, entity, rulebook, rule) in rules:
-            def follow(*args):
-                return (rule(self, *args), rule.name, typ, rulebook)
-
-            if typ in ('thing', 'place', 'portal'):
-                yield follow(character, entity)
-                if typ == 'thing':
-                    self._handled_thing_rule(
-                        character.name,
-                        entity.name,
-                        rulebook,
-                        rule.name,
-                        branch,
-                        tick
-                    )
-                elif typ == 'place':
-                    self._handled_place_rule(
-                        character.name,
-                        entity.name,
-                        rulebook,
-                        rule.name,
-                        branch,
-                        tick
-                    )
-                else:
-                    self._handled_portal_rule(
-                        character.name,
-                        entity.origin.name,
-                        entity.destination.name,
-                        rulebook,
-                        rule.name,
-                        branch,
-                        tick
-                    )
-            else:
-                if typ == 'character':
-                    yield follow(character)
-                elif typ == 'avatar':
-                    for avatar in character.avatars():
-                        yield follow(character, avatar)
-                elif typ == 'character_thing':
-                    for thing in character.thing.values():
-                        yield follow(character, thing)
-                elif typ == 'character_place':
-                    for place in character.place.values():
-                        yield follow(character, place)
-                elif typ == 'character_node':
-                    for node in character.node.values():
-                        yield follow(character, node)
-                elif typ == 'character_portal':
-                    for portal in character.portal.values():
-                        yield follow(character, portal)
-                else:
-                    raise ValueError('Unknown type of rule')
-                self._handled_character_rule(
-                    typ, character.name, rulebook, rule.name, branch, tick
-                )
+            c = charmap[character]
+            res = rulemap[rule](self, c, c.portal[orig][dest])
+            self._portal_rules_handled_cache.store(
+                character, orig, dest, rulebook, rule, branch, tick
+            )
+            self.query.handled_portal_rule(
+                character, orig, dest, rulebook, rule, branch, tick
+            )
+            yield res
 
     def advance(self):
         """Follow the next rule if available, or advance to the next tick."""
