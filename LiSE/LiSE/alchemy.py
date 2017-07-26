@@ -412,6 +412,24 @@ def indices_for_table_dict(table):
                 table['portal_rules_handled'].c.dest,
                 table['portal_rules_handled'].c.rulebook,
                 table['portal_rules_handled'].c.rule
+            ),
+            Index(
+                'triggers_idx',
+                table['rule_triggers'].c.rule,
+                table['rule_triggers'].c.branch,
+                table['rule_triggers'].c.tick
+            ),
+            Index(
+                'prereqs_idx',
+                table['rule_prereqs'].c.rule,
+                table['rule_prereqs'].c.branch,
+                table['rule_prereqs'].c.tick
+            ),
+            Index(
+                'actions_idx',
+                table['rule_actions'].c.rule,
+                table['rule_actions'].c.branch,
+                table['rule_actions'].c.tick
             )
     ):
         r[idx.table.name] = idx
