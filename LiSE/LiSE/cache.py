@@ -184,7 +184,8 @@ class RulesHandledCache(object):
 
 class CharacterRulesHandledCache(RulesHandledCache):
     def _iter_rulebook(self, character, branch, tick):
-        for rule in self.engine._characters_rulebooks_cache.retrieve(character, branch, tick):
+        rulebook = self.engine._characters_rulebooks_cache.retrieve(character, branch, tick)
+        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, tick):
             yield character, rule
 
 
@@ -192,9 +193,11 @@ class AvatarRulesHandledCache(RulesHandledCache):
     depth = 3
 
     def _iter_rulebook(self, character, branch, tick):
+        rulebook = self.engine._avatars_rulebooks_cache.retrieve(character, branch, tick)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
         for graph in self.engine.character[character].avatar:
             for avatar in self.engine.character[character].avatar[graph]:
-                for rule in self.engine._avatars_rulebooks_cache.retrieve(character, branch, tick):
+                for rule in rules:
                     yield character, graph, avatar, rule
 
 
@@ -202,8 +205,10 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
     depth = 2
 
     def _iter_rulebook(self, character, thing, branch, tick):
+        rulebook = self.engine._characters_things_rulebooks_cache.retrieve(character, branch, tick)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
         for thing in self.engine.character[character].thing:
-            for rule in self.engine._characters_things_rulebooks_cache.retrieve(character, branch, tick):
+            for rule in rules:
                 yield character, thing, rule
 
 
@@ -211,8 +216,10 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
     depth = 2
 
     def _iter_rulebook(self, character, branch, tick):
+        rulebook = self.engine._characters_places_rulebooks_cache.retrieve(character, branch, tick)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
         for place in self.engine.character[character].place:
-            for rule in self.engine._characters_places_rulebooks_cache.retrieve(character, branch, tick):
+            for rule in rules:
                 yield character, place, rule
 
 
@@ -220,9 +227,11 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
     depth = 4
 
     def _iter_rulebook(self, character, branch, tick):
+        rulebook = self.engine._characters_portals_rulebooks_cache.retrieve(character, branch, tick)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
         for orig in self.engine.character[character].portal:
             for dest in self.engine.character[character].portal[orig]:
-                for rule in self.engine._characters_portals_rulebooks_cache.retrieve(character, branch, tick):
+                for rule in rules:
                     yield character, orig, dest, rule
 
 
@@ -230,7 +239,8 @@ class NodeRulesHandledCache(RulesHandledCache):
     depth = 2
 
     def _iter_rulebook(self, character, node, branch, tick):
-        for rule in self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, tick):
+        rulebook = self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, tick)
+        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, tick):
             yield character, node, rule
 
 
@@ -238,7 +248,8 @@ class PortalRulesHandledCache(RulesHandledCache):
     depth = 4
 
     def _iter_rulebook(self, character, orig, dest, branch, tick):
-        for rule in self.engine._portals_rulebooks_cache.retrieve(character, orig, dest, branch, tick):
+        rulebook = self.engine._portals_rulebooks_cache.retrieve(character, orig, dest, branch, tick)
+        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, tick):
             yield character, orig, dest, rule
 
 
