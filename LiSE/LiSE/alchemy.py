@@ -412,24 +412,6 @@ def indices_for_table_dict(table):
                 table['portal_rules_handled'].c.dest,
                 table['portal_rules_handled'].c.rulebook,
                 table['portal_rules_handled'].c.rule
-            ),
-            Index(
-                'triggers_idx',
-                table['rule_triggers'].c.rule,
-                table['rule_triggers'].c.branch,
-                table['rule_triggers'].c.tick
-            ),
-            Index(
-                'prereqs_idx',
-                table['rule_prereqs'].c.rule,
-                table['rule_prereqs'].c.branch,
-                table['rule_prereqs'].c.tick
-            ),
-            Index(
-                'actions_idx',
-                table['rule_actions'].c.rule,
-                table['rule_actions'].c.branch,
-                table['rule_actions'].c.tick
             )
     ):
         r[idx.table.name] = idx
@@ -462,7 +444,7 @@ def queries(table):
     r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
-        r[t.name + '_dump'] = select(list(t.c.values()))
+        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 
