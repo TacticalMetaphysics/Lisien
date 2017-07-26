@@ -236,7 +236,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
-    depth = 2
+    depth = 3
 
     def _iter_rulebook(self, character, node, branch, tick):
         rulebook = self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, tick)
