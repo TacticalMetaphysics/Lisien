@@ -806,38 +806,37 @@ class Engine(AbstractEngine, gORM):
     def _poll_rules(self):
         branch, tick = self.time
         charmap = self.character
+        rbmap = self.rulebook
         rulemap = self.rule
+        for character, rulebook, rule in self._poll_char_rules(branch, tick):
+            yield 'character', charmap[character], rbmap[rulebook], rulemap[rule]
         for (
-                character, rule
-        ) in self._poll_char_rules(branch, tick):
-            yield charmap[character], rulemap[rule]
-        for (
-            character, graph, avatar, rule
+            character, graph, avatar, rulebook, rule
         ) in self._poll_avatar_rules(branch, tick):
             character = charmap[character]
             graph = charmap[graph]
-            yield character, graph, graph.node[avatar], rulemap[rule]
+            yield character, graph, graph.node[avatar], rbmap[rulebook], rulemap[rule]
         for (
-            character, thing, rule
+            character, thing, rulebook, rule
         ) in self._poll_char_thing_rules(branch, tick):
             character = charmap[character]
-            yield character, character.thing[thing], rulemap[rule]
+            yield character, character.thing[thing], rbmap[rulebook], rulemap[rule]
         for (
-            character, place, rule
+            character, place, rulebook, rule
         ) in self._poll_char_place_rules(branch, tick):
             character = charmap[character]
-            yield character, character.place[place], rulemap[rule]
+            yield character, character.place[place], rbmap[rulebook], rulemap[rule]
         for (
-                character, node, rule
+                character, node, rulebook, rule
         ) in self._poll_node_rules(branch, tick):
             character = charmap[character]
             node = character.node[node]
-            yield character, node, rulemap[rule]
+            yield character, node, rbmap[rulebook], rulemap[rule]
         for (
-                character, orig, dest, rule
+                character, orig, dest, rulebook, rule
         ) in self._poll_portal_rules(branch, tick):
             character = charmap[character]
-            yield character, character.portal[orig][dest], rulemap[rule]
+            yield character, character.portal[orig][dest], rbmap[rulebook], rulemap[rule]
 
     def _handled_thing_rule(self, char, thing, rulebook, rule, branch, tick):
         self._node_rules_handled_cache.store(
