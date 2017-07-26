@@ -496,6 +496,7 @@ class Engine(AbstractEngine, gORM):
             self._character_portal_rules_handled_cache.store(*row)
         for row in self.query.avatars_dump():
             self._avatarness_cache.store(*row)
+        self.rule._init_load()
 
     def _load_graphs(self):
         for charn in self.query.characters():
