@@ -540,20 +540,17 @@ class QueryEngine(allegedb.query.QueryEngine):
         for rule, typ in self.sql('rules_dump'):
             yield self.json_load(rule), typ
 
-    def rule_triggers(self, rule):
+    def rule_triggers(self, rule, branch, tick):
         rule = self.json_dump(rule)
-        for row in self.sql('rule_triggers', rule):
-            yield row[0]
+        return self.json_load(self.sql('rule_triggers', rule, branch, tick))
 
-    def rule_prereqs(self, rule):
+    def rule_prereqs(self, rule, branch, tick):
         rule = self.json_dump(rule)
-        for row in self.sql('rule_prereqs', rule):
-            yield row[0]
+        return self.json_load(self.sql('rule_prereqs', rule, branch, tick))
 
-    def rule_actions(self, rule):
+    def rule_actions(self, rule, branch, tick):
         rule = self.json_dump(rule)
-        for row in self.sql('rule_actions', rule):
-            yield row[0]
+        return self.json_load(self.sql('rule_actions', rule, branch, tick))
 
     def _set_rule_something(self, what, rule, branch, tick, flist):
         rule, flist = map(self.json_dump, (rule, flist))
