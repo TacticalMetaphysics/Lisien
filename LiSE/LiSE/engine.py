@@ -803,7 +803,7 @@ class Engine(AbstractEngine, gORM):
             for (orig, dest) in self._edges_cache.iter_keys(char, branch, tick):
                 yield from unhandled_iter(char, orig, dest, branch, tick)
 
-    def _poll_rules(self):
+    def _follow_rules(self):
         branch, tick = self.time
         charmap = self.character
         rulemap = self.rule
