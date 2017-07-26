@@ -538,7 +538,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def rules_dump(self):
         for rule, typ in self.sql('rules_dump'):
-            yield self.json_load(rule), typ
+            yield rule, typ
 
     def rule_triggers(self, rule, branch, tick):
         rule = self.json_dump(rule)
@@ -553,7 +553,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         return self.json_load(self.sql('rule_actions', rule, branch, tick))
 
     def _set_rule_something(self, what, rule, branch, tick, flist):
-        rule, flist = map(self.json_dump, (rule, flist))
+        flist = self.json_dump(flist)
         try:
             return self.sql('rule_{}_insert'.format(what), rule, branch, tick, flist)
         except IntegrityError:
@@ -570,9 +570,9 @@ class QueryEngine(allegedb.query.QueryEngine):
         prereqs = prereqs or []
         actions = actions or []
         try:
-            self.sql('rules_insert', self.json_dump(rule), typ)
+            self.sql('rules_insert', rule, typ)
         except IntegrityError:
-            self.sql('rules_update', self.json_dump(rule), typ)
+            self.sql('rules_update', rule, typ)
         self.set_rule_triggers(rule, branch, tick, triggers)
         self.set_rule_prereqs(rule, branch, tick, prereqs)
         self.set_rule_actions(rule, branch, tick, actions)
