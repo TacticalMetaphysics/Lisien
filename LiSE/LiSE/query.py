@@ -688,17 +688,17 @@ class QueryEngine(allegedb.query.QueryEngine):
                 )
             )
 
-    def handled_thing_rule(
-            self, character, thing, rulebook, rule, branch, tick
+    def handled_node_rule(
+            self, character, node, rulebook, rule, branch, tick
     ):
-        (character, thing, rulebook, rule) = map(
-            self.json_dump, (character, thing, rulebook, rule)
+        (character, node, rulebook) = map(
+            self.json_dump, (character, node, rulebook)
         )
         try:
             return self.sql(
-                'handled_thing_rule',
+                'node_rules_handled_insert',
                 character,
-                thing,
+                node,
                 rulebook,
                 rule,
                 branch,
@@ -707,41 +707,13 @@ class QueryEngine(allegedb.query.QueryEngine):
         except IntegrityError:
             raise RedundantRuleError(
                 "Already handled rule {r} in rulebook {book} "
-                "for thing {th} "
+                "for node {n} "
                 "at tick {t} of branch {b}".format(
                     r=rule,
                     book=rulebook,
-                    th=thing,
+                    n=node,
                     b=branch,
                     t=tick
-                )
-            )
-
-    def handled_place_rule(
-            self, character, place, rulebook, rule, branch, tick
-    ):
-        (character, place, rulebook, rule) = map(
-            self.json_dump, (character, place, rulebook, rule)
-        )
-        try:
-            return self.sql(
-                'handled_place_rule',
-                character,
-                place,
-                rulebook,
-                rule,
-                branch,
-                tick
-            )
-        except IntegrityError:
-            raise RedundantRuleError(
-                "Already handled rule {rule} in rulebook {book} "
-                "for place {place} at tick {tick} of branch {branch}".format(
-                    place=place,
-                    rulebook=rulebook,
-                    rule=rule,
-                    branch=branch,
-                    tick=tick
                 )
             )
 
@@ -753,7 +725,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
         try:
             return self.sql(
-                'handled_portal_rule',
+                'portal_rules_handled_insert',
                 character,
                 orig,
                 dest,
