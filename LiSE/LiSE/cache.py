@@ -147,16 +147,16 @@ class RulesHandledCache(object):
         self.unhandled = StructuredDefaultDict(self.depth, dict)
 
     def store(self, *args):
-        entity = args[:-3]
-        rule, branch, tick = args[-3:]
-        shalo = self.shallow.setdefault(entity + (rule, branch), set())
+        entity = args[:-4]
+        rulebook, rule, branch, tick = args[-4:]
+        shalo = self.shallow.setdefault(entity + (rulebook, rule, branch), set())
         unhandl = self.unhandled
         for spot in entity:
             unhandl = unhandl[spot]
-        if tick not in unhandl[branch]:
+        if tick not in unhandl.setdefault(branch, {}):
             itargs = entity + (branch, tick)
             unhandl[branch][tick] = list(self._iter_rulebook(*itargs))
-        unhandl.remove(rule)
+        unhandl[branch][tick].remove(entity + (rulebook, rule))
         shalo.add(rule)
 
     def retrieve(self, *args):
@@ -170,13 +170,13 @@ class RulesHandledCache(object):
         try:
             unhandl = self.unhandled
             for spot in args:
-                unhandl = unhandl[spot]
+                unhandl = ret = unhandl[spot]
         except KeyError:
             try:
-                unhandl = list(self._iter_rulebook(*args))
+                unhandl[spot] = ret = list(self._iter_rulebook(*args))
             except KeyError:
                 return
-        yield from unhandl
+        yield from ret
 
     def _iter_rulebook(self, *args):
         raise NotImplementedError
@@ -236,7 +236,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
-    depth = 3
+    depth = 2
 
     def _iter_rulebook(self, character, node, branch, tick):
         rulebook = self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, tick)
@@ -245,7 +245,7 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 
 class PortalRulesHandledCache(RulesHandledCache):
-    depth = 4
+    depth = 3
 
     def _iter_rulebook(self, character, orig, dest, branch, tick):
         rulebook = self.engine._portals_rulebooks_cache.retrieve(character, orig, dest, branch, tick)
