@@ -205,13 +205,14 @@ class Rule(object):
         self.name = self.__name__ = name
         self.type = typ
         branch, tick = engine.time
-        triggers = triggers or []
-        prereqs = prereqs or []
-        actions = actions or []
-        self.engine.query.set_rule(name, typ, triggers, prereqs, actions, branch, tick)
-        self.engine._triggers_cache.store(name, branch, tick, triggers)
-        self.engine._prereqs_cache.store(name, branch, tick, prereqs)
-        self.engine._actions_cache.store(name, branch, tick, actions)
+        if not self.engine._triggers_cache.contains_key(name, branch, tick):
+            triggers = triggers or []
+            prereqs = prereqs or []
+            actions = actions or []
+            self.engine.query.set_rule(name, typ, triggers, prereqs, actions, branch, tick)
+            self.engine._triggers_cache.store(name, branch, tick, triggers)
+            self.engine._prereqs_cache.store(name, branch, tick, prereqs)
+            self.engine._actions_cache.store(name, branch, tick, actions)
 
     def __eq__(self, other):
         return (
