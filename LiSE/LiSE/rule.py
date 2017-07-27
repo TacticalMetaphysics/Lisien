@@ -445,11 +445,11 @@ class RuleMapping(MutableMapping, Signal):
     def __init__(self, engine, rulebook):
         super().__init__()
         self.engine = engine
+        self._rule_cache = self.engine.rule._cache
         if isinstance(rulebook, RuleBook):
             self.rulebook = rulebook
         else:
             self.rulebook = self.engine.rulebook[rulebook]
-        self._rule_cache = {}
 
     def __repr__(self):
         return 'RuleMapping({})'.format([k for k in self])
@@ -466,9 +466,6 @@ class RuleMapping(MutableMapping, Signal):
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("Rule '{}' is not in effect".format(k))
-        if k not in self._rule_cache:
-            self._rule_cache[k] = Rule(self.engine, k)
-            self._rule_cache[k].active = True
         return self._rule_cache[k]
 
     def __getattr__(self, k):
