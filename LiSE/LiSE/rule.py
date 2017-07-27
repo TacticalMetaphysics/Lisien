@@ -440,10 +440,6 @@ class RuleMapping(MutableMapping, Signal):
     rules. The name of a rule may be used in place of the actual rule,
     so long as the rule already exists.
 
-    You can also set a rule active or inactive by setting it to
-    ``True`` or ``False``, respectively. Inactive rules are still in
-    the rulebook, but won't be followed.
-
     """
 
     def __init__(self, engine, rulebook):
@@ -455,26 +451,14 @@ class RuleMapping(MutableMapping, Signal):
             self.rulebook = self.engine.rulebook[rulebook]
         self._rule_cache = {}
 
-    def _activate_rule(self, rule, active=True):
-        if rule in self.rulebook:
-            self.rulebook._activate_rule(rule, active)
-        else:
-            self.rulebook.append(rule)
-        self.send(self, rule=rule, active=active)
-
     def __repr__(self):
         return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
-        return self.engine._active_rules_cache.iter_entities(
-            self.name, *self.engine.time
-        )
+        return iter(self.rulebook)
 
     def __len__(self):
-        n = 0
-        for rule in self:
-            n += 1
-        return n
+        return len(self.rulebook)
 
     def __contains__(self, k):
         return k in self.rulebook
