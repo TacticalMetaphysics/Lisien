@@ -25,6 +25,10 @@ class EntitylessCache(Cache):
         return super().contains_entity_or_key(None, ke, branch, tick)
     contains_entity = contains_key = contains_entity_or_key
 
+    def _store_anew(self, *args, also_rev=None):
+        args = args[1:]
+        return super()._store_anew(*args, also_rev=also_rev)
+
 
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""

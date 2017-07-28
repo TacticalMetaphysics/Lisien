@@ -531,21 +531,36 @@ class Cache(object):
             pass
         entity = args[:-3]
         key, branch, rev = args[-3:]
-        if rev not in self.shallow[entity+(key, branch)]:
-            for (b, r) in self.db._active_branches(branch, rev):
-                if (
-                        b in self.branches[entity+(key,)]
-                        and r in self.branches[entity+(key,)][b]
-                ):
-                    v = self.branches[entity+(key,)][b][r]
-                    self.store(*entity+(key, branch, r, v))
-                    if rev > r:
-                        self.store(*entity+(key, branch, rev, v))
-                    break
-            else:
-                raise KeyError
-        ret = self.shallower[args] = self.shallow[entity+(key,branch)][rev]
-        return ret
+        if rev in self.shallow[entity+(key, branch)]:
+            ret = self.shallower[args] = self.shallow[entity + (key, branch)][rev]
+            return ret
+        for (b, r) in self.db._active_branches(branch, rev):
+            if (
+                    b in self.branches[entity+(key,)]
+                    and r in self.branches[entity+(key,)][b]
+            ):
+                return self._store_anew(
+                    *entity+(key, b, r),
+                    also_rev=rev if rev > r else None
+                )
+        else:
+            raise KeyError
+
+    def _store_anew(self, *args, also_rev=None):
+        branch, rev = args[-2:]
+        entity = args[:-2]
+        v = self.retrieve(*args)
+        store_args = args + (v,)
+        try:
+            self.store(*store_args)
+        except HistoryError:
+            pass
+        if also_rev:
+            try:
+                self.store(entity, branch, also_rev, v)
+            except HistoryError:
+                pass
+        return v
 
     def iter_entities_or_keys(self, *args):
         """Iterate over the keys an entity has, if you specify an entity.
