@@ -556,8 +556,9 @@ class Cache(object):
         except HistoryError:
             pass
         if also_rev:
+            store_args = entity + (branch, also_rev, v)
             try:
-                self.store(entity, branch, also_rev, v)
+                self.store(*store_args)
             except HistoryError:
                 pass
         return v
