@@ -15,6 +15,7 @@ import networkx as nx
 from .node import Node
 from .util import path_len
 from .exc import TravelException
+from allegedb.cache import HistoryError
 
 
 def roerror(*args, **kwargs):
@@ -137,6 +138,8 @@ class Thing(Node):
         """Set ``key``=``value`` for the present game-time."""
         try:
             self._setitem_dispatch[key](self, value)
+        except HistoryError as ex:
+            raise ex
         except KeyError:
             super().__setitem__(key, value)
 
