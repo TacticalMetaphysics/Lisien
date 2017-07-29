@@ -1,7 +1,6 @@
 from collections import defaultdict
 from allegedb.cache import (
     Cache,
-    NodesCache,
     PickyDefaultDict,
     StructuredDefaultDict,
     FuturistWindowDict,
@@ -261,13 +260,10 @@ class PortalRulesHandledCache(RulesHandledCache):
             yield character, orig, dest, rulebook, rule
 
 
-class ThingsCache(NodesCache):
+class ThingsCache(Cache):
     def __init__(self, db):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
-
-    def store(self, character, thing, branch, tick, loc, nextloc=None):
-        super().store(character, thing, branch, tick, (loc, nextloc))
 
     def tick_before(self, character, thing, branch, tick):
         self.retrieve(character, thing, branch, tick)

@@ -1263,14 +1263,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             if 'location' not in val:
                 raise ValueError('Thing needs location')
             self.engine._exist_node(self.character.name, thing)
-            self.engine._things_cache.store(
-                self.character.name,
-                thing,
-                self.engine.branch,
-                self.engine.tick,
-                val['location'],
-                val.get('next_location', None)
-            )
             self.engine._set_thing_loc_and_next(
                 self.character.name,
                 thing,

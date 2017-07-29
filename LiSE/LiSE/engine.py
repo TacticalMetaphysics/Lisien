@@ -454,7 +454,8 @@ class Engine(AbstractEngine, gORM):
     def _init_load(self):
         # I have to load thingness first, because it affects my _make_node method
         for row in self.query.things_dump():
-            self._things_cache.store(*row)
+            character, thing, branch, tick, loc, nxtloc = row
+            self._things_cache.store(character, thing, branch, tick, (loc, nxtloc))
         super()._init_load()
         for row in self.query.universals_dump():
             self._universal_cache.store(*row)
@@ -953,7 +954,7 @@ class Engine(AbstractEngine, gORM):
             loc,
             nextloc
         )
-        self._things_cache.store(character, node, branch, tick, loc, nextloc)
+        self._things_cache.store(character, node, branch, tick, (loc, nextloc))
 
     def _node_exists(self, character, node):
         return self._nodes_cache.contains_entity(character, node, *self.time)
