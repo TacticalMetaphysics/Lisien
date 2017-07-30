@@ -713,33 +713,7 @@ class Engine(AbstractEngine, gORM):
         (b, t) = self.time
         if v == b:
             return
-        if v != 'trunk':
-            if v in self._parentbranch_rev:
-                partick = self._parentbranch_rev[v][1]
-                if self.tick < partick:
-                    raise ValueError(
-                        "Tried to jump to branch {br}, "
-                        "which starts at tick {rv}. "
-                        "Go to tick {rv} or later to use this branch.".format(
-                            br=v,
-                            rv=partick
-                        )
-                    )
-            else:
-                parent = b
-                child = v
-                self._parentbranch_rev[child] = parent, t
-                self._childbranch[parent].add(child)
-                self.query.new_branch(child, parent, t)
-        self._obranch = v
-        if not hasattr(self, 'locktime'):
-            self.time.send(
-                self,
-                branch_then=b,
-                tick_then=t,
-                branch_now=v,
-                tick_now=t
-            )
+        self.time = (v, t)
 
     @property
     def tick(self):
@@ -750,18 +724,9 @@ class Engine(AbstractEngine, gORM):
         """Update allegedb's ``rev``, and call listeners"""
         if not isinstance(v, int):
             raise TypeError("tick must be integer")
-        (branch_then, tick_then) = self.time
         if v == self.tick:
             return
-        self.rev = v
-        if not hasattr(self, 'locktime'):
-            self.time.send(
-                self,
-                branch_then=branch_then,
-                tick_then=tick_then,
-                branch_now=branch_then,
-                tick_now=v
-            )
+        self.time = (self.branch, v)
 
     def _poll_char_rules(self, branch, tick):
         unhandled_iter = self._character_rules_handled_cache.\
@@ -946,6 +911,7 @@ class Engine(AbstractEngine, gORM):
     ):
         branch = branch or self.branch
         tick = tick or self.tick
+        self._things_cache.store(character, node, branch, tick, (loc, nextloc))
         self.query.thing_loc_and_next_set(
             character,
             node,
@@ -954,7 +920,6 @@ class Engine(AbstractEngine, gORM):
             loc,
             nextloc
         )
-        self._things_cache.store(character, node, branch, tick, (loc, nextloc))
 
     def _node_exists(self, character, node):
         return self._nodes_cache.contains_entity(character, node, *self.time)
