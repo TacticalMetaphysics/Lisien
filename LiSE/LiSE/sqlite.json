@@ -184,7 +184,7 @@
     "senses_dump": "SELECT senses.character, senses.sense, senses.branch, senses.tick, senses.function \nFROM senses ORDER BY senses.character, senses.sense, senses.branch, senses.tick",
     "senses_insert": "INSERT INTO senses (character, sense, branch, tick, function) VALUES (?, ?, ?, ?, ?)",
     "things_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM things",
-    "things_dump": "SELECT things.character, things.thing, things.branch, things.tick, things.location, things.next_location \nFROM things ORDER BY things.character, things.thing, things.branch, things.tick",
+    "things_dump": "SELECT things.character, things.thing, things.branch, things.tick, things.location, things.next_location \nFROM things ORDER BY things.character, things.branch, things.tick, things.thing",
     "things_insert": "INSERT INTO things (character, thing, branch, tick, location, next_location) VALUES (?, ?, ?, ?, ?, ?)",
     "things_update": "UPDATE things SET location=?, next_location=? WHERE things.character = ? AND things.thing = ? AND things.branch = ? AND things.tick = ?",
     "universals_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM universals",

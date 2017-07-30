@@ -448,6 +448,15 @@ def queries(table):
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 
+    # Special case dump query, ordered in a way that gives a coherent
+    # view of the world
+    things = table['things']
+    r['things_dump'] = select(
+        [things.c.character, things.c.thing, things.c.branch, things.c.tick, things.c.location, things.c.next_location]
+    ).order_by(
+        things.c.character, things.c.branch, things.c.tick, things.c.thing
+    )
+
     univ = table['universals']
     r['universals_update'] = update_where(
         ['value'],
