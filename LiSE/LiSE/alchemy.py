@@ -449,7 +449,7 @@ def queries(table):
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 
     univ = table['universals']
-    r['universal_update'] = update_where(
+    r['universals_update'] = update_where(
         ['value'],
         [univ.c.key, univ.c.branch, univ.c.tick]
     )

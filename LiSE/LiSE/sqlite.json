@@ -187,8 +187,8 @@
     "things_dump": "SELECT things.character, things.thing, things.branch, things.tick, things.location, things.next_location \nFROM things ORDER BY things.character, things.thing, things.branch, things.tick",
     "things_insert": "INSERT INTO things (character, thing, branch, tick, location, next_location) VALUES (?, ?, ?, ?, ?, ?)",
     "things_update": "UPDATE things SET location=?, next_location=? WHERE things.character = ? AND things.thing = ? AND things.branch = ? AND things.tick = ?",
-    "universal_update": "UPDATE universals SET value=? WHERE universals.\"key\" = ? AND universals.branch = ? AND universals.tick = ?",
     "universals_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM universals",
     "universals_dump": "SELECT universals.\"key\", universals.branch, universals.tick, universals.value \nFROM universals ORDER BY universals.\"key\", universals.branch, universals.tick",
-    "universals_insert": "INSERT INTO universals (\"key\", branch, tick, value) VALUES (?, ?, ?, ?)"
+    "universals_insert": "INSERT INTO universals (\"key\", branch, tick, value) VALUES (?, ?, ?, ?)",
+    "universals_update": "UPDATE universals SET value=? WHERE universals.\"key\" = ? AND universals.branch = ? AND universals.tick = ?"
 }
