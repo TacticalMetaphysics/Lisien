@@ -116,7 +116,8 @@ class Pawn(PawnSpot):
             self.relocate()
 
     def push_location(self, *args):
-        self.remote['location'] = self.loc_name
+        if self.remote['location'] != self.loc_name:
+            self.remote['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)
 
     def add_widget(self, pawn, index=0, canvas='after'):
