@@ -50,11 +50,13 @@ class ORM(object):
         self.query.active_branches = self._active_branches
         self._graph_objs = {}
 
-    def _init_load(self):
+    def _load_branch_hist(self):
         for (branch, parent, parent_rev) in self.query.all_branches():
             if branch != 'trunk':
                 self._parentbranch_rev[branch] = (parent, parent_rev)
             self._childbranch[parent].add(branch)
+
+    def _init_load(self):
         graphval = defaultdict(list)
         nodeval = defaultdict(list)
         edgeval = defaultdict(list)
@@ -134,6 +136,7 @@ class ORM(object):
             self._init_caches()
             if not hasattr(self, 'graph'):
                 self.graph = self._graph_objs
+            self._load_branch_hist()
             self._init_load()
 
     def __enter__(self):
