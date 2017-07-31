@@ -65,9 +65,16 @@ class Thing(Node):
         self._set_loc_and_next(*v)
 
     def _get_arrival_time(self):
-        return self.engine._things_cache.tick_before(
-            self.character.name, self.name, *self.engine.time
-        )
+        branch, tick = self.engine.time
+        charn = self.character.name
+        n = self.name
+        thingcache = self.engine._things_cache
+        for b, t in self.engine._active_branches(branch, tick):
+            v = thingcache.tick_before(charn, n, b, t)
+            if v is not None:
+                return v
+        else:
+            raise ValueError("Couldn't find arrival time")
 
     def _get_next_arrival_time(self):
         try:
