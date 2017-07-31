@@ -363,6 +363,8 @@ class StructuredDefaultDict(dict):
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
     __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower']
+    STORE_ANEW = True
+    """Whether to re-cache values at their new (branch, rev) upon retrieval."""
 
     def __init__(self, db):
         self.db = db
@@ -547,6 +549,8 @@ class Cache(object):
             raise KeyError
 
     def _store_anew(self, *args, also_rev=None):
+        if not self.STORE_ANEW:
+            return self.retrieve(*args)
         branch, rev = args[-2:]
         entity = args[:-2]
         v = self.retrieve(*args)
