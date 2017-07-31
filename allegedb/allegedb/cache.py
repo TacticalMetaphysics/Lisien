@@ -11,14 +11,6 @@ from copy import copy as copier
 from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
-TESTING = True
-"""Change this to True to validate kecaches whenever they change.
-
-It will make things very slow.
-
-"""
-
-
 class HistoryError(KeyError):
     """You tried to access the past in a bad way."""
 
@@ -456,15 +448,6 @@ class Cache(object):
                     if err.deleted:
                         break
 
-    def _validate_keycache(self, cache, keycache, branch, rev, entpar):
-        if not TESTING:
-            return
-        kc = keycache
-        correct = set(self._slow_iter_keys(cache, branch, rev))
-        assert kc == correct, """
-        Invalid keycache for {} at branch {}, rev {}
-        """.format(entpar, branch, rev)
-
     def store(self, *args):
         """Put a value in various dictionaries for later .retrieve(...).
 
@@ -495,26 +478,18 @@ class Cache(object):
         self.branches[parent+(entity, key)][branch][rev] = value
         self.shallow[parent+(entity, key, branch)][rev] = value
         self.shallower[parent+(entity, key, branch, rev)] = value
+        # The following assertions are very slow.
+        # If you're using allegedb in production, you should avoid them
+        # by running Python with the -O flag.
         if parent:
             kc = self._update_keycache(
                 parent+(entity,), branch, rev, key, value
             )
-            self._validate_keycache(
-                self.parents[parent][entity],
-                kc,
-                branch, rev, parent+(entity,)
-            )
-            self._validate_keycache(
-                self.keys[parent+(entity,)],
-                kc,
-                branch, rev, parent+(entity,)
-            )
+            assert kc == set(self._slow_iter_keys(self.parents[parent][entity], branch, rev)), "Invalid parents cache"
+            assert kc == set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, rev)), "Invalid keys cache"
         else:
-            self._validate_keycache(
-                self.keys[(entity,)],
-                self._update_keycache((entity,), branch, rev, key, value),
-                branch, rev, (entity,)
-            )
+            kc = self._update_keycache((entity,), branch, rev, key, value)
+            assert kc == set(self._slow_iter_keys(self.keys[(entity,)], branch, rev)), "Invalid keys cache"
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
@@ -643,12 +618,11 @@ class NodesCache(Cache):
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, rev, ex)
-        # does this work??
-        self._validate_keycache(
-            self.keys[(graph,)],
-            self._update_keycache((graph,), branch, rev, node, ex),
-            branch, rev, (graph,)
-        )
+        # The following assertion is very slow.
+        # If you are using allegedb in production,
+        # run Python with the -O switch to optimize it out.
+        kc = self._update_keycache((graph,), branch, rev, node, ex)
+        assert kc == set(self._slow_iter_keys(self.keys[(graph,)], branch, rev))
 
 
 class EdgesCache(Cache):
@@ -752,8 +726,10 @@ class EdgesCache(Cache):
         self.predecessors[(graph, dest)][orig][idx][branch][rev] = ex
         oc = self._update_origcache(graph, dest, branch, rev, orig, ex)
         dc = self._update_destcache(graph, orig, branch, rev, dest, ex)
-        if TESTING:
-            correct_oc = set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, rev))
-            assert correct_oc == oc
-            correct_dc = set(self._slow_iter_successors(self.successors[(graph, orig)], branch, rev))
-            assert correct_dc == dc
+        # The following assertions are very slow.
+        # If you're using allegedb in production, you should avoid them
+        # by running Python with the -O flag.
+        assert oc == set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, rev)), \
+            "Invalid origcache"
+        assert dc == set(self._slow_iter_successors(self.successors[(graph, orig)], branch, rev)), \
+            "Invalid destcache"
