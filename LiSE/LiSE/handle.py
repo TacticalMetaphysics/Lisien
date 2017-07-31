@@ -177,8 +177,17 @@ class EngineHandle(object):
             branch = stem + str(n+1)
         else:
             branch += '1'
+        if self._real._havebranch(branch):
+            if m:
+                n = int(n)
+            else:
+                stem = branch[:-1]
+                n = 1
+            while self._real._havebranch(stem+str(n)):
+                n += 1
+            branch = stem + str(n)
         ret = {'branch': branch}
-        self._real.branch = branch
+        self._real.branch = self.branch = branch
         if chars:
             ret.update(self.get_chardiffs(chars))
         return ret
