@@ -261,7 +261,9 @@ class ThingProxy(NodeProxy):
             arrival_time, next_arrival_time
     ):
         if location is None:
-            raise TypeError("Things must have locations")
+            raise TypeError("Thing must have location")
+        if arrival_time is None:
+            raise TypeError("Thing must have arrival_time")
         super().__init__(engine, character, name)
         self._location = location
         self._next_location = next_location
@@ -596,42 +598,39 @@ class ThingMapProxy(CachingProxy):
         return self is other
 
     def _apply_diff(self, diff):
-        for (
-                thing, (
-                    location,
-                    next_location,
-                    arrival_time,
-                    next_arrival_time
-                )
-        ) in diff.items():
-            if location:
-                if thing in self._cache:
-                    thisthing = self._cache[thing]
-                    if thisthing._location != location:
-                        thisthing._location = location
-                        thisthing.send(thisthing, key='location', val=location)
-                    if thisthing._next_location != next_location:
-                        thisthing._next_location = next_location
-                        thisthing.send(thisthing, key='next_location', val=next_location)
-                    if thisthing._arrival_time != arrival_time:
-                        thisthing._arrival_time = arrival_time
-                        thisthing.send(thisthing, key='arrival_time', val=arrival_time)
-                    if thisthing._next_arrival_time != next_arrival_time:
-                        thisthing._next_arrival_time = next_arrival_time
-                        thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
-                else:
-                    self._cache[thing] = ThingProxy(
-                        self.engine,
-                        self.name,
-                        thing,
-                        location,
-                        next_location,
-                        arrival_time,
-                        next_arrival_time
-                    )
-            elif thing in self._cache:
-                self.send(self, key=thing, val=None)
-                del self._cache[thing]
+        for thing, data in diff.items():
+            if data:
+                location, next_location, arrival_time, next_arrival_time = data
+                if location:
+                    if thing in self._cache:
+                        thisthing = self._cache[thing]
+                        if thisthing._location != location:
+                            thisthing._location = location
+                            thisthing.send(thisthing, key='location', val=location)
+                        if thisthing._next_location != next_location:
+                            thisthing._next_location = next_location
+                            thisthing.send(thisthing, key='next_location', val=next_location)
+                        if thisthing._arrival_time != arrival_time:
+                            thisthing._arrival_time = arrival_time
+                            thisthing.send(thisthing, key='arrival_time', val=arrival_time)
+                        if thisthing._next_arrival_time != next_arrival_time:
+                            thisthing._next_arrival_time = next_arrival_time
+                            thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
+                    else:
+                        self._cache[thing] = ThingProxy(
+                            self.engine,
+                            self.name,
+                            thing,
+                            location,
+                            next_location,
+                            arrival_time,
+                            next_arrival_time
+                        )
+                elif thing in self._cache:
+                    self.send(self, key=thing, val=None)
+                    del self._cache[thing]
+            else:
+                assert thing in self._cache
 
     def _get_diff(self):
         return self.engine.handle(

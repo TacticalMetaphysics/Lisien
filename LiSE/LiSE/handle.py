@@ -21,7 +21,7 @@ def branching(fun):
     def brancher(self, *args, **kwargs):
         try:
             fun(self, *args, **kwargs)
-        except HistoryError:
+        except HistoryError as err:
             self.increment_branch()
             fun(self, *args, **kwargs)
         return self.branch

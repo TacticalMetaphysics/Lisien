@@ -261,6 +261,8 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
+    STORE_ANEW = False
+
     def __init__(self, db):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
