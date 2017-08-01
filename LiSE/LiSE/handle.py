@@ -174,7 +174,7 @@ class EngineHandle(object):
         m = match('(.*)([0-9]+)', branch)
         if m:
             stem, n = m.groups()
-            branch = stem + str(n+1)
+            branch = stem + str(int(n)+1)
         else:
             branch += '1'
         if self._real._havebranch(branch):
