@@ -400,8 +400,16 @@ class Cache(object):
             return cache[branch].get(rev, None)
         for b, r in self.db._active_branches(branch, rev):
             if b in cache:
-                cache[branch][r] = copier(cache[b][r]) if copy else cache[b].get(r, None)
-                return cache[branch].get(r, None)
+                try:
+                    if copy:
+                        cache[branch][r] = copier(cache[b][r])
+                    else:
+                        cache[branch][r] = cache[b].get(r, None)
+                    return cache[branch].get(r, None)
+                except HistoryError as ex:
+                    if ex.deleted:
+                        cache[branch][r] = None
+                        return
 
     def _forward_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, rev):
         keycache_key = parentity + (branch,)
