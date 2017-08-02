@@ -39,6 +39,7 @@ class ORM(object):
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
         self._parentbranch_rev = {}
+        self._branch_end = defaultdict(lambda: 0)
         self._graph_val_cache = Cache(self)
         self._nodes_cache = NodesCache(self)
         self._edges_cache = EdgesCache(self)
@@ -50,58 +51,6 @@ class ORM(object):
         self.query.active_branches = self._active_branches
         self._graph_objs = {}
 
-    def _load_branch_hist(self):
-        for (branch, parent, parent_rev) in self.query.all_branches():
-            if branch != 'trunk':
-                self._parentbranch_rev[branch] = (parent, parent_rev)
-            self._childbranch[parent].add(branch)
-
-    def _init_load(self):
-        graphval = defaultdict(list)
-        nodeval = defaultdict(list)
-        edgeval = defaultdict(list)
-        nodes = defaultdict(list)
-        edges = defaultdict(list)
-        for (graph, key, branch, rev, val) in self.query.graph_val_dump():
-            graphval[branch].append((graph, key, branch, rev, val))
-        for (graph, node, branch, rev, ex) in self.query.nodes_dump():
-            nodes[branch].append((graph, node, branch, rev, ex))
-        for (graph, u, v, i, branch, rev, ex) in self.query.edges_dump():
-            edges[branch].append((graph, u, v, i, branch, rev, ex))
-        for (
-                graph, node, key, branch, rev, val
-        ) in self.query.node_val_dump():
-            nodeval[branch].append((graph, node, key, branch, rev, val))
-        for (
-                graph, u, v, i, key, branch, rev, val
-        ) in self.query.edge_val_dump():
-            edgeval[branch].append((graph, u, v, i, key, branch, rev, val))
-        # Make sure to load in the correct order, so that
-        # caches for child branches get built after their parents.
-        # Do the graphs first, so that everything else will have
-        # someplace to be.
-        branch2do = deque(['trunk'])
-        while branch2do:
-            branch = branch2do.popleft()
-            for row in graphval[branch]:
-                self._graph_val_cache.store(*row)
-            if branch in self._childbranch:
-                branch2do.extend(self._childbranch[branch])
-        self._load_graphs()
-        branch2do = deque(['trunk'])
-        while branch2do:
-            branch = branch2do.popleft()
-            for row in nodes[branch]:
-                self._nodes_cache.store(*row)
-            for row in edges[branch]:
-                self._edges_cache.store(*row)
-            for row in nodeval[branch]:
-                self._node_val_cache.store(*row)
-            for row in edgeval[branch]:
-                self._edge_val_cache.store(*row)
-            if branch in self._childbranch:
-                branch2do.extend(self._childbranch[branch])
-
     def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
             self._graph_objs[graph] = {
@@ -110,6 +59,58 @@ class ORM(object):
                 'MultiGraph': MultiGraph,
                 'MultiDiGraph': MultiDiGraph
             }[typ](self, graph)
+
+    def _init_load(self):
+        graphval = defaultdict(lambda: defaultdict(list))
+        nodeval = defaultdict(lambda: defaultdict(list))
+        edgeval = defaultdict(lambda: defaultdict(list))
+        nodes = defaultdict(lambda: defaultdict(list))
+        edges = defaultdict(lambda: defaultdict(list))
+        for (graph, key, branch, rev, val) in self.query.graph_val_dump():
+            graphval[branch][rev].append((graph, key, branch, rev, val))
+        for (graph, node, branch, rev, ex) in self.query.nodes_dump():
+            nodes[branch][rev].append((graph, node, branch, rev, ex))
+        for (graph, u, v, i, branch, rev, ex) in self.query.edges_dump():
+            edges[branch][rev].append((graph, u, v, i, branch, rev, ex))
+        for (
+                graph, node, key, branch, rev, val
+        ) in self.query.node_val_dump():
+            nodeval[branch][rev].append((graph, node, key, branch, rev, val))
+        for (
+                graph, u, v, i, key, branch, rev, val
+        ) in self.query.edge_val_dump():
+            edgeval[branch][rev].append((graph, u, v, i, key, branch, rev, val))
+        return [
+            (self._nodes_cache, nodes),
+            (self._edges_cache, edges),
+            (self._graph_val_cache, graphval),
+            (self._node_val_cache, nodeval),
+            (self._edge_val_cache, edgeval)
+        ]
+
+    def _cache_histories(self, histories):
+        # Make sure to load in the correct order, so that
+        # caches for child branches get built after their parents.
+        # Do the graphs first, so that everything else will have
+        # someplace to be.
+        if not hasattr(self, 'graph'):
+            self.graph = self._graph_objs
+        branch2do = deque(['trunk'])
+        while branch2do:
+            branch = branch2do.popleft()
+            # find the last rev in the branch
+            lastrev = 0
+            for cache, history in histories:
+                if len(history[branch]) > lastrev:
+                    lastrev = len(history[branch])
+            # store all the histories in their corresponding caches
+            for rev in range(lastrev):
+                for cache, history in histories:
+                    for row in history[branch][rev]:
+                        cache.store(*row)
+            self._branch_end[branch] = lastrev
+            if branch in self._childbranch:
+                branch2do.extend(self._childbranch[branch])
 
     def __init__(
             self,
@@ -134,10 +135,12 @@ class ORM(object):
         if caching:
             self.caching = True
             self._init_caches()
-            if not hasattr(self, 'graph'):
-                self.graph = self._graph_objs
-            self._load_branch_hist()
-            self._init_load()
+            for (branch, parent, parent_rev) in self.query.all_branches():
+                if branch != 'trunk':
+                    self._parentbranch_rev[branch] = (parent, parent_rev)
+                self._childbranch[parent].add(branch)
+            self._load_graphs()
+            self._cache_histories(self._init_load())
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""

@@ -448,6 +448,17 @@ class Cache(object):
                     if err.deleted:
                         break
 
+    def _upd_branch_end(self, branch, rev):
+        if rev >= self.db._branch_end[branch]:
+            self.db._branch_end[branch] = rev
+        else:
+            raise HistoryError(
+                "Tried to cache a value at {}, "
+                "but the branch {} already has history up to {}".format(
+                    rev, branch, self.db._branch_end[branch]
+                )
+            )
+
     def store(self, *args):
         """Put a value in various dictionaries for later .retrieve(...).
 
@@ -459,6 +470,7 @@ class Cache(object):
 
         """
         entity, key, branch, rev, value = args[-5:]
+        self._upd_branch_end(branch, rev)
         parent = args[:-5]
         if parent:
             if branch not in self.parents[parent][entity][key]:
@@ -719,10 +731,10 @@ class EdgesCache(Cache):
         """
         if not ex:
             ex = None
+        Cache.store(self, graph, orig, dest, idx, branch, rev, ex)
         if (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
-        Cache.store(self, graph, orig, dest, idx, branch, rev, ex)
         self.predecessors[(graph, dest)][orig][idx][branch][rev] = ex
         oc = self._update_origcache(graph, dest, branch, rev, orig, ex)
         dc = self._update_destcache(graph, orig, branch, rev, dest, ex)

@@ -8,6 +8,7 @@ flow of time.
 from random import Random
 from functools import partial
 from json import dumps, loads, JSONEncoder
+from collections import defaultdict
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
 from allegedb import ORM as gORM
@@ -28,7 +29,6 @@ from .cache import (
     Cache,
     EntitylessCache,
     AvatarnessCache,
-    CharacterRulesHandledCache,
     AvatarRulesHandledCache,
     CharacterThingRulesHandledCache,
     CharacterPlaceRulesHandledCache,
@@ -403,6 +403,11 @@ class Engine(AbstractEngine, gORM):
             is_avatar
         )
 
+    def _have_history_after(self, branch=None, tick=None):
+        branch = branch or self.branch
+        tick = tick or self.tick
+        # TODO
+
     def _init_caches(self):
         super()._init_caches()
         self._portal_objs = {}
@@ -452,52 +457,116 @@ class Engine(AbstractEngine, gORM):
             )
 
     def _init_load(self):
-        # I have to load thingness first, because it affects my _make_node method
+        def dd2():
+            return defaultdict(lambda: defaultdict(list))
+        things = dd2()
+        avatars = dd2()
+        universals = dd2()
+        rulebooks = dd2()
+        character_rulebook = dd2()
+        avatar_rulebook = dd2()
+        character_thing_rulebook = dd2()
+        character_place_rulebook = dd2()
+        character_portal_rulebook = dd2()
+        node_rulebook = dd2()
+        portal_rulebook = dd2()
+        node_rules_handled = dd2()
+        portal_rules_handled = dd2()
+        character_rules_handled = dd2()
+        avatar_rules_handled = dd2()
+        character_thing_rules_handled = dd2()
+        character_place_rules_handled = dd2()
+        character_portal_rules_handled = dd2()
+        rule_triggers = dd2()
+        rule_prereqs = dd2()
+        rule_actions = dd2()
         for row in self.query.things_dump():
             character, thing, branch, tick, loc, nxtloc = row
-            self._things_cache.store(character, thing, branch, tick, (loc, nxtloc))
-        super()._init_load()
-        for row in self.query.universals_dump():
-            self._universal_cache.store(*row)
-        for row in self.query.rulebooks_dump():
-            self._rulebooks_cache.store(*row)
-        for row in self.query.character_rulebook_dump():
-            self._characters_rulebooks_cache.store(*row)
-        for row in self.query.avatar_rulebook_dump():
-            self._avatars_rulebooks_cache.store(*row)
-        for row in self.query.character_thing_rulebook_dump():
-            self._characters_things_rulebooks_cache.store(*row)
-        for row in self.query.character_place_rulebook_dump():
-            self._characters_places_rulebooks_cache.store(*row)
-        for row in self.query.character_portal_rulebook_dump():
-            self._characters_portals_rulebooks_cache.store(*row)
-        for row in self.query.node_rulebook_dump():
-            self._nodes_rulebooks_cache.store(*row)
-        for row in self.query.portal_rulebook_dump():
-            self._portals_rulebooks_cache.store(*row)
-        for row in self.query.node_rules_handled_dump():
-            self._node_rules_handled_cache.store(*row)
-        for row in self.query.portal_rules_handled_dump():
-            self._portal_rules_handled_cache.store(*row)
-        for row in self.query.rule_triggers_dump():
-            self._triggers_cache.store(*row)
-        for row in self.query.rule_prereqs_dump():
-            self._prereqs_cache.store(*row)
-        for row in self.query.rule_actions_dump():
-            self._actions_cache.store(*row)
-        for row in self.query.character_rules_handled_dump():
-            self._character_rules_handled_cache.store(*row)
-        for row in self.query.avatar_rules_handled_dump():
-            self._avatar_rules_handled_cache.store(*row)
-        for row in self.query.character_thing_rules_handled_dump():
-            self._character_thing_rules_handled_cache.store(*row)
-        for row in self.query.character_place_rules_handled_dump():
-            self._character_place_rules_handled_cache.store(*row)
-        for row in self.query.character_portal_rules_handled_dump():
-            self._character_portal_rules_handled_cache.store(*row)
+            things[branch][tick].append((
+                character, thing, branch, tick, (loc, nxtloc)
+            ))
         for row in self.query.avatars_dump():
-            self._avatarness_cache.store(*row)
-        self.rule._init_load()
+            character, graph, node, branch, tick, is_av = row
+            avatars[branch][tick].append(row)
+        for row in self.query.universals_dump():
+            key, branch, tick, value = row
+            universals[branch][tick].append(row)
+        for row in self.query.rulebooks_dump():
+            rulebook, branch, tick, rules = row
+            rulebooks[branch][tick].append(row)
+        for row in self.query.character_rulebook_dump():
+            character, branch, tick, rulebook = row
+            character_rulebook[branch][tick].append(row)
+        for row in self.query.avatar_rulebook_dump():
+            character, branch, tick, rulebook = row
+            avatar_rulebook[branch][tick].append(row)
+        for row in self.query.character_thing_rulebook_dump():
+            character, branch, tick, rulebook = row
+            character_thing_rulebook[branch][tick].append(row)
+        for row in self.query.character_place_rulebook_dump():
+            character, branch, tick, rulebook = row
+            character_place_rulebook[branch][tick].append(row)
+        for row in self.query.character_portal_rulebook_dump():
+            character, branch, tick, rulebook = row
+            character_portal_rulebook[branch][tick].append(row)
+        for row in self.query.node_rulebook_dump():
+            character, node, branch, tick, rulebook = row
+            node_rulebook[branch][tick].append(row)
+        for row in self.query.portal_rulebook_dump():
+            character, orig, dest, branch, tick, rulebook = row
+            portal_rulebook[branch][tick].append(row)
+        for row in self.query.rule_triggers_dump():
+            rule, branch, tick, triggers = row
+            rule_triggers[branch][tick].append(row)
+        for row in self.query.rule_prereqs_dump():
+            rule, branch, tick, prereqs = row
+            rule_prereqs[branch][tick].append(row)
+        for row in self.query.rule_actions_dump():
+            rule, branch, tick, actions = row
+            rule_actions[branch][tick].append(row)
+        for row in self.query.character_rules_handled_dump():
+            character, rulebook, rule, branch, tick = row
+            character_rules_handled[branch][tick].append(row)
+        for row in self.query.avatar_rules_handled_dump():
+            character, rulebook, rule, graph, avatar, branch, tick = row
+            avatar_rules_handled[branch][tick].append(row)
+        for row in self.query.character_thing_rules_handled_dump():
+            character, rulebook, rule, thing, branch, tick = row
+            character_thing_rules_handled[branch][tick].append(row)
+        for row in self.query.character_place_rules_handled_dump():
+            character, rulebook, rule, place, branch, tick = row
+            character_place_rules_handled[branch][tick].append(row)
+        for row in self.query.character_portal_rules_handled_dump():
+            character, rulebook, rule, orig, dest, branch, tick = row
+            character_portal_rules_handled[branch][tick].append(row)
+        for row in self.query.node_rules_handled_dump():
+            character, node, rulebook, rule, branch, tick = row
+            node_rules_handled[branch][tick].append(row)
+        for row in self.query.portal_rules_handled_dump():
+            character, orig, dest, rulebook, rule, branch, tick = row
+            portal_rules_handled[branch][tick].append(row)
+        return [(self._things_cache, things)] + super()._init_load() + [
+            (self._avatarness_cache, avatars),
+            (self._universal_cache, universals),
+            (self._rulebooks_cache, rulebooks),
+            (self._characters_rulebooks_cache, character_rulebook),
+            (self._avatars_rulebooks_cache, avatar_rulebook),
+            (self._characters_things_rulebooks_cache, character_thing_rulebook),
+            (self._characters_places_rulebooks_cache, character_place_rulebook),
+            (self._characters_portals_rulebooks_cache, character_portal_rulebook),
+            (self._nodes_rulebooks_cache, node_rulebook),
+            (self._portals_rulebooks_cache, portal_rulebook),
+            (self._node_rules_handled_cache, node_rules_handled),
+            (self._portal_rules_handled_cache, portal_rules_handled),
+            (self._character_rules_handled_cache, character_rules_handled),
+            (self._avatar_rules_handled_cache, avatar_rules_handled),
+            (self._character_thing_rules_handled_cache, character_thing_rules_handled),
+            (self._character_place_rules_handled_cache, character_place_rules_handled),
+            (self._character_portal_rules_handled_cache, character_portal_rules_handled),
+            (self._triggers_cache, rule_triggers),
+            (self._prereqs_cache, rule_prereqs),
+            (self._actions_cache, rule_actions)
+        ]
 
     def _load_graphs(self):
         for charn in self.query.characters():
@@ -555,6 +624,7 @@ class Engine(AbstractEngine, gORM):
             json_dump=self.json_dump,
             json_load=self.json_load,
         )
+        self.rule._init_load()
         self.next_tick = NextTick(self)
         if logfun is None:
             from logging import getLogger

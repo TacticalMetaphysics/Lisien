@@ -156,6 +156,15 @@ class RulesHandledCache(object):
     def store(self, *args):
         entity = args[:-4]
         rulebook, rule, branch, tick = args[-4:]
+        if tick >= self.engine._branch_end[branch]:
+            self.engine._branch_end[branch] = tick
+        else:
+            raise HistoryError(
+                "Tried to cache a value at {}, "
+                "but the branch {} already has history up to {}".format(
+                    tick, branch, self.engine._branch_end[branch]
+                )
+            )
         shalo = self.shallow.setdefault(entity + (rulebook, rule, branch), set())
         unhandl = self.unhandled
         for spot in entity:
