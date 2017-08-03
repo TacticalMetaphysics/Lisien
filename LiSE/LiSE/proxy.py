@@ -2399,7 +2399,6 @@ class EngineProcessManager(object):
                         50: 'critical'
                     }[level]
                 getattr(self.logger, level)(message)
-                print(message)
                 n += 1
             except Empty:
                 return
