@@ -536,16 +536,17 @@ class Cache(object):
                     b in self.branches[entity+(key,)]
                     and r in self.branches[entity+(key,)][b]
             ):
-                return self._store_anew(
-                    *entity+(key, b, r),
-                    also_rev=rev if rev > r else None
-                )
+                if self.STORE_ANEW:
+                    return self._store_anew(
+                        *entity+(key, b, r),
+                        also_rev=rev if rev > r else None
+                    )
+                else:
+                    return self.branches[entity+(key,)][b][r]
         else:
             raise KeyError
 
     def _store_anew(self, *args, also_rev=None):
-        if not self.STORE_ANEW:
-            return self.retrieve(*args)
         branch, rev = args[-2:]
         entity = args[:-2]
         v = self.retrieve(*args)
