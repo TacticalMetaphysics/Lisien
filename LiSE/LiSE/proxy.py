@@ -2002,6 +2002,33 @@ class EngineProxy(AbstractEngine):
         self.logger.critical(msg)
 
     def handle(self, cmd=None, **kwargs):
+        """Send a command to the LiSE core.
+
+        The only positional argument should be the name of a
+        method in :class:``EngineHandle``. All keyword arguments
+        will be passed to it, with the exceptions of
+        ``cb``, ``branching``, and ``silent``.
+
+        With ``silent=True``, don't wait for a result; return
+        ``None`` immediately. This is best for when you want to make
+        some change to the game state and already know what effect it
+        will have.
+
+        With ``branching=True``, handle paradoxes by creating new
+        branches of history. I will switch to the new branch if needed.
+        If I have an attribute ``branching_cb``, I'll call it if and
+        only if the branch changes upon completing a command with
+        ``branching=True``.
+
+        With a function ``cb``, I will call ``cb`` when I get
+        a result. If ``silent=True`` this will happen in a thread.
+        ``cb`` will be called with keyword arguments ``command``,
+        the same command you asked for; ``result``, the value returned
+        by it, possibly ``None``; and ``branch`` and ``tick``,
+        the present game time, possibly different than when you called
+        ``handle``.
+
+        """
         if 'command' in kwargs:
             cmd = kwargs['command']
         elif cmd:
@@ -2014,7 +2041,20 @@ class EngineProxy(AbstractEngine):
         if 'silent' not in kwargs:
             kwargs['silent'] = False
         self.send(self.json_dump(kwargs))
-        if not kwargs['silent']:
+        if kwargs['silent']:
+            if branching:
+                self._branching_thread = Thread(
+                    target=self._branching, args=[cb], daemon=True
+                )
+                self._branching_thread.start()
+                return
+            if cb:
+                self._callback_thread = Thread(
+                    target=self._callback, args=[cb], daemon=True
+                )
+                self._callback_thread.start()
+                return
+        else:
             command,  result = self.recv()
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
@@ -2024,25 +2064,26 @@ class EngineProxy(AbstractEngine):
             r = self.json_load(result)
             if branching and r['branch'] != self._branch:
                 self.time_travel(r['branch'], self.tick)
+            if cb:
+                cb(**r)
             return r['result']
-        elif branching:
-            self._branching_thread = Thread(
-                target=self._branching, args=[cb]
-            )
-            self._branching_thread.start()
-            return
         self._handle_lock.release()
+
+    def _callback(self, cb):
+        command, result = self.recv()
+        self._handle_lock.release()
+        cb(**self.json_load(result))
 
     def _branching(self, cb=None):
         command, result = self.recv()
         self._handle_lock.release()
         r = self.json_load(result)
         if r['branch'] != self._branch:
-            self.time_travel(r['branch'], self.tick)
-            if cb:
-                cb(**r)
+            self.time_travel(r['branch'], r['tick'])
             if hasattr(self, 'branching_cb'):
                 self.branching_cb(**r)
+        if cb:
+            cb(**r)
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
