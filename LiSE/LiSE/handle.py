@@ -14,18 +14,6 @@ from allegedb.xjson import (
 )
 from .engine import Engine
 from .util import dict_diff, set_diff
-from allegedb.cache import HistoryError
-
-
-def branching(fun):
-    def brancher(self, *args, **kwargs):
-        try:
-            fun(self, *args, **kwargs)
-        except HistoryError as err:
-            self.increment_branch()
-            fun(self, *args, **kwargs)
-        return self.branch
-    return brancher
 
 
 class EngineHandle(object):
@@ -310,12 +298,10 @@ class EngineHandle(object):
         ret = self._universal_cache[k] = self._real.universal[k]
         return ret
 
-    @branching
     def set_universal(self, k, v):
         self._real.universal[k] = v
         self._universal_cache[k] = v
 
-    @branching
     def del_universal(self, k):
         del self._real.universal[k]
         del self._universal_cache[k]
@@ -456,12 +442,10 @@ class EngineHandle(object):
             'portal_rulebooks': self.character_portals_rulebooks_diff(char)
         }
 
-    @branching
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
         self._char_stat_cache.setdefault(char, {})[k] = v
 
-    @branching
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
         del self._char_stat_cache[char][k]
@@ -478,16 +462,13 @@ class EngineHandle(object):
     def characters(self):
         return list(self._real.character.keys())
 
-    @branching
     def set_character(self, char, v):
         self._real.character[char] = v
 
-    @branching
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
         self._node_stat_cache.setdefault(char, {})[node][k] = v
 
-    @branching
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
         del self._node_stat_cache[char][node][k]
@@ -687,7 +668,6 @@ class EngineHandle(object):
             )
         return self.set_thing(char, thing, statdict)
 
-    @branching
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
@@ -697,7 +677,6 @@ class EngineHandle(object):
         nxtarrt = statdict.pop('next_arrival_time', None)
         self._char_things_cache.setdefault(char, {})[thing] = (loc, nxtloc, arrt, nxtarrt)
 
-    @branching
     def add_thing(self, char, thing, loc, next_loc, statdict):
         self._real.character[char].add_thing(
             thing, loc, next_loc, **statdict
@@ -705,16 +684,13 @@ class EngineHandle(object):
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
         self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
 
-    @branching
     def place2thing(self, char, node, loc):
         self._real.character[char].place2thing(node, loc)
 
-    @branching
     def thing2place(self, char, node):
         self._real.character[char].thing2place(node)
 
     def add_things_from(self, char, seq):
-        # TODO: special case of branching
         self._real.character[char].add_things_from(seq)
 
     def get_thing_location(self, char, thing):
@@ -723,7 +699,6 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    @branching
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
         _, nxtloc, arrt, nxtarrt = self._char_things_cache.setdefault(char, {}).get(
@@ -744,22 +719,18 @@ class EngineHandle(object):
         )
 
     def thing_follow_path(self, char, thing, path, weight):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].follow_path(path, weight)
+        return self._real.character[char].thing[thing].follow_path(path, weight)
 
     def thing_go_to_place(self, char, thing, place, weight):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].go_to_place(place, weight)
+        return self._real.character[char].thing[thing].go_to_place(place, weight)
 
     def thing_travel_to(self, char, thing, dest, weight, graph):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].travel_to(dest, weight, graph)
+        return self._real.character[char].thing[thing].travel_to(dest, weight, graph)
 
     def thing_travel_to_by(
             self, char, thing, dest, arrival_tick, weight, graph
     ):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].travel_to_by(
+        return self._real.character[char].thing[thing].travel_to_by(
             dest, arrival_tick, weight, graph
         )
 
@@ -772,13 +743,11 @@ class EngineHandle(object):
             )
         return self.set_place(char, place, statdict)
 
-    @branching
     def set_place(self, char, place, statdict):
         self._real.character[char].place[place] = statdict
         self._node_stat_cache.setdefault(char, {})[place] = statdict
 
     def add_places_from(self, char, seq):
-        # TODO: special case of branching
         self._real.character[char].add_places_from(seq)
 
     def init_portal(self, char, orig, dest, statdict={}):
@@ -793,7 +762,6 @@ class EngineHandle(object):
             )
         return self.set_portal(char, orig, dest, statdict)
 
-    @branching
     def set_portal(self, char, orig, dest, statdict):
         self._real.character[char].portal[orig][dest] = statdict
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
@@ -815,28 +783,23 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    @branching
     def add_portal(self, char, orig, dest, symmetrical, statdict):
         self._real.character[char].add_portal(
             orig, dest, symmetrical, **statdict
         )
 
     def add_portals_from(self, char, seq, symmetrical):
-        # TODO: special case of branching
         self._real.character[char].add_portals_from(seq, symmetrical)
 
-    @branching
     def del_portal(self, char, orig, dest):
         del self._real.character[char].portal[orig][dest]
         del self._portal_stat_cache[char][orig][dest]
         del self._char_places_cache[char][orig][dest]
 
-    @branching
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
         self._portal_stat_cache.setdefault(char, {}).setdefault(orig, {})[dest][k] = v
 
-    @branching
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
         del self._portal_stat_cache[char][orig][dest][k]
@@ -867,7 +830,6 @@ class EngineHandle(object):
                     r[orig][dest] = diff
         return r
 
-    @branching
     def update_portal(self, char, orig, dest, patch):
         character = self._real.character[char]
         if patch is None:
@@ -884,12 +846,10 @@ class EngineHandle(object):
             branch = self.update_portal(char, orig, dest, ppatch)
         return branch
 
-    @branching
     def add_avatar(self, char, graph, node):
         self._real.character[char].add_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].add(node)
 
-    @branching
     def del_avatar(self, char, graph, node):
         self._real.character[char].del_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)

@@ -14,6 +14,7 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
 from blinker import Signal
 
+from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
@@ -145,7 +146,8 @@ class NodeProxy(CachingEntityProxy):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_node_rulebook',
-            char=self._charname, node=self.name, rulebook=rb, silent=True
+            char=self._charname, node=self.name, rulebook=rb, silent=True,
+            branching=True
         )
 
     def __init__(self, engine_proxy, charname, nodename):
@@ -295,7 +297,9 @@ class ThingProxy(NodeProxy):
             command='set_thing_location',
             char=self.character.name,
             thing=self.name,
-            loc=v
+            loc=v,
+            silent=True,
+            branching=True
         )
         self.send(self, key='location', val=v)
 
@@ -528,7 +532,8 @@ class NodeMapProxy(MutableMapping):
             'set_character_node_rulebook',
             char=self._charname,
             rulebook=rb,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     @property
@@ -579,7 +584,8 @@ class ThingMapProxy(CachingProxy):
             'set_character_thing_rulebook',
             char=self.name,
             rulebook=rb,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     @property
@@ -689,7 +695,7 @@ class PlaceMapProxy(CachingProxy):
         self.engine.handle(
             'set_character_place_rulebook',
             char=self.name, rulebook=rb,
-            silent=True
+            silent=True, branching=True
         )
 
     @property
@@ -836,7 +842,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_character_portal_rulebook',
-            char=self._charname, rulebook=rb
+            char=self._charname, rulebook=rb, silent=True, branching=True
         )
 
     @property
@@ -948,12 +954,13 @@ class PredecessorsProxy(MutableMapping):
             char=self._charname,
             place=k,
             statdict=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.engine.handle(
             'set_portal',
             (self._charname, k, self.name),
-            silent=True
+            silent=True, branching=True
         )
 
     def __delitem__(self, k):
@@ -997,7 +1004,8 @@ class CharPredecessorsMappingProxy(MutableMapping):
             char=self.name,
             node=k,
             preds=v,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def __delitem__(self, k):
@@ -1041,7 +1049,7 @@ class CharStatProxy(CachingEntityProxy):
             char=self.name,
             k=k, v=v,
             silent=True,
-            branching=True
+            branching=not k.startswith('_')
         )
 
     def _del_item(self, k):
@@ -1144,7 +1152,8 @@ class RuleBookProxy(MutableSequence, Signal):
             rulebook=self.name,
             i=i,
             rule=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.send(self, i=i, val=v)
 
@@ -1154,7 +1163,8 @@ class RuleBookProxy(MutableSequence, Signal):
             command='del_rulebook_rule',
             rulebook=self.name,
             i=i,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.send(self, i=i, val=None)
 
@@ -1167,7 +1177,8 @@ class RuleBookProxy(MutableSequence, Signal):
             rulebook=self.name,
             i=i,
             rule=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         for j in range(i, len(self)):
             self.send(self, i=j, val=self[j])
@@ -1188,7 +1199,7 @@ class AvatarMapProxy(Mapping):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_avatar_rulebook',
-            char=self.character.name, rulebook=rb, silent=True
+            char=self.character.name, rulebook=rb, silent=True, branching=True
         )
 
     def __init__(self, character):
@@ -1283,7 +1294,7 @@ class CharacterProxy(MutableMapping):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_character_rulebook',
-            char=self.name, rulebook=rb, silent=True
+            char=self.name, rulebook=rb, silent=True, branching=True
         )
 
     @reify
@@ -1372,7 +1383,8 @@ class CharacterProxy(MutableMapping):
             command='add_places_from',
             char=self.name,
             seq=list(seq),
-            silent=True
+            silent=True,
+            branching=True
         )
         for pln in seq:
             self.place._cache[pln] = PlaceProxy(
@@ -1390,7 +1402,8 @@ class CharacterProxy(MutableMapping):
             loc=location,
             next_loc=next_location,
             statdict=kwargs,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.thing._cache[name] = ThingProxy(
             self.engine, self.name, name, location, next_location,
@@ -1402,7 +1415,8 @@ class CharacterProxy(MutableMapping):
             command='add_things_from',
             char=self.name,
             seq=list(seq),
-            silent=True
+            silent=True,
+            branching=True
         )
         for thn in seq:
             self.thing._cache[thn] = ThingProxy(
@@ -1424,7 +1438,8 @@ class CharacterProxy(MutableMapping):
             node=node,
             loc=location,
             next_loc=next_location,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
@@ -1435,7 +1450,8 @@ class CharacterProxy(MutableMapping):
             dest=destination,
             symmetrical=symmetrical,
             statdict=kwargs,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.portal._cache[origin][destination] = PortalProxy(
             self.engine,
@@ -1451,7 +1467,8 @@ class CharacterProxy(MutableMapping):
             char=self.name,
             seq=l,
             symmetrical=symmetrical,
-            silent=True
+            silent=True,
+            branching=True
         )
         for (origin, destination) in l:
             if origin not in self.portal._cache:
@@ -1483,7 +1500,8 @@ class CharacterProxy(MutableMapping):
             char=self.name,
             graph=graph,
             node=node,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def del_avatar(self, graph, node):
@@ -1492,7 +1510,8 @@ class CharacterProxy(MutableMapping):
             char=self.name,
             graph=graph,
             node=node,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def avatars(self):
@@ -1527,7 +1546,8 @@ class CharacterMapProxy(MutableMapping, Signal):
             command='set_character',
             char=k,
             data=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.engine._char_cache[k] = CharacterProxy(self.engine, k)
         self.send(self, key=k, val=v)
@@ -1536,7 +1556,8 @@ class CharacterMapProxy(MutableMapping, Signal):
         self.engine.handle(
             command='del_character',
             char=k,
-            silent=True
+            silent=True,
+            branching=True
         )
         if k in self.engine._char_cache:
             del self.engine._char_cache[k]
@@ -1640,11 +1661,11 @@ class GlobalVarProxy(MutableMapping):
 
     def __setitem__(self, k, v):
         self._cache[k] = v
-        self.engine.handle('set_universal', k=k, v=v)
+        self.engine.handle('set_universal', k=k, v=v, silent=True, branching=True)
 
     def __delitem__(self, k):
         del self._cache[k]
-        self.engine.handle('del_universal', k=k)
+        self.engine.handle('del_universal', k=k, silent=True, branching=True)
 
 
 class AllRuleBooksProxy(Mapping):
@@ -1987,7 +2008,8 @@ class EngineProxy(AbstractEngine):
             kwargs['command'] = cmd
         else:
             raise TypeError("No command")
-        branching = kwargs.pop('branching', False)
+        branching = kwargs.get('branching', False)
+        cb = kwargs.pop('cb', None)
         self._handle_lock.acquire()
         if 'silent' not in kwargs:
             kwargs['silent'] = False
@@ -2000,10 +2022,27 @@ class EngineProxy(AbstractEngine):
                 )
             self._handle_lock.release()
             r = self.json_load(result)
-            if branching and r != self._branch:
-                self.time_travel(r, self.tick)
-            return r
+            if branching and r['branch'] != self._branch:
+                self.time_travel(r['branch'], self.tick)
+            return r['result']
+        elif branching:
+            self._branching_thread = Thread(
+                target=self._branching, args=[cb]
+            )
+            self._branching_thread.start()
+            return
         self._handle_lock.release()
+
+    def _branching(self, cb=None):
+        command, result = self.recv()
+        self._handle_lock.release()
+        r = self.json_load(result)
+        if r['branch'] != self._branch:
+            self.time_travel(r['branch'], self.tick)
+            if cb:
+                cb(**r)
+            if hasattr(self, 'branching_cb'):
+                self.branching_cb(**r)
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
@@ -2053,7 +2092,7 @@ class EngineProxy(AbstractEngine):
     def _call_with_recv(self, *cbs, **kwargs):
         received = self.json_load(self.recv()[1])
         for cb in cbs:
-            cb(received, **kwargs)
+            cb(received['result'], **kwargs)
         return received
 
     def _upd_char_caches(self, chardiffs, **kwargs):
@@ -2292,11 +2331,25 @@ def subprocess(
         silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
         log('command', (cmd, instruction))
-        r = getattr(engine_handle, cmd)(**instruction)
+
+        branching = instruction.pop('branching', False)
+        if branching:
+            try:
+                r = getattr(engine_handle, cmd)(**instruction)
+            except HistoryError:
+                engine_handle.increment_branch()
+                r = getattr(engine_handle, cmd)(**instruction)
+        else:
+            r = getattr(engine_handle, cmd)(**instruction)
         if silent:
             continue
         log('result', r)
-        handle_in_pipe.send((cmd,  engine_handle.json_dump(r)))
+        handle_in_pipe.send((cmd,  engine_handle.json_dump({
+            'command': cmd,
+            'result': r,
+            'branch': engine_handle.branch,
+            'tick': engine_handle.tick
+        })))
 
 
 class RedundantProcessError(ProcessError):
