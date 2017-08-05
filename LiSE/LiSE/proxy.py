@@ -2040,8 +2040,14 @@ class EngineProxy(AbstractEngine):
         self._handle_lock.acquire()
         if 'silent' not in kwargs:
             kwargs['silent'] = False
-        self.send(self.json_dump(kwargs))
         if kwargs['silent']:
+            if branching or cb:
+                # I'll still execute the command asynchronously,
+                # and *this* method won't return anything, but
+                # the subprocess should still return a value, so don't
+                # silence *that*
+                del kwargs['silent']
+            self.send(self.json_dump(kwargs))
             if branching:
                 self._branching_thread = Thread(
                     target=self._branching, args=[cb], daemon=True
@@ -2055,6 +2061,7 @@ class EngineProxy(AbstractEngine):
                 self._callback_thread.start()
                 return
         else:
+            self.send(self.json_dump(kwargs))
             command,  result = self.recv()
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
@@ -2183,12 +2190,14 @@ class EngineProxy(AbstractEngine):
                 args=(chars, cb)
             ).start()
 
-    def next_tick(self, chars=[], cb=None, silent=False):
+    def next_tick(self, chars=(), cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
         if not callable(cb):
             raise TypeError("Uncallable callback")
-        if chars:
+        if silent:
+            self.handle(command='next_tick', chars=chars, silent=True, cb=cb)
+        elif chars:
             self.send(self.json_dump({
                 'silent': False,
                 'command': 'next_tick',
@@ -2204,8 +2213,6 @@ class EngineProxy(AbstractEngine):
                 ).start()
             else:
                 return self._call_with_recv(*args)
-        elif silent:
-            self.handle(command='next_tick', chars=[], silent=True)
         else:
             ret = self.handle(command='next_tick', chars='all')
             self.time.send(self, branch=ret['branch'], tick=ret['tick'])
