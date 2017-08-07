@@ -266,10 +266,10 @@ class TurnDict(FuturistWindowDict):
             ret = self[rev] = FuturistWindowDict()
             return ret
 
-    def __setitem__(self, rev, value):
+    def __setitem__(self, turn, value):
         if not isinstance(value, FuturistWindowDict):
             value = FuturistWindowDict(value)
-        super().__setitem__(rev, value)
+        super().__setitem__(turn, value)
 
 
 class PickyDefaultDict(dict):

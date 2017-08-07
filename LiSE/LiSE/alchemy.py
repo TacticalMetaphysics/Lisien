@@ -58,7 +58,7 @@ def tables_for_meta(meta):
         Column('rulebook', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT),
+        Column('tick', INT, primary_key=True, default=0),
         Column('rules', TEXT, default='[]')
     )
 

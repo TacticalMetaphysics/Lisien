@@ -550,7 +550,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
         self.set_rule_actions(rule, branch, turn, tick, actions)
 
-    def set_rulebook(self, name, branch='trunk', turn=0, tick=0, rules=None):
+    def set_rulebook(self, name, branch, turn, tick, rules=None):
         name, rules = map(self.json_dump, (name, rules or []))
         self.sql('rulebooks_insert', name, branch, turn, tick, rules)
 

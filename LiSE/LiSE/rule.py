@@ -61,12 +61,15 @@ class RuleFuncList(MutableSequence, Signal):
         return v
 
     def _get(self):
-        return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
+        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
 
     def _set(self, v):
         branch, turn, tick = self.rule.engine.btt()
+        while self._cache.contains_key(self.rule.name, branch, turn, tick):
+            tick += 1
         self._cache.store(self.rule.name, branch, turn, tick, v)
         self._setter(self.rule.name, branch, turn, tick, v)
+        self.rule.engine.tick = tick
 
     def __iter__(self):
         for funcname in self._get():
@@ -167,8 +170,12 @@ class RuleFuncListDescriptor(object):
         flist = getattr(obj, self.flid)
         namey_value = [flist._nominate(v) for v in value]
         flist._set(namey_value)
-        branch, tick = obj.engine.time
-        flist._cache.store(obj.name, branch, tick, namey_value)
+        branch, turn, tick = obj.engine.btt()
+        while flist._cache.contains_key(obj.name, branch, turn, tick):
+            tick += 1
+        flist._cache.store(obj.name, branch, turn, tick, namey_value)
+        if obj.engine.tick != tick:
+            obj.engine.tick = tick
         flist.send(flist)
 
     def __delete__(self, obj):
@@ -392,9 +399,13 @@ class RuleBook(MutableSequence, Signal):
         v = getattr(v, 'name', v)
         cache = self._cache
         cache[i] = v
-        branch, tick = self.engine.time
-        self.engine.query.set_rulebook(self.name, branch, tick, cache)
-        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
+        e = self.engine
+        branch, turn, tick = e.btt()
+        while self.engine._rulebooks_cache.contains_entity(self.name, branch, turn, tick):
+            tick += 1
+        self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
+        e.tick = tick
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
@@ -402,9 +413,12 @@ class RuleBook(MutableSequence, Signal):
         v = getattr(v, 'name', v)
         cache = self._cache
         cache.insert(i, v)
-        branch, tick = self.engine.time
-        self.engine.query.set_rulebook(self.name, branch, tick, cache)
-        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
+        branch, turn, tick = self.engine.btt()
+        while self.engine._rulebooks_cache.contains_entity(self.name, branch, turn, tick):
+            tick += 1
+        self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
+        self.engine.tick = tick
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
