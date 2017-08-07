@@ -106,7 +106,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
-        return self.engine._nodes_rulebooks_cache.retrieve(self.character.name, self.name, *self.engine.time)
+        return self.engine._nodes_rulebooks_cache.retrieve(self.character.name, self.name, *self.engine.btt())
 
     def _get_rulebook(self):
         return rule.RuleBook(
@@ -187,7 +187,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
         yield from self.db._edges_cache.iter_entities(
-            self.character.name, self.name, *self.engine.time
+            self.character.name, self.name, *self.engine.btt()
         )
 
     def _portal_origs(self):
@@ -200,7 +200,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
                     if b != self.engine.branch:
                         self.engine._edges_cache.store(
                             self.character.name, self.name, nodeB, 0,
-                            *self.engine.time
+                            *self.engine.btt()
                         )
                     if cache[nodeB][0][b][t]:
                         yield nodeB

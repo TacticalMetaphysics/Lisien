@@ -64,9 +64,9 @@ class RuleFuncList(MutableSequence, Signal):
         return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
 
     def _set(self, v):
-        branch, tick = self.rule.engine.time
-        self._cache.store(self.rule.name, branch, tick, v)
-        self._setter(self.rule.name, branch, tick, v)
+        branch, turn, tick = self.rule.engine.btt()
+        self._cache.store(self.rule.name, branch, turn, tick, v)
+        self._setter(self.rule.name, branch, turn, tick, v)
 
     def __iter__(self):
         for funcname in self._get():
@@ -204,15 +204,15 @@ class Rule(object):
         self.engine = engine
         self.name = self.__name__ = name
         self.type = typ
-        branch, tick = engine.time
-        if not self.engine._triggers_cache.contains_key(name, branch, tick):
+        branch, turn, tick = engine.btt()
+        if not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             triggers = triggers or []
             prereqs = prereqs or []
             actions = actions or []
-            self.engine.query.set_rule(name, typ, triggers, prereqs, actions, branch, tick)
-            self.engine._triggers_cache.store(name, branch, tick, triggers)
-            self.engine._prereqs_cache.store(name, branch, tick, prereqs)
-            self.engine._actions_cache.store(name, branch, tick, actions)
+            self.engine.query.set_rule(name, typ, triggers, prereqs, actions, branch, turn, tick)
+            self.engine._triggers_cache.store(name, branch, turn, tick, triggers)
+            self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
+            self.engine._actions_cache.store(name, branch, turn, tick, actions)
 
     def __eq__(self, other):
         return (
@@ -357,7 +357,7 @@ class RuleBook(MutableSequence, Signal):
 
     @property
     def _cache(self):
-        return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.time)
+        return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.btt())
     @_cache.setter
     def _cache(self, v):
         branch, tick = self.engine.time
@@ -611,13 +611,13 @@ class AllRuleBooks(Mapping, Signal):
         self._cache = {}
 
     def __iter__(self):
-        return self.engine._rulebooks_cache.iter_entities(*self.engine.time)
+        return self.engine._rulebooks_cache.iter_entities(*self.engine.btt())
 
     def __len__(self):
         return len(list(self))
 
     def __contains__(self, k):
-        return self.engine._rulebooks_cache.contains_entity(k, *self.engine.time)
+        return self.engine._rulebooks_cache.contains_entity(k, *self.engine.btt())
 
     def __getitem__(self, k):
         if k not in self._cache:

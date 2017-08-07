@@ -1,67 +1,62 @@
-from collections import defaultdict
 from allegedb.cache import (
     Cache,
     PickyDefaultDict,
     StructuredDefaultDict,
-    FuturistWindowDict,
+    TurnDict,
     HistoryError
 )
 from .util import singleton_get
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, tick, value):
-        super().store(None, key, branch, tick, value)
+    def store(self, key, branch, turn, tick, value):
+        super().store(None, key, branch, turn, tick, value)
 
-    def retrieve(self, key, branch, tick):
-        return super().retrieve(None, key, branch, tick)
+    def retrieve(self, key, branch, turn, tick):
+        return super().retrieve(None, key, branch, turn, tick)
 
-    def iter_entities_or_keys(self, branch, tick):
-        return super().iter_entities_or_keys(None, branch, tick)
+    def iter_entities_or_keys(self, branch, turn, tick):
+        return super().iter_entities_or_keys(None, branch, turn, tick)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, tick):
-        return super().contains_entity_or_key(None, ke, branch, tick)
+    def contains_entity_or_key(self, ke, branch, turn, tick):
+        return super().contains_entity_or_key(None, ke, branch, turn, tick)
     contains_entity = contains_key = contains_entity_or_key
-
-    def _store_anew(self, *args, also_rev=None):
-        args = args[1:]
-        return super()._store_anew(*args, also_rev=also_rev)
 
 
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
     def __init__(self, engine):
         Cache.__init__(self, engine)
-        self.user_order = StructuredDefaultDict(3, FuturistWindowDict)
-        self.user_shallow = PickyDefaultDict(FuturistWindowDict)
-        self.graphs = StructuredDefaultDict(1, FuturistWindowDict)
-        self.graphavs = StructuredDefaultDict(1, FuturistWindowDict)
-        self.charavs = StructuredDefaultDict(1, FuturistWindowDict)
-        self.soloav = StructuredDefaultDict(1, FuturistWindowDict)
-        self.uniqav = StructuredDefaultDict(1, FuturistWindowDict)
-        self.uniqgraph = StructuredDefaultDict(1, FuturistWindowDict)
+        self.user_order = StructuredDefaultDict(3, TurnDict)
+        self.user_shallow = PickyDefaultDict(TurnDict)
+        self.graphs = StructuredDefaultDict(1, TurnDict)
+        self.graphavs = StructuredDefaultDict(1, TurnDict)
+        self.charavs = StructuredDefaultDict(1, TurnDict)
+        self.soloav = StructuredDefaultDict(1, TurnDict)
+        self.uniqav = StructuredDefaultDict(1, TurnDict)
+        self.uniqgraph = StructuredDefaultDict(1, TurnDict)
 
-    def store(self, character, graph, node, branch, tick, is_avatar):
+    def store(self, character, graph, node, branch, turn, tick, is_avatar):
         if not is_avatar:
             is_avatar = None
-        Cache.store(self, character, graph, node, branch, tick, is_avatar)
-        self.user_order[graph][node][character][branch][tick] = is_avatar
-        self.user_shallow[(graph, node, character, branch)][tick] = is_avatar
-        self._forward_valcache(self.charavs[character], branch, tick)
+        Cache.store(self, character, graph, node, branch, turn, tick, is_avatar)
+        self.user_order[graph][node][character][branch][turn][tick] = is_avatar
+        self.user_shallow[(graph, node, character, branch)][turn][tick] = is_avatar
+        self._forward_valcache(self.charavs[character], branch, turn, tick)
         self._forward_valcache(
-            self.graphavs[(character, graph)], branch, tick
+            self.graphavs[(character, graph)], branch, turn, tick
         )
-        self._forward_valcache(self.graphs[character], branch, tick)
+        self._forward_valcache(self.graphs[character], branch, turn, tick)
         self._forward_valcache(
             self.soloav[(character, graph)],
-            branch, tick, copy=False
+            branch, turn, tick, copy=False
         )
         self._forward_valcache(
-            self.uniqav[character], branch, tick, copy=False
+            self.uniqav[character], branch, turn, copy=False
         )
         self._forward_valcache(
-            self.uniqgraph[character], branch, tick, copy=False
+            self.uniqgraph[character], branch, turn, copy=False
         )
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
@@ -70,78 +65,77 @@ class AvatarnessCache(Cache):
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
         for avmap in (charavs, graphavs, graphs):
-            if not avmap.has_exact_rev(tick):
+            if not avmap.has_exact_rev(turn):
                 try:
-                    avmap[tick] = avmap[tick].copy()
+                    avmap[turn][tick] = avmap[turn][tick].copy()
                 except HistoryError:
-                    avmap[tick] = set()
+                    avmap[turn][tick] = set()
         if is_avatar:
-            if graphavs[tick]:
-                soloav[tick] = None
+            if turn in graphavs and graphavs[turn][tick]:
+                soloav[turn][tick] = None
             else:
-                soloav[tick] = node
-            if charavs[tick]:
-                uniqav[tick] = None
+                soloav[turn][tick] = node
+            if turn in charavs and charavs[turn][tick]:
+                uniqav[turn][tick] = None
             else:
-                uniqav[tick] = (graph, node)
-            if graphs[tick]:
-                uniqgraph[tick] = None
+                uniqav[turn][tick] = (graph, node)
+            if turn in graphs and graphs[turn][tick]:
+                uniqgraph[turn][tick] = None
             else:
-                uniqgraph[tick] = graph
-            graphavs[tick].add(node)
-            charavs[tick].add((graph, node))
-            graphs[tick].add(graph)
+                uniqgraph[turn][tick] = graph
+            graphavs[turn][tick].add(node)
+            charavs[turn][tick].add((graph, node))
+            graphs[turn][tick].add(graph)
         else:
-            graphavs[tick].remove(node)
-            charavs[tick].remove((graph, node))
-            soloav[tick] = singleton_get(graphavs[tick])
-            uniqav[tick] = singleton_get(charavs[tick])
-            if not graphavs[tick]:
-                graphs[tick].remove(graph)
-                if len(graphs[tick]) == 1:
-                    uniqgraph[tick] = next(iter(graphs[tick]))
+            graphavs[turn][tick].remove(node)
+            charavs[turn][tick].remove((graph, node))
+            soloav[turn][tick] = singleton_get(graphavs[turn][tick])
+            uniqav[turn][tick] = singleton_get(charavs[turn][tick])
+            if not graphavs[turn][tick]:
+                graphs[turn][tick].remove(graph)
+                if len(graphs[turn][tick]) == 1:
+                    uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
                 else:
-                    uniqgraph[tick] = None
+                    uniqgraph[turn][tick] = None
 
-    def get_char_graph_avs(self, char, graph, branch, tick):
+    def get_char_graph_avs(self, char, graph, branch, turn, tick):
         return self._forward_valcache(
-            self.graphavs[(char, graph)], branch, tick
+            self.graphavs[(char, graph)], branch, turn, tick
         ) or set()
 
-    def get_char_graph_solo_av(self, char, graph, branch, tick):
+    def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
         return self._forward_valcache(
-            self.soloav[(char, graph)], branch, tick, copy=False
+            self.soloav[(char, graph)], branch, turn, tick, copy=False
         )
 
-    def get_char_only_av(self, char, branch, tick):
+    def get_char_only_av(self, char, branch, turn, tick):
         return self._forward_valcache(
-            self.uniqav[char], branch, tick, copy=False
+            self.uniqav[char], branch, turn, tick, copy=False
         )
 
-    def get_char_only_graph(self, char, branch, tick):
+    def get_char_only_graph(self, char, branch, turn, tick):
         return self._forward_valcache(
-            self.uniqgraph[char], branch, tick, copy=False
+            self.uniqgraph[char], branch, turn, tick, copy=False
         )
 
-    def get_char_graphs(self, char, branch, tick):
+    def get_char_graphs(self, char, branch, turn, tick):
         return self._forward_valcache(
-            self.graphs[char], branch, tick
+            self.graphs[char], branch, turn, tick
         ) or set()
 
-    def iter_node_users(self, graph, node, branch, tick):
+    def iter_node_users(self, graph, node, branch, turn, tick):
         if graph not in self.user_order:
             return
         for character in self.user_order[graph][node]:
             if (graph, node, character, branch) not in self.user_shallow:
-                for (b, t) in self.allegedb._active_branches(branch, tick):
+                for (b, t) in self.db._active_branches(branch, turn):
                     if b in self.user_order[graph][node][character]:
                         isav = self.user_order[graph][node][character][b][t]
-                        self.store(character, graph, node, b, t, isav)
-                        self.store(character, graph, node, branch, tick, isav)
+                        self.store(character, graph, node, branch, turn, tick, isav[isav.end])
                         break
                 else:
-                    self.store(character, graph, node, branch, tick, None)
-            if self.user_shallow[(graph, node, character, branch)][tick]:
+                    self.store(character, graph, node, branch, turn, tick, None)
+            if self.user_shallow[(graph, node, character, branch)][turn][tick]:
                 yield character
 
 
@@ -155,24 +149,24 @@ class RulesHandledCache(object):
 
     def store(self, *args):
         entity = args[:-4]
-        rulebook, rule, branch, tick = args[-4:]
-        if tick >= self.engine._branch_end[branch]:
-            self.engine._branch_end[branch] = tick
+        rulebook, rule, branch, turn = args[-4:]
+        if turn >= self.engine._branch_end[branch]:
+            self.engine._branch_end[branch] = turn
         else:
             raise HistoryError(
                 "Tried to cache a value at {}, "
                 "but the branch {} already has history up to {}".format(
-                    tick, branch, self.engine._branch_end[branch]
+                    turn, branch, self.engine._branch_end[branch]
                 )
             )
         shalo = self.shallow.setdefault(entity + (rulebook, rule, branch), set())
         unhandl = self.unhandled
         for spot in entity:
             unhandl = unhandl[spot]
-        if tick not in unhandl.setdefault(branch, {}):
-            itargs = entity + (branch, tick)
-            unhandl[branch][tick] = list(self._iter_rulebook(*itargs))
-        unhandl[branch][tick].remove(entity + (rulebook, rule))
+        if turn not in unhandl.setdefault(branch, {}):
+            itargs = entity + (branch, turn)
+            unhandl[branch][turn] = list(self._iter_rulebook(*itargs))
+        unhandl[branch][turn].remove(entity + (rulebook, rule))
         shalo.add(rule)
 
     def retrieve(self, *args):
@@ -199,18 +193,18 @@ class RulesHandledCache(object):
 
 
 class CharacterRulesHandledCache(RulesHandledCache):
-    def _iter_rulebook(self, character, branch, tick):
-        rulebook = self.engine._characters_rulebooks_cache.retrieve(character, branch, tick)
-        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, tick):
+    def _iter_rulebook(self, character, branch, turn):
+        rulebook = self.engine._characters_rulebooks_cache.retrieve(character, branch, turn, 0)
+        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, 0):
             yield character, rulebook, rule
 
 
 class AvatarRulesHandledCache(RulesHandledCache):
     depth = 3
 
-    def _iter_rulebook(self, character, branch, tick):
-        rulebook = self.engine._avatars_rulebooks_cache.retrieve(character, branch, tick)
-        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
+    def _iter_rulebook(self, character, branch, turn):
+        rulebook = self.engine._avatars_rulebooks_cache.retrieve(character, branch, turn, 0)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, 0)
         for graph in self.engine.character[character].avatar:
             for avatar in self.engine.character[character].avatar[graph]:
                 for rule in rules:
@@ -220,9 +214,9 @@ class AvatarRulesHandledCache(RulesHandledCache):
 class CharacterThingRulesHandledCache(RulesHandledCache):
     depth = 2
 
-    def _iter_rulebook(self, character, thing, branch, tick):
-        rulebook = self.engine._characters_things_rulebooks_cache.retrieve(character, branch, tick)
-        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
+    def _iter_rulebook(self, character, thing, branch, turn):
+        rulebook = self.engine._characters_things_rulebooks_cache.retrieve(character, branch, turn, 0)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, 0)
         for thing in self.engine.character[character].thing:
             for rule in rules:
                 yield character, thing, rulebook, rule
@@ -231,9 +225,9 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
     depth = 2
 
-    def _iter_rulebook(self, character, branch, tick):
-        rulebook = self.engine._characters_places_rulebooks_cache.retrieve(character, branch, tick)
-        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, tick)
+    def _iter_rulebook(self, character, branch, turn):
+        rulebook = self.engine._characters_places_rulebooks_cache.retrieve(character, branch, turn, 0)
+        rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, 0)
         for place in self.engine.character[character].place:
             for rule in rules:
                 yield character, place, rulebook, rule
@@ -263,23 +257,21 @@ class NodeRulesHandledCache(RulesHandledCache):
 class PortalRulesHandledCache(RulesHandledCache):
     depth = 3
 
-    def _iter_rulebook(self, character, orig, dest, branch, tick):
-        rulebook = self.engine._portals_rulebooks_cache.retrieve(character, orig, dest, branch, tick)
-        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, tick):
+    def _iter_rulebook(self, character, orig, dest, branch, turn):
+        rulebook = self.engine._portals_rulebooks_cache.retrieve(character, orig, dest, branch, turn, 0)
+        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, 0):
             yield character, orig, dest, rulebook, rule
 
 
 class ThingsCache(Cache):
-    STORE_ANEW = False
-
     def __init__(self, db):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def tick_before(self, character, thing, branch, tick):
-        self.retrieve(character, thing, branch, tick)
-        return self.keys[(character,)][thing][branch].rev_before(tick)
+    def turn_before(self, character, thing, branch, turn):
+        self.retrieve(character, thing, branch, turn)
+        return self.keys[(character,)][thing][branch].rev_before(turn)
 
-    def tick_after(self, character, thing, branch, tick):
-        self.retrieve(character, thing, branch, tick)
-        return self.keys[(character,)][thing][branch].rev_after(tick)
+    def turn_after(self, character, thing, branch, turn):
+        self.retrieve(character, thing, branch, turn)
+        return self.keys[(character,)][thing][branch].rev_after(turn)

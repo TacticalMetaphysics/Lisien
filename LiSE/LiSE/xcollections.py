@@ -246,27 +246,27 @@ class UniversalMapping(MutableMapping, Signal):
         self.engine = engine
 
     def __iter__(self):
-        return self.engine._universal_cache.iter_keys(*self.engine.time)
+        return self.engine._universal_cache.iter_keys(*self.engine.btt())
 
     def __len__(self):
-        return self.engine._universal_cache.count_keys(*self.engine.time)
+        return self.engine._universal_cache.count_keys(*self.engine.btt())
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        return self.engine._universal_cache.retrieve(k, *self.engine.time)
+        return self.engine._universal_cache.retrieve(k, *self.engine.btt())
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
-        (branch, tick) = self.engine.time
-        self.engine.query.universal_set(k, branch, tick, v)
-        self.engine._universal_cache.store(k, branch, tick, v)
+        branch, turn, tick = self.engine.btt()
+        self.engine.query.universal_set(k, branch, turn, tick, v)
+        self.engine._universal_cache.store(k, branch, turn, tick, v)
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        branch, tick = self.engine.time
-        self.engine.query.universal_del(k, branch, tick)
-        self.engine._universal_cache.store(k, branch, tick, None)
+        branch, turn, tick = self.engine.btt()
+        self.engine.query.universal_del(k, branch, turn, tick)
+        self.engine._universal_cache.store(k, branch, turn, tick, None)
         self.send(self, key=k, val=None)
 
 

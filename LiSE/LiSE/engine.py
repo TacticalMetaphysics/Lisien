@@ -47,7 +47,7 @@ class TimeSignal(Signal):
 
     def __iter__(self):
         yield self.engine.branch
-        yield self.engine.tick
+        yield self.engine.turn
 
     def __len__(self):
         return 2
@@ -277,8 +277,8 @@ class Engine(AbstractEngine, gORM):
     Properties:
 
     - ``branch``: The fork of the timestream that we're on.
-    - ``tick``: Units of time that have passed since the sim started.
-    - ``time``: ``(branch, tick)``
+    - ``turn``: Units of time that have passed since the sim started.
+    - ``time``: ``(branch, turn)``
     - ``character``: A mapping of :class:`Character` objects by name.
     - ``rule``: A mapping of all rules that have been made.
     - ``rulebook``: A mapping of lists of rules. They are followed in
@@ -372,7 +372,8 @@ class Engine(AbstractEngine, gORM):
 
     def _remember_avatarness(
             self, character, graph, node,
-            is_avatar=True, branch=None, tick=None
+            is_avatar=True, branch=None, turn=None,
+            tick=None
     ):
         """Use this to record a change in avatarness.
 
@@ -384,13 +385,15 @@ class Engine(AbstractEngine, gORM):
         ``graph`` is the character the node is in.
 
         """
-        branch = self.branch if branch is None else branch
-        tick = self.tick if tick is None else tick
+        branch = branch or self.branch
+        turn = turn or self.turn
+        tick = tick or self.tick
         self._avatarness_cache.store(
             character,
             graph,
             node,
             branch,
+            turn,
             tick,
             is_avatar
         )
@@ -399,14 +402,10 @@ class Engine(AbstractEngine, gORM):
             graph,
             node,
             branch,
+            turn,
             tick,
             is_avatar
         )
-
-    def _have_history_after(self, branch=None, tick=None):
-        branch = branch or self.branch
-        tick = tick or self.tick
-        # TODO
 
     def _init_caches(self):
         super()._init_caches()
@@ -481,70 +480,70 @@ class Engine(AbstractEngine, gORM):
         rule_prereqs = dd2()
         rule_actions = dd2()
         for row in self.query.things_dump():
-            character, thing, branch, tick, loc, nxtloc = row
-            things[branch][tick].append((
-                character, thing, branch, tick, (loc, nxtloc)
+            character, thing, branch, turn, tick, loc, nxtloc = row
+            things[branch][turn].append((
+                character, thing, branch, turn, (loc, nxtloc)
             ))
         for row in self.query.avatars_dump():
-            character, graph, node, branch, tick, is_av = row
-            avatars[branch][tick].append(row)
+            character, graph, node, branch, turn, tick, is_av = row
+            avatars[branch][turn].append(row)
         for row in self.query.universals_dump():
-            key, branch, tick, value = row
-            universals[branch][tick].append(row)
+            key, branch, turn, tick, value = row
+            universals[branch][turn].append(row)
         for row in self.query.rulebooks_dump():
-            rulebook, branch, tick, rules = row
-            rulebooks[branch][tick].append(row)
+            rulebook, branch, turn, tick, rules = row
+            rulebooks[branch][turn].append(row)
         for row in self.query.character_rulebook_dump():
-            character, branch, tick, rulebook = row
-            character_rulebook[branch][tick].append(row)
+            character, branch, turn, tick, rulebook = row
+            character_rulebook[branch][turn].append(row)
         for row in self.query.avatar_rulebook_dump():
-            character, branch, tick, rulebook = row
-            avatar_rulebook[branch][tick].append(row)
+            character, branch, turn, tick, rulebook = row
+            avatar_rulebook[branch][turn].append(row)
         for row in self.query.character_thing_rulebook_dump():
-            character, branch, tick, rulebook = row
-            character_thing_rulebook[branch][tick].append(row)
+            character, branch, turn, tick, rulebook = row
+            character_thing_rulebook[branch][turn].append(row)
         for row in self.query.character_place_rulebook_dump():
-            character, branch, tick, rulebook = row
-            character_place_rulebook[branch][tick].append(row)
+            character, branch, turn, tick, rulebook = row
+            character_place_rulebook[branch][turn].append(row)
         for row in self.query.character_portal_rulebook_dump():
-            character, branch, tick, rulebook = row
-            character_portal_rulebook[branch][tick].append(row)
+            character, branch, turn, tick, rulebook = row
+            character_portal_rulebook[branch][turn].append(row)
         for row in self.query.node_rulebook_dump():
-            character, node, branch, tick, rulebook = row
-            node_rulebook[branch][tick].append(row)
+            character, node, branch, turn, tick, rulebook = row
+            node_rulebook[branch][turn].append(row)
         for row in self.query.portal_rulebook_dump():
-            character, orig, dest, branch, tick, rulebook = row
-            portal_rulebook[branch][tick].append(row)
+            character, orig, dest, branch, turn, tick, rulebook = row
+            portal_rulebook[branch][turn].append(row)
         for row in self.query.rule_triggers_dump():
-            rule, branch, tick, triggers = row
-            rule_triggers[branch][tick].append(row)
+            rule, branch, turn, tick, triggers = row
+            rule_triggers[branch][turn].append(row)
         for row in self.query.rule_prereqs_dump():
-            rule, branch, tick, prereqs = row
-            rule_prereqs[branch][tick].append(row)
+            rule, branch, turn, tick, prereqs = row
+            rule_prereqs[branch][turn].append(row)
         for row in self.query.rule_actions_dump():
-            rule, branch, tick, actions = row
-            rule_actions[branch][tick].append(row)
+            rule, branch, turn, tick, actions = row
+            rule_actions[branch][turn].append(row)
         for row in self.query.character_rules_handled_dump():
-            character, rulebook, rule, branch, tick = row
-            character_rules_handled[branch][tick].append(row)
+            character, rulebook, rule, branch, turn, tick = row
+            character_rules_handled[branch][turn].append(row)
         for row in self.query.avatar_rules_handled_dump():
-            character, rulebook, rule, graph, avatar, branch, tick = row
-            avatar_rules_handled[branch][tick].append(row)
+            character, rulebook, rule, graph, avatar, branch, turn, tick = row
+            avatar_rules_handled[branch][turn].append(row)
         for row in self.query.character_thing_rules_handled_dump():
-            character, rulebook, rule, thing, branch, tick = row
-            character_thing_rules_handled[branch][tick].append(row)
+            character, rulebook, rule, thing, branch, turn = row
+            character_thing_rules_handled[branch][turn].append(row)
         for row in self.query.character_place_rules_handled_dump():
-            character, rulebook, rule, place, branch, tick = row
-            character_place_rules_handled[branch][tick].append(row)
+            character, rulebook, rule, place, branch, turn = row
+            character_place_rules_handled[branch][turn].append(row)
         for row in self.query.character_portal_rules_handled_dump():
-            character, rulebook, rule, orig, dest, branch, tick = row
-            character_portal_rules_handled[branch][tick].append(row)
+            character, rulebook, rule, orig, dest, branch, turn = row
+            character_portal_rules_handled[branch][turn].append(row)
         for row in self.query.node_rules_handled_dump():
-            character, node, rulebook, rule, branch, tick = row
-            node_rules_handled[branch][tick].append(row)
+            character, node, rulebook, rule, branch, turn = row
+            node_rules_handled[branch][turn].append(row)
         for row in self.query.portal_rules_handled_dump():
-            character, orig, dest, rulebook, rule, branch, tick = row
-            portal_rules_handled[branch][tick].append(row)
+            character, orig, dest, rulebook, rule, branch, turn = row
+            portal_rules_handled[branch][turn].append(row)
         return [(self._things_cache, things)] + super()._init_load() + [
             (self._avatarness_cache, avatars),
             (self._universal_cache, universals),
@@ -786,15 +785,14 @@ class Engine(AbstractEngine, gORM):
         self.time = (v, t)
 
     @property
-    def tick(self):
-        return self.rev
+    def turn(self):
+        return self._oturn
 
-    @tick.setter
+    @turn.setter
     def tick(self, v):
-        """Update allegedb's ``rev``, and call listeners"""
         if not isinstance(v, int):
-            raise TypeError("tick must be integer")
-        if v == self.tick:
+            raise TypeError("turn must be integer")
+        if v == self.turn:
             return
         self.time = (self.branch, v)
 
@@ -977,40 +975,45 @@ class Engine(AbstractEngine, gORM):
         return self._things_cache.contains_entity(character, node, *self.time)
 
     def _set_thing_loc_and_next(
-            self, character, node, loc, nextloc=None, branch=None, tick=None
+            self, character, node, loc, nextloc=None, branch=None, turn=None, tick=None
     ):
         branch = branch or self.branch
+        turn = turn or self.turn
         tick = tick or self.tick
-        self._things_cache.store(character, node, branch, tick, (loc, nextloc))
+        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
         self.query.thing_loc_and_next_set(
             character,
             node,
             branch,
+            turn,
             tick,
             loc,
             nextloc
         )
 
     def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self.time)
+        return self._nodes_cache.contains_entity(character, node, *self.btt())
 
-    def _exist_node(self, character, node, exist=True, branch=None, tick=None):
+    def _exist_node(self, character, node, exist=True, branch=None, turn=None, tick=None):
         branch = branch or self.branch
+        turn = turn or self.turn
         tick = tick or self.tick
         self.query.exist_node(
             character,
             node,
             branch,
+            turn,
             tick,
             exist
         )
-        self._nodes_cache.store(character, node, branch, tick, exist)
-        self._nodes_rulebooks_cache.store(character, node, branch, tick, (character, node))
+        self._nodes_cache.store(character, node, branch, turn, tick, exist)
+        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node))
 
     def _exist_edge(
-            self, character, orig, dest, exist=True, branch=None, tick=None
+            self, character, orig, dest, exist=True, branch=None, turn=None, tick=None
     ):
         branch = branch or self.branch
+        turn = turn or self.turn
         tick = tick or self.tick
         self.query.exist_edge(
             character,
@@ -1018,11 +1021,12 @@ class Engine(AbstractEngine, gORM):
             dest,
             0,
             branch,
+            turn,
             tick,
             exist
         )
         self._edges_cache.store(
-            character, orig, dest, 0, branch, tick, exist
+            character, orig, dest, 0, branch, turn, tick, exist
         )
 
     def alias(self, v, stat='dummy'):

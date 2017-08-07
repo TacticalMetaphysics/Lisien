@@ -163,8 +163,8 @@ class QueryEngine(object):
         s = self.strings[stringname]
         return self.connection.cursor().executemany(s, args)
 
-    def active_branches(self, branch, rev):
-        """Yield a series of ``(branch, rev)`` pairs, starting with the
+    def active_branches(self, branch, turn):
+        """Yield a series of ``(branch, turn)`` pairs, starting with the
         ``branch`` and ``rev`` provided; proceeding to the parent
         branch and the revision therein when the provided branch
         began; and recursing through the entire genealogy of branches
@@ -174,18 +174,18 @@ class QueryEngine(object):
         you're adding functionality to allegedb.
 
         """
-        yield (branch, rev)
+        yield (branch, turn)
         while branch != 'trunk':
             if branch not in self._branches:
                 (b, r) = self.parparrev(branch)
                 self._branches[branch] = (b, self.json_load(r))
-            (branch, rev) = self._branches[branch]
-            yield (branch, rev)
+            (branch, turn) = self._branches[branch]
+            yield (branch, turn)
 
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
         graph = self.json_dump(graph)
-        return bool(self.sql('ctgraph', graph).fetchone()[0])
+        return bool(self.sql('graphs_count', graph).fetchone()[0])
 
     def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
@@ -212,10 +212,10 @@ class QueryEngine(object):
 
     def all_branches(self):
         """Return all the branch data in tuples of (branch, parent,
-        parent_rev).
+        parent_turn).
 
         """
-        return self.sql('allbranch').fetchall()
+        return self.sql('branches_dump').fetchall()
 
     def global_get(self, key):
         """Return the value for the given key in the ``globals`` table."""
@@ -227,7 +227,7 @@ class QueryEngine(object):
 
     def global_items(self):
         """Iterate over (key, value) pairs in the ``globals`` table."""
-        for (k, v) in self.sql('global_items'):
+        for (k, v) in self.sql('global_dump'):
             yield (self.json_load(k), self.json_load(v))
 
     def global_set(self, key, value):
@@ -237,78 +237,34 @@ class QueryEngine(object):
         """
         (key, value) = map(self.json_dump, (key, value))
         try:
-            return self.sql('global_ins', key, value)
+            return self.sql('global_insert', key, value)
         except IntegrityError:
-            return self.sql('global_upd', value, key)
+            return self.sql('global_update', value, key)
 
     def global_del(self, key):
         """Delete the global record for the key."""
         key = self.json_dump(key)
         return self.sql('global_del', key)
 
-    def parrev(self, branch):
-        """Return the parent of the branch."""
-        return self.sql('parrev', branch).fetchone()[0]
-
-    def parparrev(self, branch):
-        """Return the parent and start revision of the branch."""
-        return self.sql('parparrev', branch)
-
-    def new_branch(self, branch, parent, parent_rev):
+    def new_branch(self, branch, parent, parent_turn):
         """Declare that the ``branch`` is descended from ``parent`` at
-        ``parent_rev``
+        ``parent_turn``
 
         """
-        return self.sql('new_branch', branch, parent, parent_rev)
+        return self.sql('branches_insert', branch, parent, parent_turn)
 
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
-        for (graph, key, branch, rev, value) in self.sql('graph_val_dump'):
+        for (graph, key, branch, turn, tick, value) in self.sql('graph_val_dump'):
             yield (
                 self.json_load(graph),
                 self.json_load(key),
                 branch,
-                rev,
+                turn,
+                tick,
                 self.json_load(value)
             )
-
-    def graph_val_keys(self, graph, branch, rev):
-        """Return an iterable of keys that are set on the graph at the given
-        revision.
-
-        """
-        self._flush_graph_val()
-        graph = self.json_dump(graph)
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            data = self.sql(
-                'graph_val_items', graph, b, r
-            )
-            for (k, v) in data:
-                if k not in seen:
-                    yield self.json_load(k)
-                seen.add(k)
-
-    def graph_val_get(self, graph, key, branch, rev):
-        """Return the value of a key that a graph has, as of the given
-        revision.
-
-        """
-        self._flush_graph_val()
-        (graph, key) = map(self.json_dump, (graph, key))
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'graph_val_get',
-                graph,
-                key,
-                branch,
-                rev
-            ):
-                if row is None:
-                    raise KeyError("Key not set")
-                return self.json_load(row[0])
-        raise KeyError("Key never set")
 
     def _flush_graph_val(self):
         """Send all new and changed graph values to the database."""
@@ -317,15 +273,15 @@ class QueryEngine(object):
                 return (
                     self.json_dump(arg['graph']),
                     self.json_dump(arg['key']),
-                    arg['branch'], arg['rev'],
+                    arg['branch'], arg['turn'], arg['tick'],
                     self.json_dump(arg['value'])
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, key, branch, rev, value = arg
+                graph, key, branch, turn, tick, value = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(key),
-                    branch, rev,
+                    branch, turn, tick,
                     self.json_dump(value)
                 )
             else:
@@ -335,54 +291,19 @@ class QueryEngine(object):
 
         if not self._graphvals2set:
             return
-        self.sqlmany('graph_val_ins', *map(convert_arg, self._graphvals2set))
+        self.sqlmany('graph_val_insert', *map(convert_arg, self._graphvals2set))
         self._graphvals2set = []
 
-    def graph_val_set(self, graph, key, branch, rev, value):
-        """Set a key to a value on a graph at a particular revision."""
-        self._graphvals2set.append((graph, key, branch, rev, value))
+    def graph_val_set(self, graph, key, branch, turn, tick, value):
+        self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
-    def graph_val_del(self, graph, key, branch, rev):
+    def graph_val_del(self, graph, key, branch, turn, tick):
         """Indicate that the key is unset."""
-        self.graph_val_set(graph, key, branch, rev, None)
+        self.graph_val_set(graph, key, branch, turn, tick, None)
 
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
             yield (self.json_load(graph), typ)
-
-    def nodes_extant(self, graph, branch, rev):
-        """Return an iterable of nodes that exist in this graph at this
-        revision.
-
-        """
-        self._flush_nodes()
-        graph = self.json_dump(graph)
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            data = self.sql(
-                'nodes_extant',
-                graph,
-                branch,
-                rev
-            )
-            for (n,) in data:
-                if n is not None and n not in seen:
-                    yield self.json_load(n)
-                seen.add(n)
-
-    def node_exists(self, graph, node, branch, rev):
-        """Return whether there's a node by this name in this graph at this
-        revision.
-
-        """
-        self._flush_nodes()
-        (graph, node) = map(self.json_dump, (graph, node))
-        for (b, r) in self.active_branches(branch, rev):
-            for x in self.sql(
-                'node_exists', graph, node, b, r
-            ):
-                return bool(x[0])
-        return False
 
     def _flush_nodes(self):
         def convert_arg(arg):
@@ -390,14 +311,14 @@ class QueryEngine(object):
                 return (
                     self.json_dump(arg['graph']),
                     self.json_dump(arg['node']),
-                    arg['branch'], arg['rev'], arg['extant']
+                    arg['branch'], arg['turn'], arg['tick'], arg['extant']
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, node, branch, rev, extant = arg
+                graph, node, branch, turn, tick, extant = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(node),
-                    branch, rev, extant
+                    branch, turn, tick, extant
                 )
             else:
                 raise TypeError(
@@ -406,25 +327,26 @@ class QueryEngine(object):
 
         if not self._nodes2set:
             return
-        self.sqlmany('exist_node_ins', *map(convert_arg, self._nodes2set))
+        self.sqlmany('nodes_insert', *map(convert_arg, self._nodes2set))
         self._nodes2set = []
 
-    def exist_node(self, graph, node, branch, rev, extant):
+    def exist_node(self, graph, node, branch, turn, tick, extant):
         """Declare that the node exists or doesn't.
 
         Inserts a new record or updates an old one, as needed.
 
         """
-        self._nodes2set.append((graph, node, branch, rev, extant))
+        self._nodes2set.append((graph, node, branch, turn, tick, extant))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
-        for (graph, node, branch, tick, extant) in self.sql('nodes_dump'):
+        for (graph, node, branch, turn,tick, extant) in self.sql('nodes_dump'):
             yield (
                 self.json_load(graph),
                 self.json_load(node),
                 branch,
+                turn,
                 tick,
                 bool(extant)
             )
@@ -433,63 +355,17 @@ class QueryEngine(object):
         """Yield the entire contents of the node_val table."""
         self._flush_node_val()
         for (
-                graph, node, key, branch, rev, value
+                graph, node, key, branch, turn, tick, value
         ) in self.sql('node_val_dump'):
             yield (
                 self.json_load(graph),
                 self.json_load(node),
                 self.json_load(key),
                 branch,
-                rev,
+                turn,
+                tick,
                 self.json_load(value)
             )
-
-    def node_val_keys(self, graph, node, branch, rev):
-        """Return an iterable of keys that are set on the node at the given
-        revision.
-
-        """
-        self._flush_node_val()
-        (graph, node) = map(self.json_dump, (graph, node))
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            for (k, v) in self.sql(
-                    'node_val_items',
-                    graph,
-                    node,
-                    branch,
-                    rev
-            ):
-                if k not in seen and v is not None:
-                    yield self.json_load(k)
-                seen.add(k)
-
-    def node_vals_ever(self, graph, node):
-        """Iterate over all values set on a node through time."""
-        self._flush_node_val()
-        (graph, node) = map(self.json_dump, (graph, node))
-        for (key, branch, tick, value) in self.sql(
-                'node_vals_ever', graph, node
-        ):
-            yield (self.json_load(key), branch, tick, self.json_load(value))
-
-    def node_val_get(self, graph, node, key, branch, rev):
-        """Get the value of the node's key as it was at the given revision."""
-        self._flush_node_val()
-        (graph, node, key) = map(self.json_dump, (graph, node, key))
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'node_val_get',
-                graph,
-                node,
-                key,
-                branch,
-                rev
-            ):
-                if row[0] is None:
-                    raise KeyError("Key not set")
-                return self.json_load(row[0])
-        raise KeyError("Key {} never set".format(key))
 
     def _flush_node_val(self):
         def convert_arg(arg):
@@ -499,17 +375,19 @@ class QueryEngine(object):
                     self.json_dump(arg['node']),
                     self.json_dump(arg['key']),
                     arg['branch'],
-                    arg['rev'],
+                    arg['turn'],
+                    arg['tick'],
                     self.json_dump(arg['value'])
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, node, key, branch, rev, value = arg
+                graph, node, key, branch, turn, tick, value = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(node),
                     self.json_dump(key),
                     branch,
-                    rev,
+                    turn,
+                    tick,
                     self.json_dump(value)
                 )
             else:
@@ -519,22 +397,22 @@ class QueryEngine(object):
 
         if not self._nodevals2set:
             return
-        self.sqlmany('node_val_ins', *map(convert_arg, self._nodevals2set))
+        self.sqlmany('node_val_insert', *map(convert_arg, self._nodevals2set))
         self._nodevals2set = []
 
-    def node_val_set(self, graph, node, key, branch, rev, value):
+    def node_val_set(self, graph, node, key, branch, turn, tick, value):
         """Set a key-value pair on a node at a specific branch and revision"""
-        self._nodevals2set.append((graph, node, key, branch, rev, value))
+        self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
-    def node_val_del(self, graph, node, key, branch, rev):
+    def node_val_del(self, graph, node, key, branch, turn):
         """Delete a key from a node at a specific branch and revision"""
-        self.node_val_set(graph, node, key, branch, rev, None)
+        self.node_val_set(graph, node, key, branch, turn, tick, None)
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
         self._flush_edges()
         for (
-                graph, orig, dest, idx, branch, rev, extant
+                graph, orig, dest, idx, branch, turn, tick, extant
         ) in self.sql('edges_dump'):
             yield (
                 self.json_load(graph),
@@ -542,97 +420,10 @@ class QueryEngine(object):
                 self.json_load(dest),
                 idx,
                 branch,
-                rev,
+                turn,
+                tick,
                 bool(extant)
             )
-
-    def edges_extant(self, graph, branch, rev):
-        """Return an iterable of nodes that have edges from them, in this
-        graph, at this revision.
-
-        """
-        self._flush_edges()
-        graph = self.json_dump(graph)
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'edges_extant', graph, branch, rev
-            ):
-                if row[0] not in seen and row[1]:
-                    yield self.json_load(row[0])
-                seen.add(row[0])
-
-    def edge_exists(self, graph, orig, dest, idx, branch, rev):
-        """Return whether the edge exists now, or None if there's no data
-        about it in this branch.
-
-        """
-        self._flush_edges()
-        (graph, orig, dest) = map(self.json_dump, (graph, orig, dest))
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'edge_exists',
-                graph,
-                orig,
-                dest,
-                idx,
-                b,
-                r
-            ):
-                return bool(row[1])
-        return False
-
-    def origs(self, graph, dest, branch, rev):
-        """Return an iterable of nodes that have an edge leading to the given
-        node.
-
-        """
-        self._flush_nodes()
-        self._flush_edges()
-        (graph, dest) = map(self.json_dump, (graph, dest))
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'origs',
-                graph,
-                dest,
-                b,
-                r
-            ):
-                if row[0] not in seen and row[1]:
-                    yield self.json_load(row[0])
-                seen.add(row[0])
-
-    def dests(self, graph, orig, branch, rev):
-        """Return an iterable of nodes you can get to from the given one."""
-        self._flush_nodes()
-        self._flush_edges()
-        (graph, orig) = map(self.json_dump, (graph, orig))
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'dests', graph, orig, b, r
-            ):
-                if row[0] not in seen and row[1]:
-                    yield self.json_load(row[0])
-                seen.add(row[0])
-
-    def multi_edges(self, graph, orig, dest, branch, rev):
-        """Return an iterable of edge indices for all edges between these two
-        nodes.
-
-        """
-        self._flush_nodes()
-        self._flush_edges()
-        (graph, orig, dest) = map(self.json_dump, (graph, orig, dest))
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'multi_edges', graph, orig, dest, branch, rev
-            ):
-                if row[0] not in seen and row[1]:
-                    yield row[0]
-                seen.add(row[0])
 
     def _flush_edges(self):
         def convert_arg(arg):
@@ -641,15 +432,16 @@ class QueryEngine(object):
                     self.json_dump(arg['graph']),
                     self.json_dump(arg['orig']),
                     self.json_dump(arg['dest']),
-                    arg['idx'], arg['branch'], arg['rev'], arg['extant']
+                    arg['idx'], arg['branch'], arg['turn'],
+                    arg['tick'], arg['extant']
                 )
             elif isinstance(arg, list) or isinstance(arg, tuple):
-                graph, orig, dest, idx, branch, rev, extant = arg
+                graph, orig, dest, idx, branch, turn, tick, extant = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(orig),
                     self.json_dump(dest),
-                    idx, branch, rev, extant
+                    idx, branch, turn, tick, extant
                 )
             else:
                 raise TypeError(
@@ -658,18 +450,18 @@ class QueryEngine(object):
 
         if not self._edges2set:
             return
-        self.sqlmany('edge_exist_ins', *map(convert_arg, self._edges2set))
+        self.sqlmany('edges_insert', *map(convert_arg, self._edges2set))
         self._edges2set = []
 
-    def exist_edge(self, graph, orig, dest, idx, branch, rev, extant):
+    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
-        self._edges2set.append((graph, orig, dest, idx, branch, rev, extant))
+        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
         self._flush_edge_val()
         for (
-                graph, orig, dest, idx, key, branch, rev, value
+                graph, orig, dest, idx, key, branch, turn, tick, value
         ) in self.sql('edge_val_dump'):
             yield (
                 self.json_load(graph),
@@ -678,37 +470,10 @@ class QueryEngine(object):
                 idx,
                 self.json_load(key),
                 branch,
-                rev,
+                turn,
+                tick,
                 self.json_load(value)
             )
-
-    def edge_val_keys(self, graph, orig, dest, idx, branch, rev):
-        """Return an iterable of keys this edge has."""
-        self._flush_edge_val()
-        (graph, orig, dest) = map(self.json_dump, (graph, orig, dest))
-        seen = set()
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'edge_val_items', graph, orig, dest, idx, b, r
-            ):
-                if row[0] not in seen:
-                    yield self.json_load(row[0])
-                seen.add(row[0])
-
-    def edge_val_get(self, graph, orig, dest, idx, key, branch, rev):
-        """Return the value of this key of this edge."""
-        self._flush_edge_val()
-        (graph, orig, dest, key) = map(
-            self.json_dump, (graph, orig, dest, key)
-        )
-        for (b, r) in self.active_branches(branch, rev):
-            for row in self.sql(
-                'edge_val_get', graph, orig, dest, idx, key, b, r
-            ):
-                if row[0] is None:
-                    raise KeyError("Key not set")
-                return self.json_load(row[0])
-        raise KeyError("Key never set")
 
     def _flush_edge_val(self):
         def convert_arg(arg):
@@ -719,18 +484,18 @@ class QueryEngine(object):
                     self.json_dump(arg['dest']),
                     arg['idx'],
                     self.json_dump(arg['key']),
-                    arg['branch'], arg['rev'],
+                    arg['branch'], arg['turn'], arg['tick'],
                     self.json_dump(arg['value'])
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, orig, dest, idx, key, branch, rev, value = arg
+                graph, orig, dest, idx, key, branch, turn, tick, value = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(orig),
                     self.json_dump(dest),
                     idx,
                     self.json_dump(key),
-                    branch, rev,
+                    branch, turn, tick,
                     self.json_dump(value)
                 )
             else:
@@ -743,18 +508,18 @@ class QueryEngine(object):
         self.sqlmany('edge_val_ins', *map(convert_arg, self._edgevals2set))
         self._edgevals2set = []
 
-    def edge_val_set(self, graph, orig, dest, idx, key, branch, rev, value):
+    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
         """Set this key of this edge to this value."""
         self._edgevals2set.append(
-            (graph, orig, dest, idx, key, branch, rev, value)
+            (graph, orig, dest, idx, key, branch, turn, tick, value)
         )
 
-    def edge_val_del(self, graph, orig, dest, idx, key, branch, rev):
+    def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick):
         """Declare that the key no longer applies to this edge, as of this
         branch and revision.
 
         """
-        self.edge_val_set(graph, orig, dest, idx, key, branch, rev, None)
+        self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, None)
 
     def initdb(self):
         """Create tables and indices as needed."""
@@ -773,8 +538,10 @@ class QueryEngine(object):
             cursor.execute(self.strings['create_global'])
         if 'branch' not in self.globl:
             self.globl['branch'] = 'trunk'
-        if 'rev' not in self.globl:
-            self.globl['rev'] = 0
+        if 'turn' not in self.globl:
+            self.globl['turn'] = 0
+        if 'tick' not in self.globl:
+            self.globl['tick'] = 0
         try:
             cursor.execute('SELECT * FROM branches;')
         except OperationalError:
@@ -787,28 +554,23 @@ class QueryEngine(object):
             cursor.execute('SELECT * FROM graph_val;')
         except OperationalError:
             cursor.execute(self.strings['create_graph_val'])
-            cursor.execute(self.strings['index_graph_val_time'])
         try:
             cursor.execute('SELECT * FROM nodes;')
         except OperationalError:
             cursor.execute(self.strings['create_nodes'])
-            cursor.execute(self.strings['index_nodes_time'])
 
         try:
             cursor.execute('SELECT * FROM node_val;')
         except OperationalError:
             cursor.execute(self.strings['create_node_val'])
-            cursor.execute(self.strings['index_node_val_time'])
         try:
             cursor.execute('SELECT * FROM edges;')
         except OperationalError:
             cursor.execute(self.strings['create_edges'])
-            cursor.execute(self.strings['index_edges_time'])
         try:
             cursor.execute('SELECT * FROM edge_val;')
         except OperationalError:
             cursor.execute(self.strings['create_edge_val'])
-            cursor.execute(self.strings['index_edge_val_time'])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""

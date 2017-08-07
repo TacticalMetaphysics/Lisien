@@ -70,7 +70,7 @@ class Thing(Node):
         n = self.name
         thingcache = self.engine._things_cache
         for b, t in self.engine._active_branches(branch, tick):
-            v = thingcache.tick_before(charn, n, b, t)
+            v = thingcache.turn_before(charn, n, b, t)
             if v is not None:
                 return v
         else:
@@ -78,15 +78,15 @@ class Thing(Node):
 
     def _get_next_arrival_time(self):
         try:
-            return self.engine._things_cache.tick_after(
-                self.character.name, self.name, *self.engine.time
+            return self.engine._things_cache.turn_after(
+                self.character.name, self.name, *self.engine.btt()
             )
         except KeyError:
             return None
 
     def _get_locations(self):
         return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine.time
+            self.character.name, self.name, *self.engine.btt()
         )
 
     _getitem_dispatch = {
