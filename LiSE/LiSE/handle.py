@@ -142,15 +142,17 @@ class EngineHandle(object):
                 for char in chars
             }
 
-    def next_tick(self, chars=[]):
-        self._real.next_tick()
-        self.tick += 1
+    def next_turn(self, chars=[]):
+        self._real.next_turn()
+        self.turn += 1
         if chars:
             return self.get_chardiffs(chars)
 
-    def time_travel(self, branch, tick, chars='all'):
-        self._real.time = (branch, tick)
+    def time_travel(self, branch, turn, tick=0, chars='all'):
+        self._real.time = (branch, turn)
+        self._real.tick = tick
         self.branch = branch
+        self.turn = turn
         self.tick = tick
         if chars:
             return self.get_chardiffs(chars)
@@ -222,8 +224,8 @@ class EngineHandle(object):
     def get_time(self):
         return self._real.time
 
-    def get_watched_time(self):
-        return (self.branch, self.tick)
+    def get_watched_btt(self):
+        return (self.branch, self.turn, self.tick)
 
     def get_language(self):
         return self._real.string.language
@@ -923,11 +925,11 @@ class EngineHandle(object):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
     def rule_copy(self, rule):
-        branch, tick = self.branch, self.tick
+        branch, turn, tick = self.branch, self.turn, self.tick
         return {
-            'triggers': list(self._real._triggers_cache.retrieve(rule, branch, tick)),
-            'prereqs': list(self._real._prereqs_cache.retrieve(rule, branch, tick)),
-            'actions': list(self._real._actions_cache.retrieve(rule, branch, tick))
+            'triggers': list(self._real._triggers_cache.retrieve(rule, branch, turn, tick)),
+            'prereqs': list(self._real._prereqs_cache.retrieve(rule, branch, turn, tick)),
+            'actions': list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
         }
 
     def rule_diff(self, rule):

@@ -30,18 +30,6 @@ class Place(Node):
             self['name']
         )
 
-    def _get_json_dict(self):
-        (branch, tick) = self.engine.time
-        return {
-            "type": "Place",
-            "version": 0,
-            "character": self["character"],
-            "name": self["name"],
-            "branch": branch,
-            "tick": tick,
-            "stat": dict(self)
-        }
-
     def dump(self):
         """Return a JSON representation of my present state"""
         return self.engine.json_dump(self._get_json_dict())

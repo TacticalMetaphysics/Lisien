@@ -3,6 +3,7 @@
 """Directed edges, as used by LiSE."""
 
 from allegedb.graph import Edge
+from allegedb.cache import HistoryError
 
 from .exc import CacheError
 from .util import getatt
@@ -53,14 +54,17 @@ class Portal(Edge, RuleFollower):
             return
         cache = cache[rulebook_name]
         for rule in cache:
-            for (branch, tick) in self.engine._active_branches():
+            for (branch, turn) in self.engine._active_branches():
                 if branch not in cache[rule]:
                     continue
                 try:
-                    yield (rule, cache[rule][branch][tick])
+                    yield (rule, cache[rule][branch][turn])
                     break
                 except ValueError:
                     continue
+                except HistoryError as ex:
+                    if ex.deleted:
+                        break
         raise KeyError("{}->{} has no rulebook?".format(
             self._origin, self._destination
         ))
@@ -73,9 +77,13 @@ class Portal(Edge, RuleFollower):
                 self.character.name][self._origin]:
             return
         cache = cache[self.character.name][self._origin][self._destination]
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, turn) in self.engine._active_branches():
             if branch in cache:
-                return cache[branch][tick]
+                try:
+                    return cache[branch][turn]
+                except HistoryError as ex:
+                    if ex.deleted:
+                        break
         raise CacheError(
             "Rulebook for portal {}->{} in character {} is not cached.".format(
                 self._origin, self._destination, self.character.name
@@ -251,23 +259,6 @@ class Portal(Edge, RuleFollower):
             if k not in self or self[k] != v:
                 self[k] = v
 
-    def _get_json_dict(self):
-        (branch, tick) = self.engine.time
-        return {
-            "type": "Portal",
-            "version": 0,
-            "branch": branch,
-            "tick": tick,
-            "character": self.character.name,
-            "origin": self._origin,
-            "destination": self._destination,
-            "stat": dict(self)
-        }
-
-    def dump(self):
-        """Return a JSON representation of my present state"""
-        return self.engine.json_dump(self._get_json_dict())
-
     def delete(self):
         """Remove myself from my :class:`Character`.
 
@@ -275,6 +266,13 @@ class Portal(Edge, RuleFollower):
 
         """
         del self.character.portal[self.origin.name][self.destination.name]
-        (branch, tick) = self.engine.time
-        self.engine._edges_cache[self.character.name][self.origin.name][
-            self.destination.name][branch][tick] = False
+        branch, turn, tick = self.engine.btt()
+        self.engine._edges_cache.store(
+            self.character.name,
+            self.origin.name,
+            self.destination.name,
+            branch,
+            turn,
+            tick,
+            False
+        )

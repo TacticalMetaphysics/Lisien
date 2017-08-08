@@ -1855,7 +1855,7 @@ class EngineProxy(AbstractEngine):
         self.prereq = FuncStoreProxy(self, 'prereq')
         self.trigger = FuncStoreProxy(self, 'trigger')
         self.function = FuncStoreProxy(self, 'function')
-        (self._branch, self._tick) = self.handle(command='get_watched_time')
+        self._branch, self._turn, self._tick = self.handle(command='get_watched_btt')
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -2155,14 +2155,22 @@ class EngineProxy(AbstractEngine):
         for char in deleted:
             del self._char_cache[char]
 
+    def btt(self):
+        return self._branch, self._turn, self._tick
+
+    def _inc_turn(self, *args):
+        self._turn += 1
+        self.time.send(self, branch=self._branch, turn=self._turn, tick=self._tick)
+
     def _inc_tick(self, *args):
         self._tick += 1
-        self.time.send(self, branch=self._branch, tick=self._tick)
+        self.time.send(self, branch=self._branch, turn=self._turn, tick=self._tick)
 
     def _set_time(self, *args, **kwargs):
         self._branch = kwargs['branch']
+        self._turn = kwargs['turn']
         self._tick = kwargs['tick']
-        self.time.send(self, branch=self._branch, tick=self._tick)
+        self.time.send(self, branch=self._branch, turn=self._turn, tick=self._tick)
 
     def _pull_async(self, chars, cb):
         if not callable(cb):

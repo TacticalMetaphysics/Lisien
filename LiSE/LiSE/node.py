@@ -11,6 +11,7 @@ from collections import Mapping
 from networkx import shortest_path, shortest_path_length
 
 import allegedb.graph
+from allegedb.cache import HistoryError
 
 from .util import getatt
 from .query import StatusAlias
@@ -131,12 +132,17 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         for user in cache:
             if user in seen:
                 continue
-            for (branch, tick) in self.engine._active_branches():
+            for (branch, turn) in self.engine._active_branches():
                 if branch in cache[user]:
-                    if cache[user][branch][tick]:
-                        yield user
-                    seen.add(user)
-                    break
+                    try:
+                        td = cache[user][branch][turn]
+                        if td[td.end]:
+                            yield user
+                        seen.add(user)
+                        break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
 
     @property
     def portal(self):

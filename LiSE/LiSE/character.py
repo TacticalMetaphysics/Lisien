@@ -768,11 +768,13 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
             if not isinstance(v, Callable):
                 raise TypeError("Not a function")
             self.engine.sense[funn] = v
-        (branch, tick) = self.engine.time
+        branch, turn, tick = self.engine.btt()
+        # TODO: cache
         self.engine.query.sense_fun_set(
             self.character.name,
             k,
             branch,
+            turn,
             tick,
             funn,
             True
@@ -781,11 +783,13 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
 
     def __delitem__(self, k):
         """Stop having the given sense."""
-        (branch, tick) = self.engine.time
+        branch, turn, tick = self.engine.btt()
+        # TODO: cache
         self.engine.query.sense_set(
             self.character.name,
             k,
             branch,
+            turn,
             tick,
             False
         )
@@ -1485,7 +1489,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.send(self, key=dest, val=p)
 
             def __delitem__(self, dest):
-                (branch, tick) = self.engine.time
                 self.engine._exist_edge(
                     self.graph.name,
                     self.orig,
