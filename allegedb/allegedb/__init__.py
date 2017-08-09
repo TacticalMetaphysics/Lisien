@@ -100,10 +100,10 @@ class ORM(object):
             # find the last rev in the branch
             last_turn = 0
             for cache, history in histories:
-                if len(history[branch]) > last_turn:
-                    last_turn = len(history[branch])
+                if len(history[branch]) - 1 > last_turn:
+                    last_turn = len(history[branch]) - 1
             # store all the histories in their corresponding caches
-            for rev in range(last_turn):
+            for rev in range(last_turn+1):
                 for cache, history in histories:
                     for row in history[branch][rev]:
                         cache.store(*row)

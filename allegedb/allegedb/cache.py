@@ -474,13 +474,14 @@ class Cache(object):
                         break
 
     def _upd_branch_end(self, branch, turn):
-        if turn >= self.db._branch_end[branch]:
+        cur_branch_end = self.db._branch_end[branch]
+        if turn > cur_branch_end:
             self.db._branch_end[branch] = turn
-        else:
+        elif turn < cur_branch_end:
             raise HistoryError(
                 "Tried to cache a value at {}, "
                 "but the branch {} already has history up to {}".format(
-                    turn, branch, self.db._branch_end[branch]
+                    turn, branch, cur_branch_end
                 )
             )
 
@@ -549,11 +550,12 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key, branch, turn) in self.shallower:
+        if entity+(key, branch, turn) in self.shallower and tick in self.shallower[entity+(key, branch, turn)]:
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick]
             return ret
-        if entity+(key, branch) in self.shallow and turn in self.shallow[entity+(key, branch)]:
+        if entity+(key, branch) in self.shallow and turn in self.shallow[entity+(key, branch)] \
+                and tick in self.shallow[entity+(key, branch)][turn]:
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick] \
                 = self.shallow[entity + (key, branch)][turn].get(tick)
@@ -564,11 +566,21 @@ class Cache(object):
                     and r in self.branches[entity+(key,)][b]
             ):
                 revd = self.branches[entity+(key,)][b][r]
-                ret = self.shallowest[args] \
-                    = self.shallower[entity+(key, branch, turn)][tick] \
-                    = self.shallow[entity+(key, branch)][turn][tick] \
-                    = self.keys[entity][key][branch][turn][tick] \
-                    = revd[revd.end]
+                ret = revd[revd.end]
+                if args not in self.shallowest:
+                    self.shallowest[args] = ret
+                try:
+                    self.shallower[entity+(key, branch, turn)][tick] = ret
+                except HistoryError:
+                    pass
+                try:
+                    self.shallow[entity+(key, branch)][turn][tick] = ret
+                except HistoryError:
+                    pass
+                try:
+                    self.keys[entity][key][branch][turn][tick] = ret
+                except HistoryError:
+                    pass
                 return ret
         else:
             raise KeyError

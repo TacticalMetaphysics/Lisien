@@ -322,7 +322,7 @@ class Rule(object):
         myself. If none do, return False.
 
         """
-        curtime = (branch, tick) = engine.time
+        curtime = engine.time
         for trigger in self.triggers:
             result = trigger(engine, *args)
             if engine.time != curtime:
@@ -336,7 +336,7 @@ class Rule(object):
         one doesn't, return False.
 
         """
-        curtime = (branch, tick) = engine.time
+        curtime = engine.time
         for prereq in self.prereqs:
             result = prereq(self.engine, *args)
             engine.time = curtime

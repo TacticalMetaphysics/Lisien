@@ -38,6 +38,7 @@ class EngineHandle(object):
         self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
+        self.turn = self._real.turn
         self.tick = self._real.tick
         self._node_stat_cache = defaultdict(dict)
         self._portal_stat_cache = defaultdict(
@@ -142,9 +143,10 @@ class EngineHandle(object):
                 for char in chars
             }
 
-    def next_turn(self, chars=[]):
+    def next_turn(self, chars=()):
         self._real.next_turn()
         self.turn += 1
+        self.tick = 0
         if chars:
             return self.get_chardiffs(chars)
 

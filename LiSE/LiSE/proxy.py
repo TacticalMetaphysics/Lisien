@@ -2198,20 +2198,20 @@ class EngineProxy(AbstractEngine):
                 args=(chars, cb)
             ).start()
 
-    def next_tick(self, chars=(), cb=None, silent=False):
+    def next_turn(self, chars=(), cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
         if not callable(cb):
             raise TypeError("Uncallable callback")
         if silent:
-            self.handle(command='next_tick', chars=chars, silent=True, cb=cb)
+            self.handle(command='next_turn', chars=chars, silent=True, cb=cb)
         elif chars:
             self.send(self.json_dump({
                 'silent': False,
-                'command': 'next_tick',
+                'command': 'next_turn',
                 'chars': chars
             }))
-            args = [self._inc_tick, self._upd_char_caches]
+            args = [self._inc_turn, self._inc_tick, self._upd_char_caches]
             if cb:
                 args.append(cb)
             if silent:
@@ -2222,11 +2222,11 @@ class EngineProxy(AbstractEngine):
             else:
                 return self._call_with_recv(*args)
         else:
-            ret = self.handle(command='next_tick', chars='all')
-            self.time.send(self, branch=ret['branch'], tick=ret['tick'])
+            ret = self.handle(command='next_turn', chars='all')
+            self.time.send(self, branch=ret['branch'], turn=ret['turn'], tick=ret['tick'])
             return ret
 
-    def time_travel(self, branch, tick, chars='all', cb=None, block=True):
+    def time_travel(self, branch, turn, tick=0, chars='all', cb=None, block=True):
         if cb and not chars:
             raise TypeError("Callbacks require char name")
         if cb is not None and not callable(cb):
@@ -2238,13 +2238,14 @@ class EngineProxy(AbstractEngine):
             self._time_travel_thread = Thread(
                 target=self._call_with_recv,
                 args=args,
-                kwargs={'branch': branch, 'tick': tick, 'no_del': True}
+                kwargs={'branch': branch, 'turn': turn, 'tick': tick, 'no_del': True}
             )
             self._time_travel_thread.start()
             self.send(self.json_dump({
                 'command': 'time_travel',
                 'silent': False,
                 'branch': branch,
+                'turn': turn,
                 'tick': tick,
                 'chars': chars
             }))
@@ -2254,6 +2255,7 @@ class EngineProxy(AbstractEngine):
             self.handle(
                 command='time_travel',
                 branch=branch,
+                turn=turn,
                 tick=tick,
                 chars=[],
                 silent=True

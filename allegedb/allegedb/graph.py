@@ -62,27 +62,25 @@ class NeatMapping(MutableMapping):
 
 
 class AbstractEntityMapping(NeatMapping, Signal):
-
-    def _iter_keys_db(self):
-        """Return a list of keys from the database (not the cache)."""
+    def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
 
-    def _get_cache(self, key):
+    def _cache_contains(self, key, branch, turn, tick):
         raise NotImplementedError
 
-    def _set_db(self, key, value):
+    def _set_db(self, key, branch, turn, tick, value):
         """Set a value for a key in the database (not the cache)."""
         raise NotImplementedError
 
-    def _set_cache(self, key, value):
+    def _set_cache(self, key, branch, turn, tick, value):
         raise NotImplementedError
 
-    def _del_db(self, key):
+    def _del_db(self, key, branch, turn, tick):
         """Delete a key from the database (not the cache)."""
-        raise NotImplementedError
+        self._set_db(key, branch, turn, tick, None)
 
-    def _del_cache(self, key):
-        self._set_cache(key, None)
+    def _del_cache(self, key, branch, turn, tick):
+        self._set_cache(key, branch, turn, tick, None)
 
     def __getitem__(self, key):
         """If key is 'graph', return myself as a dict, else get the present
@@ -97,7 +95,7 @@ class AbstractEntityMapping(NeatMapping, Signal):
             else:
                 return v
 
-        return wrapval(self._get_cache(key))
+        return wrapval(self._get_cache(key, *self.db.btt()))
 
     def __setitem__(self, key, value):
         """Set key=value at the present branch and revision"""
@@ -105,18 +103,25 @@ class AbstractEntityMapping(NeatMapping, Signal):
             raise ValueError(
                 "allegedb uses None to indicate that a key's been deleted"
             )
+        branch, turn, tick = self.db.btt()
+        while self._cache_contains(key, branch, turn, tick):
+            tick += 1
         try:
-            if self._get_cache(key) != value:
-                self._set_cache(key, value)
+            if self._get_cache(key, branch, turn, tick) != value:
+                self._set_cache(key, branch, turn, tick, value)
         except KeyError:
-            self._set_cache(key, value)
-        self._set_db(key, value)
+            self._set_cache(key, branch, turn, tick, value)
+        self._set_db(key, branch, turn, tick, value)
+        self.db.tick = tick
         self.send(self, key=key, value=value)
 
     def __delitem__(self, key):
-        """Indicate that the key has no value at this time"""
-        self._set_cache(key, None)
-        self._del_db(key)
+        branch, turn, tick = self.db.btt()
+        while self._cache_contains(key, branch, turn, tick):
+            tick += 1
+        self._del_cache(key, branch, turn, tick)
+        self._del_db(key, branch, turn, tick)
+        self.db.tick = tick
         self.send(self, key=key, value=None)
 
 
@@ -125,7 +130,6 @@ class GraphMapping(AbstractEntityMapping):
     db = getatt('graph.db')
 
     def __init__(self, graph):
-        """Initialize private dict and store pointers to the graph and ORM"""
         super().__init__()
         self.graph = graph
 
@@ -134,20 +138,21 @@ class GraphMapping(AbstractEntityMapping):
             self.graph.name, *self.db.btt()
         )
 
+    def _cache_contains(self, key, branch, turn, tick):
+        return self.db._graph_val_cache.contains_key(self.graph, key, branch, turn, tick)
+
     def __len__(self):
         return self.db._graph_val_cache.count_entities(
             self.graph.name, *self.db.btt()
         )
 
-    def _get_cache(self, key):
+    def _get_cache(self, key, branch, turn, tick):
         return self.db._graph_val_cache.retrieve(
-            self.graph.name, key, *self.db.btt()
+            self.graph.name, key, branch, turn, tick
         )
     _get = _get_cache
 
-    def _set_db(self, key, value):
-        """Set key=value in the database (not the cache)"""
-        branch, turn, tick = self.db.btt()
+    def _set_db(self, key, branch, turn, tick, value):
         self.db.query.graph_val_set(
             self.graph.name,
             key,
@@ -155,19 +160,16 @@ class GraphMapping(AbstractEntityMapping):
             value
         )
 
-    def _set_cache(self, key, value):
-        """Set key=value in db's _graph_val_cache"""
-        branch, turn, tick = self.db.btt()
+    def _set_cache(self, key, branch, turn, tick, value):
         self.db._graph_val_cache.store(
             self.graph.name, key, branch, turn, tick, value
         )
 
-    def _del_db(self, key):
-        """Delete the value from the database (not the cache)"""
+    def _del_db(self, key, branch, turn, tick):
         self.db.query.graph_val_del(
             self.graph.name,
             key,
-            *self.db.btt()
+            branch, turn, tick
         )
 
 
@@ -186,18 +188,22 @@ class Node(AbstractEntityMapping):
             self.graph.name, self.node, *self.db.btt()
         )
 
+    def _cache_contains(self, key, branch, turn, tick):
+        return self.db._node_val_cache.contains_key(
+            self.graph, self.node, key, branch, turn, tick
+        )
+
     def __len__(self):
         return self.db._node_val_cache.count_entity_keys(
             self.graph.name, self.node, *self.db.btt()
         )
 
-    def _get_cache(self, key):
+    def _get_cache(self, key, branch, turn, tick):
         return self.db._node_val_cache.retrieve(
-            self.graph.name, self.node, key, *self.db.btt()
+            self.graph.name, self.node, key, branch, turn, tick
         )
 
-    def _set_db(self, key, value):
-        branch, turn, tick = self.db.btt()
+    def _set_db(self, key, branch, turn, tick, value):
         self.db.query.node_val_set(
             self.graph.name,
             self.node,
@@ -206,22 +212,13 @@ class Node(AbstractEntityMapping):
             value
         )
 
-    def _set_cache(self, key, value):
-        branch, turn, tick = self.db.btt()
+    def _set_cache(self, key, branch, turn, tick, value):
         self.db._node_val_cache.store(
             self.graph.name,
             self.node,
             key,
             branch, turn, tick,
             value
-        )
-
-    def _del_db(self, key):
-        self.db.query.node_val_del(
-            self.graph.name,
-            self.node,
-            key,
-            *self.db.btt()
         )
 
 
@@ -250,6 +247,11 @@ class Edge(AbstractEntityMapping):
             *self.db.btt()
         )
 
+    def _cache_contains(self, key, branch, turn, tick):
+        return self.db._edge_val_cache.contains_key(
+            self.graph.name, self.orig, self.dest, self.idx, key, branch, turn, tick
+        )
+
     def __len__(self):
         return self.db._edge_val_cache.count_entity_keys(
             self.graph.name,
@@ -259,50 +261,36 @@ class Edge(AbstractEntityMapping):
             *self.db.btt()
         )
 
-    def _get_cache(self, key):
+    def _get_cache(self, key, branch, turn, tick):
         return self.db._edge_val_cache.retrieve(
             self.graph.name,
             self.orig,
             self.dest,
             self.idx,
             key,
-            self.db.branch,
-            self.db.rev
+            branch, turn, tick
         )
 
-    def _set_db(self, key, value):
+    def _set_db(self, key, branch, turn, tick, value):
         self.db.query.edge_val_set(
             self.graph.name,
             self.orig,
             self.dest,
             self.idx,
             key,
-            self.db.branch,
-            self.db.rev,
+            branch, turn, tick,
             value
         )
 
-    def _set_cache(self, key, value):
+    def _set_cache(self, key, branch, turn, tick, value):
         self.db._edge_val_cache.store(
             self.graph.name,
             self.orig,
             self.dest,
             self.idx,
             key,
-            self.db.branch,
-            self.db.rev,
+            branch, turn, tick,
             value
-        )
-
-    def _del_db(self, key):
-        self.db.query.edge_val_del(
-            self.graph.name,
-            self.orig,
-            self.dest,
-            self.idx,
-            key,
-            self.db.branch,
-            self.db.rev
         )
 
 

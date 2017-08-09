@@ -41,6 +41,7 @@ from .cache import (
 
 
 class TimeSignal(Signal):
+    # TODO: always time travel to the last tick in the turn
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
@@ -484,7 +485,7 @@ class Engine(AbstractEngine, gORM):
         for row in self.query.things_dump():
             character, thing, branch, turn, tick, loc, nxtloc = row
             things[branch][turn].append((
-                character, thing, branch, turn, (loc, nxtloc)
+                character, thing, branch, turn, tick, (loc, nxtloc)
             ))
         for row in self.query.avatars_dump():
             character, graph, node, branch, turn, tick, is_av = row
@@ -626,7 +627,7 @@ class Engine(AbstractEngine, gORM):
             json_load=self.json_load,
         )
         self.rule._init_load()
-        self.next_tick = NextTurn(self)
+        self.next_turn = NextTurn(self)
         if logfun is None:
             from logging import getLogger
             logger = getLogger(__name__)

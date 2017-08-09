@@ -269,9 +269,9 @@ class ThingsCache(Cache):
         self._make_node = db.thing_cls
 
     def turn_before(self, character, thing, branch, turn):
-        self.retrieve(character, thing, branch, turn)
+        self.retrieve(character, thing, branch, turn, 0)
         return self.keys[(character,)][thing][branch].rev_before(turn)
 
     def turn_after(self, character, thing, branch, turn):
-        self.retrieve(character, thing, branch, turn)
+        self.retrieve(character, thing, branch, turn, 0)
         return self.keys[(character,)][thing][branch].rev_after(turn)
