@@ -33,8 +33,10 @@ class ORM(object):
         for k, v in self.query.global_items():
             if k == 'branch':
                 self._obranch = v
-            elif k == 'rev':
-                self._orev = v
+            elif k == 'turn':
+                self._oturn = v
+            elif k == 'tick':
+                self._otick = v
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
@@ -97,7 +99,7 @@ class ORM(object):
         branch2do = deque(['trunk'])
         while branch2do:
             branch = branch2do.popleft()
-            # find the last rev in the branch
+            # find the last turn in the branch
             last_turn = 0
             for cache, history in histories:
                 if len(history[branch]) - 1 > last_turn:
@@ -172,24 +174,16 @@ class ORM(object):
 
     @property
     def branch(self):
-        """Return the global value ``branch``, or ``self._obranch`` if it's
-        set
-
-        """
         return self._obranch
 
     @branch.setter
     def branch(self, v):
-        """Set the global value ``branch`` and note that the branch's (parent,
-        parent_rev) are the (branch, tick) set previously
-
-        """
         curbranch = self.branch
         if curbranch == v:
             return
         curturn = self.turn
         if not self._havebranch(v):
-            # assumes the present revision in the parent branch has
+            # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn)
         # make sure I'll end up within the revision range of the
@@ -332,19 +326,19 @@ class ORM(object):
         if name in self._graph_objs:
             del self._graph_objs[name]
 
-    def _active_branches(self, branch=None, rev=None):
-        """Private use. Iterate over (branch, rev) pairs, where the branch is
+    def _active_branches(self, branch=None, turn=None):
+        """Private use. Iterate over (branch, turn) pairs, where the branch is
         a descendant of the previous (starting with whatever branch is
-        presently active and ending at 'trunk'), and the rev is the
+        presently active and ending at 'trunk'), and the turn is the
         latest revision in the branch that matters.
 
         """
         b = self.branch if branch is None else branch
-        r = self.rev if rev is None else rev
-        yield b, r
+        t = self.turn if turn is None else turn
+        yield b, t
         while b in self._parentbranch_turn:
-            (b, r) = self._parentbranch_turn[b]
-            yield b, r
+            (b, t) = self._parentbranch_turn[b]
+            yield b, t
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current

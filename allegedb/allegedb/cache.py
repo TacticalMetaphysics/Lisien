@@ -485,6 +485,18 @@ class Cache(object):
                 )
             )
 
+    def _upd_turn_end(self, branch, turn, tick):
+        cur_turn_end = self.db._turn_end[(branch, turn)]
+        if tick > cur_turn_end:
+            self.db._turn_end[(branch, turn)] = tick
+        elif tick < cur_turn_end:
+            raise HistoryError(
+                "Tried to cache a value at tick {}, "
+                "but turn {} has run for {} ticks".format(
+                    tick, turn, cur_turn_end
+                )
+            )
+
     def store(self, *args):
         """Put a value in various dictionaries for later .retrieve(...).
 
@@ -498,6 +510,7 @@ class Cache(object):
         """
         entity, key, branch, turn, tick, value = args[-6:]
         self._upd_branch_end(branch, turn)
+        self._upd_turn_end(branch, turn, tick)
         parent = args[:-6]
         if parent:
             if branch not in self.parents[parent][entity][key]:
@@ -640,7 +653,7 @@ class Cache(object):
         key, branch, turn, tick = args[-4:]
         self._forward_keycache(entity, branch, turn, tick)
         try:
-            keys = self.keycache[entity+(branch, turn)][tick]
+            keys = self.keycache[entity+(branch,)][turn][tick]
         except KeyError:
             return False
         return key in keys

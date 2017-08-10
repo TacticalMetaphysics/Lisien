@@ -366,12 +366,17 @@ class Engine(AbstractEngine, gORM):
         self._characters_rulebooks_cache.store(character, **{which: rulebook})
 
     def _set_node_rulebook(self, character, node, rulebook):
-        self._nodes_rulebooks_cache.store(character, node, rulebook)
-        self.engine.query.set_node_rulebook(character, node, rulebook)
+        branch, turn, tick = self.engine.btt()
+        tick += 1
+        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, rulebook)
+        self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
+        self.engine.tick = tick
 
     def _set_portal_rulebook(self, character, orig, dest, rulebook):
-        self._portals_rulebooks_cache.store(character, orig, dest, rulebook)
-        self.query.set_portal_rulebook(character, orig, dest, rulebook)
+        branch, turn, tick = self.engine.btt()
+        tick += 1
+        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, rulebook)
+        self.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
 
     def _remember_avatarness(
             self, character, graph, node,
@@ -975,14 +980,14 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        return self._things_cache.contains_entity(character, node, *self.time)
+        return self._things_cache.contains_entity(character, node, *self.btt())
 
     def _set_thing_loc_and_next(
             self, character, node, loc, nextloc=None, branch=None, turn=None, tick=None
     ):
         branch = branch or self.branch
         turn = turn or self.turn
-        tick = tick or self.tick
+        tick = tick or self.tick + 1
         self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
         self.query.thing_loc_and_next_set(
             character,
@@ -993,6 +998,7 @@ class Engine(AbstractEngine, gORM):
             loc,
             nextloc
         )
+        self.tick = tick
 
     def _node_exists(self, character, node):
         return self._nodes_cache.contains_entity(character, node, *self.btt())
@@ -1000,7 +1006,7 @@ class Engine(AbstractEngine, gORM):
     def _exist_node(self, character, node, exist=True, branch=None, turn=None, tick=None):
         branch = branch or self.branch
         turn = turn or self.turn
-        tick = tick or self.tick
+        tick = tick or self.tick + 1
         self.query.exist_node(
             character,
             node,
@@ -1011,13 +1017,14 @@ class Engine(AbstractEngine, gORM):
         )
         self._nodes_cache.store(character, node, branch, turn, tick, exist)
         self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node))
+        self.tick = tick
 
     def _exist_edge(
             self, character, orig, dest, exist=True, branch=None, turn=None, tick=None
     ):
         branch = branch or self.branch
         turn = turn or self.turn
-        tick = tick or self.tick
+        tick = tick or self.tick + 1
         self.query.exist_edge(
             character,
             orig,
@@ -1031,6 +1038,7 @@ class Engine(AbstractEngine, gORM):
         self._edges_cache.store(
             character, orig, dest, 0, branch, turn, tick, exist
         )
+        self.tick = tick
 
     def alias(self, v, stat='dummy'):
         r = DummyEntity(self)

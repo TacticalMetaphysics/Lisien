@@ -104,8 +104,7 @@ class AbstractEntityMapping(NeatMapping, Signal):
                 "allegedb uses None to indicate that a key's been deleted"
             )
         branch, turn, tick = self.db.btt()
-        while self._cache_contains(key, branch, turn, tick):
-            tick += 1
+        tick += 1
         try:
             if self._get_cache(key, branch, turn, tick) != value:
                 self._set_cache(key, branch, turn, tick, value)
@@ -699,6 +698,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
             """
             branch, turn, tick = self.db.btt()
+            tick += 1
             try:
                 e = self[orig]
                 e.clear()
@@ -723,12 +723,14 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 branch, turn, tick,
                 True
             )
+            self.db.tick = tick
             if created:
                 self.created.send(self, key=orig, val=value)
 
         def __delitem__(self, orig):
             """Unset the existence of the edge from the given node to mine"""
             branch, turn, tick = self.db.btt()
+            tick += 1
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[orig]:
                     self.db.query.exist_edge(
@@ -765,6 +767,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 branch, turn, tick,
                 False
             )
+            self.db.tick = tick
             self.deleted.send(self, key=orig)
 
 
@@ -817,6 +820,7 @@ class MultiEdges(GraphEdgeMapping):
 
         """
         branch, turn, tick = self.db.btt()
+        tick += 1
         created = idx not in self
         self.db.query.exist_edge(
             self.graph.name,
@@ -833,12 +837,14 @@ class MultiEdges(GraphEdgeMapping):
             self.graph.name, self.orig, self.dest, idx,
             branch, turn, tick, True
         )
+        self.db.tick = tick
         if created:
             self.created.send(self, key=idx, val=val)
 
     def __delitem__(self, idx):
         """Delete the edge at a particular index"""
         branch, turn, tick = self.db.btt()
+        tick += 1
         e = self._getedge(idx)
         if not e.exists:
             raise KeyError("No edge at that index")
@@ -848,6 +854,7 @@ class MultiEdges(GraphEdgeMapping):
             self.graph.name, self.orig, self.dest, idx,
             branch, turn, tick, None
         )
+        self.db.tick = tick
         self.deleted.send(self, key=idx)
 
     def clear(self):
