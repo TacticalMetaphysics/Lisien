@@ -229,6 +229,9 @@ class ORM(object):
 
     @tick.setter
     def tick(self, v):
+        time = self._obranch, self._otick
+        if v > self._turn_end[time]:
+            self._turn_end[time] = v
         self._otick = v
 
     def btt(self):

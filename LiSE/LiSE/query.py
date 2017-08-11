@@ -536,7 +536,7 @@ class QueryEngine(allegedb.query.QueryEngine):
     set_rule_prereqs = partialmethod(_set_rule_something, 'prereqs')
     set_rule_actions = partialmethod(_set_rule_something, 'actions')
 
-    def set_rule(self, rule, typ='character', triggers=None, prereqs=None, actions=None, branch='trunk', turn=0, tick=0):
+    def set_rule(self, rule, branch, turn, tick, typ='character', triggers=None, prereqs=None, actions=None):
         if typ not in ('character', 'node', 'portal'):
             raise ValueError('Unknown rule type')
         triggers = triggers or []

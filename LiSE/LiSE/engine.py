@@ -797,7 +797,7 @@ class Engine(AbstractEngine, gORM):
         return self._oturn
 
     @turn.setter
-    def tick(self, v):
+    def turn(self, v):
         if not isinstance(v, int):
             raise TypeError("turn must be integer")
         if v == self.turn:

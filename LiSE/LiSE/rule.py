@@ -216,11 +216,10 @@ class Rule(object):
             prereqs = prereqs or []
             actions = actions or []
             self.engine.query.set_rule(
-                name, typ,
+                name, branch, turn, tick, typ,
                 list(self._fun_names_iter('trigger', triggers)),
                 list(self._fun_names_iter('prereq', prereqs)),
                 list(self._fun_names_iter('action', actions)),
-                branch, turn, tick
             )
             self.engine._triggers_cache.store(name, branch, turn, tick, triggers)
             self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
@@ -395,8 +394,7 @@ class RuleBook(MutableSequence, Signal):
         cache[i] = v
         e = self.engine
         branch, turn, tick = e.btt()
-        while self.engine._rulebooks_cache.contains_entity(self.name, branch, turn, tick):
-            tick += 1
+        tick += 1
         self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         e.tick = tick
