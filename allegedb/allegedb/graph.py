@@ -103,24 +103,19 @@ class AbstractEntityMapping(NeatMapping, Signal):
             raise ValueError(
                 "allegedb uses None to indicate that a key's been deleted"
             )
-        branch, turn, tick = self.db.btt()
-        tick += 1
+        branch, turn, tick = self.db.nbtt()
         try:
             if self._get_cache(key, branch, turn, tick) != value:
                 self._set_cache(key, branch, turn, tick, value)
         except KeyError:
             self._set_cache(key, branch, turn, tick, value)
         self._set_db(key, branch, turn, tick, value)
-        self.db.tick = tick
         self.send(self, key=key, value=value)
 
     def __delitem__(self, key):
-        branch, turn, tick = self.db.btt()
-        while self._cache_contains(key, branch, turn, tick):
-            tick += 1
+        branch, turn, tick = self.db.nbtt()
         self._del_cache(key, branch, turn, tick)
         self._del_db(key, branch, turn, tick)
-        self.db.tick = tick
         self.send(self, key=key, value=None)
 
 

@@ -64,11 +64,9 @@ class RuleFuncList(MutableSequence, Signal):
         return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
 
     def _set(self, v):
-        branch, turn, tick = self.rule.engine.btt()
-        tick += 1
+        branch, turn, tick = self.rule.engine.nbtt()
         self._cache.store(self.rule.name, branch, turn, tick, v)
         self._setter(self.rule.name, branch, turn, tick, v)
-        self.rule.engine.tick = tick
 
     def __iter__(self):
         for funcname in self._get():
@@ -169,10 +167,8 @@ class RuleFuncListDescriptor(object):
         flist = getattr(obj, self.flid)
         namey_value = [flist._nominate(v) for v in value]
         flist._set(namey_value)
-        branch, turn, tick = obj.engine.btt()
-        tick += 1
+        branch, turn, tick = obj.engine.nbtt()
         flist._cache.store(obj.name, branch, turn, tick, namey_value)
-        obj.engine.tick = tick
         flist.send(flist)
 
     def __delete__(self, obj):
@@ -212,6 +208,7 @@ class Rule(object):
         branch, turn, tick = engine.btt()
         if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             tick += 1
+            self.engine.tick = tick
             triggers = triggers or []
             prereqs = prereqs or []
             actions = actions or []
@@ -224,7 +221,6 @@ class Rule(object):
             self.engine._triggers_cache.store(name, branch, turn, tick, triggers)
             self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
             self.engine._actions_cache.store(name, branch, turn, tick, actions)
-            self.engine.tick = tick
 
     def __eq__(self, other):
         return (
@@ -393,11 +389,9 @@ class RuleBook(MutableSequence, Signal):
         cache = self._cache
         cache[i] = v
         e = self.engine
-        branch, turn, tick = e.btt()
-        tick += 1
+        branch, turn, tick = e.nbtt()
         self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
-        e.tick = tick
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
@@ -405,11 +399,9 @@ class RuleBook(MutableSequence, Signal):
         v = getattr(v, 'name', v)
         cache = self._cache
         cache.insert(i, v)
-        branch, turn, tick = self.engine.btt()
-        tick += 1
+        branch, turn, tick = self.engine.nbtt()
         self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
-        self.engine.tick = tick
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
@@ -635,8 +627,9 @@ class AllRules(MutableMapping, Signal):
         super().__init__()
         self.engine = engine
 
-    def _init_load(self):
-        self._cache = {name: Rule(self.engine, name, typ) for name, typ in self.engine.query.rules_dump()}
+    @reify
+    def _cache(self):
+        return self.engine._rules_cache
 
     def __iter__(self):
         yield from self._cache

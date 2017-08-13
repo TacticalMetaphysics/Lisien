@@ -12,6 +12,9 @@ class EntitylessCache(Cache):
     def store(self, key, branch, turn, tick, value):
         super().store(None, key, branch, turn, tick, value)
 
+    def load(self, data, validate=False):
+        return super().load(((None,) + row for row in data), validate)
+
     def retrieve(self, key, branch, turn, tick):
         return super().retrieve(None, key, branch, turn, tick)
 

@@ -8,7 +8,7 @@ you might want to store it in a ``WindowDict``.
 
 """
 from copy import copy as copier
-from collections import deque, MutableMapping, KeysView, ItemsView, ValuesView
+from collections import defaultdict, deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
 class HistoryError(KeyError):
@@ -398,6 +398,42 @@ class Cache(object):
         """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
 
+    def load(self, data, validate=False):
+        """Add a bunch of data. It doesn't need to be in chronological order."""
+        store = self._store
+        fw_upd = self._forward_and_update
+        dd3 = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        branch_end = defaultdict(lambda: 0)
+        turn_end = defaultdict(lambda: 0)
+        for row in data:
+            entity, key, branch, turn, tick, value = row[-6:]
+            branch_end[branch] = max((turn, branch_end[branch]))
+            turn_end[branch, turn] = max((tick, turn_end[branch, tick]))
+            dd3[branch][turn][tick].append(row)
+            parent = row[:-6]
+            store(parent, entity, key, branch, turn, tick, value)
+        real_branch_end = self.db._branch_end
+        real_turn_end = self.db._turn_end
+        for branch, end in branch_end.items():
+            real_branch_end[branch] = max((real_branch_end[branch], end))
+        for (branch, turn), end in turn_end.items():
+            real_turn_end[branch, turn] = max((real_turn_end[branch, turn], end))
+        # Make keycaches and valcaches. Must be done chronologically
+        # to make forwarding work.
+        childbranch = self.db._childbranch
+        branch2do = deque(['trunk'])
+        while branch2do:
+            branch = branch2do.popleft()
+            turns = branch_end[branch] + 1
+            for turn in range(turns):
+                ticks = turn_end[branch, turn] + 1
+                for tick in range(ticks):
+                    for row in dd3[branch][turn][tick]:
+                        fw_upd(row[:-6], *row[-6:], validate=validate)
+            if branch in childbranch:
+                branch2do.extend(childbranch[branch])
+
+
     def _forward_valcache(self, cache, branch, turn, tick, copy=True):
         if branch in cache:
             try:
@@ -473,30 +509,6 @@ class Cache(object):
                     if err.deleted:
                         break
 
-    def _upd_branch_end(self, branch, turn):
-        cur_branch_end = self.db._branch_end[branch]
-        if turn > cur_branch_end:
-            self.db._branch_end[branch] = turn
-        elif turn < cur_branch_end:
-            raise HistoryError(
-                "Tried to cache a value at {}, "
-                "but the branch {} already has history up to {}".format(
-                    turn, branch, cur_branch_end
-                )
-            )
-
-    def _upd_turn_end(self, branch, turn, tick):
-        cur_turn_end = self.db._turn_end[(branch, turn)]
-        if tick > cur_turn_end:
-            self.db._turn_end[(branch, turn)] = tick
-        elif tick < cur_turn_end:
-            raise HistoryError(
-                "Tried to cache a value at tick {}, "
-                "but turn {} has run for {} ticks".format(
-                    tick, turn, cur_turn_end
-                )
-            )
-
     def store(self, *args):
         """Put a value in various dictionaries for later .retrieve(...).
 
@@ -509,9 +521,34 @@ class Cache(object):
 
         """
         entity, key, branch, turn, tick, value = args[-6:]
-        self._upd_branch_end(branch, turn)
-        self._upd_turn_end(branch, turn, tick)
+        cur_branch_end = self.db._branch_end[branch]
+        if turn != cur_branch_end:
+            raise HistoryError(
+                "Tried to cache a value at {}, "
+                "but the branch {} already has history up to {}".format(
+                    turn, branch, cur_branch_end
+                )
+            )
+        cur_turn_end = self.db._turn_end[(branch, turn)]
+        if tick != cur_turn_end:
+            raise HistoryError(
+                "Tried to cache a value at tick {}, "
+                "but turn {} has run for {} ticks".format(
+                    tick, turn, cur_turn_end
+                )
+            )
         parent = args[:-6]
+        self._store(parent, entity, key, branch, turn, tick, value)
+        self._forward_and_update(parent, entity, key, branch, turn, tick, value)
+
+    def _store(self, parent, entity, key, branch, turn, tick, value):
+        self.branches[parent+(entity, key)][branch][turn][tick] = value
+        self.keys[parent+(entity,)][key][branch][turn][tick] = value
+        self.shallow[parent+(entity, key, branch)][turn][tick] = value
+        self.shallower[parent+(entity, key, branch, turn)][tick] = value
+        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
+
+    def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=False):
         if parent:
             if branch not in self.parents[parent][entity][key]:
                 self._forward_valcache(
@@ -522,27 +559,18 @@ class Cache(object):
             self._forward_valcache(
                 self.keys[parent+(entity,)][key], branch, turn, tick
             )
-        self.keys[parent+(entity,)][key][branch][turn][tick] = value
         if branch not in self.branches[parent+(entity, key)]:
             self._forward_valcache(
                 self.branches[parent+(entity, key)], branch, turn, tick
             )
-        self.branches[parent+(entity, key)][branch][turn][tick] = value
-        self.shallow[parent+(entity, key, branch)][turn][tick] = value
-        self.shallower[parent+(entity, key, branch, turn)][tick] = value
-        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
-        # The following assertions are very slow.
-        # If you're using allegedb in production, you should avoid them
-        # by running Python with the -O flag.
-        if parent:
-            kc = self._update_keycache(
-                parent+(entity,), branch, turn, tick, key, value
-            )
-            assert kc == set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick)), "Invalid parents cache"
-            assert kc == set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick)), "Invalid keys cache"
-        else:
-            kc = self._update_keycache((entity,), branch, turn, tick, key, value)
-            assert kc == set(self._slow_iter_keys(self.keys[(entity,)], branch, turn, tick)), "Invalid keys cache"
+        kc = self._update_keycache(
+            parent + (entity,), branch, turn, tick, key, value
+        )
+        if validate:
+            if parent and kc != set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick)):
+                raise ValueError("Invalid parents cache")
+            if kc != set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick)):
+                raise ValueError("Invalid keys cache")
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.

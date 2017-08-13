@@ -52,7 +52,7 @@ class ORM(object):
         self.query.active_branches = self._active_branches
         self._graph_objs = {}
 
-    def _load_graphs(self):
+    def load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
             self._graph_objs[graph] = {
                 'Graph': Graph,
@@ -61,58 +61,6 @@ class ORM(object):
                 'MultiDiGraph': MultiDiGraph
             }[typ](self, graph)
 
-    def _init_load(self):
-        graphval = defaultdict(lambda: defaultdict(list))
-        nodeval = defaultdict(lambda: defaultdict(list))
-        edgeval = defaultdict(lambda: defaultdict(list))
-        nodes = defaultdict(lambda: defaultdict(list))
-        edges = defaultdict(lambda: defaultdict(list))
-        for (graph, key, branch, turn, tick, val) in self.query.graph_val_dump():
-            graphval[branch][turn].append((graph, key, branch, turn, tick, val))
-        for (graph, node, branch, turn, tick, ex) in self.query.nodes_dump():
-            nodes[branch][turn].append((graph, node, branch, turn, tick, ex))
-        for (graph, u, v, i, branch, turn, tick, ex) in self.query.edges_dump():
-            edges[branch][turn].append((graph, u, v, i, branch, turn, tick, ex))
-        for (
-                graph, node, key, branch, turn, tick, val
-        ) in self.query.node_val_dump():
-            nodeval[branch][turn].append((graph, node, key, branch, turn, tick, val))
-        for (
-                graph, u, v, i, key, branch, turn, tick, val
-        ) in self.query.edge_val_dump():
-            edgeval[branch][turn].append((graph, u, v, i, key, branch, turn, tick, val))
-        return [
-            (self._nodes_cache, nodes),
-            (self._edges_cache, edges),
-            (self._graph_val_cache, graphval),
-            (self._node_val_cache, nodeval),
-            (self._edge_val_cache, edgeval)
-        ]
-
-    def _cache_histories(self, histories):
-        # Make sure to load in the correct order, so that
-        # caches for child branches get built after their parents.
-        # Do the graphs first, so that everything else will have
-        # someplace to be.
-        if not hasattr(self, 'graph'):
-            self.graph = self._graph_objs
-        branch2do = deque(['trunk'])
-        while branch2do:
-            branch = branch2do.popleft()
-            # find the last turn in the branch
-            last_turn = 0
-            for cache, history in histories:
-                if len(history[branch]) - 1 > last_turn:
-                    last_turn = len(history[branch]) - 1
-            # store all the histories in their corresponding caches
-            for rev in range(last_turn+1):
-                for cache, history in histories:
-                    for row in history[branch][rev]:
-                        cache.store(*row)
-            self._branch_end[branch] = last_turn
-            if branch in self._childbranch:
-                branch2do.extend(self._childbranch[branch])
-
     def __init__(
             self,
             dbstring,
@@ -120,7 +68,8 @@ class ORM(object):
             connect_args={},
             query_engine_class=QueryEngine,
             json_dump=None,
-            json_load=None
+            json_load=None,
+            validate=False
     ):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
@@ -138,8 +87,20 @@ class ORM(object):
             if branch != 'trunk':
                 self._parentbranch_turn[branch] = (parent, parent_turn)
             self._childbranch[parent].add(branch)
-        self._load_graphs()
-        self._cache_histories(self._init_load())
+        self.load_graphs()
+        noderows = list(self.query.nodes_dump())
+        self._nodes_cache.load(noderows, validate=validate)
+        edgerows = list(self.query.edges_dump())
+        self._edges_cache.load(edgerows, validate=validate)
+        self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
+        self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
+        self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
+        if not hasattr(self, 'graph'):
+            self.graph = self._graph_objs
+        for graph, node, branch, turn, tick, ex in noderows:
+            self._node_objs[(self.graph[graph], node)] = self._make_node(self.graph[graph], node)
+        for graph, orig, dest, idx, branch, turn, tick, ex in edgerows:
+            self._edge_objs[(self.graph[graph], orig, dest, idx)] = self._make_edge(self.graph[graph], orig, dest, idx)
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
@@ -221,6 +182,8 @@ class ORM(object):
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
+        if v > self._branch_end[branch]:
+            self._branch_end[branch] = v
         self._oturn = v
 
     @property
@@ -236,6 +199,12 @@ class ORM(object):
 
     def btt(self):
         return self._obranch, self._oturn, self._otick
+
+    def nbtt(self):
+        self._otick += 1
+        branch, turn, tick = self.btt()
+        self._turn_end[branch, turn] = tick
+        return branch, turn, tick
 
     def commit(self):
         self.query.globl['branch'] = self._obranch
