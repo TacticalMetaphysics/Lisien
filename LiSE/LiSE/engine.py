@@ -312,6 +312,7 @@ class Engine(AbstractEngine, gORM):
     thing_cls = Thing
     place_cls = node_cls = Place
     portal_cls = edge_cls = _make_edge = Portal
+    query_engine_cls = QueryEngine
     time = TimeSignalDescriptor()
 
     def _make_node(self, char, node):
@@ -514,11 +515,8 @@ class Engine(AbstractEngine, gORM):
             self.action = action
         super().__init__(
             worlddb,
-            query_engine_class=QueryEngine,
             connect_args=connect_args,
             alchemy=alchemy,
-            json_dump=self.json_dump,
-            json_load=self.json_load,
             validate=validate
         )
         q = self.query

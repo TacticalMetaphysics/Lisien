@@ -25,6 +25,7 @@ class ORM(object):
     """
     node_cls = _make_node = Node
     edge_cls = _make_edge = Edge
+    query_engine_cls = QueryEngine
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
@@ -66,17 +67,15 @@ class ORM(object):
             dbstring,
             alchemy=True,
             connect_args={},
-            query_engine_class=QueryEngine,
-            json_dump=None,
-            json_load=None,
             validate=False
     ):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
         """
-        self.query = query_engine_class(
-            dbstring, connect_args, alchemy, json_dump, json_load
+        self.query = self.query_engine_cls(
+            dbstring, connect_args, alchemy,
+            getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
         )
         self.query.initdb()
         self._obranch = self.query.globl['branch']
