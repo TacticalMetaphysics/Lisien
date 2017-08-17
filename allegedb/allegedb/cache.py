@@ -408,7 +408,7 @@ class Cache(object):
         for row in data:
             entity, key, branch, turn, tick, value = row[-6:]
             branch_end[branch] = max((turn, branch_end[branch]))
-            turn_end[branch, turn] = max((tick, turn_end[branch, tick]))
+            turn_end[branch, turn] = max((tick, turn_end[branch, turn]))
             dd3[branch][turn][tick].append(row)
             parent = row[:-6]
             store(parent, entity, key, branch, turn, tick, value)
