@@ -124,8 +124,6 @@ class Board(RelativeLayout):
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
     tracking_vel = BooleanProperty(False)
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
     selection_candidates = ListProperty([])
     selection = ObjectProperty(allownone=True)
     keep_selection = ObjectProperty(False)
@@ -914,8 +912,6 @@ class BoardView(ScrollView):
     screen = ObjectProperty()
     engine = ObjectProperty()
     board = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
     selection_candidates = ListProperty([])
     selection = ObjectProperty(allownone=True)
     keep_selection = BooleanProperty(False)
@@ -1027,8 +1023,7 @@ class BoardView(ScrollView):
             Clock.schedule_once(self.on_board, 0)
             return
         for prop in (
-                'keep_selection', 'adding_portal', 'reciprocal_portal',
-                'branch', 'tick'
+                'keep_selection', 'adding_portal', 'reciprocal_portal'
         ):
             if hasattr(self, '_oldboard'):
                 self.unbind(**{prop: self._oldboard.setter(prop)})

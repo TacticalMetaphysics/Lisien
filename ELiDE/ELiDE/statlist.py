@@ -208,20 +208,23 @@ class BaseStatListView(RecycleView):
     config = DictProperty({})
     mirror = DictProperty({})
     remote = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
     engine = ObjectProperty()
+    app = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._listeners = {}
         self.bind(
-            branch=self.refresh_mirror,
-            tick=self.refresh_mirror,
             remote=self.refresh_mirror,
             mirror=self._trigger_upd_data
         )
         super().__init__(**kwargs)
+
+    def on_app(self, *args):
+        self.app.bind(
+            branch=self.refresh_mirror,
+            turn=self.refresh_mirror,
+            tick=self.refresh_mirror
+        )
 
     def del_key(self, k):
         if k not in self.mirror:
@@ -385,6 +388,7 @@ Builder.load_string(
     max: self.config['max']
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
+    app: app
     RecycleBoxLayout:
         default_size: None, dp(56)
         default_size_hint: 1, None
