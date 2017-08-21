@@ -519,12 +519,35 @@ class Engine(AbstractEngine, gORM):
             alchemy=alchemy,
             validate=validate
         )
+        self.next_turn = NextTurn(self)
+        if logfun is None:
+            from logging import getLogger
+            logger = getLogger(__name__)
+
+            def logfun(level, msg):
+                getattr(logger, level)(msg)
+        self.log = logfun
+        self.commit_modulus = commit_modulus
+        self.random_seed = random_seed
+        self._rules_iter = self._follow_rules()
+        # set up the randomizer
+        self.rando = Random()
+        if 'rando_state' in self.universal:
+            self.rando.setstate(self.universal['rando_state'])
+        else:
+            self.rando.seed(self.random_seed)
+            self.universal['rando_state'] = self.rando.getstate()
+        if hasattr(self.method, 'init'):
+            self.method.init(self)
+
+    def _init_load(self, validate=False):
         q = self.query
         self._things_cache.load((
             (character, thing, branch, turn, tick, (location, next_location))
             for character, thing, branch, turn, tick, location, next_location
             in q.things_dump()
         ), validate)
+        super()._init_load(validate=validate)
         self._avatarness_cache.load(q.avatars_dump(), validate)
         self._universal_cache.load(q.universals_dump(), validate)
         self._rulebooks_cache.load(q.rulebooks_dump(), validate)
@@ -559,26 +582,6 @@ class Engine(AbstractEngine, gORM):
         for character, orig, dest, rulebook, rule, branch, turn, tick in q.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(character, orig, dest, rulebook, rule, branch, turn, tick)
         self._rules_cache = {name: Rule(self, name, typ) for name, typ in q.rules_dump()}
-        self.next_turn = NextTurn(self)
-        if logfun is None:
-            from logging import getLogger
-            logger = getLogger(__name__)
-
-            def logfun(level, msg):
-                getattr(logger, level)(msg)
-        self.log = logfun
-        self.commit_modulus = commit_modulus
-        self.random_seed = random_seed
-        self._rules_iter = self._follow_rules()
-        # set up the randomizer
-        self.rando = Random()
-        if 'rando_state' in self.universal:
-            self.rando.setstate(self.universal['rando_state'])
-        else:
-            self.rando.seed(self.random_seed)
-            self.universal['rando_state'] = self.rando.getstate()
-        if hasattr(self.method, 'init'):
-            self.method.init(self)
 
     betavariate = getatt('rando.betavariate')
     choice = getatt('rando.choice')

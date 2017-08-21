@@ -433,7 +433,6 @@ class Cache(object):
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
-
     def _forward_valcache(self, cache, branch, turn, tick, copy=True):
         if branch in cache:
             try:
@@ -548,7 +547,7 @@ class Cache(object):
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
-    def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=False):
+    def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=True):
         if parent:
             if branch not in self.parents[parent][entity][key]:
                 self._forward_valcache(
@@ -706,6 +705,9 @@ class NodesCache(Cache):
         # If you are using allegedb in production,
         # run Python with the -O switch to optimize it out.
         kc = self._update_keycache((graph,), branch, turn, tick, node, ex)
+        assert node in kc
+        assert self.contains_entity(graph, node, branch, turn, tick)
+        assert node in set(self.iter_entities(graph, branch, turn, tick))
         assert kc == set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
 
 

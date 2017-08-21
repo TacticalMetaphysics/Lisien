@@ -73,10 +73,11 @@ class ORM(object):
         either case, begin a transaction.
 
         """
-        self.query = self.query_engine_cls(
-            dbstring, connect_args, alchemy,
-            getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
-        )
+        if not hasattr(self, 'query'):
+            self.query = self.query_engine_cls(
+                dbstring, connect_args, alchemy,
+                getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
+            )
         self.query.initdb()
         self._obranch = self.query.globl['branch']
         self._oturn = self.query.globl['turn']
@@ -87,6 +88,9 @@ class ORM(object):
                 self._parentbranch_turn[branch] = (parent, parent_turn)
             self._childbranch[parent].add(branch)
         self.load_graphs()
+        self._init_load(validate=validate)
+
+    def _init_load(self, validate=False):
         noderows = list(self.query.nodes_dump())
         self._nodes_cache.load(noderows, validate=validate)
         edgerows = list(self.query.edges_dump())

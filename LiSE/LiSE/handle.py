@@ -483,8 +483,9 @@ class EngineHandle(object):
             node = node_or_char
         else:
             node = self._real.character[node_or_char].node[node]
+        unwrapper = self.unwrap_thing_stat if isinstance(node, self._real.thing_cls) else self.unwrap_place_stat
         return {
-            k: self.unwrap_node_stat(node, k, v)
+            k: unwrapper(node, k, v)
             for (k, v) in node.items()
             if k not in {
                     'location',
