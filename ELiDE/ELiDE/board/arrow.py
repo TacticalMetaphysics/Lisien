@@ -21,7 +21,10 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.clock import Clock
 
-from ..kivygarden.collider import Collide2DPoly
+try:
+    from kivy.garden.collider import Collide2DPoly
+except (KeyError, ImportError):
+    from ..util import Collide2DPoly
 from ..util import get_thin_rect_vertices, fortyfive
 
 
