@@ -195,7 +195,7 @@ class ORM(object):
 
     @tick.setter
     def tick(self, v):
-        time = self._obranch, self._otick
+        time = self._obranch, self._oturn
         if v > self._turn_end[time]:
             self._turn_end[time] = v
         self._otick = v
