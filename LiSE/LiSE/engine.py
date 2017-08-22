@@ -734,47 +734,47 @@ class Engine(AbstractEngine, gORM):
             return
         self.time = (self.branch, v)
 
-    def _poll_char_rules(self, branch, turn, tick):
+    def _poll_char_rules(self, branch, turn):
         unhandled_iter = self._character_rules_handled_cache.\
                          iter_unhandled_rules
         for char in self.character:
-            yield from unhandled_iter(char, branch, turn, tick)
+            yield from unhandled_iter(char, branch, turn)
 
-    def _poll_avatar_rules(self, branch, turn, tick):
+    def _poll_avatar_rules(self, branch, turn):
         unhandled_iter = self._avatar_rules_handled_cache.\
             iter_unhandled_rules
         for char in self.character:
-            yield from unhandled_iter(char, branch, turn, tick)
+            yield from unhandled_iter(char, branch, turn)
 
-    def _poll_char_thing_rules(self, branch, turn, tick):
+    def _poll_char_thing_rules(self, branch, turn):
         unhandled_iter = self._character_thing_rules_handled_cache.\
             iter_unhandled_rules
         for char in self.character:
-            yield from unhandled_iter(char, branch, turn, tick)
+            yield from unhandled_iter(char, branch, turn)
 
-    def _poll_char_place_rules(self, branch, turn, tick):
+    def _poll_char_place_rules(self, branch, turn):
         unhandled_iter = self._character_place_rules_handled_cache.\
             iter_unhandled_rules
         for char in self.character:
-            yield from unhandled_iter(char, branch, turn, tick)
+            yield from unhandled_iter(char, branch, turn)
 
-    def _poll_char_portal_rules(self, branch, turn, tick):
+    def _poll_char_portal_rules(self, branch, turn):
         unhandled_iter = self._character_portal_rules_handled_cache.\
             iter_unhandled_rules
         for char in self.character:
-            yield from unhandled_iter(char, branch, turn, tick)
+            yield from unhandled_iter(char, branch, turn)
 
-    def _poll_node_rules(self, branch, turn, tick):
+    def _poll_node_rules(self, branch, turn):
         unhandled_iter = self._node_rules_handled_cache.iter_unhandled_rules
         for char, chara in self.character.items():
             for node in chara.node:
-                yield from unhandled_iter(char, node, branch, turn, tick)
+                yield from unhandled_iter(char, node, branch, turn)
 
-    def _poll_portal_rules(self, branch, turn, tick):
+    def _poll_portal_rules(self, branch, turn):
         unhandled_iter = self._portal_rules_handled_cache.iter_unhandled_rules
         for char in self.character:
-            for (orig, dest) in self._edges_cache.iter_keys(char, branch, turn, tick):
-                yield from unhandled_iter(char, orig, dest, branch, turn, tick)
+            for (orig, dest) in self._edges_cache.iter_keys(char, branch, turn):
+                yield from unhandled_iter(char, orig, dest, branch, turn)
 
     def _follow_rules(self):
         branch, turn, tick = self.btt()
@@ -791,7 +791,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
             character, graph, avatar, rulebook, rule
-        ) in self._poll_avatar_rules(branch, turn, tick):
+        ) in self._poll_avatar_rules(branch, turn):
             res = rulemap[rule](self, charmap[character], charmap[graph].node[avatar])
             self._avatar_rules_handled_cache.store(
                 character, rulebook, rule, graph, avatar, branch, turn, tick
@@ -802,7 +802,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
             character, thing, rulebook, rule
-        ) in self._poll_char_thing_rules(branch, turn, tick):
+        ) in self._poll_char_thing_rules(branch, turn):
             c = charmap[character]
             res = rulemap[rule](self, c, c.thing[thing])
             self._character_thing_rules_handled_cache.store(

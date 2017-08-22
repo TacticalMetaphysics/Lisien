@@ -252,8 +252,8 @@ class NodeRulesHandledCache(RulesHandledCache):
     depth = 2
 
     def _iter_rulebook(self, character, node, branch, turn):
-        rulebook = self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, turn)
-        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, turn):
+        rulebook = self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, turn, 0)
+        for rule in self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, 0):
             yield character, node, rulebook, rule
 
 
