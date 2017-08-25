@@ -464,7 +464,10 @@ class Cache(object):
             try:
                 if not kc.has_exact_rev(turn):
                     if kc.rev_before(turn) == turn - 1:
-                        kc[turn][tick] = kc[turn][tick].copy()
+                        old_turn_kc = kc[turn]
+                        new_turn_kc = FuturistWindowDict()
+                        new_turn_kc[tick] = old_turn_kc[old_turn_kc.end].copy()
+                        kc[turn] = new_turn_kc
                     else:
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
                 return kc[turn][tick]
