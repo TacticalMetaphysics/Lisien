@@ -111,7 +111,7 @@ class TimePanel(BoxLayout):
         self.ids.branchfield.hint_text = self.screen.app.branch
 
     def _upd_turn_hint(self, *args):
-        self.ids.turnfield.hint_text = self.screen.app.turn
+        self.ids.turnfield.hint_text = str(self.screen.app.turn)
 
     def _upd_tick_hint(self, *args):
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
