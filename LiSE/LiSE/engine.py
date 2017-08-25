@@ -825,6 +825,7 @@ class Engine(AbstractEngine, gORM):
             r = next(self._rules_iter)
         except StopIteration:
             self.turn += 1
+            self.tick = 0
             self._rules_iter = self._follow_rules()
             self.universal['rando_state'] = self.rando.getstate()
             if self.commit_modulus and self.turn % self.commit_modulus == 0:
