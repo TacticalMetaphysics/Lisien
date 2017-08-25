@@ -544,9 +544,27 @@ class Cache(object):
         self._forward_and_update(parent, entity, key, branch, turn, tick, value)
 
     def _store(self, parent, entity, key, branch, turn, tick, value):
-        self.branches[parent+(entity, key)][branch][turn][tick] = value
-        self.keys[parent+(entity,)][key][branch][turn][tick] = value
-        self.shallow[parent+(entity, key, branch)][turn][tick] = value
+        branches = self.branches[parent+(entity, key)][branch]
+        if branches.has_exact_rev(turn):
+            branches[turn][tick] = value
+        else:
+            newb = FuturistWindowDict()
+            newb[tick] = value
+            branches[turn] = newb
+        keys = self.keys[parent+(entity,)][key][branch]
+        if keys.has_exact_rev(turn):
+            keys[turn][tick] = value
+        else:
+            newt = FuturistWindowDict()
+            newt[tick] = value
+            keys[turn] = newt
+        shallow = self.shallow[parent+(entity, key, branch)]
+        if shallow.has_exact_rev(turn):
+            shallow[turn][tick] = value
+        else:
+            news = FuturistWindowDict()
+            news[tick] = value
+            shallow[turn] = news
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
