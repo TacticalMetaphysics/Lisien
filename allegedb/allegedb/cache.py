@@ -544,6 +544,14 @@ class Cache(object):
         self._forward_and_update(parent, entity, key, branch, turn, tick, value)
 
     def _store(self, parent, entity, key, branch, turn, tick, value):
+        if parent:
+            parents = self.parents[parent][entity][key][branch]
+            if parents.has_exact_rev(turn):
+                parents[turn][tick] = value
+            else:
+                newp = FuturistWindowDict()
+                newp[tick] = value
+                parents[turn] = newp
         branches = self.branches[parent+(entity, key)][branch]
         if branches.has_exact_rev(turn):
             branches[turn][tick] = value
@@ -568,7 +576,7 @@ class Cache(object):
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
-    def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=True):
+    def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=False):
         if parent:
             if branch not in self.parents[parent][entity][key]:
                 self._forward_valcache(
@@ -826,19 +834,25 @@ class EdgesCache(Cache):
         )
         return orig in self.origcache[(graph, orig, branch)][turn][tick]
 
-    def store(self, graph, orig, dest, idx, branch, turn, tick, ex):
-        """Store whether an edge exists, and create an object for it
-
-        Also stores predecessors for every edge.
-
-        """
+    def _store(self, parent, dest, idx, branch, turn, tick, ex):
+        graph, orig = parent
         if not ex:
             ex = None
-        Cache.store(self, graph, orig, dest, idx, branch, turn, tick, ex)
+        Cache._store(self, parent, dest, idx, branch, turn, tick, ex)
         if (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
-        self.predecessors[(graph, dest)][orig][idx][branch][turn][tick] = ex
+        preds = self.predecessors[(graph, dest)][orig][idx][branch]
+        if preds.has_exact_rev(turn):
+            preds[turn][tick] = ex
+        else:
+            newp = FuturistWindowDict()
+            newp[tick] = ex
+            preds[turn] = newp
+
+    def _forward_and_update(self, parent, dest, key, branch, turn, tick, ex, validate=False):
+        super()._forward_and_update(parent, dest, key, branch, turn, tick, ex, validate)
+        graph, orig = parent
         oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
         dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
         # The following assertions are very slow.
