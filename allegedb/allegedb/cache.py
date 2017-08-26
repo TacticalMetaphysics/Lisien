@@ -855,10 +855,8 @@ class EdgesCache(Cache):
         graph, orig = parent
         oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
         dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
-        # The following assertions are very slow.
-        # If you're using allegedb in production, you should avoid them
-        # by running Python with the -O flag.
-        assert oc == set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, turn, tick)), \
-            "Invalid origcache"
-        assert dc == set(self._slow_iter_successors(self.successors[(graph, orig)], branch, turn, tick)), \
-            "Invalid destcache"
+        if validate:
+            if oc != set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, turn, tick)):
+                raise ValueError("Invalid origcache")
+            if dc != set(self._slow_iter_successors(self.successors[(graph, orig)], branch, turn, tick)):
+                raise ValueError("Invalid destcache")
