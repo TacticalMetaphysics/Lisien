@@ -511,7 +511,7 @@ class Cache(object):
                     if err.deleted:
                         break
 
-    def store(self, *args):
+    def store(self, *args, validate=False):
         """Put a value in various dictionaries for later .retrieve(...).
 
         Needs at least five arguments, of which the -1th is the value
@@ -541,7 +541,7 @@ class Cache(object):
             )
         parent = args[:-6]
         self._store(parent, entity, key, branch, turn, tick, value)
-        self._forward_and_update(parent, entity, key, branch, turn, tick, value)
+        self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
 
     def _store(self, parent, entity, key, branch, turn, tick, value):
         if parent:
@@ -722,22 +722,23 @@ class NodesCache(Cache):
         super().__init__(db)
         self._make_node = db._make_node
 
-    def store(self, graph, node, branch, turn, tick, ex):
+    def store(self, graph, node, branch, turn, tick, ex, *, validate=False):
         """Store whether a node exists, and create an object for it"""
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
-        Cache.store(self, graph, node, branch, turn, tick, ex)
-        # The following assertion is very slow.
-        # If you are using allegedb in production,
-        # run Python with the -O switch to optimize it out.
+        Cache.store(self, graph, node, branch, turn, tick, ex, validate=validate)
         kc = self._update_keycache((graph,), branch, turn, tick, node, ex)
-        assert node in kc
-        assert self.contains_entity(graph, node, branch, turn, tick)
-        assert node in set(self.iter_entities(graph, branch, turn, tick))
-        assert kc == set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
+        if validate:
+            if (
+                    node not in kc or
+                    not self.contains_entity_or_key(graph, node, branch, turn, tick) or
+                    node not in set(self.iter_entities(graph, branch, turn, tick)) or
+                    kc != set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
+            ):
+                raise ValueError("Invalid keycache")
 
 
 class EdgesCache(Cache):
