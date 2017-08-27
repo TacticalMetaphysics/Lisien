@@ -394,7 +394,7 @@ class Cache(object):
         """
         self.shallow = PickyDefaultDict(TurnDict)
         """Less structured alternative to ``branches`` ."""
-        self.shallower = PickyDefaultDict(FuturistWindowDict)
+        self.shallower = PickyDefaultDict(WindowDict)
         """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
 
