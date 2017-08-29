@@ -735,6 +735,8 @@ class Engine(AbstractEngine, gORM):
         self.time = (self.branch, v)
 
     def _follow_rules(self):
+        # Currently the user doesn't have a lot of control over the order that
+        # rulebooks get run in. I should implement that.
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule
