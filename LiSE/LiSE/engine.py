@@ -738,7 +738,7 @@ class Engine(AbstractEngine, gORM):
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule
-        for character, rulebook, rule in self._character_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        for character, rulebook, rule in self._character_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             res = rulemap[rule](self, charmap[character])
             self._character_rules_handled_cache.store(
                 character, rulebook, rule, branch, turn, tick
@@ -749,7 +749,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
             character, graph, avatar, rulebook, rule
-        ) in self._avatar_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        ) in self._avatar_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             res = rulemap[rule](self, charmap[character], charmap[graph].node[avatar])
             self._avatar_rules_handled_cache.store(
                 character, rulebook, rule, graph, avatar, branch, turn, tick
@@ -760,7 +760,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
             character, thing, rulebook, rule
-        ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             c = charmap[character]
             res = rulemap[rule](self, c, c.thing[thing])
             self._character_thing_rules_handled_cache.store(
@@ -772,7 +772,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
             character, place, rulebook, rule
-        ) in self._character_place_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        ) in self._character_place_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             c = charmap[character]
             res = rulemap[rule](self, c, c.place[place])
             self._character_place_rules_handled_cache.store(
@@ -784,7 +784,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
             character, orig, dest, rulebook, rule
-        ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             c = charmap[character]
             res = rulemap[rule](self, c, c.portal[orig][dest])
             self._character_portal_rules_handled_cache.store(
@@ -796,7 +796,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
                 character, node, rulebook, rule
-        ) in self._node_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        ) in self._node_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             c = charmap[character]
             res = rulemap[rule](self, c, c.node[node])
             self._node_rules_handled_cache.store(
@@ -808,7 +808,7 @@ class Engine(AbstractEngine, gORM):
             yield res
         for (
                 character, orig, dest, rulebook, rule
-        ) in self._portal_rules_handled_cache.iter_unhandled_rules(branch, turn):
+        ) in self._portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             c = charmap[character]
             res = rulemap[rule](self, c, c.portal[orig][dest])
             self._portal_rules_handled_cache.store(
