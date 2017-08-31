@@ -577,12 +577,10 @@ class Cache(object):
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
     def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=False):
-        if parent:
-            if branch not in self.parents[parent][entity][key]:
-                self._forward_valcache(
-                    self.parents[parent][entity][key], branch, turn, tick
-                )
-            self.parents[parent][entity][key][branch][turn][tick] = value
+        if parent and branch not in self.parents[parent][entity][key]:
+            self._forward_valcache(
+                self.parents[parent][entity][key], branch, turn, tick
+            )
         if branch not in self.keys[parent+(entity,)][key]:
             self._forward_valcache(
                 self.keys[parent+(entity,)][key], branch, turn, tick
