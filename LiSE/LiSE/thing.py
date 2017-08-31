@@ -283,7 +283,7 @@ class Thing(Node):
         scheduled to be somewhere else.
 
         """
-        curtick = self.character.engine.tick
+        curturn = self.character.engine.turn
         prevplace = path.pop(0)
         if prevplace != self['location']:
             raise ValueError("Path does not start at my present location")
@@ -303,37 +303,37 @@ class Thing(Node):
                 )
             subpath.append(place)
             prevplace = place
-        ticks_total = 0
+        turns_total = 0
         prevsubplace = subpath.pop(0)
         subsubpath = [prevsubplace]
         for subplace in subpath:
             if prevsubplace != self["location"]:
                 l = self["location"]
-                fintick = self.character.engine.tick
-                self.character.engine.tick = curtick
+                finturn = self.character.engine.turn
+                self.character.engine.turn = curturn
                 raise TravelException(
-                    "When I tried traveling to {}, at tick {}, "
+                    "When I tried traveling to {}, at turn {}, "
                     "I ended up at {}".format(
                         prevsubplace,
-                        fintick,
+                        finturn,
                         l
                     ),
                     path=subpath,
                     followed=subsubpath,
                     branch=self.character.engine.branch,
-                    tick=fintick,
+                    turn=finturn,
                     lastplace=l,
                     traveller=self
                 )
             portal = self.character.portal[prevsubplace][subplace]
-            tick_inc = portal.get(weight, 1)
+            turn_inc = portal.get(weight, 1)
             self.go_to_place(subplace, weight)
-            self.character.engine.tick += tick_inc
-            ticks_total += tick_inc
+            self.character.engine.turn += turn_inc
+            turns_total += turn_inc
             subsubpath.append(subplace)
             prevsubplace = subplace
-        self.character.engine.tick = curtick
-        return ticks_total
+        self.character.engine.turn = curturn
+        return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):
         """Find the shortest path to the given :class:`Place` from where I am
