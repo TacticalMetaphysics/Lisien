@@ -1450,10 +1450,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             engine = getatt('graph.engine')
 
-            @reify
-            def _cache(self):
-                return {}
-
             @staticmethod
             def send(self, **kwargs):
                 """Call all listeners to ``dest`` and to my ``orig``."""
