@@ -213,7 +213,7 @@ class WindowDict(MutableMapping):
         # But handle degenerate case.
         if not within_history(rev, self):
             raise HistoryError("Rev outside of history: {}".format(rev))
-        name = '_past' if rev <= self._rev else '_future'
+        name = '_past' if self._past and rev <= self._past[-1][0] else '_future'
         stack = getattr(self, name)
         waste = deque()
         setattr(self, name, waste)
