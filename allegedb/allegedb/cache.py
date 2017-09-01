@@ -461,23 +461,33 @@ class Cache(object):
                         return
 
     def _forward_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick):
+        # Take valid values from the past of a keycache and copy them forward, into the present.
         keycache_key = parentity + (branch,)
         if keycache_key in keycache:
             kc = keycache[keycache_key]
             try:
                 if not kc.has_exact_rev(turn):
                     if kc.rev_before(turn) == turn - 1:
+                        # We had valid keys a turn ago. Reuse those.
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
-                        new_turn_kc[tick] = old_turn_kc[old_turn_kc.end].copy()
+                        new_turn_kc[0] = old_turn_kc[old_turn_kc.end].copy()
                         kc[turn] = new_turn_kc
                     else:
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
-                return kc[turn][tick]
+                kcturn = kc[turn]
+                if not kcturn.has_exact_rev(tick):
+                    if kcturn.rev_before(tick) == tick - 1:
+                        # We have keys from the previous tick. Use those.
+                        kcturn[tick] = kcturn[tick - 1].copy()
+                    else:
+                        kcturn[tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+                return kcturn[tick]
             except HistoryError:
                 pass
         kc = keycache[keycache_key] = TurnDict()
         for (b, trn) in self.db._active_branches(branch, turn):
+            # Look through parent branches to find a valid keycache.
             other_branch_key = parentity + (b,)
             if other_branch_key in keycache and \
                trn in keycache[other_branch_key]:
@@ -487,8 +497,8 @@ class Cache(object):
                     break
                 except HistoryError as ex:
                     if ex.deleted:
-                        kc[turn][tick] = set()
-                        break
+                        kc[turn][tick] = ret = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+                        return ret
         else:
             kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
         return kc[turn][tick]
