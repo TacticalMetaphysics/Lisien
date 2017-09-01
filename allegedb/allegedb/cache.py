@@ -471,7 +471,10 @@ class Cache(object):
                         # We had valid keys a turn ago. Reuse those.
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
-                        new_turn_kc[0] = old_turn_kc[old_turn_kc.end].copy()
+                        keys = old_turn_kc[old_turn_kc.end]
+                        new_turn_kc[0] = keys.copy()
+                        if tick != 0:
+                            new_turn_kc[tick] = keys.copy()
                         kc[turn] = new_turn_kc
                     else:
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
