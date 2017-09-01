@@ -383,7 +383,7 @@ class Cache(object):
         top-level key in this cache here. The second-to-top level
         is the key within the entity.
 
-        Deeper layers of this cache are keyed by branch and revision.
+        Deeper layers of this cache are keyed by branch, turn, and tick.
 
         """
         self.keycache = PickyDefaultDict(TurnDict)
