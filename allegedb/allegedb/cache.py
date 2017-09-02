@@ -206,7 +206,7 @@ class WindowDict(MutableMapping):
             if not self._past:
                 self._past.append((rev, v))
             elif self._past[-1][0] == rev:
-                self._past[-1][1] = v
+                self._past[-1] = (rev, v)
             else:
                 assert self._past[-1][0] < rev
                 self._past.append((rev, v))
