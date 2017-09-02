@@ -240,7 +240,7 @@ class WindowDict(MutableMapping):
         ret.update({
             rev: v for (rev, v) in self._future
         })
-        return "WindowDict({})".format(ret)
+        return "{}({})".format(self.__class__.__name__, ret)
 
 
 class FuturistWindowDict(WindowDict):
