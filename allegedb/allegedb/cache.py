@@ -523,10 +523,13 @@ class Cache(object):
         return kc
 
     def _slow_iter_keys(self, cache, branch, turn, tick):
-        for key in cache:
+        for key, branches in cache.items():
             for (branch, turn) in self.db._active_branches(branch, turn):
+                if branch not in branches or turn not in branches[branch]:
+                    continue
+                turnd = branches[branch][turn]
                 try:
-                    if cache[key][branch][turn][tick] is not None:
+                    if turnd[turnd.end] is not None:
                         yield key
                 except HistoryError as err:
                     if err.deleted:
