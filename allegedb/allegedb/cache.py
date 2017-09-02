@@ -173,7 +173,12 @@ class WindowDict(MutableMapping):
             yield rev
 
     def __contains__(self, item):
-        return item in WindowDictKeysView(self)
+        if self._past:
+            return item >= self._past[0][0]
+        elif self._future:
+            return item >= self._future[0][0]
+        else:
+            return False
 
     def __len__(self):
         return len(self._past) + len(self._future)
