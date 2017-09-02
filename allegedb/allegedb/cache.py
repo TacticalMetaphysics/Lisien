@@ -529,12 +529,24 @@ class Cache(object):
             for (branc, trn, tck) in self.db._active_branches(branch, turn, tick):
                 if branch not in branches or turn not in branches[branch]:
                     continue
-                try:
-                    if branches[branc][trn][tck] is not None:
-                        yield key
-                except HistoryError as err:
-                    if err.deleted:
-                        break
+                turnd = branches[branc]
+                if turnd.has_exact_rev(trn):
+                    try:
+                        if turnd[trn][tck] is not None:
+                            yield key
+                            break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
+                else:
+                    tickd = turnd[trn]
+                    try:
+                        if tickd[tickd.end] is not None:
+                            yield key
+                            break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
 
     def store(self, *args, validate=False):
         """Put a value in various dictionaries for later .retrieve(...).
