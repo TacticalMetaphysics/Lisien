@@ -131,10 +131,10 @@ class AvatarnessCache(Cache):
             return
         for character in self.user_order[graph][node]:
             if (graph, node, character, branch) not in self.user_shallow:
-                for (b, t) in self.db._active_branches(branch, turn):
+                for (b, t, tc) in self.db._active_branches(branch, turn, tick):
                     if b in self.user_order[graph][node][character]:
                         isav = self.user_order[graph][node][character][b][t]
-                        self.store(character, graph, node, branch, turn, tick, isav[isav.end])
+                        self.store(character, graph, node, branch, turn, tick, isav[tc])
                         break
                 else:
                     self.store(character, graph, node, branch, turn, tick, None)

@@ -301,7 +301,7 @@ class ORM(object):
         if name in self._graph_objs:
             del self._graph_objs[name]
 
-    def _active_branches(self, branch=None, turn=None):
+    def _active_branches(self, branch=None, turn=None, tick=None):
         """Private use. Iterate over (branch, turn) pairs, where the branch is
         a descendant of the previous (starting with whatever branch is
         presently active and ending at 'trunk'), and the turn is the
@@ -310,10 +310,11 @@ class ORM(object):
         """
         b = self.branch if branch is None else branch
         t = self.turn if turn is None else turn
-        yield b, t
+        tc = self.tick if tick is None else tick
+        yield b, t, tc
         while b in self._parentbranch_turn:
             (b, t) = self._parentbranch_turn[b]
-            yield b, t
+            yield b, t, self._turn_end[b, t]
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current

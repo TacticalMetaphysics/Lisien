@@ -132,11 +132,10 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         for user in cache:
             if user in seen:
                 continue
-            for (branch, turn) in self.engine._active_branches():
+            for (branch, turn, tick) in self.engine._active_branches():
                 if branch in cache[user]:
                     try:
-                        td = cache[user][branch][turn]
-                        if td[td.end]:
+                        if cache[user][branch][turn][tick]:
                             yield user
                         seen.add(user)
                         break
@@ -201,14 +200,14 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         cache = self.engine._edges_cache.predecessors[
             self.character.name][self.name]
         for nodeB in cache:
-            for (b, t) in self.engine._active_branches():
+            for (b, trn, tck) in self.engine._active_branches():
                 if b in cache[nodeB][0]:
                     if b != self.engine.branch:
                         self.engine._edges_cache.store(
                             self.character.name, self.name, nodeB, 0,
                             *self.engine.btt()
                         )
-                    if cache[nodeB][0][b][t]:
+                    if cache[nodeB][0][b][trn][tck]:
                         yield nodeB
                         break
 

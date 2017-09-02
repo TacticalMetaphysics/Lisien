@@ -448,22 +448,25 @@ class Cache(object):
                 return turnd.get(tick, None)
             except HistoryError:
                 return
-        for b, r in self.db._active_branches(branch, turn):
-            if b in cache:
+        for b, r, t in self.db._active_branches(branch, turn, tick):
+            if b in cache and r in cache[b] and t in cache[b][r]:
+                turnd = cache[b][r]
+                v = turnd[t]
+                if copy:
+                    v = copier(v)
                 try:
-                    turnd = cache[b].get(r, None)
-                    if turnd:
-                        v = turnd[turnd.end]
-                        if copy:
-                            v = copier(v)
-                        cache[branch][r][tick] = v
-                    else:
-                        cache[branch][r][tick] = None
-                    return cache[branch][r][tick]
+                    cache[branch][turn][0] = v
                 except HistoryError as ex:
                     if ex.deleted:
-                        cache[branch][r][tick] = None
+                        cturnd = cache[branch][turn]
+                        try:
+                            cturnd[0] = None
+                        except HistoryError:
+                            cturnd[tick] = None
                         return
+                    cache[branch][turn][tick] = v
+                    return
+        cache[branch][turn][tick] = None
 
     def _forward_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick):
         # Take valid values from the past of a keycache and copy them forward, into the present.
@@ -494,14 +497,13 @@ class Cache(object):
             except HistoryError:
                 pass
         kc = keycache[keycache_key] = TurnDict()
-        for (b, trn) in self.db._active_branches(branch, turn):
+        for (b, trn, tck) in self.db._active_branches(branch, turn, tick):
             # Look through parent branches to find a valid keycache.
             other_branch_key = parentity + (b,)
             if other_branch_key in keycache and \
                trn in keycache[other_branch_key]:
-                tickd = keycache[other_branch_key][trn]
                 try:
-                    kc[turn][tick] = tickd[tickd.end].copy()
+                    kc[turn][tick] = keycache[other_branch_key][trn][tck].copy()
                     break
                 except HistoryError as ex:
                     if ex.deleted:
@@ -524,12 +526,11 @@ class Cache(object):
 
     def _slow_iter_keys(self, cache, branch, turn, tick):
         for key, branches in cache.items():
-            for (branch, turn) in self.db._active_branches(branch, turn):
+            for (branc, trn, tck) in self.db._active_branches(branch, turn, tick):
                 if branch not in branches or turn not in branches[branch]:
                     continue
-                turnd = branches[branch][turn]
                 try:
-                    if turnd[turnd.end] is not None:
+                    if branches[branc][trn][tck] is not None:
                         yield key
                 except HistoryError as err:
                     if err.deleted:
@@ -651,13 +652,17 @@ class Cache(object):
                 = self.shallower[entity+(key, branch, turn)][tick] \
                 = self.shallow[entity + (key, branch)][turn].get(tick)
             return ret
-        for (b, r) in self.db._active_branches(branch, turn):
+        for (b, r, t) in self.db._active_branches(branch, turn, tick):
             if (
                     b in self.branches[entity+(key,)]
                     and r in self.branches[entity+(key,)][b]
             ):
-                revd = self.branches[entity+(key,)][b][r]
-                ret = revd[revd.end]
+                brancs = self.branches[entity+(key,)][b]
+                if brancs.has_exact_rev(r):
+                    ret = brancs[r][t]
+                else:
+                    ret = brancs[r]
+                    ret = ret[ret.end]
                 if args not in self.shallowest:
                     self.shallowest[args] = ret
                 try:

@@ -65,12 +65,14 @@ class Thing(Node):
         self._set_loc_and_next(*v)
 
     def _get_arrival_time(self):
-        branch, turn, tick = self.engine.btt()
         charn = self.character.name
         n = self.name
         thingcache = self.engine._things_cache
-        for b, t in self.engine._active_branches(branch, turn):
-            v = thingcache.turn_before(charn, n, b, t)
+        for b, trn, tck in self.engine._active_branches():
+            try:
+                v = thingcache.turn_before(charn, n, b, trn)
+            except KeyError:
+                v = thingcache.turn_after(charn, n, b, trn)
             if v is not None:
                 return v
         else:
