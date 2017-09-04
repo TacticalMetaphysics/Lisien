@@ -141,7 +141,7 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
         )
@@ -158,7 +158,7 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
         )
@@ -289,8 +289,8 @@ def tables_for_meta(meta):
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_rulebook.character', 'character_rulebook.rulebook']
         )
@@ -304,8 +304,8 @@ def tables_for_meta(meta):
         Column('graph', TEXT, primary_key=True),
         Column('avatar', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['avatar_rulebook.character', 'avatar_rulebook.rulebook']
         )
@@ -318,8 +318,8 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('thing', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_thing_rulebook.character', 'character_thing_rulebook.rulebook']
         ),
@@ -335,8 +335,8 @@ def tables_for_meta(meta):
         Column('rule', TEXT, primary_key=True),
         Column('place', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_place_rulebook.character', 'character_place_rulebook.rulebook']
         ),
@@ -353,8 +353,8 @@ def tables_for_meta(meta):
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('turn', INT, primary_key=True, default=0),
-        Column('tick', INT, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_portal_rulebook.character', 'character_portal_rulebook.rulebook']
         ),
