@@ -133,7 +133,7 @@ def tables_for_meta(meta):
 
     # Rules handled within the rulebook associated with one node in
     # particular.
-    Table(
+    nrh = Table(
         'node_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
@@ -147,9 +147,26 @@ def tables_for_meta(meta):
         )
     )
 
+    Table(
+        'node_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('node', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'node', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
+            [nrh.c.character, nrh.c.node, nrh.c.rulebook, nrh.c.rule, nrh.c.branch, nrh.c.turn]
+        )
+    )
+
     # Rules handled within the rulebook associated with one portal in
     # particular.
-    Table(
+    porh = Table(
         'portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
@@ -161,6 +178,24 @@ def tables_for_meta(meta):
         Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
+        )
+    )
+
+    Table(
+        'portal_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'orig', 'dest', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
+            [porh.c.character, porh.c.orig, porh.c.dest, porh.c.rulebook, porh.c.rule, porh.c.branch, porh.c.turn]
         )
     )
 
@@ -283,7 +318,7 @@ def tables_for_meta(meta):
         )
     )
 
-    Table(
+    crh = Table(
         'character_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
@@ -297,6 +332,22 @@ def tables_for_meta(meta):
     )
 
     Table(
+        'character_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', TEXT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
+            [crh.c.character, crh.c.rulebook, crh.c.rule, crh.c.branch, crh.c.turn]
+        )
+    )
+
+    arh = Table(
         'avatar_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
@@ -312,6 +363,24 @@ def tables_for_meta(meta):
     )
 
     Table(
+        'avatar_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('graph', TEXT, primary_key=True),
+        Column('avatar', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', TEXT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'graph', 'avatar', 'handled_branch', 'handled_turn'],
+            [arh.c.character, arh.c.rulebook, arh.c.rule, arh.c.graph, arh.c.avatar, arh.c.branch, arh.c.turn]
+        )
+    )
+
+    ctrh = Table(
         'character_thing_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
@@ -329,6 +398,23 @@ def tables_for_meta(meta):
     )
 
     Table(
+        'character_thing_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('thing', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'thing', 'handled_branch', 'handled_turn'],
+            [ctrh.c.character, ctrh.c.rulebook, ctrh.c.rule, ctrh.c.thing, ctrh.c.branch, ctrh.c.turn]
+        )
+    )
+
+    cprh = Table(
         'character_place_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
@@ -346,6 +432,23 @@ def tables_for_meta(meta):
     )
 
     Table(
+        'character_place_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('place', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'place', 'handled_branch', 'handled_turn'],
+            [cprh.c.character, cprh.c.rulebook, cprh.c.rule, cprh.c.place, cprh.c.branch, cprh.c.turn]
+        )
+    )
+
+    cporh = Table(
         'character_portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
@@ -360,6 +463,24 @@ def tables_for_meta(meta):
         ),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
+        )
+    )
+
+    Table(
+        'character_portal_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'orig', 'dest', 'handled_branch', 'handled_turn'],
+            [cporh.c.character, cporh.c.rulebook, cporh.c.rule, cporh.c.orig, cporh.c.dest, cporh.c.branch, cporh.c.turn]
         )
     )
 
