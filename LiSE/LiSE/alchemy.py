@@ -109,7 +109,13 @@ def tables_for_meta(meta):
     # places, and portals it contains--though those may have their own
     # rulebooks as well.
 
-    def char_rb_tab(name):
+    for name in (
+        'character_rulebook',
+        'avatar_rulebook',
+        'character_thing_rulebook',
+        'character_place_rulebook',
+        'character_portal_rulebook'
+    ):
         Table(
             name, meta,
             Column('character', TEXT, primary_key=True),
@@ -124,16 +130,6 @@ def tables_for_meta(meta):
                 ['rulebook'], ['rulebooks.rulebook']
             )
         )
-
-    char_rb_tab('character_rulebook')
-    char_rb_tab('character_portal_rulebook')
-
-    for rb in (
-        'avatar_rulebook',
-        'character_thing_rulebook',
-        'character_place_rulebook',
-    ):
-        char_rb_tab(rb)
 
     # Rules handled within the rulebook associated with one node in
     # particular.
