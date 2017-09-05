@@ -193,7 +193,7 @@ class AbstractEngine(object):
             self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
-                "portal", obj.character.name, obj._origin, obj._destination]
+                "portal", obj.character.name, obj.orig, obj.dest]
         }
 
     def listify(self, obj):

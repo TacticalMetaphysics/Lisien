@@ -102,6 +102,9 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     """
     __slots__ = ['user', 'graph', 'db', 'node']
+    engine = getatt('db')
+    character = getatt('graph')
+    name = getatt('node')
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -147,18 +150,6 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
         return self.character.portal[self.name]
-
-    @property
-    def engine(self):
-        return self.db
-
-    @property
-    def character(self):
-        return self.graph
-
-    @property
-    def name(self):
-        return self.node
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
