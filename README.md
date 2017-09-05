@@ -17,14 +17,12 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Redshirt
-* Animal Crossing
 * Princess Maker
 * Monster Rancher
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
 * The King of Dragon Pass
-* Cart Life
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
 
