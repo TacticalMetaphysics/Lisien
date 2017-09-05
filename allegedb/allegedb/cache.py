@@ -101,7 +101,6 @@ class WindowDict(MutableMapping):
     repeatedly, or its neighbors.
 
     """
-    __slots__ = ['_past', '_future']
 
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
@@ -267,16 +266,18 @@ class FuturistWindowDict(WindowDict):
 
 
 class TurnDict(FuturistWindowDict):
+    cls = FuturistWindowDict
+
     def __getitem__(self, rev):
         try:
             return super().__getitem__(rev)
         except KeyError:
-            ret = self[rev] = FuturistWindowDict()
+            ret = self[rev] = self.cls()
             return ret
 
     def __setitem__(self, turn, value):
-        if not isinstance(value, FuturistWindowDict):
-            value = FuturistWindowDict(value)
+        if not isinstance(value, self.cls):
+            value = self.cls(value)
         super().__setitem__(turn, value)
 
 
@@ -314,7 +315,7 @@ class PickyDefaultDict(dict):
 
     def __setitem__(self, k, v):
         if not isinstance(v, self.type):
-            raise TypeError("Expected {}, got {}".format(self.type, type(v)))
+            v = self.type(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
 
@@ -560,22 +561,6 @@ class Cache(object):
 
         """
         entity, key, branch, turn, tick, value = args[-6:]
-        cur_branch_end = self.db._branch_end[branch]
-        if turn != cur_branch_end:
-            raise HistoryError(
-                "Tried to cache a value at {}, "
-                "but the branch {} already has history up to {}".format(
-                    turn, branch, cur_branch_end
-                )
-            )
-        cur_turn_end = self.db._turn_end[(branch, turn)]
-        if tick != cur_turn_end:
-            raise HistoryError(
-                "Tried to cache a value at tick {}, "
-                "but turn {} has run for {} ticks".format(
-                    tick, turn, cur_turn_end
-                )
-            )
         parent = args[:-6]
         self._store(parent, entity, key, branch, turn, tick, value)
         self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
@@ -654,12 +639,14 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key, branch, turn) in self.shallower and tick in self.shallower[entity+(key, branch, turn)]:
+        if entity+(key, branch, turn) in self.shallower and \
+                self.shallower[entity+(key, branch, turn)].has_exact_rev(tick):
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick]
             return ret
-        if entity+(key, branch) in self.shallow and turn in self.shallow[entity+(key, branch)] \
-                and tick in self.shallow[entity+(key, branch)][turn]:
+        if entity+(key, branch) in self.shallow and \
+                self.shallow[entity+(key, branch)].has_exact_rev(turn) and \
+                tick in self.shallow[entity+(key, branch)][turn]:
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick] \
                 = self.shallow[entity + (key, branch)][turn].get(tick)

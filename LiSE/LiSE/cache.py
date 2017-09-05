@@ -149,24 +149,14 @@ class RulesHandledCache(object):
         self.unhandled = StructuredDefaultDict(3, list)
 
     def store(self, *args):
-        entity = args[:-4]
-        rulebook, rule, branch, turn = args[-4:]
-        if turn >= self.engine._branch_end[branch]:
-            self.engine._branch_end[branch] = turn
-        else:
-            raise HistoryError(
-                "Tried to cache a value at {}, "
-                "but the branch {} already has history up to {}".format(
-                    turn, branch, self.engine._branch_end[branch]
-                )
-            )
+        entity = args[:-5]
+        rulebook, rule, branch, turn, tick = args[-5:]
         shalo = self.shallow.setdefault(entity + (rulebook, rule, branch), set())
         unhandl = self.unhandled
         for spot in entity:
             unhandl = unhandl[spot]
         if turn not in unhandl.setdefault(branch, {}):
-            itargs = entity + (branch, turn)
-            unhandl[branch][turn] = list(self._iter_rulebook(*itargs))
+            unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
         unhandl[branch][turn].remove(entity + (rulebook, rule))
         shalo.add(rule)
 
@@ -215,7 +205,7 @@ class AvatarRulesHandledCache(RulesHandledCache):
                     except KeyError:
                         continue
                     for rule in rules:
-                        yield character, graph, avatar, rulebook, rule
+                        yield character, rulebook, rule, graph, avatar
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
@@ -228,7 +218,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
                 except KeyError:
                     continue
                 for rule in rules:
-                    yield character, thing, rulebook, rule
+                    yield character, rulebook, rule, thing
 
 
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
@@ -241,7 +231,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
                 except KeyError:
                     continue
                 for rule in rules:
-                    yield character, place, rulebook, rule
+                    yield character, rulebook, rule, place
 
 
 class CharacterPortalRulesHandledCache(RulesHandledCache):
@@ -255,7 +245,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
                     except KeyError:
                         continue
                     for rule in rules:
-                        yield character, orig, dest, rulebook, rule
+                        yield character, rulebook, rule, orig, dest
 
 
 class NodeRulesHandledCache(RulesHandledCache):
@@ -291,9 +281,15 @@ class ThingsCache(Cache):
         self._make_node = db.thing_cls
 
     def turn_before(self, character, thing, branch, turn):
-        self.retrieve(character, thing, branch, turn, 0)
+        try:
+            self.retrieve(character, thing, branch, turn, 0)
+        except KeyError:
+            pass
         return self.keys[(character,)][thing][branch].rev_before(turn)
 
     def turn_after(self, character, thing, branch, turn):
-        self.retrieve(character, thing, branch, turn, 0)
+        try:
+            self.retrieve(character, thing, branch, turn, 0)
+        except KeyError:
+            pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
