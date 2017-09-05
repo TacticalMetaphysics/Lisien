@@ -657,7 +657,7 @@ class Cache(object):
                     and r in self.branches[entity+(key,)][b]
             ):
                 brancs = self.branches[entity+(key,)][b]
-                if brancs.has_exact_rev(r):
+                if brancs.has_exact_rev(r) and t in brancs[r]:
                     ret = brancs[r][t]
                 else:
                     ret = brancs[r]
