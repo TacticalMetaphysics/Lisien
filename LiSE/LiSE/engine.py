@@ -193,7 +193,7 @@ class AbstractEngine(object):
             self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
-                "portal", obj.character.name, obj._origin, obj._destination]
+                "portal", obj.character.name, obj.orig, obj.dest]
         }
 
     def listify(self, obj):
@@ -734,92 +734,157 @@ class Engine(AbstractEngine, gORM):
             return
         self.time = (self.branch, v)
 
+    def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
+        self._character_rules_handled_cache.store(
+            charn, rulebook, rulen, branch, turn, tick
+        )
+        self.query.handled_character_rule(
+            charn, rulebook, rulen, branch, turn, tick
+        )
+
+    def _handled_av(self, character, rulebook, rule, graph, avatar, branch, turn, tick):
+        self._avatar_rules_handled_cache.store(
+            character, rulebook, rule, graph, avatar, branch, turn, tick
+        )
+        self.query.handled_avatar_rule(
+            character, rulebook, rule, graph, avatar, branch, turn, tick
+        )
+
+    def _handled_char_thing(self, character, rulebook, rule, thing, branch, turn, tick):
+        self._character_thing_rules_handled_cache.store(
+            character, rulebook, rule, thing, branch, turn, tick
+        )
+        self.query.handled_character_thing_rule(
+            character, rulebook, rule, thing, branch, turn, tick
+        )
+
+    def _handled_char_place(self, character, rulebook, rule, place, branch, turn, tick):
+        self._character_place_rules_handled_cache.store(
+            character, rulebook, rule, place, branch, turn, tick
+        )
+        self.query.handled_character_place_rule(
+            character, rulebook, rule, place, branch, turn, tick
+        )
+
+    def _handled_char_port(self, character, rulebook, rule, orig, dest, branch, turn, tick):
+        self._character_portal_rules_handled_cache.store(
+            character, rulebook, rule, orig, dest, branch, turn, tick
+        )
+        self.query.handled_character_portal_rule(
+            character, rulebook, rule, orig, dest, branch, turn, tick
+        )
+
+    def _handled_node(self, character, node, rulebook, rule, branch, turn, tick):
+        self._node_rules_handled_cache.store(
+            character, node, rulebook, rule, branch, turn, tick
+        )
+        self.query.handled_node_rule(
+            character, node, rulebook, rule, branch, turn, tick
+        )
+
+    def _handled_portal(self, character, orig, dest, rulebook, rule, branch, turn, tick):
+        self._portal_rules_handled_cache.store(
+            character, orig, dest, rulebook, rule, branch, turn, tick
+        )
+        self.query.handled_portal_rule(
+            character, orig, dest, rulebook, rule, branch, turn, tick
+        )
+
+    def _follow_rule(self, rule, handled_fun, branch, turn, *args):
+        for trigger in rule.triggers:
+            res = trigger(*args)
+            self.time = branch, turn
+            if res:
+                break
+        else:
+            return handled_fun()
+        satisfied = True
+        for prereq in rule.prereqs:
+            res = prereq(*args)
+            self.time = branch, turn
+            if not res:
+                satisfied = False
+                break
+        if not satisfied:
+            return handled_fun()
+        actres = []
+        for action in rule.actions:
+            actres.append(action(*args))
+            self.time = branch, turn
+        handled_fun()
+        return actres
+
     def _follow_rules(self):
         # Currently the user doesn't have a lot of control over the order that
         # rulebooks get run in. I should implement that.
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule
-        for character, rulebook, rule in self._character_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            res = rulemap[rule](self, charmap[character])
-            self._character_rules_handled_cache.store(
-                character, rulebook, rule, branch, turn, tick
-            )
-            self.query.handled_character_rule(
-                character, rulebook, rule, branch, turn, tick
-            )
-            yield res
+
         for (
-            character, graph, avatar, rulebook, rule
+            charactername, rulebook, rulename
+        ) in self._character_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+            yield self._follow_rule(
+                rulemap[rulename],
+                partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick),
+                branch, turn,
+                charmap[charactername]
+            )
+        for (
+            charn, rulebook, graphn, avn, rulen
         ) in self._avatar_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            res = rulemap[rule](self, charmap[character], charmap[graph].node[avatar])
-            self._avatar_rules_handled_cache.store(
-                character, rulebook, rule, graph, avatar, branch, turn, tick
+            yield self._follow_rule(
+                rulemap[rulen],
+                partial(self._handled_av, charn, rulebook, rulen, graphn, avn, branch, turn, tick),
+                branch, turn,
+                charmap[charn],
+                charmap[graphn].node[avn]
             )
-            self.query.handled_avatar_rule(
-                character, rulebook, rule, graph, avatar, branch, turn, tick
-            )
-            yield res
         for (
-            character, thing, rulebook, rule
+            charn, rulebook, rulen, thingn
         ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            c = charmap[character]
-            res = rulemap[rule](self, c, c.thing[thing])
-            self._character_thing_rules_handled_cache.store(
-                character, rulebook, rule, thing, branch, turn, tick
+            yield self._follow_rule(
+                rulemap[rulen],
+                partial(self._handled_char_thing, charn, rulebook, rulen, thingn, branch, turn, tick),
+                branch, turn,
+                charmap[charn].thing[thingn]
             )
-            self.query.handled_character_thing_rule(
-                character, rulebook, rule, thing, branch, turn, tick
-            )
-            yield res
         for (
-            character, place, rulebook, rule
+            charn, rulebook, rulen, placen
         ) in self._character_place_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            c = charmap[character]
-            res = rulemap[rule](self, c, c.place[place])
-            self._character_place_rules_handled_cache.store(
-                character, rulebook, rule, place, branch, turn, tick
+            yield self._follow_rule(
+                rulemap[rulen],
+                partial(self._handled_char_place, charn, rulebook, rulen, placen, branch, turn, tick),
+                branch, turn,
+                charmap[charn].place[placen]
             )
-            self.query.handled_character_place_rule(
-                character, rulebook, rule, place, branch, turn, tick
-            )
-            yield res
         for (
-            character, orig, dest, rulebook, rule
+            charn, rulebook, rulen, orign, destn
         ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            c = charmap[character]
-            res = rulemap[rule](self, c, c.portal[orig][dest])
-            self._character_portal_rules_handled_cache.store(
-                character, rulebook, rule, orig, dest, branch, turn, tick
+            yield self._follow_rule(
+                rulemap[rulen],
+                partial(self._handled_char_port, charn, rulebook, rulen, orign, destn, branch, turn, tick),
+                branch, turn,
+                charmap[charn].portal[orign][destn]
             )
-            self.query.handled_character_portal_rule(
-                character, rulebook, rule, orig, dest, branch, turn, tick
-            )
-            yield res
         for (
-                character, node, rulebook, rule
+                charn, noden, rulebook, rulen
         ) in self._node_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            c = charmap[character]
-            res = rulemap[rule](self, c, c.node[node])
-            self._node_rules_handled_cache.store(
-                character, node, rulebook, rule, branch, turn, tick
+            yield self._follow_rule(
+                rulemap[rulen],
+                partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick),
+                branch, turn,
+                charmap[charn].node[noden]
             )
-            self.query.handled_node_rule(
-                character, node, rulebook, rule, branch, turn, tick
-            )
-            yield res
         for (
-                character, orig, dest, rulebook, rule
+                charn, orign, destn, rulebook, rulen
         ) in self._portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            c = charmap[character]
-            res = rulemap[rule](self, c, c.portal[orig][dest])
-            self._portal_rules_handled_cache.store(
-                character, orig, dest, rulebook, rule, branch, turn, tick
+            yield self._follow_rule(
+                rulemap[rulen],
+                partial(self._handled_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
+                branch, turn,
+                charmap[charn].portal[orign][destn]
             )
-            self.query.handled_portal_rule(
-                character, orig, dest, rulebook, rule, branch, turn, tick
-            )
-            yield res
 
     def advance(self):
         """Follow the next rule if available, or advance to the next tick."""

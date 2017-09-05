@@ -596,15 +596,10 @@ class EngineHandle(object):
                     del self._portal_stat_cache[char][o][node]
 
     def character_things(self, char):
-        return {
-            name: (
-                thing['location'],
-                thing['next_location'],
-                thing['arrival_time'],
-                thing['next_arrival_time']
-            )
-            for (name, thing) in self._real.character[char].thing.items()
-        }
+        ret = {}
+        for name, thing in self._real.character[char].thing.items():
+            ret[name] = thing['locations'] + (thing['arrival_time'], thing['next_arrival_time'])
+        return ret
 
     def character_things_diff(self, char):
         """Return a dictionary of char's things and their locations.

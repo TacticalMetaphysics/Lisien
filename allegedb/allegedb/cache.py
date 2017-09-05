@@ -101,7 +101,6 @@ class WindowDict(MutableMapping):
     repeatedly, or its neighbors.
 
     """
-    __slots__ = ['_past', '_future']
 
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
@@ -172,6 +171,14 @@ class WindowDict(MutableMapping):
         for (rev, v) in self._future:
             yield rev
 
+    def __contains__(self, item):
+        if self._past:
+            return item >= self._past[0][0]
+        elif self._future:
+            return item >= self._future[0][0]
+        else:
+            return False
+
     def __len__(self):
         return len(self._past) + len(self._future)
 
@@ -198,7 +205,7 @@ class WindowDict(MutableMapping):
             if not self._past:
                 self._past.append((rev, v))
             elif self._past[-1][0] == rev:
-                self._past[-1][1] = v
+                self._past[-1] = (rev, v)
             else:
                 assert self._past[-1][0] < rev
                 self._past.append((rev, v))
@@ -210,7 +217,7 @@ class WindowDict(MutableMapping):
         # But handle degenerate case.
         if not within_history(rev, self):
             raise HistoryError("Rev outside of history: {}".format(rev))
-        name = '_past' if rev <= self._rev else '_future'
+        name = '_past' if self._past and rev <= self._past[-1][0] else '_future'
         stack = getattr(self, name)
         waste = deque()
         setattr(self, name, waste)
@@ -232,7 +239,7 @@ class WindowDict(MutableMapping):
         ret.update({
             rev: v for (rev, v) in self._future
         })
-        return "WindowDict({})".format(ret)
+        return "{}({})".format(self.__class__.__name__, ret)
 
 
 class FuturistWindowDict(WindowDict):
@@ -259,16 +266,18 @@ class FuturistWindowDict(WindowDict):
 
 
 class TurnDict(FuturistWindowDict):
+    cls = FuturistWindowDict
+
     def __getitem__(self, rev):
         try:
             return super().__getitem__(rev)
         except KeyError:
-            ret = self[rev] = FuturistWindowDict()
+            ret = self[rev] = self.cls()
             return ret
 
     def __setitem__(self, turn, value):
-        if not isinstance(value, FuturistWindowDict):
-            value = FuturistWindowDict(value)
+        if not isinstance(value, self.cls):
+            value = self.cls(value)
         super().__setitem__(turn, value)
 
 
@@ -306,7 +315,7 @@ class PickyDefaultDict(dict):
 
     def __setitem__(self, k, v):
         if not isinstance(v, self.type):
-            raise TypeError("Expected {}, got {}".format(self.type, type(v)))
+            v = self.type(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
 
@@ -380,7 +389,7 @@ class Cache(object):
         top-level key in this cache here. The second-to-top level
         is the key within the entity.
 
-        Deeper layers of this cache are keyed by branch and revision.
+        Deeper layers of this cache are keyed by branch, turn, and tick.
 
         """
         self.keycache = PickyDefaultDict(TurnDict)
@@ -440,52 +449,67 @@ class Cache(object):
                 return turnd.get(tick, None)
             except HistoryError:
                 return
-        for b, r in self.db._active_branches(branch, turn):
-            if b in cache:
+        for b, r, t in self.db._active_branches(branch, turn, tick):
+            if b in cache and r in cache[b] and t in cache[b][r]:
+                turnd = cache[b][r]
+                v = turnd[t]
+                if copy:
+                    v = copier(v)
                 try:
-                    turnd = cache[b].get(r, None)
-                    if turnd:
-                        v = turnd[turnd.end]
-                        if copy:
-                            v = copier(v)
-                        cache[branch][r][tick] = v
-                    else:
-                        cache[branch][r][tick] = None
-                    return cache[branch][r][tick]
+                    cache[branch][turn][0] = v
                 except HistoryError as ex:
                     if ex.deleted:
-                        cache[branch][r][tick] = None
+                        cturnd = cache[branch][turn]
+                        try:
+                            cturnd[0] = None
+                        except HistoryError:
+                            cturnd[tick] = None
                         return
+                    cache[branch][turn][tick] = v
+                    return
+        cache[branch][turn][tick] = None
 
     def _forward_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick):
+        # Take valid values from the past of a keycache and copy them forward, into the present.
         keycache_key = parentity + (branch,)
         if keycache_key in keycache:
             kc = keycache[keycache_key]
             try:
                 if not kc.has_exact_rev(turn):
                     if kc.rev_before(turn) == turn - 1:
+                        # We had valid keys a turn ago. Reuse those.
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
-                        new_turn_kc[tick] = old_turn_kc[old_turn_kc.end].copy()
+                        keys = old_turn_kc[old_turn_kc.end]
+                        new_turn_kc[0] = keys.copy()
+                        if tick != 0:
+                            new_turn_kc[tick] = keys.copy()
                         kc[turn] = new_turn_kc
                     else:
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
-                return kc[turn][tick]
+                kcturn = kc[turn]
+                if not kcturn.has_exact_rev(tick):
+                    if kcturn.rev_before(tick) == tick - 1:
+                        # We have keys from the previous tick. Use those.
+                        kcturn[tick] = kcturn[tick - 1].copy()
+                    else:
+                        kcturn[tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+                return kcturn[tick]
             except HistoryError:
                 pass
         kc = keycache[keycache_key] = TurnDict()
-        for (b, trn) in self.db._active_branches(branch, turn):
+        for (b, trn, tck) in self.db._active_branches(branch, turn, tick):
+            # Look through parent branches to find a valid keycache.
             other_branch_key = parentity + (b,)
             if other_branch_key in keycache and \
                trn in keycache[other_branch_key]:
-                tickd = keycache[other_branch_key][trn]
                 try:
-                    kc[turn][tick] = tickd[tickd.end].copy()
+                    kc[turn][tick] = keycache[other_branch_key][trn][tck].copy()
                     break
                 except HistoryError as ex:
                     if ex.deleted:
-                        kc[turn][tick] = set()
-                        break
+                        kc[turn][tick] = ret = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+                        return ret
         else:
             kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
         return kc[turn][tick]
@@ -502,14 +526,28 @@ class Cache(object):
         return kc
 
     def _slow_iter_keys(self, cache, branch, turn, tick):
-        for key in cache:
-            for (branch, turn) in self.db._active_branches(branch, turn):
-                try:
-                    if cache[key][branch][turn][tick] is not None:
-                        yield key
-                except HistoryError as err:
-                    if err.deleted:
-                        break
+        for key, branches in cache.items():
+            for (branc, trn, tck) in self.db._active_branches(branch, turn, tick):
+                if branch not in branches or turn not in branches[branch]:
+                    continue
+                turnd = branches[branc]
+                if turnd.has_exact_rev(trn):
+                    try:
+                        if turnd[trn][tck] is not None:
+                            yield key
+                            break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
+                else:
+                    tickd = turnd[trn]
+                    try:
+                        if tickd[tickd.end] is not None:
+                            yield key
+                            break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
 
     def store(self, *args, validate=False):
         """Put a value in various dictionaries for later .retrieve(...).
@@ -523,22 +561,6 @@ class Cache(object):
 
         """
         entity, key, branch, turn, tick, value = args[-6:]
-        cur_branch_end = self.db._branch_end[branch]
-        if turn != cur_branch_end:
-            raise HistoryError(
-                "Tried to cache a value at {}, "
-                "but the branch {} already has history up to {}".format(
-                    turn, branch, cur_branch_end
-                )
-            )
-        cur_turn_end = self.db._turn_end[(branch, turn)]
-        if tick != cur_turn_end:
-            raise HistoryError(
-                "Tried to cache a value at tick {}, "
-                "but turn {} has run for {} ticks".format(
-                    tick, turn, cur_turn_end
-                )
-            )
         parent = args[:-6]
         self._store(parent, entity, key, branch, turn, tick, value)
         self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
@@ -617,23 +639,29 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key, branch, turn) in self.shallower and tick in self.shallower[entity+(key, branch, turn)]:
+        if entity+(key, branch, turn) in self.shallower and \
+                self.shallower[entity+(key, branch, turn)].has_exact_rev(tick):
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick]
             return ret
-        if entity+(key, branch) in self.shallow and turn in self.shallow[entity+(key, branch)] \
-                and tick in self.shallow[entity+(key, branch)][turn]:
+        if entity+(key, branch) in self.shallow and \
+                self.shallow[entity+(key, branch)].has_exact_rev(turn) and \
+                tick in self.shallow[entity+(key, branch)][turn]:
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick] \
                 = self.shallow[entity + (key, branch)][turn].get(tick)
             return ret
-        for (b, r) in self.db._active_branches(branch, turn):
+        for (b, r, t) in self.db._active_branches(branch, turn, tick):
             if (
                     b in self.branches[entity+(key,)]
                     and r in self.branches[entity+(key,)][b]
             ):
-                revd = self.branches[entity+(key,)][b][r]
-                ret = revd[revd.end]
+                brancs = self.branches[entity+(key,)][b]
+                if brancs.has_exact_rev(r) and t in brancs[r]:
+                    ret = brancs[r][t]
+                else:
+                    ret = brancs[r]
+                    ret = ret[ret.end]
                 if args not in self.shallowest:
                     self.shallowest[args] = ret
                 try:

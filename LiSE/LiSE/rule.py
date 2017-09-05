@@ -248,22 +248,6 @@ class Rule(object):
             else:
                 yield v
 
-    def __call__(self, engine, *args):
-        """If at least one trigger fires, check the prereqs. If all the
-        prereqs pass, perform the actions.
-
-        After each call to a trigger, prereq, or action, the sim-time
-        is reset to what it was before the rule was called.
-
-        """
-        if not self.check_triggers(engine, *args):
-            return []
-        if not self.check_prereqs(engine, *args):
-            return []
-            # maybe a result object that informs you as to why I
-            # didn't run?
-        return self.run_actions(engine, *args)
-
     def __repr__(self):
         return 'Rule({})'.format(self.name)
 
@@ -305,44 +289,6 @@ class Rule(object):
             def truth(*args):
                 return True
         self.triggers = [truth]
-
-    def check_triggers(self, engine, *args):
-        """Run each trigger in turn. If one returns True, return True
-        myself. If none do, return False.
-
-        """
-        curtime = engine.time
-        for trigger in self.triggers:
-            result = trigger(engine, *args)
-            if engine.time != curtime:
-                engine.time = curtime
-            if result:
-                return True
-        return False
-
-    def check_prereqs(self, engine, *args):
-        """Run each prereq in turn. If all return True, return True myself. If
-        one doesn't, return False.
-
-        """
-        curtime = engine.time
-        for prereq in self.prereqs:
-            result = prereq(self.engine, *args)
-            engine.time = curtime
-            if not result:
-                return False
-        return True
-
-    def run_actions(self, engine, *args):
-        """Run all my actions and return a list of their results.
-
-        """
-        curtime = engine.time
-        r = []
-        for action in self.actions:
-            r.append(action(engine, *args))
-            engine.time = curtime
-        return r
 
 
 class RuleBook(MutableSequence, Signal):

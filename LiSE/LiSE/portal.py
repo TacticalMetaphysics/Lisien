@@ -42,6 +42,9 @@ class Portal(Edge, RuleFollower):
     set it here instead.
 
     """
+    character = getatt('graph')
+    engine = getatt('db')
+
     @property
     def _cache(self):
         return self.db._edge_val_cache[
@@ -54,11 +57,11 @@ class Portal(Edge, RuleFollower):
             return
         cache = cache[rulebook_name]
         for rule in cache:
-            for (branch, turn) in self.engine._active_branches():
+            for (branch, turn, tick) in self.engine._active_branches():
                 if branch not in cache[rule]:
                     continue
                 try:
-                    yield (rule, cache[rule][branch][turn])
+                    yield (rule, cache[rule][branch][turn][tick])
                     break
                 except ValueError:
                     continue
@@ -66,48 +69,32 @@ class Portal(Edge, RuleFollower):
                     if ex.deleted:
                         break
         raise KeyError("{}->{} has no rulebook?".format(
-            self._origin, self._destination
+            self.orig, self.dest
         ))
 
     def _get_rulebook_name(self):
         cache = self.engine._portals_rulebooks_cache
         if self.character.name not in cache or \
-            self._origin not in cache[self.character.name] or \
-            self._destination not in cache[
-                self.character.name][self._origin]:
+            self.orig not in cache[self.character.name] or \
+            self.dest not in cache[
+                self.character.name][self.orig]:
             return
-        cache = cache[self.character.name][self._origin][self._destination]
-        for (branch, turn) in self.engine._active_branches():
+        cache = cache[self.character.name][self.orig][self.dest]
+        for (branch, turn, tick) in self.engine._active_branches():
             if branch in cache:
                 try:
-                    return cache[branch][turn]
+                    return cache[branch][turn][tick]
                 except HistoryError as ex:
                     if ex.deleted:
                         break
         raise CacheError(
             "Rulebook for portal {}->{} in character {} is not cached.".format(
-                self._origin, self._destination, self.character.name
+                self.orig, self.dest, self.character.name
             )
         )
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
-
-    @property
-    def _origin(self):
-        return self.orig
-
-    @property
-    def _destination(self):
-        return self.dest
-
-    @property
-    def character(self):
-        return self.graph
-
-    @property
-    def engine(self):
-        return self.db
 
     def __getitem__(self, key):
         """Get the present value of the key.
@@ -117,9 +104,9 @@ class Portal(Edge, RuleFollower):
 
         """
         if key == 'origin':
-            return self._origin
+            return self.orig
         elif key == 'destination':
-            return self._destination
+            return self.dest
         elif key == 'character':
             return self.character.name
         elif key == 'is_mirror':
@@ -129,9 +116,9 @@ class Portal(Edge, RuleFollower):
                 return False
         elif 'is_mirror' in self and self['is_mirror']:
             return self.character.preportal[
-                self._origin
+                self.orig
             ][
-                self._destination
+                self.dest
             ][
                 key
             ]
@@ -152,15 +139,15 @@ class Portal(Edge, RuleFollower):
             return
         elif key == 'symmetrical' and value:
             if (
-                    self._destination not in self.character.portal or
-                    self._origin not in
-                    self.character.portal[self._destination]
+                    self.dest not in self.character.portal or
+                    self.orig not in
+                    self.character.portal[self.dest]
             ):
-                self.character.add_portal(self._destination, self._origin)
+                self.character.add_portal(self.dest, self.orig)
             self.character.portal[
-                self._destination
+                self.dest
             ][
-                self._origin
+                self.orig
             ][
                 "is_mirror"
             ] = True
@@ -169,9 +156,9 @@ class Portal(Edge, RuleFollower):
         elif key == 'symmetrical' and not value:
             try:
                 self.character.portal[
-                    self._destination
+                    self.dest
                 ][
-                    self._origin
+                    self.orig
                 ][
                     "is_mirror"
                 ] = False
@@ -191,29 +178,29 @@ class Portal(Edge, RuleFollower):
 
     def __bool__(self):
         """It means something that I exist, even if I have no data."""
-        return self._origin in self.character.portal and \
-            self._destination in self.character.portal[self._origin]
+        return self.orig in self.character.portal and \
+               self.dest in self.character.portal[self.orig]
 
     def __eq__(self, other):
         return (
             isinstance(other, Portal) and
             self.character == other.character and
-            self._origin == other._origin and
-            self._destination == other._destination
+            self.orig == other.orig and
+            self.dest == other.dest
         )
 
     def __hash__(self):
-        return hash((self.character.name, self._origin, self._destination))
+        return hash((self.character.name, self.orig, self.dest))
 
     @property
     def origin(self):
         """Return the Place object that is where I begin"""
-        return self.character.place[self._origin]
+        return self.character.place[self.orig]
 
     @property
     def destination(self):
         """Return the Place object at which I end"""
-        return self.character.place[self._destination]
+        return self.character.place[self.dest]
 
     @property
     def reciprocal(self):
@@ -223,7 +210,7 @@ class Portal(Edge, RuleFollower):
 
         """
         try:
-            return self.character.portal[self._destination][self._origin]
+            return self.character.portal[self.dest][self.orig]
         except KeyError:
             raise KeyError("This portal has no reciprocal")
 
@@ -239,14 +226,14 @@ class Portal(Edge, RuleFollower):
 
         """
         for thing in self.character.thing.values():
-            if thing['locations'] == (self._origin, self._destination):
+            if thing['locations'] == (self.orig, self.dest):
                 yield thing
 
     def new_thing(self, name, statdict={}, **kwargs):
         """Create and return a thing located in my origin and travelling to my
         destination."""
         return self.character.new_thing(
-            name, self._origin, self._destination, statdict, **kwargs
+            name, self.orig, self.dest, statdict, **kwargs
         )
 
     def update(self, d):
