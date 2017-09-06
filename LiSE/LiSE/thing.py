@@ -265,14 +265,14 @@ class Thing(Node):
             placen = place
         curloc = self["location"]
         orm = self.character.engine
-        curtick = orm.tick
-        ticks = self.engine._portal_objs[
+        curturn = orm.turn
+        turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
-        orm.tick += ticks
+        orm.turn += turns
         self['locations'] = (placen, None)
-        orm.tick = curtick
-        return ticks
+        orm.turn = curturn
+        return turns
 
     def follow_path(self, path, weight=None):
         """Go to several :class:`Place`s in succession, deciding how long to
