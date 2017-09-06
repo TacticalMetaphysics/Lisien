@@ -299,21 +299,21 @@ class ArrowWidget(Widget):
         its :class:`Thing` has gone along my :class:`Portal`.
 
         """
-        if self.board.tick < pawn.thing['arrival_time']:
+        if self._turn < pawn.thing['arrival_time']:
             # It's weird that the pawn is getting placed in me, but
             # I'll do my best..
             pawn.pos = self.pos_along(0)
             return
         elif (
                 pawn.thing['next_arrival_time'] and
-                self.board.tick >= pawn.thing['next_arrival_time']
+                self._turn >= pawn.thing['next_arrival_time']
         ):
             pawn.pos = self.pos_along(1)
             return
         try:
             pawn.pos = self.pos_along(
                 (
-                    self.board.tick -
+                    self._turn -
                     pawn.thing['arrival_time']
                 ) / (
                     pawn.thing['next_arrival_time'] -
@@ -422,6 +422,7 @@ class Arrow(ArrowWidget):
         bind=('portal',)
     )
     grabbed = BooleanProperty(False)
+    _turn = NumericProperty()
 
     def _get_reciprocal(self):
         """Return the :class:`Arrow` that connects my origin and destination
@@ -467,5 +468,6 @@ Builder.load_string(
 <Arrow>:
     origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
     destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
+    _turn: app.turn
 """
 )
