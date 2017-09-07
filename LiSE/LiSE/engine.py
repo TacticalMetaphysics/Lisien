@@ -578,7 +578,7 @@ class Engine(AbstractEngine, gORM):
                 q.character_portal_rules_handled_dump():
             self._character_portal_rules_handled_cache.store(character, rulebook, rule, orig, dest, branch, turn)
         for character, node, rulebook, rule, branch, turn, tick in q.node_rules_handled_dump():
-            self._node_rules_handled_cache.store(character, node, rulebook, rule, branch, turn)
+            self._node_rules_handled_cache.store(character, node, rulebook, rule, branch, turn, tick)
         for character, orig, dest, rulebook, rule, branch, turn, tick in q.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(character, orig, dest, rulebook, rule, branch, turn, tick)
         self._rules_cache = {name: Rule(self, name, typ) for name, typ in q.rules_dump()}
