@@ -325,31 +325,14 @@ class Thing(Node):
         prevsubplace = subpath.pop(0)
         subsubpath = [prevsubplace]
         for subplace in subpath:
-            if prevsubplace != self["location"]:
-                l = self["location"]
-                finturn = self.character.engine.turn
-                self.character.engine.turn = curturn
-                raise TravelException(
-                    "When I tried traveling to {}, at turn {}, "
-                    "I ended up at {}".format(
-                        prevsubplace,
-                        finturn,
-                        l
-                    ),
-                    path=subpath,
-                    followed=subsubpath,
-                    branch=self.character.engine.branch,
-                    turn=finturn,
-                    lastplace=l,
-                    traveller=self
-                )
             portal = self.character.portal[prevsubplace][subplace]
             turn_inc = portal.get(weight, 1)
-            self.go_to_place(subplace, weight)
+            self.locations = prevsubplace, subplace
             self.character.engine.turn += turn_inc
             turns_total += turn_inc
             subsubpath.append(subplace)
             prevsubplace = subplace
+        self.locations = subplace, None
         self.character.engine.turn = curturn
         return turns_total
 
