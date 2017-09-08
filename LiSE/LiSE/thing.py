@@ -249,6 +249,22 @@ class Thing(Node):
         )
         self.send(self, key='locations', val=(loc, nextloc))
 
+    @property
+    def locations(self):
+        loc, nxtloc = self._get_locations()
+        nobjs = self.engine._node_objs
+        charn = self.character.name
+        return nobjs[charn, loc], [charn, nxtloc]
+
+    @locations.setter
+    def locations(self, v):
+        loc, nxtloc = v
+        if hasattr(loc, 'name'):
+            loc = loc.name
+        if hasattr(nxtloc, 'name'):
+            nxtloc = nxtloc.name
+        self._set_loc_and_next(loc, nxtloc)
+
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
         to the given :class:`Place`, schedule myself to travel to the
