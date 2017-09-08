@@ -384,7 +384,7 @@ class Thing(Node):
         travel_time = path_len(graph, path, weight)
         start_tick = arrival_tick - travel_time
         if start_tick <= curtick:
-            raise self.TravelException(
+            raise TravelException(
                 "path too heavy to follow by the specified tick",
                 path=path,
                 traveller=self
