@@ -392,29 +392,3 @@ class Thing(Node):
         self.character.engine.tick = start_tick
         self.follow_path(path, weight)
         self.character.engine.tick = curtick
-
-    def _get_json_dict(self):
-        (branch, tick) = self.character.engine.time
-        return {
-            "type": "Thing",
-            "version": 0,
-            "character": self.character.name,
-            "name": self.name,
-            "branch": branch,
-            "tick": tick,
-            "stat": dict(self)
-        }
-
-    def dump(self):
-        """Return a JSON representation of my present state only, not any of
-        my history.
-
-        """
-        return self.engine.json_dump(self._get_json_dict())
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Thing) and
-            self.character.name == other.character.name and
-            self.name == other.name
-        )
