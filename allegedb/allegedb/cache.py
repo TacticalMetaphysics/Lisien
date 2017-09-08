@@ -532,22 +532,26 @@ class Cache(object):
                     continue
                 turnd = branches[branc]
                 if turnd.has_exact_rev(trn):
-                    try:
-                        if turnd[trn][tck] is not None:
-                            yield key
+                    if tck in turnd[trn]:
+                        try:
+                            if turnd[trn][tck] is not None:
+                                yield key
+                                break
+                        except HistoryError as ex:
+                            if ex.deleted:
+                                break
+                    else:
+                        trn -= 1
+                        if trn not in turnd:
                             break
-                    except HistoryError as ex:
-                        if ex.deleted:
-                            break
-                else:
-                    tickd = turnd[trn]
-                    try:
-                        if tickd[tickd.end] is not None:
-                            yield key
-                            break
-                    except HistoryError as ex:
-                        if ex.deleted:
-                            break
+                tickd = turnd[trn]
+                try:
+                    if tickd[tickd.end] is not None:
+                        yield key
+                        break
+                except HistoryError as ex:
+                    if ex.deleted:
+                        break
 
     def store(self, *args, validate=False):
         """Put a value in various dictionaries for later .retrieve(...).
