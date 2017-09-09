@@ -790,12 +790,14 @@ class Board(RelativeLayout):
         for (node, stats) in chardiff['node_stat'].items():
             if node in self.spot:
                 spot = self.spot[node]
-                if '_x' in stats:
-                    spot.x = stats['_x'] * self.width
-                if '_y' in stats:
-                    spot.y = stats['_y'] * self.height
+                x = stats.get('_x')
+                y = stats.get('_y')
+                if x is not None:
+                    spot.x = x * self.width
+                if y is not None:
+                    spot.y = y * self.height
                 if '_image_paths' in stats:
-                    spot.paths = stats['_image_paths']
+                    spot.paths = stats['_image_paths'] or spot.default_image_paths
             elif node in self.pawn:
                 pawn = self.pawn[node]
                 if 'location' in stats:
@@ -803,7 +805,7 @@ class Board(RelativeLayout):
                 if 'next_location' in stats:
                     pawn.next_loc_name = stats['next_location']
                 if '_image_paths' in stats:
-                    pawn.paths = stats['_image_paths']
+                    pawn.paths = stats['_image_paths'] or pawn.default_image_paths
             else:
                 raise ValueError(
                     "Diff tried to change stats of "
