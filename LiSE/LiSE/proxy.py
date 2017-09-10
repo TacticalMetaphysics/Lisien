@@ -2140,10 +2140,10 @@ class EngineProxy(AbstractEngine):
     def _call_with_recv(self, *cbs, **kwargs):
         received = self.json_load(self.recv()[1])
         for cb in cbs:
-            cb(received['result'], **kwargs)
+            cb(*received['result'], **kwargs)
         return received
 
-    def _upd_char_caches(self, chardiffs, **kwargs):
+    def _upd_char_caches(self, chardiffs, branch, turn, tick, **kwargs):
         deleted = set(self.character.keys())
         for (char, chardiff) in chardiffs.items():
             if char not in self._char_cache:
@@ -2158,19 +2158,11 @@ class EngineProxy(AbstractEngine):
     def btt(self):
         return self._branch, self._turn, self._tick
 
-    def _inc_turn(self, *args):
-        self._turn += 1
-        self.time.send(self, branch=self._branch, turn=self._turn, tick=self._tick)
-
-    def _inc_tick(self, *args):
-        self._tick += 1
-        self.time.send(self, branch=self._branch, turn=self._turn, tick=self._tick)
-
-    def _set_time(self, *args, **kwargs):
-        self._branch = kwargs['branch']
-        self._turn = kwargs['turn']
-        self._tick = kwargs['tick']
-        self.time.send(self, branch=self._branch, turn=self._turn, tick=self._tick)
+    def _set_time(self, diff, branch, turn, tick):
+        self._branch = branch
+        self._turn = turn
+        self._tick = tick
+        self.time.send(self, branch=branch, turn=turn, tick=tick)
 
     def _pull_async(self, chars, cb):
         if not callable(cb):
@@ -2211,7 +2203,7 @@ class EngineProxy(AbstractEngine):
                 'command': 'next_turn',
                 'chars': chars
             }))
-            args = [self._inc_turn, self._inc_tick, self._upd_char_caches]
+            args = [self._upd_char_caches, self._set_time]
             if cb:
                 args.append(cb)
             if silent:

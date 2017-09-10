@@ -270,12 +270,12 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_chardiff(self, chardiff, **kwargs):
+    def _update_from_chardiff(self, chardiff, branch, turn, tick, **kwargs):
         self.boardview.board.trigger_update_from_diff(
             chardiff.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
-        self.app.pull_time()
+        self.app.branch, self.app.turn, self.app.tick = branch, turn, tick
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
