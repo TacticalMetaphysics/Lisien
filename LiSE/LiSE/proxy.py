@@ -2139,13 +2139,14 @@ class EngineProxy(AbstractEngine):
 
     def _call_with_recv(self, *cbs, **kwargs):
         received = self.json_load(self.recv()[1])
+        kwargs.update(received)
         for cb in cbs:
-            cb(*received['result'], **kwargs)
+            cb(**kwargs)
         return received
 
-    def _upd_char_caches(self, chardiffs, branch, turn, tick, **kwargs):
+    def _upd_char_caches(self, branch, turn, tick, result, **kwargs):
         deleted = set(self.character.keys())
-        for (char, chardiff) in chardiffs.items():
+        for (char, chardiff) in result.items():
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)
@@ -2158,7 +2159,7 @@ class EngineProxy(AbstractEngine):
     def btt(self):
         return self._branch, self._turn, self._tick
 
-    def _set_time(self, diff, branch, turn, tick):
+    def _set_time(self, branch, turn, tick, **kwargs):
         self._branch = branch
         self._turn = turn
         self._tick = tick
@@ -2398,6 +2399,7 @@ def subprocess(
             'command': cmd,
             'result': r,
             'branch': engine_handle.branch,
+            'turn': engine_handle.turn,
             'tick': engine_handle.tick
         })))
 
