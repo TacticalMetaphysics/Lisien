@@ -2070,7 +2070,7 @@ class EngineProxy(AbstractEngine):
             self._handle_lock.release()
             r = self.json_load(result)
             if branching and r['branch'] != self._branch:
-                self.time_travel(r['branch'], self.tick)
+                self.time_travel(r['branch'], self.turn)
             if cb:
                 cb(**r)
             return r['result']
