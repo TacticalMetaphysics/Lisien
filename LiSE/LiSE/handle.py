@@ -149,7 +149,7 @@ class EngineHandle(object):
         self.turn = self._real.turn
         self.tick = self._real.tick
         if chars:
-            return self.get_chardiffs(chars), self.branch, self.turn, self.tick
+            return self.get_chardiffs(chars)
 
     def time_travel(self, branch, turn, tick=0, chars='all'):
         self._real.time = (branch, turn)
