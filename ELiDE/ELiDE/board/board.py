@@ -47,7 +47,7 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
         xco = 0.98 / (maxx - minx)
         xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
     except ZeroDivisionError:
-        xnorm = np.array(xs)
+        xnorm = np.array([0.5] * len(xs))
     if miny is None:
         miny = np.min(ys)
     if maxy is None:
@@ -56,7 +56,7 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
         yco = 0.98 / (maxy - miny)
         ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
     except ZeroDivisionError:
-        ynorm = np.array(ys)
+        ynorm = np.array([0.5] * len(ys))
     o = {}
     for i in range(len(ks)):
         o[ks[i]] = (xnorm[i], ynorm[i])
