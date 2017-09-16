@@ -157,7 +157,10 @@ class RulesHandledCache(object):
             unhandl = unhandl[spot]
         if turn not in unhandl.setdefault(branch, {}):
             unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
-        unhandl[branch][turn].remove(entity + (rulebook, rule))
+        try:
+            unhandl[branch][turn].remove(entity + (rulebook, rule))
+        except ValueError:
+            pass
         shalo.add(rule)
 
     def retrieve(self, *args):
