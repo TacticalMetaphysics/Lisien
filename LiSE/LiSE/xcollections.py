@@ -258,16 +258,16 @@ class UniversalMapping(MutableMapping, Signal):
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
         branch, turn, tick = self.engine.nbtt()
-        self.engine.query.universal_set(k, branch, turn, tick, v)
         self.engine._universal_cache.store(k, branch, turn, tick, v)
+        self.engine.query.universal_set(k, branch, turn, tick, v)
         self.engine.tick = tick
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
         branch, turn, tick = self.engine.nbtt()
-        self.engine.query.universal_del(k, branch, turn, tick)
         self.engine._universal_cache.store(k, branch, turn, tick, None)
+        self.engine.query.universal_del(k, branch, turn, tick)
         self.send(self, key=k, val=None)
 
 
