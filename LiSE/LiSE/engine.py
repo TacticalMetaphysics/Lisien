@@ -11,6 +11,7 @@ from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
 from allegedb import ORM as gORM
+from allegedb.cache import HistoryError
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -894,7 +895,10 @@ class Engine(AbstractEngine, gORM):
             self.turn += 1
             self.tick = 0
             self._rules_iter = self._follow_rules()
-            self.universal['rando_state'] = self.rando.getstate()
+            try:
+                self.universal['rando_state'] = self.rando.getstate()
+            except HistoryError:
+                self.rando.setstate(self.universal['rando_state'])
             if self.commit_modulus and self.turn % self.commit_modulus == 0:
                 self.commit()
             r = None
