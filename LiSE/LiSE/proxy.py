@@ -2146,7 +2146,8 @@ class EngineProxy(AbstractEngine):
 
     def _upd_char_caches(self, branch, turn, tick, result, **kwargs):
         deleted = set(self.character.keys())
-        for (char, chardiff) in result.items():
+        ruled, chardiffs = result
+        for (char, chardiff) in chardiffs.items():
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)

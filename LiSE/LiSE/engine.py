@@ -117,8 +117,7 @@ class TimeSignalDescriptor(object):
 class NextTurn(Signal):
     """Make time move forward in the simulation.
 
-    Calls ``advance`` repeatedly, appending its results to a list until
-    the turn has ended.  Returns the list.
+    Calls ``advance`` repeatedly, returning a list of the rules' return values.
 
     I am also a ``Signal``, so you can register functions to be
     called when the simulation runs. Pass them to my ``connect``
@@ -130,20 +129,26 @@ class NextTurn(Signal):
         self.engine = engine
 
     def __call__(self):
-        curturn = self.engine.turn
-        r = []
-        while self.engine.turn == curturn:
-            r.append(self.engine.advance())
-        # The last element is always None, but is not a sentinel; any
-        # rule may return None.
+        engine = self.engine
+        r = list(iter(engine.advance, final_rule))
+        branch, turn = engine.time
+        turn += 1
+        # As a side effect, the following assignment sets the tick to
+        # the latest in the new turn, which will be 0 if that turn has not
+        # yet been simulated.
+        engine.time = branch, turn
+        if engine.tick == 0:
+            engine.universal['rando_state'] = engine.rando.getstate()
+        else:
+            engine.rando.setstate(engine.universal['rando_state'])
         self.send(
             self.engine,
-            branch=self.engine.branch,
-            turn=self.engine.turn,
-            tick=self.engine.tick,
+            branch=branch,
+            turn=turn,
+            tick=engine.tick,
             result=r
         )
-        return r[:-1]
+        return r
 
 
 class DummyEntity(dict):
@@ -153,8 +158,20 @@ class DummyEntity(dict):
         self.engine = engine
 
 
-json_dump_hints = {}
-json_load_hints = {}
+class FinalRule:
+    """A singleton sentinel for the rule iterator"""
+    __slots__ = []
+
+    def __hash__(self):
+        # completely random integer
+        return 6448962173793096248
+
+
+final_rule = FinalRule()
+
+
+json_dump_hints = {final_rule: 'final_rule'}
+json_load_hints = {'final_rule': final_rule}
 
 
 class Encoder(JSONEncoder):
@@ -890,19 +907,10 @@ class Engine(AbstractEngine, gORM):
     def advance(self):
         """Follow the next rule if available, or advance to the next tick."""
         try:
-            r = next(self._rules_iter)
+            return next(self._rules_iter)
         except StopIteration:
-            self.turn += 1
-            self.tick = 0
             self._rules_iter = self._follow_rules()
-            try:
-                self.universal['rando_state'] = self.rando.getstate()
-            except HistoryError:
-                self.rando.setstate(self.universal['rando_state'])
-            if self.commit_modulus and self.turn % self.commit_modulus == 0:
-                self.commit()
-            r = None
-        return r
+            return final_rule
 
     def new_character(self, name, **kwargs):
         """Create and return a new :class:`Character`."""
