@@ -271,8 +271,9 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_chardiff(self, result, branch, turn, tick, **kwargs):
+        ruled, chardiffs = result
         self.boardview.board.trigger_update_from_diff(
-            result.get(self.boardview.board.character.name, {})
+            chardiffs.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.branch, self.app.turn, self.app.tick = branch, turn, tick

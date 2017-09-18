@@ -580,7 +580,14 @@ class Cache(object):
                 parents[turn] = newp
         branches = self.branches[parent+(entity, key)][branch]
         if branches.has_exact_rev(turn):
-            branches[turn][tick] = value
+            branchesturn = branches[turn]
+            if tick <= branchesturn.end:
+                raise HistoryError(
+                    "Already have some ticks after {} in turn {} of branch {}".format(
+                        tick, turn, branch
+                    )
+                )
+            branchesturn[tick] = value
         else:
             newb = FuturistWindowDict()
             newb[tick] = value
