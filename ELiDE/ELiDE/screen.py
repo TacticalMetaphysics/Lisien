@@ -270,9 +270,9 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_chardiff(self, chardiffs, branch, turn, tick, **kwargs):
+    def _update_from_chardiff(self, result, branch, turn, tick, **kwargs):
         self.boardview.board.trigger_update_from_diff(
-            chardiffs.get(self.boardview.board.character.name, {})
+            result.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
         self.app.branch, self.app.turn, self.app.tick = branch, turn, tick
