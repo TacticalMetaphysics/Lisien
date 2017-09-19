@@ -232,3 +232,23 @@ class EntityStatAccessor(object):
 
     def __getitem__(self, k):
         return self.munge(lambda x: x[k])
+
+
+def is_chardiff(d):
+    if not isinstance(d, dict):
+        return False
+    diffkeys = (
+        'character_stat',
+        'node_stat',
+        'things',
+        'places',
+        'portal_stat',
+        'portals',
+        'avatars',
+        'rulebooks',
+        'node_rulebooks',
+        'portal_rulebooks'
+    )
+    return any(key in d for key in diffkeys) and not any(
+        key not in diffkeys for key in d.keys()
+    )

@@ -18,7 +18,7 @@ from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
-from .util import reify
+from .util import reify, is_chardiff
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -2144,15 +2144,16 @@ class EngineProxy(AbstractEngine):
             cb(**kwargs)
         return received
 
-    def _upd_char_caches(self, branch, turn, tick, result, **kwargs):
+    def _upd_char_caches(self, **kwargs):
         deleted = set(self.character.keys())
-        ruled, chardiffs = result
-        for (char, chardiff) in chardiffs.items():
+        for (char, chardiff) in kwargs.items():
+            if not is_chardiff(chardiff):
+                continue
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)
             deleted.discard(char)
-        if 'no_del' in kwargs:
+        if kwargs.get('no_del'):
             return
         for char in deleted:
             del self._char_cache[char]

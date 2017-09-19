@@ -130,9 +130,18 @@ class NextTurn(Signal):
 
     def __call__(self):
         engine = self.engine
-        r = list(iter(engine.advance, final_rule))
+        for res in iter(engine.advance, final_rule):
+            if res:
+                branch, turn, tick = engine.btt()
+                engine.universal['rando_state'] = engine.rando.getstate()
+                self.send(
+                    engine,
+                    branch=branch,
+                    turn=turn,
+                    tick=tick
+                )
+                return res
         branch, turn = engine.time
-        turn += 1
         # As a side effect, the following assignment sets the tick to
         # the latest in the new turn, which will be 0 if that turn has not
         # yet been simulated.
@@ -145,10 +154,8 @@ class NextTurn(Signal):
             self.engine,
             branch=branch,
             turn=turn,
-            tick=engine.tick,
-            result=r
+            tick=engine.tick
         )
-        return r
 
 
 class DummyEntity(dict):
@@ -827,7 +834,9 @@ class Engine(AbstractEngine, gORM):
             return handled_fun()
         actres = []
         for action in rule.actions:
-            actres.append(action(*args))
+            res = action(*args)
+            if res:
+                actres.append(res)
             self.time = branch, turn
         handled_fun()
         return actres
