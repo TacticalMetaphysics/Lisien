@@ -56,7 +56,7 @@ class TimeSignal(Signal):
     def __getitem__(self, i):
         if i in ('branch', 0):
             return self.engine.branch
-        if i in ('tick', 'rev', 1):
+        if i in ('turn', 1):
             return self.engine.tick
 
     def __setitem__(self, i, v):
