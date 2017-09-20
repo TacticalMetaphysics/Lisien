@@ -144,10 +144,13 @@ class EngineHandle(object):
             }
 
     def next_turn(self, chars=()):
-        results = self._real.next_turn()
-        self.branch, self.turn, self.tick = self._real.btt()
+        result = self._real.next_turn()
+        ret = {}
+        if result:
+            ret['result'] = result
         if chars:
-            return self.get_chardiffs(chars)
+            ret.update(self.get_chardiffs(chars))
+        return ret
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
         self._real.time = (branch, turn)

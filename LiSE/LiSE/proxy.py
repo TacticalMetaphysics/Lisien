@@ -2062,35 +2062,35 @@ class EngineProxy(AbstractEngine):
                 return
         else:
             self.send(self.json_dump(kwargs))
-            command,  result = self.recv()
+            command, branch, turn, tick, result = self.recv()
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
             self._handle_lock.release()
             r = self.json_load(result)
-            if branching and r['branch'] != self._branch:
-                self.time_travel(r['branch'], self.turn)
+            if branching and branch != self._branch:
+                self.time_travel(branch, self.turn)
             if cb:
-                cb(**r)
-            return r['result']
+                cb(command, branch, turn, tick, **r)
+            return r
         self._handle_lock.release()
 
     def _callback(self, cb):
-        command, result = self.recv()
+        command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
-        cb(**self.json_load(result))
+        cb(command, branch, turn, tick, **self.json_load(result))
 
     def _branching(self, cb=None):
-        command, result = self.recv()
+        command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         r = self.json_load(result)
-        if r['branch'] != self._branch:
-            self.time_travel(r['branch'], r['tick'])
+        if branch != self._branch:
+            self.time_travel(branch, tick)
             if hasattr(self, 'branching_cb'):
-                self.branching_cb(**r)
+                self.branching_cb(command, branch, turn, tick, **r)
         if cb:
-            cb(**r)
+            cb(command, branch, turn, tick, **r)
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
@@ -2138,13 +2138,14 @@ class EngineProxy(AbstractEngine):
         return self.json_rewrap(super().json_load(s))
 
     def _call_with_recv(self, *cbs, **kwargs):
-        received = self.json_load(self.recv()[1])
+        cmd, branch, turn, tick, res = self.recv()
+        received = self.json_load(res)
         kwargs.update(received)
         for cb in cbs:
-            cb(**kwargs)
+            cb(cmd, branch, turn, tick, **kwargs)
         return received
 
-    def _upd_char_caches(self, **kwargs):
+    def _upd_char_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
         for (char, chardiff) in kwargs.items():
             if not is_chardiff(chardiff):
@@ -2161,7 +2162,7 @@ class EngineProxy(AbstractEngine):
     def btt(self):
         return self._branch, self._turn, self._tick
 
-    def _set_time(self, branch, turn, tick, **kwargs):
+    def _set_time(self, cmd, branch, turn, tick, **kwargs):
         self._branch = branch
         self._turn = turn
         self._tick = tick
@@ -2397,13 +2398,10 @@ def subprocess(
         if silent:
             continue
         log('result', r)
-        handle_in_pipe.send((cmd,  engine_handle.json_dump({
-            'command': cmd,
-            'result': r,
-            'branch': engine_handle.branch,
-            'turn': engine_handle.turn,
-            'tick': engine_handle.tick
-        })))
+        handle_in_pipe.send((
+            cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
+            engine_handle.json_dump(r)
+        ))
 
 
 class RedundantProcessError(ProcessError):
