@@ -142,6 +142,7 @@ class NextTurn(Signal):
                 )
                 return res
         branch, turn = engine.time
+        turn += 1
         # As a side effect, the following assignment sets the tick to
         # the latest in the new turn, which will be 0 if that turn has not
         # yet been simulated.
