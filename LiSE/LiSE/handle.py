@@ -154,7 +154,7 @@ class EngineHandle(object):
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
         self._real.time = (branch, turn)
-        if tick:
+        if tick is not None:
             self._real.tick = tick
         self.branch = branch
         self.turn = turn
