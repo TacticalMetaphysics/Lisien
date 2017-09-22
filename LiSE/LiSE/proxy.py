@@ -2234,7 +2234,7 @@ class EngineProxy(AbstractEngine):
             self._time_travel_thread = Thread(
                 target=self._call_with_recv,
                 args=args,
-                kwargs={'branch': branch, 'turn': turn, 'tick': tick, 'no_del': True}
+                kwargs={'no_del': True}
             )
             self._time_travel_thread.start()
             self.send(self.json_dump({
