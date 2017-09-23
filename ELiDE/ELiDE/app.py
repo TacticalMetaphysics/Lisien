@@ -82,9 +82,10 @@ class ELiDEApp(App):
 
     @trigger
     def _push_time(self, *args):
-        if (self.branch, self.turn, self.tick) != self.engine.btt():
+        branch, turn, tick = self.engine.btt()
+        if (self.branch, self.turn, self.tick) != (branch, turn, tick):
             self.engine.time_travel(
-                self.branch, self.turn, self.tick,
+                self.branch, self.turn, self.tick if self.tick != tick else None,
                 chars=[self.character.name],
                 cb=self.mainscreen._update_from_chardiff
             )
