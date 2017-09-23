@@ -2222,7 +2222,7 @@ class EngineProxy(AbstractEngine):
             self.time.send(self, branch=ret['branch'], turn=ret['turn'], tick=ret['tick'])
             return ret
 
-    def time_travel(self, branch, turn, tick=0, chars='all', cb=None, block=True):
+    def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         if cb and not chars:
             raise TypeError("Callbacks require char name")
         if cb is not None and not callable(cb):
