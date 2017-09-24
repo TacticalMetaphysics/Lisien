@@ -18,7 +18,7 @@ class reify(object):
     attribute creation on objects that are meant to be immutable.
 
     Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
-    Modified for LiSE
+    Modified for LiSE to make it work with __slots__
 
     '''
     __slots__ = ['func', 'reified']
