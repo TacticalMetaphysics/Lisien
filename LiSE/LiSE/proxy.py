@@ -1843,6 +1843,8 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
+        self.send(self.json_dump({'command': 'get_watched_btt'}))
+        self._branch, self._turn, self._tick = self.json_load(self.recv()[-1])
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -1855,7 +1857,6 @@ class EngineProxy(AbstractEngine):
         self.prereq = FuncStoreProxy(self, 'prereq')
         self.trigger = FuncStoreProxy(self, 'trigger')
         self.function = FuncStoreProxy(self, 'function')
-        self._branch, self._turn, self._tick = self.handle(command='get_watched_btt')
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -2069,8 +2070,11 @@ class EngineProxy(AbstractEngine):
                 )
             self._handle_lock.release()
             r = self.json_load(result)
-            if branching and branch != self._branch:
-                self.time_travel(branch, self.turn)
+            if (branch, turn, tick) != self.btt():
+                self._branch = branch
+                self._turn = turn
+                self._tick = tick
+                self.time.send(self, branch=branch, turn=turn, tick=tick)
             if cb:
                 cb(command, branch, turn, tick, **r)
             return r
@@ -2086,7 +2090,10 @@ class EngineProxy(AbstractEngine):
         self._handle_lock.release()
         r = self.json_load(result)
         if branch != self._branch:
-            self.time_travel(branch, tick)
+            self._branch = branch
+            self._turn = turn
+            self._tick = tick
+            self.time.send(self, branch=branch, turn=turn, tick=tick)
             if hasattr(self, 'branching_cb'):
                 self.branching_cb(command, branch, turn, tick, **r)
         if cb:
