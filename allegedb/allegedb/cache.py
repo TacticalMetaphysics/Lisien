@@ -580,6 +580,12 @@ class Cache(object):
                 parents[turn] = newp
         branches = self.branches[parent+(entity, key)][branch]
         if branches.has_exact_rev(turn):
+            if turn < branches.end:
+                raise HistoryError(
+                    "Already have some turns after {} in branch {}".format(
+                        turn, branch
+                    )
+                )
             branchesturn = branches[turn]
             if tick <= branchesturn.end:
                 raise HistoryError(
