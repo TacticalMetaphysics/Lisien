@@ -321,10 +321,6 @@ class Board(RelativeLayout):
             if wid != self.kvlayoutback:
                 self.bind(size=wid.setter('size'))
             self.add_widget(wid)
-        if hasattr(self.parent, 'effect_x'):
-            self.parent.effect_x.bind(velocity=self.track_vel)
-        if hasattr(self.parent, 'effect_y'):
-            self.parent.effect_y.bind(velocity=self.track_vel)
         self.trigger_update()
 
     def on_character(self, *args):
@@ -335,14 +331,6 @@ class Board(RelativeLayout):
             return
 
         self.engine = self.character.engine
-        if hasattr(self.parent, 'scroll_x'):
-            self.parent.scroll_x = self.character.stat.setdefault(
-                '_scroll_x', 0.0
-            )
-        if hasattr(self.parent, 'scroll_y'):
-            self.parent.scroll_y = self.character.stat.setdefault(
-                '_scroll_y', 0.0
-            )
         self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
         if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat['_control']:
             control = self.character.stat.setdefault('_control', {})
@@ -431,37 +419,6 @@ class Board(RelativeLayout):
             self.arrow[portal["origin"]] = {}
         self.arrow[portal["origin"]][portal["destination"]] = r
         return r
-
-    def track_vel(self, *args):
-        """Track scrolling once it starts, so that we can tell when it
-        stops.
-
-        """
-        if not self.parent:
-            return
-        if (
-                not self.tracking_vel and (
-                    self.parent.effect_x.velocity > 0 or
-                    self.parent.effect_y.velocity > 0
-                )
-        ):
-            self.upd_pos_when_scrolling_stops()
-            self.tracking_vel = True
-
-    def upd_pos_when_scrolling_stops(self, *args):
-        """Wait for the scroll to stop, then store where it ended."""
-        if not self.parent:
-            return
-        try:
-            if self.parent.effect_x.velocity \
-               == self.parent.effect_y.velocity == 0:
-                self.character.stat['_scroll_x'] = self.parent.scroll_x
-                self.character.stat['_scroll_y'] = self.parent.scroll_y
-                self.tracking_vel = False
-                return
-        except HistoryError:
-            return
-        Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
     def rm_arrows_to_and_from(self, name):
         origs = list(self.arrow.keys())
