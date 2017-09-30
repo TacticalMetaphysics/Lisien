@@ -151,7 +151,7 @@ class RulesHandledCache(object):
     def store(self, *args):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
-        shalo = self.shallow.setdefault(entity + (rulebook, rule, branch), set())
+        shalo = self.shallow.setdefault(entity + (rulebook, branch, turn), set())
         unhandl = self.unhandled
         for spot in entity:
             unhandl = unhandl[spot]
