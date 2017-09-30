@@ -22,6 +22,7 @@ from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+from allegedb.cache import HistoryError
 
 
 def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
@@ -451,11 +452,14 @@ class Board(RelativeLayout):
         """Wait for the scroll to stop, then store where it ended."""
         if not self.parent:
             return
-        if self.parent.effect_x.velocity \
-           == self.parent.effect_y.velocity == 0:
-            self.character.stat['_scroll_x'] = self.parent.scroll_x
-            self.character.stat['_scroll_y'] = self.parent.scroll_y
-            self.tracking_vel = False
+        try:
+            if self.parent.effect_x.velocity \
+               == self.parent.effect_y.velocity == 0:
+                self.character.stat['_scroll_x'] = self.parent.scroll_x
+                self.character.stat['_scroll_y'] = self.parent.scroll_y
+                self.tracking_vel = False
+                return
+        except HistoryError:
             return
         Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
