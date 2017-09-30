@@ -177,6 +177,15 @@ class ELiDEApp(App):
         Clock.schedule_once(self._add_screens, 0.2)
         return self.manager
 
+    def _pull_lang(self, *args, **kwargs):
+        self.strings.language = kwargs['language']
+
+    def _pull_chars(self, *args, **kwargs):
+        self.chars.names = list(self.engine.character)
+
+    def _pull_time_from_signal(self, *args, branch, turn, tick):
+        self.branch, self.turn, self.tick = branch, turn, tick
+
     def _start_subprocess(self, *args):
         config = self.config
         self.procman = EngineProcessManager()
@@ -190,19 +199,10 @@ class ELiDEApp(App):
             **enkw
         )
         self.pull_time()
-        
-        @self.engine.time.connect
-        def pull_time(inst, **kwargs):
-            self.branch = inst.branch
-            self.tick = inst.tick
 
-        @self.engine.string.language.connect
-        def pull_lang(inst, **kwargs):
-            self.strings.language = kwargs['language']
-        
-        @self.engine.character.connect
-        def pull_chars(*args):
-            self.chars.names = list(self.engine.character)
+        self.engine.time.connect(self._pull_time_from_signal, weak=False)
+        self.engine.string.language.connect(self._pull_lang, weak=False)
+        self.engine.character.connect(self._pull_chars, weak=False)
 
         self.bind(
             branch=self._push_time,

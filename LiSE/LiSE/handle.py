@@ -145,6 +145,7 @@ class EngineHandle(object):
 
     def next_turn(self, chars=()):
         result = self._real.next_turn()
+        self.branch, self.turn, self.tick = self._real.btt()
         ret = {}
         if result:
             ret['result'] = result
