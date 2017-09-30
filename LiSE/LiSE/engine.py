@@ -761,57 +761,99 @@ class Engine(AbstractEngine, gORM):
         self.time = (self.branch, v)
 
     def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
-        self._character_rules_handled_cache.store(
-            charn, rulebook, rulen, branch, turn, tick
-        )
+        try:
+            self._character_rules_handled_cache.store(
+                charn, rulebook, rulen, branch, turn, tick
+            )
+        except ValueError:
+            assert rulen in self._character_rules_handled_cache.shallow[
+                charn, rulebook, branch, turn
+            ]
+            return
         self.query.handled_character_rule(
             charn, rulebook, rulen, branch, turn, tick
         )
 
-    def _handled_av(self, character, rulebook, rule, graph, avatar, branch, turn, tick):
-        self._avatar_rules_handled_cache.store(
-            character, rulebook, rule, graph, avatar, branch, turn, tick
-        )
+    def _handled_av(self, character, graph, avatar, rulebook, rule, branch, turn, tick):
+        try:
+            self._avatar_rules_handled_cache.store(
+                character, graph, avatar, rulebook, rule, branch, turn, tick
+            )
+        except ValueError:
+            assert rule in self._avatar_rules_handled_cache.shallow[
+                character, graph, avatar, rulebook, branch, turn
+            ]
+            return
         self.query.handled_avatar_rule(
             character, rulebook, rule, graph, avatar, branch, turn, tick
         )
 
-    def _handled_char_thing(self, character, rulebook, rule, thing, branch, turn, tick):
-        self._character_thing_rules_handled_cache.store(
-            character, rulebook, rule, thing, branch, turn, tick
-        )
+    def _handled_char_thing(self, character, thing, rulebook, rule, branch, turn, tick):
+        try:
+            self._character_thing_rules_handled_cache.store(
+                character, thing, rulebook, rule, branch, turn, tick
+            )
+        except ValueError:
+            assert rule in self._character_thing_rules_handled_cache.shallow[
+                character, thing, rulebook, branch, turn
+            ]
+            return
         self.query.handled_character_thing_rule(
             character, rulebook, rule, thing, branch, turn, tick
         )
 
-    def _handled_char_place(self, character, rulebook, rule, place, branch, turn, tick):
-        self._character_place_rules_handled_cache.store(
-            character, rulebook, rule, place, branch, turn, tick
-        )
+    def _handled_char_place(self, character, place, rulebook, rule, branch, turn, tick):
+        try:
+            self._character_place_rules_handled_cache.store(
+                character, place, rulebook, rule, branch, turn, tick
+            )
+        except ValueError:
+            assert rule in self._character_place_rules_handled_cache.shallow[
+                character, place, rulebook, branch, turn
+            ]
+            return
         self.query.handled_character_place_rule(
             character, rulebook, rule, place, branch, turn, tick
         )
 
-    def _handled_char_port(self, character, rulebook, rule, orig, dest, branch, turn, tick):
-        self._character_portal_rules_handled_cache.store(
-            character, rulebook, rule, orig, dest, branch, turn, tick
-        )
+    def _handled_char_port(self, character, orig, dest, rulebook, rule, branch, turn, tick):
+        try:
+            self._character_portal_rules_handled_cache.store(
+                character, orig, dest, rulebook, rule, branch, turn, tick
+            )
+        except ValueError:
+            assert rule in self._character_portal_rules_handled_cache.shallow[
+                character, orig, dest, rulebook, branch, turn
+            ]
+            return
         self.query.handled_character_portal_rule(
-            character, rulebook, rule, orig, dest, branch, turn, tick
+            character, orig, dest, rulebook, rule, branch, turn, tick
         )
 
     def _handled_node(self, character, node, rulebook, rule, branch, turn, tick):
-        self._node_rules_handled_cache.store(
-            character, node, rulebook, rule, branch, turn, tick
-        )
+        try:
+            self._node_rules_handled_cache.store(
+                character, node, rulebook, rule, branch, turn, tick
+            )
+        except ValueError:
+            assert rule in self._node_rules_handled_cache.shallow[
+                character, node, rulebook, branch, turn
+            ]
+            return
         self.query.handled_node_rule(
             character, node, rulebook, rule, branch, turn, tick
         )
 
     def _handled_portal(self, character, orig, dest, rulebook, rule, branch, turn, tick):
-        self._portal_rules_handled_cache.store(
-            character, orig, dest, rulebook, rule, branch, turn, tick
-        )
+        try:
+            self._portal_rules_handled_cache.store(
+                character, orig, dest, rulebook, rule, branch, turn, tick
+            )
+        except ValueError:
+            assert rule in self._portal_rules_handled_cache.shallow[
+                character, orig, dest, rulebook, branch, turn
+            ]
+            return
         self.query.handled_portal_rule(
             character, orig, dest, rulebook, rule, branch, turn, tick
         )
@@ -863,7 +905,7 @@ class Engine(AbstractEngine, gORM):
         ) in self._avatar_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             yield self._follow_rule(
                 rulemap[rulen],
-                partial(self._handled_av, charn, rulebook, rulen, graphn, avn, branch, turn, tick),
+                partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
                 branch, turn,
                 charmap[charn],
                 charmap[graphn].node[avn]
@@ -873,7 +915,7 @@ class Engine(AbstractEngine, gORM):
         ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             yield self._follow_rule(
                 rulemap[rulen],
-                partial(self._handled_char_thing, charn, rulebook, rulen, thingn, branch, turn, tick),
+                partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick),
                 branch, turn,
                 charmap[charn].thing[thingn]
             )
@@ -882,7 +924,7 @@ class Engine(AbstractEngine, gORM):
         ) in self._character_place_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             yield self._follow_rule(
                 rulemap[rulen],
-                partial(self._handled_char_place, charn, rulebook, rulen, placen, branch, turn, tick),
+                partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick),
                 branch, turn,
                 charmap[charn].place[placen]
             )
@@ -891,7 +933,7 @@ class Engine(AbstractEngine, gORM):
         ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             yield self._follow_rule(
                 rulemap[rulen],
-                partial(self._handled_char_port, charn, rulebook, rulen, orign, destn, branch, turn, tick),
+                partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
                 branch, turn,
                 charmap[charn].portal[orign][destn]
             )

@@ -157,10 +157,7 @@ class RulesHandledCache(object):
             unhandl = unhandl[spot]
         if turn not in unhandl.setdefault(branch, {}):
             unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
-        try:
-            unhandl[branch][turn].remove(entity + (rulebook, rule))
-        except ValueError:
-            pass
+        unhandl[branch][turn].remove(entity + (rulebook, rule))
         shalo.add(rule)
 
     def retrieve(self, *args):
@@ -208,7 +205,7 @@ class AvatarRulesHandledCache(RulesHandledCache):
                     except KeyError:
                         continue
                     for rule in rules:
-                        yield character, rulebook, rule, graph, avatar
+                        yield character, graph, avatar, rulebook, rule
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
@@ -221,7 +218,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
                 except KeyError:
                     continue
                 for rule in rules:
-                    yield character, rulebook, rule, thing
+                    yield character, thing, rulebook, rule
 
 
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
@@ -234,7 +231,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
                 except KeyError:
                     continue
                 for rule in rules:
-                    yield character, rulebook, rule, place
+                    yield character, place, rulebook, rule
 
 
 class CharacterPortalRulesHandledCache(RulesHandledCache):
@@ -248,7 +245,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
                     except KeyError:
                         continue
                     for rule in rules:
-                        yield character, rulebook, rule, orig, dest
+                        yield character, orig, dest, rulebook, rule
 
 
 class NodeRulesHandledCache(RulesHandledCache):

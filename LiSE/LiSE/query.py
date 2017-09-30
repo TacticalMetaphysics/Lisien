@@ -700,6 +700,18 @@ class QueryEngine(allegedb.query.QueryEngine):
             tick,
         )
 
+    def handled_avatar_rule(self, character, graph, av, rulebook, rule, branch, turn, tick):
+        character, graph, av, rulebook, rule = map(
+            self.json_dump, (character, graph, av, rulebook, rule)
+        )
+        return self.sql(
+            'handled_avatar_rule',
+            character,
+            graph,
+            av,
+            rulebook
+        )
+
     def handled_node_rule(
             self, character, node, rulebook, rule, branch, turn, tick
     ):
