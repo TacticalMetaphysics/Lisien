@@ -1049,7 +1049,7 @@ class CharStatProxy(CachingEntityProxy):
             char=self.name,
             k=k, v=v,
             silent=True,
-            branching=not k.startswith('_')
+            branching=True
         )
 
     def _del_item(self, k):
