@@ -152,9 +152,7 @@ class RulesHandledCache(object):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
         shalo = self.shallow.setdefault(entity + (rulebook, branch, turn), set())
-        unhandl = self.unhandled
-        for spot in entity:
-            unhandl = unhandl[spot]
+        unhandl = self.unhandled[entity]
         if turn not in unhandl.setdefault(branch, {}):
             unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
         unhandl[branch][turn].remove(entity + (rulebook, rule))
