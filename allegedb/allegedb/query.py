@@ -385,7 +385,7 @@ class QueryEngine(object):
         """Set a key-value pair on a node at a specific branch and revision"""
         self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
-    def node_val_del(self, graph, node, key, branch, turn):
+    def node_val_del(self, graph, node, key, branch, turn, tick):
         """Delete a key from a node at a specific branch and revision"""
         self.node_val_set(graph, node, key, branch, turn, tick, None)
 
