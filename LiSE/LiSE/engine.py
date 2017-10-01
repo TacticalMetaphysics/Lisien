@@ -769,7 +769,7 @@ class Engine(AbstractEngine, gORM):
                 charn, rulebook, rulen, branch, turn, tick
             )
         except ValueError:
-            assert rulen in self._character_rules_handled_cache.shallow[
+            assert rulen in self._character_rules_handled_cache.handled[
                 charn, rulebook, branch, turn
             ]
             return
@@ -783,7 +783,7 @@ class Engine(AbstractEngine, gORM):
                 character, graph, avatar, rulebook, rule, branch, turn, tick
             )
         except ValueError:
-            assert rule in self._avatar_rules_handled_cache.shallow[
+            assert rule in self._avatar_rules_handled_cache.handled[
                 character, graph, avatar, rulebook, branch, turn
             ]
             return
@@ -797,7 +797,7 @@ class Engine(AbstractEngine, gORM):
                 character, thing, rulebook, rule, branch, turn, tick
             )
         except ValueError:
-            assert rule in self._character_thing_rules_handled_cache.shallow[
+            assert rule in self._character_thing_rules_handled_cache.handled[
                 character, thing, rulebook, branch, turn
             ]
             return
@@ -811,7 +811,7 @@ class Engine(AbstractEngine, gORM):
                 character, place, rulebook, rule, branch, turn, tick
             )
         except ValueError:
-            assert rule in self._character_place_rules_handled_cache.shallow[
+            assert rule in self._character_place_rules_handled_cache.handled[
                 character, place, rulebook, branch, turn
             ]
             return
@@ -825,7 +825,7 @@ class Engine(AbstractEngine, gORM):
                 character, orig, dest, rulebook, rule, branch, turn, tick
             )
         except ValueError:
-            assert rule in self._character_portal_rules_handled_cache.shallow[
+            assert rule in self._character_portal_rules_handled_cache.handled[
                 character, orig, dest, rulebook, branch, turn
             ]
             return
@@ -839,7 +839,7 @@ class Engine(AbstractEngine, gORM):
                 character, node, rulebook, rule, branch, turn, tick
             )
         except ValueError:
-            assert rule in self._node_rules_handled_cache.shallow[
+            assert rule in self._node_rules_handled_cache.handled[
                 character, node, rulebook, branch, turn
             ]
             return
@@ -853,7 +853,7 @@ class Engine(AbstractEngine, gORM):
                 character, orig, dest, rulebook, rule, branch, turn, tick
             )
         except ValueError:
-            assert rule in self._portal_rules_handled_cache.shallow[
+            assert rule in self._portal_rules_handled_cache.handled[
                 character, orig, dest, rulebook, branch, turn
             ]
             return

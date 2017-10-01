@@ -145,13 +145,13 @@ class AvatarnessCache(Cache):
 class RulesHandledCache(object):
     def __init__(self, engine):
         self.engine = engine
-        self.shallow = {}
+        self.handled = {}
         self.unhandled = StructuredDefaultDict(3, list)
 
     def store(self, *args):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
-        shalo = self.shallow.setdefault(entity + (rulebook, branch, turn), set())
+        shalo = self.handled.setdefault(entity + (rulebook, branch, turn), set())
         unhandl = self.unhandled[entity]
         if turn not in unhandl.setdefault(branch, {}):
             unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
@@ -159,7 +159,7 @@ class RulesHandledCache(object):
         shalo.add(rule)
 
     def retrieve(self, *args):
-        return self.shallow[args]
+        return self.handled[args]
 
     def unhandled_rulebook_rules(self, entity, rulebook, branch, turn, tick):
         if (
@@ -174,7 +174,7 @@ class RulesHandledCache(object):
                 self.unhandled[entity][rulebook][branch][turn] = ret = [
                     rule for rule in
                     self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
-                    if turn not in self.shallow.setdefault((rulebook, rule, branch), set())
+                    if rule not in self.handled.setdefault(entity + (rulebook, branch, turn), set())
                 ]
             except KeyError:
                 return []
