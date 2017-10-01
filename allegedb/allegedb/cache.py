@@ -467,7 +467,7 @@ class Cache(object):
                         return
                     cache[branch][r][t] = v
                     return
-        b, r, t = self.db._parent_btt[branch]
+        b, r, t = self.db._parent_btt[branch] if branch != 'trunk' else 'trunk', 0, 0
         cache[branch][r][t] = None
 
     def _forward_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick):
