@@ -894,6 +894,7 @@ class Engine(AbstractEngine, gORM):
         charmap = self.character
         rulemap = self.rule
 
+        # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         for (
             charactername, rulebook, rulename
         ) in self._character_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
