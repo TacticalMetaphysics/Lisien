@@ -506,15 +506,14 @@ class Cache(object):
             if other_branch_key in keycache and \
                trn in keycache[other_branch_key]:
                 try:
-                    kc[trn][tck] = keycache[other_branch_key][trn][tck].copy()
+                    kc[turn][tick] = keycache[other_branch_key][trn][tck].copy()
                     break
                 except HistoryError as ex:
                     if ex.deleted:
-                        kc[trn][tck] = ret = set(slow_iter_keys(keys[parentity], branch, trn, tck))
+                        kc[turn][tick] = ret = set(slow_iter_keys(keys[parentity], branch, turn, tick))
                         return ret
         else:
-            parent_branch, trn, tck = self.db._parent_btt[branch]
-            kc[trn][tck] = set(slow_iter_keys(keys[parentity], branch, trn, tck))
+            kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
         return kc[turn][tick]
 
     def _forward_keycache(self, parentity, branch, turn, tick):
