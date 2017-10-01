@@ -44,6 +44,7 @@ def tables_for_meta(meta):
         ),
         Column('parent', TEXT, default='trunk'),
         Column('parent_turn', INT, default=0),
+        Column('parent_tick', INT, default=0),
         CheckConstraint('branch<>parent')
     )
     Table(

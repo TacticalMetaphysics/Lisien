@@ -449,7 +449,7 @@ class Cache(object):
                 return turnd.get(tick, None)
             except HistoryError:
                 return
-        for b, r, t in self.db._active_branches(branch, turn, tick):
+        for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
             if b in cache and r in cache[b] and t in cache[b][r]:
                 turnd = cache[b][r]
                 v = turnd[t]
@@ -498,7 +498,7 @@ class Cache(object):
             except HistoryError:
                 pass
         kc = keycache[keycache_key] = TurnDict()
-        for (b, trn, tck) in self.db._active_branches(branch, turn, tick):
+        for (b, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
             # Look through parent branches to find a valid keycache.
             other_branch_key = parentity + (b,)
             if other_branch_key in keycache and \
@@ -527,7 +527,7 @@ class Cache(object):
 
     def _slow_iter_keys(self, cache, branch, turn, tick):
         for key, branches in cache.items():
-            for (branc, trn, tck) in self.db._active_branches(branch, turn, tick):
+            for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
                 if branch not in branches or turn not in branches[branch]:
                     continue
                 turnd = branches[branc]
@@ -668,7 +668,7 @@ class Cache(object):
                 = self.shallower[entity+(key, branch, turn)][tick] \
                 = self.shallow[entity + (key, branch)][turn].get(tick)
             return ret
-        for (b, r, t) in self.db._active_branches(branch, turn, tick):
+        for (b, r, t) in self.db._iter_parent_btt(branch):
             if (
                     b in self.branches[entity+(key,)]
                     and r in self.branches[entity+(key,)][b]

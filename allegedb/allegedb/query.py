@@ -163,25 +163,6 @@ class QueryEngine(object):
         s = self.strings[stringname]
         return self.connection.cursor().executemany(s, args)
 
-    def active_branches(self, branch, turn):
-        """Yield a series of ``(branch, turn)`` pairs, starting with the
-        ``branch`` and ``rev`` provided; proceeding to the parent
-        branch and the revision therein when the provided branch
-        began; and recursing through the entire genealogy of branches
-        until we reach the branch 'trunk'.
-
-        Though not private, this is unlikely to be useful unless
-        you're adding functionality to allegedb.
-
-        """
-        yield (branch, turn)
-        while branch != 'trunk':
-            if branch not in self._branches:
-                (b, r) = self.parparrev(branch)
-                self._branches[branch] = (b, self.json_load(r))
-            (branch, turn) = self._branches[branch]
-            yield (branch, turn)
-
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
         graph = self.json_dump(graph)
@@ -246,12 +227,12 @@ class QueryEngine(object):
         key = self.json_dump(key)
         return self.sql('global_del', key)
 
-    def new_branch(self, branch, parent, parent_turn):
+    def new_branch(self, branch, parent, parent_turn, parent_tick):
         """Declare that the ``branch`` is descended from ``parent`` at
-        ``parent_turn``
+        ``parent_turn``, ``parent_tick``
 
         """
-        return self.sql('branches_insert', branch, parent, parent_turn)
+        return self.sql('branches_insert', branch, parent, parent_turn, parent_tick)
 
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""

@@ -57,7 +57,7 @@ class Portal(Edge, RuleFollower):
             return
         cache = cache[rulebook_name]
         for rule in cache:
-            for (branch, turn, tick) in self.engine._active_branches():
+            for (branch, turn, tick) in self.engine._iter_parent_btt():
                 if branch not in cache[rule]:
                     continue
                 try:
@@ -80,7 +80,7 @@ class Portal(Edge, RuleFollower):
                 self.character.name][self.orig]:
             return
         cache = cache[self.character.name][self.orig][self.dest]
-        for (branch, turn, tick) in self.engine._active_branches():
+        for (branch, turn, tick) in self.engine._iter_parent_btt():
             if branch in cache:
                 try:
                     return cache[branch][turn][tick]

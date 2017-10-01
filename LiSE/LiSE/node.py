@@ -135,7 +135,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         for user in cache:
             if user in seen:
                 continue
-            for (branch, turn, tick) in self.engine._active_branches():
+            for (branch, turn, tick) in self.engine._iter_parent_btt():
                 if branch in cache[user]:
                     try:
                         if cache[user][branch][turn][tick]:
@@ -191,7 +191,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         cache = self.engine._edges_cache.predecessors[
             self.character.name][self.name]
         for nodeB in cache:
-            for (b, trn, tck) in self.engine._active_branches():
+            for (b, trn, tck) in self.engine._iter_parent_btt():
                 if b in cache[nodeB][0]:
                     if b != self.engine.branch:
                         self.engine._edges_cache.store(

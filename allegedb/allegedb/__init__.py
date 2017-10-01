@@ -41,7 +41,7 @@ class ORM(object):
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
-        self._parentbranch_turn = {}
+        self._parent_btt = {}
         self._branch_end = defaultdict(lambda: 0)
         self._turn_end = defaultdict(lambda: 0)
         self._graph_val_cache = Cache(self)
@@ -49,8 +49,6 @@ class ORM(object):
         self._edges_cache = EdgesCache(self)
         self._node_val_cache = Cache(self)
         self._edge_val_cache = Cache(self)
-        self._active_branches_cache = []
-        self.query.active_branches = self._active_branches
         self._graph_objs = {}
 
     def load_graphs(self):
@@ -83,9 +81,9 @@ class ORM(object):
         self._oturn = self.query.globl['turn']
         self._otick = self.query.globl['tick']
         self._init_caches()
-        for (branch, parent, parent_turn) in self.query.all_branches():
+        for (branch, parent, parent_turn, parent_tick) in self.query.all_branches():
             if branch != 'trunk':
-                self._parentbranch_turn[branch] = (parent, parent_turn)
+                self._parent_btt[branch] = (parent, parent_turn, parent_tick)
             self._childbranch[parent].add(branch)
         self.load_graphs()
         self._init_load(validate=validate)
@@ -113,10 +111,6 @@ class ORM(object):
         """Alias for ``close``"""
         self.close()
 
-    def _havebranch(self, b):
-        """Private use. Checks that the branch is known about."""
-        return b in self._parentbranch_turn
-
     def is_parent_of(self, parent, child):
         """Return whether ``child`` is a branch descended from ``parent`` at
         any remove.
@@ -126,15 +120,15 @@ class ORM(object):
             return True
         if child == 'trunk':
             return False
-        if child not in self._parentbranch_turn:
+        if child not in self._parent_btt:
             raise ValueError(
                 "The branch {} seems not to have ever been created".format(
                     child
                 )
             )
-        if self._parentbranch_turn[child][0] == parent:
+        if self._parent_btt[child][0] == parent:
             return True
-        return self.is_parent_of(parent, self._parentbranch_turn[child][0])
+        return self.is_parent_of(parent, self._parent_btt[child][0])
 
     @property
     def branch(self):
@@ -142,20 +136,17 @@ class ORM(object):
 
     @branch.setter
     def branch(self, v):
-        curbranch = self.branch
+        curbranch, curturn, curtick = self.btt()
         if curbranch == v:
             return
-        curturn = self.turn
-        if not self._havebranch(v):
+        if v not in self._parent_btt:
             # assumes the present turn in the parent branch has
             # been finalized.
-            self.query.new_branch(v, curbranch, curturn)
+            self.query.new_branch(v, curbranch, curturn, curtick)
         # make sure I'll end up within the revision range of the
         # destination branch
         if v != 'trunk':
-            if v not in self._parentbranch_turn:
-                self._parentbranch_turn[v] = (curbranch, curturn)
-            parturn = self._parentbranch_turn[v][1]
+            parturn = self._parent_btt[v][1]
             if curturn < parturn:
                 raise ValueError(
                     "Tried to jump to branch {br}, "
@@ -165,6 +156,8 @@ class ORM(object):
                         rv=parturn
                     )
                 )
+            if v not in self._parent_btt:
+                self._parent_btt[v] = (curbranch, curturn, curtick)
         self._obranch = v
 
     @property
@@ -178,8 +171,8 @@ class ORM(object):
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
         if branch != 'trunk':
-            (parent, parent_rev) = self._parentbranch_turn[branch]
-            if v < int(parent_rev):
+            (parent, parent_turn, parent_tick) = self._parent_btt[branch]
+            if v < parent_turn:
                 raise ValueError(
                     "The turn number {} "
                     "occurs before the start of "
@@ -323,20 +316,20 @@ class ORM(object):
         if name in self._graph_objs:
             del self._graph_objs[name]
 
-    def _active_branches(self, branch=None, turn=None, tick=None):
-        """Private use. Iterate over (branch, turn) pairs, where the branch is
+    def _iter_parent_btt(self, branch=None, turn=None, tick=None):
+        """Private use. Iterate over (branch, turn, tick), where the branch is
         a descendant of the previous (starting with whatever branch is
         presently active and ending at 'trunk'), and the turn is the
         latest revision in the branch that matters.
 
         """
-        b = self.branch if branch is None else branch
-        t = self.turn if turn is None else turn
-        tc = self.tick if tick is None else tick
-        yield b, t, tc
-        while b in self._parentbranch_turn:
-            (b, t) = self._parentbranch_turn[b]
-            yield b, t, self._turn_end[b, t]
+        b = branch or self.branch
+        trn = turn or self.turn
+        tck = tick or self.tick
+        yield b, trn, tck
+        while b in self._parent_btt:
+            (b, trn, tck) = self._parent_btt[b]
+            yield b, trn, self._turn_end[b, trn]
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current
@@ -344,7 +337,7 @@ class ORM(object):
 
         """
         branch = branch or self.branch
-        for (parent, (child, rev)) in self._parentbranch_turn.items():
+        for (parent, (child, turn, tick)) in self._parent_btt.items():
             if parent == branch:
                 yield child
 

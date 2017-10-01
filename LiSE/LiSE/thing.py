@@ -68,7 +68,7 @@ class Thing(Node):
         charn = self.character.name
         n = self.name
         thingcache = self.engine._things_cache
-        for b, trn, tck in self.engine._active_branches():
+        for b, trn, tck in self.engine._iter_parent_btt():
             try:
                 v = thingcache.turn_before(charn, n, b, trn)
             except KeyError:

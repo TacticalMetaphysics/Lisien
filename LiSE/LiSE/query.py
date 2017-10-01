@@ -364,7 +364,7 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
     rightside = mungeside(qry.rightside)
     windows = qry.windows or [(0, None)]
     engine = engine or leftside.engine or rightside.engine
-    for (branch, _, _) in engine._active_branches(start_branch):
+    for (branch, _, _) in engine._iter_parent_btt(start_branch):
         try:
             lkeys = frozenset(getcache(leftside)[branch].keys())
         except AttributeError:
