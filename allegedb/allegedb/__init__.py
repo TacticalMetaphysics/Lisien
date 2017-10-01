@@ -10,7 +10,7 @@ from .graph import (
     Edge
 )
 from .query import QueryEngine
-from .cache import Cache, NodesCache, EdgesCache
+from .cache import Cache, NodesCache, EdgesCache, HistoryError
 
 
 class GraphNameError(KeyError):
@@ -204,8 +204,30 @@ class ORM(object):
         return self._obranch, self._oturn, self._otick
 
     def nbtt(self):
+        """Increment the tick and return branch, turn, tick
+
+        Unless we're viewing the past, in which case raise HistoryError.
+
+        Idea is you use this when you want to advance time, which you
+        can only do once per branch, turn, tick.
+
+        """
+        branch, turn = self._obranch, self._oturn
+        if self._branch_end[branch] > turn:
+            raise HistoryError(
+                "You're in the past. Go to turn {} to change things".format(
+                    self._branch_end[branch]
+                )
+            )
         self._otick += 1
-        branch, turn, tick = self.btt()
+        tick = self._otick
+        if self._turn_end[branch, turn] > tick:
+            self._otick -= 1
+            raise HistoryError(
+                "You're not at the end of turn {}. Go to tick {} to change things".format(
+                    turn, self._turn_end[branch, turn]
+                )
+            )
         self._turn_end[branch, turn] = tick
         return branch, turn, tick
 
