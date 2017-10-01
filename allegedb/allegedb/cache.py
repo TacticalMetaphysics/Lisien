@@ -498,6 +498,7 @@ class Cache(object):
                 return kcturn[tick]
             except HistoryError:
                 pass
+        # this may throw out some valid cache if there's a gap; that's acceptable
         kc = keycache[keycache_key] = TurnDict()
         if branch == 'trunk':
             ret = kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
