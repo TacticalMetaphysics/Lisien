@@ -301,7 +301,9 @@ class Thing(Node):
         scheduled to be somewhere else.
 
         """
-        curturn = self.character.engine.turn
+        eng = self.character.engine
+        eng.linear = False
+        curturn = eng.turn
         prevplace = path.pop(0)
         if prevplace != self['location']:
             raise ValueError("Path does not start at my present location")
@@ -328,12 +330,13 @@ class Thing(Node):
             portal = self.character.portal[prevsubplace][subplace]
             turn_inc = portal.get(weight, 1)
             self.locations = prevsubplace, subplace
-            self.character.engine.turn += turn_inc
+            eng.turn += turn_inc
             turns_total += turn_inc
             subsubpath.append(subplace)
             prevsubplace = subplace
         self.locations = subplace, None
-        self.character.engine.turn = curturn
+        eng.turn = curturn
+        eng.linear = True
         return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):

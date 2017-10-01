@@ -71,6 +71,7 @@ class ORM(object):
         either case, begin a transaction.
 
         """
+        self.linear = True
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
@@ -206,7 +207,7 @@ class ORM(object):
 
         """
         branch, turn = self._obranch, self._oturn
-        if self._branch_end[branch] > turn:
+        if self.linear and self._branch_end[branch] > turn:
             raise HistoryError(
                 "You're in the past. Go to turn {} to change things".format(
                     self._branch_end[branch]
