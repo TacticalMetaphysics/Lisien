@@ -78,39 +78,42 @@ class TimeSignalDescriptor(object):
         if id(inst) not in self.signals:
             self.signals[id(inst)] = TimeSignal(inst)
         real = self.signals[id(inst)]
-        (branch_then, tick_then) = real.engine.time
-        (branch_now, tick_now) = val
+        branch_then, turn_then, tick_then = real.engine.btt()
+        branch_now, turn_now = val
         # make sure I'll end up within the revision range of the
         # destination branch
         e = real.engine
-        parturn = real.engine._parentbranch_turn
+        parbtt = real.engine._parent_btt
+        tick_now = None
         if branch_now != 'trunk':
-            if branch_now in parturn:
-                parrev = parturn[branch_now][1]
-                if tick_now < parrev:
+            if branch_now in parbtt:
+                parturn = parbtt[branch_now][1]
+                if turn_now < parturn:
                     raise ValueError(
                         "Tried to jump to branch {br}, "
-                        "which starts at tick {t}. "
-                        "Go to tick {t} or later to use branch {br}.".format(
+                        "which starts at turn {t}. "
+                        "Go to turn {t} or later to use branch {br}.".format(
                             br=branch_now,
-                            t=parrev
+                            t=parturn
                         )
                     )
             else:
-                parturn[branch_now] = (
-                    branch_then, tick_now
+                tick_now = real.engine._turn_end.get((branch_now, turn_now), 0)
+                parbtt[branch_now] = (
+                    branch_then, turn_now, tick_now
                 )
-                e.query.new_branch(branch_now, branch_then, tick_now)
+                e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = branch, turn = val
         e._branch_end[branch] = max((e._branch_end[branch], turn))
-        e._otick = e._turn_end[branch, turn]
+        e._otick = tick_now or real.engine._turn_end.get((branch_now, turn_now), 0)
         real.send(
             e,
             branch_then=branch_then,
-            turn_then=tick_then,
+            turn_then=turn_then,
+            tick_then=tick_then,
             branch_now=branch_now,
-            turn_now=tick_now,
-            tick=e._otick
+            turn_now=turn_now,
+            tick_now=tick_now
         )
 
 
