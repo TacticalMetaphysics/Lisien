@@ -289,7 +289,7 @@ class QueryEngine(object):
                 delafter[graph, key, branch] = (turn, tick)
         if delafter:
             self.sqlmany(
-                'graph_val_del_after',
+                'del_graph_val_after',
                 *((graph, key, branch, turn, turn, tick)
                   for ((graph, key, branch), (turn, tick)) in delafter.items())
             )
