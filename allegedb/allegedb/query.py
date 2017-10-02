@@ -509,9 +509,9 @@ class QueryEngine(object):
         self.sqlmany('edges_insert', *map(lambda x: x[:-1], converted))
         self._edges2set = []
 
-    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
+    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant, linear=True):
         """Declare whether or not this edge exists."""
-        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
+        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant, linear))
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
