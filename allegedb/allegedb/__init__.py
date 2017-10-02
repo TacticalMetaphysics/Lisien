@@ -17,6 +17,20 @@ class GraphNameError(KeyError):
     pass
 
 
+class NonlinearContext(object):
+    __slots__ = ['orm']
+
+    def __init__(self, orm):
+        self.orm = orm
+
+    def __enter__(self):
+        self.orm.linear = False
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.orm.linear = True
+
+
 class ORM(object):
     """Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
@@ -26,6 +40,11 @@ class ORM(object):
     node_cls = _make_node = Node
     edge_cls = _make_edge = Edge
     query_engine_cls = QueryEngine
+
+    @property
+    def nonlinear(self):
+        """Context manager to prevent enforcement of linear time"""
+        return NonlinearContext(self)
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
@@ -71,6 +90,7 @@ class ORM(object):
         either case, begin a transaction.
 
         """
+        self.linear = True
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
@@ -178,7 +198,7 @@ class ORM(object):
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
-        if v > self._branch_end[branch]:
+        if self.linear and v > self._branch_end[branch]:
             self._branch_end[branch] = v
         self._oturn = v
 
@@ -189,7 +209,7 @@ class ORM(object):
     @tick.setter
     def tick(self, v):
         time = self._obranch, self._oturn
-        if v > self._turn_end[time]:
+        if self.linear and v > self._turn_end[time]:
             self._turn_end[time] = v
         self._otick = v
 

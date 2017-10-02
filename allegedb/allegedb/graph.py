@@ -151,19 +151,22 @@ class GraphMapping(AbstractEntityMapping):
             self.graph.name,
             key,
             branch, turn, tick,
-            value
+            value,
+            linear=self.db.linear
         )
 
     def _set_cache(self, key, branch, turn, tick, value):
         self.db._graph_val_cache.store(
-            self.graph.name, key, branch, turn, tick, value
+            self.graph.name, key, branch, turn, tick, value,
+            linear=self.db.linear
         )
 
     def _del_db(self, key, branch, turn, tick):
         self.db.query.graph_val_del(
             self.graph.name,
             key,
-            branch, turn, tick
+            branch, turn, tick,
+            linear=self.db.linear
         )
 
 
@@ -327,12 +330,14 @@ class GraphNodeMapping(NeatMapping):
 
         """
         branch, turn, tick = self.db.btt()
+        linear = self.db.linear
         created = node not in self
-        self.db.query.exist_node(
+        self.db._nodes_cache.store(
             self.graph.name,
             node,
             branch, turn, tick,
-            True
+            True,
+            linear=linear
         )
         if (self.graph.name, node) in self.db._node_objs:
             n = self.db._node_objs[(self.graph.name, node)]
@@ -341,13 +346,14 @@ class GraphNodeMapping(NeatMapping):
             n = self.db._node_objs[(self.graph.name, node)] = Node(
                 self.graph, node
             )
-        n.update(dikt)
-        self.db._nodes_cache.store(
+        self.db.query.exist_node(
             self.graph.name,
             node,
             branch, turn, tick,
-            True
+            True,
+            linear=linear
         )
+        n.update(dikt)
         if created:
             self.created.send(self, node=n)
 
@@ -492,13 +498,15 @@ class AbstractSuccessors(GraphEdgeMapping):
         """
         branch, turn, tick = self.db.btt()
         created = dest not in self
+        linear = self.db.linear
         self.db.query.exist_edge(
             self.graph.name,
             self.orig,
             dest,
             0,
             branch, turn, tick,
-            True
+            True,
+            linear=linear
         )
         self.db._edges_cache.store(
             self.graph.name,
@@ -506,7 +514,8 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            True
+            True,
+            linear=linear
         )
         e = self[dest]
         e.clear()
@@ -692,8 +701,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             given node to mine.
 
             """
-            branch, turn, tick = self.db.btt()
-            tick += 1
+            branch, turn, tick = self.db.nbtt()
+            linear = self.db.linear
             try:
                 e = self[orig]
                 e.clear()
@@ -705,7 +714,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     self.dest,
                     0,
                     branch, turn, tick,
-                    True
+                    True,
+                    linear=linear
                 )
                 e = self._make_edge(orig)
                 created = True
@@ -716,16 +726,16 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                True
+                True,
+                linear=linear
             )
-            self.db.tick = tick
             if created:
                 self.created.send(self, key=orig, val=value)
 
         def __delitem__(self, orig):
             """Unset the existence of the edge from the given node to mine"""
-            branch, turn, tick = self.db.btt()
-            tick += 1
+            branch, turn, tick = self.db.nbtt()
+            linear = self.db.linear
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[orig]:
                     self.db.query.exist_edge(
@@ -734,7 +744,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         self.dest,
                         idx,
                         branch, turn, tick,
-                        False
+                        False,
+                        linear=linear
                     )
                     self.db._edges_cache.store(
                         self.graph.name,
@@ -742,7 +753,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         self.dest,
                         idx,
                         branch, turn, tick,
-                        False
+                        False,
+                        linear=linear
                     )
                     self.deleted.send(self, key=orig)
                     return
@@ -752,7 +764,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                False
+                False,
+                linear=linear
             )
             self.db._edges_cache.store(
                 self.graph.name,
@@ -760,9 +773,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                False
+                False,
+                linear=linear
             )
-            self.db.tick = tick
             self.deleted.send(self, key=orig)
 
 
@@ -814,8 +827,8 @@ class MultiEdges(GraphEdgeMapping):
         Edge first, if necessary.
 
         """
-        branch, turn, tick = self.db.btt()
-        tick += 1
+        branch, turn, tick = self.db.nbtt()
+        linear = self.db.linear
         created = idx not in self
         self.db.query.exist_edge(
             self.graph.name,
@@ -823,16 +836,17 @@ class MultiEdges(GraphEdgeMapping):
             self.dest,
             idx,
             branch, turn, tick,
-            True
+            True,
+            linear=linear
         )
         e = self._getedge(idx)
         e.clear()
         e.update(val)
         self.db._edges_cache.store(
             self.graph.name, self.orig, self.dest, idx,
-            branch, turn, tick, True
+            branch, turn, tick, True,
+            linear=linear
         )
-        self.db.tick = tick
         if created:
             self.created.send(self, key=idx, val=val)
 

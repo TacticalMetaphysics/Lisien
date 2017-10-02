@@ -21,7 +21,7 @@ BaseColumn = Column
 Column = partial(BaseColumn, nullable=False)
 
 
-from sqlalchemy.sql import bindparam
+from sqlalchemy.sql import bindparam, and_, or_
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 from sqlalchemy import create_engine
 from json import dumps
@@ -157,23 +157,85 @@ def queries_for_table_dict(table):
         'del_edge_val_graph': table['edge_val'].delete().where(
             table['edge_val'].c.graph == bindparam('graph')
         ),
+        'del_edge_val_after': table['edge_val'].delete().where(and_(
+            table['edge_val'].c.graph == bindparam('graph'),
+            table['edge_val'].c.orig == bindparam('orig'),
+            table['edge_val'].c.dest == bindparam('dest'),
+            table['edge_val'].c.idx == bindparam('idx'),
+            table['edge_val'].c.branch == bindparam('branch'),
+            or_(
+                table['edge_val'].c.turn > bindparam('turn'),
+                and_(
+                    table['edge_val'].c.turn == bindparam('turn'),
+                    table['edge_val'].c.tick > bindparam('tick')
+                )
+            )
+        )),
         'del_edge_graph': table['edges'].delete().where(
             table['edges'].c.graph == bindparam('graph')
         ),
+        'del_edge_after': table['edges'].delete().where(and_(
+            table['edges'].c.graph == bindparam('graph'),
+            table['edges'].c.orig == bindparam('orig'),
+            table['edges'].c.dest == bindparam('dest'),
+            table['edges'].c.idx == bindparam('idx'),
+            table['edges'].c.branch == bindparam('branch'),
+            or_(
+                table['edges'].c.turn > bindparam('turn'),
+                and_(
+                    table['edges'].c.turn == bindparam('turn'),
+                    table['edges'].c.tick > bindparam('tick')
+                )
+            )
+        )),
         'del_node_val_graph': table['node_val'].delete().where(
             table['node_val'].c.graph == bindparam('graph')
         ),
+        'del_node_val_after': table['node_val'].delete().where(and_(
+            table['node_val'].c.graph == bindparam('graph'),
+            table['node_val'].c.node == bindparam('node'),
+            table['node_val'].c.key == bindparam('key'),
+            table['node_val'].c.branch == bindparam('branch'),
+            or_(
+                table['node_val'].c.turn > bindparam('turn'),
+                and_(
+                    table['node_val'].c.turn == bindparam('turn'),
+                    table['node_val'].c.tick > bindparam('tick')
+                )
+            )
+        )),
         'del_node_graph': table['nodes'].delete().where(
             table['nodes'].c.graph == bindparam('graph')
+        ),
+        'del_node_after': table['nodes'].delete().where(
+            and_(
+                table['nodes'].c.graph == bindparam('graph'),
+                table['nodes'].c.node == bindparam('node'),
+                table['nodes'].c.branch == bindparam('branch'),
+                or_(
+                    table['nodes'].c.turn > bindparam('turn'),
+                    and_(
+                        table['nodes'].c.turn == bindparam('turn'),
+                        table['nodes'].c.tick > bindparam('tick')
+                    )
+                )
+            )
         ),
         'del_graph': table['graphs'].delete().where(
             table['graphs'].c.graph == bindparam('graph')
         ),
-        'global_update': table['global'].update().values(
-            value=bindparam('value')
-        ).where(
-            table['global'].c.key == bindparam('key')
-        ),
+        'del_graph_val_after': table['graph_val'].delete().where(and_(
+            table['graph_val'].c.graph == bindparam('graph'),
+            table['graph_val'].c.key == bindparam('key'),
+            table['graph_val'].c.branch == bindparam('branch'),
+            or_(
+                table['graph_val'].c.turn > bindparam('turn'),
+                and_(
+                    table['graph_val'].c.turn == bindparam('turn'),
+                    table['graph_val'].c.tick > bindparam('tick')
+                )
+            )
+        )),
         'global_delete': table['global'].delete().where(
             table['global'].c.key == bindparam('key')
         ),

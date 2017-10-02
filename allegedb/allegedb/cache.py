@@ -571,7 +571,7 @@ class Cache(object):
         self._store(parent, entity, key, branch, turn, tick, value)
         self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
 
-    def _store(self, parent, entity, key, branch, turn, tick, value):
+    def _store(self, parent, entity, key, branch, turn, tick, value, linear=True):
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
@@ -583,11 +583,16 @@ class Cache(object):
         branches = self.branches[parent+(entity, key)][branch]
         if branches.has_exact_rev(turn):
             if turn < branches.end:
-                raise HistoryError(
-                    "Already have some turns after {} in branch {}".format(
-                        turn, branch
+                if linear:
+                    raise HistoryError(
+                        "Already have some turns after {} in branch {}".format(
+                            turn, branch
+                        )
                     )
-                )
+                else:
+                    # deal with the paradox by erasing history after this turn
+                    branches.seek(turn)
+                    branches._future = deque()
             branchesturn = branches[turn]
             if tick <= branchesturn.end:
                 raise HistoryError(
