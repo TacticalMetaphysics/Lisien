@@ -277,7 +277,7 @@ class QueryEngine(object):
         converted = map(convert_arg, self._graphvals2set)
         delafter = {}
         for graph, key, branch, turn, tick, value, linear in converted:
-            if linear:
+            if not linear:
                 continue
             if (graph, key, branch) in delafter:
                 delafter[graph, key, branch] = min((
@@ -334,10 +334,11 @@ class QueryEngine(object):
         cleanups = {}
         for graph, node, branch, turn, tick, extant, linear in converted:
             if not linear:
-                if (graph, node, branch) in cleanups:
-                    cleanups[graph, node, branch] = min((
-                        (turn, tick), cleanups[graph, node, branch]
-                    ))
+                continue
+            if (graph, node, branch) in cleanups:
+                cleanups[graph, node, branch] = min((
+                    (turn, tick), cleanups[graph, node, branch]
+                ))
         if cleanups:
             self.sqlmany('del_node_after', *(k + (turn, turn, tick) for k, (turn, tick) in cleanups.items()))
         self.sqlmany('nodes_insert', *map(lambda arg: arg[:-1], converted))
@@ -415,7 +416,7 @@ class QueryEngine(object):
         converted = list(map(convert_arg, self._nodevals2set))
         delafter = {}
         for graph, node, key, branch, turn, tick, value, linear in converted:
-            if linear:
+            if not linear:
                 continue
             if (graph, node, key, branch) in delafter:
                 delafter[graph, node, key, branch] = min((
@@ -488,7 +489,7 @@ class QueryEngine(object):
         converted = list(map(convert_arg, self._edges2set))
         delafter = {}
         for graph, orig, dest, idx, branch, turn, tick, extant, linear in converted:
-            if linear:
+            if not linear:
                 continue
             key = graph, orig, dest, idx, branch
             if key in delafter:
@@ -565,7 +566,7 @@ class QueryEngine(object):
         converted = list(map(convert_arg, self._edgevals2set))
         delafter = {}
         for graph, orig, dest, idx, key, branch, turn, tick, value, linear in converted:
-            if linear:
+            if not linear:
                 continue
             dkey = graph, orig, dest, idx, key, branch
             if dkey in delafter:
