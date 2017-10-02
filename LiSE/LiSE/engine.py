@@ -1041,6 +1041,7 @@ class Engine(AbstractEngine, gORM):
             self, character, orig, dest, exist=True
     ):
         branch, turn, tick = self.nbtt()
+        linear = self.linear
         self.query.exist_edge(
             character,
             orig,
@@ -1049,10 +1050,11 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            exist
+            exist,
+            linear=linear
         )
         self._edges_cache.store(
-            character, orig, dest, 0, branch, turn, tick, exist
+            character, orig, dest, 0, branch, turn, tick, exist, linear=linear
         )
 
     def alias(self, v, stat='dummy'):

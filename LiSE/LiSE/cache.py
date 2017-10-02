@@ -9,8 +9,8 @@ from .util import singleton_get
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value):
-        super().store(None, key, branch, turn, tick, value)
+    def store(self, key, branch, turn, tick, value, linear=True):
+        super().store(None, key, branch, turn, tick, value, linear)
 
     def load(self, data, validate=False):
         return super().load(((None,) + row for row in data), validate)
@@ -40,10 +40,10 @@ class AvatarnessCache(Cache):
         self.uniqav = StructuredDefaultDict(1, TurnDict)
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
 
-    def store(self, character, graph, node, branch, turn, tick, is_avatar):
+    def store(self, character, graph, node, branch, turn, tick, is_avatar, linear=True):
         if not is_avatar:
             is_avatar = None
-        Cache.store(self, character, graph, node, branch, turn, tick, is_avatar)
+        Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, linear)
         self.user_order[graph][node][character][branch][turn][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][turn][tick] = is_avatar
         self._forward_valcache(self.charavs[character], branch, turn, tick)
