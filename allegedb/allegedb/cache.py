@@ -568,10 +568,10 @@ class Cache(object):
         """
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
-        self._store(parent, entity, key, branch, turn, tick, value, linear)
+        self._store(parent, entity, key, branch, turn, tick, value, linear=linear)
         self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
 
-    def _store(self, parent, entity, key, branch, turn, tick, value, linear=True):
+    def _store(self, parent, entity, key, branch, turn, tick, value, *, linear=True):
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
@@ -620,6 +620,10 @@ class Cache(object):
             news[tick] = value
             shallow[turn] = news
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
+        try:
+            hash(parent+(entity, key, branch, turn, tick))
+        except TypeError:
+            pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
     def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=False):
@@ -772,14 +776,14 @@ class NodesCache(Cache):
         super().__init__(db)
         self._make_node = db._make_node
 
-    def store(self, graph, node, branch, turn, tick, ex, linear=True, validate=False):
+    def store(self, graph, node, branch, turn, tick, ex, *, linear=True, validate=False):
         """Store whether a node exists, and create an object for it"""
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
-        Cache.store(self, graph, node, branch, turn, tick, ex, linear, validate=validate)
+        Cache.store(self, graph, node, branch, turn, tick, ex, linear=linear, validate=validate)
         kc = self._update_keycache((graph,), branch, turn, tick, node, ex)
         if validate:
             if (
@@ -885,11 +889,11 @@ class EdgesCache(Cache):
         )
         return orig in self.origcache[(graph, orig, branch)][turn][tick]
 
-    def _store(self, parent, dest, idx, branch, turn, tick, ex, linear=True):
+    def _store(self, parent, dest, idx, branch, turn, tick, ex, *, linear=True):
         graph, orig = parent
         if not ex:
             ex = None
-        Cache._store(self, parent, dest, idx, branch, turn, tick, ex, linear)
+        Cache._store(self, parent, dest, idx, branch, turn, tick, ex, linear=linear)
         if (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
