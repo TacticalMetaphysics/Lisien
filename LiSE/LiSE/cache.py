@@ -56,10 +56,10 @@ class AvatarnessCache(Cache):
             branch, turn, tick, copy=False
         )
         self._forward_valcache(
-            self.uniqav[character], branch, turn, copy=False
+            self.uniqav[character], branch, turn, tick, copy=False
         )
         self._forward_valcache(
-            self.uniqgraph[character], branch, turn, copy=False
+            self.uniqgraph[character], branch, turn, tick, copy=False
         )
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
