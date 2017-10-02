@@ -289,8 +289,8 @@ class QueryEngine(object):
         if delafter:
             self.sqlmany(
                 'graph_val_del_after',
-                *(graph, key, branch, turn, turn, tick
-                  for (graph, key, branch), (turn, tick) in delafter.items())
+                *((graph, key, branch, turn, turn, tick)
+                  for ((graph, key, branch), (turn, tick)) in delafter.items())
             )
         self.sqlmany('graph_val_insert', *map(lambda x: x[:-1], converted))
         self._graphvals2set = []
@@ -428,8 +428,8 @@ class QueryEngine(object):
         if delafter:
             self.sqlmany(
                 'del_node_val_after',
-                *(graph, node, key, branch, turn, turn, tick
-                  for (graph, node, key, branch), (turn, tick) in
+                *((graph, node, key, branch, turn, turn, tick)
+                  for ((graph, node, key, branch), (turn, tick)) in
                   delafter.items())
             )
         self.sqlmany('node_val_insert', *map(convert_arg, self._nodevals2set))
@@ -502,8 +502,8 @@ class QueryEngine(object):
         if delafter:
             self.sqlmany(
                 'del_edges_after',
-                *(graph, orig, dest, idx, branch, turn, turn, tick
-                  for (graph, orig, dest, idx, branch), (turn, tick) in
+                *((graph, orig, dest, idx, branch, turn, turn, tick)
+                  for ((graph, orig, dest, idx, branch), (turn, tick)) in
                   delafter.items())
             )
         self.sqlmany('edges_insert', *map(lambda x: x[:-1], converted))
@@ -578,8 +578,8 @@ class QueryEngine(object):
         if delafter:
             self.sqlmany(
                 'del_edge_val_after',
-                *(graph, orig, dest, idx, key, branch, turn, turn, tick
-                  for (graph, orig, dest, idx, key, branch), (turn, tick)
+                *((graph, orig, dest, idx, key, branch, turn, turn, tick)
+                  for ((graph, orig, dest, idx, key, branch), (turn, tick))
                   in delafter.items())
             )
         self.sqlmany('edge_val_ins', *map(lambda x: x[:-1], converted))
