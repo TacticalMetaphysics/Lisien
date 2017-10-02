@@ -177,9 +177,10 @@ class QueryEngine(object):
         """Delete all records to do with the graph"""
         g = self.json_dump(graph)
         self.sql('del_edge_val_graph', g)
-        self.sql('del_edge_graph', g)
         self.sql('del_node_val_graph', g)
         self.sql('del_edge_val_graph', g)
+        self.sql('del_edges_graph', g)
+        self.sql('del_nodes_graph', g)
         self.sql('del_graph', g)
 
     def graph_type(self, graph):

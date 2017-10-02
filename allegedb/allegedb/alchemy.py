@@ -171,10 +171,10 @@ def queries_for_table_dict(table):
                 )
             )
         )),
-        'del_edge_graph': table['edges'].delete().where(
+        'del_edges_graph': table['edges'].delete().where(
             table['edges'].c.graph == bindparam('graph')
         ),
-        'del_edge_after': table['edges'].delete().where(and_(
+        'del_edges_after': table['edges'].delete().where(and_(
             table['edges'].c.graph == bindparam('graph'),
             table['edges'].c.orig == bindparam('orig'),
             table['edges'].c.dest == bindparam('dest'),
