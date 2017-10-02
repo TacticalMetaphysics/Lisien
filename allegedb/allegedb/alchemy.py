@@ -141,10 +141,9 @@ def queries_for_table_dict(table):
         ).where(
             table['global'].c.key == bindparam('key')
         ),
-        'global_update': table['global'].insert().values(
-            key=bindparam('key'),
+        'global_update': table['global'].update().values(
             value=bindparam('value')
-        ),
+        ).where(table['global'].c.key == bindparam('key')),
         'new_graph': table['graphs'].insert().values(
             graph=bindparam('graph'),
             type=bindparam('type')

@@ -112,7 +112,7 @@
     "global_dump": "SELECT global.\"key\", global.value \nFROM global ORDER BY global.\"key\"",
     "global_get": "SELECT global.value \nFROM global \nWHERE global.\"key\" = ?",
     "global_insert": "INSERT INTO global (\"key\", value) VALUES (?, ?)",
-    "global_update": "INSERT INTO global (\"key\", value) VALUES (?, ?)",
+    "global_update": "UPDATE global SET value=? WHERE global.\"key\" = ?",
     "graph_type": "SELECT graphs.type \nFROM graphs \nWHERE graphs.graph = ?",
     "graph_val_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM graph_val",
     "graph_val_dump": "SELECT graph_val.graph, graph_val.\"key\", graph_val.branch, graph_val.turn, graph_val.tick, graph_val.value \nFROM graph_val ORDER BY graph_val.graph, graph_val.\"key\", graph_val.branch, graph_val.turn, graph_val.tick",
