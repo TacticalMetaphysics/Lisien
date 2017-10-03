@@ -451,11 +451,11 @@ class Cache(object):
                 return
         for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
             if b in cache and r in cache[b] and t in cache[b][r]:
-                turnd = cache[b][r]
-                v = turnd[t]
-                if copy:
-                    v = copier(v)
                 try:
+                    turnd = cache[b][r]
+                    v = turnd[t]
+                    if copy:
+                        v = copier(v)
                     cache[branch][turn][0] = v
                 except HistoryError as ex:
                     if ex.deleted:
