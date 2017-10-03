@@ -584,15 +584,15 @@ class Cache(object):
         if branches.has_exact_rev(turn):
             if turn < branches.end:
                 if linear:
+                    # deal with the paradox by erasing history after this turn
+                    branches.seek(turn)
+                    branches._future = deque()
+                else:
                     raise HistoryError(
                         "Already have some turns after {} in branch {}".format(
                             turn, branch
                         )
                     )
-                else:
-                    # deal with the paradox by erasing history after this turn
-                    branches.seek(turn)
-                    branches._future = deque()
             branchesturn = branches[turn]
             if tick <= branchesturn.end:
                 raise HistoryError(
