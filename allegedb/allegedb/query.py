@@ -433,7 +433,7 @@ class QueryEngine(object):
                   for ((graph, node, key, branch), (turn, tick)) in
                   delafter.items())
             )
-        self.sqlmany('node_val_insert', *map(convert_arg, self._nodevals2set))
+        self.sqlmany('node_val_insert', *map(lambda x: x[:-1], converted))
         self._nodevals2set = []
 
     def node_val_set(self, graph, node, key, branch, turn, tick, value, linear=True):
