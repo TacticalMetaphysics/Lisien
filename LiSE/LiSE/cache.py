@@ -288,7 +288,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 class NodeRulesHandledCache(RulesHandledCache):
     def get_rulebook(self, character, node, branch, turn, tick):
-        return self.engine._nodes_rulebooks_cache.retrieve(character, branch, turn, tick)
+        return self.engine._nodes_rulebooks_cache.retrieve(character, node, branch, turn, tick)
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
