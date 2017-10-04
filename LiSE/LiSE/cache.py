@@ -165,7 +165,7 @@ class RulesHandledCache(object):
         shalo.add(rule)
 
     def fork(self, branch, turn, tick):
-        parent_branch, parent_turn, parent_tick = self.engine._parent_btt[branch]
+        parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[branch]
         unhandl = self.unhandled
         for entity in unhandl:
             rulebook = self.get_rulebook(*entity + (branch, turn, tick))

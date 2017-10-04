@@ -83,11 +83,11 @@ class TimeSignalDescriptor(object):
         # make sure I'll end up within the revision range of the
         # destination branch
         e = real.engine
-        parbtt = real.engine._parent_btt
-        tick_now = None
+        branches = e._branches
+        tick_now = e._turn_end.get((branch_now, turn_now), 0)
         if branch_now != 'trunk':
-            if branch_now in parbtt:
-                parturn = parbtt[branch_now][1]
+            if branch_now in branches:
+                parturn = branches[branch_now][1]
                 if turn_now < parturn:
                     raise ValueError(
                         "Tried to jump to branch {br}, "
@@ -98,14 +98,15 @@ class TimeSignalDescriptor(object):
                         )
                     )
             else:
-                tick_now = real.engine._turn_end.get((branch_now, turn_now), 0)
-                parbtt[branch_now] = (
-                    branch_then, turn_now, tick_now
+                branches[branch_now] = (
+                    branch_then, turn_now, tick_now, turn_now, tick_now
                 )
                 e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = branch, turn = val
-        e._branch_end[branch] = max((e._branch_end[branch], turn))
-        e._otick = tick_now or real.engine._turn_end.get((branch_now, turn_now), 0)
+        parent, start_turn, start_tick, end_turn, end_tick = branches[branch]
+        if turn_now > end_turn:
+            branches[branch] = parent, start_turn, start_tick, turn_now, tick_now
+        e._otick = tick_now
         real.send(
             e,
             branch_then=branch_then,

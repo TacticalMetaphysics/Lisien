@@ -45,6 +45,8 @@ def tables_for_meta(meta):
         Column('parent', TEXT, default='trunk'),
         Column('parent_turn', INT, default=0),
         Column('parent_tick', INT, default=0),
+        Column('end_turn', INT, default=0),
+        Column('end_tick', INT, default=0),
         CheckConstraint('branch<>parent')
     )
     Table(
@@ -241,7 +243,14 @@ def queries_for_table_dict(table):
         'graphs_types': select([
             table['graphs'].c.graph,
             table['graphs'].c.type
-        ])
+        ]),
+        'update_branches': table['branches'].update().values(
+            parent=bindparam('parent'),
+            parent_turn=bindparam('parent_turn'),
+            parent_tick=bindparam('parent_tick'),
+            end_turn=bindparam('end_turn'),
+            end_tick=bindparam('end_tick')
+        ).where(table['branches'].c.branch == bindparam('branch'))
     }
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)

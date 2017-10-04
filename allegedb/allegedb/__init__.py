@@ -59,8 +59,7 @@ class ORM(object):
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
-        self._parent_btt = {}
-        self._branch_end = defaultdict(lambda: 0)
+        self._branches = {}
         self._turn_end = defaultdict(lambda: 0)
         self._graph_val_cache = Cache(self)
         self._nodes_cache = NodesCache(self)
@@ -100,9 +99,8 @@ class ORM(object):
         self._oturn = self.query.globl['turn']
         self._otick = self.query.globl['tick']
         self._init_caches()
-        for (branch, parent, parent_turn, parent_tick) in self.query.all_branches():
-            if branch != 'trunk':
-                self._parent_btt[branch] = (parent, parent_turn, parent_tick)
+        for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
+            self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
             self._childbranch[parent].add(branch)
         self.load_graphs()
         self._init_load(validate=validate)
@@ -139,15 +137,15 @@ class ORM(object):
             return True
         if child == 'trunk':
             return False
-        if child not in self._parent_btt:
+        if child not in self._branches:
             raise ValueError(
                 "The branch {} seems not to have ever been created".format(
                     child
                 )
             )
-        if self._parent_btt[child][0] == parent:
+        if self._branches[child][0] == parent:
             return True
-        return self.is_parent_of(parent, self._parent_btt[child][0])
+        return self.is_parent_of(parent, self._branches[child][0])
 
     @property
     def branch(self):
@@ -158,14 +156,14 @@ class ORM(object):
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
             return
-        if v not in self._parent_btt:
+        if v not in self._branches:
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
         # make sure I'll end up within the revision range of the
         # destination branch
         if v != 'trunk':
-            parturn = self._parent_btt[v][1]
+            parturn = self._branches[v][1]
             if curturn < parturn:
                 raise ValueError(
                     "Tried to jump to branch {br}, "
@@ -175,8 +173,8 @@ class ORM(object):
                         rv=parturn
                     )
                 )
-            if v not in self._parent_btt:
-                self._parent_btt[v] = (curbranch, curturn, curtick)
+            if v not in self._branches:
+                self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
 
     @property
@@ -189,16 +187,18 @@ class ORM(object):
             return
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
+        tick = self._turn_end.setdefault((branch, v), 0)
+        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
         if branch != 'trunk':
-            (parent, parent_turn, parent_tick) = self._parent_btt[branch]
-            if v < parent_turn:
+            if v < turn_start:
                 raise ValueError(
                     "The turn number {} "
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
-        if self.linear and v > self._branch_end[branch]:
-            self._branch_end[branch] = v
+        if not self.planning and v > turn_end:
+            self._branches[branch] = parent, turn_start, tick_start, v, tick
+        self._otick = tick
         self._oturn = v
 
     @property
@@ -207,9 +207,13 @@ class ORM(object):
 
     @tick.setter
     def tick(self, v):
-        time = self._obranch, self._oturn
-        if self.linear and v > self._turn_end[time]:
-            self._turn_end[time] = v
+        time = branch, turn = self._obranch, self._oturn
+        if not self.planning:
+            if v > self._turn_end[time]:
+                self._turn_end[time] = v
+            parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+            if turn == turn_end and v > tick_end:
+                self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
 
     def btt(self):
@@ -224,29 +228,31 @@ class ORM(object):
         can only do once per branch, turn, tick.
 
         """
-        branch, turn = self._obranch, self._oturn
-        if self.linear and self._branch_end[branch] > turn:
+        if self.planning:
+            raise HistoryError("Do not use this method while planning")
+        branch, turn, tick = self.btt()
+        tick += 1
+        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+        if turn_end != turn:
             raise HistoryError(
-                "You're in the past. Go to turn {} to change things".format(
-                    self._branch_end[branch]
-                )
+                "You're not at the present turn. Go to turn {} to change things".format(turn_end)
             )
-        self._otick += 1
-        tick = self._otick
         if self._turn_end[branch, turn] > tick:
-            self._otick -= 1
             raise HistoryError(
                 "You're not at the end of turn {}. Go to tick {} to change things".format(
                     turn, self._turn_end[branch, turn]
                 )
             )
-        self._turn_end[branch, turn] = tick
+        self._turn_end[branch, turn] = self._otick = tick
+        self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
         return branch, turn, tick
 
     def commit(self):
         self.query.globl['branch'] = self._obranch
         self.query.globl['turn'] = self._oturn
         self.query.globl['tick'] = self._otick
+        for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
+            self.query.update_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
         self.query.commit()
 
     def close(self):
@@ -346,8 +352,8 @@ class ORM(object):
         trn = turn or self.turn
         tck = tick or self.tick
         yield b, trn, tck
-        while b in self._parent_btt:
-            (b, trn, tck) = self._parent_btt[b]
+        while b in self._branches:
+            (b, trn, tck, _, _) = self._branches[b]
             yield b, trn, self._turn_end[b, trn]
 
     def _branch_descendants(self, branch=None):
@@ -356,7 +362,7 @@ class ORM(object):
 
         """
         branch = branch or self.branch
-        for (parent, (child, turn, tick)) in self._parent_btt.items():
+        for (parent, (child, _, _, _, _)) in self._branches.items():
             if parent == branch:
                 yield child
 

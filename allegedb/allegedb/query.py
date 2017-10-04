@@ -233,7 +233,10 @@ class QueryEngine(object):
         ``parent_turn``, ``parent_tick``
 
         """
-        return self.sql('branches_insert', branch, parent, parent_turn, parent_tick)
+        return self.sql('branches_insert', branch, parent, parent_turn, parent_tick, parent_turn, parent_tick)
+
+    def update_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
+        return self.sql('update_branches', parent, parent_turn, parent_tick, end_turn, end_tick, branch)
 
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""
