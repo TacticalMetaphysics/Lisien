@@ -655,11 +655,11 @@ class QueryEngine(allegedb.query.QueryEngine):
         if extant and not keep_rulebook:
             self.set_node_rulebook(character, node, branch, turn, tick, (character, node))
 
-    def exist_edge(self, character, orig, dest, idx, branch, turn, tick, extant=None, linear=True, keep_rulebook=False):
+    def exist_edge(self, character, orig, dest, idx, branch, turn, tick, extant=None, *, planning=False, keep_rulebook=False):
         if extant is None:
             branch, turn, tick, extant = idx, branch, turn, tick
             idx = 0
-        super().exist_edge(character, orig, dest, idx, branch, turn, tick, extant, linear)
+        super().exist_edge(character, orig, dest, idx, branch, turn, tick, extant, planning)
         if extant and not keep_rulebook:
             self.set_portal_rulebook(character, orig, dest, branch, turn, tick, (character, orig, dest))
 

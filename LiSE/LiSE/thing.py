@@ -302,42 +302,41 @@ class Thing(Node):
 
         """
         eng = self.character.engine
-        eng.linear = False
-        curturn = eng.turn
-        prevplace = path.pop(0)
-        if prevplace != self['location']:
-            raise ValueError("Path does not start at my present location")
-        subpath = [prevplace]
-        for place in path:
-            if (
-                    prevplace not in self.character.portal or
-                    place not in self.character.portal[prevplace]
-            ):
-                raise TravelException(
-                    "Couldn't follow portal from {} to {}".format(
-                        prevplace,
-                        place
-                    ),
-                    path=subpath,
-                    traveller=self
-                )
-            subpath.append(place)
-            prevplace = place
-        turns_total = 0
-        prevsubplace = subpath.pop(0)
-        subsubpath = [prevsubplace]
-        for subplace in subpath:
-            portal = self.character.portal[prevsubplace][subplace]
-            turn_inc = portal.get(weight, 1)
-            self.locations = prevsubplace, subplace
-            eng.turn += turn_inc
-            turns_total += turn_inc
-            subsubpath.append(subplace)
-            prevsubplace = subplace
-        self.locations = subplace, None
-        eng.turn = curturn
-        eng.linear = True
-        return turns_total
+        with eng.plan:
+            curturn = eng.turn
+            prevplace = path.pop(0)
+            if prevplace != self['location']:
+                raise ValueError("Path does not start at my present location")
+            subpath = [prevplace]
+            for place in path:
+                if (
+                        prevplace not in self.character.portal or
+                        place not in self.character.portal[prevplace]
+                ):
+                    raise TravelException(
+                        "Couldn't follow portal from {} to {}".format(
+                            prevplace,
+                            place
+                        ),
+                        path=subpath,
+                        traveller=self
+                    )
+                subpath.append(place)
+                prevplace = place
+            turns_total = 0
+            prevsubplace = subpath.pop(0)
+            subsubpath = [prevsubplace]
+            for subplace in subpath:
+                portal = self.character.portal[prevsubplace][subplace]
+                turn_inc = portal.get(weight, 1)
+                self.locations = prevsubplace, subplace
+                eng.turn += turn_inc
+                turns_total += turn_inc
+                subsubpath.append(subplace)
+                prevsubplace = subplace
+            self.locations = subplace, None
+            eng.turn = curturn
+            return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):
         """Find the shortest path to the given :class:`Place` from where I am

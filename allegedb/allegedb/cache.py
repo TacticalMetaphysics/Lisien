@@ -555,7 +555,7 @@ class Cache(object):
                     if ex.deleted:
                         break
 
-    def store(self, *args, validate=False, linear=True):
+    def store(self, *args, validate=False, planning=False):
         """Put a value in various dictionaries for later .retrieve(...).
 
         Needs at least five arguments, of which the -1th is the value
@@ -568,10 +568,10 @@ class Cache(object):
         """
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
-        self._store(parent, entity, key, branch, turn, tick, value, linear=linear)
+        self._store(parent, entity, key, branch, turn, tick, value, planning=planning)
         self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
 
-    def _store(self, parent, entity, key, branch, turn, tick, value, *, linear=True):
+    def _store(self, parent, entity, key, branch, turn, tick, value, *, planning=False):
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
@@ -581,18 +581,19 @@ class Cache(object):
                 newp[tick] = value
                 parents[turn] = newp
         branches = self.branches[parent+(entity, key)][branch]
+        if planning and turn < branches.end:
+            raise HistoryError(
+                "Can't plan for the past. "
+                "Already have some turns after {} in branch {}".format(
+                    turn, branch
+                )
+            )
         if branches.has_exact_rev(turn):
             if turn < branches.end:
-                if linear:
-                    # deal with the paradox by erasing history after this turn
-                    branches.seek(turn)
-                    branches._future = deque()
-                else:
-                    raise HistoryError(
-                        "Already have some turns after {} in branch {}".format(
-                            turn, branch
-                        )
-                    )
+                # deal with the paradox by erasing history after this turn
+                branches.seek(turn)
+                branches._future = deque()
+
             branchesturn = branches[turn]
             if tick <= branchesturn.end:
                 raise HistoryError(
@@ -776,14 +777,14 @@ class NodesCache(Cache):
         super().__init__(db)
         self._make_node = db._make_node
 
-    def store(self, graph, node, branch, turn, tick, ex, *, linear=True, validate=False):
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=False, validate=False):
         """Store whether a node exists, and create an object for it"""
         if not ex:
             ex = None
         if (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
-        Cache.store(self, graph, node, branch, turn, tick, ex, linear=linear, validate=validate)
+        Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, validate=validate)
         kc = self._update_keycache((graph,), branch, turn, tick, node, ex)
         if validate:
             if (
@@ -889,11 +890,11 @@ class EdgesCache(Cache):
         )
         return orig in self.origcache[(graph, orig, branch)][turn][tick]
 
-    def _store(self, parent, dest, idx, branch, turn, tick, ex, *, linear=True):
+    def _store(self, parent, dest, idx, branch, turn, tick, ex, *, planning=False):
         graph, orig = parent
         if not ex:
             ex = None
-        Cache._store(self, parent, dest, idx, branch, turn, tick, ex, linear=linear)
+        Cache._store(self, parent, dest, idx, branch, turn, tick, ex, planning=planning)
         if (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)

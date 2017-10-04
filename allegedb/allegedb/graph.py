@@ -152,13 +152,13 @@ class GraphMapping(AbstractEntityMapping):
             key,
             branch, turn, tick,
             value,
-            linear=self.db.linear
+            planning=self.db.planning
         )
 
     def _set_cache(self, key, branch, turn, tick, value):
         self.db._graph_val_cache.store(
             self.graph.name, key, branch, turn, tick, value,
-            linear=self.db.linear
+            planning=self.db.planning
         )
 
     def _del_db(self, key, branch, turn, tick):
@@ -166,7 +166,7 @@ class GraphMapping(AbstractEntityMapping):
             self.graph.name,
             key,
             branch, turn, tick,
-            linear=self.db.linear
+            planning=self.db.planning
         )
 
 
@@ -330,14 +330,14 @@ class GraphNodeMapping(NeatMapping):
 
         """
         branch, turn, tick = self.db.btt()
-        linear = self.db.linear
+        planning = self.db.planning
         created = node not in self
         self.db._nodes_cache.store(
             self.graph.name,
             node,
             branch, turn, tick,
             True,
-            linear=linear
+            planning=planning
         )
         if (self.graph.name, node) in self.db._node_objs:
             n = self.db._node_objs[(self.graph.name, node)]
@@ -351,7 +351,7 @@ class GraphNodeMapping(NeatMapping):
             node,
             branch, turn, tick,
             True,
-            linear=linear
+            planning=planning
         )
         n.update(dikt)
         if created:
@@ -498,7 +498,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         """
         branch, turn, tick = self.db.btt()
         created = dest not in self
-        linear = self.db.linear
+        planning=self.db.planning
         self.db.query.exist_edge(
             self.graph.name,
             self.orig,
@@ -506,7 +506,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             0,
             branch, turn, tick,
             True,
-            linear=linear
+            planning=planning
         )
         self.db._edges_cache.store(
             self.graph.name,
@@ -515,7 +515,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             0,
             branch, turn, tick,
             True,
-            linear=linear
+            planning=planning
         )
         e = self[dest]
         e.clear()
@@ -702,7 +702,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
             """
             branch, turn, tick = self.db.nbtt()
-            linear = self.db.linear
+            planning=self.db.planning
             try:
                 e = self[orig]
                 e.clear()
@@ -715,7 +715,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     0,
                     branch, turn, tick,
                     True,
-                    linear=linear
+                    planning=planning
                 )
                 e = self._make_edge(orig)
                 created = True
@@ -727,7 +727,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 0,
                 branch, turn, tick,
                 True,
-                linear=linear
+                planning=planning
             )
             if created:
                 self.created.send(self, key=orig, val=value)
@@ -735,7 +735,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
         def __delitem__(self, orig):
             """Unset the existence of the edge from the given node to mine"""
             branch, turn, tick = self.db.nbtt()
-            linear = self.db.linear
+            planning = self.db.planning
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[orig]:
                     self.db.query.exist_edge(
@@ -745,7 +745,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         idx,
                         branch, turn, tick,
                         False,
-                        linear=linear
+                        planning=planning
                     )
                     self.db._edges_cache.store(
                         self.graph.name,
@@ -754,7 +754,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         idx,
                         branch, turn, tick,
                         False,
-                        linear=linear
+                        planning=planning
                     )
                     self.deleted.send(self, key=orig)
                     return
@@ -765,7 +765,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 0,
                 branch, turn, tick,
                 False,
-                linear=linear
+                planning=planning
             )
             self.db._edges_cache.store(
                 self.graph.name,
@@ -774,7 +774,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 0,
                 branch, turn, tick,
                 False,
-                linear=linear
+                planning=planning
             )
             self.deleted.send(self, key=orig)
 
@@ -828,7 +828,7 @@ class MultiEdges(GraphEdgeMapping):
 
         """
         branch, turn, tick = self.db.nbtt()
-        linear = self.db.linear
+        planning = self.db.planning
         created = idx not in self
         self.db.query.exist_edge(
             self.graph.name,
@@ -837,7 +837,7 @@ class MultiEdges(GraphEdgeMapping):
             idx,
             branch, turn, tick,
             True,
-            linear=linear
+            planning=self.db.planning
         )
         e = self._getedge(idx)
         e.clear()
@@ -845,7 +845,7 @@ class MultiEdges(GraphEdgeMapping):
         self.db._edges_cache.store(
             self.graph.name, self.orig, self.dest, idx,
             branch, turn, tick, True,
-            linear=linear
+            planning=planning
         )
         if created:
             self.created.send(self, key=idx, val=val)

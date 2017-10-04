@@ -17,18 +17,18 @@ class GraphNameError(KeyError):
     pass
 
 
-class NonlinearContext(object):
+class PlanningContext(object):
     __slots__ = ['orm']
 
     def __init__(self, orm):
         self.orm = orm
 
     def __enter__(self):
-        self.orm.linear = False
+        self.orm.planning = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm.linear = True
+        self.orm.planning = False
 
 
 class ORM(object):
@@ -42,9 +42,8 @@ class ORM(object):
     query_engine_cls = QueryEngine
 
     @property
-    def nonlinear(self):
-        """Context manager to prevent enforcement of linear time"""
-        return NonlinearContext(self)
+    def plan(self):
+        return PlanningContext(self)
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
@@ -90,7 +89,7 @@ class ORM(object):
         either case, begin a transaction.
 
         """
-        self.linear = True
+        self.planning = False
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,

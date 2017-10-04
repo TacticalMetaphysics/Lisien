@@ -257,16 +257,16 @@ class QueryEngine(object):
                     self.json_dump(arg['key']),
                     arg['branch'], arg['turn'], arg['tick'],
                     self.json_dump(arg['value']),
-                    arg.get('linear', True)
+                    arg.get('planning', True)
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, key, branch, turn, tick, value, linear = arg
+                graph, key, branch, turn, tick, value, planning = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(key),
                     branch, turn, tick,
                     self.json_dump(value),
-                    linear
+                    planning
                 )
             else:
                 raise TypeError(
@@ -277,8 +277,8 @@ class QueryEngine(object):
             return
         converted = map(convert_arg, self._graphvals2set)
         delafter = {}
-        for graph, key, branch, turn, tick, value, linear in converted:
-            if not linear:
+        for graph, key, branch, turn, tick, value, planning in converted:
+            if planning:
                 continue
             if (graph, key, branch) in delafter:
                 delafter[graph, key, branch] = min((
@@ -296,12 +296,12 @@ class QueryEngine(object):
         self.sqlmany('graph_val_insert', *map(lambda x: x[:-1], converted))
         self._graphvals2set = []
 
-    def graph_val_set(self, graph, key, branch, turn, tick, value, linear=True):
-        self._graphvals2set.append((graph, key, branch, turn, tick, value, linear))
+    def graph_val_set(self, graph, key, branch, turn, tick, value, planning=False):
+        self._graphvals2set.append((graph, key, branch, turn, tick, value, planning))
 
-    def graph_val_del(self, graph, key, branch, turn, tick, linear=True):
+    def graph_val_del(self, graph, key, branch, turn, tick, planning=False):
         """Indicate that the key is unset."""
-        self.graph_val_set(graph, key, branch, turn, tick, None, linear=linear)
+        self.graph_val_set(graph, key, branch, turn, tick, None, planning=planning)
 
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
@@ -314,14 +314,14 @@ class QueryEngine(object):
                     self.json_dump(arg['graph']),
                     self.json_dump(arg['node']),
                     arg['branch'], arg['turn'], arg['tick'], arg['extant'],
-                    arg['linear']
+                    arg.get('planning', False)
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, node, branch, turn, tick, extant, linear = arg
+                graph, node, branch, turn, tick, extant, planning = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(node),
-                    branch, turn, tick, extant, linear
+                    branch, turn, tick, extant, planning
                 )
             else:
                 raise TypeError(
@@ -333,8 +333,8 @@ class QueryEngine(object):
         # delete history that is to be overwritten due to paradox
         converted = list(map(convert_arg, self._nodes2set))
         cleanups = {}
-        for graph, node, branch, turn, tick, extant, linear in converted:
-            if not linear:
+        for graph, node, branch, turn, tick, extant, planning in converted:
+            if planning:
                 continue
             if (graph, node, branch) in cleanups:
                 cleanups[graph, node, branch] = min((
@@ -345,13 +345,13 @@ class QueryEngine(object):
         self.sqlmany('nodes_insert', *map(lambda arg: arg[:-1], converted))
         self._nodes2set = []
 
-    def exist_node(self, graph, node, branch, turn, tick, extant, linear=True):
+    def exist_node(self, graph, node, branch, turn, tick, extant, planning=False):
         """Declare that the node exists or doesn't.
 
         Inserts a new record or updates an old one, as needed.
 
         """
-        self._nodes2set.append((graph, node, branch, turn, tick, extant, linear))
+        self._nodes2set.append((graph, node, branch, turn, tick, extant, planning))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
@@ -393,10 +393,10 @@ class QueryEngine(object):
                     arg['turn'],
                     arg['tick'],
                     self.json_dump(arg['value']),
-                    arg.get('linear', True)
+                    arg.get('planning', False)
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, node, key, branch, turn, tick, value, linear = arg
+                graph, node, key, branch, turn, tick, value, planning = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(node),
@@ -405,7 +405,7 @@ class QueryEngine(object):
                     turn,
                     tick,
                     self.json_dump(value),
-                    linear
+                    planning
                 )
             else:
                 raise TypeError(
@@ -416,8 +416,8 @@ class QueryEngine(object):
             return
         converted = list(map(convert_arg, self._nodevals2set))
         delafter = {}
-        for graph, node, key, branch, turn, tick, value, linear in converted:
-            if not linear:
+        for graph, node, key, branch, turn, tick, value, planning in converted:
+            if planning:
                 continue
             if (graph, node, key, branch) in delafter:
                 delafter[graph, node, key, branch] = min((
@@ -436,13 +436,13 @@ class QueryEngine(object):
         self.sqlmany('node_val_insert', *map(lambda x: x[:-1], converted))
         self._nodevals2set = []
 
-    def node_val_set(self, graph, node, key, branch, turn, tick, value, linear=True):
+    def node_val_set(self, graph, node, key, branch, turn, tick, value, planning=False):
         """Set a key-value pair on a node at a specific branch and revision"""
-        self._nodevals2set.append((graph, node, key, branch, turn, tick, value, linear))
+        self._nodevals2set.append((graph, node, key, branch, turn, tick, value, planning))
 
-    def node_val_del(self, graph, node, key, branch, turn, tick):
+    def node_val_del(self, graph, node, key, branch, turn, tick, planning=False):
         """Delete a key from a node at a specific branch and revision"""
-        self.node_val_set(graph, node, key, branch, turn, tick, None)
+        self.node_val_set(graph, node, key, branch, turn, tick, None, planning)
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
@@ -470,15 +470,15 @@ class QueryEngine(object):
                     self.json_dump(arg['dest']),
                     arg['idx'], arg['branch'], arg['turn'],
                     arg['tick'], arg['extant'],
-                    arg.get('linear', True)
+                    arg.get('planning', False)
                 )
             elif isinstance(arg, list) or isinstance(arg, tuple):
-                graph, orig, dest, idx, branch, turn, tick, extant, linear = arg
+                graph, orig, dest, idx, branch, turn, tick, extant, planning = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(orig),
                     self.json_dump(dest),
-                    idx, branch, turn, tick, extant, linear
+                    idx, branch, turn, tick, extant, planning
                 )
             else:
                 raise TypeError(
@@ -489,8 +489,8 @@ class QueryEngine(object):
             return
         converted = list(map(convert_arg, self._edges2set))
         delafter = {}
-        for graph, orig, dest, idx, branch, turn, tick, extant, linear in converted:
-            if not linear:
+        for graph, orig, dest, idx, branch, turn, tick, extant, planning in converted:
+            if planning:
                 continue
             key = graph, orig, dest, idx, branch
             if key in delafter:
@@ -510,9 +510,9 @@ class QueryEngine(object):
         self.sqlmany('edges_insert', *map(lambda x: x[:-1], converted))
         self._edges2set = []
 
-    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant, linear=True):
+    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant, planning=False):
         """Declare whether or not this edge exists."""
-        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant, linear))
+        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant, planning))
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
@@ -543,10 +543,10 @@ class QueryEngine(object):
                     self.json_dump(arg['key']),
                     arg['branch'], arg['turn'], arg['tick'],
                     self.json_dump(arg['value']),
-                    arg.get('linear', True)
+                    arg.get('planning', False)
                 )
             elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, orig, dest, idx, key, branch, turn, tick, value, linear = arg
+                graph, orig, dest, idx, key, branch, turn, tick, value, planning = arg
                 return (
                     self.json_dump(graph),
                     self.json_dump(orig),
@@ -555,7 +555,7 @@ class QueryEngine(object):
                     self.json_dump(key),
                     branch, turn, tick,
                     self.json_dump(value),
-                    linear
+                    planning
                 )
             else:
                 raise TypeError(
@@ -566,8 +566,8 @@ class QueryEngine(object):
             return
         converted = list(map(convert_arg, self._edgevals2set))
         delafter = {}
-        for graph, orig, dest, idx, key, branch, turn, tick, value, linear in converted:
-            if not linear:
+        for graph, orig, dest, idx, key, branch, turn, tick, value, planning in converted:
+            if planning:
                 continue
             dkey = graph, orig, dest, idx, key, branch
             if dkey in delafter:
@@ -586,10 +586,10 @@ class QueryEngine(object):
         self.sqlmany('edge_val_ins', *map(lambda x: x[:-1], converted))
         self._edgevals2set = []
 
-    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value, linear=True):
+    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value, planning=False):
         """Set this key of this edge to this value."""
         self._edgevals2set.append(
-            (graph, orig, dest, idx, key, branch, turn, tick, value, linear)
+            (graph, orig, dest, idx, key, branch, turn, tick, value, planning)
         )
 
     def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick):
