@@ -170,5 +170,6 @@
     "things_insert": "INSERT INTO things (character, thing, branch, turn, tick, location, next_location) VALUES (?, ?, ?, ?, ?, ?, ?)",
     "universals_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM universals",
     "universals_dump": "SELECT universals.\"key\", universals.branch, universals.turn, universals.tick, universals.value \nFROM universals ORDER BY universals.\"key\", universals.branch, universals.turn, universals.tick",
-    "universals_insert": "INSERT INTO universals (\"key\", branch, turn, tick, value) VALUES (?, ?, ?, ?, ?)"
+    "universals_insert": "INSERT INTO universals (\"key\", branch, turn, tick, value) VALUES (?, ?, ?, ?, ?)",
+    "update_branches": "UPDATE branches SET parent=?, parent_turn=?, parent_tick=?, end_turn=?, end_tick=? WHERE branches.branch = ?"
 }

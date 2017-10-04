@@ -46,5 +46,6 @@
     "node_val_insert": "INSERT INTO node_val (graph, node, \"key\", branch, turn, tick, value) VALUES (?, ?, ?, ?, ?, ?, ?)",
     "nodes_count": "SELECT COUNT(?) AS \"COUNT_1\" \nFROM nodes",
     "nodes_dump": "SELECT nodes.graph, nodes.node, nodes.branch, nodes.turn, nodes.tick, nodes.extant \nFROM nodes ORDER BY nodes.graph, nodes.node, nodes.branch, nodes.turn, nodes.tick",
-    "nodes_insert": "INSERT INTO nodes (graph, node, branch, turn, tick, extant) VALUES (?, ?, ?, ?, ?, ?)"
+    "nodes_insert": "INSERT INTO nodes (graph, node, branch, turn, tick, extant) VALUES (?, ?, ?, ?, ?, ?)",
+    "update_branches": "UPDATE branches SET parent=?, parent_turn=?, parent_tick=?, end_turn=?, end_tick=? WHERE branches.branch = ?"
 }

@@ -102,6 +102,8 @@ class ORM(object):
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
             self._childbranch[parent].add(branch)
+        if 'trunk' not in self._branches:
+            self._branches['trunk'] = None, 0, 0, 0, 0
         self.load_graphs()
         self._init_load(validate=validate)
 

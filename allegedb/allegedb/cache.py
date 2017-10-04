@@ -421,10 +421,21 @@ class Cache(object):
             dd3[branch][turn][tick].append(row)
             parent = row[:-6]
             store(parent, entity, key, branch, turn, tick, value)
-        real_branch_end = self.db._branch_end
+        real_branches = self.db._branches
         real_turn_end = self.db._turn_end
         for branch, end in branch_end.items():
-            real_branch_end[branch] = max((real_branch_end[branch], end))
+            if branch not in real_branches:
+                assert branch == 'trunk'
+
+            parent, start_turn, start_tick, end_turn, end_tick = real_branches[branch]
+            if end > end_turn:
+                if (branch, end) in turn_end:
+                    tick = turn_end[branch, end]
+                elif (branch, end) in real_turn_end:
+                    tick = real_turn_end[branch, end]
+                else:
+                    tick = 0
+                real_branches[branch] = parent, start_turn, start_tick, end, tick
         for (branch, turn), end in turn_end.items():
             real_turn_end[branch, turn] = max((real_turn_end[branch, turn], end))
         # Make keycaches and valcaches. Must be done chronologically
