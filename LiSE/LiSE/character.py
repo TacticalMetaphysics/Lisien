@@ -1242,9 +1242,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             )
 
         def __contains__(self, thing):
-            return self.engine._things_cache.contains_key(
-                self.character.name, thing, *self.engine.btt()
-            )
+            args = self.character.name, thing, *self.engine.btt
+            cache = self.engine._things_cache
+            return cache.contains_key(*args) and cache.retrieve(*args)[0] is not None
 
         def __len__(self):
             return self.engine._things_cache.count_keys(
