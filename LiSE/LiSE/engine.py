@@ -863,13 +863,6 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _follow_rule(self, rule, handled_fun, branch, turn, *args):
-        for trigger in rule.triggers:
-            res = trigger(*args)
-            self.time = branch, turn
-            if res:
-                break
-        else:
-            return handled_fun()
         satisfied = True
         for prereq in rule.prereqs:
             res = prereq(*args)
@@ -878,6 +871,13 @@ class Engine(AbstractEngine, gORM):
                 satisfied = False
                 break
         if not satisfied:
+            return handled_fun()
+        for trigger in rule.triggers:
+            res = trigger(*args)
+            self.time = branch, turn
+            if res:
+                break
+        else:
             return handled_fun()
         actres = []
         for action in rule.actions:

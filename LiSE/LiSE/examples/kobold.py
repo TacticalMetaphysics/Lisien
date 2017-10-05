@@ -96,6 +96,10 @@ def inittest(
             return True
 
     @shrubsprint.prereq
+    def alive(thing):
+        return thing in thing.character.thing.values()
+
+    @shrubsprint.prereq
     def not_traveling(thing):
         if thing['next_location'] is not None:
             thing.engine.info("kobold already travelling to {}".format(thing['next_location']))
@@ -163,7 +167,7 @@ if __name__ == '__main__':
     except FileNotFoundError:
         pass
     with Engine('LiSEworld.db', random_seed=69105) as engine:
-        inittest(engine, shrubberies=2)
+        inittest(engine, shrubberies=20)
         engine.commit()
         print('shrub_places beginning: {}'.format(
             engine.character['physical'].thing['kobold']['shrub_places']
