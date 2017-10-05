@@ -104,7 +104,7 @@ class TimeSignalDescriptor(object):
                 e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = branch, turn = val
         parent, start_turn, start_tick, end_turn, end_tick = branches[branch]
-        if turn_now > end_turn:
+        if not e.planning and turn_now > end_turn:
             branches[branch] = parent, start_turn, start_tick, turn_now, tick_now
         e._otick = tick_now
         real.send(
