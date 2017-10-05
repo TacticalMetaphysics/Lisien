@@ -1242,7 +1242,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             )
 
         def __contains__(self, thing):
-            args = self.character.name, thing, *self.engine.btt
+            args = self.character.name, thing, *self.engine.btt()
             cache = self.engine._things_cache
             return cache.contains_key(*args) and cache.retrieve(*args)[0] is not None
 
