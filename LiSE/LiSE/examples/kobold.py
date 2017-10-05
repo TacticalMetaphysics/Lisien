@@ -96,10 +96,6 @@ def inittest(
             return True
 
     @shrubsprint.prereq
-    def alive(thing):
-        return thing in thing.character.thing.values()
-
-    @shrubsprint.prereq
     def not_traveling(thing):
         if thing['next_location'] is not None:
             thing.engine.info("kobold already travelling to {}".format(thing['next_location']))
