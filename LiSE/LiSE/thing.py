@@ -205,10 +205,7 @@ class Thing(Node):
 
         """
         loc, nxtloc = self._get_locations()
-        try:
-            return self.engine._node_objs[(self.character.name, loc)]
-        except KeyError:
-            raise ValueError("Nonexistent location: {}".format(loc))
+        return self.engine._node_objs.get((self.character.name, loc))
 
     @location.setter
     def location(self, v):
