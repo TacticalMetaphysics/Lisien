@@ -866,7 +866,6 @@ class Engine(AbstractEngine, gORM):
         satisfied = True
         for prereq in rule.prereqs:
             res = prereq(*args)
-            self.time = branch, turn
             if not res:
                 satisfied = False
                 break
@@ -874,7 +873,6 @@ class Engine(AbstractEngine, gORM):
             return handled_fun()
         for trigger in rule.triggers:
             res = trigger(*args)
-            self.time = branch, turn
             if res:
                 break
         else:
@@ -884,7 +882,6 @@ class Engine(AbstractEngine, gORM):
             res = action(*args)
             if res:
                 actres.append(res)
-            self.time = branch, turn
         handled_fun()
         return actres
 

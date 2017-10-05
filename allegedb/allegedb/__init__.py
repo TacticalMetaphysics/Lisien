@@ -18,16 +18,18 @@ class GraphNameError(KeyError):
 
 
 class PlanningContext(object):
-    __slots__ = ['orm']
+    __slots__ = ['orm', 'time']
 
     def __init__(self, orm):
         self.orm = orm
 
     def __enter__(self):
         self.orm.planning = True
+        self.time = self.orm.branch, self.orm.turn
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.orm.branch, self.orm.turn = self.time
         self.orm.planning = False
 
 
@@ -241,6 +243,7 @@ class ORM(object):
         parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
         if not self.planning:
             if turn_end != turn:
+                print(turn)
                 raise HistoryError(
                     "You're not at the present turn. Go to turn {} to change things".format(turn_end)
                 )

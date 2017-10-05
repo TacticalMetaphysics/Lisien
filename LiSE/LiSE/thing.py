@@ -1,5 +1,4 @@
 # This file is part of LiSE, a framework for life simulation games.
-# This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """The sort of node that is ultimately located in a Place.
 
@@ -277,13 +276,12 @@ class Thing(Node):
             placen = place
         curloc = self["location"]
         orm = self.character.engine
-        curturn = orm.turn
         turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
-        orm.turn += turns
-        self['locations'] = (placen, None)
-        orm.turn = curturn
+        with self.engine.plan:
+            orm.turn += turns
+            self['locations'] = (placen, None)
         return turns
 
     def follow_path(self, path, weight=None):
@@ -299,7 +297,6 @@ class Thing(Node):
         """
         eng = self.character.engine
         with eng.plan:
-            curturn = eng.turn
             prevplace = path.pop(0)
             if prevplace != self['location']:
                 raise ValueError("Path does not start at my present location")
@@ -331,7 +328,6 @@ class Thing(Node):
                 subsubpath.append(subplace)
                 prevsubplace = subplace
             self.locations = subplace, None
-            eng.turn = curturn
             return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):
