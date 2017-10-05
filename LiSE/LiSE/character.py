@@ -1293,8 +1293,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.character.name,
                 self.name,
                 self.engine.branch,
+                self.engine.turn,
                 self.engine.tick,
-                None
+                (None, None)
             )
             self.send(self, key=thing, val=None)
 
