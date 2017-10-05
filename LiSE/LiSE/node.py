@@ -294,7 +294,16 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             contained.delete()
         for user in list(self.user.values()):
             user.del_avatar(self.character.name, self.name)
-        self.engine._exist_node(self.character.name, self.name, False)
+        branch, turn, tick = self.engine.btt()
+        self.engine._nodes_cache.store(
+            self.character.name, self.name,
+            branch, turn, tick, False
+        )
+        self.engine.query.exist_node(
+            self.character.name, self.name,
+            branch, turn, tick, False
+        )
+        self.character.node.send(self.character.node, key=self.name, val=None)
 
     def one_way_portal(self, other, **stats):
         """Connect a portal from here to another node, and return it."""

@@ -38,5 +38,4 @@ class Place(Node):
 
         """
         super().delete()
-        if not nochar:
-            del self.character.place[self.name]
+        self.character.place.send(self.character.place, key=self.name, val=None)

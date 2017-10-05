@@ -67,6 +67,7 @@ class AbstractCharacter(object):
     to be used in place of graph attributes
 
     """
+    engine = getatt('db')
 
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
@@ -1188,8 +1189,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     """
     _book = "character"
 
-    engine = getatt('db')
-
     @property
     def character(self):
         return self
@@ -1286,17 +1285,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __delitem__(self, thing):
             self[thing].delete(nochar=True)
-            cache = self.engine._node_objs
-            if (self.name, thing) in cache:
-                del cache[(self.name, thing)]
-            self.engine._things_cache.store(
-                self.character.name,
-                self.name,
-                self.engine.branch,
-                self.engine.turn,
-                self.engine.tick,
-                (None, None)
-            )
             self.send(self, key=thing, val=None)
 
         def __repr__(self):
@@ -1365,25 +1353,23 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.send(self, key=place, val=v)
 
         def __delitem__(self, place):
-            self[place].delete(nochar=True)
-            self.engine._exist_node(self.character.name, place, exist=False)
-            del self.engine._node_objs[(self.name, place)]
-            self.send(self, key=place, val=None)
+            self[place].delete()
 
         def __repr__(self):
             return repr(dict(self))
 
-    class ThingPlaceMapping(GraphNodeMapping, RuleFollower):
+    class ThingPlaceMapping(GraphNodeMapping, RuleFollower, Signal):
         """GraphNodeMapping but for Place and Thing"""
         _book = "character_node"
 
-        graph = getatt('character')
-        engine = db = getatt('character.engine')
+        character = getatt('graph')
+        engine =  getatt('db')
         name = getatt('character.name')
 
         def __init__(self, character):
             """Store the character."""
-            self.character = character
+            super().__init__(character)
+            Signal.__init__(self)
 
         def __contains__(self, k):
             return self.engine._node_exists(self.character.name, k)
@@ -1486,19 +1472,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.send(self, key=dest, val=p)
 
             def __delitem__(self, dest):
-                self.engine._exist_edge(
-                    self.graph.name,
-                    self.orig,
-                    dest,
-                    False
-                )
-                try:
-                    del self.engine._portal_objs[
-                        (self.graph.name, self.orig, dest)
-                    ]
-                except KeyError:
-                    pass
-                self.send(self, key=dest, val=None)
+                self[dest].delete()
 
     class PortalPredecessorsMapping(
             DiGraphPredecessorsMapping,

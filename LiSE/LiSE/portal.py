@@ -241,7 +241,6 @@ class Portal(Edge, RuleFollower):
         For symmetry with :class:`Thing` and :class`Place`.
 
         """
-        del self.character.portal[self.origin.name][self.destination.name]
         branch, turn, tick = self.engine.btt()
         self.engine._edges_cache.store(
             self.character.name,
@@ -251,4 +250,20 @@ class Portal(Edge, RuleFollower):
             turn,
             tick,
             False
+        )
+        self.engine.query.exist_edge(
+            self.character.name,
+            self.origin.name,
+            self.destination.name,
+            branch, turn, tick, False
+        )
+        try:
+            del self.engine._portal_objs[
+                (self.graph.name, self.orig, dest)
+            ]
+        except KeyError:
+            pass
+        self.character.portal[self.origin.name].send(
+            self.character.portal[self.origin.name],
+            key=dest, val=None
         )

@@ -1,4 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
+# This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """The sort of node that is ultimately located in a Place.
 
@@ -173,12 +174,10 @@ class Thing(Node):
             self['location']
         )
 
-    def delete(self, nochar=False):
+    def delete(self):
         super().delete()
-        if not nochar:
-            del self.character.thing[self.name]
-        (branch, tick) = self.engine.time
         self._set_loc_and_next(None, None)
+        self.character.thing.send(self.character.thing, key=self.name, val=None)
 
     def clear(self):
         """Unset everything."""

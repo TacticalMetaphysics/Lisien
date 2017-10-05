@@ -898,7 +898,13 @@ class Engine(AbstractEngine, gORM):
         # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         for (
             charactername, rulebook, rulename
-        ) in self._character_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._character_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+            )
+        ):
+            if charactername not in charmap:
+                continue
             yield self._follow_rule(
                 rulemap[rulename],
                 partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick),
@@ -907,7 +913,16 @@ class Engine(AbstractEngine, gORM):
             )
         for (
             charn, rulebook, graphn, avn, rulen
-        ) in self._avatar_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._avatar_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+            )
+        ):
+            if charn not in charmap:
+                continue
+            char = charmap[charn]
+            if graphn not in char.avatar or avn not in char.avatar[graphn]:
+                continue
             yield self._follow_rule(
                 rulemap[rulen],
                 partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
@@ -917,7 +932,11 @@ class Engine(AbstractEngine, gORM):
             )
         for (
             charn, rulebook, rulen, thingn
-        ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick)
+        ):
+            if charn not in charmap or thingn not in charmap[character].thing:
+                continue
             yield self._follow_rule(
                 rulemap[rulen],
                 partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick),
@@ -926,7 +945,13 @@ class Engine(AbstractEngine, gORM):
             )
         for (
             charn, rulebook, rulen, placen
-        ) in self._character_place_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._character_place_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+            )
+        ):
+            if charn not in charmap or placen not in charmap[charn].place:
+                continue
             yield self._follow_rule(
                 rulemap[rulen],
                 partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick),
@@ -935,7 +960,11 @@ class Engine(AbstractEngine, gORM):
             )
         for (
             charn, rulebook, rulen, orign, destn
-        ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._character_portal_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+            )
+        ):
             yield self._follow_rule(
                 rulemap[rulen],
                 partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
@@ -944,7 +973,13 @@ class Engine(AbstractEngine, gORM):
             )
         for (
                 charn, noden, rulebook, rulen
-        ) in self._node_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._node_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+            )
+        ):
+            if charn not in charmap or noden not in charmap[charn]:
+                continue
             yield self._follow_rule(
                 rulemap[rulen],
                 partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick),
@@ -953,7 +988,16 @@ class Engine(AbstractEngine, gORM):
             )
         for (
                 charn, orign, destn, rulebook, rulen
-        ) in self._portal_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        ) in list(
+            self._portal_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+            )
+        ):
+            if charn not in charmap:
+                continue
+            char = charmap[charn]
+            if orign not in char.portal or destn not in char.portal[orig]:
+                continue
             yield self._follow_rule(
                 rulemap[rulen],
                 partial(self._handled_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
@@ -1025,7 +1069,7 @@ class Engine(AbstractEngine, gORM):
     def _node_exists(self, character, node):
         return self._nodes_cache.contains_entity(character, node, *self.btt())
 
-    def _exist_node(self, character, node, exist=True):
+    def _exist_node(self, character, node):
         branch, turn, tick = self.nbtt()
         self.query.exist_node(
             character,
@@ -1033,9 +1077,9 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            exist
+            True
         )
-        self._nodes_cache.store(character, node, branch, turn, tick, exist)
+        self._nodes_cache.store(character, node, branch, turn, tick, True)
         self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node))
 
     def _exist_edge(
