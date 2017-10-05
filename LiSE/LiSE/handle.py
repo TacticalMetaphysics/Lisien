@@ -173,13 +173,13 @@ class EngineHandle(object):
             branch = stem + str(int(n)+1)
         else:
             branch += '1'
-        if self._real._havebranch(branch):
+        if branch in self._real._branches:
             if m:
                 n = int(n)
             else:
                 stem = branch[:-1]
                 n = 1
-            while self._real._havebranch(stem+str(n)):
+            while stem + str(n) in self._real._branches:
                 n += 1
             branch = stem + str(n)
         ret = {'branch': branch}
