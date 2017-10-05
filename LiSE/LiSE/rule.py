@@ -434,12 +434,10 @@ class RuleMapping(MutableMapping, Signal):
             self.engine.rule[k] = v
             v = self.engine.rule[k]
         assert isinstance(v, Rule)
-        if len(self.rulebook) == 0:
-            self.rulebook.append(v)
-        elif isinstance(k, int):
+        if isinstance(k, int):
             self.rulebook[k] = v
         else:
-            self.rulebook[0] = v
+            self.rulebook.append(v)
 
     def __call__(self, v=None, name=None, always=False):
         def wrap(name, always, v):
