@@ -177,7 +177,7 @@ class ORM(object):
                         rv=parturn
                     )
                 )
-            if v not in self._branches:
+            if not self.planning and v not in self._branches:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
 
