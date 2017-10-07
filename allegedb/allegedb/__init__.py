@@ -353,8 +353,8 @@ class ORM(object):
 
         """
         b = branch or self.branch
-        trn = turn or self.turn
-        tck = tick or self.tick
+        trn = self.turn if turn is None else turn
+        tck = self.tick if tick is None else tick
         yield b, trn, tck
         while b in self._branches:
             (b, trn, tck, _, _) = self._branches[b]
