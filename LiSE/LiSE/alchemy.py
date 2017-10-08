@@ -525,6 +525,33 @@ def queries(table):
     r['del_char_avatars'] = table['avatars'].delete().where(
         table['avatars'].c.character_graph == bindparam('character')
     )
+    things = table['things']
+    r['del_things_after'] = things.delete().where(and_(
+        things.c.character == bindparam('character'),
+        things.c.thing == bindparam('thing'),
+        things.c.branch == bindparam('branch'),
+        or_(
+            things.c.turn > bindparam('turn'),
+            and_(
+                things.c.turn == bindparam('turn'),
+                things.c.tick > bindparam('tick')
+            )
+        )
+    ))
+    avatars = table['avatars']
+    r['del_avatars_after'] = avatars.delete().where(and_(
+        avatars.c.character_graph == bindparam('character'),
+        avatars.c.avatar_graph == bindparam('graph'),
+        avatars.c.avatar_node == bindparam('avatar'),
+        avatars.c.branch == bindparam('branch'),
+        or_(
+            avatars.c.turn > bindparam('turn'),
+            and_(
+                avatars.c.turn == bindparam('turn'),
+                avatars.c.tick > bindparam('tick')
+            )
+        )
+    ))
 
     branches = table['branches']
 

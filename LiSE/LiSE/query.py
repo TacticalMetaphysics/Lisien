@@ -748,7 +748,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         raise KeyError("No rulebook")
 
     def thing_loc_and_next_set(
-            self, character, thing, branch, turn, tick, loc, nextloc
+            self, character, thing, branch, turn, tick, loc, nextloc, *, planning=False
     ):
         (character, thing) = map(
             self.json_dump,
@@ -756,7 +756,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
         loc = self.json_dump(loc)
         nextloc = self.json_dump(nextloc)
-        return self.sql(
+        self.sql(
             'things_insert',
             character,
             thing,
@@ -766,14 +766,21 @@ class QueryEngine(allegedb.query.QueryEngine):
             loc,
             nextloc
         )
+        if not planning:
+            self.sql('del_things_after', character, thing, branch, turn, turn, tick)
 
-    def avatar_set(self, character, graph, node, branch, turn, tick, isav):
+    def avatar_set(self, character, graph, node, branch, turn, tick, isav, *, planning=False):
         (character, graph, node) = map(
             self.json_dump, (character, graph, node)
         )
-        return self.sql(
+        self.sql(
             'avatar_ins', character, graph, node, branch, turn, tick, isav
         )
+        if not planning:
+            self.sql(
+                'del_avatars_after',
+                character, graph, node, branch, turn, turn, tick
+            )
 
     def rulebooks_rules(self):
         for (rulebook, rule) in self.sql('rulebooks_rules'):

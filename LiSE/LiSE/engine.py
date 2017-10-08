@@ -443,7 +443,8 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            is_avatar
+            is_avatar,
+            planning=self.planning
         )
 
     def _init_caches(self):
@@ -1070,7 +1071,8 @@ class Engine(AbstractEngine, gORM):
             turn,
             tick,
             loc,
-            nextloc
+            nextloc,
+            planning=self.planning
         )
 
     def _node_exists(self, character, node):
