@@ -606,7 +606,7 @@ class QueryEngine(allegedb.query.QueryEngine):
     set_rule_actions = partialmethod(_set_rule_something, 'actions')
 
     def set_rule(self, rule, branch, turn, tick, triggers=None, prereqs=None, actions=None):
-        self.sql('rules_ins', rule)
+        self.sql('rules_insert', rule)
         self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
         self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
         self.set_rule_actions(rule, branch, turn, tick, actions or [])
