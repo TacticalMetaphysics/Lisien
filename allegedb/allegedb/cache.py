@@ -487,14 +487,12 @@ class Cache(object):
             kc = keycache[keycache_key]
             try:
                 if not kc.has_exact_rev(turn):
-                    if kc.rev_before(turn) == turn - 1:
+                    if tick == 0 and kc.rev_before(turn) == turn - 1:
                         # We had valid keys a turn ago. Reuse those.
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
                         keys = old_turn_kc[old_turn_kc.end]
                         new_turn_kc[0] = keys.copy()
-                        if tick != 0:
-                            new_turn_kc[tick] = keys.copy()
                         kc[turn] = new_turn_kc
                     else:
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
@@ -510,21 +508,8 @@ class Cache(object):
                 pass
         # this may throw out some valid cache if there's a gap; that's acceptable
         kc = keycache[keycache_key] = TurnDict()
-        for (b, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
-            # Look through parent branches to find a valid keycache.
-            other_branch_key = parentity + (b,)
-            if other_branch_key in keycache and \
-               trn in keycache[other_branch_key]:
-                try:
-                    kc[turn][tick] = keycache[other_branch_key][trn][tck].copy()
-                    break
-                except HistoryError as ex:
-                    if ex.deleted:
-                        kc[turn][tick] = ret = set(slow_iter_keys(keys[parentity], branch, turn, tick))
-                        return ret
-        else:
-            kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
-        return kc[turn][tick]
+        kc[turn][tick] = ret = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+        return ret
 
     def _forward_keycache(self, parentity, branch, turn, tick):
         return self._forward_keycachelike(self.keycache, self.keys, self._slow_iter_keys, parentity, branch, turn, tick)
