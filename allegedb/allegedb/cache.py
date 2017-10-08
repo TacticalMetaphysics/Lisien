@@ -409,8 +409,10 @@ class Cache(object):
 
     def load(self, data, validate=False):
         """Add a bunch of data. It doesn't need to be in chronological order."""
+        def fw_upd(*args):
+            self._forward_valcaches(*args, validate=validate)
+            self._update_keycache(*args, validate=validate)
         store = self._store
-        fw_upd = self._forward_and_update
         dd3 = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         branch_end = defaultdict(lambda: 0)
         turn_end = defaultdict(lambda: 0)
@@ -448,7 +450,7 @@ class Cache(object):
                 ticks = turn_end[branch, turn] + 1
                 for tick in range(ticks):
                     for row in dd3[branch][turn][tick]:
-                        fw_upd(*row, validate=validate)
+                        fw_upd(*row)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
@@ -514,14 +516,6 @@ class Cache(object):
     def _forward_keycache(self, parentity, branch, turn, tick):
         return self._forward_keycachelike(self.keycache, self.keys, self._slow_iter_keys, parentity, branch, turn, tick)
 
-    def _update_keycache(self, entpar, branch, turn, tick, key, value):
-        kc = self._forward_keycache(entpar, branch, turn, tick)
-        if value is None:
-            kc.discard(key)
-        else:
-            kc.add(key)
-        return kc
-
     def _slow_iter_keys(self, cache, branch, turn, tick):
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
@@ -562,7 +556,25 @@ class Cache(object):
 
         """
         self._store(*args, planning=planning)
-        self._forward_and_update(*args, validate=validate)
+        self._forward_valcaches(*args, validate=validate)
+        self._update_keycache(*args, validate=validate)
+
+    def _update_keycache(self, *args, validate=False):
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
+        kc = self._forward_keycache(parent + (entity,), branch, turn, tick)
+        if value is None:
+            kc.discard(key)
+        else:
+            kc.add(key)
+        if validate:
+            if parent:
+                correct = set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick))
+                if kc != correct:
+                    raise ValueError("Invalid parents cache")
+            correct = set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick))
+            if kc != correct:
+                raise ValueError("Invalid keys cache")
 
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
@@ -622,7 +634,7 @@ class Cache(object):
             pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
-    def _forward_and_update(self, *args, validate=False):
+    def _forward_valcaches(self, *args, validate=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         if parent and branch not in self.parents[parent][entity][key]:
@@ -637,17 +649,6 @@ class Cache(object):
             self._forward_valcache(
                 self.branches[parent+(entity, key)], branch, turn, tick
             )
-        kc = self._update_keycache(
-            parent + (entity,), branch, turn, tick, key, value
-        )
-        if validate:
-            if parent:
-                correct = set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick))
-                if kc != correct:
-                    raise ValueError("Invalid parents cache")
-            correct = set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick))
-            if kc != correct:
-                raise ValueError("Invalid keys cache")
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
@@ -793,15 +794,20 @@ class NodesCache(Cache):
             ):
                 raise ValueError("Invalid keycache")
 
+    def _forward_valcaches(self, graph, node, branch, turn, tick, ex, *, validate=False):
+        if not ex:
+            ex = None
+        super()._forward_valcaches(graph, node, branch, turn, tick, ex, validate=validate)
+
     def _store(self, graph, node, branch, turn, tick, ex, *, planning=False):
         if not ex:
             ex = None
-        super()._store(graph, node, branch, turn, tick, ex, planning=planning)
+        return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
 
-    def _forward_and_update(self, graph, node, branch, turn, tick, ex, *, validate=False):
+    def _update_keycache(self, graph, node, branch, turn, tick, ex, *, validate=False):
         if not ex:
             ex = None
-        return super()._forward_and_update(graph, node, branch, turn, tick, ex, validate=validate)
+        return super()._update_keycache(graph, node, branch, turn, tick, ex, validate=validate)
 
 
 class EdgesCache(Cache):
@@ -913,8 +919,8 @@ class EdgesCache(Cache):
             newp[tick] = ex
             preds[turn] = newp
 
-    def _forward_and_update(self, graph, orig, dest, key, branch, turn, tick, ex, *, validate=False):
-        super()._forward_and_update(graph, orig, dest, key, branch, turn, tick, ex, validate=validate)
+    def _forward_valcaches(self, graph, orig, dest, key, branch, turn, tick, ex, *, validate=False):
+        super()._forward_valcaches(graph, orig, dest, key, branch, turn, tick, ex, validate=validate)
         oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
         dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
         if validate:
