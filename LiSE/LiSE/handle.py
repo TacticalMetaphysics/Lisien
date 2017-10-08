@@ -619,7 +619,7 @@ class EngineHandle(object):
             self._char_things_cache[char] = new
             return dict_diff(old, new)
         except KeyError:
-            return None
+            return {}
 
     def character_places(self, char):
         return list(self._real.character[char].place)

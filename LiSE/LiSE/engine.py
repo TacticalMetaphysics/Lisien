@@ -594,21 +594,31 @@ class Engine(AbstractEngine, gORM):
         # I'm throwing out the ticks here, but I think I might want to use them
         # to map handled rules to changes made by those rules
         for character, rulebook, rule, branch, turn, tick in q.character_rules_handled_dump():
-            self._character_rules_handled_cache.store(character, rulebook, rule, branch, turn)
+            self._character_rules_handled_cache.store(
+                character, rulebook, rule, branch, turn, loading=True
+            )
         for character, rulebook, rule, graph, avatar, branch, turn, tick in \
                 q.avatar_rules_handled_dump():
-            self._avatar_rules_handled_cache.store(character, rulebook, rule, graph, avatar, branch, turn)
+            self._avatar_rules_handled_cache.store(
+                character, rulebook, rule, graph, avatar, branch, turn, loading=True
+            )
         for character, rulebook, rule, thing, branch, turn, tick in \
                 q.character_thing_rules_handled_dump():
-            self._character_thing_rules_handled_cache.store(character, rulebook, rule, thing, branch, turn)
+            self._character_thing_rules_handled_cache.store(
+                character, rulebook, rule, thing, branch, turn, loading=True
+            )
         for character, rulebook, rule, place, branch, turn, tick in \
                 q.character_place_rules_handled_dump():
-            self._character_place_rules_handled_cache.store(character, rulebook, rule, place, branch, turn)
+            self._character_place_rules_handled_cache.store(
+                character, rulebook, rule, place, branch, turn, loading=True
+            )
         for character, rulebook, rule, orig, dest, branch, turn, tick in \
                 q.character_portal_rules_handled_dump():
-            self._character_portal_rules_handled_cache.store(character, rulebook, rule, orig, dest, branch, turn)
+            self._character_portal_rules_handled_cache.store(
+                character, rulebook, rule, orig, dest, branch, turn, loading=True
+            )
         for character, node, rulebook, rule, branch, turn, tick in q.node_rules_handled_dump():
-            self._node_rules_handled_cache.store(character, node, rulebook, rule, branch, turn, tick)
+            self._node_rules_handled_cache.store(character, node, rulebook, rule, branch, turn, tick, loading=True)
         for character, orig, dest, rulebook, rule, branch, turn, tick in q.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(character, orig, dest, rulebook, rule, branch, turn, tick)
         self._rules_cache = {name: Rule(self, name, typ, create=False) for name, typ in q.rules_dump()}

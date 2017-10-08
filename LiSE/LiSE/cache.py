@@ -154,14 +154,18 @@ class RulesHandledCache(object):
     def iter_unhandled_rules(self, branch, turn, tick):
         raise NotImplementedError
 
-    def store(self, *args):
+    def store(self, *args, loading=False):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
         shalo = self.handled.setdefault(entity + (rulebook, branch, turn), set())
         unhandl = self.unhandled[entity]
         if turn not in unhandl.setdefault(branch, {}):
             unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
-        unhandl[branch][turn].remove(entity + (rulebook, rule))
+        try:
+            unhandl[branch][turn].remove(entity + (rulebook, rule))
+        except ValueError:
+            if not loading:
+                raise
         shalo.add(rule)
 
     def fork(self, branch, turn, tick):

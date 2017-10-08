@@ -419,8 +419,7 @@ class Cache(object):
             branch_end[branch] = max((turn, branch_end[branch]))
             turn_end[branch, turn] = max((tick, turn_end[branch, turn]))
             dd3[branch][turn][tick].append(row)
-            parent = row[:-6]
-            store(parent, entity, key, branch, turn, tick, value)
+            store(*row)
         real_branches = self.db._branches
         real_turn_end = self.db._turn_end
         for branch, end in branch_end.items():
@@ -449,7 +448,7 @@ class Cache(object):
                 ticks = turn_end[branch, turn] + 1
                 for tick in range(ticks):
                     for row in dd3[branch][turn][tick]:
-                        fw_upd(row[:-6], *row[-6:], validate=validate)
+                        fw_upd(*row, validate=validate)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
@@ -478,7 +477,7 @@ class Cache(object):
                         return
                     cache[branch][r][t] = v
                     return
-        b, r, t = self.db._parent_btt[branch] if branch != 'trunk' else 'trunk', 0, 0
+        b, r, t, _, _ = self.db._branches[branch] if branch != 'trunk' else 'trunk', 0, 0, None, None
         cache[branch][r][t] = None
 
     def _forward_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick):
@@ -577,12 +576,12 @@ class Cache(object):
         the key, eg. a graph, node, or edge.
 
         """
+        self._store(*args, planning=planning)
+        self._forward_and_update(*args, validate=validate)
+
+    def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
-        self._store(parent, entity, key, branch, turn, tick, value, planning=planning)
-        self._forward_and_update(parent, entity, key, branch, turn, tick, value, validate=validate)
-
-    def _store(self, parent, entity, key, branch, turn, tick, value, *, planning=False):
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
@@ -638,7 +637,9 @@ class Cache(object):
             pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
-    def _forward_and_update(self, parent, entity, key, branch, turn, tick, value, validate=False):
+    def _forward_and_update(self, *args, validate=False):
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
         if parent and branch not in self.parents[parent][entity][key]:
             self._forward_valcache(
                 self.parents[parent][entity][key], branch, turn, tick
@@ -655,9 +656,12 @@ class Cache(object):
             parent + (entity,), branch, turn, tick, key, value
         )
         if validate:
-            if parent and kc != set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick)):
-                raise ValueError("Invalid parents cache")
-            if kc != set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick)):
+            if parent:
+                correct = set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick))
+                if kc != correct:
+                    raise ValueError("Invalid parents cache")
+            correct = set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick))
+            if kc != correct:
                 raise ValueError("Invalid keys cache")
 
     def retrieve(self, *args):
@@ -790,9 +794,7 @@ class NodesCache(Cache):
 
     def store(self, graph, node, branch, turn, tick, ex, *, planning=False, validate=False):
         """Store whether a node exists, and create an object for it"""
-        if not ex:
-            ex = None
-        if (graph, node) not in self.db._node_objs:
+        if ex and (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, validate=validate)
@@ -805,6 +807,16 @@ class NodesCache(Cache):
                     kc != set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
             ):
                 raise ValueError("Invalid keycache")
+
+    def _store(self, graph, node, branch, turn, tick, ex, *, planning=False):
+        if not ex:
+            ex = None
+        super()._store(graph, node, branch, turn, tick, ex, planning=planning)
+
+    def _forward_and_update(self, graph, node, branch, turn, tick, ex, *, validate=False):
+        if not ex:
+            ex = None
+        return super()._forward_and_update(graph, node, branch, turn, tick, ex, validate=validate)
 
 
 class EdgesCache(Cache):
@@ -901,11 +913,10 @@ class EdgesCache(Cache):
         )
         return orig in self.origcache[(graph, orig, branch)][turn][tick]
 
-    def _store(self, parent, dest, idx, branch, turn, tick, ex, *, planning=False):
-        graph, orig = parent
+    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=False):
         if not ex:
             ex = None
-        Cache._store(self, parent, dest, idx, branch, turn, tick, ex, planning=planning)
+        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning)
         if (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
@@ -917,9 +928,8 @@ class EdgesCache(Cache):
             newp[tick] = ex
             preds[turn] = newp
 
-    def _forward_and_update(self, parent, dest, key, branch, turn, tick, ex, validate=False):
-        super()._forward_and_update(parent, dest, key, branch, turn, tick, ex, validate)
-        graph, orig = parent
+    def _forward_and_update(self, graph, orig, dest, key, branch, turn, tick, ex, *, validate=False):
+        super()._forward_and_update(graph, orig, dest, key, branch, turn, tick, ex, validate=validate)
         oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
         dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
         if validate:
