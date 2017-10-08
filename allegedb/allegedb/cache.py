@@ -783,8 +783,8 @@ class NodesCache(Cache):
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, validate=validate)
-        kc = self._update_keycache((graph,), branch, turn, tick, node, ex)
         if validate:
+            kc = self.keycache[graph, node, branch]
             if (
                     node not in kc or
                     not self.contains_entity_or_key(graph, node, branch, turn, tick) or
