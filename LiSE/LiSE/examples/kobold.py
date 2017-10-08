@@ -163,7 +163,7 @@ if __name__ == '__main__':
     except FileNotFoundError:
         pass
     with Engine('LiSEworld.db', random_seed=69105) as engine:
-        inittest(engine, shrubberies=20)
+        inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(
             engine.character['physical'].thing['kobold']['shrub_places']
