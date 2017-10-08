@@ -621,7 +621,7 @@ class Engine(AbstractEngine, gORM):
             self._node_rules_handled_cache.store(character, node, rulebook, rule, branch, turn, tick, loading=True)
         for character, orig, dest, rulebook, rule, branch, turn, tick in q.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(character, orig, dest, rulebook, rule, branch, turn, tick)
-        self._rules_cache = {name: Rule(self, name, typ, create=False) for name, typ in q.rules_dump()}
+        self._rules_cache = {name: Rule(self, name, create=False) for name in q.rules_dump()}
 
     betavariate = getatt('rando.betavariate')
     choice = getatt('rando.choice')

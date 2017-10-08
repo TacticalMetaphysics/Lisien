@@ -191,7 +191,6 @@ class Rule(object):
             self,
             engine,
             name,
-            typ='character',
             triggers=None,
             prereqs=None,
             actions=None,
@@ -204,7 +203,6 @@ class Rule(object):
         """
         self.engine = engine
         self.name = self.__name__ = name
-        self.type = typ
         branch, turn, tick = engine.btt()
         if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             tick += 1
@@ -213,7 +211,7 @@ class Rule(object):
             prereqs = prereqs or []
             actions = actions or []
             self.engine.query.set_rule(
-                name, branch, turn, tick, typ,
+                name, branch, turn, tick,
                 list(self._fun_names_iter('trigger', triggers)),
                 list(self._fun_names_iter('prereq', prereqs)),
                 list(self._fun_names_iter('action', actions)),

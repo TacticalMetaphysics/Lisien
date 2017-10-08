@@ -47,9 +47,7 @@ def tables_for_meta(meta):
 
     Table(
         'rules', meta,
-        Column('rule', TEXT, primary_key=True),
-        Column('type', TEXT, default='character'),
-        CheckConstraint("type IN ('character', 'node', 'portal')")
+        Column('rule', TEXT, primary_key=True)
     )
 
     # Table grouping rules into lists called rulebooks.
@@ -526,12 +524,6 @@ def queries(table):
 
     r['del_char_avatars'] = table['avatars'].delete().where(
         table['avatars'].c.character_graph == bindparam('character')
-    )
-
-    rules = table['rules']
-    r['rules_update'] = update_where(
-        ['type'],
-        [rules.c.rule]
     )
 
     branches = table['branches']

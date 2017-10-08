@@ -594,8 +594,8 @@ class QueryEngine(allegedb.query.QueryEngine):
             pass
 
     def rules_dump(self):
-        for rule, typ in self.sql('rules_dump'):
-            yield rule, typ
+        for (name,) in self.sql('rules_dump'):
+            yield name
 
     def _set_rule_something(self, what, rule, branch, turn, tick, flist):
         flist = self.json_dump(flist)
@@ -605,19 +605,11 @@ class QueryEngine(allegedb.query.QueryEngine):
     set_rule_prereqs = partialmethod(_set_rule_something, 'prereqs')
     set_rule_actions = partialmethod(_set_rule_something, 'actions')
 
-    def set_rule(self, rule, branch, turn, tick, typ='character', triggers=None, prereqs=None, actions=None):
-        if typ not in ('character', 'node', 'portal'):
-            raise ValueError('Unknown rule type')
-        triggers = triggers or []
-        prereqs = prereqs or []
-        actions = actions or []
-        try:
-            self.sql('rules_insert', rule, typ)
-        except IntegrityError:
-            self.sql('rules_update', rule, typ)
-        self.set_rule_triggers(rule, branch, turn, tick, triggers)
-        self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
-        self.set_rule_actions(rule, branch, turn, tick, actions)
+    def set_rule(self, rule, branch, turn, tick, triggers=None, prereqs=None, actions=None):
+        self.sql('rules_ins', rule)
+        self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
+        self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
+        self.set_rule_actions(rule, branch, turn, tick, actions or [])
 
     def set_rulebook(self, name, branch, turn, tick, rules=None):
         name, rules = map(self.json_dump, (name, rules or []))
