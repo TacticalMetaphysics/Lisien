@@ -942,7 +942,7 @@ class Engine(AbstractEngine, gORM):
         ) in list(
             self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick)
         ):
-            if charn not in charmap or thingn not in charmap[character].thing:
+            if charn not in charmap or thingn not in charmap[charn].thing:
                 continue
             yield self._follow_rule(
                 rulemap[rulen],
@@ -1003,7 +1003,7 @@ class Engine(AbstractEngine, gORM):
             if charn not in charmap:
                 continue
             char = charmap[charn]
-            if orign not in char.portal or destn not in char.portal[orig]:
+            if orign not in char.portal or destn not in char.portal[orign]:
                 continue
             yield self._follow_rule(
                 rulemap[rulen],
