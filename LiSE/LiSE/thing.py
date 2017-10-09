@@ -65,12 +65,14 @@ class Thing(Node):
         self._set_loc_and_next(*v)
 
     def _get_arrival_time(self):
-        branch, tick = self.engine.time
         charn = self.character.name
         n = self.name
         thingcache = self.engine._things_cache
-        for b, t in self.engine._active_branches(branch, tick):
-            v = thingcache.tick_before(charn, n, b, t)
+        for b, trn, tck in self.engine._iter_parent_btt():
+            try:
+                v = thingcache.turn_before(charn, n, b, trn)
+            except KeyError:
+                v = thingcache.turn_after(charn, n, b, trn)
             if v is not None:
                 return v
         else:
@@ -78,7 +80,7 @@ class Thing(Node):
 
     def _get_next_arrival_time(self):
         try:
-            return self.engine._things_cache.tick_after(
+            return self.engine._things_cache.turn_after(
                 self.character.name, self.name, *self.engine.time
             )
         except KeyError:
@@ -86,7 +88,7 @@ class Thing(Node):
 
     def _get_locations(self):
         return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine.time
+            self.character.name, self.name, *self.engine.btt()
         )
 
     _getitem_dispatch = {
@@ -171,12 +173,10 @@ class Thing(Node):
             self['location']
         )
 
-    def delete(self, nochar=False):
+    def delete(self):
         super().delete()
-        if not nochar:
-            del self.character.thing[self.name]
-        (branch, tick) = self.engine.time
         self._set_loc_and_next(None, None)
+        self.character.thing.send(self.character.thing, key=self.name, val=None)
 
     def clear(self):
         """Unset everything."""
@@ -203,10 +203,7 @@ class Thing(Node):
 
         """
         loc, nxtloc = self._get_locations()
-        try:
-            return self.engine._node_objs[(self.character.name, loc)]
-        except KeyError:
-            raise ValueError("Nonexistent location: {}".format(loc))
+        return self.engine._node_objs.get((self.character.name, loc))
 
     @location.setter
     def location(self, v):
@@ -247,6 +244,22 @@ class Thing(Node):
         )
         self.send(self, key='locations', val=(loc, nextloc))
 
+    @property
+    def locations(self):
+        loc, nxtloc = self._get_locations()
+        nobjs = self.engine._node_objs
+        charn = self.character.name
+        return nobjs[charn, loc], [charn, nxtloc]
+
+    @locations.setter
+    def locations(self, v):
+        loc, nxtloc = v
+        if hasattr(loc, 'name'):
+            loc = loc.name
+        if hasattr(nxtloc, 'name'):
+            nxtloc = nxtloc.name
+        self._set_loc_and_next(loc, nxtloc)
+
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
         to the given :class:`Place`, schedule myself to travel to the
@@ -263,14 +276,13 @@ class Thing(Node):
             placen = place
         curloc = self["location"]
         orm = self.character.engine
-        curtick = orm.tick
-        ticks = self.engine._portal_objs[
+        turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
-        orm.tick += ticks
-        self['locations'] = (placen, None)
-        orm.tick = curtick
-        return ticks
+        with self.engine.plan:
+            orm.turn += turns
+            self['locations'] = (placen, None)
+        return turns
 
     def follow_path(self, path, weight=None):
         """Go to several :class:`Place`s in succession, deciding how long to
@@ -283,57 +295,40 @@ class Thing(Node):
         scheduled to be somewhere else.
 
         """
-        curtick = self.character.engine.tick
-        prevplace = path.pop(0)
-        if prevplace != self['location']:
-            raise ValueError("Path does not start at my present location")
-        subpath = [prevplace]
-        for place in path:
-            if (
-                    prevplace not in self.character.portal or
-                    place not in self.character.portal[prevplace]
-            ):
-                raise TravelException(
-                    "Couldn't follow portal from {} to {}".format(
-                        prevplace,
-                        place
-                    ),
-                    path=subpath,
-                    traveller=self
-                )
-            subpath.append(place)
-            prevplace = place
-        ticks_total = 0
-        prevsubplace = subpath.pop(0)
-        subsubpath = [prevsubplace]
-        for subplace in subpath:
-            if prevsubplace != self["location"]:
-                l = self["location"]
-                fintick = self.character.engine.tick
-                self.character.engine.tick = curtick
-                raise TravelException(
-                    "When I tried traveling to {}, at tick {}, "
-                    "I ended up at {}".format(
-                        prevsubplace,
-                        fintick,
-                        l
-                    ),
-                    path=subpath,
-                    followed=subsubpath,
-                    branch=self.character.engine.branch,
-                    tick=fintick,
-                    lastplace=l,
-                    traveller=self
-                )
-            portal = self.character.portal[prevsubplace][subplace]
-            tick_inc = portal.get(weight, 1)
-            self.go_to_place(subplace, weight)
-            self.character.engine.tick += tick_inc
-            ticks_total += tick_inc
-            subsubpath.append(subplace)
-            prevsubplace = subplace
-        self.character.engine.tick = curtick
-        return ticks_total
+        eng = self.character.engine
+        with eng.plan:
+            prevplace = path.pop(0)
+            if prevplace != self['location']:
+                raise ValueError("Path does not start at my present location")
+            subpath = [prevplace]
+            for place in path:
+                if (
+                        prevplace not in self.character.portal or
+                        place not in self.character.portal[prevplace]
+                ):
+                    raise TravelException(
+                        "Couldn't follow portal from {} to {}".format(
+                            prevplace,
+                            place
+                        ),
+                        path=subpath,
+                        traveller=self
+                    )
+                subpath.append(place)
+                prevplace = place
+            turns_total = 0
+            prevsubplace = subpath.pop(0)
+            subsubpath = [prevsubplace]
+            for subplace in subpath:
+                portal = self.character.portal[prevsubplace][subplace]
+                turn_inc = portal.get(weight, 1)
+                self.locations = prevsubplace, subplace
+                eng.turn += turn_inc
+                turns_total += turn_inc
+                subsubpath.append(subplace)
+                prevsubplace = subplace
+            self.locations = subplace, None
+            return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):
         """Find the shortest path to the given :class:`Place` from where I am
@@ -383,7 +378,7 @@ class Thing(Node):
         travel_time = path_len(graph, path, weight)
         start_tick = arrival_tick - travel_time
         if start_tick <= curtick:
-            raise self.TravelException(
+            raise TravelException(
                 "path too heavy to follow by the specified tick",
                 path=path,
                 traveller=self
@@ -391,29 +386,3 @@ class Thing(Node):
         self.character.engine.tick = start_tick
         self.follow_path(path, weight)
         self.character.engine.tick = curtick
-
-    def _get_json_dict(self):
-        (branch, tick) = self.character.engine.time
-        return {
-            "type": "Thing",
-            "version": 0,
-            "character": self.character.name,
-            "name": self.name,
-            "branch": branch,
-            "tick": tick,
-            "stat": dict(self)
-        }
-
-    def dump(self):
-        """Return a JSON representation of my present state only, not any of
-        my history.
-
-        """
-        return self.engine.json_dump(self._get_json_dict())
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Thing) and
-            self.character.name == other.character.name and
-            self.name == other.name
-        )

@@ -25,10 +25,6 @@ from json import dumps
 
 import allegedb.alchemy
 
-# Constants
-
-TEXT = String(50)
-
 
 def tables_for_meta(meta):
     """Return a dictionary full of all the tables I need for LiSE. Use the
@@ -44,15 +40,14 @@ def tables_for_meta(meta):
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
         ),
-        Column('tick', Integer, primary_key=True, default=0),
-        Column('value', TEXT, nullable=True)
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
+        Column('value', TEXT)
     )
 
     Table(
         'rules', meta,
-        Column('rule', TEXT, primary_key=True),
-        Column('type', TEXT, default='character'),
-        CheckConstraint("type IN ('character', 'node', 'portal')")
+        Column('rule', TEXT, primary_key=True)
     )
 
     # Table grouping rules into lists called rulebooks.
@@ -60,7 +55,8 @@ def tables_for_meta(meta):
         'rulebooks', meta,
         Column('rulebook', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('rules', TEXT, default='[]')
     )
 
@@ -70,7 +66,8 @@ def tables_for_meta(meta):
         'rule_triggers', meta,
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('triggers', TEXT, default='[]'),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
@@ -83,7 +80,8 @@ def tables_for_meta(meta):
         'rule_prereqs', meta,
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('prereqs', TEXT, default='[]'),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
@@ -96,7 +94,8 @@ def tables_for_meta(meta):
         'rule_actions', meta,
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('actions', TEXT, default='[]'),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
@@ -108,12 +107,19 @@ def tables_for_meta(meta):
     # places, and portals it contains--though those may have their own
     # rulebooks as well.
 
-    def char_rb_tab(name):
+    for name in (
+        'character_rulebook',
+        'avatar_rulebook',
+        'character_thing_rulebook',
+        'character_place_rulebook',
+        'character_portal_rulebook'
+    ):
         Table(
             name, meta,
             Column('character', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', INT, primary_key=True),
+            Column('branch', TEXT, primary_key=True, default='trunk'),
+            Column('turn', INT, primary_key=True, default=0),
+            Column('tick', INT, primary_key=True, default=0),
             Column('rulebook', TEXT),
             ForeignKeyConstraint(
                 ['character'], ['graphs.graph']
@@ -123,44 +129,71 @@ def tables_for_meta(meta):
             )
         )
 
-    char_rb_tab('character_rulebook')
-    char_rb_tab('character_portal_rulebook')
-
-    for rb in (
-        'avatar_rulebook',
-        'character_thing_rulebook',
-        'character_place_rulebook',
-    ):
-        char_rb_tab(rb)
-
     # Rules handled within the rulebook associated with one node in
     # particular.
-    Table(
+    nrh = Table(
         'node_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', Integer, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
         )
     )
 
+    Table(
+        'node_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('node', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'node', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
+            [nrh.c.character, nrh.c.node, nrh.c.rulebook, nrh.c.rule, nrh.c.branch, nrh.c.turn]
+        )
+    )
+
     # Rules handled within the rulebook associated with one portal in
     # particular.
-    Table(
+    porh = Table(
         'portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', Integer, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'], ['edges.graph', 'edges.orig', 'edges.dest']
+        )
+    )
+
+    Table(
+        'portal_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'orig', 'dest', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
+            [porh.c.character, porh.c.orig, porh.c.dest, porh.c.rulebook, porh.c.rule, porh.c.branch, porh.c.turn]
         )
     )
 
@@ -181,7 +214,8 @@ def tables_for_meta(meta):
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
         ),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('function', TEXT, nullable=True),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
@@ -200,12 +234,13 @@ def tables_for_meta(meta):
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
         ),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         # when location is null, this node is not a thing, but a place
-        Column('location', TEXT, nullable=True),
+        Column('location', TEXT),
         # when next_location is not null, thing is en route between
         # location and next_location
-        Column('next_location', TEXT, nullable=True),
+        Column('next_location', TEXT, default='null'),
         ForeignKeyConstraint(
             ['character', 'thing'], ['nodes.graph', 'nodes.node']
         ),
@@ -222,8 +257,9 @@ def tables_for_meta(meta):
         'node_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'node'], ['nodes.graph', 'nodes.node']
@@ -241,8 +277,9 @@ def tables_for_meta(meta):
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('rulebook', TEXT),
         ForeignKeyConstraint(
             ['character', 'orig', 'dest'],
@@ -269,7 +306,8 @@ def tables_for_meta(meta):
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
         ),
-        Column('tick', Integer, primary_key=True, default=0),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
         Column('is_avatar', Boolean),
         ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
         ForeignKeyConstraint(
@@ -278,40 +316,77 @@ def tables_for_meta(meta):
         )
     )
 
-    Table(
+    crh = Table(
         'character_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_rulebook.character', 'character_rulebook.rulebook']
         )
     )
 
     Table(
+        'character_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', TEXT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'handled_branch', 'handled_turn'],
+            [crh.c.character, crh.c.rulebook, crh.c.rule, crh.c.branch, crh.c.turn]
+        )
+    )
+
+    arh = Table(
         'avatar_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('graph', TEXT, primary_key=True),
         Column('avatar', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['avatar_rulebook.character', 'avatar_rulebook.rulebook']
         )
     )
 
     Table(
+        'avatar_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('graph', TEXT, primary_key=True),
+        Column('avatar', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', TEXT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'graph', 'avatar', 'handled_branch', 'handled_turn'],
+            [arh.c.character, arh.c.rulebook, arh.c.rule, arh.c.graph, arh.c.avatar, arh.c.branch, arh.c.turn]
+        )
+    )
+
+    ctrh = Table(
         'character_thing_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('thing', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_thing_rulebook.character', 'character_thing_rulebook.rulebook']
         ),
@@ -321,13 +396,31 @@ def tables_for_meta(meta):
     )
 
     Table(
+        'character_thing_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('thing', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'thing', 'handled_branch', 'handled_turn'],
+            [ctrh.c.character, ctrh.c.rulebook, ctrh.c.rule, ctrh.c.thing, ctrh.c.branch, ctrh.c.turn]
+        )
+    )
+
+    cprh = Table(
         'character_place_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('place', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_place_rulebook.character', 'character_place_rulebook.rulebook']
         ),
@@ -337,14 +430,32 @@ def tables_for_meta(meta):
     )
 
     Table(
+        'character_place_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('place', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'place', 'handled_branch', 'handled_turn'],
+            [cprh.c.character, cprh.c.rulebook, cprh.c.rule, cprh.c.place, cprh.c.branch, cprh.c.turn]
+        )
+    )
+
+    cporh = Table(
         'character_portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
         Column('dest', TEXT, primary_key=True),
-        Column('branch', TEXT, primary_key=True),
-        Column('tick', INT, primary_key=True),
+        Column('branch', TEXT, primary_key=True, default='trunk'),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT),
         ForeignKeyConstraint(
             ['character', 'rulebook'], ['character_portal_rulebook.character', 'character_portal_rulebook.rulebook']
         ),
@@ -353,70 +464,29 @@ def tables_for_meta(meta):
         )
     )
 
+    Table(
+        'character_portal_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'orig', 'dest', 'handled_branch', 'handled_turn'],
+            [cporh.c.character, cporh.c.rulebook, cporh.c.rule, cporh.c.orig, cporh.c.dest, cporh.c.branch, cporh.c.turn]
+        )
+    )
+
     return meta.tables
 
 
 def indices_for_table_dict(table):
-    """Given the dictionary of tables returned by ``tables_for_meta``,
-    return a dictionary of indices for the tables.
-
-    """
-    def handled_idx(prefix):
-        """Return an index for the _rules_handled table with the given
-        prefix.
-
-        """
-        t = table['{}_rules_handled'.format(prefix)]
-        return Index(
-            "{}_rules_handled_idx".format(prefix),
-            t.c.character,
-            t.c.rulebook,
-            t.c.rule
-        )
-
-    r = allegedb.alchemy.indices_for_table_dict(table)
-
-    for idx in (
-            Index(
-                'senses_idx',
-                table['senses'].c.character,
-                table['senses'].c.sense
-            ),
-            Index(
-                'things_idx',
-                table['things'].c.character,
-                table['things'].c.thing
-            ),
-            Index(
-                'avatars_idx',
-                table['avatars'].c.character_graph,
-                table['avatars'].c.avatar_graph,
-                table['avatars'].c.avatar_node
-            ),
-            handled_idx('character'),
-            handled_idx('avatar'),
-            handled_idx('character_thing'),
-            handled_idx('character_place'),
-            handled_idx('character_portal'),
-            Index(
-                'node_rules_handled_idx',
-                table['node_rules_handled'].c.character,
-                table['node_rules_handled'].c.node,
-                table['node_rules_handled'].c.rulebook,
-                table['node_rules_handled'].c.rule
-            ),
-            Index(
-                'portal_rules_handled_idx',
-                table['portal_rules_handled'].c.character,
-                table['portal_rules_handled'].c.orig,
-                table['portal_rules_handled'].c.dest,
-                table['portal_rules_handled'].c.rulebook,
-                table['portal_rules_handled'].c.rule
-            )
-    ):
-        r[idx.table.name] = idx
-
-    return r
+    return {}
 
 
 def queries(table):
@@ -448,37 +518,6 @@ def queries(table):
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 
-    # Special case dump query, ordered in a way that gives a coherent
-    # view of the world
-    things = table['things']
-    r['things_dump'] = select(
-        [things.c.character, things.c.thing, things.c.branch, things.c.tick, things.c.location, things.c.next_location]
-    ).order_by(
-        things.c.character, things.c.branch, things.c.tick, things.c.thing
-    )
-
-    univ = table['universals']
-    r['universals_update'] = update_where(
-        ['value'],
-        [univ.c.key, univ.c.branch, univ.c.tick]
-    )
-
-    rulebooks = table['rulebooks']
-
-    pr = table['portal_rulebook']
-
-    r['portal_rulebook_update'] = update_where(
-        ['rulebook'],
-        [pr.c.character, pr.c.orig, pr.c.dest, pr.c.branch, pr.c.tick]
-    )
-
-    nr = table['node_rulebook']
-
-    r['node_rulebook_update'] = update_where(
-        ['rulebook'],
-        [nr.c.character, nr.c.node, nr.c.branch, nr.c.tick]
-    )
-
     r['del_char_things'] = table['things'].delete().where(
         table['things'].c.character == bindparam('character')
     )
@@ -486,106 +525,33 @@ def queries(table):
     r['del_char_avatars'] = table['avatars'].delete().where(
         table['avatars'].c.character_graph == bindparam('character')
     )
-
     things = table['things']
-
-    avatars = table['avatars']
-
-    r['things_update'] = update_where(
-        ['location', 'next_location'],
-        [things.c.character, things.c.thing, things.c.branch, things.c.tick]
-    )
-
-    senses = table['senses']
-
-    r['sense_update'] = update_where(
-        ['function'],
-        [senses.c.character, senses.c.sense, senses.c.branch, senses.c.tick]
-    )
-
-    r['avatar_update'] = update_where(
-        ['is_avatar'],
-        [
-            avatars.c.character_graph,
-            avatars.c.avatar_graph,
-            avatars.c.avatar_node,
-            avatars.c.branch,
-            avatars.c.tick
-        ]
-    )
-
-    rule_triggers = table['rule_triggers']
-    rule_prereqs = table['rule_prereqs']
-    rule_actions = table['rule_actions']
-    r['rule_triggers'] = select([rule_triggers.c.triggers]).where(and_(
-        rule_triggers.c.rule == bindparam('rule'),
-        rule_triggers.c.branch == bindparam('branch'),
-        rule_triggers.c.tick == bindparam('tick')
-    ))
-    r['rule_triggers_update'] = update_where(
-        ['triggers'],
-        [rule_triggers.c.rule, rule_triggers.c.branch, rule_triggers.c.tick]
-    )
-    r['rule_prereqs'] = select([rule_prereqs.c.prereqs]).where(and_(
-        rule_prereqs.c.rule == bindparam('rule'),
-        rule_prereqs.c.branch == bindparam('branch'),
-        rule_triggers.c.tick == bindparam('tick')
-    ))
-    r['rule_prereqs_update'] = update_where(
-        ['prereqs'],
-        [rule_prereqs.c.rule, rule_prereqs.c.branch, rule_prereqs.c.tick]
-    )
-    r['rule_actions'] = select([rule_actions.c.actions]).where(and_(
-        rule_actions.c.rule == bindparam('rule'),
-        rule_actions.c.branch == bindparam('branch'),
-        rule_actions.c.tick == bindparam('tick')
-    ))
-    r['rule_actions_update'] = update_where(
-        ['actions'],
-        [rule_actions.c.rule, rule_actions.c.branch, rule_actions.c.tick]
-    )
-
-    rules = table['rules']
-    r['rules_update'] = update_where(
-        ['type'],
-        [rules.c.rule]
-    )
-
-    r['rulebooks'] = select([rulebooks.c.rulebook])
-
-    r['rulebook_rules'] = select(
-        [rulebooks.c.rules]
-    ).where(and_(
-        rulebooks.c.rulebook == bindparam('rulebook'),
-        rulebooks.c.branch == bindparam('branch'),
-        rulebooks.c.tick == bindparam('tick')
-    ))
-
-    r['rulebooks_update'] = update_where(
-        ['rules'],
-        [
-            rulebooks.c.rulebook,
-            rulebooks.c.branch,
-            rulebooks.c.tick
-        ]
-    )
-
-    for rbtabn in (
-        'character_rulebook',
-        'avatar_rulebook',
-        'character_thing_rulebook',
-        'character_place_rulebook',
-        'character_portal_rulebook'
-    ):
-        t = table[rbtabn]
-        r[rbtabn+'_update'] = update_where(
-            ['rulebook'],
-            [
-                t.c.character,
-                t.c.branch,
-                t.c.tick
-            ]
+    r['del_things_after'] = things.delete().where(and_(
+        things.c.character == bindparam('character'),
+        things.c.thing == bindparam('thing'),
+        things.c.branch == bindparam('branch'),
+        or_(
+            things.c.turn > bindparam('turn'),
+            and_(
+                things.c.turn == bindparam('turn'),
+                things.c.tick > bindparam('tick')
+            )
         )
+    ))
+    avatars = table['avatars']
+    r['del_avatars_after'] = avatars.delete().where(and_(
+        avatars.c.character_graph == bindparam('character'),
+        avatars.c.avatar_graph == bindparam('graph'),
+        avatars.c.avatar_node == bindparam('avatar'),
+        avatars.c.branch == bindparam('branch'),
+        or_(
+            avatars.c.turn > bindparam('turn'),
+            and_(
+                avatars.c.turn == bindparam('turn'),
+                avatars.c.tick > bindparam('tick')
+            )
+        )
+    ))
 
     branches = table['branches']
 

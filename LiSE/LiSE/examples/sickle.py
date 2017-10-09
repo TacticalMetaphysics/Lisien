@@ -22,11 +22,10 @@ def clear_off():
             pass
 
 
-def mkengine(w='LiSEworld.db', caching=True, seed=None):
+def mkengine(w='LiSEworld.db', seed=None):
     return Engine(
         worlddb=w,
         codedb='LiSEcode.db',
-        caching=caching,
         random_seed=seed
     )
 

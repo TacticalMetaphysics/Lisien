@@ -11,6 +11,7 @@ from collections import Mapping
 from networkx import shortest_path, shortest_path_length
 
 import allegedb.graph
+from allegedb.cache import HistoryError
 
 from .util import getatt
 from .query import StatusAlias
@@ -101,12 +102,15 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     """
     __slots__ = ['user', 'graph', 'db', 'node']
+    engine = getatt('db')
+    character = getatt('graph')
+    name = getatt('node')
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
-        return self.engine._nodes_rulebooks_cache.retrieve(self.character.name, self.name, *self.engine.time)
+        return self.engine._nodes_rulebooks_cache.retrieve(self.character.name, self.name, *self.engine.btt())
 
     def _get_rulebook(self):
         return rule.RuleBook(
@@ -131,29 +135,21 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         for user in cache:
             if user in seen:
                 continue
-            for (branch, tick) in self.engine._active_branches():
+            for (branch, turn, tick) in self.engine._iter_parent_btt():
                 if branch in cache[user]:
-                    if cache[user][branch][tick]:
-                        yield user
-                    seen.add(user)
-                    break
+                    try:
+                        if cache[user][branch][turn][tick]:
+                            yield user
+                        seen.add(user)
+                        break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
 
     @property
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
         return self.character.portal[self.name]
-
-    @property
-    def engine(self):
-        return self.db
-
-    @property
-    def character(self):
-        return self.graph
-
-    @property
-    def name(self):
-        return self.node
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
@@ -187,7 +183,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
         yield from self.db._edges_cache.iter_entities(
-            self.character.name, self.name, *self.engine.time
+            self.character.name, self.name, *self.engine.btt()
         )
 
     def _portal_origs(self):
@@ -195,14 +191,14 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         cache = self.engine._edges_cache.predecessors[
             self.character.name][self.name]
         for nodeB in cache:
-            for (b, t) in self.engine._active_branches():
+            for (b, trn, tck) in self.engine._iter_parent_btt():
                 if b in cache[nodeB][0]:
                     if b != self.engine.branch:
                         self.engine._edges_cache.store(
                             self.character.name, self.name, nodeB, 0,
-                            *self.engine.time
+                            *self.engine.btt()
                         )
-                    if cache[nodeB][0][b][t]:
+                    if cache[nodeB][0][b][trn][tck]:
                         yield nodeB
                         break
 
@@ -298,7 +294,16 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             contained.delete()
         for user in list(self.user.values()):
             user.del_avatar(self.character.name, self.name)
-        self.engine._exist_node(self.character.name, self.name, False)
+        branch, turn, tick = self.engine.btt()
+        self.engine._nodes_cache.store(
+            self.character.name, self.name,
+            branch, turn, tick, False
+        )
+        self.engine.query.exist_node(
+            self.character.name, self.name,
+            branch, turn, tick, False
+        )
+        self.character.node.send(self.character.node, key=self.name, val=None)
 
     def one_way_portal(self, other, **stats):
         """Connect a portal from here to another node, and return it."""

@@ -18,7 +18,7 @@ from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
-from .util import reify
+from .util import reify, is_chardiff
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -1049,7 +1049,7 @@ class CharStatProxy(CachingEntityProxy):
             char=self.name,
             k=k, v=v,
             silent=True,
-            branching=not k.startswith('_')
+            branching=True
         )
 
     def _del_item(self, k):
@@ -1843,6 +1843,8 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
+        self.send(self.json_dump({'command': 'get_watched_btt'}))
+        self._branch, self._turn, self._tick = self.json_load(self.recv()[-1])
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -1855,7 +1857,6 @@ class EngineProxy(AbstractEngine):
         self.prereq = FuncStoreProxy(self, 'prereq')
         self.trigger = FuncStoreProxy(self, 'trigger')
         self.function = FuncStoreProxy(self, 'function')
-        (self._branch, self._tick) = self.handle(command='get_watched_time')
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -2062,35 +2063,41 @@ class EngineProxy(AbstractEngine):
                 return
         else:
             self.send(self.json_dump(kwargs))
-            command,  result = self.recv()
+            command, branch, turn, tick, result = self.recv()
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
             self._handle_lock.release()
             r = self.json_load(result)
-            if branching and r['branch'] != self._branch:
-                self.time_travel(r['branch'], self.tick)
+            if (branch, turn, tick) != self.btt():
+                self._branch = branch
+                self._turn = turn
+                self._tick = tick
+                self.time.send(self, branch=branch, turn=turn, tick=tick)
             if cb:
-                cb(**r)
-            return r['result']
+                cb(command, branch, turn, tick, **r)
+            return r
         self._handle_lock.release()
 
     def _callback(self, cb):
-        command, result = self.recv()
+        command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
-        cb(**self.json_load(result))
+        cb(command, branch, turn, tick, **self.json_load(result))
 
     def _branching(self, cb=None):
-        command, result = self.recv()
+        command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         r = self.json_load(result)
-        if r['branch'] != self._branch:
-            self.time_travel(r['branch'], r['tick'])
+        if branch != self._branch:
+            self._branch = branch
+            self._turn = turn
+            self._tick = tick
+            self.time.send(self, branch=branch, turn=turn, tick=tick)
             if hasattr(self, 'branching_cb'):
-                self.branching_cb(**r)
+                self.branching_cb(command, branch, turn, tick, **r)
         if cb:
-            cb(**r)
+            cb(command, branch, turn, tick, **r)
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
@@ -2138,31 +2145,35 @@ class EngineProxy(AbstractEngine):
         return self.json_rewrap(super().json_load(s))
 
     def _call_with_recv(self, *cbs, **kwargs):
-        received = self.json_load(self.recv()[1])
+        cmd, branch, turn, tick, res = self.recv()
+        received = self.json_load(res)
+        kwargs.update(received)
         for cb in cbs:
-            cb(received['result'], **kwargs)
+            cb(cmd, branch, turn, tick, **kwargs)
         return received
 
-    def _upd_char_caches(self, chardiffs, **kwargs):
+    def _upd_char_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
-        for (char, chardiff) in chardiffs.items():
+        for (char, chardiff) in kwargs.items():
+            if not is_chardiff(chardiff):
+                continue
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)
             deleted.discard(char)
-        if 'no_del' in kwargs:
+        if kwargs.get('no_del'):
             return
         for char in deleted:
             del self._char_cache[char]
 
-    def _inc_tick(self, *args):
-        self._tick += 1
-        self.time.send(self, branch=self._branch, tick=self._tick)
+    def btt(self):
+        return self._branch, self._turn, self._tick
 
-    def _set_time(self, *args, **kwargs):
-        self._branch = kwargs['branch']
-        self._tick = kwargs['tick']
-        self.time.send(self, branch=self._branch, tick=self._tick)
+    def _set_time(self, cmd, branch, turn, tick, **kwargs):
+        self._branch = branch
+        self._turn = turn
+        self._tick = tick
+        self.time.send(self, branch=branch, turn=turn, tick=tick)
 
     def _pull_async(self, chars, cb):
         if not callable(cb):
@@ -2190,20 +2201,20 @@ class EngineProxy(AbstractEngine):
                 args=(chars, cb)
             ).start()
 
-    def next_tick(self, chars=(), cb=None, silent=False):
+    def next_turn(self, chars=(), cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
         if not callable(cb):
             raise TypeError("Uncallable callback")
         if silent:
-            self.handle(command='next_tick', chars=chars, silent=True, cb=cb)
+            self.handle(command='next_turn', chars=chars, silent=True, cb=cb)
         elif chars:
             self.send(self.json_dump({
                 'silent': False,
-                'command': 'next_tick',
+                'command': 'next_turn',
                 'chars': chars
             }))
-            args = [self._inc_tick, self._upd_char_caches]
+            args = [self._upd_char_caches, self._set_time]
             if cb:
                 args.append(cb)
             if silent:
@@ -2214,11 +2225,11 @@ class EngineProxy(AbstractEngine):
             else:
                 return self._call_with_recv(*args)
         else:
-            ret = self.handle(command='next_tick', chars='all')
-            self.time.send(self, branch=ret['branch'], tick=ret['tick'])
+            ret = self.handle(command='next_turn', chars='all')
+            self.time.send(self, branch=ret['branch'], turn=ret['turn'], tick=ret['tick'])
             return ret
 
-    def time_travel(self, branch, tick, chars='all', cb=None, block=True):
+    def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         if cb and not chars:
             raise TypeError("Callbacks require char name")
         if cb is not None and not callable(cb):
@@ -2230,13 +2241,14 @@ class EngineProxy(AbstractEngine):
             self._time_travel_thread = Thread(
                 target=self._call_with_recv,
                 args=args,
-                kwargs={'branch': branch, 'tick': tick, 'no_del': True}
+                kwargs={'no_del': True}
             )
             self._time_travel_thread.start()
             self.send(self.json_dump({
                 'command': 'time_travel',
                 'silent': False,
                 'branch': branch,
+                'turn': turn,
                 'tick': tick,
                 'chars': chars
             }))
@@ -2246,6 +2258,7 @@ class EngineProxy(AbstractEngine):
             self.handle(
                 command='time_travel',
                 branch=branch,
+                turn=turn,
                 tick=tick,
                 chars=[],
                 silent=True
@@ -2392,12 +2405,10 @@ def subprocess(
         if silent:
             continue
         log('result', r)
-        handle_in_pipe.send((cmd,  engine_handle.json_dump({
-            'command': cmd,
-            'result': r,
-            'branch': engine_handle.branch,
-            'tick': engine_handle.tick
-        })))
+        handle_in_pipe.send((
+            cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
+            engine_handle.json_dump(r)
+        ))
 
 
 class RedundantProcessError(ProcessError):

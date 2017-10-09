@@ -67,6 +67,7 @@ class AbstractCharacter(object):
     to be used in place of graph attributes
 
     """
+    engine = getatt('db')
 
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
@@ -636,7 +637,7 @@ class RuleFollower(BaseRuleFollower):
 
     def _get_rulebook_name(self):
         return self.engine._characters_rulebooks_cache.retrieve(
-            self.character.name, *self.engine.time
+            self.character.name, *self.engine.btt()
         )
 
     def _set_rulebook_name(self, n):
@@ -644,7 +645,7 @@ class RuleFollower(BaseRuleFollower):
 
     def __contains__(self, k):
         return self.engine._active_rules_cache.contains_key(
-            self._get_rulebook_name(), *self.engine.time
+            self._get_rulebook_name(), *self.engine.btt()
         )
 
 
@@ -700,7 +701,7 @@ class CharacterSense(object):
         fn = self.engine.query.sense_func_get(
             self.observer.name,
             self.sensename,
-            *self.engine.time
+            *self.engine.btt()
         )
         if fn is not None:
             return SenseFuncWrap(self.observer, fn)
@@ -738,7 +739,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
     def __iter__(self):
         """Iterate over active sense names."""
         yield from self.engine.query.sense_active_items(
-            self.character.name, *self.engine.time
+            self.character.name, *self.engine.btt()
         )
 
     def __len__(self):
@@ -753,7 +754,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
         if not self.engine.query.sense_is_active(
                 self.character.name,
                 k,
-                *self.engine.time
+                *self.engine.btt()
         ):
             raise KeyError("Sense isn't active or doesn't exist")
         return CharacterSense(self.character, k)
@@ -768,11 +769,13 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
             if not isinstance(v, Callable):
                 raise TypeError("Not a function")
             self.engine.sense[funn] = v
-        (branch, tick) = self.engine.time
+        branch, turn, tick = self.engine.btt()
+        # TODO: cache
         self.engine.query.sense_fun_set(
             self.character.name,
             k,
             branch,
+            turn,
             tick,
             funn,
             True
@@ -781,11 +784,13 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
 
     def __delitem__(self, k):
         """Stop having the given sense."""
-        (branch, tick) = self.engine.time
+        branch, turn, tick = self.engine.btt()
+        # TODO: cache
         self.engine.query.sense_set(
             self.character.name,
             k,
             branch,
+            turn,
             tick,
             False
         )
@@ -1184,8 +1189,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     """
     _book = "character"
 
-    engine = getatt('db')
-
     @property
     def character(self):
         return self
@@ -1234,17 +1237,17 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __iter__(self):
             return self.engine._things_cache.iter_keys(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             )
 
         def __contains__(self, thing):
-            return self.engine._things_cache.contains_key(
-                self.character.name, thing, *self.engine.time
-            )
+            args = self.character.name, thing, *self.engine.btt()
+            cache = self.engine._things_cache
+            return cache.contains_key(*args) and cache.retrieve(*args)[0] is not None
 
         def __len__(self):
             return self.engine._things_cache.count_keys(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             )
 
         def __getitem__(self, thing):
@@ -1282,16 +1285,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __delitem__(self, thing):
             self[thing].delete(nochar=True)
-            cache = self.engine._node_objs
-            if (self.name, thing) in cache:
-                del cache[(self.name, thing)]
-            self.engine._things_cache.store(
-                self.character.name,
-                self.name,
-                self.engine.branch,
-                self.engine.tick,
-                None
-            )
             self.send(self, key=thing, val=None)
 
         def __repr__(self):
@@ -1311,18 +1304,18 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __iter__(self):
             for node in self.engine._nodes_cache.iter_entities(
-                    self.character.name, *self.engine.time
+                    self.character.name, *self.engine.btt()
             ):
                 if not self.engine._things_cache.contains_entity(
-                        self.character.name, node, *self.engine.time
+                        self.character.name, node, *self.engine.btt()
                 ):
                     yield node
 
         def __len__(self):
             return self.engine._nodes_cache.count_entities(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             ) - self.engine._things_cache.count_entities(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             )
 
         def __contains__(self, place):
@@ -1330,9 +1323,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             # nodes in general
             return (
                 self.engine._nodes_cache.contains_entity(
-                    self.character.name, place, *self.engine.time
+                    self.character.name, place, *self.engine.btt()
                 ) and not self.engine._things_cache.contains_entity(
-                    self.character.name, place, *self.engine.time
+                    self.character.name, place, *self.engine.btt()
                 )
             )
 
@@ -1360,25 +1353,23 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.send(self, key=place, val=v)
 
         def __delitem__(self, place):
-            self[place].delete(nochar=True)
-            self.engine._exist_node(self.character.name, place, exist=False)
-            del self.engine._node_objs[(self.name, place)]
-            self.send(self, key=place, val=None)
+            self[place].delete()
 
         def __repr__(self):
             return repr(dict(self))
 
-    class ThingPlaceMapping(GraphNodeMapping, RuleFollower):
+    class ThingPlaceMapping(GraphNodeMapping, RuleFollower, Signal):
         """GraphNodeMapping but for Place and Thing"""
         _book = "character_node"
 
-        graph = getatt('character')
-        engine = allegedb = getatt('character.engine')
+        character = getatt('graph')
+        engine =  getatt('db')
         name = getatt('character.name')
 
         def __init__(self, character):
             """Store the character."""
-            self.character = character
+            super().__init__(character)
+            Signal.__init__(self)
 
         def __contains__(self, k):
             return self.engine._node_exists(self.character.name, k)
@@ -1446,10 +1437,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             engine = getatt('graph.engine')
 
-            @reify
-            def _cache(self):
-                return {}
-
             @staticmethod
             def send(self, **kwargs):
                 """Call all listeners to ``dest`` and to my ``orig``."""
@@ -1485,20 +1472,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 self.send(self, key=dest, val=p)
 
             def __delitem__(self, dest):
-                (branch, tick) = self.engine.time
-                self.engine._exist_edge(
-                    self.graph.name,
-                    self.orig,
-                    dest,
-                    False
-                )
-                try:
-                    del self.engine._portal_objs[
-                        (self.graph.name, self.orig, dest)
-                    ]
-                except KeyError:
-                    pass
-                self.send(self, key=dest, val=None)
+                self[dest].delete()
 
     class PortalPredecessorsMapping(
             DiGraphPredecessorsMapping,
@@ -1560,18 +1534,18 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             """
             return iter(self.engine._avatarness_cache.get_char_graphs(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             ))
 
         def __contains__(self, k):
             return k in self.engine._avatarness_cache.get_char_graphs(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             )
 
         def __len__(self):
             """Number of graphs in which I have an avatar."""
             return len(self.engine._avatarness_cache.get_char_graphs(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
             ))
 
         def _get_char_av_cache(self, g):
@@ -1594,7 +1568,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             try:
                 return self._get_char_av_cache(
                     self.engine._avatarness_cache.get_char_only_graph(
-                        self.character.name, *self.engine.time
+                        self.character.name, *self.engine.btt()
                     )
                 )
             except KeyError:
@@ -1612,7 +1586,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             try:
                 return self.engine._node_objs[
                     self.engine._avatarness_cache.get_char_only_av(
-                        self.character.name, *self.engine.time
+                        self.character.name, *self.engine.btt()
                     )]
             except KeyError:
                 raise AttributeError(
@@ -1644,19 +1618,19 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
                 """
                 return iter(self.engine._avatarness_cache.get_char_graph_avs(
-                    self.name, self.graph, *self.engine.time
+                    self.name, self.graph, *self.engine.btt()
                 ))
 
             def __contains__(self, av):
                 return av in self.engine._avatarness_cache.get_char_graph_avs(
-                    self.name, self.graph, *self.engine.time
+                    self.name, self.graph, *self.engine.btt()
                 )
 
             def __len__(self):
                 """Number of presently existing nodes in the graph that are avatars of
                 the character"""
                 return len(self.engine._avatarness_cache.get_char_graph_avs(
-                    self.name, self.graph, *self.engine.time
+                    self.name, self.graph, *self.engine.btt()
                 ))
 
             def __getitem__(self, av):
@@ -1727,9 +1701,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
     def add_node(self, n, attr_dict=None, **kwargs):
         super().add_node(n, attr_dict, **kwargs)
-        branch, tick = self.engine.time
-        self.engine._nodes_rulebooks_cache.store(self.name, n, branch, tick, (self.name, n))
-        self.engine._rulebooks_cache.store((self.name, n), branch, tick, [])
+        branch, turn, tick = self.engine.nbtt()
+        self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
+        self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])
     add_place = add_node
 
     def add_places_from(self, seq):
@@ -1917,7 +1891,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def portals(self):
         """Iterate over all portals."""
         for (o, d) in self.engine._edges_cache.iter_keys(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
         ):
             yield self.engine._portal_objs[(self.character.name, o, d)]
 
@@ -1927,10 +1901,10 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         """
         for graph in self.engine._avatarness_cache.iter_entities(
-                self.character.name, *self.engine.time
+                self.character.name, *self.engine.btt()
         ):
             for node in self.engine._avatarness_cache.iter_entities(
-                    self.character.name, graph, *self.engine.time
+                    self.character.name, graph, *self.engine.btt()
             ):
                 try:
                     yield self.engine._node_objs[(graph, node)]

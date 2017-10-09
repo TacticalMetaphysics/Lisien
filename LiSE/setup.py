@@ -29,5 +29,6 @@ setup(
     },
     install_requires=[
         "allegedb>=0.10.0",
+        "astunparse>=1.5.0"
     ],
 )

@@ -5,8 +5,7 @@ if sys.version_info[0] < 3 or (
         sys.version_info[0] == 3 and sys.version_info[1] < 3
 ):
     raise RuntimeError("ELiDE requires Python 3.3 or later")
-from setuptools import setup, Extension
-from Cython.Distutils import build_ext
+from setuptools import setup
 
 
 setup(
@@ -15,24 +14,14 @@ setup(
     packages=[
         "ELiDE",
         "ELiDE.board",
-        "ELiDE.kivygarden.collider",
         "ELiDE.kivygarden.stiffscroll",
         "ELiDE.kivygarden.texturestack"
     ],
     package_dir={
         'ELiDE.kivygarden.stiffscroll': 'ELiDE/kivygarden/stiffscroll',
-        'ELiDE.kivygarden.collider': 'ELiDE/kivygarden/collider',
         'ELiDE.kivygarden.texturestack':
         'ELiDE/kivygarden/texturestack'
     },
-    ext_modules=[
-        Extension(
-            name="collider",
-            depends=["ELiDE/kivygarden/collider/__init__.py"],
-            sources=["ELiDE/kivygarden/collider/collider.pyx"]
-        )
-    ],
-    cmdclass={'build_ext': build_ext},
     install_requires=[
         "LiSE==0.0.0a7",
         "numpy",

@@ -61,12 +61,12 @@ class RuleFuncList(MutableSequence, Signal):
         return v
 
     def _get(self):
-        return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
+        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
 
     def _set(self, v):
-        branch, tick = self.rule.engine.time
-        self._cache.store(self.rule.name, branch, tick, v)
-        self._setter(self.rule.name, branch, tick, v)
+        branch, turn, tick = self.rule.engine.nbtt()
+        self._cache.store(self.rule.name, branch, turn, tick, v)
+        self._setter(self.rule.name, branch, turn, tick, v)
 
     def __iter__(self):
         for funcname in self._get():
@@ -167,8 +167,8 @@ class RuleFuncListDescriptor(object):
         flist = getattr(obj, self.flid)
         namey_value = [flist._nominate(v) for v in value]
         flist._set(namey_value)
-        branch, tick = obj.engine.time
-        flist._cache.store(obj.name, branch, tick, namey_value)
+        branch, turn, tick = obj.engine.nbtt()
+        flist._cache.store(obj.name, branch, turn, tick, namey_value)
         flist.send(flist)
 
     def __delete__(self, obj):
@@ -191,10 +191,10 @@ class Rule(object):
             self,
             engine,
             name,
-            typ='character',
             triggers=None,
             prereqs=None,
-            actions=None
+            actions=None,
+            create=True
     ):
         """Store the engine and my name, make myself a record in the database
         if needed, and instantiate one FunList each for my triggers,
@@ -203,16 +203,22 @@ class Rule(object):
         """
         self.engine = engine
         self.name = self.__name__ = name
-        self.type = typ
-        branch, tick = engine.time
-        if not self.engine._triggers_cache.contains_key(name, branch, tick):
+        branch, turn, tick = engine.btt()
+        if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
+            tick += 1
+            self.engine.tick = tick
             triggers = triggers or []
             prereqs = prereqs or []
             actions = actions or []
-            self.engine.query.set_rule(name, typ, triggers, prereqs, actions, branch, tick)
-            self.engine._triggers_cache.store(name, branch, tick, triggers)
-            self.engine._prereqs_cache.store(name, branch, tick, prereqs)
-            self.engine._actions_cache.store(name, branch, tick, actions)
+            self.engine.query.set_rule(
+                name, branch, turn, tick,
+                list(self._fun_names_iter('trigger', triggers)),
+                list(self._fun_names_iter('prereq', prereqs)),
+                list(self._fun_names_iter('action', actions)),
+            )
+            self.engine._triggers_cache.store(name, branch, turn, tick, triggers)
+            self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
+            self.engine._actions_cache.store(name, branch, turn, tick, actions)
 
     def __eq__(self, other):
         return (
@@ -230,20 +236,8 @@ class Rule(object):
         funcstore = getattr(self.engine, functyp)
         for v in val:
             if callable(v):
-                if v.__name__ in funcstore:
-                    if funcstore[v.__name__] != v:
-                        raise KeyError(
-                            "Already have a {typ} function named "
-                            "{k}. If you really mean to replace it, assign "
-                            "it to engine.{typ}[{k}].".format(
-                                typ=functyp,
-                                k=v.__name__
-                            )
-                        )
-                    else:
-                        funcstore[v.__name__] = v
-                else:
-                    funcstore[v.__name__] = v
+                # Overwrites anything already on the funcstore, is that bad?
+                setattr(funcstore, v.__name__, v)
                 yield v.__name__
             elif v not in funcstore:
                 raise KeyError("Function {} not present in {}".format(
@@ -251,22 +245,6 @@ class Rule(object):
                 ))
             else:
                 yield v
-
-    def __call__(self, engine, *args):
-        """If at least one trigger fires, check the prereqs. If all the
-        prereqs pass, perform the actions.
-
-        After each call to a trigger, prereq, or action, the sim-time
-        is reset to what it was before the rule was called.
-
-        """
-        if not self.check_triggers(engine, *args):
-            return []
-        if not self.check_prereqs(engine, *args):
-            return []
-            # maybe a result object that informs you as to why I
-            # didn't run?
-        return self.run_actions(engine, *args)
 
     def __repr__(self):
         return 'Rule({})'.format(self.name)
@@ -310,44 +288,6 @@ class Rule(object):
                 return True
         self.triggers = [truth]
 
-    def check_triggers(self, engine, *args):
-        """Run each trigger in turn. If one returns True, return True
-        myself. If none do, return False.
-
-        """
-        curtime = (branch, tick) = engine.time
-        for trigger in self.triggers:
-            result = trigger(engine, *args)
-            if engine.time != curtime:
-                engine.time = curtime
-            if result:
-                return True
-        return False
-
-    def check_prereqs(self, engine, *args):
-        """Run each prereq in turn. If all return True, return True myself. If
-        one doesn't, return False.
-
-        """
-        curtime = (branch, tick) = engine.time
-        for prereq in self.prereqs:
-            result = prereq(self.engine, *args)
-            engine.time = curtime
-            if not result:
-                return False
-        return True
-
-    def run_actions(self, engine, *args):
-        """Run all my actions and return a list of their results.
-
-        """
-        curtime = engine.time
-        r = []
-        for action in self.actions:
-            r.append(action(engine, *args))
-            engine.time = curtime
-        return r
-
 
 class RuleBook(MutableSequence, Signal):
     """A list of rules to be followed for some Character, or a part of it
@@ -357,7 +297,7 @@ class RuleBook(MutableSequence, Signal):
 
     @property
     def _cache(self):
-        return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.time)
+        return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.btt())
     @_cache.setter
     def _cache(self, v):
         branch, tick = self.engine.time
@@ -392,9 +332,10 @@ class RuleBook(MutableSequence, Signal):
         v = getattr(v, 'name', v)
         cache = self._cache
         cache[i] = v
-        branch, tick = self.engine.time
-        self.engine.query.set_rulebook(self.name, branch, tick, cache)
-        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
+        e = self.engine
+        branch, turn, tick = e.nbtt()
+        self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
@@ -402,9 +343,9 @@ class RuleBook(MutableSequence, Signal):
         v = getattr(v, 'name', v)
         cache = self._cache
         cache.insert(i, v)
-        branch, tick = self.engine.time
-        self.engine.query.set_rulebook(self.name, branch, tick, cache)
-        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
@@ -491,12 +432,10 @@ class RuleMapping(MutableMapping, Signal):
             self.engine.rule[k] = v
             v = self.engine.rule[k]
         assert isinstance(v, Rule)
-        if len(self.rulebook) == 0:
-            self.rulebook.append(v)
-        elif isinstance(k, int):
+        if isinstance(k, int):
             self.rulebook[k] = v
         else:
-            self.rulebook[0] = v
+            self.rulebook.append(v)
 
     def __call__(self, v=None, name=None, always=False):
         def wrap(name, always, v):
@@ -611,13 +550,13 @@ class AllRuleBooks(Mapping, Signal):
         self._cache = {}
 
     def __iter__(self):
-        return self.engine._rulebooks_cache.iter_entities(*self.engine.time)
+        return self.engine._rulebooks_cache.iter_entities(*self.engine.btt())
 
     def __len__(self):
         return len(list(self))
 
     def __contains__(self, k):
-        return self.engine._rulebooks_cache.contains_entity(k, *self.engine.time)
+        return self.engine._rulebooks_cache.contains_entity(k, *self.engine.btt())
 
     def __getitem__(self, k):
         if k not in self._cache:
@@ -630,8 +569,9 @@ class AllRules(MutableMapping, Signal):
         super().__init__()
         self.engine = engine
 
-    def _init_load(self):
-        self._cache = {name: Rule(self.engine, name, typ) for name, typ in self.engine.query.rules_dump()}
+    @reify
+    def _cache(self):
+        return self.engine._rules_cache
 
     def __iter__(self):
         yield from self._cache
@@ -658,9 +598,11 @@ class AllRules(MutableMapping, Signal):
                 raise ValueError("Unknown function: " + v)
         if callable(v):
             if k not in self._cache:
-                self._cache[k] = Rule(self.engine, k)
-            new = self._cache[k]
-            new.actions = [v]
+                self._cache[k] = Rule(self.engine, k, actions=[v])
+                new = self._cache[k]
+            else:
+                new = self._cache[k]
+                new.actions = [v]
         elif isinstance(v, Rule):
             self._cache[k] = v
             new = v

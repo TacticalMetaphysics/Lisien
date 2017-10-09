@@ -38,6 +38,7 @@ class EngineHandle(object):
         self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
+        self.turn = self._real.turn
         self.tick = self._real.tick
         self._node_stat_cache = defaultdict(dict)
         self._portal_stat_cache = defaultdict(
@@ -142,16 +143,23 @@ class EngineHandle(object):
                 for char in chars
             }
 
-    def next_tick(self, chars=[]):
-        self._real.next_tick()
-        self.tick += 1
+    def next_turn(self, chars=()):
+        result = self._real.next_turn()
+        self.branch, self.turn, self.tick = self._real.btt()
+        ret = {}
+        if result:
+            ret['result'] = result
         if chars:
-            return self.get_chardiffs(chars)
+            ret.update(self.get_chardiffs(chars))
+        return ret
 
-    def time_travel(self, branch, tick, chars='all'):
-        self._real.time = (branch, tick)
+    def time_travel(self, branch, turn, tick=None, chars='all'):
+        self._real.time = (branch, turn)
+        if tick is not None:
+            self._real.tick = tick
         self.branch = branch
-        self.tick = tick
+        self.turn = turn
+        self.tick = tick or self._real.tick
         if chars:
             return self.get_chardiffs(chars)
         else:
@@ -165,13 +173,13 @@ class EngineHandle(object):
             branch = stem + str(int(n)+1)
         else:
             branch += '1'
-        if self._real._havebranch(branch):
+        if branch in self._real._branches:
             if m:
                 n = int(n)
             else:
                 stem = branch[:-1]
                 n = 1
-            while self._real._havebranch(stem+str(n)):
+            while stem + str(n) in self._real._branches:
                 n += 1
             branch = stem + str(n)
         ret = {'branch': branch}
@@ -222,8 +230,8 @@ class EngineHandle(object):
     def get_time(self):
         return self._real.time
 
-    def get_watched_time(self):
-        return (self.branch, self.tick)
+    def get_watched_btt(self):
+        return (self.branch, self.turn, self.tick)
 
     def get_language(self):
         return self._real.string.language
@@ -479,8 +487,9 @@ class EngineHandle(object):
             node = node_or_char
         else:
             node = self._real.character[node_or_char].node[node]
+        unwrapper = self.unwrap_thing_stat if isinstance(node, self._real.thing_cls) else self.unwrap_place_stat
         return {
-            k: self.unwrap_node_stat(node, k, v)
+            k: unwrapper(node, k, v)
             for (k, v) in node.items()
             if k not in {
                     'location',
@@ -591,15 +600,10 @@ class EngineHandle(object):
                     del self._portal_stat_cache[char][o][node]
 
     def character_things(self, char):
-        return {
-            name: (
-                thing['location'],
-                thing['next_location'],
-                thing['arrival_time'],
-                thing['next_arrival_time']
-            )
-            for (name, thing) in self._real.character[char].thing.items()
-        }
+        ret = {}
+        for name, thing in self._real.character[char].thing.items():
+            ret[name] = thing['locations'] + (thing['arrival_time'], thing['next_arrival_time'])
+        return ret
 
     def character_things_diff(self, char):
         """Return a dictionary of char's things and their locations.
@@ -615,7 +619,7 @@ class EngineHandle(object):
             self._char_things_cache[char] = new
             return dict_diff(old, new)
         except KeyError:
-            return None
+            return {}
 
     def character_places(self, char):
         return list(self._real.character[char].place)
@@ -923,11 +927,11 @@ class EngineHandle(object):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
     def rule_copy(self, rule):
-        branch, tick = self.branch, self.tick
+        branch, turn, tick = self.branch, self.turn, self.tick
         return {
-            'triggers': list(self._real._triggers_cache.retrieve(rule, branch, tick)),
-            'prereqs': list(self._real._prereqs_cache.retrieve(rule, branch, tick)),
-            'actions': list(self._real._actions_cache.retrieve(rule, branch, tick))
+            'triggers': list(self._real._triggers_cache.retrieve(rule, branch, turn, tick)),
+            'prereqs': list(self._real._prereqs_cache.retrieve(rule, branch, turn, tick)),
+            'actions': list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
         }
 
     def rule_diff(self, rule):

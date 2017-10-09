@@ -80,7 +80,8 @@ class Pawn(PawnSpot):
             except KeyError:
                 return
         if location != self.parent:
-            self.parent.remove_widget(self)
+            if self.parent:
+                self.parent.remove_widget(self)
             location.add_widget(self)
     _trigger_relocate = trigger(relocate)
 
