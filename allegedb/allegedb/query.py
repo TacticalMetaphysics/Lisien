@@ -278,7 +278,7 @@ class QueryEngine(object):
 
         if not self._graphvals2set:
             return
-        converted = map(convert_arg, self._graphvals2set)
+        converted = list(map(convert_arg, self._graphvals2set))
         delafter = {}
         for graph, key, branch, turn, tick, value, planning in converted:
             if planning:
