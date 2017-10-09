@@ -46,6 +46,7 @@ class ELiDEApp(App):
 
     engine = ObjectProperty()
     branch = StringProperty('trunk')
+    turn = NumericProperty(0)
     tick = NumericProperty(0)
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
@@ -73,14 +74,18 @@ class ELiDEApp(App):
         if not self.engine:
             Clock.schedule_once(self._pull_time, 0)
             return
-        (self.branch, self.tick) = self.engine.time
+        branch, turn, tick = self.engine.btt()
+        self.branch = branch
+        self.turn = turn
+        self.tick = tick
     pull_time = trigger(_pull_time)
 
     @trigger
     def _push_time(self, *args):
-        if self.engine.time != (self.branch, self.tick):
+        branch, turn, tick = self.engine.btt()
+        if (self.branch, self.turn, self.tick) != (branch, turn, tick):
             self.engine.time_travel(
-                self.branch, self.tick,
+                self.branch, self.turn, self.tick if self.tick != tick else None,
                 chars=[self.character.name],
                 cb=self.mainscreen._update_from_chardiff
             )
@@ -89,11 +94,8 @@ class ELiDEApp(App):
         """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
 
-    def set_time(self, b, t=None):
-        if t is None:
-            (b, t) = b
-        t = int(t)
-        (self.branch, self.tick) = (b, t)
+    def set_turn(self, t):
+        self.turn = int(t)
 
     def select_character(self, char):
         """Change my ``character`` to the selected character object if they
@@ -175,10 +177,19 @@ class ELiDEApp(App):
         Clock.schedule_once(self._add_screens, 0.2)
         return self.manager
 
+    def _pull_lang(self, *args, **kwargs):
+        self.strings.language = kwargs['language']
+
+    def _pull_chars(self, *args, **kwargs):
+        self.chars.names = list(self.engine.character)
+
+    def _pull_time_from_signal(self, *args, branch, turn, tick):
+        self.branch, self.turn, self.tick = branch, turn, tick
+
     def _start_subprocess(self, *args):
         config = self.config
         self.procman = EngineProcessManager()
-        enkw = {'logger': Logger}
+        enkw = {'logger': Logger, 'validate': True}
         if config['LiSE'].get('logfile'):
             enkw['logfile'] = config['LiSE']['logfile']
         if config['LiSE'].get('loglevel'):
@@ -188,22 +199,14 @@ class ELiDEApp(App):
             **enkw
         )
         self.pull_time()
-        
-        @self.engine.time.connect
-        def pull_time(inst, **kwargs):
-            self.branch = inst.branch
-            self.tick = inst.tick
 
-        @self.engine.string.language.connect
-        def pull_lang(inst, **kwargs):
-            self.strings.language = kwargs['language']
-        
-        @self.engine.character.connect
-        def pull_chars(*args):
-            self.chars.names = list(self.engine.character)
+        self.engine.time.connect(self._pull_time_from_signal, weak=False)
+        self.engine.string.language.connect(self._pull_lang, weak=False)
+        self.engine.character.connect(self._pull_chars, weak=False)
 
         self.bind(
             branch=self._push_time,
+            turn=self._push_time,
             tick=self._push_time
         )
 
@@ -270,14 +273,10 @@ class ELiDEApp(App):
 
         self.statcfg = ELiDE.statcfg.StatScreen(
             toggle=toggler('statcfg'),
-            branch=self.branch,
-            tick=self.tick,
             engine=self.engine
         )
         self.bind(
-            selected_remote=self.statcfg.setter('remote'),
-            branch=self.statcfg.setter('branch'),
-            tick=self.statcfg.setter('tick')
+            selected_remote=self.statcfg.setter('remote')
         )
 
         self.mainscreen = ELiDE.screen.MainScreen(
@@ -387,17 +386,3 @@ class ELiDEApp(App):
         board = Board(character=char)
         self.mainscreen.boards[name] = board
         self.character = char
-
-
-kv = """
-<App>:
-    time: [root.branch, root.tick]
-    selected_remote: root.selection.remote if root.selection else None
-<SymbolLabel@Label>:
-    font_name: "Symbola.ttf"
-    font_size: 50
-<SymbolButton@Button>:
-    font_name: "Symbola.ttf"
-    font_size: 50
-"""
-Builder.load_string(kv)

@@ -14,10 +14,11 @@ from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
 from blinker import Signal
 
+from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
-from .util import reify
+from .util import reify, is_chardiff
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -145,7 +146,8 @@ class NodeProxy(CachingEntityProxy):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_node_rulebook',
-            char=self._charname, node=self.name, rulebook=rb, silent=True
+            char=self._charname, node=self.name, rulebook=rb, silent=True,
+            branching=True
         )
 
     def __init__(self, engine_proxy, charname, nodename):
@@ -261,7 +263,9 @@ class ThingProxy(NodeProxy):
             arrival_time, next_arrival_time
     ):
         if location is None:
-            raise TypeError("Things must have locations")
+            raise TypeError("Thing must have location")
+        if arrival_time is None:
+            raise TypeError("Thing must have arrival_time")
         super().__init__(engine, character, name)
         self._location = location
         self._next_location = next_location
@@ -293,7 +297,9 @@ class ThingProxy(NodeProxy):
             command='set_thing_location',
             char=self.character.name,
             thing=self.name,
-            loc=v
+            loc=v,
+            silent=True,
+            branching=True
         )
         self.send(self, key='location', val=v)
 
@@ -473,10 +479,10 @@ class PortalProxy(CachingEntityProxy):
             branching=True
         )
 
-    def __init__(self, engine_proxy, charname, nodeAname, nodeBname):
+    def __init__(self, engine_proxy, charname, origname, destname):
         self._charname = charname
-        self._origin = nodeAname
-        self._destination = nodeBname
+        self._origin = origname
+        self._destination = destname
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
@@ -526,7 +532,8 @@ class NodeMapProxy(MutableMapping):
             'set_character_node_rulebook',
             char=self._charname,
             rulebook=rb,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     @property
@@ -577,7 +584,8 @@ class ThingMapProxy(CachingProxy):
             'set_character_thing_rulebook',
             char=self.name,
             rulebook=rb,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     @property
@@ -596,42 +604,39 @@ class ThingMapProxy(CachingProxy):
         return self is other
 
     def _apply_diff(self, diff):
-        for (
-                thing, (
-                    location,
-                    next_location,
-                    arrival_time,
-                    next_arrival_time
-                )
-        ) in diff.items():
-            if location:
-                if thing in self._cache:
-                    thisthing = self._cache[thing]
-                    if thisthing._location != location:
-                        thisthing._location = location
-                        thisthing.send(thisthing, key='location', val=location)
-                    if thisthing._next_location != next_location:
-                        thisthing._next_location = next_location
-                        thisthing.send(thisthing, key='next_location', val=next_location)
-                    if thisthing._arrival_time != arrival_time:
-                        thisthing._arrival_time = arrival_time
-                        thisthing.send(thisthing, key='arrival_time', val=arrival_time)
-                    if thisthing._next_arrival_time != next_arrival_time:
-                        thisthing._next_arrival_time = next_arrival_time
-                        thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
-                else:
-                    self._cache[thing] = ThingProxy(
-                        self.engine,
-                        self.name,
-                        thing,
-                        location,
-                        next_location,
-                        arrival_time,
-                        next_arrival_time
-                    )
-            elif thing in self._cache:
-                self.send(self, key=thing, val=None)
-                del self._cache[thing]
+        for thing, data in diff.items():
+            if data:
+                location, next_location, arrival_time, next_arrival_time = data
+                if location:
+                    if thing in self._cache:
+                        thisthing = self._cache[thing]
+                        if thisthing._location != location:
+                            thisthing._location = location
+                            thisthing.send(thisthing, key='location', val=location)
+                        if thisthing._next_location != next_location:
+                            thisthing._next_location = next_location
+                            thisthing.send(thisthing, key='next_location', val=next_location)
+                        if thisthing._arrival_time != arrival_time:
+                            thisthing._arrival_time = arrival_time
+                            thisthing.send(thisthing, key='arrival_time', val=arrival_time)
+                        if thisthing._next_arrival_time != next_arrival_time:
+                            thisthing._next_arrival_time = next_arrival_time
+                            thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
+                    else:
+                        self._cache[thing] = ThingProxy(
+                            self.engine,
+                            self.name,
+                            thing,
+                            location,
+                            next_location,
+                            arrival_time,
+                            next_arrival_time
+                        )
+                elif thing in self._cache:
+                    self.send(self, key=thing, val=None)
+                    del self._cache[thing]
+            else:
+                assert thing in self._cache
 
     def _get_diff(self):
         return self.engine.handle(
@@ -690,7 +695,7 @@ class PlaceMapProxy(CachingProxy):
         self.engine.handle(
             'set_character_place_rulebook',
             char=self.name, rulebook=rb,
-            silent=True
+            silent=True, branching=True
         )
 
     @property
@@ -757,11 +762,11 @@ class SuccessorsProxy(CachingProxy):
     @property
     def _cache(self):
         return self.engine._character_portals_cache.successors[
-            self._charname][self._nodeA]
+            self._charname][self._orig]
 
-    def __init__(self, engine_proxy, charname, nodeAname):
+    def __init__(self, engine_proxy, charname, origname):
         self._charname = charname
-        self._nodeA = nodeAname
+        self._orig = origname
         super().__init__(engine_proxy)
 
     def __eq__(self, other):
@@ -769,17 +774,17 @@ class SuccessorsProxy(CachingProxy):
             isinstance(other, SuccessorsProxy) and
             self.engine is other.engine and
             self._charname == other._charname and
-            self._nodeA == other._nodeA
+            self._orig == other._orig
         )
 
     def _get_state(self):
         return {
             node: self._cache[node] if node in self._cache else
-            PortalProxy(self.engine, self._charname, self._nodeA, node)
+            PortalProxy(self.engine, self._charname, self._orig, node)
             for node in self.engine.handle(
                 command='node_successors',
                 char=self._charname,
-                node=self._nodeA
+                node=self._orig
             )
         }
 
@@ -792,34 +797,34 @@ class SuccessorsProxy(CachingProxy):
         return self.engine.handle(
             command='node_successors_diff',
             char=self._charname,
-            node=self._nodeA
+            node=self._orig
         )
 
     def _cache_munge(self, k, v):
         if isinstance(v, PortalProxy):
-            assert v._origin == self._nodeA
+            assert v._origin == self._orig
             assert v._destination == k
             return v
         return PortalProxy(
             self.engine,
             self._charname,
-            self._nodeA,
+            self._orig,
             k
         )
 
-    def _set_item(self, nodeB, value):
+    def _set_item(self, dest, value):
         self.engine.handle(
             command='set_portal',
             char=self._charname,
-            orig=self._nodeA,
-            dest=nodeB,
+            orig=self._orig,
+            dest=dest,
             statdict=value,
             silent=True,
             branching=True
         )
 
-    def _del_item(self, nodeB):
-        self.engine.del_portal(self._charname, self._nodeA, nodeB)
+    def _del_item(self, dest):
+        self.engine.del_portal(self._charname, self._orig, dest)
 
 
 class CharSuccessorsMappingProxy(CachingProxy):
@@ -837,7 +842,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_character_portal_rulebook',
-            char=self._charname, rulebook=rb
+            char=self._charname, rulebook=rb, silent=True, branching=True
         )
 
     @property
@@ -895,19 +900,19 @@ class CharSuccessorsMappingProxy(CachingProxy):
             character=self.name
         )
 
-    def _set_item(self, nodeA, val):
+    def _set_item(self, orig, val):
         self.engine.handle(
             command='character_set_node_successors',
             character=self.name,
-            node=nodeA,
+            node=orig,
             val=val,
             silent=True,
             branching=True
         )
 
-    def _del_item(self, nodeA):
-        for nodeB in self[nodeA]:
-            self.engine.del_portal(self.name, nodeA, nodeB)
+    def _del_item(self, orig):
+        for dest in self[orig]:
+            self.engine.del_portal(self.name, orig, dest)
 
 
 class PredecessorsProxy(MutableMapping):
@@ -915,10 +920,10 @@ class PredecessorsProxy(MutableMapping):
     def character(self):
         return self.engine.character[self._charname]
 
-    def __init__(self, engine_proxy, charname, nodeBname):
+    def __init__(self, engine_proxy, charname, destname):
         self.engine = engine_proxy
         self._charname = charname
-        self.name = nodeBname
+        self.name = destname
 
     def __iter__(self):
         return iter(self.engine._character_portals_cache.predecessors[
@@ -949,12 +954,13 @@ class PredecessorsProxy(MutableMapping):
             char=self._charname,
             place=k,
             statdict=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.engine.handle(
             'set_portal',
             (self._charname, k, self.name),
-            silent=True
+            silent=True, branching=True
         )
 
     def __delitem__(self, k):
@@ -998,7 +1004,8 @@ class CharPredecessorsMappingProxy(MutableMapping):
             char=self.name,
             node=k,
             preds=v,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def __delitem__(self, k):
@@ -1145,7 +1152,8 @@ class RuleBookProxy(MutableSequence, Signal):
             rulebook=self.name,
             i=i,
             rule=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.send(self, i=i, val=v)
 
@@ -1155,7 +1163,8 @@ class RuleBookProxy(MutableSequence, Signal):
             command='del_rulebook_rule',
             rulebook=self.name,
             i=i,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.send(self, i=i, val=None)
 
@@ -1168,7 +1177,8 @@ class RuleBookProxy(MutableSequence, Signal):
             rulebook=self.name,
             i=i,
             rule=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         for j in range(i, len(self)):
             self.send(self, i=j, val=self[j])
@@ -1189,7 +1199,7 @@ class AvatarMapProxy(Mapping):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_avatar_rulebook',
-            char=self.character.name, rulebook=rb, silent=True
+            char=self.character.name, rulebook=rb, silent=True, branching=True
         )
 
     def __init__(self, character):
@@ -1284,7 +1294,7 @@ class CharacterProxy(MutableMapping):
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_character_rulebook',
-            char=self.name, rulebook=rb, silent=True
+            char=self.name, rulebook=rb, silent=True, branching=True
         )
 
     @reify
@@ -1373,7 +1383,8 @@ class CharacterProxy(MutableMapping):
             command='add_places_from',
             char=self.name,
             seq=list(seq),
-            silent=True
+            silent=True,
+            branching=True
         )
         for pln in seq:
             self.place._cache[pln] = PlaceProxy(
@@ -1391,7 +1402,8 @@ class CharacterProxy(MutableMapping):
             loc=location,
             next_loc=next_location,
             statdict=kwargs,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.thing._cache[name] = ThingProxy(
             self.engine, self.name, name, location, next_location,
@@ -1403,7 +1415,8 @@ class CharacterProxy(MutableMapping):
             command='add_things_from',
             char=self.name,
             seq=list(seq),
-            silent=True
+            silent=True,
+            branching=True
         )
         for thn in seq:
             self.thing._cache[thn] = ThingProxy(
@@ -1425,7 +1438,8 @@ class CharacterProxy(MutableMapping):
             node=node,
             loc=location,
             next_loc=next_location,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
@@ -1436,7 +1450,8 @@ class CharacterProxy(MutableMapping):
             dest=destination,
             symmetrical=symmetrical,
             statdict=kwargs,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.portal._cache[origin][destination] = PortalProxy(
             self.engine,
@@ -1452,7 +1467,8 @@ class CharacterProxy(MutableMapping):
             char=self.name,
             seq=l,
             symmetrical=symmetrical,
-            silent=True
+            silent=True,
+            branching=True
         )
         for (origin, destination) in l:
             if origin not in self.portal._cache:
@@ -1484,7 +1500,8 @@ class CharacterProxy(MutableMapping):
             char=self.name,
             graph=graph,
             node=node,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def del_avatar(self, graph, node):
@@ -1493,7 +1510,8 @@ class CharacterProxy(MutableMapping):
             char=self.name,
             graph=graph,
             node=node,
-            silent=True
+            silent=True,
+            branching=True
         )
 
     def avatars(self):
@@ -1528,7 +1546,8 @@ class CharacterMapProxy(MutableMapping, Signal):
             command='set_character',
             char=k,
             data=v,
-            silent=True
+            silent=True,
+            branching=True
         )
         self.engine._char_cache[k] = CharacterProxy(self.engine, k)
         self.send(self, key=k, val=v)
@@ -1537,7 +1556,8 @@ class CharacterMapProxy(MutableMapping, Signal):
         self.engine.handle(
             command='del_character',
             char=k,
-            silent=True
+            silent=True,
+            branching=True
         )
         if k in self.engine._char_cache:
             del self.engine._char_cache[k]
@@ -1641,11 +1661,11 @@ class GlobalVarProxy(MutableMapping):
 
     def __setitem__(self, k, v):
         self._cache[k] = v
-        self.engine.handle('set_universal', k=k, v=v)
+        self.engine.handle('set_universal', k=k, v=v, silent=True, branching=True)
 
     def __delitem__(self, k):
         del self._cache[k]
-        self.engine.handle('del_universal', k=k)
+        self.engine.handle('del_universal', k=k, silent=True, branching=True)
 
 
 class AllRuleBooksProxy(Mapping):
@@ -1823,6 +1843,8 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
+        self.send(self.json_dump({'command': 'get_watched_btt'}))
+        self._branch, self._turn, self._tick = self.json_load(self.recv()[-1])
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -1835,7 +1857,6 @@ class EngineProxy(AbstractEngine):
         self.prereq = FuncStoreProxy(self, 'prereq')
         self.trigger = FuncStoreProxy(self, 'trigger')
         self.function = FuncStoreProxy(self, 'function')
-        (self._branch, self._tick) = self.handle(command='get_watched_time')
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -1848,7 +1869,6 @@ class EngineProxy(AbstractEngine):
         self._char_stat_cache = PickyDefaultDict(dict)
         self._things_cache = StructuredDefaultDict(1, ThingProxy)
         self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
-
         self._character_rulebooks_cache = StructuredDefaultDict(
             1, RuleBookProxy, kwargs_munger=lambda inst, k: {
                 'engine': self,
@@ -1983,29 +2003,101 @@ class EngineProxy(AbstractEngine):
         self.logger.critical(msg)
 
     def handle(self, cmd=None, **kwargs):
+        """Send a command to the LiSE core.
+
+        The only positional argument should be the name of a
+        method in :class:``EngineHandle``. All keyword arguments
+        will be passed to it, with the exceptions of
+        ``cb``, ``branching``, and ``silent``.
+
+        With ``silent=True``, don't wait for a result; return
+        ``None`` immediately. This is best for when you want to make
+        some change to the game state and already know what effect it
+        will have.
+
+        With ``branching=True``, handle paradoxes by creating new
+        branches of history. I will switch to the new branch if needed.
+        If I have an attribute ``branching_cb``, I'll call it if and
+        only if the branch changes upon completing a command with
+        ``branching=True``.
+
+        With a function ``cb``, I will call ``cb`` when I get
+        a result. If ``silent=True`` this will happen in a thread.
+        ``cb`` will be called with keyword arguments ``command``,
+        the same command you asked for; ``result``, the value returned
+        by it, possibly ``None``; and ``branch`` and ``tick``,
+        the present game time, possibly different than when you called
+        ``handle``.
+
+        """
         if 'command' in kwargs:
             cmd = kwargs['command']
         elif cmd:
             kwargs['command'] = cmd
         else:
             raise TypeError("No command")
-        branching = kwargs.pop('branching', False)
+        branching = kwargs.get('branching', False)
+        cb = kwargs.pop('cb', None)
         self._handle_lock.acquire()
         if 'silent' not in kwargs:
             kwargs['silent'] = False
-        self.send(self.json_dump(kwargs))
-        if not kwargs['silent']:
-            command,  result = self.recv()
+        if kwargs['silent']:
+            if branching or cb:
+                # I'll still execute the command asynchronously,
+                # and *this* method won't return anything, but
+                # the subprocess should still return a value, so don't
+                # silence *that*
+                del kwargs['silent']
+            self.send(self.json_dump(kwargs))
+            if branching:
+                self._branching_thread = Thread(
+                    target=self._branching, args=[cb], daemon=True
+                )
+                self._branching_thread.start()
+                return
+            if cb:
+                self._callback_thread = Thread(
+                    target=self._callback, args=[cb], daemon=True
+                )
+                self._callback_thread.start()
+                return
+        else:
+            self.send(self.json_dump(kwargs))
+            command, branch, turn, tick, result = self.recv()
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
             self._handle_lock.release()
             r = self.json_load(result)
-            if branching and r != self._branch:
-                self.time_travel(r, self.tick)
+            if (branch, turn, tick) != self.btt():
+                self._branch = branch
+                self._turn = turn
+                self._tick = tick
+                self.time.send(self, branch=branch, turn=turn, tick=tick)
+            if cb:
+                cb(command, branch, turn, tick, **r)
             return r
         self._handle_lock.release()
+
+    def _callback(self, cb):
+        command, branch, turn, tick, result = self.recv()
+        self._handle_lock.release()
+        cb(command, branch, turn, tick, **self.json_load(result))
+
+    def _branching(self, cb=None):
+        command, branch, turn, tick, result = self.recv()
+        self._handle_lock.release()
+        r = self.json_load(result)
+        if branch != self._branch:
+            self._branch = branch
+            self._turn = turn
+            self._tick = tick
+            self.time.send(self, branch=branch, turn=turn, tick=tick)
+            if hasattr(self, 'branching_cb'):
+                self.branching_cb(command, branch, turn, tick, **r)
+        if cb:
+            cb(command, branch, turn, tick, **r)
 
     def json_rewrap(self, r):
         if isinstance(r, tuple):
@@ -2038,8 +2130,8 @@ class EngineProxy(AbstractEngine):
                     return cls(thing, k, v)
                 else:
                     assert (r[1] == 'portal')
-                    (char, nodeA, nodeB, k, v) = r[2:]
-                    return cls(PortalProxy(self, char, nodeA, nodeB), k, v)
+                    (char, orig, dest, k, v) = r[2:]
+                    return cls(PortalProxy(self, char, orig, dest), k, v)
             else:
                 return tuple(self.json_rewrap(v) for v in r)
         elif isinstance(r, dict):
@@ -2053,34 +2145,35 @@ class EngineProxy(AbstractEngine):
         return self.json_rewrap(super().json_load(s))
 
     def _call_with_recv(self, *cbs, **kwargs):
-        received = self.json_load(self.recv()[1])
+        cmd, branch, turn, tick, res = self.recv()
+        received = self.json_load(res)
+        kwargs.update(received)
         for cb in cbs:
-            cb(received, **kwargs)
+            cb(cmd, branch, turn, tick, **kwargs)
         return received
 
-    def _upd_char_caches(self, chardiffs, **kwargs):
+    def _upd_char_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
-        for (char, chardiff) in chardiffs.items():
+        for (char, chardiff) in kwargs.items():
+            if not is_chardiff(chardiff):
+                continue
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             self.character[char]._apply_diff(chardiff)
             deleted.discard(char)
-        if 'no_del' in kwargs:
+        if kwargs.get('no_del'):
             return
         for char in deleted:
             del self._char_cache[char]
 
-    def _maybe_inc_tick(self, tick):
-        if tick == self._tick:
-            return
-        assert tick == self._tick + 1
-        self._tick += 1
-        self.time.send(self, branch=self._branch, tick=self._tick)
+    def btt(self):
+        return self._branch, self._turn, self._tick
 
-    def _set_time(self, *args, **kwargs):
-        self._branch = kwargs['branch']
-        self._tick = kwargs['tick']
-        self.time.send(self, branch=self._branch, tick=self._tick)
+    def _set_time(self, cmd, branch, turn, tick, **kwargs):
+        self._branch = branch
+        self._turn = turn
+        self._tick = tick
+        self.time.send(self, branch=branch, turn=turn, tick=tick)
 
     def _pull_async(self, chars, cb):
         if not callable(cb):
@@ -2108,38 +2201,35 @@ class EngineProxy(AbstractEngine):
                 args=(chars, cb)
             ).start()
 
-    def next_tick(self, chars=[], cb=None, silent=False):
+    def next_turn(self, chars=(), cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
         if not callable(cb):
             raise TypeError("Uncallable callback")
-        if chars:
+        if silent:
+            self.handle(command='next_turn', chars=chars, silent=True, cb=cb)
+        elif chars:
             self.send(self.json_dump({
                 'silent': False,
-                'command': 'next_tick',
+                'command': 'next_turn',
                 'chars': chars
             }))
-            to_call = [
-                lambda ret: self._maybe_inc_tick(ret[1]),
-                lambda ret: self._upd_char_caches(ret[3])
-            ]
+            args = [self._upd_char_caches, self._set_time]
             if cb:
-                to_call.append(cb)
+                args.append(cb)
             if silent:
                 Thread(
                     target=self._call_with_recv,
-                    args=to_call
+                    args=args
                 ).start()
             else:
-                return self._call_with_recv(*to_call)
-        elif silent:
-            self.handle(command='next_tick', chars=[], silent=True)
+                return self._call_with_recv(*args)
         else:
-            branch, tick, act, ret = self.handle(command='next_tick', chars='all')
-            self.time.send(self, branch=branch, tick=tick)
-            return branch, tick, act, ret
+            ret = self.handle(command='next_turn', chars='all')
+            self.time.send(self, branch=ret['branch'], turn=ret['turn'], tick=ret['tick'])
+            return ret
 
-    def time_travel(self, branch, tick, chars='all', cb=None, block=True):
+    def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         if cb and not chars:
             raise TypeError("Callbacks require char name")
         if cb is not None and not callable(cb):
@@ -2151,13 +2241,14 @@ class EngineProxy(AbstractEngine):
             self._time_travel_thread = Thread(
                 target=self._call_with_recv,
                 args=args,
-                kwargs={'branch': branch, 'tick': tick, 'no_del': True}
+                kwargs={'no_del': True}
             )
             self._time_travel_thread.start()
             self.send(self.json_dump({
                 'command': 'time_travel',
                 'silent': False,
                 'branch': branch,
+                'turn': turn,
                 'tick': tick,
                 'chars': chars
             }))
@@ -2167,6 +2258,7 @@ class EngineProxy(AbstractEngine):
             self.handle(
                 command='time_travel',
                 branch=branch,
+                turn=turn,
                 tick=tick,
                 chars=[],
                 silent=True
@@ -2300,11 +2392,23 @@ def subprocess(
         silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
         log('command', (cmd, instruction))
-        r = getattr(engine_handle, cmd)(**instruction)
+
+        branching = instruction.pop('branching', False)
+        if branching:
+            try:
+                r = getattr(engine_handle, cmd)(**instruction)
+            except HistoryError:
+                engine_handle.increment_branch()
+                r = getattr(engine_handle, cmd)(**instruction)
+        else:
+            r = getattr(engine_handle, cmd)(**instruction)
         if silent:
             continue
         log('result', r)
-        handle_in_pipe.send((cmd,  engine_handle.json_dump(r)))
+        handle_in_pipe.send((
+            cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
+            engine_handle.json_dump(r)
+        ))
 
 
 class RedundantProcessError(ProcessError):
@@ -2407,7 +2511,6 @@ class EngineProcessManager(object):
                         50: 'critical'
                     }[level]
                 getattr(self.logger, level)(message)
-                print(message)
                 n += 1
             except Empty:
                 return

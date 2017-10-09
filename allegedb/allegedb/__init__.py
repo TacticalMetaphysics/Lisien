@@ -10,11 +10,27 @@ from .graph import (
     Edge
 )
 from .query import QueryEngine
-from .cache import Cache, NodesCache, EdgesCache
+from .cache import Cache, NodesCache, EdgesCache, HistoryError
 
 
 class GraphNameError(KeyError):
     pass
+
+
+class PlanningContext(object):
+    __slots__ = ['orm', 'time']
+
+    def __init__(self, orm):
+        self.orm = orm
+
+    def __enter__(self):
+        self.orm.planning = True
+        self.time = self.orm.branch, self.orm.turn
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.orm.branch, self.orm.turn = self.time
+        self.orm.planning = False
 
 
 class ORM(object):
@@ -25,6 +41,11 @@ class ORM(object):
     """
     node_cls = _make_node = Node
     edge_cls = _make_edge = Edge
+    query_engine_cls = QueryEngine
+
+    @property
+    def plan(self):
+        return PlanningContext(self)
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
@@ -33,74 +54,23 @@ class ORM(object):
         for k, v in self.query.global_items():
             if k == 'branch':
                 self._obranch = v
-            elif k == 'rev':
-                self._orev = v
+            elif k == 'turn':
+                self._oturn = v
+            elif k == 'tick':
+                self._otick = v
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
-        self._parentbranch_rev = {}
+        self._branches = {}
+        self._turn_end = defaultdict(lambda: 0)
         self._graph_val_cache = Cache(self)
         self._nodes_cache = NodesCache(self)
         self._edges_cache = EdgesCache(self)
         self._node_val_cache = Cache(self)
         self._edge_val_cache = Cache(self)
-        self._obranch = self.branch
-        self._orev = self.rev
-        self._active_branches_cache = []
-        self.query.active_branches = self._active_branches
         self._graph_objs = {}
 
-    def _init_load(self):
-        for (branch, parent, parent_rev) in self.query.all_branches():
-            if branch != 'trunk':
-                self._parentbranch_rev[branch] = (parent, parent_rev)
-            self._childbranch[parent].add(branch)
-        graphval = defaultdict(list)
-        nodeval = defaultdict(list)
-        edgeval = defaultdict(list)
-        nodes = defaultdict(list)
-        edges = defaultdict(list)
-        for (graph, key, branch, rev, val) in self.query.graph_val_dump():
-            graphval[branch].append((graph, key, branch, rev, val))
-        for (graph, node, branch, rev, ex) in self.query.nodes_dump():
-            nodes[branch].append((graph, node, branch, rev, ex))
-        for (graph, u, v, i, branch, rev, ex) in self.query.edges_dump():
-            edges[branch].append((graph, u, v, i, branch, rev, ex))
-        for (
-                graph, node, key, branch, rev, val
-        ) in self.query.node_val_dump():
-            nodeval[branch].append((graph, node, key, branch, rev, val))
-        for (
-                graph, u, v, i, key, branch, rev, val
-        ) in self.query.edge_val_dump():
-            edgeval[branch].append((graph, u, v, i, key, branch, rev, val))
-        # Make sure to load in the correct order, so that
-        # caches for child branches get built after their parents.
-        # Do the graphs first, so that everything else will have
-        # someplace to be.
-        branch2do = deque(['trunk'])
-        while branch2do:
-            branch = branch2do.popleft()
-            for row in graphval[branch]:
-                self._graph_val_cache.store(*row)
-            if branch in self._childbranch:
-                branch2do.extend(self._childbranch[branch])
-        self._load_graphs()
-        branch2do = deque(['trunk'])
-        while branch2do:
-            branch = branch2do.popleft()
-            for row in nodes[branch]:
-                self._nodes_cache.store(*row)
-            for row in edges[branch]:
-                self._edges_cache.store(*row)
-            for row in nodeval[branch]:
-                self._node_val_cache.store(*row)
-            for row in edgeval[branch]:
-                self._edge_val_cache.store(*row)
-            if branch in self._childbranch:
-                branch2do.extend(self._childbranch[branch])
-
-    def _load_graphs(self):
+    def load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
             self._graph_objs[graph] = {
                 'Graph': Graph,
@@ -114,27 +84,45 @@ class ORM(object):
             dbstring,
             alchemy=True,
             connect_args={},
-            query_engine_class=QueryEngine,
-            json_dump=None,
-            json_load=None,
-            caching=True
+            validate=False
     ):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
         """
-        self.query = query_engine_class(
-            dbstring, connect_args, alchemy, json_dump, json_load
-        )
-        self._obranch = None
-        self._orev = None
+        self.planning = False
+        if not hasattr(self, 'query'):
+            self.query = self.query_engine_cls(
+                dbstring, connect_args, alchemy,
+                getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
+            )
         self.query.initdb()
-        if caching:
-            self.caching = True
-            self._init_caches()
-            if not hasattr(self, 'graph'):
-                self.graph = self._graph_objs
-            self._init_load()
+        self._obranch = self.query.globl['branch']
+        self._oturn = self.query.globl['turn']
+        self._otick = self.query.globl['tick']
+        self._init_caches()
+        for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
+            self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
+            self._childbranch[parent].add(branch)
+        if 'trunk' not in self._branches:
+            self._branches['trunk'] = None, 0, 0, 0, 0
+        self.load_graphs()
+        self._init_load(validate=validate)
+
+    def _init_load(self, validate=False):
+        noderows = list(self.query.nodes_dump())
+        self._nodes_cache.load(noderows, validate=validate)
+        edgerows = list(self.query.edges_dump())
+        self._edges_cache.load(edgerows, validate=validate)
+        self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
+        self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
+        self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
+        if not hasattr(self, 'graph'):
+            self.graph = self._graph_objs
+        for graph, node, branch, turn, tick, ex in noderows:
+            self._node_objs[(graph, node)] = self._make_node(self.graph[graph], node)
+        for graph, orig, dest, idx, branch, turn, tick, ex in edgerows:
+            self._edge_objs[(graph, orig, dest, idx)] = self._make_edge(self.graph[graph], orig, dest, idx)
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
@@ -143,12 +131,6 @@ class ORM(object):
     def __exit__(self, *args):
         """Alias for ``close``"""
         self.close()
-
-    def _havebranch(self, b):
-        """Private use. Checks that the branch is known about."""
-        if self.caching and b in self._parentbranch_rev:
-            return True
-        return self.query.have_branch(b)
 
     def is_parent_of(self, parent, child):
         """Return whether ``child`` is a branch descended from ``parent`` at
@@ -159,108 +141,128 @@ class ORM(object):
             return True
         if child == 'trunk':
             return False
-        if child not in self._parentbranch_rev:
+        if child not in self._branches:
             raise ValueError(
                 "The branch {} seems not to have ever been created".format(
                     child
                 )
             )
-        if self._parentbranch_rev[child][0] == parent:
+        if self._branches[child][0] == parent:
             return True
-        return self.is_parent_of(parent, self._parentbranch_rev[child][0])
+        return self.is_parent_of(parent, self._branches[child][0])
 
     @property
     def branch(self):
-        """Return the global value ``branch``, or ``self._obranch`` if it's
-        set
-
-        """
-        if self._obranch is not None:
-            return self._obranch
-        return self.db.globl['branch']
+        return self._obranch
 
     @branch.setter
     def branch(self, v):
-        """Set the global value ``branch`` and note that the branch's (parent,
-        parent_rev) are the (branch, tick) set previously
-
-        """
-        curbranch = self.branch
+        curbranch, curturn, curtick = self.btt()
         if curbranch == v:
             return
-        currev = self.rev
-        if not self._havebranch(v):
-            # assumes the present revision in the parent branch has
+        if v not in self._branches:
+            # assumes the present turn in the parent branch has
             # been finalized.
-            self.query.new_branch(v, curbranch, currev)
+            self.query.new_branch(v, curbranch, curturn, curtick)
         # make sure I'll end up within the revision range of the
         # destination branch
         if v != 'trunk':
-            if self.caching:
-                if v not in self._parentbranch_rev:
-                    self._parentbranch_rev[v] = (curbranch, currev)
-                parrev = self._parentbranch_rev[v][1]
-            else:
-                parrev = self.query.parrev(v)
-            if currev < parrev:
+            parturn = self._branches[v][1]
+            if curturn < parturn:
                 raise ValueError(
                     "Tried to jump to branch {br}, "
-                    "which starts at revision {rv}. "
-                    "Go to rev {rv} or later to use this branch.".format(
+                    "which starts at turn {rv}. "
+                    "Go to turn {rv} or later to use this branch.".format(
                         br=v,
-                        rv=parrev
+                        rv=parturn
                     )
                 )
-        if self.caching:
-            self._obranch = v
-        else:
-            self.query.globl['branch'] = v
+            if not self.planning and v not in self._branches:
+                self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
+        self._obranch = v
 
     @property
-    def rev(self):
-        """Return the global value ``rev``, or ``self._orev`` if that's set"""
-        if self._orev is not None:
-            return self._orev
-        return self.query.globl['rev']
+    def turn(self):
+        return self._oturn
 
-    @rev.setter
-    def rev(self, v):
-        """Set the global value ``rev``, first checking that it's not before
-        the start of this branch.
-
-        """
-        if v == self.rev:
+    @turn.setter
+    def turn(self, v):
+        if v == self.turn:
             return
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
+        tick = self._turn_end.setdefault((branch, v), 0)
+        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
         if branch != 'trunk':
-            if self.caching:
-                (parent, parent_rev) = self._parentbranch_rev[branch]
-            else:
-                (parent, parent_rev) = self.query.parparrev(branch)
-            if v < int(parent_rev):
+            if v < turn_start:
                 raise ValueError(
-                    "The revision number {revn} "
+                    "The turn number {} "
                     "occurs before the start of "
-                    "the branch {brnch}".format(revn=v, brnch=branch)
+                    "the branch {}".format(v, branch)
                 )
-        if self.caching:
-            self._orev = v
-        else:
-            self.query.globl['rev'] = v
+        if not self.planning and v > turn_end:
+            self._branches[branch] = parent, turn_start, tick_start, v, tick
+        self._otick = tick
+        self._oturn = v
+
+    @property
+    def tick(self):
+        return self._otick
+
+    @tick.setter
+    def tick(self, v):
+        time = branch, turn = self._obranch, self._oturn
+        if not self.planning:
+            if v > self._turn_end[time]:
+                self._turn_end[time] = v
+            parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+            if turn == turn_end and v > tick_end:
+                self._branches[branch] = parent, turn_start, tick_start, turn, v
+        self._otick = v
+
+    def btt(self):
+        return self._obranch, self._oturn, self._otick
+
+    def nbtt(self):
+        """Increment the tick and return branch, turn, tick
+
+        Unless we're viewing the past, in which case raise HistoryError.
+
+        Idea is you use this when you want to advance time, which you
+        can only do once per branch, turn, tick.
+
+        """
+        branch, turn, tick = self.btt()
+        tick += 1
+        if self._turn_end[branch, turn] > tick:
+            raise HistoryError(
+                "You're not at the end of turn {}. Go to tick {} to change things".format(
+                    turn, self._turn_end[branch, turn]
+                )
+            )
+        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+        if not self.planning:
+            if turn_end != turn:
+                print(turn)
+                raise HistoryError(
+                    "You're not at the present turn. Go to turn {} to change things".format(turn_end)
+                )
+            self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
+        self._turn_end[branch, turn] = self._otick = tick
+        return branch, turn, tick
 
     def commit(self):
-        """Alias of ``self.query.commit``"""
-        if self.caching:
-            self.query.globl['branch'] = self._obranch
-            self.query.globl['rev'] = self._orev
+        self.query.globl['branch'] = self._obranch
+        self.query.globl['turn'] = self._oturn
+        self.query.globl['tick'] = self._otick
+        for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
+            self.query.update_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
         self.query.commit()
 
     def close(self):
-        """Alias of ``self.query.close``"""
-        if self.caching:
-            self.query.globl['branch'] = self._obranch
-            self.query.globl['rev'] = self._orev
+        self.query.globl['branch'] = self._obranch
+        self.query.globl['turn'] = self._oturn
+        self.query.globl['tick'] = self._otick
         self.query.close()
 
     def initdb(self):
@@ -279,8 +281,7 @@ class ORM(object):
         """
         self._init_graph(name, 'Graph')
         g = Graph(self, name, data, **attr)
-        if self.caching:
-            self._graph_objs[name] = g
+        self._graph_objs[name] = g
         return g
 
     def new_digraph(self, name, data=None, **attr):
@@ -290,8 +291,7 @@ class ORM(object):
         """
         self._init_graph(name, 'DiGraph')
         dg = DiGraph(self, name, data, **attr)
-        if self.caching:
-            self._graph_objs[name] = dg
+        self._graph_objs[name] = dg
         return dg
 
     def new_multigraph(self, name, data=None, **attr):
@@ -301,8 +301,7 @@ class ORM(object):
         """
         self._init_graph(name, 'MultiGraph')
         mg = MultiGraph(self, name, data, **attr)
-        if self.caching:
-            self._graph_objs[name] = mg
+        self._graph_objs[name] = mg
         return mg
 
     def new_multidigraph(self, name, data=None, **attr):
@@ -312,8 +311,7 @@ class ORM(object):
         """
         self._init_graph(name, 'MultiDiGraph')
         mdg = MultiDiGraph(self, name, data, **attr)
-        if self.caching:
-            self._graph_objs[name] = mdg
+        self._graph_objs[name] = mdg
         return mdg
 
     def get_graph(self, name):
@@ -322,7 +320,7 @@ class ORM(object):
         ``new_multidigraph``
 
         """
-        if self.caching and name in self._graph_objs:
+        if name in self._graph_objs:
             return self._graph_objs[name]
         graphtypes = {
             'Graph': Graph,
@@ -336,8 +334,7 @@ class ORM(object):
                 "I don't know of a graph named {}".format(name)
             )
         g = graphtypes[type_s](self, name)
-        if self.caching:
-            self._graph_objs[name] = g
+        self._graph_objs[name] = g
         return g
 
     def del_graph(self, name):
@@ -345,27 +342,23 @@ class ORM(object):
         # make sure the graph exists before deleting anything
         self.get_graph(name)
         self.query.del_graph(name)
-        if self.caching and name in self._graph_objs:
+        if name in self._graph_objs:
             del self._graph_objs[name]
 
-    def _active_branches(self, branch=None, rev=None):
-        """Private use. Iterate over (branch, rev) pairs, where the branch is
+    def _iter_parent_btt(self, branch=None, turn=None, tick=None):
+        """Private use. Iterate over (branch, turn, tick), where the branch is
         a descendant of the previous (starting with whatever branch is
-        presently active and ending at 'trunk'), and the rev is the
+        presently active and ending at 'trunk'), and the turn is the
         latest revision in the branch that matters.
 
         """
-        b = self.branch if branch is None else branch
-        r = self.rev if rev is None else rev
-        if self.caching:
-            yield b, r
-            while b in self._parentbranch_rev:
-                (b, r) = self._parentbranch_rev[b]
-                yield b, r
-            return
-
-        for pair in self.query.active_branches(b, r):
-            yield pair
+        b = branch or self.branch
+        trn = self.turn if turn is None else turn
+        tck = self.tick if tick is None else tick
+        yield b, trn, tck
+        while b in self._branches:
+            (b, trn, tck, _, _) = self._branches[b]
+            yield b, trn, self._turn_end[b, trn]
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current
@@ -373,11 +366,7 @@ class ORM(object):
 
         """
         branch = branch or self.branch
-        if not self.caching:
-            for desc in self.query.branch_descendants(branch):
-                yield desc
-            return
-        for (parent, (child, rev)) in self._parentbranch_rev.items():
+        for (parent, (child, _, _, _, _)) in self._branches.items():
             if parent == branch:
                 yield child
 

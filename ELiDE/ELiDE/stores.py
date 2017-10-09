@@ -410,6 +410,8 @@ class FuncEditor(Editor):
         'character': ('engine', 'character'),
         'thing': ('engine', 'character', 'thing'),
         'place': ('engine', 'character', 'place'),
+        # TODO: change portal type functions to take the portal object
+        # TODO: find some other way than argument length to differentiate them
         'portal': ('engine', 'character', 'origin', 'destination')
     }
     params_subject_type = {v: k for k, v in subject_type_params.items()}

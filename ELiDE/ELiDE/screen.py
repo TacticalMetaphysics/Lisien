@@ -93,13 +93,18 @@ class TimePanel(BoxLayout):
         self.ids.branchfield.text = ''
         self.screen.app.branch = branch
 
+    def set_turn(self, *args):
+        turn = int(self.ids.turnfield.text)
+        self.ids.turnfield.text = ''
+        self.screen.app.turn = turn
+
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
 
-    def next_tick(self, *args):
-        self.screen.app.engine.next_tick(
+    def next_turn(self, *args):
+        self.screen.app.engine.next_turn(
             chars=[self.screen.app.character_name],
             cb=self.screen._update_from_next_tick
         )
@@ -107,17 +112,22 @@ class TimePanel(BoxLayout):
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
 
+    def _upd_turn_hint(self, *args):
+        self.ids.turnfield.hint_text = str(self.screen.app.turn)
+
     def _upd_tick_hint(self, *args):
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
 
     def on_screen(self, *args):
-        if 'branchfield' not in self.ids or 'tickfield' not in self.ids:
+        if not all(field in self.ids for field in ('branchfield', 'turnfield', 'tickfield')):
             Clock.schedule_once(self.on_screen, 0)
             return
         self.ids.branchfield.hint_text = self.screen.app.branch
+        self.ids.turnfield.hint_text = str(self.screen.app.turn)
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
         self.screen.app.bind(
             branch=self._upd_branch_hint,
+            turn=self._upd_turn_hint,
             tick=self._upd_tick_hint
         )
 
@@ -273,12 +283,12 @@ class MainScreen(Screen):
         self._update_from_chardiff(ret[3])
         self._advance_dialog()
 
-    def _update_from_chardiff(self, chardiff, **kwargs):
+    def _update_from_chardiff(self, cmd, branch, turn, tick, **kwargs):
         self.boardview.board.trigger_update_from_diff(
-            chardiff.get(self.boardview.board.character.name, {})
+            kwargs.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
-        self.app.pull_time()
+        self.app.branch, self.app.turn, self.app.tick = branch, turn, tick
 
     def _advance_dialog(self):
         self.ids.dialoglayout.clear_widgets()
@@ -347,15 +357,16 @@ class MainScreen(Screen):
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
+        # TODO pop out the play button if a dialog gets displayed
         if self.playbut.state == 'normal':
             return
         elif not hasattr(self, '_old_time'):
-            self._old_time = (self.app.branch, self.app.tick)
-            self.app.engine.next_tick(
+            self._old_time = (self.app.branch, self.app.turn, self.app.tick)
+            self.app.engine.next_turn(
                 chars=[self.app.character_name],
                 cb=lambda ret: self._update_from_chardiff(ret[3])
             )
-        elif self._old_time == (self.app.branch, self.app.tick):
+        elif self._old_time == (self.app.branch, self.app.turn, self.app.tick):
             return
         elif self._dialog_todo:
             return
@@ -378,8 +389,6 @@ Builder.load_string(
         id: statlist
         size_hint_y: 0.95
         engine: root.engine
-        branch: root.branch
-        tick: root.tick
         remote: root.remote
     Button:
         id: cfgstatbut
@@ -395,9 +404,9 @@ Builder.load_string(
             font_size: 40
             text: '>'
         Button:
-            text: 'Next tick'
+            text: 'Next turn'
             size_hint_y: 0.3
-            on_press: root.next_tick()
+            on_press: root.next_turn()
     BoxLayout:
         orientation: 'vertical'
         Label:
@@ -406,6 +415,14 @@ Builder.load_string(
             id: branchfield
             setter: root.set_branch
             hint_text: root.screen.app.branch if root.screen else ''
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Turn'
+        MenuIntInput:
+            id: turnfield
+            setter: root.set_turn
+            hint_text: str(root.screen.app.turn) if root.screen else ''
     BoxLayout:
         orientation: 'vertical'
         Label:

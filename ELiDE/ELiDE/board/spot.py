@@ -15,7 +15,6 @@ from kivy.properties import (
     NumericProperty,
     BooleanProperty
 )
-from ..kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
 from ..util import trigger
 
@@ -54,28 +53,9 @@ class Spot(PawnSpot):
             del kwargs['place']
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
-        self.bind(
-            size=self._trigger_upd_collider,
-            pos=self._trigger_upd_collider
-        )
 
     def on_board(self, *args):
         self.board.bind(size=self._upd_pos)
-
-    def _upd_collider(self, *args):
-        rx = self.width / 2
-        ry = self.height / 2
-        if (
-                not self.collider or
-                not hasattr(self.collider, 'pos') or
-                self.collider.pos != self.center or
-                self.collider.rx != rx or
-                self.collider.ry != ry
-        ):
-            self.collider = CollideEllipse(
-                x=self.center_x, y=self.center_y, rx=rx, ry=ry
-            )
-    _trigger_upd_collider = trigger(_upd_collider)
 
     def _get_pospawn_partial(self, pawn):
         if pawn not in self._pospawn_partials:
@@ -202,12 +182,6 @@ class Spot(PawnSpot):
         for pawn in self.children:
             self.pospawn(pawn)
     _trigger_upd_pawns_here = trigger(_upd_pawns_here)
-
-    def collide_point(self, x, y):
-        """Check my collider."""
-        self._upd_collider()
-        assert (self.collider is not None)
-        return (x, y) in self.collider
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""

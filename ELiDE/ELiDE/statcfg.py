@@ -196,9 +196,6 @@ class StatScreen(Screen):
     statcfg = ObjectProperty()
     toggle = ObjectProperty()
     engine = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
     remote = ObjectProperty()
 
     def new_stat(self):
@@ -282,8 +279,6 @@ Builder.load_string("""
             id: cfg
             engine: root.engine
             remote: root.remote
-            branch: root.branch
-            tick: root.tick
             statlist: root.statlist
             size_hint_y: 0.95
             RecycleBoxLayout:

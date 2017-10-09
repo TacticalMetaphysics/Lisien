@@ -22,6 +22,7 @@ from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+from allegedb.cache import HistoryError
 
 
 def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
@@ -45,18 +46,18 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
         maxx = np.max(xs)
     try:
         xco = 0.98 / (maxx - minx)
-        xnorm = np.multiply(xs, xco)
+        xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
     except ZeroDivisionError:
-        xnorm = np.array(xs)
+        xnorm = np.array([0.5] * len(xs))
     if miny is None:
         miny = np.min(ys)
     if maxy is None:
         maxy = np.max(ys)
     try:
         yco = 0.98 / (maxy - miny)
-        ynorm = np.multiply(ys, yco)
+        ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
     except ZeroDivisionError:
-        ynorm = np.array(ys)
+        ynorm = np.array([0.5] * len(ys))
     o = {}
     for i in range(len(ks)):
         o[ks[i]] = (xnorm[i], ynorm[i])
@@ -124,8 +125,6 @@ class Board(RelativeLayout):
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
     tracking_vel = BooleanProperty(False)
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
     selection_candidates = ListProperty([])
     selection = ObjectProperty(allownone=True)
     keep_selection = ObjectProperty(False)
@@ -322,10 +321,6 @@ class Board(RelativeLayout):
             if wid != self.kvlayoutback:
                 self.bind(size=wid.setter('size'))
             self.add_widget(wid)
-        if hasattr(self.parent, 'effect_x'):
-            self.parent.effect_x.bind(velocity=self.track_vel)
-        if hasattr(self.parent, 'effect_y'):
-            self.parent.effect_y.bind(velocity=self.track_vel)
         self.trigger_update()
 
     def on_character(self, *args):
@@ -336,14 +331,6 @@ class Board(RelativeLayout):
             return
 
         self.engine = self.character.engine
-        if hasattr(self.parent, 'scroll_x'):
-            self.parent.scroll_x = self.character.stat.setdefault(
-                '_scroll_x', 0.0
-            )
-        if hasattr(self.parent, 'scroll_y'):
-            self.parent.scroll_y = self.character.stat.setdefault(
-                '_scroll_y', 0.0
-            )
         self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
         if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat['_control']:
             control = self.character.stat.setdefault('_control', {})
@@ -432,34 +419,6 @@ class Board(RelativeLayout):
             self.arrow[portal["origin"]] = {}
         self.arrow[portal["origin"]][portal["destination"]] = r
         return r
-
-    def track_vel(self, *args):
-        """Track scrolling once it starts, so that we can tell when it
-        stops.
-
-        """
-        if not self.parent:
-            return
-        if (
-                not self.tracking_vel and (
-                    self.parent.effect_x.velocity > 0 or
-                    self.parent.effect_y.velocity > 0
-                )
-        ):
-            self.upd_pos_when_scrolling_stops()
-            self.tracking_vel = True
-
-    def upd_pos_when_scrolling_stops(self, *args):
-        """Wait for the scroll to stop, then store where it ended."""
-        if not self.parent:
-            return
-        if self.parent.effect_x.velocity \
-           == self.parent.effect_y.velocity == 0:
-            self.character.stat['_scroll_x'] = self.parent.scroll_x
-            self.character.stat['_scroll_y'] = self.parent.scroll_y
-            self.tracking_vel = False
-            return
-        Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
 
     def rm_arrows_to_and_from(self, name):
         origs = list(self.arrow.keys())
@@ -792,12 +751,14 @@ class Board(RelativeLayout):
         for (node, stats) in chardiff['node_stat'].items():
             if node in self.spot:
                 spot = self.spot[node]
-                if '_x' in stats:
-                    spot.x = stats['_x'] * self.width
-                if '_y' in stats:
-                    spot.y = stats['_y'] * self.height
+                x = stats.get('_x')
+                y = stats.get('_y')
+                if x is not None:
+                    spot.x = x * self.width
+                if y is not None:
+                    spot.y = y * self.height
                 if '_image_paths' in stats:
-                    spot.paths = stats['_image_paths']
+                    spot.paths = stats['_image_paths'] or spot.default_image_paths
             elif node in self.pawn:
                 pawn = self.pawn[node]
                 if 'location' in stats:
@@ -805,7 +766,7 @@ class Board(RelativeLayout):
                 if 'next_location' in stats:
                     pawn.next_loc_name = stats['next_location']
                 if '_image_paths' in stats:
-                    pawn.paths = stats['_image_paths']
+                    pawn.paths = stats['_image_paths'] or pawn.default_image_paths
             else:
                 raise ValueError(
                     "Diff tried to change stats of "
@@ -914,8 +875,6 @@ class BoardView(ScrollView):
     screen = ObjectProperty()
     engine = ObjectProperty()
     board = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
     selection_candidates = ListProperty([])
     selection = ObjectProperty(allownone=True)
     keep_selection = BooleanProperty(False)
@@ -1027,8 +986,7 @@ class BoardView(ScrollView):
             Clock.schedule_once(self.on_board, 0)
             return
         for prop in (
-                'keep_selection', 'adding_portal', 'reciprocal_portal',
-                'branch', 'tick'
+                'keep_selection', 'adding_portal', 'reciprocal_portal'
         ):
             if hasattr(self, '_oldboard'):
                 self.unbind(**{prop: self._oldboard.setter(prop)})
