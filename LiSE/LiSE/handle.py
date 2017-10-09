@@ -14,18 +14,6 @@ from allegedb.xjson import (
 )
 from .engine import Engine
 from .util import dict_diff, set_diff
-from allegedb.cache import HistoryError
-
-
-def branching(fun):
-    def brancher(self, *args, **kwargs):
-        try:
-            fun(self, *args, **kwargs)
-        except HistoryError:
-            self.increment_branch()
-            fun(self, *args, **kwargs)
-        return self.branch
-    return brancher
 
 
 class EngineHandle(object):
@@ -50,6 +38,7 @@ class EngineHandle(object):
         self._loglevel = loglevel
         self._muted_chars = set()
         self.branch = self._real.branch
+        self.turn = self._real.turn
         self.tick = self._real.tick
         self._node_stat_cache = defaultdict(dict)
         self._portal_stat_cache = defaultdict(
@@ -154,16 +143,23 @@ class EngineHandle(object):
                 for char in chars
             }
 
-    def next_tick(self, chars=[]):
-        self._real.next_tick()
-        self.tick += 1
+    def next_turn(self, chars=()):
+        result = self._real.next_turn()
+        self.branch, self.turn, self.tick = self._real.btt()
+        ret = {}
+        if result:
+            ret['result'] = result
         if chars:
-            return self.get_chardiffs(chars)
+            ret.update(self.get_chardiffs(chars))
+        return ret
 
-    def time_travel(self, branch, tick, chars='all'):
-        self._real.time = (branch, tick)
+    def time_travel(self, branch, turn, tick=None, chars='all'):
+        self._real.time = (branch, turn)
+        if tick is not None:
+            self._real.tick = tick
         self.branch = branch
-        self.tick = tick
+        self.turn = turn
+        self.tick = tick or self._real.tick
         if chars:
             return self.get_chardiffs(chars)
         else:
@@ -174,11 +170,20 @@ class EngineHandle(object):
         m = match('(.*)([0-9]+)', branch)
         if m:
             stem, n = m.groups()
-            branch = stem + str(n+1)
+            branch = stem + str(int(n)+1)
         else:
             branch += '1'
+        if branch in self._real._branches:
+            if m:
+                n = int(n)
+            else:
+                stem = branch[:-1]
+                n = 1
+            while stem + str(n) in self._real._branches:
+                n += 1
+            branch = stem + str(n)
         ret = {'branch': branch}
-        self._real.branch = branch
+        self._real.branch = self.branch = branch
         if chars:
             ret.update(self.get_chardiffs(chars))
         return ret
@@ -225,8 +230,8 @@ class EngineHandle(object):
     def get_time(self):
         return self._real.time
 
-    def get_watched_time(self):
-        return (self.branch, self.tick)
+    def get_watched_btt(self):
+        return (self.branch, self.turn, self.tick)
 
     def get_language(self):
         return self._real.string.language
@@ -301,12 +306,10 @@ class EngineHandle(object):
         ret = self._universal_cache[k] = self._real.universal[k]
         return ret
 
-    @branching
     def set_universal(self, k, v):
         self._real.universal[k] = v
         self._universal_cache[k] = v
 
-    @branching
     def del_universal(self, k):
         del self._real.universal[k]
         del self._universal_cache[k]
@@ -447,12 +450,10 @@ class EngineHandle(object):
             'portal_rulebooks': self.character_portals_rulebooks_diff(char)
         }
 
-    @branching
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
         self._char_stat_cache.setdefault(char, {})[k] = v
 
-    @branching
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
         del self._char_stat_cache[char][k]
@@ -469,16 +470,13 @@ class EngineHandle(object):
     def characters(self):
         return list(self._real.character.keys())
 
-    @branching
     def set_character(self, char, v):
         self._real.character[char] = v
 
-    @branching
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
         self._node_stat_cache.setdefault(char, {})[node][k] = v
 
-    @branching
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
         del self._node_stat_cache[char][node][k]
@@ -489,8 +487,9 @@ class EngineHandle(object):
             node = node_or_char
         else:
             node = self._real.character[node_or_char].node[node]
+        unwrapper = self.unwrap_thing_stat if isinstance(node, self._real.thing_cls) else self.unwrap_place_stat
         return {
-            k: self.unwrap_node_stat(node, k, v)
+            k: unwrapper(node, k, v)
             for (k, v) in node.items()
             if k not in {
                     'location',
@@ -601,15 +600,10 @@ class EngineHandle(object):
                     del self._portal_stat_cache[char][o][node]
 
     def character_things(self, char):
-        return {
-            name: (
-                thing['location'],
-                thing['next_location'],
-                thing['arrival_time'],
-                thing['next_arrival_time']
-            )
-            for (name, thing) in self._real.character[char].thing.items()
-        }
+        ret = {}
+        for name, thing in self._real.character[char].thing.items():
+            ret[name] = thing['locations'] + (thing['arrival_time'], thing['next_arrival_time'])
+        return ret
 
     def character_things_diff(self, char):
         """Return a dictionary of char's things and their locations.
@@ -625,7 +619,7 @@ class EngineHandle(object):
             self._char_things_cache[char] = new
             return dict_diff(old, new)
         except KeyError:
-            return None
+            return {}
 
     def character_places(self, char):
         return list(self._real.character[char].place)
@@ -678,7 +672,6 @@ class EngineHandle(object):
             )
         return self.set_thing(char, thing, statdict)
 
-    @branching
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
@@ -688,7 +681,6 @@ class EngineHandle(object):
         nxtarrt = statdict.pop('next_arrival_time', None)
         self._char_things_cache.setdefault(char, {})[thing] = (loc, nxtloc, arrt, nxtarrt)
 
-    @branching
     def add_thing(self, char, thing, loc, next_loc, statdict):
         self._real.character[char].add_thing(
             thing, loc, next_loc, **statdict
@@ -696,16 +688,13 @@ class EngineHandle(object):
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
         self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
 
-    @branching
     def place2thing(self, char, node, loc):
         self._real.character[char].place2thing(node, loc)
 
-    @branching
     def thing2place(self, char, node):
         self._real.character[char].thing2place(node)
 
     def add_things_from(self, char, seq):
-        # TODO: special case of branching
         self._real.character[char].add_things_from(seq)
 
     def get_thing_location(self, char, thing):
@@ -714,7 +703,6 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    @branching
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
         _, nxtloc, arrt, nxtarrt = self._char_things_cache.setdefault(char, {}).get(
@@ -735,22 +723,18 @@ class EngineHandle(object):
         )
 
     def thing_follow_path(self, char, thing, path, weight):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].follow_path(path, weight)
+        return self._real.character[char].thing[thing].follow_path(path, weight)
 
     def thing_go_to_place(self, char, thing, place, weight):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].go_to_place(place, weight)
+        return self._real.character[char].thing[thing].go_to_place(place, weight)
 
     def thing_travel_to(self, char, thing, dest, weight, graph):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].travel_to(dest, weight, graph)
+        return self._real.character[char].thing[thing].travel_to(dest, weight, graph)
 
     def thing_travel_to_by(
             self, char, thing, dest, arrival_tick, weight, graph
     ):
-        # TODO: special case of branching
-        self._real.character[char].thing[thing].travel_to_by(
+        return self._real.character[char].thing[thing].travel_to_by(
             dest, arrival_tick, weight, graph
         )
 
@@ -763,13 +747,11 @@ class EngineHandle(object):
             )
         return self.set_place(char, place, statdict)
 
-    @branching
     def set_place(self, char, place, statdict):
         self._real.character[char].place[place] = statdict
         self._node_stat_cache.setdefault(char, {})[place] = statdict
 
     def add_places_from(self, char, seq):
-        # TODO: special case of branching
         self._real.character[char].add_places_from(seq)
 
     def init_portal(self, char, orig, dest, statdict={}):
@@ -784,7 +766,6 @@ class EngineHandle(object):
             )
         return self.set_portal(char, orig, dest, statdict)
 
-    @branching
     def set_portal(self, char, orig, dest, statdict):
         self._real.character[char].portal[orig][dest] = statdict
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
@@ -806,28 +787,23 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    @branching
     def add_portal(self, char, orig, dest, symmetrical, statdict):
         self._real.character[char].add_portal(
             orig, dest, symmetrical, **statdict
         )
 
     def add_portals_from(self, char, seq, symmetrical):
-        # TODO: special case of branching
         self._real.character[char].add_portals_from(seq, symmetrical)
 
-    @branching
     def del_portal(self, char, orig, dest):
         del self._real.character[char].portal[orig][dest]
         del self._portal_stat_cache[char][orig][dest]
         del self._char_places_cache[char][orig][dest]
 
-    @branching
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
         self._portal_stat_cache.setdefault(char, {}).setdefault(orig, {})[dest][k] = v
 
-    @branching
     def del_portal_stat(self, char, orig, dest, k):
         del self._real.character[char][orig][dest][k]
         del self._portal_stat_cache[char][orig][dest][k]
@@ -858,7 +834,6 @@ class EngineHandle(object):
                     r[orig][dest] = diff
         return r
 
-    @branching
     def update_portal(self, char, orig, dest, patch):
         character = self._real.character[char]
         if patch is None:
@@ -875,12 +850,10 @@ class EngineHandle(object):
             branch = self.update_portal(char, orig, dest, ppatch)
         return branch
 
-    @branching
     def add_avatar(self, char, graph, node):
         self._real.character[char].add_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].add(node)
 
-    @branching
     def del_avatar(self, char, graph, node):
         self._real.character[char].del_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)
@@ -954,11 +927,11 @@ class EngineHandle(object):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
     def rule_copy(self, rule):
-        rule = self._real.rule[rule]
+        branch, turn, tick = self.branch, self.turn, self.tick
         return {
-            'triggers': list(rule.triggers._cache),
-            'prereqs': list(rule.prereqs._cache),
-            'actions': list(rule.actions._cache)
+            'triggers': list(self._real._triggers_cache.retrieve(rule, branch, turn, tick)),
+            'prereqs': list(self._real._prereqs_cache.retrieve(rule, branch, turn, tick)),
+            'actions': list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
         }
 
     def rule_diff(self, rule):

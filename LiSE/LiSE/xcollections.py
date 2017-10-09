@@ -190,7 +190,7 @@ class FunctionStore(Signal):
                 indent = 0
                 break
             indent = min((indent, lineindent))
-        return '\n'.join(line[indent:] for line in sourcelines)
+        return '\n'.join(line[indent:].strip('\n') for line in sourcelines) + '\n'
 
     def __call__(self, v):
         setattr(self, v.__name__, v)
@@ -246,27 +246,28 @@ class UniversalMapping(MutableMapping, Signal):
         self.engine = engine
 
     def __iter__(self):
-        return self.engine._universal_cache.iter_keys(*self.engine.time)
+        return self.engine._universal_cache.iter_keys(*self.engine.btt())
 
     def __len__(self):
-        return self.engine._universal_cache.count_keys(*self.engine.time)
+        return self.engine._universal_cache.count_keys(*self.engine.btt())
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        return self.engine._universal_cache.retrieve(k, *self.engine.time)
+        return self.engine._universal_cache.retrieve(k, *self.engine.btt())
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
-        (branch, tick) = self.engine.time
-        self.engine.query.universal_set(k, branch, tick, v)
-        self.engine._universal_cache.store(k, branch, tick, v)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine._universal_cache.store(k, branch, turn, tick, v)
+        self.engine.query.universal_set(k, branch, turn, tick, v)
+        self.engine.tick = tick
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        branch, tick = self.engine.time
-        self.engine.query.universal_del(k, branch, tick)
-        self.engine._universal_cache.store(k, branch, tick, None)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine._universal_cache.store(k, branch, turn, tick, None)
+        self.engine.query.universal_del(k, branch, turn, tick)
         self.send(self, key=k, val=None)
 
 
@@ -286,6 +287,7 @@ class CharacterMapping(MutableMapping, Signal):
         """Store the engine, initialize caches"""
         super().__init__()
         self.engine = engine
+        self._cache = None
 
     def __iter__(self):
         """Iterate over every character name."""
@@ -293,9 +295,13 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __contains__(self, name):
         """Has this character been created?"""
-        if name in self.engine._graph_objs:
-            return True
-        return self.engine.query.have_character(name)
+        if self.engine._graph_objs:
+            self._cache = None
+            return name in self.engine._graph_objs
+        # hack to make initial load work
+        if self._cache is None:
+            self._cache = [ch for ch, typ in self.engine.query.graphs_types() if typ == 'DiGraph']
+        return name in self._cache
 
     def __len__(self):
         """How many characters have been created?"""

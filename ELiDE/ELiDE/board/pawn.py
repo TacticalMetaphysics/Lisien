@@ -80,7 +80,8 @@ class Pawn(PawnSpot):
             except KeyError:
                 return
         if location != self.parent:
-            self.parent.remove_widget(self)
+            if self.parent:
+                self.parent.remove_widget(self)
             location.add_widget(self)
     _trigger_relocate = trigger(relocate)
 
@@ -116,7 +117,8 @@ class Pawn(PawnSpot):
             self.relocate()
 
     def push_location(self, *args):
-        self.remote['location'] = self.loc_name
+        if self.remote['location'] != self.loc_name:
+            self.remote['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)
 
     def add_widget(self, pawn, index=0, canvas='after'):
