@@ -212,12 +212,12 @@ class Editor(BoxLayout):
 
     def delete(self, *args):
         key = self.name_wid.text or self.name_wid.hint_text
-        if key not in self.store:
+        if not hasattr(self.store, key):
             # TODO feedback about missing key
             return
-        del self.store[key]
+        delattr(self.store, key)
         try:
-            return min(kee for kee in self.store if kee > key)
+            return min(kee for kee in dir(self.store) if kee > key)
         except ValueError:
             return '+'
 

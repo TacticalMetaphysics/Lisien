@@ -2,6 +2,8 @@ LiSE is an application for developing life simulation games.
 
 [Development blog](http://forums.tigsource.com/index.php?topic=35227.0)
 
+[Survey for prospective users](https://goo.gl/7N1TBj)
+
 # What is a life simulation game?
 
 For the purposes of LiSE, it is any game where you are primarily
@@ -16,14 +18,12 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Redshirt
-* Animal Crossing
 * Princess Maker
 * Monster Rancher
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
 * The King of Dragon Pass
-* Cart Life
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
 
@@ -63,8 +63,11 @@ yourself, after all.
 
 ```
 # install the Kivy app framework
-sudo apt-get install cython3 python3-dev python3-pip python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-pip3 install --user kivy
+sudo apt-get install cython3 python3-dev python3-pip \
+libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
+libsdl2-ttf-dev
+# ELiDE doesn't play movies, so disable gstreamer
+USE_GSTREAMER=0 pip3 install --user kivy
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE

@@ -61,12 +61,53 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
+    def handled_table(prefix):
+        """Return a Table for recording the fact that a particular type of
+        rule has been handled on a particular tick.
+
+        """
+        name = "{}_rules_handled".format(prefix)
+        r = Table(
+            name, meta,
+            Column('character', TEXT, primary_key=True),
+            Column('rulebook', TEXT, primary_key=True),
+            Column('rule', TEXT, primary_key=True),
+            Column('branch', TEXT, primary_key=True, default='trunk'),
+            Column('tick', Integer, primary_key=True, default=0),
+            ForeignKeyConstraint(
+                ['character', 'rulebook'],
+                [
+                    'characters.character',
+                    'characters.{}_rulebook'.format(prefix)
+                ]
+            )
+        )
+        return r
+
+    def string_store_table(name):
+        """Return a Table for storing strings, some of which may have
+        different versions for different languages.
+
+        """
+        r = Table(
+            name, meta,
+            Column('id', TEXT, primary_key=True),
+            Column('language', TEXT, primary_key=True, default='eng'),
+            Column('date', DateTime, nullable=True),
+            Column('creator', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
+            Column('string', TEXT)
+        )
+        return r
 
     r = allegedb.alchemy.tables_for_meta(meta)
 
+    for strtyp in strtyps:
+        r[strtyp] = string_store_table(strtyp)
+
     # Table for global variables that are not sensitive to sim-time.
-    r['universal'] = Table(
-        'universal', meta,
+    r['lise_globals'] = Table(
+        'lise_globals', meta,
         Column('key', TEXT, primary_key=True),
         Column(
             'branch', TEXT, primary_key=True, default='trunk'
@@ -163,6 +204,7 @@ def tables_for_meta(meta):
         Column('avatar_rulebook', TEXT, nullable=False),
         Column('character_thing_rulebook', TEXT, nullable=False),
         Column('character_place_rulebook', TEXT, nullable=False),
+        Column('character_node_rulebook', TEXT, nullable=False),
         Column('character_portal_rulebook', TEXT, nullable=False),
         ForeignKeyConstraint(['character'], ['graphs.graph']),
         ForeignKeyConstraint(
@@ -180,69 +222,43 @@ def tables_for_meta(meta):
         )
     )
 
-    r['character_rules_handled'] = Table(
-        'character_rules_handled', meta,
+    # Rules handled within the rulebook associated with one thing in
+    # particular.
+    r['thing_rules_handled'] = Table(
+        'thing_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
+        Column('thing', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
 
-    r['avatar_rules_handled'] = Table(
-        'avatar_rules_handled', meta,
+    # Rules handled within the rulebook associated with one place in
+    # particular.
+    r['place_rules_handled'] = Table(
+        'place_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
+        Column('place', TEXT, primary_key=True),
         Column('rulebook', TEXT, primary_key=True),
         Column('rule', TEXT, primary_key=True),
-        Column('graph', TEXT, primary_key=True),
-        Column('avatar', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True),
         Column('tick', Integer, primary_key=True)
     )
 
-    def thing_rules_handled_tab(name):
-        r[name] = Table(
-            name, meta,
-            Column('character', TEXT, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('thing', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', Integer, primary_key=True)
-        )
-
-    thing_rules_handled_tab('thing_rules_handled')
-    thing_rules_handled_tab('character_thing_rules_handled')
-
-    def place_rules_handled_tab(name):
-        r[name] = Table(
-            name, meta,
-            Column('character', TEXT, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('place', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', Integer, primary_key=True)
-        )
-
-    place_rules_handled_tab('place_rules_handled')
-    place_rules_handled_tab('character_place_rules_handled')
-
-    def portal_rules_handled_tab(name):
-        r[name] = Table(
-            name, meta,
-            Column('character', TEXT, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('nodeA', TEXT, primary_key=True),
-            Column('nodeB', TEXT, primary_key=True),
-            Column('idx', Integer, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', Integer, primary_key=True)
-        )
-
-    portal_rules_handled_tab('portal_rules_handled')
-    portal_rules_handled_tab('character_portal_rules_handled')
+    # Rules handled within the rulebook associated with one portal in
+    # particular.
+    r['portal_rules_handled'] = Table(
+        'portal_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('nodeA', TEXT, primary_key=True),
+        Column('nodeB', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', Integer, primary_key=True)
+    )
 
     # The function to use for a given sense.
     #
@@ -271,6 +287,27 @@ def tables_for_meta(meta):
         Column('description', TEXT, nullable=True),
         Column('function', TEXT),
         Column('active', Boolean, default=True),
+        ForeignKeyConstraint(['character'], ['graphs.graph'])
+    )
+
+    # A list of tests that Things have to pass in order to move.
+    #
+    # Whenever a Thing tries to set its ``next_location``, its character
+    # will pass the Thing itself and the Portal it wants to travel
+    # into each of these functions, and will only allow it if all
+    # return True (or if there are no functions in travel_reqs for the
+    # character).
+    #
+    # Not used as of 2015-11-09
+    r['travel_reqs'] = Table(
+        'travel_reqs', meta,
+        Column(
+            'character', TEXT, primary_key=True, nullable=True
+        ),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('reqs', TEXT, default='[]'),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
 
@@ -375,6 +412,16 @@ def tables_for_meta(meta):
         )
     )
 
+    for tab in (
+        handled_table('character'),
+        handled_table('avatar'),
+        handled_table('character_thing'),
+        handled_table('character_place'),
+        handled_table('character_node'),
+        handled_table('character_portal'),
+    ):
+        r[tab.name] = tab
+
     return r
 
 
@@ -405,26 +452,6 @@ def views_for_table_dict(table):
             ]
         )
     )
-    ctrh = table['character_thing_rules_handled']
-    cprh = table['character_place_rules_handled']
-    r['character_node_rules_handled'] = union(
-        select([
-            cprh.c.character,
-            cprh.c.rulebook,
-            cprh.c.rule,
-            cprh.c.place.label('node'),
-            cprh.c.branch,
-            cprh.c.tick
-        ]),
-        select([
-            ctrh.c.character,
-            ctrh.c.rulebook,
-            ctrh.c.rule,
-            ctrh.c.thing.label('node'),
-            ctrh.c.branch,
-            ctrh.c.tick
-        ])
-    )
     return r
 
 
@@ -433,94 +460,76 @@ def indices_for_table_dict(table):
     return a dictionary of indices for the tables.
 
     """
+    def handled_idx(prefix):
+        """Return an index for the _rules_handled table with the given
+        prefix.
+
+        """
+        t = table['{}_rules_handled'.format(prefix)]
+        return Index(
+            "{}_rules_handled_idx".format(prefix),
+            t.c.character,
+            t.c.rulebook,
+            t.c.rule
+        )
 
     r = allegedb.alchemy.indices_for_table_dict(table)
-    crh = table['character_rules_handled']
-    arh = table['avatar_rules_handled']
-    ctrh = table['character_thing_rules_handled']
-    cprh = table['character_place_rules_handled']
-    cporh = table['character_portal_rules_handled']
 
     for idx in (
-        Index(
-            'active_rules_idx',
-            table['active_rules'].c.rulebook,
-            table['active_rules'].c.rule
-        ),
-        Index(
-            'senses_idx',
-            table['senses'].c.character,
-            table['senses'].c.sense
-        ),
-        Index(
-            'things_idx',
-            table['things'].c.character,
-            table['things'].c.thing
-        ),
-        Index(
-            'avatars_idx',
-            table['avatars'].c.character_graph,
-            table['avatars'].c.avatar_graph,
-            table['avatars'].c.avatar_node
-        ),
-        Index(
-            'character_rules_handled_idx',
-            crh.c.character,
-            crh.c.rulebook,
-            crh.c.rule
-        ),
-        Index(
-            'avatar_rules_handled_idx',
-            arh.c.character,
-            arh.c.rulebook,
-            arh.c.rule,
-            arh.c.avatar
-        ),
-        Index(
-            'character_thing_rules_handled_idx',
-            ctrh.c.character,
-            ctrh.c.rulebook,
-            ctrh.c.rule,
-            ctrh.c.thing
-        ),
-        Index(
-            'character_place_rules_handled_idx',
-            cprh.c.character,
-            cprh.c.rulebook,
-            cprh.c.rule,
-            cprh.c.place
-        ),
-        Index(
-            'character_portal_rules_handled_idx',
-            cporh.c.character,
-            cporh.c.rulebook,
-            cporh.c.rule,
-            cporh.c.nodeA,
-            cporh.c.nodeB
-        ),
-        Index(
-            'thing_rules_handled_idx',
-            table['thing_rules_handled'].c.character,
-            table['thing_rules_handled'].c.thing,
-            table['thing_rules_handled'].c.rulebook,
-            table['thing_rules_handled'].c.rule
-        ),
-        Index(
-            'place_rules_handled_idx',
-            table['place_rules_handled'].c.character,
-            table['place_rules_handled'].c.place,
-            table['place_rules_handled'].c.rulebook,
-            table['place_rules_handled'].c.rule
-        ),
-        Index(
-            'portal_rules_handled_idx',
-            table['portal_rules_handled'].c.character,
-            table['portal_rules_handled'].c.nodeA,
-            table['portal_rules_handled'].c.nodeB,
-            table['portal_rules_handled'].c.idx,
-            table['portal_rules_handled'].c.rulebook,
-            table['portal_rules_handled'].c.rule
-        )
+            Index(
+                'active_rules_idx',
+                table['active_rules'].c.rulebook,
+                table['active_rules'].c.rule
+            ),
+            Index(
+                'senses_idx',
+                table['senses'].c.character,
+                table['senses'].c.sense
+            ),
+            Index(
+                'travel_reqs_idx',
+                table['travel_reqs'].c.character
+            ),
+            Index(
+                'things_idx',
+                table['things'].c.character,
+                table['things'].c.thing
+            ),
+            Index(
+                'avatars_idx',
+                table['avatars'].c.character_graph,
+                table['avatars'].c.avatar_graph,
+                table['avatars'].c.avatar_node
+            ),
+            handled_idx('character'),
+            handled_idx('avatar'),
+            handled_idx('character_thing'),
+            handled_idx('character_place'),
+            handled_idx('character_node'),
+            handled_idx('character_portal'),
+            Index(
+                'thing_rules_handled_idx',
+                table['thing_rules_handled'].c.character,
+                table['thing_rules_handled'].c.thing,
+                table['thing_rules_handled'].c.rulebook,
+                table['thing_rules_handled'].c.rule
+            ),
+            Index(
+                'place_rules_handled_idx',
+                table['place_rules_handled'].c.character,
+                table['place_rules_handled'].c.place,
+                table['place_rules_handled'].c.rulebook,
+                table['place_rules_handled'].c.rule
+            ),
+            Index(
+                'portal_rules_handled_idx',
+                table['portal_rules_handled'].c.character,
+                table['portal_rules_handled'].c.nodeA,
+                table['portal_rules_handled'].c.nodeB,
+                table['portal_rules_handled'].c.idx,
+                table['portal_rules_handled'].c.rulebook,
+                table['portal_rules_handled'].c.rule
+            )
     ):
         r[idx.table.name] = idx
 
@@ -557,10 +566,6 @@ def queries(table, view):
             [getattr(t.c, col) for col in selcols]
         ).where(and_(*wheres))
 
-    def dump(t):
-        """Return a ``SELECT`` statement that gets everything from the table"""
-        return select(list(t.c.values()))
-
     def update_where(t, updcols, wherecols):
         """Return an ``UPDATE`` statement that updates the columns ``updcols``
         (with bindparams for each) in the table ``t`` in which the
@@ -576,23 +581,211 @@ def queries(table, view):
         ]
         return t.update().values(**vmap).where(and_(*wheres))
 
+    def func_table_iter(t):
+        """Select the ``name`` column."""
+        return select(
+            [t.c.name]
+        )
+
+    def func_table_name_plaincode(t):
+        """Select the ``name`` and ``plaincode`` columns."""
+        return select(
+            [t.c.name, t.c.plaincode]
+        )
+
+    def func_table_get(t):
+        """Get all columns for a given function (except ``name``).
+
+        * ``bytecode``
+        * ``base``
+        * ``keywords``
+        * ``date``
+        * ``creator``
+        * ``contributor``
+        * ``description``
+        * ``plaincode``
+        * ``version``
+
+        """
+        return select(
+            [
+                t.c.bytecode,
+                t.c.base,
+                t.c.keywords,
+                t.c.date,
+                t.c.creator,
+                t.c.contributor,
+                t.c.description,
+                t.c.plaincode,
+                t.c.version
+            ]
+        ).where(
+            t.c.name == bindparam('name')
+        )
+
+    def func_table_ins(t):
+        """Return an ``INSERT`` statement for a function table.
+
+        Inserts the fields:
+
+        * ``name``
+        * ``bytecode``
+        * ``plaincode``
+
+        """
+        return t.insert().values(
+            name=bindparam('name'),
+            keywords=bindparam('keywords'),
+            bytecode=bindparam('bytecode'),
+            plaincode=bindparam('plaincode')
+        )
+
+    def func_table_upd(t):
+        """Return an ``UPDATE`` statement to change the ``bytecode`` and
+        ``plaincode`` for a function of a given name.
+
+        """
+        return t.update().values(
+            keywords=bindparam('keywords'),
+            bytecode=bindparam('bytecode'),
+            plaincode=bindparam('plaincode')
+        ).where(
+            t.c.name == bindparam('name')
+        )
+
+    def func_table_del(t):
+        """Return a ``DELETE`` statement to delete the function by a given
+        name.
+
+        """
+        return t.delete().where(
+            t.c.name == bindparam('name')
+        )
+
+    def string_table_lang_items(t):
+        """Return all the strings and their IDs for a given language."""
+        return select(
+            [t.c.id, t.c.string]
+        ).where(
+            t.c.language == bindparam('language')
+        ).order_by(
+            t.c.id
+        )
+
+    def string_table_get(t):
+        """Return a ``SELECT`` statement to get a string based on its language
+        and ID.
+
+        """
+        return select(
+            [t.c.string]
+        ).where(
+            and_(
+                t.c.language == bindparam('language'),
+                t.c.id == bindparam('id')
+            )
+        )
+
+    def string_table_ins(t):
+        """Return an ``INSERT`` statement for a string's ID, its language, and
+        the string itself.
+
+        """
+        return t.insert().values(
+            id=bindparam('id'),
+            language=bindparam('language'),
+            string=bindparam('string')
+        )
+
+    def string_table_upd(t):
+        """Return an ``UPDATE`` statement to change a string in a given
+        language, with a given ID.
+
+        """
+        return t.update().values(
+            string=bindparam('string')
+        ).where(
+            and_(
+                t.c.language == bindparam('language'),
+                t.c.id == bindparam('id')
+            )
+        )
+
+    def string_table_del(t):
+        """Return a ``DELETE`` statement to get rid of a string in a given
+        language, with a given ID.
+
+        """
+        return t.delete().where(
+            and_(
+                t.c.language == bindparam('language'),
+                t.c.id == bindparam('id')
+            )
+        )
+
     r = allegedb.alchemy.queries_for_table_dict(table)
+
+    for strtyp in strtyps:
+        r['{}_lang_items'.format(strtyp)] = string_table_lang_items(
+            table[strtyp]
+        )
+        r['{}_get'.format(strtyp)] = string_table_get(table[strtyp])
+        r['{}_ins'.format(strtyp)] = string_table_ins(table[strtyp])
+        r['{}_upd'.format(strtyp)] = string_table_upd(table[strtyp])
+        r['{}_del'.format(strtyp)] = string_table_del(table[strtyp])
+
+    def universal_hitick(*columns):
+        """Return a query to find the time of the most recent change for some
+        columns in the 'lise_globals' table, called 'universal' in the
+        ORM.
+
+        """
+        whereclause = [
+            getattr(table['lise_globals'].c, col) == bindparam(col)
+            for col in columns
+        ]
+        whereclause.append(
+            table['lise_globals'].c.tick <= bindparam('tick')
+        )
+        return select(
+            [
+                table['lise_globals'].c.key,
+                table['lise_globals'].c.branch,
+                func.MAX(table['lise_globals'].c.tick).label('tick')
+            ]
+        ).where(
+            and_(*whereclause)
+        ).group_by(
+            table['lise_globals'].c.key,
+            table['lise_globals'].c.branch
+        )
 
     r['universal_dump'] = select(
         [
-            table['universal'].c.key,
-            table['universal'].c.branch,
-            table['universal'].c.tick,
-            table['universal'].c.value
+            table['lise_globals'].c.key,
+            table['lise_globals'].c.branch,
+            table['lise_globals'].c.tick,
+            table['lise_globals'].c.value
         ]
     ).order_by(
-        table['universal'].c.branch,
-        table['universal'].c.tick,
-        table['universal'].c.key
+        table['lise_globals'].c.key,
+        table['lise_globals'].c.branch,
+        table['lise_globals'].c.tick
     )
 
+    r['universal_items'] = select(
+        [
+            table['lise_globals'].c.key,
+            table['lise_globals'].c.value
+        ]
+    ).select_from(universal_hitick('branch'))
+
+    r['universal_get'] = select(
+        [table['lise_globals'].c.value]
+    ).select_from(universal_hitick('key', 'branch'))
+
     r['universal_ins'] = insert_cols(
-        table['universal'],
+        table['lise_globals'],
         'key',
         'branch',
         'tick',
@@ -600,7 +793,7 @@ def queries(table, view):
     )
 
     r['universal_upd'] = update_where(
-        table['universal'],
+        table['lise_globals'],
         ['value'],
         ['key', 'branch', 'tick']
     )
@@ -615,6 +808,7 @@ def queries(table, view):
         characters.c.avatar_rulebook,
         characters.c.character_thing_rulebook,
         characters.c.character_place_rulebook,
+        characters.c.character_node_rulebook,
         characters.c.character_portal_rulebook
     ])
 
@@ -623,6 +817,7 @@ def queries(table, view):
         characters.c.avatar_rulebook,
         characters.c.character_thing_rulebook,
         characters.c.character_place_rulebook,
+        characters.c.character_node_rulebook,
         characters.c.character_portal_rulebook
     ]).where(
         table['characters'].c.character == bindparam('character')
@@ -636,15 +831,142 @@ def queries(table, view):
         table['characters'].c.character == bindparam('character')
     )
 
-    cnrh = view['character_node_rules_handled']
-    r['dump_character_node_rules_handled'] = select([
-        cnrh.c.character,
-        cnrh.c.rulebook,
-        cnrh.c.rule,
-        cnrh.c.node,
-        cnrh.c.branch,
-        cnrh.c.tick
+    active_rules = table['active_rules']
+    r['dump_active_rules'] = select([
+        active_rules.c.rulebook,
+        active_rules.c.rule,
+        active_rules.c.branch,
+        active_rules.c.tick,
+        active_rules.c.active
     ])
+
+    def arhitick(*cols):
+        """Return a query to get the time of the most recent change to the
+        columns in a rulebook table.
+
+        """
+        wheres = [
+            getattr(active_rules.c, col) == bindparam(col)
+            for col in cols
+        ] + [active_rules.c.tick <= bindparam('tick')]
+        return select(
+            [
+                active_rules.c.rulebook,
+                active_rules.c.rule,
+                active_rules.c.branch,
+                func.MAX(active_rules.c.tick).label('tick')
+            ]
+        ).group_by(
+            active_rules.c.rulebook,
+            active_rules.c.rule,
+            active_rules.c.branch
+        ).where(and_(*wheres)).alias('hitick')
+
+    active_rules_hitick = arhitick('branch')
+
+    node_rules_handled = view['node_rules_handled']
+    r['dump_node_rules_handled'] = select([
+        node_rules_handled.c.character,
+        node_rules_handled.c.node,
+        node_rules_handled.c.rulebook,
+        node_rules_handled.c.rule,
+        node_rules_handled.c.branch,
+        node_rules_handled.c.tick
+    ])
+
+    node_rulebook = table['node_rulebook']
+    active_rules = table['active_rules']
+    rulebooks = table['rulebooks']
+
+    current_active_rules = select(
+        [
+            active_rules.c.rulebook,
+            active_rules.c.rule,
+            active_rules.c.branch,
+            active_rules.c.tick,
+            active_rules.c.active
+        ]
+    ).select_from(
+        active_rules.join(
+            active_rules_hitick,
+            and_(
+                active_rules.c.rulebook == active_rules_hitick.c.rulebook,
+                active_rules.c.rule == active_rules_hitick.c.rule,
+                active_rules.c.branch == active_rules_hitick.c.branch,
+                active_rules.c.tick == active_rules_hitick.c.tick
+            )
+        )
+    ).alias('curactrule')
+
+    nrhandle = select(
+        [
+            node_rules_handled.c.character,
+            node_rules_handled.c.node,
+            node_rules_handled.c.rulebook,
+            node_rules_handled.c.rule,
+            column('1').label('handled')
+        ]
+    ).where(
+        and_(
+            node_rules_handled.c.branch == bindparam('branch'),
+            node_rules_handled.c.tick == bindparam('tick'),
+        )
+    ).alias('nrhandle')
+
+    def node_rules(*wheres):
+        """Return a query to get the active rules for a node.
+
+        It will have a WHERE clause containing any conditions you
+        pass in.
+
+        """
+        return select(
+            [
+                node_rulebook.c.character,
+                node_rulebook.c.node,
+                node_rulebook.c.rulebook,
+                current_active_rules.c.rule,
+                current_active_rules.c.active,
+            ]
+        ).select_from(
+            node_rulebook.join(
+                rulebooks,
+                rulebooks.c.rulebook == node_rulebook.c.rulebook,
+            ).join(
+                current_active_rules,
+                and_(
+                    rulebooks.c.rulebook == current_active_rules.c.rulebook,
+                    rulebooks.c.rule == current_active_rules.c.rule
+                )
+            ).join(
+                nrhandle,
+                and_(
+                    node_rulebook.c.character == nrhandle.c.character,
+                    node_rulebook.c.node == nrhandle.c.node,
+                    node_rulebook.c.rulebook == nrhandle.c.rulebook,
+                    current_active_rules.c.rule == nrhandle.c.rule
+                ),
+                isouter=True
+            )
+        ).where(
+            and_(
+                nrhandle.c.handled == null(),
+                *wheres
+            )
+        ).order_by(
+            node_rulebook.c.character,
+            node_rulebook.c.node,
+            rulebooks.c.rulebook,
+            rulebooks.c.idx
+        )
+
+    r['poll_node_rules'] = node_rules()
+    r['node_rules'] = node_rules(
+        node_rulebook.c.character == bindparam('character'),
+        node_rulebook.c.node == bindparam('node')
+    )
+    # Note that you have to pass in the branch and tick *twice*, and
+    # prior to the character and node, if you're using sqlite
 
     portal_rulebook = table['portal_rulebook']
 
@@ -675,23 +997,386 @@ def queries(table, view):
         ['character', 'nodeA', 'nodeB', 'idx']
     )
 
-    for name, tab in table.items():
-        r['dump_'+name] = dump(tab)
+    portal_rules_handled = table['portal_rules_handled']
+    r['dump_portal_rules_handled'] = select([
+        portal_rules_handled.c.character,
+        portal_rules_handled.c.nodeA,
+        portal_rules_handled.c.nodeB,
+        portal_rules_handled.c.idx,
+        portal_rules_handled.c.rulebook,
+        portal_rules_handled.c.rule,
+        portal_rules_handled.c.branch,
+        portal_rules_handled.c.tick
+    ])
 
-    for what in (
-        'thing',
-        'place',
-        'portal',
+    prhandle = select(
+        [
+            portal_rules_handled.c.character,
+            portal_rules_handled.c.nodeA,
+            portal_rules_handled.c.nodeB,
+            portal_rules_handled.c.idx,
+            portal_rules_handled.c.rulebook,
+            portal_rules_handled.c.rule,
+            column('1').label('handled')
+        ]
+    ).where(
+        and_(
+            portal_rules_handled.c.branch == bindparam('branch'),
+            portal_rules_handled.c.tick == bindparam('tick')
+        )
+    ).alias('handle')
+
+    def portal_rules(*wheres):
+        """Return query to get a portal's rules not yet handled.
+
+        You can supply your own tests to be put in its where-clause.
+
+        """
+        return select(
+            [
+                portal_rulebook.c.character,
+                portal_rulebook.c.nodeA,
+                portal_rulebook.c.nodeB,
+                portal_rulebook.c.idx,
+                current_active_rules.c.rule,
+                current_active_rules.c.active,
+                prhandle.c.handled
+            ]
+        ).select_from(
+            portal_rulebook.join(
+                current_active_rules,
+                portal_rulebook.c.rulebook == current_active_rules.c.rulebook
+            ).join(
+                rulebooks,
+                and_(
+                    rulebooks.c.rulebook == portal_rulebook.c.rulebook,
+                    rulebooks.c.rule == current_active_rules.c.rule
+                ),
+                isouter=True
+            ).join(
+                prhandle,
+                and_(
+                    prhandle.c.character == portal_rulebook.c.character,
+                    prhandle.c.nodeA == portal_rulebook.c.nodeA,
+                    prhandle.c.nodeB == portal_rulebook.c.nodeB,
+                    prhandle.c.idx == portal_rulebook.c.idx,
+                    prhandle.c.rulebook == portal_rulebook.c.rulebook,
+                    prhandle.c.rule == current_active_rules.c.rule
+                ),
+                isouter=True
+            )
+        ).where(
+            and_(
+                prhandle.c.handled == null(),
+                *wheres
+            )
+        ).order_by(
+            portal_rulebook.c.character,
+            portal_rulebook.c.nodeA,
+            portal_rulebook.c.nodeB,
+            portal_rulebook.c.idx,
+            rulebooks.c.rulebook,
+            rulebooks.c.idx
+        )
+
+    r['poll_portal_rules'] = portal_rules()
+    r['portal_rules'] = portal_rules(
+        portal_rulebook.c.character == bindparam('character'),
+        portal_rulebook.c.nodeA == bindparam('nodeA'),
+        portal_rulebook.c.nodeB == bindparam('nodeB'),
+        portal_rulebook.c.idx == bindparam('idx')
+    )
+
+    characters = table['characters']
+
+    def handled_character_ruletyp(typ):
+        """Return query to declare that a rule of this type was handled."""
+        tab = table['{}_rules_handled'.format(typ)]
+        return insert_cols(
+            tab,
+            'character',
+            'rulebook',
+            'rule',
+            'branch',
+            'tick'
+        )
+
+    r['handled_character_thing_rule'] \
+        = handled_character_ruletyp('character_thing')
+    r['handled_character_place_rule'] \
+        = handled_character_ruletyp('character_place')
+    r['handled_character_node_rule'] \
+        = handled_character_ruletyp('character_node')
+    r['handled_character_portal_rule'] \
+        = handled_character_ruletyp('character_portal')
+
+    r['handled_thing_rule'] = insert_cols(
+        table['thing_rules_handled'],
         'character',
-        'avatar',
-        'character_thing',
-        'character_place',
-        'character_portal'
-    ):
-        tab = table[what+'_rules_handled']
-        r['handled_'+what+'_rule'] = insert_cols(tab, *tab.c.keys())
+        'thing',
+        'rulebook',
+        'rule',
+        'branch',
+        'tick'
+    )
+
+    r['handled_place_rule'] = insert_cols(
+        table['place_rules_handled'],
+        'character',
+        'place',
+        'rulebook',
+        'rule',
+        'branch',
+        'tick'
+    )
+
+    r['handled_portal_rule'] = insert_cols(
+        table['portal_rules_handled'],
+        'character',
+        'nodeA',
+        'nodeB',
+        'idx',
+        'rulebook',
+        'rule',
+        'branch',
+        'tick'
+    )
+
+    arsr_hitick = arhitick('rulebook', 'branch')
+
+    r['active_rules_rulebook'] = select(
+        [
+            active_rules.c.rule,
+            active_rules.c.active
+        ]
+    ).select_from(
+        active_rules.join(
+            arsr_hitick,
+            and_(
+                active_rules.c.rulebook == arsr_hitick.c.rulebook,
+                active_rules.c.rule == arsr_hitick.c.rule,
+                active_rules.c.branch == arsr_hitick.c.branch,
+                active_rules.c.tick == arsr_hitick.c.tick
+            )
+        )
+    )
+
+    arr_hitick = arhitick('rulebook', 'rule', 'branch')
+
+    r['active_rule_rulebook'] = select(
+        [
+            active_rules.c.active
+        ]
+    ).select_from(
+        active_rules.join(
+            arr_hitick,
+            and_(
+                active_rules.c.rulebook == arr_hitick.c.rulebook,
+                active_rules.c.rule == arr_hitick.c.rule,
+                active_rules.c.branch == arr_hitick.c.branch,
+                active_rules.c.tick == arr_hitick.c.tick
+            )
+        )
+    )
+
+    # fetch all rules & whether they are active right now (their "activeness")
+    # for a given:
+    # character;
+    # character's avatars;
+    # character's things;
+    # character's places;
+    # character's portals;
+    # node (thing or place);
+    # portal
+
+    def current_rules_activeness(tbl, col):
+        """Query all rules and their activeness for rulebooks given in this
+        column of this table.
+
+        """
+        hitick = arhitick('branch')
+        return select(
+            [col, active_rules.c.active]
+        ).select_from(
+            tbl.join(
+                active_rules.join(
+                    hitick,
+                    and_(
+                        active_rules.c.rulebook == hitick.c.rulebook,
+                        active_rules.c.rule == hitick.c.rule,
+                        active_rules.c.branch == hitick.c.branch,
+                        active_rules.c.tick == hitick.c.tick
+                    )
+                ),
+                col == active_rules.c.rulebook
+            )
+        )
+
+    def character_rulebook_rules_activeness(prefix):
+        """Return query to get character rules w. activeness.
+
+        It will get a rulebook of a given type, eg. ``avatar`` or
+        ``character_portal``, and its final column will be a
+        boolean for whether the rule is active right now.
+
+        """
+        coln = prefix + '_rulebook'
+        return current_rules_activeness(
+            characters, getattr(characters.c, coln)
+        ).where(
+            characters.c.character == bindparam('character')
+        )
+
+    r['current_rules_character'] \
+        = character_rulebook_rules_activeness('character')
+    r['current_rules_avatar'] \
+        = character_rulebook_rules_activeness('avatar')
+    r['current_rules_character_thing'] \
+        = character_rulebook_rules_activeness('character_thing')
+    r['current_rules_character_place'] \
+        = character_rulebook_rules_activeness('character_place')
+    r['current_rules_character_portal'] \
+        = character_rulebook_rules_activeness('character_portal')
+    r['current_rules_character_node'] \
+        = character_rulebook_rules_activeness('character_node')
+
+    r['current_rules_node'] \
+        = current_rules_activeness(
+            node_rulebook, node_rulebook.c.rulebook
+        ).where(
+            and_(
+                node_rulebook.c.character == bindparam('character'),
+                node_rulebook.c.node == bindparam('node')
+            )
+        )
+    r['current_rules_portal'] \
+        = current_rules_activeness(
+            portal_rulebook, portal_rulebook.c.rulebook
+        ).where(
+            and_(
+                portal_rulebook.c.character == bindparam('character'),
+                portal_rulebook.c.nodeA == bindparam('nodeA'),
+                portal_rulebook.c.nodeB == bindparam('nodeB')
+            )
+        )
+
+    def rules_handled_hitick(prefix):
+        """Return query for time of latest change to a rules_handled table."""
+        try:
+            tbl = table['{}_rules_handled'.format(prefix)]
+        except KeyError:
+            tbl = view['{}_rules_handled'.format(prefix)]
+        return select(
+            [
+                tbl.c.rulebook,
+                tbl.c.rule,
+                tbl.c.branch,
+                func.MAX(tbl.c.tick).label('tick')
+            ]
+        ).where(
+            and_(
+                tbl.c.character == bindparam('character'),
+                tbl.c.rulebook == bindparam('rulebook'),
+                tbl.c.rule == bindparam('rule'),
+                tbl.c.branch == bindparam('branch'),
+                tbl.c.tick <= bindparam('tick')
+            )
+        ).group_by(
+            tbl.c.rulebook,
+            tbl.c.rule,
+            tbl.c.branch
+        )
+
+    def active_rule_char(prefix):
+        """Return query to check if a rule is active and not yet handled."""
+        hitick = rules_handled_hitick(prefix)
+        return select(
+            [
+                active_rules.c.active
+            ]
+        ).select_from(
+            active_rules.join(
+                hitick,
+                and_(
+                    active_rules.c.rulebook == hitick.c.rulebook,
+                    active_rules.c.rule == hitick.c.rule,
+                    active_rules.c.branch == hitick.c.branch,
+                    active_rules.c.tick == hitick.c.tick
+                )
+            )
+        )
+
+    r['active_rule_character'] = active_rule_char('character')
+    r['active_rule_avatar'] = active_rule_char('avatar')
+    r['active_rule_character_thing'] = active_rule_char('character_thing')
+    r['active_rule_character_place'] = active_rule_char('character_place')
+    r['active_rule_character_portal'] = active_rule_char('character_portal')
+    r['active_rule_character_node'] = active_rule_char('character_node')
+
+    r['active_rules_ins'] = insert_cols(
+        active_rules,
+        'rulebook',
+        'rule',
+        'branch',
+        'tick',
+        'active'
+    )
+
+    r['active_rules_upd'] = update_where(
+        active_rules,
+        ['active'],
+        ['rulebook', 'rule', 'branch', 'tick']
+    )
+
+    r['del_char_things'] = table['things'].delete().where(
+        table['things'].c.character == bindparam('character')
+    )
+
+    r['del_char_avatars'] = table['avatars'].delete().where(
+        table['avatars'].c.character_graph == bindparam('character')
+    )
 
     things = table['things']
+
+    def things_hitick(*cols):
+        """Return query to get the time of the latest change to the things table.
+
+        Pass in column names to filter the query by testing bound
+        parameters for equality with the columns.
+
+        """
+        wheres = [
+            getattr(things.c, col) == bindparam(col)
+            for col in cols
+        ] + [things.c.tick <= bindparam('tick')]
+        return select(
+            [
+                things.c.character,
+                things.c.thing,
+                things.c.branch,
+                func.MAX(things.c.tick).label('tick')
+            ]
+        ).where(and_(*wheres)).group_by(
+            things.c.character,
+            things.c.thing,
+            things.c.branch
+        ).alias('hitick')
+
+    ctb_hitick = things_hitick('character', 'thing', 'branch')
+
+    r['node_is_thing'] = select(
+        [things.c.location]
+    ).select_from(
+        things.join(
+            ctb_hitick,
+            and_(
+                things.c.character == ctb_hitick.c.character,
+                things.c.thing == ctb_hitick.c.thing,
+                things.c.branch == ctb_hitick.c.branch,
+                things.c.tick == ctb_hitick.c.tick
+            )
+        )
+    )
 
     def rulebook_get_char(rulemap):
         """Return query to get a rulebook of a character."""
@@ -708,6 +1393,7 @@ def queries(table, view):
     r['rulebook_get_avatar'] = rulebook_get_char('avatar')
     r['rulebook_get_character_thing'] = rulebook_get_char('character_thing')
     r['rulebook_get_character_place'] = rulebook_get_char('character_place')
+    r['rulebook_get_character_node'] = rulebook_get_char('character_node')
     r['rulebook_get_character_portal'] = rulebook_get_char('character_portal')
 
     def upd_rulebook_char(rulemap):
@@ -722,6 +1408,123 @@ def queries(table, view):
     r['upd_rulebook_character_thing'] = upd_rulebook_char('character_thing')
     r['upd_rulebook_character_place'] = upd_rulebook_char('character_place')
     r['upd_rulebook_character_portal'] = upd_rulebook_char('character_portal')
+
+    avatars = table['avatars']
+
+    r['avatarness_dump'] = select([
+        avatars.c.character_graph,
+        avatars.c.avatar_graph,
+        avatars.c.avatar_node,
+        avatars.c.branch,
+        avatars.c.tick,
+        avatars.c.is_avatar
+    ]).order_by(
+        avatars.c.character_graph,
+        avatars.c.avatar_graph,
+        avatars.c.avatar_node,
+        avatars.c.branch,
+        avatars.c.tick
+    )
+
+    def hitick_avatars(*cols):
+        """Return query to get the time of the latest change to the avatars table.
+
+        Pass in names of columns to test them for equality with bound
+        parameters.
+
+        """
+        wheres = [
+            getattr(avatars.c, col) == bindparam(col)
+            for col in cols
+        ] + [avatars.c.tick <= bindparam('tick')]
+        return select(
+            [
+                avatars.c.character_graph,
+                avatars.c.avatar_graph,
+                avatars.c.avatar_node,
+                avatars.c.branch,
+                func.MAX(avatars.c.tick).label('tick')
+            ]
+        ).where(and_(*wheres)).group_by(
+            avatars.c.character_graph,
+            avatars.c.avatar_graph,
+            avatars.c.avatar_node,
+            avatars.c.branch
+        ).alias('hitick')
+
+    au_hitick = hitick_avatars('avatar_graph', 'avatar_node', 'branch')
+
+    r['avatar_users'] = select(
+        [
+            avatars.c.character_graph
+        ]
+    ).select_from(
+        avatars.join(
+            au_hitick,
+            and_(
+                avatars.c.character_graph == au_hitick.c.character_graph,
+                avatars.c.avatar_graph == au_hitick.c.avatar_graph,
+                avatars.c.avatar_node == au_hitick.c.avatar_node,
+                avatars.c.branch == au_hitick.c.branch,
+                avatars.c.tick == au_hitick.c.tick
+            )
+        )
+    )
+
+    r['arrival_time_get'] = select(
+        [func.MAX(things.c.tick)]
+    ).where(
+        and_(
+            things.c.character == bindparam('character'),
+            things.c.thing == bindparam('thing'),
+            things.c.location == bindparam('location'),
+            things.c.branch == bindparam('branch'),
+            things.c.tick <= bindparam('tick')
+        )
+    )
+
+    r['next_arrival_time_get'] = select(
+        [func.MIN(things.c.tick)]
+    ).where(
+        and_(
+            things.c.character == bindparam('character'),
+            things.c.thing == bindparam('thing'),
+            things.c.location == bindparam('location'),
+            things.c.branch == bindparam('branch'),
+            things.c.tick > bindparam('tick')
+        )
+    )
+
+    r['thing_loc_and_next_get'] = select(
+        [
+            things.c.location,
+            things.c.next_location
+        ]
+    ).select_from(
+        things.join(
+            ctb_hitick,
+            and_(
+                things.c.character == ctb_hitick.c.character,
+                things.c.thing == ctb_hitick.c.thing,
+                things.c.branch == ctb_hitick.c.branch,
+                things.c.tick == ctb_hitick.c.tick
+            )
+        )
+    )
+
+    r['things_dump'] = select([
+        things.c.character,
+        things.c.thing,
+        things.c.branch,
+        things.c.tick,
+        things.c.location,
+        things.c.next_location
+    ]).order_by(
+        things.c.character,
+        things.c.thing,
+        things.c.branch,
+        things.c.tick
+    )
 
     r['thing_loc_and_next_ins'] = insert_cols(
         things,
@@ -739,13 +1542,102 @@ def queries(table, view):
         ['character', 'thing', 'branch', 'tick']
     )
 
+    nodes = table['nodes']
+
+    def hirev_nodes_extant_cols(*cols):
+        """Return query to get the time of the latest change to a node's existence.
+
+        Pass in names of columns to restrict the query to bound values
+        of those columns.
+
+        """
+        wheres = [
+            getattr(nodes.c, col) == bindparam(col)
+            for col in cols
+        ]
+        return select(
+            [
+                nodes.c.graph,
+                nodes.c.node,
+                nodes.c.branch,
+                func.MAX(nodes.c.rev).label('rev')
+            ]
+        ).where(
+            and_(
+                nodes.c.rev <= bindparam('rev'),
+                *wheres
+            )
+        ).group_by(
+            nodes.c.graph,
+            nodes.c.node,
+            nodes.c.branch
+        ).alias('ext_hirev')
+
+    def nodes_existence_cols(*cols):
+        """Return query to check whether nodes exist as of some sim-time.
+
+        You can narrow down which nodes to check by passing in
+        names of columns. They will become bind parameters, and
+        the columns will be tested for equality with the values
+        bound.
+
+        """
+        hirev = hirev_nodes_extant_cols(*cols)
+        return select(
+            [
+                nodes.c.graph,
+                nodes.c.node,
+                nodes.c.branch,
+                nodes.c.rev,
+                nodes.c.extant
+            ]
+        ).select_from(
+            nodes.join(
+                hirev,
+                and_(
+                    nodes.c.graph == hirev.c.graph,
+                    nodes.c.node == hirev.c.node,
+                    nodes.c.branch == hirev.c.branch,
+                    nodes.c.rev == hirev.c.rev
+                )
+            )
+        ).alias('existence')
+
+    nodes_existence = nodes_existence_cols('graph', 'branch')
+
+    node_existence = nodes_existence_cols('graph', 'node', 'branch')
+
+    cb_hitick = things_hitick('character', 'branch')
+
+    r['thing_loc_items'] = select(
+        [
+            things.c.thing,
+            things.c.location
+        ]
+    ).select_from(
+        things.join(
+            cb_hitick,
+            and_(
+                things.c.character == cb_hitick.c.character,
+                things.c.thing == cb_hitick.c.thing,
+                things.c.branch == cb_hitick.c.branch,
+                things.c.tick == cb_hitick.c.tick
+            )
+        ).join(
+            nodes_existence,
+            and_(
+                things.c.character == nodes_existence.c.graph,
+                things.c.thing == nodes_existence.c.node
+            ),
+            isouter=True
+        )
+    ).where(nodes_existence.c.extant)
+
     r['node_val_data_branch'] = select_where(
         table['node_val'],
         ['key', 'rev', 'value'],
         ['graph', 'node', 'branch']
     )
-
-    node_rulebook = table['node_rulebook']
 
     r['node_rulebook'] = select_where(
         node_rulebook,
@@ -769,6 +1661,47 @@ def queries(table, view):
         node_rulebook,
         ['rulebook'],
         ['character', 'node']
+    )
+
+    r['thing_and_loc'] = select(
+        [
+            things.c.thing,
+            things.c.location
+        ]
+    ).select_from(
+        things.join(
+            ctb_hitick,
+            and_(
+                things.c.character == ctb_hitick.c.character,
+                things.c.thing == ctb_hitick.c.thing,
+                things.c.branch == ctb_hitick.c.branch,
+                things.c.tick == ctb_hitick.c.tick
+            )
+        ).join(
+            node_existence,
+            and_(
+                things.c.character == node_existence.c.graph,
+                things.c.thing == node_existence.c.node
+            ),
+            isouter=True
+        )
+    ).where(node_existence.c.extant)
+
+    r['character_things_items'] = select(
+        [
+            things.c.thing,
+            things.c.location
+        ]
+    ).select_from(
+        things.join(
+            cb_hitick,
+            and_(
+                things.c.character == cb_hitick.c.character,
+                things.c.thing == cb_hitick.c.thing,
+                things.c.branch == cb_hitick.c.branch,
+                things.c.tick == cb_hitick.c.tick
+            )
+        )
     )
 
     graph_val = table['graph_val']
@@ -829,7 +1762,45 @@ def queries(table, view):
         )
     )
 
-    avatars = table['avatars']
+    gb_hitick = hitick_avatars('character_graph', 'branch')
+
+    avatars_recent = avatars.join(
+        gb_hitick,
+        and_(
+            avatars.c.character_graph == gb_hitick.c.character_graph,
+            avatars.c.avatar_graph == gb_hitick.c.avatar_graph,
+            avatars.c.avatar_node == gb_hitick.c.avatar_node,
+            avatars.c.branch == gb_hitick.c.branch,
+            avatars.c.tick == gb_hitick.c.tick
+        )
+    )
+
+    r['avatarness'] = select(
+        [
+            avatars.c.avatar_graph,
+            avatars.c.avatar_node,
+            avatars.c.is_avatar
+        ]
+    ).select_from(
+        avatars_recent
+    )
+
+    r['avatars_now'] = select(
+        [
+            avatars.c.avatar_graph,
+            avatars.c.avatar_node,
+            avatars.c.is_avatar
+        ]
+    ).select_from(
+        avatars_recent.join(
+            nodes_existence,
+            and_(
+                avatars.c.avatar_graph == nodes_existence.c.graph,
+                avatars.c.avatar_node == nodes_existence.c.node
+            ),
+            isouter=True
+        )
+    ).where(nodes_existence.c.extant)
 
     r['avatars_ever'] = select(
         [
@@ -843,7 +1814,134 @@ def queries(table, view):
         avatars.c.character_graph == bindparam('character')
     )
 
+    big_av_hitick = hitick_avatars(
+        'character_graph', 'avatar_graph', 'avatar_node', 'branch'
+    )
+
+    r['is_avatar_of'] = select(
+        [avatars.c.is_avatar]
+    ).select_from(
+        avatars.join(
+            big_av_hitick,
+            and_(
+                avatars.c.character_graph == big_av_hitick.c.character_graph,
+                avatars.c.avatar_graph == big_av_hitick.c.avatar_graph,
+                avatars.c.avatar_node == big_av_hitick.c.avatar_node,
+                avatars.c.branch == big_av_hitick.c.branch,
+                avatars.c.tick == big_av_hitick.c.tick
+            )
+        )
+    )
+
     senses = table['senses']
+
+    def senses_hitick(*cols):
+        """Return query to get the time of the latest change to the senses table.
+
+        Pass column names in, and the query will be narrowed down by
+        testing the columns for equality with bound parameters.
+
+        """
+        wheres = [
+            getattr(senses.c, col) == bindparam(col)
+            for col in cols
+        ] + [senses.c.tick <= bindparam('tick')]
+        return select(
+            [
+                senses.c.character,
+                senses.c.sense,
+                senses.c.branch,
+                func.MAX(senses.c.tick).label('tick')
+            ]
+        ).where(and_(*wheres)).group_by(
+            senses.c.character,
+            senses.c.sense,
+            senses.c.branch
+        ).alias('hitick')
+
+    senses_hitick_csb = senses_hitick('character', 'sense', 'branch')
+
+    r['sense_func_get'] = select(
+        [senses.c.function]
+    ).select_from(
+        senses.join(
+            senses_hitick_csb,
+            and_(
+                senses.c.character == senses_hitick_csb.c.character,
+                senses.c.sense == senses_hitick_csb.c.sense,
+                senses.c.branch == senses_hitick_csb.c.branch,
+                senses.c.tick == senses_hitick_csb.c.tick
+            )
+        )
+    )
+
+    def sense_active_hitick(*cols):
+        """Return query to get the time of the latest change to a sense.
+
+        Pass names of columns to have them checked for equality. Each
+        will get its own bind parameter.
+
+        """
+        wheres = [
+            getattr(senses.c, col) == bindparam(col)
+            for col in cols
+        ]
+        return select(
+            [
+                senses.c.character,
+                senses.c.sense,
+                senses.c.branch,
+                func.MAX(senses.c.tick).label('tick')
+            ]
+        ).where(
+            and_(
+                or_(
+                    senses.c.character == null(),
+                    senses.c.character == bindparam('character')
+                ),
+                senses.c.tick <= bindparam('tick'),
+                *wheres
+            )
+        ).group_by(
+            senses.c.character,
+            senses.c.sense,
+            senses.c.branch
+        ).alias('hitick')
+
+    saht_general = sense_active_hitick('branch')
+
+    r['sense_active_items'] = select(
+        [
+            senses.c.sense,
+            senses.c.active
+        ]
+    ).select_from(
+        senses.join(
+            saht_general,
+            and_(
+                senses.c.character == saht_general.c.character,
+                senses.c.sense == saht_general.c.sense,
+                senses.c.branch == saht_general.c.branch,
+                senses.c.tick == saht_general.c.tick
+            )
+        )
+    )
+
+    saht_specific = sense_active_hitick('sense', 'branch')
+
+    r['sense_is_active'] = select(
+        [senses.c.active]
+    ).select_from(
+        senses.join(
+            saht_specific,
+            and_(
+                senses.c.character == saht_specific.c.character,
+                senses.c.sense == saht_specific.c.sense,
+                senses.c.branch == saht_specific.c.branch,
+                senses.c.tick == saht_specific.c.tick
+            )
+        )
+    )
 
     r['sense_fun_ins'] = insert_cols(
         senses,
@@ -883,6 +1981,7 @@ def queries(table, view):
         'avatar_rulebook',
         'character_thing_rulebook',
         'character_place_rulebook',
+        'character_node_rulebook',
         'character_portal_rulebook'
     )
 
@@ -995,7 +2094,24 @@ def queries(table, view):
     r['rule_actions_del'] = rule_something_del(rule_actions)
     r['rule_actions_del_all'] = rule_something_del_all(rule_actions)
 
-    rulebooks = table['rulebooks']
+    travreqs = table['travel_reqs']
+
+    r['travel_reqs'] = select(
+        [travreqs.c.reqs]
+    ).where(
+        travreqs.c.character == bindparam('character')
+    )
+
+    r['ins_travel_reqs'] = travreqs.insert().values(
+        character=bindparam('character'),
+        reqs=bindparam('reqs')
+    )
+
+    r['upd_travel_reqs'] = travreqs.update().values(
+        reqs=bindparam('reqs')
+    ).where(
+        travreqs.c.character == bindparam('character')
+    )
 
     r['rulebooks'] = select([rulebooks.c.rulebook])
 
@@ -1082,6 +2198,23 @@ def queries(table, view):
     r['ruleins'] = rules.insert().values(rule=bindparam('rule'))
 
     r['ruledel'] = rules.delete().where(rules.c.rule == bindparam('rule'))
+
+    cab_hitick = hitick_avatars('character_graph', 'avatar_graph', 'branch')
+
+    r['avatar_branch_data'] = select(
+        [avatars.c.avatar_node, avatars.c.is_avatar]
+    ).select_from(
+        avatars.join(
+            cab_hitick,
+            and_(
+                avatars.c.character_graph == cab_hitick.c.character_graph,
+                avatars.c.avatar_graph == cab_hitick.c.avatar_graph,
+                avatars.c.avatar_node == cab_hitick.c.avatar_node,
+                avatars.c.branch == cab_hitick.c.branch,
+                avatars.c.tick == cab_hitick.c.tick
+            )
+        )
+    )
 
     branches = table['branches']
 

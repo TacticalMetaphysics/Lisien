@@ -401,6 +401,23 @@ class QueryEngine(allegedb.query.QueryEngine):
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
+    def universal_get(self, key, branch, tick):
+        return self.json_load(self.sql('universal_get', self.json_dump(key), branch, tick))
+
+    def universal_set(self, key, branch, tick, val):
+        key, val = map(self.json_dump, (key, val))
+        try:
+            self.sql('universal_ins', key, branch, tick, val)
+        except IntegrityError:
+            self.sql('universal_upd', val, key, branch, tick)
+
+    def universal_del(self, key, branch, tick):
+        key = self.json_dump(key)
+        try:
+            self.sql('universal_ins', key, branch, tick, None)
+        except IntegrityError:
+            self.sql('universal_upd', None, key, branch, tick)
+
     def comparison(
             self, entity0, stat0, entity1,
             stat1=None, oper='eq', windows=[]
@@ -426,6 +443,122 @@ class QueryEngine(allegedb.query.QueryEngine):
             return self.sql('index_{}'.format(tbl))
         except OperationalError:
             pass
+
+    def init_string_table(self, tbl):
+        self.init_table(tbl)
+        if tbl in string_defaults:
+            for (lang, defaults) in string_defaults[tbl].items():
+                for (k, v) in defaults:
+                    self.string_table_set(tbl, lang, k, v)
+
+    def init_func_table(self, tbl):
+        self.init_table(tbl)
+
+    def func_table_iter(self, tbl):
+        return self.sql('func_{}_iter'.format(tbl))
+
+    def func_table_name_plaincode(self, tbl):
+        return self.sql('func_{}_name_plaincode'.format(tbl))
+
+    def func_table_contains(self, tbl, key):
+        for row in self.sql('func_{}_get'.format(tbl), key):
+            return True
+
+    def func_table_get(self, tbl, key, use_globals=True):
+        bytecode = self.sql('func_{}_get'.format(tbl), key).fetchone()
+        if bytecode is None:
+            raise KeyError("No such function")
+        globd = (
+            globals() if use_globals is True else
+            use_globals if isinstance(use_globals, dict) else
+            {}
+        )
+        return FunctionType(
+            unmarshalled(bytecode[0]),
+            globd
+        )
+
+    def func_table_get_plain(self, tbl, key):
+        return self.func_table_get_all(tbl, key)['plaincode']
+
+    def func_table_get_all(self, tbl, key):
+        data = self.sql(
+            'func_{}_get'.format(tbl), key
+        ).fetchone()
+        if not data:
+            raise KeyError("No such function: " + key)
+        (
+            bytecode,
+            base,
+            keywords,
+            date,
+            creator,
+            contributor,
+            description,
+            plaincode,
+            version
+        ) = data
+        return {
+            'bytecode': bytecode,
+            'base': base,
+            'keywords': self.json_load(keywords),
+            'date': date,
+            'creator': creator,
+            'contributor': contributor,
+            'description': description,
+            'plaincode': plaincode,
+            'version': version
+        }
+
+    def func_table_set(self, tbl, key, fun, keywords=[]):
+        try:
+            s = getsource(fun)
+        except OSError:
+            s = ''
+        m = marshalled(fun.__code__)
+        kws = self.json_dump(keywords)
+        try:
+            return self.sql('func_{}_ins'.format(tbl), key, kws, m, s)
+        except IntegrityError:
+            return self.sql('func_{}_upd'.format(tbl), kws, m, s, key)
+
+    def func_table_set_source(
+            self, tbl, key, source, keywords=[], use_globals=True
+    ):
+        locd = {}
+        globd = (
+            globals() if use_globals is True else
+            use_globals if isinstance(use_globals, dict) else
+            {}
+        )
+        try:
+            exec(source, globd, locd)
+        except SyntaxError:  # hack to allow 'empty' functions
+            source += '\n    pass'
+            exec(source, globd, locd)
+        if len(locd) != 1:
+            raise UserFunctionError(
+                "Input code contains more than the one function definition:\n" + source
+            )
+        if key not in locd:
+            raise UserFunctionError(
+                "Function in input code has different name ({}) "
+                "than expected ({}). Input code: \n".format(
+                    next(iter(locd.keys())),
+                    key,
+                    source
+                )
+            )
+        fun = locd[key]
+        m = marshalled(fun.__code__)
+        kws = self.json_dump(keywords)
+        try:
+            return self.sql('func_{}_ins'.format(tbl), key, kws, m, source)
+        except IntegrityError:
+            return self.sql('func_{}_upd'.format(tbl), kws, m, source, key)
+
+    def func_table_del(self, tbl, key):
+        return self.sql('func_{}_del'.format(tbl), key)
 
     def set_rule(self, rule, date=None, creator=None, description=None):
         rule = self.json_dump(rule)
@@ -536,6 +669,35 @@ class QueryEngine(allegedb.query.QueryEngine):
         for i in range(0, len(actions)):
             self.sql('rule_actions_ins', rule, i, actions[i])
 
+    def travel_reqs(self, character):
+        character = self.json_dump(character)
+        for row in self.sql('travel_reqs', character):
+            return self.json_load(row[0])
+        return []
+
+    def set_travel_reqs(self, character, reqs):
+        (char, reqs) = map(self.json_dump, (character, reqs))
+        try:
+            return self.sql('ins_travel_reqs', char, reqs)
+        except IntegrityError:
+            return self.sql('upd_travel_reqs', reqs, char)
+
+    def string_table_lang_items(self, tbl, lang):
+        return self.sql('{}_lang_items'.format(tbl), lang)
+
+    def string_table_get(self, tbl, lang, key):
+        for row in self.sql('{}_get'.format(tbl), lang, key):
+            return row[0]
+
+    def string_table_set(self, tbl, lang, key, value):
+        try:
+            self.sql('{}_ins'.format(tbl), key, lang, value)
+        except IntegrityError:
+            self.sql('{}_upd'.format(tbl), value, lang, key)
+
+    def string_table_del(self, tbl, lang, key):
+        self.sql('{}_del'.format(tbl), lang, key)
+
     def universal_items(self, branch, tick):
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
@@ -544,8 +706,9 @@ class QueryEngine(allegedb.query.QueryEngine):
                     yield (self.json_load(k), self.json_load(v))
                 seen.add(k)
 
+
     def dump_universal(self):
-        for key, branch, tick, value in self.sql('dump_universal'):
+        for key, branch, tick, date, creator, description, value in self.sql('dump_universal'):
             yield self.json_load(key), branch, tick, self.json_load(value)
 
     def universal_get(self, key, branch, tick):
@@ -607,6 +770,26 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def ct_rulebooks(self):
         return self.sql('ct_rulebooks').fetchone()[0]
+
+    def active_rules_rulebook(self, rulebook, branch, tick):
+        rulebook = self.json_dump(rulebook)
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (rule, active) in self.sql(
+                    'active_rules_rulebook', rulebook, branch, tick
+            ):
+                if active and rule not in seen:
+                    yield self.json_load(rule)
+                seen.add(rule)
+
+    def active_rule_rulebook(self, rulebook, rule, branch, tick):
+        (rulebook, rule) = map(self.json_dump, (rulebook, rule))
+        for (b, t) in self.active_branches(branch, tick):
+            for (active,) in self.sql(
+                    'active_rule_rulebook', rulebook, rule, branch, tick
+            ):
+                return bool(active)
+        return False
 
     def node_rulebook(self, character, node):
         (character, node) = map(self.json_dump, (character, node))
@@ -710,117 +893,94 @@ class QueryEngine(allegedb.query.QueryEngine):
                 'active_rules_upd', active, rulebook, rule, branch, tick
             )
 
-    def dump_character_rules_handled(self):
+    def poll_char_rules(self, branch, tick):
+        """Poll character-wide rules for all the entity types."""
+        for rulemap in (
+                'character',
+                'avatar',
+                'character_thing',
+                'character_place',
+                'character_node',
+                'character_portal'
+        ):
+            seen = set()
+            for (b, t) in self.active_branches(branch, tick):
+                for (c, rulebook, rule, active, handled) in self.sql(
+                        'poll_{}_rules'.format(rulemap), b, t, b, t
+                ):
+                    if (c, rulebook, rule) in seen:
+                        continue
+                    seen.add((c, rulebook, rule))
+                    if active:
+                        yield (rulemap,) + tuple(map(
+                            self.json_load, (c, rulebook, rule)
+                        ))
+
+    def handled_rules_on_characters(self, typ):
         for (
-            character,
-            rulebook,
-            rule,
-            branch,
-            tick
-        ) in self.sql('dump_character_rules_handled'):
+                character,
+                rulebook,
+                rule,
+                branch,
+                tick
+        ) in self.sql('handled_{}_rules'.format(typ)):
             yield (
                 self.json_load(character),
+                typ,
                 self.json_load(rulebook),
                 self.json_load(rule),
                 branch,
                 tick
             )
 
-    def dump_avatar_rules_handled(self):
-        for (
-            character,
-            rulebook,
-            rule,
-            graph,
-            avatar,
-            branch,
-            tick
-        ) in self.sql('dump_avatar_rules_handled'):
-            yield (
-                self.json_load(character),
-                self.json_load(rulebook),
-                self.json_load(rule),
-                self.json_load(graph),
-                self.json_load(avatar),
-                branch,
-                tick
-            )
+    def handled_character_rules(self):
+        return self.handled_rules_on_characters('character')
 
-    def dump_character_thing_rules_handled(self):
-        for (
-            character,
-            rulebook,
-            rule,
-            thing,
-            branch,
-            tick
-        ) in self.sql('dump_character_thing_rules_handled'):
-            yield (
-                self.json_load(character),
-                self.json_load(rulebook),
-                self.json_load(rule),
-                self.json_load(thing),
-                branch,
-                tick
-            )
+    def handled_avatar_rules(self):
+        return self.handled_rules_on_characters('avatar')
 
-    def dump_character_place_rules_handled(self):
-        for (
-            character,
-            rulebook,
-            rule,
-            place,
-            branch,
-            tick
-        ) in self.sql('dump_character_place_rules_handled'):
-            yield (
-                self.json_load(character),
-                self.json_load(rulebook),
-                self.json_load(rule),
-                self.json_load(place),
-                branch,
-                tick
-            )
+    def handled_character_thing_rules(self):
+        return self.handled_rules_on_characters('character_thing')
 
-    def dump_character_node_rules_handled(self):
-        for (
-            character,
-            rulebook,
-            rule,
-            node,
-            branch,
-            tick
-        ) in self.sql('dump_character_node_rules_handled'):
-            yield (
-                self.json_load(character),
-                self.json_load(rulebook),
-                self.json_load(rule),
-                self.json_load(node),
-                branch,
-                tick
-            )
+    def handled_character_place_rules(self):
+        return self.handled_rules_on_characters('character_place')
 
-    def dump_character_portal_rules_handled(self):
-        for (
-            character,
-            rulebook,
-            rule,
-            nodeA,
-            nodeB,
-            idx,
-            branch,
-            tick
-        ) in self.sql('dump_character_portal_rules_handled'):
-            yield (
-                self.json_load(character),
-                self.json_load(rulebook),
-                self.json_load(rule),
-                self.json_load(nodeA),
-                self.json_load(nodeB),
-                idx,
-                branch,
-                tick
-            )
+    def handled_character_node_rules(self):
+        return self.handled_rules_on_characters('character_node')
+
+    def handled_character_portal_rules(self):
+        return self.handled_rules_on_characters('character_portal')
+
+    def poll_node_rules(self, branch, tick):
+        """Poll rules assigned to particular Places or Things."""
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, n, rulebook, rule, active) in self.sql(
+                    'poll_node_rules', b, t, b, t
+            ):
+                if (char, n, rulebook, rule) in seen:
+                    continue
+                seen.add((char, n, rulebook, rule))
+                if active:
+                    yield tuple(map(
+                        self.json_load,
+                        (char, n, rulebook, rule)
+                    ))
+
+    def node_rules(self, character, node, branch, tick):
+        (character, node) = map(self.json_dump, (character, node))
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, n, rulebook, rule, active) in self.sql(
+                'node_rules', b, t, b, t, character, node
+            ):
+                if (char, n, rulebook, rule) in seen:
+                    continue
+                seen.add((char, n, rulebook, rule))
+                if active:
+                    yield tuple(
+                        map(self.json_load, (char, n, rulebook, rule))
+                    )
 
     def dump_node_rules_handled(self):
         for (
@@ -839,6 +999,26 @@ class QueryEngine(allegedb.query.QueryEngine):
                 branch,
                 tick
             )
+
+    def poll_portal_rules(self, branch, tick):
+        """Poll rules assigned to particular portals."""
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
+                'poll_portal_rules', b, t, b, t
+            ):
+                if (char, a, b, i, rulebook, rule) in seen:
+                    continue
+                seen.add((char, a, b, i, rulebook, rule))
+                if active:
+                    yield (
+                        self.json_load(char),
+                        self.json_load(a),
+                        self.json_load(b),
+                        i,
+                        self.json_load(rulebook),
+                        self.json_load(rule)
+                    )
 
     def dump_portal_rules_handled(self):
         for (
@@ -861,6 +1041,78 @@ class QueryEngine(allegedb.query.QueryEngine):
                 branch,
                 tick
             )
+
+    def portal_rules(self, character, nodeA, nodeB, branch, tick):
+        (character, nodeA, nodeB) = map(
+            self.json_dump, (character, nodeA, nodeB)
+        )
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
+                'portal_rules', b, t, b, t, character, nodeA, nodeB, 0
+            ):
+                if (char, a, b, i, rulebook, rule) in seen:
+                    continue
+                seen.add((char, a, b, i, rulebook, rule))
+                if active:
+                    yield (
+                        self.json_load(char),
+                        self.json_load(a),
+                        self.json_load(b),
+                        i,
+                        self.json_load(rulebook),
+                        self.json_load(rule)
+                    )
+
+    def handled_character_rule(
+            self, ruletyp, character, rulebook, rule, branch, tick
+    ):
+        (character, rulebook, rule) = map(
+            self.json_dump, (character, rulebook, rule)
+        )
+        try:
+            return self.sql(
+                'handled_character_rule',
+                character,
+                rulebook,
+                rule,
+                branch,
+                tick,
+            )
+        except IntegrityError:
+            raise RedundantRuleError(
+                "Already handled rule {rule} in rulebook {book} "
+                "for character {ch} at tick {t} of branch {b}".format(
+                    ch=character,
+                    book=rulebook,
+                    rule=rule,
+                    b=branch,
+                    t=tick
+                )
+            )
+
+    def character_rule_handled(
+            self, ruletyp, character, rule, branch, tick
+    ):
+        (character, rule) = map(self.json_dump, (character, rule))
+        return bool(self.sql(
+            {
+                'character': 'character_rule_handled',
+                'avatar': 'avatar_rule_handled',
+                'node': 'character_node_rule_handled',
+                'character_node': 'character_node_rule_handled',
+                'thing': 'character_thing_rule_handled',
+                'character_thing': 'character_thing_rule_handled',
+                'place': 'character_place_rule_handled',
+                'character_place': 'character_place_rule_handled',
+                'portal': 'character_portal_rule_handled',
+                'character_portal': 'character_portal_rule_handled'
+            }[ruletyp],
+            character,
+            rule,
+            branch,
+            tick
+        ))
 
     def handled_thing_rule(
             self, character, thing, rulebook, rule, branch, tick
@@ -951,10 +1203,78 @@ class QueryEngine(allegedb.query.QueryEngine):
                 )
             )
 
-    def dump_things(self):
+    def node_is_thing(self, character, node, branch, tick):
+        (character, node) = map(self.json_dump, (character, node))
+        for (b, t) in self.active_branches(branch, tick):
+            for (loc,) in self.sql(
+                    'node_is_thing', character, node, branch, tick
+            ):
+                return bool(loc)
+        return False
+
+    def get_rulebook_char(self, rulemap, character):
+        character = self.json_dump(character)
+        for (book,) in self.sql(
+                'rulebook_get_{}'.format(rulemap), character
+        ):
+            return self.json_load(book)
+        raise KeyError("No rulebook")
+
+    def upd_rulebook_char(self, rulemap, character):
+        return self.sql('upd_rulebook_char_fmt', character, rulemap=rulemap)
+
+    def avatar_users(self, graph, node, branch, tick):
+        (graph, node) = map(self.json_dump, (graph, node))
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (av_g,) in self.sql('avatar_users', graph, node, b, t):
+                if av_g not in seen:
+                    yield self.json_load(av_g)
+
+    def arrival_time_get(self, character, thing, location, branch, tick):
+        (character, thing, location) = map(
+            self.json_dump, (character, thing, location)
+        )
+        for (b, t) in self.active_branches(branch, tick):
+            for hitick in self.sql(
+                    'arrival_time_get',
+                    character,
+                    thing,
+                    location,
+                    b,
+                    t
+            ):
+                return hitick
+        raise ValueError("No arrival time recorded")
+
+    def next_arrival_time_get(self, character, thing, location, branch, tick):
+        (character, thing, location) = map(
+            self.json_dump, (character, thing, location)
+        )
+        for (b, t) in self.active_branches(branch, tick):
+            for (hitick,) in self.sql(
+                    'next_arrival_time_get',
+                    character,
+                    thing,
+                    location,
+                    branch,
+                    tick
+            ):
+                return hitick
+        return None
+
+    def thing_loc_and_next_get(self, character, thing, branch, tick):
+        (character, thing) = map(self.json_dump, (character, thing))
+        for (b, t) in self.active_branches(branch, tick):
+            for (loc, nextloc) in self.sql(
+                    'thing_loc_and_next_get', character, thing, b, t
+            ):
+                return (self.json_load(loc), self.json_load(nextloc))
+
+    def things_dump(self):
         for (
                 character, thing, branch, tick, loc, nextloc
-        ) in self.sql('dump_things'):
+        ) in self.sql('things_dump'):
             yield (
                 self.json_load(character),
                 self.json_load(thing),
@@ -994,6 +1314,42 @@ class QueryEngine(allegedb.query.QueryEngine):
                 tick
             )
 
+    def thing_loc_items(self, character, branch, tick):
+        character = self.json_dump(character)
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (n, l) in self.sql(
+                    'thing_loc_items',
+                    character,
+                    b,
+                    t,
+                    t,
+                    character,
+                    b
+            ):
+                if l is not None and n not in seen:
+                    yield (self.json_load(n), self.json_load(l))
+                seen.add(n)
+
+    def thing_and_loc(self, character, thing, branch, tick):
+        (character, thing) = map(self.json_dump, (character, thing))
+        for (b, t) in self.active_branches(branch, tick):
+            for (th, l) in self.sql(
+                    'thing_and_loc',
+                    character,
+                    thing,
+                    b,
+                    t,
+                    t,
+                    character,
+                    thing,
+                    b
+            ):
+                if l is None:
+                    raise KeyError("Thing does not exist")
+                return (self.json_load(th), self.json_load(l))
+        raise KeyError("Thing never existed")
+
     def node_stats_branch(self, character, node, branch):
         (character, node) = map(self.json_dump, (character, node))
         for (key, tick, value) in self.sql(
@@ -1004,6 +1360,69 @@ class QueryEngine(allegedb.query.QueryEngine):
                 tick,
                 self.json_load(value)
             )
+
+    def character_things_items(self, character, branch, tick):
+        character = self.json_dump(character)
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (th, l) in self.sql(
+                    'character_things_items', character, b, t
+            ):
+                if l is not None and th not in seen:
+                    yield (self.json_load(th), self.json_load(l))
+                seen.add(th)
+
+    def avatarness(self, character, branch, tick):
+        character = self.json_dump(character)
+        d = {}
+        for (b, t) in self.active_branches(branch, tick):
+            for (graph, node, avatar) in self.sql(
+                    'avatarness', character, b, t
+            ):
+                g = self.json_load(graph)
+                n = self.json_load(node)
+                is_av = bool(avatar)
+                if g not in d:
+                    d[g] = {}
+                d[g][n] = is_av
+        return d
+
+    def is_avatar_of(self, character, graph, node, branch, tick):
+        (character, graph, node) = map(
+            self.json_dump, (character, graph, node)
+        )
+        for (avatarness,) in self.sql(
+                'is_avatar_of', character, graph, node, branch, tick
+        ):
+            return avatarness
+
+    def sense_func_get(self, character, sense, branch, tick):
+        character = self.json_dump(character)
+        for (b, t) in self.active_branches(branch, tick):
+            for (func,) in self.sql(
+                    'sense_func_get', character, sense, branch, tick
+            ):
+                return func
+
+    def sense_active_items(self, character, branch, tick):
+        character = self.json_dump(character)
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (sense, active) in self.sql(
+                    'sense_active_items', character, b, t
+            ):
+                if sense not in seen and active:
+                    yield sense
+                seen.add(sense)
+
+    def sense_is_active(self, character, sense, branch, tick):
+        character = self.json_dump(character)
+        for (b, t) in self.active_branches(branch, tick):
+            for (act,) in self.sql(
+                    'sense_is_active', character, sense, branch, tick
+            ):
+                return bool(act)
+        return False
 
     def sense_fun_set(self, character, sense, branch, tick, funn, active):
         character = self.json_dump(character)
@@ -1032,6 +1451,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         avatar_rulebook = avatar_rulebook or (character, 'avatar')
         thing_rulebook = thing_rulebook or (character, 'character_thing')
         place_rulebook = place_rulebook or (character, 'character_place')
+        node_rulebook = node_rulebook or (character, 'character_node')
         portal_rulebook = portal_rulebook or (character, 'character_portal')
         (character, character_rulebook, avatar_rulebook, thing_rulebook,
          place_rulebook, node_rulebook, portal_rulebook) = map(
@@ -1047,17 +1467,27 @@ class QueryEngine(allegedb.query.QueryEngine):
                 avatar_rulebook,
                 thing_rulebook,
                 place_rulebook,
+                node_rulebook,
                 portal_rulebook
             )
         except IntegrityError:
             pass
+
+    def avatars_now(self, character, branch, tick):
+        character = self.json_dump(character)
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (g, n, a) in self.sql('avatars_now', character, b, t, b, t):
+                if (g, n) not in seen:
+                    yield (self.json_load(g), self.json_load(n), a)
+                seen.add((g, n))
 
     def avatars_ever(self, character):
         character = self.json_dump(character)
         for (g, n, b, t, a) in self.sql('avatars_ever', character):
             yield (self.json_load(g), self.json_load(n), b, t, a)
 
-    def dump_avatars(self):
+    def avatarness_dump(self):
         for (
                 character,
                 graph,
@@ -1065,7 +1495,7 @@ class QueryEngine(allegedb.query.QueryEngine):
                 branch,
                 tick,
                 is_avatar
-        ) in self.sql('dump_avatars'):
+        ) in self.sql('avatarness_dump'):
             yield (
                 self.json_load(character),
                 self.json_load(graph),
@@ -1119,6 +1549,85 @@ class QueryEngine(allegedb.query.QueryEngine):
         for (rulebook, rule) in self.sql('rulebooks_rules'):
             yield map(self.json_load, (rulebook, rule))
 
+    def current_rules_character(self, character, branch, tick):
+        for rule in self.sql(
+                'current_rules_character',
+                self.json_dump(character),
+                branch,
+                tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_avatar(self, character, branch, tick):
+        for rule in self.sql(
+            'current_rules_avatar',
+            self.json_dump(character),
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_character_thing(self, character, branch, tick):
+        for rule in self.sql(
+            'current_rules_character_thing',
+            self.json_dump(character),
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_character_place(self, character, branch, tick):
+        for rule in self.sql(
+            'current_rules_character_place',
+            self.json_dump(character),
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_character_node(self, character, branch, tick):
+        for rule in self.sql(
+            'current_rules_character_node',
+            self.json_dump(character),
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_character_portal(self, character, branch, tick):
+        for rule in self.sql(
+            'current_rules_character_portal',
+            self.json_dump(character),
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_node(self, character, node, branch, tick):
+        (character, node) = map(self.json_dump, (character, node))
+        for rule in self.sql(
+            'current_rules_node',
+            character,
+            node,
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
+    def current_rules_portal(self, character, nodeA, nodeB, branch, tick):
+        (character, nodeA, nodeB) = map(
+            self.json_dump, (character, nodeA, nodeB)
+        )
+        for rule in self.sql(
+            'current_rules_portal',
+            character,
+            nodeA,
+            nodeB,
+            branch,
+            tick
+        ):
+            yield self.json_load(rule)
+
     def ct_rulebook_rules(self, rulebook):
         return self.sql(
             'ct_rulebook_rules', self.json_dump(rulebook)
@@ -1148,6 +1657,13 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def ruleins(self, rule):
         self.sql('ruleins', self.json_dump(rule), '[]', '[]', '[]')
+
+    def avatar_branch_data(self, character, graph, branch, tick):
+        (character, graph) = map(self.json_dump, (character, graph))
+        for (node, isav) in self.sql(
+                'avatar_branch_data', character, graph, branch, tick
+        ):
+            yield (self.json_load(node), bool(isav))
 
     def thing_locs_branch_data(self, character, thing, branch):
         (character, thing) = map(self.json_dump, (character, thing))
@@ -1189,12 +1705,13 @@ class QueryEngine(allegedb.query.QueryEngine):
         """
         super().initdb()
         for table in (
-            'universal',
+            'lise_globals',
             'rules',
             'rulebooks',
             'active_rules',
             'characters',
             'senses',
+            'travel_reqs',
             'things',
             'node_rulebook',
             'portal_rulebook',
@@ -1203,6 +1720,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             'avatar_rules_handled',
             'character_thing_rules_handled',
             'character_place_rules_handled',
+            'character_node_rules_handled',
             'character_portal_rules_handled',
             'thing_rules_handled',
             'place_rules_handled',
@@ -1219,12 +1737,14 @@ class QueryEngine(allegedb.query.QueryEngine):
         for idx in (
             'active_rules',
             'senses',
+            'travel_reqs',
             'things',
             'avatars',
             'character_rules_handled',
             'avatar_rules_handled',
             'character_thing_rules_handled',
             'character_place_rules_handled',
+            'character_node_rules_handled',
             'character_portal_rules_handled',
             'thing_rules_handled',
             'place_rules_handled',
