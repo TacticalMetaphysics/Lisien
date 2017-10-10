@@ -30,22 +30,6 @@ class Place(Node):
             self['name']
         )
 
-    def _get_json_dict(self):
-        (branch, tick) = self.engine.time
-        return {
-            "type": "Place",
-            "version": 0,
-            "character": self["character"],
-            "name": self["name"],
-            "branch": branch,
-            "tick": tick,
-            "stat": dict(self)
-        }
-
-    def dump(self):
-        """Return a JSON representation of my present state"""
-        return self.engine.json_dump(self._get_json_dict())
-
     def delete(self, nochar=False):
         """Remove myself from the world model immediately.
 
@@ -54,12 +38,4 @@ class Place(Node):
 
         """
         super().delete()
-        if not nochar:
-            del self.character.place[self.name]
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Place) and
-            self.character.name == other.character.name and
-            self.name == other.name
-        )
+        self.character.place.send(self.character.place, key=self.name, val=None)
