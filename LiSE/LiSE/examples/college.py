@@ -38,23 +38,23 @@ def install(eng):
 
 
     @student_body.avatar.rule
-    def go_to_class(engine, character, node):
+    def go_to_clas(node):
         # There's just one really long class every day.
-        node.travel_to(engine.character['physical'].place['classroom'])
+        node.travel_to(node.character.place['classroom'])
 
 
     @go_to_class.trigger
-    def absent(engine, character, node):
-        return node.location != engine.character['physical'].place['classroom']
+    def absent(node):
+        return node.location != node.character.place['classroom']
 
 
     @go_to_class.prereq
-    def class_in_session(engine, *args):
-        return 8 <= engine.character['physical'].stat['hour'] < 15
+    def class_in_session(node):
+        return 8 <= node.character.stat['hour'] < 15
 
 
     @go_to_class.prereq
-    def be_timely(engine, character, node):
+    def be_timely(node):
         # Even lazy students have a 50% chance of going to class every hour.
         #
         # We need to access the student character like this because the
@@ -65,28 +65,28 @@ def install(eng):
         # character... or kept the student character in a stat of the node...
         # or assigned this rule to the student directly.
         for user in node.user.values():
-            if user.name not in (character, 'student_body'):
+            if user.name not in ('physical', 'student_body'):
                 return not user.stat['lazy'] or engine.coinflip()
 
 
     @student_body.avatar.rule
-    def leave_class(engine, character, node):
+    def leave_class(node):
         for user in node.user.values():
-            if user != character:
+            if user.name != 'physical':
                 node.travel_to(user.stat['room'])
                 return
 
 
     @leave_class.trigger
-    def in_classroom_after_class(engine, character, node):
-        phys = engine.character['physical']
+    def in_classroom_after_class(node):
+        phys = node.character
         return node.location == phys.place['classroom'] \
                and phys.stat['hour'] >= 15
 
 
     # Let's make some rules and not assign them to anything yet.
     @eng.rule
-    def drink(engine, character):
+    def drink(character):
         braincells = list(character.node.values())
         engine.shuffle(braincells)
         for i in range(0, engine.randrange(1, 20)):
@@ -94,69 +94,73 @@ def install(eng):
 
 
     @drink.trigger
-    def party_time(engine, character):
-        return 23 >= engine.character['physical'].stat['hour'] > 15
+    def party_time(character):
+        phys = character.engine.character['physical']
+        return 23 >= phys.stat['hour'] > 15
 
 
     @drink.prereq
-    def is_drunkard(engine, character):
+    def is_drunkard(character):
         return character.stat['drunkard']
 
 
     @eng.rule
-    def sloth(engine, character):
+    def sloth(character):
         braincells = list(character.node.values())
         engine.shuffle(braincells)
-        for i in range(0, engine.randrange(1, 20)):
+        for i in range(0, character.engine.randrange(1, 20)):
             braincells.pop()['slow'] += 1
 
 
     @sloth.trigger
-    def out_of_class(engine, character):
+    def out_of_class(character):
         # You don't want to use the global variable for the classroom
         # because it won't be around (or at least, won't work) after
         # the engine restarts.
-        return character.avatar['physical'].only.location != \
-            engine.character['physical'].place['classroom']
+        avatar = character.avatar['physical'].only
+        classroom = avatar.character.place['classroom']
+        return avatar.location != classroom
 
     sloth.prereq(class_in_session)
 
 
     @eng.rule
-    def learn(engine, character, node):
-        character.stat['xp'] += 1
+    def learn(node):
+        for user in node.users():
+            if 'xp' in user.stat:
+                user.stat['xp'] += 1
 
 
     @learn.trigger
-    def in_class(engine, character, node):
-        return character.avatar['physical'].only.location == \
-            engine.character['physical'].place['classroom']
+    def in_class(node):
+        classroom = node.engine.character['physical'].place['classroom']
+        return node.location == classroom
 
     learn.prereq(class_in_session)
 
 
     @learn.prereq
-    def pay_attention(engine, character, node):
+    def pay_attention(node):
         return node['drunk'] == node['slow'] == 0
 
 
     @eng.rule
-    def sober_up(engine, character, node):
+    def sober_up(node):
         node['drunk'] -= 1
 
 
     @sober_up.trigger
-    def somewhat_drunk(engine, character, node):
+    def somewhat_drunk(node):
         return node['drunk'] > 0
 
 
     @eng.rule
-    def catch_up(engine, character, node):
+    def catch_up(node):
         node['slow'] -= 1
 
 
     @catch_up.trigger
-    def somewhat_late(engine, character, node):
+    def somewhat_late(node):
         return node['slow'] > 0
 
     catch_up.prereq(in_class)
