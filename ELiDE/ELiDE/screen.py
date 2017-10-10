@@ -106,7 +106,7 @@ class TimePanel(BoxLayout):
     def next_turn(self, *args):
         self.screen.app.engine.next_turn(
             chars=[self.screen.app.character_name],
-            cb=self.screen._update_from_next_tick
+            cb=self.screen._update_from_next_turn
         )
 
     def _upd_branch_hint(self, *args):
@@ -278,17 +278,16 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_next_tick(self, ret):
-        self._dialog_todo = ret[2]
-        self._update_from_chardiff(ret[3])
+    def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
+        self._dialog_todo, chardiffs = ret
+        self._update_from_chardiffs(chardiffs)
         self._advance_dialog()
 
-    def _update_from_chardiff(self, cmd, branch, turn, tick, **kwargs):
+    def _update_from_chardiffs(self, chardiffs):
         self.boardview.board.trigger_update_from_diff(
-            kwargs.get(self.boardview.board.character.name, {})
+            chardiffs.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
-        self.app.branch, self.app.turn, self.app.tick = branch, turn, tick
 
     def _advance_dialog(self):
         self.ids.dialoglayout.clear_widgets()
@@ -364,7 +363,7 @@ class MainScreen(Screen):
             self._old_time = (self.app.branch, self.app.turn, self.app.tick)
             self.app.engine.next_turn(
                 chars=[self.app.character_name],
-                cb=lambda ret: self._update_from_chardiff(ret[3])
+                cb=lambda cmd, branch, turn, tick, ret: self._update_from_chardiffs(ret[1])
             )
         elif self._old_time == (self.app.branch, self.app.turn, self.app.tick):
             return

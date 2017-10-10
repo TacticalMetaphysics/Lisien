@@ -161,6 +161,7 @@ class NextTurn(Signal):
             turn=turn,
             tick=engine.tick
         )
+        return []
 
 
 class DummyEntity(dict):
