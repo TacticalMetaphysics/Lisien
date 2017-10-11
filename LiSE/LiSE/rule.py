@@ -281,7 +281,7 @@ class Rule(object):
 
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
-        if 'truth' in self.engine.trigger:
+        if hasattr(self.engine.trigger, 'truth'):
             truth = self.engine.trigger.truth
         else:
             def truth(*args):
