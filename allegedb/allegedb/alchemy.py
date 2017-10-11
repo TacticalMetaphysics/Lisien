@@ -244,6 +244,9 @@ def queries_for_table_dict(table):
             table['graphs'].c.graph,
             table['graphs'].c.type
         ]),
+        'graphs_named': select([func.COUNT()]).select_from(table['graphs']).where(
+            table['graphs'].c.graph == bindparam('graph')
+        ),
         'update_branches': table['branches'].update().values(
             parent=bindparam('parent'),
             parent_turn=bindparam('parent_turn'),
@@ -255,7 +258,7 @@ def queries_for_table_dict(table):
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
-        r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
+        r[t.name + '_count'] = select([func.COUNT()]).select_from(t)
     return r
 
 

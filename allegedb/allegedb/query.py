@@ -166,7 +166,7 @@ class QueryEngine(object):
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
         graph = self.json_dump(graph)
-        return bool(self.sql('graphs_count', graph).fetchone()[0])
+        return bool(self.sql('graphs_named', graph).fetchone()[0])
 
     def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
