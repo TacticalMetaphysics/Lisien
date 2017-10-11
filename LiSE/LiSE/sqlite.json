@@ -92,7 +92,7 @@
     "del_avatars_after": "DELETE FROM avatars WHERE avatars.character_graph = ? AND avatars.avatar_graph = ? AND avatars.avatar_node = ? AND avatars.branch = ? AND (avatars.turn > ? OR avatars.turn = ? AND avatars.tick > ?)",
     "del_char_avatars": "DELETE FROM avatars WHERE avatars.character_graph = ?",
     "del_char_things": "DELETE FROM things WHERE things.character = ?",
-    "del_edge_val_after": "DELETE FROM edge_val WHERE edge_val.graph = ? AND edge_val.orig = ? AND edge_val.dest = ? AND edge_val.idx = ? AND edge_val.branch = ? AND (edge_val.turn > ? OR edge_val.turn = ? AND edge_val.tick > ?)",
+    "del_edge_val_after": "DELETE FROM edge_val WHERE edge_val.graph = ? AND edge_val.orig = ? AND edge_val.dest = ? AND edge_val.idx = ? AND edge_val.\"key\" = ? AND edge_val.branch = ? AND (edge_val.turn > ? OR edge_val.turn = ? AND edge_val.tick > ?)",
     "del_edge_val_graph": "DELETE FROM edge_val WHERE edge_val.graph = ?",
     "del_edges_after": "DELETE FROM edges WHERE edges.graph = ? AND edges.orig = ? AND edges.dest = ? AND edges.idx = ? AND edges.branch = ? AND (edges.turn > ? OR edges.turn = ? AND edges.tick > ?)",
     "del_edges_graph": "DELETE FROM edges WHERE edges.graph = ?",

@@ -163,6 +163,7 @@ def queries_for_table_dict(table):
             table['edge_val'].c.orig == bindparam('orig'),
             table['edge_val'].c.dest == bindparam('dest'),
             table['edge_val'].c.idx == bindparam('idx'),
+            table['edge_val'].c.key == bindparam('key'),
             table['edge_val'].c.branch == bindparam('branch'),
             or_(
                 table['edge_val'].c.turn > bindparam('turn'),

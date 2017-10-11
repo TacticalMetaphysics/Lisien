@@ -774,7 +774,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             self.json_dump, (character, graph, node)
         )
         self.sql(
-            'avatar_ins', character, graph, node, branch, turn, tick, isav
+            'avatars_insert', character, graph, node, branch, turn, tick, isav
         )
         if not planning:
             self.sql(

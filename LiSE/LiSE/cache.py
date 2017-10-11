@@ -72,28 +72,37 @@ class AvatarnessCache(Cache):
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
         users = self.users[graph, node][branch]
-        if users.has_exact_rev(turn):
-            userst = users[turn]
-            if userst.end > tick:
-                if planning:
-                    raise HistoryError(
-                        "Already have users after tick " + str(tick)
-                    )
-                userst.truncate(tick)
-            if userst.has_exact_rev(tick):
-                raise HistoryError
-            if userst.has_exact_rev(tick - 1):
-        for avmap in (charavs, graphavs, graphs):
-            if avmap.has_exact_rev(turn):
-                avmapt = avmap[turn]
-                if avmapt.end > tick:
-                    raise HistoryError
-                avma
-            if not avmap.has_exact_rev(turn):
-                try:
-                    avmap[turn][tick] = avmap[turn][tick].copy()
-                except HistoryError:
-                    avmap[turn][tick] = set()
+        for turndict, newkey, getiter in (
+            (users, character, lambda: self._slow_iter_users(graph, node, branch, turn, tick)),
+            (graphs, graph, lambda: self.iter_entities(character, branch, turn, tick)),
+            (graphavs, node, lambda: self.iter_entities(character, graph, branch, turn, tick)),
+            (charavs, (graph, node), lambda: self._slow_iter_character_avatars(character, branch, turn, tick))
+        ):
+            if turndict.has_exact_rev(turn):
+                tickdict = turndict[turn]
+                if tickdict.end > tick:
+                    if planning:
+                        raise HistoryError("Already have stuff after tick " + str(tick))
+                    tickdict.truncate(tick)
+                if tickdict.has_exact_rev(tick):
+                    raise HistoryError("Already have stuff at tick " + str(tick))
+                if tickdict.has_exact_rev(tick - 1):
+                    newstuff = tickdict[tick] = tickdict[tick - 1].copy()
+                    if is_avatar:
+                        newstuff.add(newkey)
+                    else:
+                        newstuff.discard(newkey)
+                else:
+                    tickdict[tick] = set(getiter())
+            elif tick == 0 and turndict.has_exact_rev(turn - 1):
+                tickdict = turndict[turn - 1]
+                newstuff = turndict[turn][0] = tickdict[tickdict.end].copy()
+                if is_avatar:
+                    newstuff.add(newkey)
+                else:
+                    newstuff.discard(newkey)
+            else:
+                turndict[turn][tick] = set(getiter())
         if is_avatar:
             if turn in graphavs and graphavs[turn][tick]:
                 soloav[turn][tick] = None
@@ -147,7 +156,12 @@ class AvatarnessCache(Cache):
             self.graphs[char], branch, turn, tick
         ) or set()
 
-    def iter_node_users(self, graph, node, branch, turn, tick):
+    def _slow_iter_character_avatars(self, character, branch, turn, tick):
+        for graph in self.iter_entities(character, branch, turn, tick):
+            for node in self.iter_entities(character, graph, branch, turn, tick):
+                yield graph, node
+
+    def _slow_iter_users(self, graph, node, branch, turn, tick):
         if graph not in self.user_order:
             return
         for character in self.user_order[graph][node]:
