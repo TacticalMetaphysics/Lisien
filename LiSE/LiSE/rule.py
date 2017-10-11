@@ -23,12 +23,16 @@ from collections import (
     defaultdict
 )
 from functools import partial
-from inspect import getsource, getsourcelines
+from inspect import getsourcelines
 from ast import parse
 from astunparse import unparse
 from blinker import Signal
 
-from .util import reify
+from .util import reify, dedent_sourcelines
+
+
+def roundtrip_dedent(lines):
+    return unparse(parse(dedent_sourcelines(lines)))
 
 
 class RuleFuncList(MutableSequence, Signal):
@@ -41,8 +45,9 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                if unparse(parse(getsource(getattr(self._funcstore, v.__name__)))) \
-                        != unparse(parse(self._funcstore._dedent_sourcelines(getsourcelines(v)[0]))):
+                stored_sourcelines = getsourcelines(getattr(self._funcstore, v.__name__))[0]
+                new_sourcelines = getsourcelines(v)[0]
+                if roundtrip_dedent(stored_sourcelines) != roundtrip_dedent(new_sourcelines):
                     raise KeyError(
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "

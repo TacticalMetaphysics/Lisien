@@ -8,6 +8,8 @@ from ast import parse, Expr, Module
 from inspect import getsource, getsourcelines, getmodule
 import json
 
+from .util import dedent_sourcelines
+
 
 class NotThatMap(Mapping):
     """Wraps another mapping and conceals exactly one of its keys."""
@@ -165,7 +167,7 @@ class FunctionStore(Signal):
             return
         self._locl[k] = v
         sourcelines, _ = getsourcelines(v)
-        outdented = self._dedent_sourcelines(sourcelines)
+        outdented = dedent_sourcelines(sourcelines)
         expr = Expr(parse(outdented))
         expr.value.body[0].name = k
         if k in self._ast_idx:
@@ -174,23 +176,6 @@ class FunctionStore(Signal):
             self._ast_idx[k] = len(self._ast.body)
             self._ast.body.append(expr)
         self.send(self, attr=k, val=v)
-
-    @staticmethod
-    def _dedent_sourcelines(sourcelines):
-        if sourcelines[0].strip().startswith('@'):
-            del sourcelines[0]
-        indent = 999
-        for line in sourcelines:
-            lineindent = 0
-            for char in line:
-                if char not in ' \t':
-                    break
-                lineindent += 1
-            else:
-                indent = 0
-                break
-            indent = min((indent, lineindent))
-        return '\n'.join(line[indent:].strip('\n') for line in sourcelines) + '\n'
 
     def __call__(self, v):
         setattr(self, v.__name__, v)
@@ -210,7 +195,7 @@ class FunctionStore(Signal):
             yield name, getsource(func)
 
     def store_source(self, v, name=None):
-        outdented = self._dedent_sourcelines(v.split('\n'))
+        outdented = dedent_sourcelines(v.split('\n'))
         mod = parse(outdented)
         expr = Expr(mod)
         if len(expr.value.body) != 1:

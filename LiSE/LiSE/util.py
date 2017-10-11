@@ -252,3 +252,20 @@ def is_chardiff(d):
     return any(key in d for key in diffkeys) and not any(
         key not in diffkeys for key in d.keys()
     )
+
+
+def dedent_sourcelines(sourcelines):
+    if sourcelines[0].strip().startswith('@'):
+        del sourcelines[0]
+    indent = 999
+    for line in sourcelines:
+        lineindent = 0
+        for char in line:
+            if char not in ' \t':
+                break
+            lineindent += 1
+        else:
+            indent = 0
+            break
+        indent = min((indent, lineindent))
+    return '\n'.join(line[indent:].strip('\n') for line in sourcelines) + '\n'
