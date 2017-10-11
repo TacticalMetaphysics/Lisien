@@ -65,12 +65,21 @@ class UserMapping(Mapping):
             n += 1
         return n
 
+    def __contains__(self, item):
+        if item in self.engine.character:
+            item = self.engine.character[item]
+        if hasattr(item, 'avatar'):
+            charn = self.node.character.name
+            nn = self.node.name
+            return charn in item.avatar and nn in item.avatar[charn]
+        return False
+
     def __getitem__(self, k):
         if len(self) == 1:
             me = self.engine.character[next(self.node._user_names())]
             if k in me:
                 return me[k]
-        if k not in self.node._user_names():
+        if k not in self:
             raise KeyError("{} not used by {}".format(
                 self.node.name, k
             ))
