@@ -26,7 +26,7 @@ def install(eng):
     phys.stat['hour'] = 0
 
     @phys.rule(always=True)  # runs every tick regardless of the situation
-    def time_passes(engine, character):
+    def time_passes(character):
         character.stat['hour'] = (character.stat['hour'] + 1) % 24
 
 
