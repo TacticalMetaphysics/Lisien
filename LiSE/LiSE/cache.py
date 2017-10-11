@@ -42,6 +42,7 @@ class AvatarnessCache(Cache):
         self.soloav = StructuredDefaultDict(1, TurnDict)
         self.uniqav = StructuredDefaultDict(1, TurnDict)
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
+        self.users = StructuredDefaultDict(1, TurnDict)
 
     def store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning=False):
         if not is_avatar:
@@ -70,7 +71,24 @@ class AvatarnessCache(Cache):
         uniqgraph = self.uniqgraph[character][branch]
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
+        users = self.users[graph, node][branch]
+        if users.has_exact_rev(turn):
+            userst = users[turn]
+            if userst.end > tick:
+                if planning:
+                    raise HistoryError(
+                        "Already have users after tick " + str(tick)
+                    )
+                userst.truncate(tick)
+            if userst.has_exact_rev(tick):
+                raise HistoryError
+            if userst.has_exact_rev(tick - 1):
         for avmap in (charavs, graphavs, graphs):
+            if avmap.has_exact_rev(turn):
+                avmapt = avmap[turn]
+                if avmapt.end > tick:
+                    raise HistoryError
+                avma
             if not avmap.has_exact_rev(turn):
                 try:
                     avmap[turn][tick] = avmap[turn][tick].copy()
