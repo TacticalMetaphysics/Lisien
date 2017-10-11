@@ -298,10 +298,11 @@ class RuleBook(MutableSequence, Signal):
     @property
     def _cache(self):
         return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.btt())
+
     @_cache.setter
     def _cache(self, v):
-        branch, tick = self.engine.time
-        self.engine._rulebooks_cache.store(self.name, branch, tick, v)
+        branch, turn, tick = self.engine.btt()
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
 
     def __init__(self, engine, name):
         super().__init__()
@@ -315,7 +316,10 @@ class RuleBook(MutableSequence, Signal):
         return iter(self._cache)
 
     def __len__(self):
-        return len(self._cache)
+        try:
+            return len(self._cache)
+        except KeyError:
+            return 0
 
     def __getitem__(self, i):
         return self.engine.rule[self._cache[i]]
@@ -330,7 +334,13 @@ class RuleBook(MutableSequence, Signal):
 
     def __setitem__(self, i, v):
         v = getattr(v, 'name', v)
-        cache = self._cache
+        try:
+            cache = self._cache
+        except KeyError:
+            if i == 0:
+                self._cache = [v]
+                return
+            raise
         cache[i] = v
         e = self.engine
         branch, turn, tick = e.nbtt()
@@ -341,7 +351,13 @@ class RuleBook(MutableSequence, Signal):
 
     def insert(self, i, v):
         v = getattr(v, 'name', v)
-        cache = self._cache
+        try:
+            cache = self._cache
+        except KeyError:
+            if i == 0:
+                self._cache = [v]
+                return
+            raise
         cache.insert(i, v)
         branch, turn, tick = self.engine.nbtt()
         self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)

@@ -636,9 +636,12 @@ class RuleFollower(BaseRuleFollower):
         )
 
     def _get_rulebook_name(self):
-        return self.engine._characters_rulebooks_cache.retrieve(
-            self.character.name, *self.engine.btt()
-        )
+        try:
+            return self.engine._characters_rulebooks_cache.retrieve(
+                self.character.name, *self.engine.btt()
+            )
+        except KeyError:
+            return self.character.name
 
     def _set_rulebook_name(self, n):
         self.engine._set_character_rulebook(self.character.name, self._book, n)
