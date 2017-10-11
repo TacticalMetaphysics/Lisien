@@ -38,7 +38,7 @@ def install(eng):
 
 
     @student_body.avatar.rule
-    def go_to_clas(node):
+    def go_to_class(node):
         # There's just one really long class every day.
         node.travel_to(node.character.place['classroom'])
 
