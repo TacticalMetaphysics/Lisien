@@ -337,7 +337,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     def new_thing(self, name, statdict={}, **stats):
         """Create a new thing, located here, and return it."""
         return self.character.new_thing(
-            name, self.name, None, statdict, **stats
+            name, self.name, statdict, **stats
         )
 
     def historical(self, stat):
