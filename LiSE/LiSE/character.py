@@ -1865,11 +1865,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 n = b
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
-        self.engine._exist_node(
-            g,
-            n,
-            True
-        )
+        self.engine._exist_node(g, n)
         # Declare that the node is my avatar
         self.engine._remember_avatarness(self.name, g, n)
 
