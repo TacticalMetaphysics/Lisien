@@ -586,7 +586,7 @@ class QueryEngine(object):
                   for ((graph, orig, dest, idx, key, branch), (turn, tick))
                   in delafter.items())
             )
-        self.sqlmany('edge_val_ins', *map(lambda x: x[:-1], converted))
+        self.sqlmany('edge_val_insert', *map(lambda x: x[:-1], converted))
         self._edgevals2set = []
 
     def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value, planning=False):

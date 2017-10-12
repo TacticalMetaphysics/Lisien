@@ -135,6 +135,8 @@ class WindowDict(MutableMapping):
             return self._future[0][0]
 
     def truncate(self, rev):
+        self.seek(rev)
+        self._future = deque()
 
     @property
     def beginning(self):
