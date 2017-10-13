@@ -88,8 +88,8 @@ def install(eng):
     @eng.rule
     def drink(character):
         braincells = list(character.node.values())
-        engine.shuffle(braincells)
-        for i in range(0, engine.randrange(1, 20)):
+        character.engine.shuffle(braincells)
+        for i in range(0, character.engine.randrange(1, 20)):
             braincells.pop()['drunk'] += 12
 
 
@@ -107,7 +107,7 @@ def install(eng):
     @eng.rule
     def sloth(character):
         braincells = list(character.node.values())
-        engine.shuffle(braincells)
+        character.engine.shuffle(braincells)
         for i in range(0, character.engine.randrange(1, 20)):
             braincells.pop()['slow'] += 1
 
