@@ -20,7 +20,7 @@ from collections import (
     Mapping,
     MutableMapping,
     MutableSequence,
-    defaultdict
+    Hashable
 )
 from functools import partial
 from inspect import getsourcelines
@@ -432,7 +432,7 @@ class RuleMapping(MutableMapping, Signal):
             raise AttributeError
 
     def __setitem__(self, k, v):
-        if v in self.engine.rule:
+        if isinstance(v, Hashable) and v in self.engine.rule:
             v = self.engine.rule[v]
         elif isinstance(v, str) and hasattr(self.engine.function, v):
             v = getattr(self.engine.function, v)
