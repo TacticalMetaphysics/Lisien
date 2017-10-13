@@ -144,7 +144,9 @@ class GraphMapping(AbstractEntityMapping):
         return self.db._graph_val_cache.retrieve(
             self.graph.name, key, branch, turn, tick
         )
-    _get = _get_cache
+
+    def _get(self, key):
+        return self._get_cache(key, *self.db.btt())
 
     def _set_db(self, key, branch, turn, tick, value):
         self.db.query.graph_val_set(
