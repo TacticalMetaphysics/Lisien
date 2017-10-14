@@ -88,23 +88,25 @@ class Dialog(BoxLayout):
             message_kwargs=self._propagate_msg_kwargs,
             menu_kwargs=self._propagate_menu_kwargs
         )
-        if 'message_kwargs' in kwargs:
-            self._propagate_msg_kwargs()
-        if 'menu_kwargs' in kwargs:
-            self._propagate_menu_kwargs()
+        self._propagate_msg_kwargs()
+        self._propagate_menu_kwargs()
 
     def _propagate_msg_kwargs(self, *args):
         if 'msg' not in self.ids:
             Clock.schedule_once(self._propagate_msg_kwargs, 0)
             return
-        for k, v in self.message_kwargs.items():
+        kw = dict(self.message_kwargs)
+        kw.setdefault('background', 'atlas://data/images/defaulttheme/textinput')
+        for k, v in kw.items():
             setattr(self.ids.msg, k, v)
 
     def _propagate_menu_kwargs(self, *args):
         if 'menu' not in self.ids:
             Clock.schedule_once(self._propagate_menu_kwargs, 0)
             return
-        for k, v in self.menu_kwargs.items():
+        kw = dict(self.menu_kwargs)
+        kw.setdefault('background', 'atlas://data/images/defaulttheme/vkeyboard_background')
+        for k, v in kw.items():
             setattr(self.ids.menu, k, v)
 
 
@@ -140,9 +142,7 @@ Builder.load_string("""
     pos_hint: {'x': 0, 'y': 0}
     size_hint: 1, 0.3
     MessageBox:
-        background: 'atlas://data/images/defaulttheme/textinput'
         id: msg
     DialogMenu:
-        background: 'atlas://data/images/defaulttheme/vkeyboard_background'
         id: menu
 """)
