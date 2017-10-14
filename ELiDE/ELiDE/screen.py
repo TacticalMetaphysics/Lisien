@@ -319,9 +319,19 @@ class MainScreen(Screen):
                 # TODO more informative error
                 raise TypeError('Need a tuple of length 2')
             msgkwargs, mnukwargs = diargs
-            dia.message_kwargs = msgkwargs
-            mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
-            dia.menu_kwargs = mnukwargs
+            if isinstance(msgkwargs, dict):
+                dia.message_kwargs = msgkwargs
+            elif isinstance(msgkwargs, str):
+                dia.message_kwargs['text'] = msgkwargs
+            else:
+                raise TypeError("Message must be dict or str")
+            if isinstance(mnukwargs, dict):
+                mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
+                dia.menu_kwargs = mnukwargs
+            elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
+                dia.menu_kwargs['options'] = list(map(self._munge_menu_option, mnukwargs))
+            else:
+                raise TypeError("Menu must be dict or list")
         else:
             raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
         self.ids.dialoglayout.add_widget(dia)
