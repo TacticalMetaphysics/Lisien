@@ -356,21 +356,15 @@ class MainScreen(Screen):
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
-        # TODO pop out the play button if a dialog gets displayed
+        if self._dialog_todo:
+            self.playbut.state = 'normal'
+            return
         if self.playbut.state == 'normal':
             return
-        elif not hasattr(self, '_old_time'):
-            self._old_time = (self.app.branch, self.app.turn, self.app.tick)
-            self.app.engine.next_turn(
-                chars=[self.app.character_name],
-                cb=lambda cmd, branch, turn, tick, ret: self._update_from_chardiffs(ret[1])
-            )
-        elif self._old_time == (self.app.branch, self.app.turn, self.app.tick):
-            return
-        elif self._dialog_todo:
-            return
-        else:
-            del self._old_time
+        self.app.engine.next_turn(
+            chars=[self.app.character_name],
+            cb=self._update_from_next_turn
+        )
 
 
 Builder.load_string(
