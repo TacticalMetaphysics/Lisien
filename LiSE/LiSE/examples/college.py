@@ -66,7 +66,7 @@ def install(eng):
         # or assigned this rule to the student directly.
         for user in node.user.values():
             if user.name not in ('physical', 'student_body'):
-                return not user.stat['lazy'] or engine.coinflip()
+                return not user.stat['lazy'] or node.engine.coinflip()
 
 
     @student_body.avatar.rule
