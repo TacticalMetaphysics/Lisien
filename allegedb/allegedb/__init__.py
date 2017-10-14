@@ -18,6 +18,21 @@ class GraphNameError(KeyError):
 
 
 class PlanningContext(object):
+    """A context manager for 'hypothetical' edits.
+
+    Start a block of code like:
+
+    with orm.plan:
+        ...
+
+    and any changes you make to the world state within that block will be
+    'plans,' meaning that they are used as defaults. The world will
+    obey your plan unless you make changes to the same entities outside
+    of the plan, in which case the world will obey those.
+
+    New branches cannot be started within plans.
+
+    """
     __slots__ = ['orm', 'time']
 
     def __init__(self, orm):
@@ -46,6 +61,7 @@ class ORM(object):
     @property
     def plan(self):
         return PlanningContext(self)
+    plan.__doc__ = PlanningContext.__doc__
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
