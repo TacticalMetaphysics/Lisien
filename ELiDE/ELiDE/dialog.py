@@ -71,7 +71,14 @@ class DialogMenu(Box):
 
 
 class Dialog(BoxLayout):
-    """MessageBox with a DialogMenu beneath it"""
+    """MessageBox with a DialogMenu beneath it.
+
+    Set the properties ``message_kwargs`` and ``menu_kwargs``,
+    respectively, to control them -- but you probably want
+    to do that by returning a pair of dicts from an action
+    in LiSE.
+
+    """
     message_kwargs = DictProperty({})
     menu_kwargs = DictProperty({})
 
