@@ -302,12 +302,18 @@ class MainScreen(Screen):
         if not hasattr(self, '_dia'):
             self._dia = Dialog()
         dia = self._dia
+        # Simple text dialogs just tell the player something and let them click OK
         if isinstance(diargs, str):
             dia.message_kwargs = {'text': diargs}
             dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
+        # List dialogs are for when you need the player to make a choice and don't care much
+        # about presentation
         elif isinstance(diargs, list):
             dia.message_kwargs = {'text': 'Select from the following:'}
             dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
+        # For real control of the dialog, you need a pair of dicts --
+        # the 0th describes the message shown to the player, the 1th
+        # describes the menu below
         elif isinstance(diargs, tuple):
             if len(diargs) != 2:
                 # TODO more informative error
