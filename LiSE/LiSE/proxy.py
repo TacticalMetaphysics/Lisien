@@ -2201,6 +2201,7 @@ class EngineProxy(AbstractEngine):
                 args=(chars, cb)
             ).start()
 
+    # TODO: make this into a Signal, like it is in the LiSE core
     def next_turn(self, chars=(), cb=None, silent=False):
         if cb and not chars:
             raise TypeError("Callback requires chars")
