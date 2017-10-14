@@ -251,10 +251,12 @@ class CharacterRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character in self.engine.character:
+            try:
+                rb = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for rule in self.unhandled_rulebook_rules(
-                character,
-                self.get_rulebook(character, branch, turn, tick),
-                branch, turn, tick
+                character, rb, branch, turn, tick
             ):
                 yield character, rule
 
@@ -265,7 +267,10 @@ class AvatarRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for graph in char.avatar.values():
                 for avatar in graph:
                     try:
@@ -282,7 +287,10 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for thing in char.thing:
                 try:
                     rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
@@ -298,7 +306,10 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for place in char.place:
                 try:
                     rules = self.unhandled_rulebook_rules((character, place), rulebook, branch, turn, tick)
@@ -314,7 +325,10 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for orig in char.portal:
                 for dest in char.portal[orig]:
                     try:
