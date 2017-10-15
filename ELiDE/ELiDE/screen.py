@@ -342,7 +342,7 @@ class MainScreen(Screen):
             cb()
         self._advance_dialog()
 
-    def _trigger_ok(self, cb=None):
+    def _trigger_ok(self, cb=None, *args):
         part = partial(self.ok, cb)
         Clock.unschedule(part)
         Clock.schedule_once(part)
