@@ -7,6 +7,7 @@ flow of time.
 """
 from random import Random
 from functools import partial
+from types import FunctionType
 from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
@@ -211,6 +212,11 @@ class AbstractEngine(object):
             return partial(getattr(self.method, att), self)
         raise AttributeError('No attribute or stored method: {}'.format(att))
 
+    def _listify_function(self, obj):
+        if not hasattr(getattr(self, obj.__module__), obj):
+            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
+        return [obj.__module__, obj.__name__]
+
     @reify
     def _listify_dispatch(self):
         return {
@@ -224,7 +230,8 @@ class AbstractEngine(object):
             self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
-                "portal", obj.character.name, obj.orig, obj.dest]
+                "portal", obj.character.name, obj.orig, obj.dest],
+            FunctionType: self._listify_function
         }
 
     def listify(self, obj):
@@ -254,7 +261,12 @@ class AbstractEngine(object):
                 self.delistify(obj[1]),
                 self.delistify(obj[2]),
                 self.delistify(obj[3])
-            )]
+            )],
+            'function': lambda obj: getattr(self.function, obj[1]),
+            'method': lambda obj: getattr(self.method, obj[1]),
+            'prereq': lambda obj: getattr(self.prereq, obj[1]),
+            'trigger': lambda obj: getattr(self.trigger, obj[1]),
+            'action': lambda obj: getattr(self.action, obj[1])
         }
 
     def delistify(self, obj):
