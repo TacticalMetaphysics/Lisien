@@ -145,6 +145,76 @@ class NodeContent(Mapping):
         return NodeContentValues(self)
 
 
+class DestsValues(ValuesView):
+    def __contains__(self, item):
+        return item.origin == self._mapping.node
+
+
+class Dests(Mapping):
+    __slots__ = ('node',)
+
+    def __init__(self, node):
+        self.node = node
+
+    def __iter__(self):
+        yield from self.node.engine._edges_cache.iter_successors(
+            self.node.character.name, self.node.name, *self.node.engine.btt()
+        )
+
+    def __len__(self):
+        return self.node.engine._edges_cache.count_successors(
+            self.node.character.name, self.node.name, *self.node.engine.btt()
+        )
+
+    def __contains__(self, item):
+        return self.node.engine._edges_cache.has_successor(
+            self.node.character.name, self.node.name, item, *self.node.engine.btt()
+        )
+
+    def __getitem__(self, item):
+        if item not in self:
+            raise KeyError
+        return self.node.character.portal[self.node.name][item]
+
+    def values(self):
+        return DestsValues(self)
+
+
+class OrigsValues(ValuesView):
+    def __contains__(self, item):
+        return item.destination == self._mapping.node
+
+
+class Origs(Mapping):
+    __slots__ = ('node',)
+
+    def __init__(self, node):
+        self.node = node
+
+    def __iter__(self):
+        return self.node.engine._edges_cache.iter_predecessors(
+            self.node.character.name, self.node.name, *self.node.engine.btt()
+        )
+
+    def __contains__(self, item):
+        return self.node.engine._edges_cache.has_predecessor(
+            self.node.character.name, self.node.name, item, *self.node.engine.btt()
+        )
+
+    def __len__(self):
+        return self.node.engine._edges_cache.count_predecessors(
+            self.node.character.name, self.node.name, *self.node.engine.btt()
+        )
+
+    def __getitem__(self, item):
+        if item not in self:
+            raise KeyError
+        return self.node.character.portal[item][self.node.name]
+
+    def values(self):
+        return OrigsValues(self)
+
+
 class Node(allegedb.graph.Node, rule.RuleFollower):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
@@ -202,7 +272,13 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     @property
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
-        return self.character.portal[self.name]
+        return Dests(self)
+    successor = adj = edge = portal
+
+    @property
+    def preportal(self):
+        return Origs(self)
+    predecessor = pred = preportal
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
@@ -233,47 +309,23 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         super().__delitem__(k)
         self.send(self, key=k, val=None)
 
-    def _portal_dests(self):
-        """Iterate over names of nodes you can get to from here"""
-        yield from self.db._edges_cache.iter_entities(
-            self.character.name, self.name, *self.engine.btt()
-        )
-
-    def _portal_origs(self):
-        """Iterate over names of nodes you can get here from"""
-        cache = self.engine._edges_cache.predecessors[
-            self.character.name][self.name]
-        for nodeB in cache:
-            for (b, trn, tck) in self.engine._iter_parent_btt():
-                if b in cache[nodeB][0]:
-                    if b != self.engine.branch:
-                        self.engine._edges_cache.store(
-                            self.character.name, self.name, nodeB, 0,
-                            *self.engine.btt()
-                        )
-                    if cache[nodeB][0][b][trn][tck]:
-                        yield nodeB
-                        break
-
     def portals(self):
         """Iterate over :class:`Portal` objects that lead away from me"""
-        for destn in self._portal_dests():
-            yield self.character.portal[self.name][destn]
+        yield from self.portal.values()
 
     def successors(self):
         """Iterate over nodes with edges leading from here to there."""
-        for destn in self._portal_dests():
-            yield self.character.node[destn]
+        for port in self.portal.values():
+            yield port.destination
 
     def preportals(self):
         """Iterate over :class:`Portal` objects that lead to me"""
-        for orign in self._portal_origs():
-            yield self.character.preportal[self.name][orign]
+        yield from self.preportal.values()
 
     def predecessors(self):
         """Iterate over nodes with edges leading here from there."""
-        for orign in self._portal_origs():
-            yield self.character.node[orign]
+        for port in self.preportal.values():
+            yield port.origin
 
     def _sane_dest_name(self, dest):
         if isinstance(dest, Node):
