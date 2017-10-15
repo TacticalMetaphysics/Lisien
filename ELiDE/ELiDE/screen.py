@@ -349,7 +349,7 @@ class MainScreen(Screen):
 
     def _lookup_func(self, funcname):
         if not hasattr(self, '_usermod'):
-            self.usermod = import_module(self.usermod, self.userpkg)
+            self._usermod = import_module(self.usermod, self.userpkg)
         return getattr(self.usermod, funcname)
 
     def _munge_menu_option(self, option):
