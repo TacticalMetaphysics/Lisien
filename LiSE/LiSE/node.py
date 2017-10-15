@@ -6,7 +6,7 @@ Every actual node that you're meant to use will be a place or
 thing. This module is for what they have in common.
 
 """
-from collections import Mapping
+from collections import Mapping, ValuesView
 
 from networkx import shortest_path, shortest_path_length
 
@@ -99,6 +99,50 @@ class UserMapping(Mapping):
             me = self.engine.character[next(self.node._user_names())]
             if hasattr(me, attr):
                 return getattr(me, attr)
+
+
+class NodeContentValues(ValuesView):
+    def __iter__(self):
+        node = self._mapping.node
+        for thing in node.character.thing.values():
+            if thing.location == node:
+                yield thing
+
+    def __contains__(self, item):
+        return item.location == self._mapping.node
+
+
+class NodeContent(Mapping):
+    __slots__ = ('node',)
+
+    def __init__(self, node):
+        self.node = node
+
+    def __iter__(self):
+        # TODO: cache this
+        for name, thing in self.node.character.thing.items():
+            if thing.location == self.node:
+                yield name
+
+    def __len__(self):
+        n = 0
+        for thing in self:
+            n += 1
+        return n
+
+    def __contains__(self, item):
+        try:
+            return self.node.character.thing[item].location == self.node
+        except KeyError:
+            return False
+
+    def __getitem__(self, item):
+        if item not in self:
+            raise KeyError
+        return self.node.character.thing[item]
+
+    def values(self):
+        return NodeContentValues(self)
 
 
 class Node(allegedb.graph.Node, rule.RuleFollower):
@@ -281,11 +325,12 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         except KeyError:
             return False
 
+    @property
+    def content(self):
+        return NodeContent(self)
+
     def contents(self):
-        """Iterate over :class:`Thing` objects located in me"""
-        for thing in self.character.thing.values():
-            if thing['location'] == self.name:
-                yield thing
+        return self.content.values()
 
     def delete(self):
         """Get rid of this, starting now.
