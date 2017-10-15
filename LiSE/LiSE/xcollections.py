@@ -150,7 +150,7 @@ class FunctionStore(Signal):
                 self._locl = {}
                 self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
                 for thing in self._locl.values():
-                    thing.__module__ = self.__name__
+                    thing.__module__ = self._filename.rstrip('.py')
         except FileNotFoundError:
             self._ast = Module(body=[])
             self._ast_idx = {}
@@ -167,7 +167,7 @@ class FunctionStore(Signal):
         if not callable(v):
             super().__setattr__(k, v)
             return
-        v.__module__ = self.__name__
+        v.__module__ = self._filename.rstrip('.py')
         self._locl[k] = v
         sourcelines, _ = getsourcelines(v)
         outdented = dedent_sourcelines(sourcelines)
