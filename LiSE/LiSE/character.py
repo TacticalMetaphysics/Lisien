@@ -1287,8 +1287,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.send(self, key=thing, val=th)
 
         def __delitem__(self, thing):
-            self[thing].delete(nochar=True)
-            self.send(self, key=thing, val=None)
+            self[thing].delete()
 
         def __repr__(self):
             return repr(dict(self))
