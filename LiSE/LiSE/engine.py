@@ -213,7 +213,7 @@ class AbstractEngine(object):
         raise AttributeError('No attribute or stored method: {}'.format(att))
 
     def _listify_function(self, obj):
-        if not hasattr(getattr(self, obj.__module__), obj):
+        if not hasattr(getattr(self, obj.__module__), obj.__name__):
             raise ValueError("Function {} is not in my function stores".format(obj.__name__))
         return [obj.__module__, obj.__name__]
 
