@@ -966,6 +966,12 @@ class EngineHandle(object):
         except KeyError:
             pass
 
+    def call_stored_function(self, store, func, args, kwargs):
+        store = getattr(self._real, store)
+        if store not in self._real.stores:
+            raise ValueError("{} is not a function store".format(store))
+        return getattr(store, func)(*args, **kwargs)
+
     def install_module(self, module):
         import_module(module).install(self._real)
 

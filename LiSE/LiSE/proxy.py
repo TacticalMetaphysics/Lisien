@@ -1724,6 +1724,28 @@ class AllRulesProxy(Mapping):
         return self._proxy_cache[k]
 
 
+class FuncProxy(object):
+    __slots__ = 'store', 'func'
+
+    def __init__(self, store, func):
+        self.store = store
+        self.func = func
+
+    def __call__(self, *args, silent=False, cb=None, **kwargs):
+        return self.store.engine.handle(
+            'call_stored_function',
+            store=self.store._store,
+            func=self.func,
+            args=args,
+            kwargs=kwargs,
+            silent=silent,
+            cb=cb
+        )
+
+    def __str__(self):
+        return self.store._cache[self.func]
+
+
 class FuncStoreProxy(Signal):
     def __init__(self, engine_proxy, store):
         self.engine = engine_proxy
@@ -1731,9 +1753,9 @@ class FuncStoreProxy(Signal):
         self._cache = self.engine.handle('source_diff', store=store)
 
     def __getattr__(self, k):
-        try:
-            return self._cache[k]
-        except KeyError:
+        if k in self._cache:
+            return FuncProxy(self, k)
+        else:
             raise AttributeError
 
     def __setattr__(self, func_name, source):
