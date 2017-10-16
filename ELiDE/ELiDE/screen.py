@@ -161,7 +161,7 @@ class MainScreen(Screen):
     dialoglayout = ObjectProperty()
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
-    _dialog_todo = ListProperty([])
+    dialog_todo = ListProperty([])
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
     usermod = StringProperty('user')
@@ -279,7 +279,7 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self._dialog_todo, chardiffs = ret
+        self.dialog_todo, chardiffs = ret
         self._update_from_chardiffs(chardiffs)
         self._advance_dialog()
 
@@ -291,9 +291,9 @@ class MainScreen(Screen):
 
     def _advance_dialog(self):
         self.ids.dialoglayout.clear_widgets()
-        if not self._dialog_todo:
+        if not self.dialog_todo:
             return
-        self._update_dialog(self._dialog_todo.pop(0))
+        self._update_dialog(self.dialog_todo.pop(0))
 
     def _update_dialog(self, diargs, **kwargs):
         if diargs is None:
@@ -335,6 +335,7 @@ class MainScreen(Screen):
         else:
             raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
         self.ids.dialoglayout.add_widget(dia)
+        self.app.engine.universal['last_result_idx'] += 1
 
     def ok(self, cb=None, *args):
         self.ids.dialoglayout.clear_widgets()
@@ -372,7 +373,7 @@ class MainScreen(Screen):
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a tick."""
-        if self._dialog_todo:
+        if self.dialog_todo:
             self.playbut.state = 'normal'
             return
         if self.playbut.state == 'normal':

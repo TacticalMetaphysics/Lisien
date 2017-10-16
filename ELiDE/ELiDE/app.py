@@ -278,10 +278,18 @@ class ELiDEApp(App):
         self.bind(
             selected_remote=self.statcfg.setter('remote')
         )
+        dialog_todo = self.engine.universal.get('last_result', [])
+        if dialog_todo:
+            idx = self.engine.universal['last_result_idx']
+            if idx >= len(dialog_todo):
+                dialog_todo = []
+            else:
+                dialog_todo = dialog_todo[idx:]
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
+            dialog_todo=dialog_todo,
             boards={
                 name: Board(
                     character=char
