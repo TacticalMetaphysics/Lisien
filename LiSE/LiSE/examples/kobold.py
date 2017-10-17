@@ -74,11 +74,9 @@ def inittest(
     # If it is, there's a chance it will try to get to another.
     @kobold.rule
     def shrubsprint(thing):
-        print('shrub_places: {}'.format(thing['shrub_places']))
         shrub_places = sorted(list(thing['shrub_places']))
         if thing['location'] in shrub_places:
             shrub_places.remove(thing['location'])
-        print('shrub_places after: {}'.format(thing['shrub_places']))
         thing.travel_to(thing.engine.choice(shrub_places))
 
     @shrubsprint.trigger
