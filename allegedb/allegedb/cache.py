@@ -481,8 +481,6 @@ class Cache(object):
                         except HistoryError:
                             cturnd[tick] = None
                         return
-                    cache[branch][r][t] = v
-                    return
         b, r, t, _, _ = self.db._branches[branch] if branch != 'trunk' else 'trunk', 0, 0, None, None
         cache[branch][r][t] = None
 
