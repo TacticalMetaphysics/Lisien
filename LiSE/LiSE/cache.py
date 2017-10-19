@@ -132,27 +132,27 @@ class AvatarnessCache(Cache):
                     uniqgraph[turn][tick] = None
 
     def get_char_graph_avs(self, char, graph, branch, turn, tick):
-        return self._fetch_valcache(
+        return self._forward_valcache(
             self.graphavs[(char, graph)], branch, turn, tick
         ) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
-        return self._fetch_valcache(
+        return self._forward_valcache(
             self.soloav[(char, graph)], branch, turn, tick, copy=False
         )
 
     def get_char_only_av(self, char, branch, turn, tick):
-        return self._fetch_valcache(
+        return self._forward_valcache(
             self.uniqav[char], branch, turn, tick, copy=False
         )
 
     def get_char_only_graph(self, char, branch, turn, tick):
-        return self._fetch_valcache(
+        return self._forward_valcache(
             self.uniqgraph[char], branch, turn, tick, copy=False
         )
 
     def get_char_graphs(self, char, branch, turn, tick):
-        return self._fetch_valcache(
+        return self._forward_valcache(
             self.graphs[char], branch, turn, tick
         ) or set()
 
