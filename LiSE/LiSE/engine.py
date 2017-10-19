@@ -135,8 +135,7 @@ class NextTurn(Signal):
 
     def __call__(self):
         engine = self.engine
-        engine.forward = True
-        try:
+        with engine.advancing:
             for res in iter(engine.advance, final_rule):
                 if res:
                     branch, turn, tick = engine.btt()
@@ -150,8 +149,6 @@ class NextTurn(Signal):
                         tick=tick
                     )
                     return res
-        finally:
-            engine.forward = False
         branch, turn = engine.time
         turn += 1
         # As a side effect, the following assignment sets the tick to

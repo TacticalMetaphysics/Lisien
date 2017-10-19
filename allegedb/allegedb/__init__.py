@@ -48,6 +48,25 @@ class PlanningContext(object):
         self.orm.planning = False
 
 
+class AdvancingContext(object):
+    """A context manager for when time is moving forward.
+
+    When used in LiSE, this means that the game is being simulated.
+    It changes how the caching works, making it more efficient.
+
+    """
+    __slots__ = ['orm']
+
+    def __init__(self, orm):
+        self.orm = orm
+
+    def __enter__(self):
+        self.orm.forward = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.orm.forward = False
+
+
 class ORM(object):
     """Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
@@ -62,6 +81,11 @@ class ORM(object):
     def plan(self):
         return PlanningContext(self)
     plan.__doc__ = PlanningContext.__doc__
+
+    @property
+    def advancing(self):
+        return AdvancingContext(self)
+    advancing.__doc__ = AdvancingContext.__doc__
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
