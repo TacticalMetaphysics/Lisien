@@ -135,19 +135,23 @@ class NextTurn(Signal):
 
     def __call__(self):
         engine = self.engine
-        for res in iter(engine.advance, final_rule):
-            if res:
-                branch, turn, tick = engine.btt()
-                engine.universal['last_result'] = res
-                engine.universal['last_result_idx'] = 0
-                engine.universal['rando_state'] = engine.rando.getstate()
-                self.send(
-                    engine,
-                    branch=branch,
-                    turn=turn,
-                    tick=tick
-                )
-                return res
+        engine.forward = True
+        try:
+            for res in iter(engine.advance, final_rule):
+                if res:
+                    branch, turn, tick = engine.btt()
+                    engine.universal['last_result'] = res
+                    engine.universal['last_result_idx'] = 0
+                    engine.universal['rando_state'] = engine.rando.getstate()
+                    self.send(
+                        engine,
+                        branch=branch,
+                        turn=turn,
+                        tick=tick
+                    )
+                    return res
+        finally:
+            engine.forward = False
         branch, turn = engine.time
         turn += 1
         # As a side effect, the following assignment sets the tick to
@@ -1124,6 +1128,9 @@ class Engine(AbstractEngine, gORM):
         )
         self._edges_cache.store(
             character, orig, dest, 0, branch, turn, tick, exist, planning=planning
+        )
+        assert self._edges_cache.contains_entity(
+            character, orig, dest, 0, branch, turn, tick
         )
 
     def alias(self, v, stat='dummy'):

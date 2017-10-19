@@ -18,12 +18,12 @@ class EntitylessCache(Cache):
     def retrieve(self, key, branch, turn, tick):
         return super().retrieve(None, key, branch, turn, tick)
 
-    def iter_entities_or_keys(self, branch, turn, tick):
-        return super().iter_entities_or_keys(None, branch, turn, tick)
+    def iter_entities_or_keys(self, branch, turn, tick, *, forward=False):
+        return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, turn, tick):
-        return super().contains_entity_or_key(None, ke, branch, turn, tick)
+    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=False):
+        return super().contains_entity_or_key(None, ke, branch, turn, tick, forward=forward)
     contains_entity = contains_key = contains_entity_or_key
 
     def retrieve(self, *args):
@@ -50,19 +50,19 @@ class AvatarnessCache(Cache):
         Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, planning=False)
         self.user_order[graph][node][character][branch][turn][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][turn][tick] = is_avatar
-        self._forward_valcache(self.charavs[character], branch, turn, tick)
-        self._forward_valcache(
+        self._fetch_valcache(self.charavs[character], branch, turn, tick)
+        self._fetch_valcache(
             self.graphavs[(character, graph)], branch, turn, tick
         )
-        self._forward_valcache(self.graphs[character], branch, turn, tick)
-        self._forward_valcache(
+        self._fetch_valcache(self.graphs[character], branch, turn, tick)
+        self._fetch_valcache(
             self.soloav[(character, graph)],
             branch, turn, tick, copy=False
         )
-        self._forward_valcache(
+        self._fetch_valcache(
             self.uniqav[character], branch, turn, tick, copy=False
         )
-        self._forward_valcache(
+        self._fetch_valcache(
             self.uniqgraph[character], branch, turn, tick, copy=False
         )
         charavs = self.charavs[character][branch]
@@ -132,27 +132,27 @@ class AvatarnessCache(Cache):
                     uniqgraph[turn][tick] = None
 
     def get_char_graph_avs(self, char, graph, branch, turn, tick):
-        return self._forward_valcache(
+        return self._fetch_valcache(
             self.graphavs[(char, graph)], branch, turn, tick
         ) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
-        return self._forward_valcache(
+        return self._fetch_valcache(
             self.soloav[(char, graph)], branch, turn, tick, copy=False
         )
 
     def get_char_only_av(self, char, branch, turn, tick):
-        return self._forward_valcache(
+        return self._fetch_valcache(
             self.uniqav[char], branch, turn, tick, copy=False
         )
 
     def get_char_only_graph(self, char, branch, turn, tick):
-        return self._forward_valcache(
+        return self._fetch_valcache(
             self.uniqgraph[char], branch, turn, tick, copy=False
         )
 
     def get_char_graphs(self, char, branch, turn, tick):
-        return self._forward_valcache(
+        return self._fetch_valcache(
             self.graphs[char], branch, turn, tick
         ) or set()
 

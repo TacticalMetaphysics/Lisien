@@ -107,6 +107,7 @@ class ORM(object):
 
         """
         self.planning = False
+        self.forward = False
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,

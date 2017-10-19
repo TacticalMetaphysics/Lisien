@@ -77,7 +77,9 @@ def inittest(
         shrub_places = sorted(list(thing['shrub_places']))
         if thing['location'] in shrub_places:
             shrub_places.remove(thing['location'])
-        thing.travel_to(thing.engine.choice(shrub_places))
+            assert thing['location'] not in shrub_places
+        whereto = thing.engine.choice(shrub_places)
+        thing.travel_to(whereto)
 
     @shrubsprint.trigger
     def uncovered(thing):

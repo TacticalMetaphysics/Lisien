@@ -249,13 +249,16 @@ class Portal(Edge, RuleFollower):
             branch,
             turn,
             tick,
-            False
+            False,
+            planning=self.engine.planning,
+            forward=self.engine.forward
         )
         self.engine.query.exist_edge(
             self.character.name,
             self.origin.name,
             self.destination.name,
-            branch, turn, tick, False
+            branch, turn, tick, False,
+            planning=self.engine.planning
         )
         try:
             del self.engine._portal_objs[

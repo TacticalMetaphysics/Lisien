@@ -403,7 +403,9 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         branch, turn, tick = self.engine.btt()
         self.engine._nodes_cache.store(
             self.character.name, self.name,
-            branch, turn, tick, False
+            branch, turn, tick, False,
+            planning=self.engine.planning,
+            forward=self.engine.forward
         )
         self.engine.query.exist_node(
             self.character.name, self.name,
