@@ -756,6 +756,8 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
         loc = self.json_dump(loc)
         nextloc = self.json_dump(nextloc)
+        if not planning:
+            self.sql('del_things_after', character, thing, branch, turn, turn, tick)
         self.sql(
             'things_insert',
             character,
@@ -766,21 +768,19 @@ class QueryEngine(allegedb.query.QueryEngine):
             loc,
             nextloc
         )
-        if not planning:
-            self.sql('del_things_after', character, thing, branch, turn, turn, tick)
 
     def avatar_set(self, character, graph, node, branch, turn, tick, isav, *, planning=False):
         (character, graph, node) = map(
             self.json_dump, (character, graph, node)
-        )
-        self.sql(
-            'avatars_insert', character, graph, node, branch, turn, tick, isav
         )
         if not planning:
             self.sql(
                 'del_avatars_after',
                 character, graph, node, branch, turn, turn, tick
             )
+        self.sql(
+            'avatars_insert', character, graph, node, branch, turn, tick, isav
+        )
 
     def rulebooks_rules(self):
         for (rulebook, rule) in self.sql('rulebooks_rules'):
