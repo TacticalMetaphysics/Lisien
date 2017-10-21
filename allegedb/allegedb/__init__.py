@@ -44,7 +44,7 @@ class PlanningContext(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm.branch, self.orm.turn = self.time
+        self.orm._obranch, self.orm._oturn = self.time
         self.orm.planning = False
 
 
