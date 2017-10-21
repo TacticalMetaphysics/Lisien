@@ -348,7 +348,7 @@ class Engine(AbstractEngine, gORM):
     - ``eternal``: Mapping of arbitrary serializable objects. It isn't
       sensitive to sim-time. A good place to keep game settings.
     - ``universal``: Another mapping of arbitrary serializable
-      objects, but this one *is* sensitive to sim-time. Each tick, the
+      objects, but this one *is* sensitive to sim-time. Each turn, the
       state of the randomizer is saved here under the key
       ``'rando_state'``.
     - ``rando``: The randomizer used by all of the rules.
@@ -1030,7 +1030,7 @@ class Engine(AbstractEngine, gORM):
             )
 
     def advance(self):
-        """Follow the next rule if available, or advance to the next tick."""
+        """Follow the next rule if available, or advance to the next turn."""
         try:
             return next(self._rules_iter)
         except StopIteration:
