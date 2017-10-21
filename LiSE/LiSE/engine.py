@@ -83,7 +83,7 @@ class TimeSignalDescriptor(object):
         branch_now, turn_now = val
         e = real.engine
         # enforce the arrow of time, if it's in effect
-        if e.forwarding and branch_now == branch_then and turn_now < turn_then:
+        if e.forward and branch_now == branch_then and turn_now < turn_then:
             raise ValueError("Can't time travel backward in a forward context")
         # make sure I'll end up within the revision range of the
         # destination branch
