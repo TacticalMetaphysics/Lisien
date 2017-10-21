@@ -50,19 +50,19 @@ class AvatarnessCache(Cache):
         Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, planning=False)
         self.user_order[graph][node][character][branch][turn][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][turn][tick] = is_avatar
-        self._fetch_valcache(self.charavs[character], branch, turn, tick)
-        self._fetch_valcache(
+        self._forward_valcache(self.charavs[character], branch, turn, tick)
+        self._forward_valcache(
             self.graphavs[(character, graph)], branch, turn, tick
         )
-        self._fetch_valcache(self.graphs[character], branch, turn, tick)
-        self._fetch_valcache(
+        self._forward_valcache(self.graphs[character], branch, turn, tick)
+        self._forward_valcache(
             self.soloav[(character, graph)],
             branch, turn, tick, copy=False
         )
-        self._fetch_valcache(
+        self._forward_valcache(
             self.uniqav[character], branch, turn, tick, copy=False
         )
-        self._fetch_valcache(
+        self._forward_valcache(
             self.uniqgraph[character], branch, turn, tick, copy=False
         )
         charavs = self.charavs[character][branch]
