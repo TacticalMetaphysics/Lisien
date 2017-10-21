@@ -81,9 +81,12 @@ class TimeSignalDescriptor(object):
         real = self.signals[id(inst)]
         branch_then, turn_then, tick_then = real.engine.btt()
         branch_now, turn_now = val
+        e = real.engine
+        # enforce the arrow of time, if it's in effect
+        if e.forward and branch_now == branch_then and turn_now < turn_then:
+            raise ValueError("Can't time travel backward in a forward context")
         # make sure I'll end up within the revision range of the
         # destination branch
-        e = real.engine
         branches = e._branches
         tick_now = e._turn_end.get((branch_now, turn_now), 0)
         if branch_now != 'trunk':

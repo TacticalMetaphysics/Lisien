@@ -230,6 +230,9 @@ class ORM(object):
     def turn(self, v):
         if v == self.turn:
             return
+        # enforce the arrow of time, if it's in effect
+        if self.forward and v < self._oturn:
+            raise ValueError("Can't time travel backward in a forward context")
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
         tick = self._turn_end.setdefault((branch, v), 0)
@@ -253,6 +256,9 @@ class ORM(object):
     @tick.setter
     def tick(self, v):
         time = branch, turn = self._obranch, self._oturn
+        # enforce the arrow of time, if it's in effect
+        if self.forward and v < self._otick:
+            raise ValueError("Can't time travel backward in a forward context")
         if not self.planning:
             if v > self._turn_end[time]:
                 self._turn_end[time] = v
