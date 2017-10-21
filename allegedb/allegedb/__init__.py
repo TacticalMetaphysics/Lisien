@@ -281,21 +281,21 @@ class ORM(object):
         """
         branch, turn, tick = self.btt()
         tick += 1
-        if self._turn_end[branch, turn] > tick:
-            raise HistoryError(
-                "You're not at the end of turn {}. Go to tick {} to change things".format(
-                    turn, self._turn_end[branch, turn]
-                )
-            )
-        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
         if not self.planning:
+            if self._turn_end[branch, turn] > tick:
+                raise HistoryError(
+                    "You're not at the end of turn {}. Go to tick {} to change things".format(
+                        turn, self._turn_end[branch, turn]
+                    )
+                )
+            parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
             if turn_end != turn:
                 print(turn)
                 raise HistoryError(
                     "You're not at the present turn. Go to turn {} to change things".format(turn_end)
                 )
             self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
-        self._turn_end[branch, turn] = self._otick = tick
+            self._turn_end[branch, turn] = self._otick = tick
         return branch, turn, tick
 
     def commit(self):
