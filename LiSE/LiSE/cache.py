@@ -181,7 +181,7 @@ class RulesHandledCache(object):
     def __init__(self, engine):
         self.engine = engine
         self.handled = {}
-        self.unhandled = StructuredDefaultDict(3, list)
+        self.unhandled = {}
 
     def get_rulebook(self, *args):
         raise NotImplementedError
@@ -193,11 +193,11 @@ class RulesHandledCache(object):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
         shalo = self.handled.setdefault(entity + (rulebook, branch, turn), set())
-        unhandl = self.unhandled[entity]
-        if turn not in unhandl.setdefault(branch, {}):
-            unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
+        unhandl = self.unhandled.setdefault(entity, {}).setdefault(rulebook, {}).setdefault(branch, {})
+        if turn not in unhandl:
+            unhandl[turn] = list(self.unhandled_rulebook_rules(entity, rulebook, branch, turn, tick))
         try:
-            unhandl[branch][turn].remove(entity + (rulebook, rule))
+            unhandl[turn].remove(rule)
         except ValueError:
             if not loading:
                 raise
@@ -206,21 +206,23 @@ class RulesHandledCache(object):
     def fork(self, branch, turn, tick):
         parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[branch]
         unhandl = self.unhandled
+        handl = self.handled
+        rbcache = self.engine._rulebooks_cache
+        unhandrr = self.unhandled_rulebook_rules
+        getrb = self.get_rulebook
         for entity in unhandl:
-            rulebook = self.get_rulebook(*entity + (branch, turn, tick))
-            if entity + (rulebook, branch, turn) in self.handled:
+            rulebook = getrb(*entity + (branch, turn, tick))
+            if entity + (rulebook, branch, turn) in handl:
                 raise HistoryError(
                     "Tried to fork history in a RulesHandledCache, "
                     "but it seems like rules have already been run where we're "
                     "forking to"
                 )
-            unhandled_rules = unhandl[entity][parent_branch][parent_turn].copy()
+            rules = set(rbcache.retrieve(rulebook, branch, turn, tick))
+            unhandled_rules = unhandrr(entity, rulebook, parent_branch, parent_turn, tick)
             unhandled_rules_set = set(unhandled_rules)
-            self.handled[entity + (rulebook, branch, turn)] = {
-                rule for rule in self.iter_unhandled_rules(branch, turn, tick)
-                if rule not in unhandled_rules_set
-            }
-            unhandl[entity][branch][turn] = unhandled_rules
+            handl[entity + (rulebook, branch, turn)] = rules.difference(unhandled_rules_set)
+            unhandl[entity][rulebook][branch][turn] = unhandled_rules
 
     def retrieve(self, *args):
         return self.handled[args]
@@ -235,7 +237,7 @@ class RulesHandledCache(object):
             ret = self.unhandled[entity][rulebook][branch][turn]
         else:
             try:
-                self.unhandled[entity][rulebook][branch][turn] = ret = [
+                return [
                     rule for rule in
                     self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
                     if rule not in self.handled.setdefault(entity + (rulebook, branch, turn), set())
