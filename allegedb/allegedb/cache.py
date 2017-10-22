@@ -608,7 +608,7 @@ class Cache(object):
                 branches._future = deque()
 
             branchesturn = branches[turn]
-            if tick <= branchesturn.end:
+            if planning and tick <= branchesturn.end:
                 raise HistoryError(
                     "Already have some ticks after {} in turn {} of branch {}".format(
                         tick, turn, branch
