@@ -212,14 +212,11 @@ class Rule(object):
         if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             tick += 1
             self.engine.tick = tick
-            triggers = triggers or []
-            prereqs = prereqs or []
-            actions = actions or []
+            triggers = list(self._fun_names_iter('trigger', triggers or []))
+            prereqs = list(self._fun_names_iter('prereq', prereqs or []))
+            actions = list(self._fun_names_iter('action', actions or []))
             self.engine.query.set_rule(
-                name, branch, turn, tick,
-                list(self._fun_names_iter('trigger', triggers)),
-                list(self._fun_names_iter('prereq', prereqs)),
-                list(self._fun_names_iter('action', actions)),
+                name, branch, turn, tick, triggers, prereqs, actions
             )
             self.engine._triggers_cache.store(name, branch, turn, tick, triggers)
             self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
@@ -426,10 +423,9 @@ class RuleMapping(MutableMapping, Signal):
         return self._rule_cache[k]
 
     def __getattr__(self, k):
-        try:
+        if k in self:
             return self[k]
-        except KeyError:
-            raise AttributeError
+        raise AttributeError
 
     def __setitem__(self, k, v):
         if isinstance(v, Hashable) and v in self.engine.rule:
