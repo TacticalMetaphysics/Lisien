@@ -1090,8 +1090,7 @@ class Engine(AbstractEngine, gORM):
             turn,
             tick,
             loc,
-            nextloc,
-            planning=self.planning
+            nextloc
         )
 
     def _node_exists(self, character, node):
@@ -1123,8 +1122,7 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            exist,
-            planning=planning
+            exist
         )
         self._edges_cache.store(
             character, orig, dest, 0, branch, turn, tick, exist, planning=planning

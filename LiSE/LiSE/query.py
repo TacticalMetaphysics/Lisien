@@ -647,11 +647,11 @@ class QueryEngine(allegedb.query.QueryEngine):
         if extant and not keep_rulebook:
             self.set_node_rulebook(character, node, branch, turn, tick, (character, node))
 
-    def exist_edge(self, character, orig, dest, idx, branch, turn, tick, extant=None, *, planning=False, keep_rulebook=False):
+    def exist_edge(self, character, orig, dest, idx, branch, turn, tick, extant=None, *, keep_rulebook=False):
         if extant is None:
             branch, turn, tick, extant = idx, branch, turn, tick
             idx = 0
-        super().exist_edge(character, orig, dest, idx, branch, turn, tick, extant, planning)
+        super().exist_edge(character, orig, dest, idx, branch, turn, tick, extant)
         if extant and not keep_rulebook:
             self.set_portal_rulebook(character, orig, dest, branch, turn, tick, (character, orig, dest))
 
@@ -748,7 +748,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         raise KeyError("No rulebook")
 
     def thing_loc_and_next_set(
-            self, character, thing, branch, turn, tick, loc, nextloc, *, planning=False
+            self, character, thing, branch, turn, tick, loc, nextloc
     ):
         (character, thing) = map(
             self.json_dump,
@@ -756,8 +756,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
         loc = self.json_dump(loc)
         nextloc = self.json_dump(nextloc)
-        if not planning:
-            self.sql('del_things_after', character, thing, branch, turn, turn, tick)
+        self.sql('del_things_after', character, thing, branch, turn, turn, tick)
         self.sql(
             'things_insert',
             character,
@@ -769,15 +768,14 @@ class QueryEngine(allegedb.query.QueryEngine):
             nextloc
         )
 
-    def avatar_set(self, character, graph, node, branch, turn, tick, isav, *, planning=False):
+    def avatar_set(self, character, graph, node, branch, turn, tick, isav):
         (character, graph, node) = map(
             self.json_dump, (character, graph, node)
         )
-        if not planning:
-            self.sql(
-                'del_avatars_after',
-                character, graph, node, branch, turn, turn, tick
-            )
+        self.sql(
+            'del_avatars_after',
+            character, graph, node, branch, turn, turn, tick
+        )
         self.sql(
             'avatars_insert', character, graph, node, branch, turn, tick, isav
         )

@@ -155,8 +155,7 @@ class GraphMapping(AbstractEntityMapping):
             self.graph.name,
             key,
             branch, turn, tick,
-            value,
-            planning=self.db.planning
+            value
         )
 
     def _set_cache(self, key, branch, turn, tick, value):
@@ -362,8 +361,7 @@ class GraphNodeMapping(NeatMapping):
             self.graph.name,
             node,
             branch, turn, tick,
-            True,
-            planning=planning
+            True
         )
         n.update(dikt)
         if created:
@@ -378,8 +376,7 @@ class GraphNodeMapping(NeatMapping):
             self.graph.name,
             node,
             branch, turn, tick,
-            False,
-            planning=self.db.planning
+            False
         )
         self.db._nodes_cache.store(
             self.graph.name,
@@ -522,8 +519,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            True,
-            planning=planning
+            True
         )
         self.db._edges_cache.store(
             self.graph.name,
@@ -550,8 +546,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            False,
-            planning=self.db.planning
+            False
         )
         self.db._edges_cache.store(
             self.graph.name,
@@ -738,8 +733,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     self.dest,
                     0,
                     branch, turn, tick,
-                    True,
-                    planning=planning
+                    True
                 )
                 e = self._make_edge(orig)
                 created = True
@@ -769,8 +763,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         self.dest,
                         idx,
                         branch, turn, tick,
-                        False,
-                        planning=planning
+                        False
                     )
                     self.db._edges_cache.store(
                         self.graph.name,
@@ -790,8 +783,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                False,
-                planning=planning
+                False
             )
             self.db._edges_cache.store(
                 self.graph.name,

@@ -257,8 +257,7 @@ class Portal(Edge, RuleFollower):
             self.character.name,
             self.origin.name,
             self.destination.name,
-            branch, turn, tick, False,
-            planning=self.engine.planning
+            branch, turn, tick, False
         )
         try:
             del self.engine._portal_objs[
