@@ -273,6 +273,7 @@ class QueryEngine(object):
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, turn, tick, value):
+        graph, key, value = map(self.json_dump, (graph, key, value))
         self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
     def graph_val_del(self, graph, key, branch, turn, tick):
@@ -359,7 +360,7 @@ class QueryEngine(object):
 
     def node_val_set(self, graph, node, key, branch, turn, tick, value):
         """Set a key-value pair on a node at a specific branch and revision"""
-        graph, node, key = map(self.json_dump, (graph, node, key))
+        graph, node, key, value = map(self.json_dump, (graph, node, key, value))
         self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
     def node_val_del(self, graph, node, key, branch, turn, tick):
@@ -452,7 +453,7 @@ class QueryEngine(object):
 
     def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
         """Set this key of this edge to this value."""
-        graph, orig, dest = map(self.json_dump, (graph, orig, dest))
+        graph, orig, dest, key, value = map(self.json_dump, (graph, orig, dest, key, value))
         self._edgevals2set.append(
             (graph, orig, dest, idx, key, branch, turn, tick, value)
         )
