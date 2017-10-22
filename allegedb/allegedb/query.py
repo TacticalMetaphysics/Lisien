@@ -269,7 +269,7 @@ class QueryEngine(object):
             *((graph, key, branch, turn, turn, tick)
               for ((graph, key, branch), (turn, tick)) in delafter.items())
         )
-        self.sqlmany('graph_val_insert', self._graphvals2set)
+        self.sqlmany('graph_val_insert', *self._graphvals2set)
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, turn, tick, value):
