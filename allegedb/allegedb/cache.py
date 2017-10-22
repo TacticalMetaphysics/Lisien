@@ -486,7 +486,7 @@ class Cache(object):
 
     def _get_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward=False):
         keycache_key = parentity + (branch,)
-        if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
+        if keycache_key in keycache and keycache[keycache_key].has_exact_rev(turn) and keycache[keycache_key][turn].has_exact_rev(tick):
             return keycache[keycache_key][turn][tick]
         if forward and keycache_key in keycache:
             # Take valid values from the past of a keycache and copy them forward, into the present.
