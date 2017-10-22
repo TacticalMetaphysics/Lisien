@@ -534,7 +534,7 @@ def queries(table):
             things.c.turn > bindparam('turn'),
             and_(
                 things.c.turn == bindparam('turn'),
-                things.c.tick > bindparam('tick')
+                things.c.tick >= bindparam('tick')
             )
         )
     ))
@@ -548,7 +548,7 @@ def queries(table):
             avatars.c.turn > bindparam('turn'),
             and_(
                 avatars.c.turn == bindparam('turn'),
-                avatars.c.tick > bindparam('tick')
+                avatars.c.tick >= bindparam('tick')
             )
         )
     ))

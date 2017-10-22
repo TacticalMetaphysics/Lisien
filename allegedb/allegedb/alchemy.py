@@ -169,7 +169,7 @@ def queries_for_table_dict(table):
                 table['edge_val'].c.turn > bindparam('turn'),
                 and_(
                     table['edge_val'].c.turn == bindparam('turn'),
-                    table['edge_val'].c.tick > bindparam('tick')
+                    table['edge_val'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -186,7 +186,7 @@ def queries_for_table_dict(table):
                 table['edges'].c.turn > bindparam('turn'),
                 and_(
                     table['edges'].c.turn == bindparam('turn'),
-                    table['edges'].c.tick > bindparam('tick')
+                    table['edges'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -202,7 +202,7 @@ def queries_for_table_dict(table):
                 table['node_val'].c.turn > bindparam('turn'),
                 and_(
                     table['node_val'].c.turn == bindparam('turn'),
-                    table['node_val'].c.tick > bindparam('tick')
+                    table['node_val'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -234,7 +234,7 @@ def queries_for_table_dict(table):
                 table['graph_val'].c.turn > bindparam('turn'),
                 and_(
                     table['graph_val'].c.turn == bindparam('turn'),
-                    table['graph_val'].c.tick > bindparam('tick')
+                    table['graph_val'].c.tick >= bindparam('tick')
                 )
             )
         )),
