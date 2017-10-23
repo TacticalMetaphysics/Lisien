@@ -614,6 +614,7 @@ class Cache(object):
                         tick, turn, branch
                     )
                 )
+            branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:
             newb = FuturistWindowDict()
