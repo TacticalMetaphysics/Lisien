@@ -929,8 +929,8 @@ class Engine(AbstractEngine, gORM):
         return actres
 
     def _follow_rules(self):
-        # Currently the user doesn't have a lot of control over the order that
-        # rulebooks get run in. I should implement that.
+        # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
+        # TODO: apply changes to a facade first, and commit it when you're done. Then report changes to the facade
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule
