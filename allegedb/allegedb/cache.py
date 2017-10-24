@@ -135,6 +135,7 @@ class WindowDict(MutableMapping):
             return self._future[0][0]
 
     def truncate(self, rev):
+        """Delete everything after the given revision."""
         self.seek(rev)
         self._future = deque()
 
@@ -270,6 +271,11 @@ class FuturistWindowDict(WindowDict):
 
 
 class TurnDict(FuturistWindowDict):
+    """A ``FuturistWindowDict`` for storing other ``FuturistWindowDict``s.
+
+    Only used for storing turns that contain ticks.
+
+    """
     cls = FuturistWindowDict
 
     def __getitem__(self, rev):
@@ -410,9 +416,15 @@ class Cache(object):
         self.shallower = PickyDefaultDict(WindowDict)
         """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
+        """A dictionary for plain, unstructured hinting."""
 
     def load(self, data, validate=False):
-        """Add a bunch of data. It doesn't need to be in chronological order."""
+        """Add a bunch of data. It doesn't need to be in chronological order.
+
+        With ``validate=True``, raise ValueError if this results in an
+        incoherent cache.
+
+        """
         def fw_upd(*args):
             self._forward_valcaches(*args, validate=validate)
             self._update_keycache(*args, validate=validate, forward=True)
@@ -559,6 +571,14 @@ class Cache(object):
         revision is in, the -5th is the key the value is for,
         and the remaining arguments identify the entity that has
         the key, eg. a graph, node, or edge.
+
+        With ``validate=True``, check the cache after storing,
+        and raise ``ValueError`` if it's not coherent.
+
+        With ``planning=True``, you won't be able to overwrite anything.
+
+        With ``forward=True``, enable an optimization that assumes time
+        will never go backward.
 
         """
         self._store(*args, planning=planning)
@@ -788,6 +808,7 @@ class Cache(object):
 
 
 class NodesCache(Cache):
+    """A cache for remembering whether nodes exist at a given time."""
     def __init__(self, db):
         super().__init__(db)
         self._make_node = db._make_node
@@ -825,6 +846,7 @@ class NodesCache(Cache):
 
 
 class EdgesCache(Cache):
+    """A cache for remembering whether edges exist at a given time."""
     __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower',
                  'origcache', 'destcache', 'predecessors']
 
@@ -879,24 +901,30 @@ class EdgesCache(Cache):
         return kc
 
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=False):
+        """Iterate over successors of a given origin node at a given time."""
         yield from self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
 
     def iter_predecessors(self, graph, dest, branch, turn, tick, *, forward=False):
+        """Iterate over predecessors to a given destination node at a given time."""
         yield from self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
     def count_successors(self, graph, orig, branch, turn, tick, *, forward=False):
+        """Return the number of successors to a given origin node at a given time."""
         return len(self._get_destcache(graph, orig, branch, turn, tick, forward=forward))
 
     def count_predecessors(self, graph, dest, branch, turn, tick, *, forward=False):
+        """Return the number of predecessors from a given destination node at a given time."""
         return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))
 
     def has_successor(self, graph, orig, dest, branch, turn, tick, *, forward=False):
+        """Return whether an edge connects the origin to the destination at the given time."""
         return dest in self._get_keycachelike(
             self.destcache, self.successors, self._slow_iter_successors, (graph, orig),
             branch, turn, tick, forward=forward
         )
     
     def has_predecessor(self, graph, dest, orig, branch, turn, tick, forward=False):
+        """Return whether an edge connects the destination to the origin at the given time."""
         return orig in self._get_keycachelike(
             self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
             branch, turn, tick, forward=forward
