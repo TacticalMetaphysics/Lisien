@@ -42,7 +42,12 @@ from .cache import (
 
 
 class TimeSignal(Signal):
-    # TODO: always time travel to the last tick in the turn
+    """Acts like a tuple of the time in (branch, turn) for the most part.
+
+    You can also connect to this like it's a Signal, so a function gets
+    called every time the time changes.
+
+    """
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
@@ -68,6 +73,7 @@ class TimeSignal(Signal):
 
 
 class TimeSignalDescriptor(object):
+    __doc__ = TimeSignal.__doc__
     signals = {}
 
     def __get__(self, inst, cls):
@@ -172,6 +178,7 @@ class NextTurn(Signal):
 
 
 class DummyEntity(dict):
+    """Something to use in place of a node or edge"""
     __slots__ = ['engine']
 
     def __init__(self, engine):
@@ -241,6 +248,7 @@ class AbstractEngine(object):
         }
 
     def listify(self, obj):
+        """Turn a LiSE object into a list for easier serialization"""
         try:
             return self._listify_dispatch[type(obj)](obj)
         except KeyError:
@@ -276,6 +284,11 @@ class AbstractEngine(object):
         }
 
     def delistify(self, obj):
+        """Turn a list describing a LiSE object into that object
+
+        If this is impossible, return the argument.
+
+        """
         if isinstance(obj, list) or isinstance(obj, tuple):
             return self._delistify_dispatch[obj[0]](obj)
         else:
