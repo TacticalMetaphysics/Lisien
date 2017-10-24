@@ -58,13 +58,13 @@ class TimeSignal(Signal):
         if i in ('branch', 0):
             return self.engine.branch
         if i in ('turn', 1):
-            return self.engine.tick
+            return self.engine.turn
 
     def __setitem__(self, i, v):
         if i in ('branch', 0):
             self.engine.branch = v
-        if i in ('tick', 'rev', 1):
-            self.engine.tick = v
+        if i in ('turn', 1):
+            self.engine.turn = v
 
 
 class TimeSignalDescriptor(object):
