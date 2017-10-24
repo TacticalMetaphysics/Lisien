@@ -1644,6 +1644,13 @@ class EternalVarProxy(MutableMapping):
             silent=True
         )
 
+    def _update_cache(self, data):
+        for k, v in data.items():
+            if v is None:
+                del self._cache[k]
+            else:
+                self._cache[k] = v
+
 
 class GlobalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
@@ -1666,6 +1673,13 @@ class GlobalVarProxy(MutableMapping):
     def __delitem__(self, k):
         del self._cache[k]
         self.engine.handle('del_universal', k=k, silent=True, branching=True)
+
+    def _update_cache(self, data):
+        for k, v in data.items():
+            if v is None:
+                del self._cache[k]
+            else:
+                self._cache[k] = v
 
 
 class AllRuleBooksProxy(Mapping):
@@ -2173,9 +2187,11 @@ class EngineProxy(AbstractEngine):
             cb(cmd, branch, turn, tick, received, **kwargs)
         return received
 
-    def _upd_char_caches(self, *args, **kwargs):
+    def _upd_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
-        result, chardiffs = args[-1]
+        result, eternal_diff, universal_diff, chardiffs = args[-1]
+        self.eternal._update_cache(eternal_diff)
+        self.universal._update_cache(universal_diff)
         for (char, chardiff) in chardiffs.items():
             if not is_chardiff(chardiff):
                 continue
@@ -2205,7 +2221,7 @@ class EngineProxy(AbstractEngine):
             'command': 'get_chardiffs',
             'chars': chars
         }))
-        cbs = [self._upd_char_caches]
+        cbs = [self._upd_caches]
         if cb:
             cbs.append(cb)
         self._call_with_recv(cbs)
@@ -2214,7 +2230,7 @@ class EngineProxy(AbstractEngine):
         """Update the state of all my proxy objects from the real objects."""
         if sync:
             diffs = self.handle('get_chardiffs', chars=chars)
-            self._upd_char_caches(diffs)
+            self._upd_caches(diffs)
             if cb:
                 cb(diffs)
         else:
@@ -2237,7 +2253,7 @@ class EngineProxy(AbstractEngine):
                 'command': 'next_turn',
                 'chars': chars
             }))
-            args = [self._upd_char_caches, self._set_time]
+            args = [self._upd_caches, self._set_time]
             if cb:
                 args.append(cb)
             if silent:
@@ -2258,7 +2274,7 @@ class EngineProxy(AbstractEngine):
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
         if chars:
-            args = [self._set_time, self._upd_char_caches]
+            args = [self._set_time, self._upd_caches]
             if cb:
                 args.append(cb)
             self._time_travel_thread = Thread(

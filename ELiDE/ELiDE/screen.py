@@ -279,7 +279,7 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self.dialog_todo, chardiffs = ret
+        self.dialog_todo, _, _, chardiffs = ret
         self._update_from_chardiffs(chardiffs)
         self._advance_dialog()
 
