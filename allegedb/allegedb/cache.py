@@ -621,15 +621,36 @@ class Cache(object):
             newb[tick] = value
             branches[turn] = newb
         keys = self.keys[parent+(entity,)][key][branch]
+        if planning and turn <= keys.end:
+            raise HistoryError(
+                "Already have some turns after {} in branch {}".format(turn, branch)
+            )
+        keys.truncate(turn)
         if keys.has_exact_rev(turn):
-            keys[turn][tick] = value
+            keysturn = keys[turn]
+            if planning and tick <= keysturn.end:
+                raise HistoryError(
+                    "Already have some ticks after {} in turn {} of branch {}".format(
+                        tick, turn, branch
+                    )
+                )
+            keysturn.truncate(tick)
+            keysturn[tick] = value
         else:
             newt = FuturistWindowDict()
             newt[tick] = value
             keys[turn] = newt
         shallow = self.shallow[parent+(entity, key, branch)]
         if shallow.has_exact_rev(turn):
-            shallow[turn][tick] = value
+            shalturn = shallow[turn]
+            if planning and tick < shalturn.end:
+                raise HistoryError(
+                    "Already have some ticks after {} in turn {} of branch {}".format(
+                        tick, turn, branch
+                    )
+                )
+            shalturn.truncate(tick)
+            shalturn[tick] = value
         else:
             news = FuturistWindowDict()
             news[tick] = value
