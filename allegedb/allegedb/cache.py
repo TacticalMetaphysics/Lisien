@@ -792,12 +792,12 @@ class NodesCache(Cache):
         super().__init__(db)
         self._make_node = db._make_node
 
-    def store(self, graph, node, branch, turn, tick, ex, *, planning=False, validate=False):
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=False, forward=False, validate=False):
         """Store whether a node exists, and create an object for it"""
         if ex and (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
-        Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, validate=validate)
+        Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, forward=forward, validate=validate)
         if validate:
             kc = self.keycache[graph, node, branch]
             if (
