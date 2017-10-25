@@ -104,7 +104,14 @@ class TimePanel(BoxLayout):
         self.screen.app.tick = tick
 
     def next_turn(self, *args):
-        self.screen.app.engine.next_turn(
+        eng = self.screen.app.engine
+        if eng.universal.get('block'):
+            Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
+            return
+        if self.screen.dialog_todo or eng.universal.get('last_result_idx', 0) < len(eng.universal.get('last_result', [])):
+            Logger.info("MainScreen: not advancing time while there's a dialog")
+            return
+        eng.next_turn(
             chars=[self.screen.app.character_name],
             cb=self.screen._update_from_next_turn
         )
@@ -294,7 +301,6 @@ class MainScreen(Screen):
         if not self.dialog_todo:
             return
         self._update_dialog(self.dialog_todo.pop(0))
-        self.app.engine.universal['last_result_idx'] += 1
 
     def _update_dialog(self, diargs, **kwargs):
         if diargs is None:
@@ -342,6 +348,7 @@ class MainScreen(Screen):
         if cb:
             cb()
         self._advance_dialog()
+        self.app.engine.universal['last_result_idx'] += 1
 
     def _trigger_ok(self, cb=None, *args):
         part = partial(self.ok, cb)
@@ -372,10 +379,12 @@ class MainScreen(Screen):
         return name, partial(self._trigger_ok, func)
 
     def play(self, *args):
-        """If the 'play' button is pressed, advance a tick."""
-        if self.dialog_todo:
-            self.playbut.state = 'normal'
-            return
+        """If the 'play' button is pressed, advance a tick.
+
+        If you want to disable this, set ``engine.universal['block'] = True``
+
+        """
+        eng = self.app.engine
         if self.playbut.state == 'normal':
             return
         self.app.engine.next_turn(
