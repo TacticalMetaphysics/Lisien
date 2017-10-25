@@ -294,6 +294,7 @@ class MainScreen(Screen):
         if not self.dialog_todo:
             return
         self._update_dialog(self.dialog_todo.pop(0))
+        self.app.engine.universal['last_result_idx'] += 1
 
     def _update_dialog(self, diargs, **kwargs):
         if diargs is None:
@@ -335,7 +336,6 @@ class MainScreen(Screen):
         else:
             raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
         self.ids.dialoglayout.add_widget(dia)
-        self.app.engine.universal['last_result_idx'] += 1
 
     def ok(self, cb=None, *args):
         self.ids.dialoglayout.clear_widgets()
