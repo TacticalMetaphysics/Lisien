@@ -174,6 +174,11 @@ class MainScreen(Screen):
     usermod = StringProperty('user')
     userpkg = StringProperty(None, allownone=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.dialog_todo:
+            self._advance_dialog()
+
     def on_statpanel(self, *args):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
@@ -296,7 +301,7 @@ class MainScreen(Screen):
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
 
-    def _advance_dialog(self):
+    def _advance_dialog(self, *args):
         self.ids.dialoglayout.clear_widgets()
         if not self.dialog_todo:
             return
