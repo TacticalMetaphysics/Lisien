@@ -376,7 +376,6 @@ class MainScreen(Screen):
         If you want to disable this, set ``engine.universal['block'] = True``
 
         """
-        eng = self.app.engine
         if self.playbut.state == 'normal':
             return
         self.next_turn()
