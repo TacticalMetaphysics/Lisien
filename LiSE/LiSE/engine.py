@@ -203,6 +203,7 @@ json_load_hints = {'final_rule': final_rule}
 
 
 class Encoder(JSONEncoder):
+    """Extend the base JSON encoder to handle a couple of numpy types I might need"""
     def encode(self, o):
         return super().encode(self.listify(o))
 
@@ -221,6 +222,11 @@ class Encoder(JSONEncoder):
 
 
 class AbstractEngine(object):
+    """Parent class to the real Engine as well as EngineProxy.
+
+    Implements serialization methods and the __getattr__ for stored methods.
+
+    """
     def __getattr__(self, att):
         if hasattr(super(), 'method') and hasattr(self.method, att):
             return partial(getattr(self.method, att), self)
