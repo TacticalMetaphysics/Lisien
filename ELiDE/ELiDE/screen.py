@@ -393,8 +393,8 @@ class MainScreen(Screen):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
         eng.next_turn(
-            chars=[self.screen.app.character_name],
-            cb=self.screen._update_from_next_turn
+            chars=[self.app.character_name],
+            cb=self._update_from_next_turn
         )
 
 
