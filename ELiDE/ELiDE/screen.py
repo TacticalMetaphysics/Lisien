@@ -103,19 +103,6 @@ class TimePanel(BoxLayout):
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
 
-    def next_turn(self, *args):
-        eng = self.screen.app.engine
-        if eng.universal.get('block'):
-            Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
-            return
-        if self.screen.dialog_todo or eng.universal.get('last_result_idx', 0) < len(eng.universal.get('last_result', [])):
-            Logger.info("MainScreen: not advancing time while there's a dialog")
-            return
-        eng.next_turn(
-            chars=[self.screen.app.character_name],
-            cb=self.screen._update_from_next_turn
-        )
-
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
 
@@ -384,7 +371,7 @@ class MainScreen(Screen):
         return name, partial(self._trigger_ok, func)
 
     def play(self, *args):
-        """If the 'play' button is pressed, advance a tick.
+        """If the 'play' button is pressed, advance a turn.
 
         If you want to disable this, set ``engine.universal['block'] = True``
 
@@ -392,9 +379,22 @@ class MainScreen(Screen):
         eng = self.app.engine
         if self.playbut.state == 'normal':
             return
-        self.app.engine.next_turn(
-            chars=[self.app.character_name],
-            cb=self._update_from_next_turn
+        self.next_turn()
+
+    def next_turn(self, *args):
+        """Advance time by one turn, if it's not blocked.
+
+        Block time by setting ``engine.universal['block'] = True``"""
+        eng = self.app.engine
+        if eng.universal.get('block'):
+            Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
+            return
+        if self.dialog_todo or eng.universal.get('last_result_idx', 0) < len(eng.universal.get('last_result', [])):
+            Logger.info("MainScreen: not advancing time while there's a dialog")
+            return
+        eng.next_turn(
+            chars=[self.screen.app.character_name],
+            cb=self.screen._update_from_next_turn
         )
 
 
@@ -430,7 +430,7 @@ Builder.load_string(
         Button:
             text: 'Next turn'
             size_hint_y: 0.3
-            on_press: root.next_turn()
+            on_press: root.screen.next_turn()
     BoxLayout:
         orientation: 'vertical'
         Label:
