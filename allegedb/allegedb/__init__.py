@@ -189,12 +189,7 @@ class ORM(object):
             return True
         return self.is_parent_of(parent, self._branches[child][0])
 
-    @property
-    def branch(self):
-        return self._obranch
-
-    @branch.setter
-    def branch(self, v):
+    def _set_branch(self, v):
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
             return
@@ -218,13 +213,9 @@ class ORM(object):
             if not self.planning and v not in self._branches:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
+    branch = property(lambda self: self._obranch, _set_branch)  # easier to override this way
 
-    @property
-    def turn(self):
-        return self._oturn
-
-    @turn.setter
-    def turn(self, v):
+    def _set_turn(self, v):
         if v == self.turn:
             return
         if not isinstance(v, int):
@@ -247,13 +238,9 @@ class ORM(object):
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
+    turn = property(lambda self: self._oturn, _set_turn)  # easier to override this way
 
-    @property
-    def tick(self):
-        return self._otick
-
-    @tick.setter
-    def tick(self, v):
+    def _set_tick(self, v):
         if not isinstance(v, int):
             raise TypeError("tick must be an integer")
         time = branch, turn = self._obranch, self._oturn
@@ -267,6 +254,7 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
+    tick = property(lambda self: self._otick, _set_tick)  # easier to override this way
 
     def btt(self):
         return self._obranch, self._oturn, self._otick

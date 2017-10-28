@@ -70,6 +70,7 @@ class TimeSignal(Signal):
             self.engine.branch = v
         if i in ('turn', 1):
             self.engine.turn = v
+        self.send(self, branch=self.engine.branch, turn=self.engine.turn)
 
 
 class TimeSignalDescriptor(object):
@@ -781,31 +782,13 @@ class Engine(AbstractEngine, gORM):
         """Close on exit."""
         self.close()
 
-    @property
-    def branch(self):
-        if self._obranch is not None:
-            return self._obranch
-        return self.query.globl['branch']
+    def _set_branch(self, v):
+        super()._set_branch(v)
+        self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
-    @branch.setter
-    def branch(self, v):
-        """Set my allegedb's branch and call listeners"""
-        (b, t) = self.time
-        if v == b:
-            return
-        self.time = (v, t)
-
-    @property
-    def turn(self):
-        return self._oturn
-
-    @turn.setter
-    def turn(self, v):
-        if not isinstance(v, int):
-            raise TypeError("turn must be integer")
-        if v == self.turn:
-            return
-        self.time = (self.branch, v)
+    def _set_turn(self, v):
+        super()._set_turn(v)
+        self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
     def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
         try:
