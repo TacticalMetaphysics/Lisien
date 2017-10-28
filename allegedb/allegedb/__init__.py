@@ -95,9 +95,9 @@ class ORM(object):
             if k == 'branch':
                 self._obranch = v
             elif k == 'turn':
-                self._oturn = v
+                self._oturn = int(v)
             elif k == 'tick':
-                self._otick = v
+                self._otick = int(v)
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
@@ -138,9 +138,6 @@ class ORM(object):
                 getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
             )
         self.query.initdb()
-        self._obranch = self.query.globl['branch']
-        self._oturn = self.query.globl['turn']
-        self._otick = self.query.globl['tick']
         self._init_caches()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
@@ -230,6 +227,8 @@ class ORM(object):
     def turn(self, v):
         if v == self.turn:
             return
+        if not isinstance(v, int):
+            raise TypeError("turn must be an integer")
         # enforce the arrow of time, if it's in effect
         if self.forward and v < self._oturn:
             raise ValueError("Can't time travel backward in a forward context")
@@ -255,6 +254,8 @@ class ORM(object):
 
     @tick.setter
     def tick(self, v):
+        if not isinstance(v, int):
+            raise TypeError("tick must be an integer")
         time = branch, turn = self._obranch, self._oturn
         # enforce the arrow of time, if it's in effect
         if self.forward and v < self._otick:
