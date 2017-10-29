@@ -768,9 +768,9 @@ class Board(RelativeLayout):
                 if '_image_paths' in stats:
                     pawn.paths = stats['_image_paths'] or pawn.default_image_paths
             else:
-                raise ValueError(
-                    "Diff tried to change stats of "
-                    "nonexistent node {}".format(node)
+                Logger.warning(
+                    "Board: diff tried to change stats of node {} "
+                    "but I don't have a widget for it".format(node)
                 )
         for ((orig, dest), extant) in chardiff['portals'].items():
             if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
