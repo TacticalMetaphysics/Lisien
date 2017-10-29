@@ -1031,6 +1031,11 @@ class CharStatProxy(CachingEntityProxy):
             self.name == other.name
         )
 
+    def _get(self, k=None):
+        if k is None:
+            return self
+        return self._cache[k]
+
     def _get_state(self):
         return self.engine.handle(
             command='character_stat_copy',
@@ -2151,7 +2156,7 @@ class EngineProxy(AbstractEngine):
                         char = self._char_cache[charn]
                     except KeyError:
                         char = self._char_cache[charn] = CharacterProxy(self, charn)
-                    return cls(char, k, v)
+                    return cls(char.stat, k, v)
                 elif r[1] == 'place':
                     (char, noden, k, v) = r[2:]
                     try:
