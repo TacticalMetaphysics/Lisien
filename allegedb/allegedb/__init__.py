@@ -150,9 +150,17 @@ class ORM(object):
         self._init_load(validate=validate)
 
     def _init_load(self, validate=False):
-        noderows = list(self.query.nodes_dump())
+        noderows = [
+            (graph, node, branch, turn, tick, ex if ex else None)
+            for (graph, node, branch, turn, tick, ex)
+            in self.query.nodes_dump()
+        ]
         self._nodes_cache.load(noderows, validate=validate)
-        edgerows = list(self.query.edges_dump())
+        edgerows = [
+            (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
+            for (graph, orig, dest, idx, branch, turn, tick, ex)
+            in self.query.edges_dump()
+        ]
         self._edges_cache.load(edgerows, validate=validate)
         self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
         self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
