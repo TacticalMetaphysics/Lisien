@@ -295,7 +295,7 @@ class QueryEngine(object):
                     (turn, tick), cleanups[graph, node, branch]
                 ))
         if cleanups:
-            self.sqlmany('del_node_after', *(k + (turn, turn, tick) for k, (turn, tick) in cleanups.items()))
+            self.sqlmany('del_nodes_after', *(k + (turn, turn, tick) for k, (turn, tick) in cleanups.items()))
         self.sqlmany('nodes_insert', *self._nodes2set)
         self._nodes2set = []
 
