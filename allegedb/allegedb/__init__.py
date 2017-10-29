@@ -268,11 +268,6 @@ class ORM(object):
         can only do once per branch, turn, tick.
 
         """
-        if self.planning:
-            raise HistoryError(
-                "Planning doesn't count as advancing time, set my ``planning`` attribute to ``False`` "
-                "or just set time manually"
-            )
         branch, turn, tick = self.btt()
         tick += 1
         if self._turn_end[branch, turn] > tick:
@@ -282,12 +277,17 @@ class ORM(object):
                 )
             )
         parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
-        if turn_end != turn:
+        if turn_end > turn:
             raise HistoryError(
-                "You're not at the present turn. Go to turn {} to change things".format(turn_end)
+                "You're in the past. Go to turn {} to change things".format(turn_end)
             )
-        self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
-        self._turn_end[branch, turn] = self._otick = tick
+        if not self.planning:
+            if turn_end != turn:
+                raise HistoryError(
+                    "When advancing time outside of a plan, you can't skip turns. Go to turn {}".format(turn_end)
+                )
+            self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
+            self._turn_end[branch, turn] = self._otick = tick
         return branch, turn, tick
 
     def commit(self):
