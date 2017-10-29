@@ -784,7 +784,6 @@ class EngineHandle(object):
     def del_portal(self, char, orig, dest):
         del self._real.character[char].portal[orig][dest]
         del self._portal_stat_cache[char][orig][dest]
-        del self._char_places_cache[char][orig][dest]
 
     def set_portal_stat(self, char, orig, dest, k, v):
         self._real.character[char].portal[orig][dest][k] = v
