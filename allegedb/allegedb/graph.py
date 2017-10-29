@@ -165,8 +165,7 @@ class GraphMapping(AbstractEntityMapping):
         self.db.query.graph_val_del(
             self.graph.name,
             key,
-            branch, turn, tick,
-            planning=self.db.planning
+            branch, turn, tick
         )
 
 
