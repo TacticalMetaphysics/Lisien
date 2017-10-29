@@ -1240,10 +1240,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         def __iter__(self):
             cache = self.engine._things_cache
-            args = self.character.name, *self.engine.btt()
-            for key in cache.iter_keys(*args):
+            char = self.name
+            branch, turn, tick = self.engine.btt()
+            for key in cache.iter_keys(char, branch, turn, tick):
                 try:
-                    if cache.retrieve(*args)[0] is not None:
+                    if cache.retrieve(char, key, branch, turn, tick)[0] is not None:
                         yield key
                 except KeyError:
                     continue
