@@ -1239,9 +1239,14 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.character = character
 
         def __iter__(self):
-            return self.engine._things_cache.iter_keys(
-                self.character.name, *self.engine.btt()
-            )
+            cache = self.engine._things_cache
+            args = self.character.name, *self.engine.btt()
+            for key in cache.iter_keys(*args):
+                try:
+                    if cache.retrieve(*args)[0] is not None:
+                        yield key
+                except KeyError:
+                    continue
 
         def __contains__(self, thing):
             args = self.character.name, thing, *self.engine.btt()
