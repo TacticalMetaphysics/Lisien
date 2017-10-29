@@ -190,6 +190,21 @@ def queries_for_table_dict(table):
                 )
             )
         )),
+        'del_nodes_graph': table['nodes'].delete().where(
+            table['nodes'].c.graph == bindparam('graph')
+        ),
+        'del_nodes_after': table['nodes'].delete().where(and_(
+            table['nodes'].c.graph == bindparam('graph'),
+            table['nodes'].c.node == bindparam('node'),
+            table['nodes'].c.branch == bindparam('branch'),
+            or_(
+                table['nodes'].c.turn > bindparam('turn'),
+                and_(
+                    table['nodes'].c.turn == bindparam('turn'),
+                    table['nodes'].c.tick >= bindparam('tick')
+                )
+            )
+        )),
         'del_node_val_graph': table['node_val'].delete().where(
             table['node_val'].c.graph == bindparam('graph')
         ),
@@ -206,23 +221,6 @@ def queries_for_table_dict(table):
                 )
             )
         )),
-        'del_node_graph': table['nodes'].delete().where(
-            table['nodes'].c.graph == bindparam('graph')
-        ),
-        'del_node_after': table['nodes'].delete().where(
-            and_(
-                table['nodes'].c.graph == bindparam('graph'),
-                table['nodes'].c.node == bindparam('node'),
-                table['nodes'].c.branch == bindparam('branch'),
-                or_(
-                    table['nodes'].c.turn > bindparam('turn'),
-                    and_(
-                        table['nodes'].c.turn == bindparam('turn'),
-                        table['nodes'].c.tick > bindparam('tick')
-                    )
-                )
-            )
-        ),
         'del_graph': table['graphs'].delete().where(
             table['graphs'].c.graph == bindparam('graph')
         ),
