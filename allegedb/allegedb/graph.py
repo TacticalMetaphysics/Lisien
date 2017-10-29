@@ -551,7 +551,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            False,
+            None,
             planning=self.db.planning,
             forward=self.db.forward
         )
