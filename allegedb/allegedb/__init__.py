@@ -40,11 +40,11 @@ class PlanningContext(object):
 
     def __enter__(self):
         self.orm.planning = True
-        self.time = self.orm.branch, self.orm.turn
+        self.time = self.orm.btt()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm._obranch, self.orm._oturn = self.time
+        self.orm._obranch, self.orm._oturn, self.orm._otick = self.time
         self.orm.planning = False
 
 
