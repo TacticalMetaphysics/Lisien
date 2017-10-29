@@ -246,10 +246,11 @@ class Portal(Edge, RuleFollower):
             self.character.name,
             self.origin.name,
             self.destination.name,
+            0,
             branch,
             turn,
             tick,
-            False,
+            None,
             planning=self.engine.planning,
             forward=self.engine.forward
         )
@@ -267,5 +268,5 @@ class Portal(Edge, RuleFollower):
             pass
         self.character.portal[self.origin.name].send(
             self.character.portal[self.origin.name],
-            key=dest, val=None
+            key='dest', val=None
         )

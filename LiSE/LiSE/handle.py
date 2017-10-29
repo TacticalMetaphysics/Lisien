@@ -571,28 +571,19 @@ class EngineHandle(object):
         if char in self._char_places_cache and node in self._char_places_cache[char]:
             self._char_places_cache[char].remove(node)
         if char in self._portal_stat_cache:
-            if node in self._portal_stat_cache[char]:
-                for d in self._portal_stat_cache[char][node]:
-                    try:
-                        del self._char_portals_rulebooks_cache[char][node][d]
-                    except KeyError:
-                        pass
-                    try:
-                        del self._char_portals_cache[char][node][d]
-                    except KeyError:
-                        pass
-                del self._portal_stat_cache[char][node]
-            for o in self._portal_stat_cache[char]:
-                if node in self._portal_stat_cache[char][o]:
-                    try:
-                        del self._char_portals_rulebooks_cache[char][o][node]
-                    except KeyError:
-                        pass
-                    try:
-                        del self._char_portals_cache[char][o][node]
-                    except KeyError:
-                        pass
-                    del self._portal_stat_cache[char][o][node]
+            portal_stat_cache_char = self._portal_stat_cache[char]
+            if node in portal_stat_cache_char:
+                del portal_stat_cache_char[node]
+            for charo in portal_stat_cache_char.values():
+                if node in charo:
+                    del charo[node]
+        if char in self._char_portals_rulebooks_cache:
+            portal_rulebook_cache_char = self._char_portals_rulebooks_cache[char]
+            if node in portal_rulebook_cache_char:
+                del portal_rulebook_cache_char[node]
+            for porto in portal_rulebook_cache_char.values():
+                if node in porto:
+                    del porto[node]
 
     def character_things(self, char):
         ret = {}

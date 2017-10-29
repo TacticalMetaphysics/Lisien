@@ -559,7 +559,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def clear(self):
         """Delete every edge with origin at my orig"""
-        for dest in self:
+        for dest in list(self):
             del self[dest]
 
 
@@ -666,12 +666,10 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     class Predecessors(GraphEdgeMapping):
         """Mapping of Edges that end at a particular node"""
-        @property
-        def graph(self):
-            return self.container.graph
 
         def __init__(self, container, dest):
             """Store container and node ID"""
+            super().__init__(container.graph)
             self.container = container
             self.dest = dest
 
@@ -745,8 +743,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 planning=planning,
                 forward=self.db.forward
             )
-            if created:
-                self.created.send(self, key=orig, val=value)
+            self.send(self, key=orig, val=value)
 
         def __delitem__(self, orig):
             """Unset the existence of the edge from the given node to mine"""
@@ -788,11 +785,11 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                False,
+                None,
                 planning=planning,
                 forward=self.db.forward
             )
-            self.deleted.send(self, key=orig)
+            self.send(self, key=orig, value=None)
 
 
 class MultiEdges(GraphEdgeMapping):
