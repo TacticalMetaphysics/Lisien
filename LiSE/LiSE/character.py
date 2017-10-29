@@ -1701,8 +1701,8 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def facade(self):
         return Facade(self)
 
-    def add_node(self, n, attr_dict=None, **kwargs):
-        super().add_node(n, attr_dict, **kwargs)
+    def add_node(self, n, **kwargs):
+        super().add_node(n, **kwargs)
         branch, turn, tick = self.engine.nbtt()
         self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
         self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])

@@ -48,12 +48,9 @@ class NeatMapping(MutableMapping):
 
     def update(self, other):
         """Version of ``update`` that doesn't clobber the database so much"""
-        iteratr = (
-            other.iteritems
-            if hasattr(other, 'iteritems')
-            else other.items
-        )
-        for (k, v) in iteratr():
+        if hasattr(other, 'items'):
+            other = other.items()
+        for (k, v) in other:
             if (
                     k not in self or
                     self[k] != v
@@ -313,8 +310,9 @@ class GraphNodeMapping(NeatMapping):
 
     def __iter__(self):
         """Iterate over the names of the nodes"""
-        for node in self.graph.nodes():
-            yield node
+        return self.db._nodes_cache.iter_entities(
+            self.graph.name, *self.db.btt()
+        )
 
     def __contains__(self, node):
         """Return whether the node exists presently"""
@@ -1022,6 +1020,7 @@ class AllegedGraph(object):
     def node(self, v):
         self.node.clear()
         self.node.update(v)
+    _node = node
 
     _succmaps = {}
 
@@ -1035,7 +1034,7 @@ class AllegedGraph(object):
     def adj(self, v):
         self.adj.clear()
         self.adj.update(v)
-    edge = succ = adj
+    edge = succ = _succ = adj
 
     _predmaps = {}
 
@@ -1051,11 +1050,7 @@ class AllegedGraph(object):
     def pred(self, v):
         self.pred.clear()
         self.pred.update(v)
-
-    def nodes(self):
-        return self.db._nodes_cache.iter_entities(
-            self._name, *self.db.btt()
-        )
+    _pred = pred
 
     @property
     def name(self):
