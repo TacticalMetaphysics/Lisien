@@ -138,6 +138,8 @@ class ORM(object):
                 getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
             )
         self.query.initdb()
+        # in case this is the first startup
+        self._otick = self._oturn = 0
         self._init_caches()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
