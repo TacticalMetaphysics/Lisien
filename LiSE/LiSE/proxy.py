@@ -1453,11 +1453,16 @@ class CharacterProxy(MutableMapping):
             silent=True,
             branching=True
         )
-        self.portal._cache[origin][destination] = PortalProxy(
-            self.engine,
+        self.engine._character_portals_cache.store(
             self.name,
             origin,
-            destination
+            destination,
+            PortalProxy(
+                self.engine,
+                self.name,
+                origin,
+                destination
+            )
         )
 
     def add_portals_from(self, seq, symmetrical=False):
