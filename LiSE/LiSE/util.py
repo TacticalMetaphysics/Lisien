@@ -5,41 +5,7 @@
 """
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
-
-
-class reify(object):
-    '''
-    Put the result of a method which uses this (non-data) descriptor decorator
-    in the instance dict after the first call, effectively replacing the
-    decorator with an instance variable.
-
-    It acts like @property, except that the function is only ever called once;
-    after that, the value is cached as a regular attribute. This gives you lazy
-    attribute creation on objects that are meant to be immutable.
-
-    Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
-    Modified for LiSE to make it work with __slots__
-
-    '''
-    __slots__ = ['func', 'reified']
-
-    def __init__(self, func):
-        self.func = func
-        self.reified = {}
-
-    def __get__(self, inst, cls):
-        if inst is None:
-            return self
-        if id(inst) in self.reified:
-            return self.reified[id(inst)]
-        self.reified[id(inst)] = retval = self.func(inst)
-        return retval
-
-    def __set__(self, inst, val):
-        if id(inst) not in self.reified:
-            # shouldn't happen, but it's easy to handle
-            self.reified[id(inst)] = self.func(inst)
-        self.reified[id(inst)].update(val)
+from .reify import reify
 
 
 def getatt(attribute_name):
