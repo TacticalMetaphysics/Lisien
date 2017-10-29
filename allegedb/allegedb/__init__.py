@@ -199,10 +199,11 @@ class ORM(object):
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
-            self._branches[v] = curbranch, curturn, curtick, curturn, curtick
+            if not self.planning:
+                self._branches[v] = curbranch, curturn, curtick, curturn, curtick
         # make sure I'll end up within the revision range of the
         # destination branch
-        if v != 'trunk':
+        if v != 'trunk' and not self.planning:
             parturn = self._branches[v][1]
             if curturn < parturn:
                 raise ValueError(
@@ -213,7 +214,7 @@ class ORM(object):
                         rv=parturn
                     )
                 )
-            if not self.planning and v not in self._branches:
+            if v not in self._branches:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
     branch = property(lambda self: self._obranch, _set_branch)  # easier to override this way
