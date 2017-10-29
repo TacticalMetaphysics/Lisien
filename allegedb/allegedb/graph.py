@@ -1034,7 +1034,7 @@ class AllegedGraph(object):
     def adj(self, v):
         self.adj.clear()
         self.adj.update(v)
-    edge = succ = _succ = adj
+    edge = succ = _succ = _adj = adj
 
     _predmaps = {}
 
