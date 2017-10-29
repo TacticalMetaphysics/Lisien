@@ -946,6 +946,8 @@ class EdgesCache(Cache):
             preds[turn] = newp
 
     def _forward_valcaches(self, graph, orig, dest, key, branch, turn, tick, ex, *, validate=False):
+        if not ex:
+            ex = None
         super()._forward_valcaches(graph, orig, dest, key, branch, turn, tick, ex, validate=validate)
         oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
         dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
