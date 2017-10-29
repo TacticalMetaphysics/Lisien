@@ -598,8 +598,6 @@ class EngineHandle(object):
 
         Location of ``None`` means the thing doesn't exist anymore.
 
-        Returns ``None`` if the character doesn't exist.
-
         """
         try:
             new = self.character_things(char)
