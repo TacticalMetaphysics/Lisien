@@ -156,9 +156,9 @@ class EngineHandle(object):
         self.turn = turn
         self.tick = tick or self._real.tick
         if chars:
-            return self.get_chardiffs(chars)
+            return None, self.eternal_diff(), self.universal_diff(), self.get_chardiffs(chars)
         else:
-            return {}
+            return None, self.eternal_diff(), self.universal_diff(), {}
 
     def increment_branch(self, chars=[]):
         branch = self._real.branch
