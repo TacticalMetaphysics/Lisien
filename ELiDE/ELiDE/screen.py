@@ -282,9 +282,9 @@ class MainScreen(Screen):
         self._update_from_chardiffs(chardiffs)
         self._advance_dialog()
 
-    def _update_from_chardiffs(self, chardiffs):
+    def _update_from_chardiffs(self, cmd, branch, turn, tick, received, **kwargs):
         self.boardview.board.trigger_update_from_diff(
-            chardiffs.get(self.boardview.board.character.name, {})
+            received[-1].get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
 
