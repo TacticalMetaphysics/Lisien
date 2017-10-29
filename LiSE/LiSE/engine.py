@@ -12,7 +12,7 @@ from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
 from allegedb import ORM as gORM
-from allegedb.cache import HistoryError
+from allegedb.xjson import JSONReWrapper, JSONListReWrapper
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -208,11 +208,15 @@ class Encoder(JSONEncoder):
         return super().encode(self.listify(o))
 
     def default(self, o):
+        t = type(o)
+        if t is JSONReWrapper:
+            return dict(o)
+        elif t is JSONListReWrapper:
+            return list(o)
         try:
             from numpy import sctypes
         except ImportError:
             return super().default(o)
-        t = type(o)
         if t in sctypes['int']:
             return int(o)
         elif t in sctypes['float']:
