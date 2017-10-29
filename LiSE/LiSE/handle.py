@@ -564,8 +564,10 @@ class EngineHandle(object):
                 self._node_stat_cache,
                 self._node_successors_cache
         ):
-            if char in cache:
+            try:
                 del cache[char][node]
+            except KeyError:
+                pass
         if char in self._char_things_cache and node in self._char_things_cache[char]:
             del self._char_things_cache[char][node]
         if char in self._char_places_cache and node in self._char_places_cache[char]:
