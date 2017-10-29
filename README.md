@@ -94,6 +94,11 @@ Douros, in the public domain.
 LiSE's data model, is available under
 [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My
 versions of the networkx graph classes are in the ``allegedb``
-directory, and use the same license. The rest of the LiSE source files
-are licensed under the terms of the GNU General Public License version
-3. See each directory for a copy of each license.
+directory, and use the same license.
+
+reify.py is derived from the Pyramid project and carries its BSD-like license.
+
+collide.py is ported from Kivy's garden.collider module and carries the MIT license.
+
+The rest of the LiSE source files are licensed under the terms of the GNU General Public License
+version 3
