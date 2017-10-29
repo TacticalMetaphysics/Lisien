@@ -199,7 +199,7 @@ class ORM(object):
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
-            self._branches[v] = curbranch, curturn
+            self._branches[v] = curbranch, curturn, curtick, curturn, curtick
         # make sure I'll end up within the revision range of the
         # destination branch
         if v != 'trunk':
