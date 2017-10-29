@@ -18,6 +18,21 @@ class GraphNameError(KeyError):
 
 
 class PlanningContext(object):
+    """A context manager for 'hypothetical' edits.
+
+    Start a block of code like:
+
+    with orm.plan:
+        ...
+
+    and any changes you make to the world state within that block will be
+    'plans,' meaning that they are used as defaults. The world will
+    obey your plan unless you make changes to the same entities outside
+    of the plan, in which case the world will obey those.
+
+    New branches cannot be started within plans.
+
+    """
     __slots__ = ['orm', 'time']
 
     def __init__(self, orm):
@@ -25,12 +40,31 @@ class PlanningContext(object):
 
     def __enter__(self):
         self.orm.planning = True
-        self.time = self.orm.branch, self.orm.turn
+        self.time = self.orm.btt()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm.branch, self.orm.turn = self.time
+        self.orm._obranch, self.orm._oturn, self.orm._otick = self.time
         self.orm.planning = False
+
+
+class AdvancingContext(object):
+    """A context manager for when time is moving forward.
+
+    When used in LiSE, this means that the game is being simulated.
+    It changes how the caching works, making it more efficient.
+
+    """
+    __slots__ = ['orm']
+
+    def __init__(self, orm):
+        self.orm = orm
+
+    def __enter__(self):
+        self.orm.forward = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.orm.forward = False
 
 
 class ORM(object):
@@ -46,6 +80,12 @@ class ORM(object):
     @property
     def plan(self):
         return PlanningContext(self)
+    plan.__doc__ = PlanningContext.__doc__
+
+    @property
+    def advancing(self):
+        return AdvancingContext(self)
+    advancing.__doc__ = AdvancingContext.__doc__
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
@@ -55,9 +95,9 @@ class ORM(object):
             if k == 'branch':
                 self._obranch = v
             elif k == 'turn':
-                self._oturn = v
+                self._oturn = int(v)
             elif k == 'tick':
-                self._otick = v
+                self._otick = int(v)
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
@@ -91,15 +131,13 @@ class ORM(object):
 
         """
         self.planning = False
+        self.forward = False
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
                 getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
             )
         self.query.initdb()
-        self._obranch = self.query.globl['branch']
-        self._oturn = self.query.globl['turn']
-        self._otick = self.query.globl['tick']
         self._init_caches()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
@@ -151,12 +189,7 @@ class ORM(object):
             return True
         return self.is_parent_of(parent, self._branches[child][0])
 
-    @property
-    def branch(self):
-        return self._obranch
-
-    @branch.setter
-    def branch(self, v):
+    def _set_branch(self, v):
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
             return
@@ -180,15 +213,16 @@ class ORM(object):
             if not self.planning and v not in self._branches:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
+    branch = property(lambda self: self._obranch, _set_branch)  # easier to override this way
 
-    @property
-    def turn(self):
-        return self._oturn
-
-    @turn.setter
-    def turn(self, v):
+    def _set_turn(self, v):
         if v == self.turn:
             return
+        if not isinstance(v, int):
+            raise TypeError("turn must be an integer")
+        # enforce the arrow of time, if it's in effect
+        if self.forward and v < self._oturn:
+            raise ValueError("Can't time travel backward in a forward context")
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
         tick = self._turn_end.setdefault((branch, v), 0)
@@ -204,14 +238,15 @@ class ORM(object):
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
+    turn = property(lambda self: self._oturn, _set_turn)  # easier to override this way
 
-    @property
-    def tick(self):
-        return self._otick
-
-    @tick.setter
-    def tick(self, v):
+    def _set_tick(self, v):
+        if not isinstance(v, int):
+            raise TypeError("tick must be an integer")
         time = branch, turn = self._obranch, self._oturn
+        # enforce the arrow of time, if it's in effect
+        if self.forward and v < self._otick:
+            raise ValueError("Can't time travel backward in a forward context")
         if not self.planning:
             if v > self._turn_end[time]:
                 self._turn_end[time] = v
@@ -219,6 +254,7 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
+    tick = property(lambda self: self._otick, _set_tick)  # easier to override this way
 
     def btt(self):
         return self._obranch, self._oturn, self._otick
@@ -241,14 +277,17 @@ class ORM(object):
                 )
             )
         parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+        if turn_end > turn:
+            raise HistoryError(
+                "You're in the past. Go to turn {} to change things".format(turn_end)
+            )
         if not self.planning:
             if turn_end != turn:
-                print(turn)
                 raise HistoryError(
-                    "You're not at the present turn. Go to turn {} to change things".format(turn_end)
+                    "When advancing time outside of a plan, you can't skip turns. Go to turn {}".format(turn_end)
                 )
             self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
-        self._turn_end[branch, turn] = self._otick = tick
+            self._turn_end[branch, turn] = self._otick = tick
         return branch, turn, tick
 
     def commit(self):

@@ -295,6 +295,8 @@ class Thing(Node):
         scheduled to be somewhere else.
 
         """
+        if len(path) < 2:
+            raise ValueError("Paths need at least 2 nodes")
         eng = self.character.engine
         with eng.plan:
             prevplace = path.pop(0)
@@ -352,8 +354,12 @@ class Thing(Node):
 
         """
         destn = dest.name if hasattr(dest, 'name') else dest
+        if destn == self.location.name:
+            raise ValueError("I'm already at {}".format(destn))
         graph = self.character if graph is None else graph
         path = nx.shortest_path(graph, self["location"], destn, weight)
+        if len(path) == 1:
+            return self.go_to_place(destn, weight)
         return self.follow_path(path, weight)
 
     def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):

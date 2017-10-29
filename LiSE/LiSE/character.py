@@ -636,9 +636,12 @@ class RuleFollower(BaseRuleFollower):
         )
 
     def _get_rulebook_name(self):
-        return self.engine._characters_rulebooks_cache.retrieve(
-            self.character.name, *self.engine.btt()
-        )
+        try:
+            return self.engine._characters_rulebooks_cache.retrieve(
+                self.character.name, *self.engine.btt()
+            )
+        except KeyError:
+            return self.character.name
 
     def _set_rulebook_name(self, n):
         self.engine._set_character_rulebook(self.character.name, self._book, n)
@@ -1284,8 +1287,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.send(self, key=thing, val=th)
 
         def __delitem__(self, thing):
-            self[thing].delete(nochar=True)
-            self.send(self, key=thing, val=None)
+            self[thing].delete()
 
         def __repr__(self):
             return repr(dict(self))
@@ -1862,11 +1864,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 n = b
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
-        self.engine._exist_node(
-            g,
-            n,
-            True
-        )
+        self.engine._exist_node(g, n)
         # Declare that the node is my avatar
         self.engine._remember_avatarness(self.name, g, n)
 

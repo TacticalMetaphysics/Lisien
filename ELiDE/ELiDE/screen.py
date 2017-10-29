@@ -8,7 +8,7 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
-
+from importlib import import_module
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -20,12 +20,14 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
+    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
     StringProperty
 )
 from .charmenu import CharMenu
+from .dialog import Dialog
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -101,12 +103,6 @@ class TimePanel(BoxLayout):
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
 
-    def next_turn(self, *args):
-        self.screen.app.engine.next_turn(
-            chars=[self.screen.app.character_name],
-            cb=self.screen._update_from_chardiff
-        )
-
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
 
@@ -156,10 +152,19 @@ class MainScreen(Screen):
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
+    dialoglayout = ObjectProperty()
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
+    dialog_todo = ListProperty([])
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+    usermod = StringProperty('user')
+    userpkg = StringProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.dialog_todo:
+            self._advance_dialog()
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -230,6 +235,8 @@ class MainScreen(Screen):
                 interceptor.dispatch('on_touch_down', touch)
                 self.boardview.keep_selection = True
                 return True
+        if self.dialoglayout.dispatch('on_touch_down', touch):
+            return True
         return self.boardview.dispatch('on_touch_down', touch)
 
     def on_touch_up(self, touch):
@@ -270,28 +277,124 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_chardiff(self, cmd, branch, turn, tick, **kwargs):
+    def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
+        self.dialog_todo, _, _, chardiffs = ret
+        self._update_from_chardiffs(chardiffs)
+        self._advance_dialog()
+
+    def _update_from_chardiffs(self, chardiffs):
         self.boardview.board.trigger_update_from_diff(
-            kwargs.get(self.boardview.board.character.name, {})
+            chardiffs.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
-        self.app.branch, self.app.turn, self.app.tick = branch, turn, tick
+
+    def _advance_dialog(self, *args):
+        self.ids.dialoglayout.clear_widgets()
+        if not self.dialog_todo:
+            return
+        self._update_dialog(self.dialog_todo.pop(0))
+
+    def _update_dialog(self, diargs, **kwargs):
+        if diargs is None:
+            Logger.debug("Screen: null dialog")
+            return
+        if not hasattr(self, '_dia'):
+            self._dia = Dialog()
+        dia = self._dia
+        # Simple text dialogs just tell the player something and let them click OK
+        if isinstance(diargs, str):
+            dia.message_kwargs = {'text': diargs}
+            dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
+        # List dialogs are for when you need the player to make a choice and don't care much
+        # about presentation
+        elif isinstance(diargs, list):
+            dia.message_kwargs = {'text': 'Select from the following:'}
+            dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
+        # For real control of the dialog, you need a pair of dicts --
+        # the 0th describes the message shown to the player, the 1th
+        # describes the menu below
+        elif isinstance(diargs, tuple):
+            if len(diargs) != 2:
+                # TODO more informative error
+                raise TypeError('Need a tuple of length 2')
+            msgkwargs, mnukwargs = diargs
+            if isinstance(msgkwargs, dict):
+                dia.message_kwargs = msgkwargs
+            elif isinstance(msgkwargs, str):
+                dia.message_kwargs['text'] = msgkwargs
+            else:
+                raise TypeError("Message must be dict or str")
+            if isinstance(mnukwargs, dict):
+                mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
+                dia.menu_kwargs = mnukwargs
+            elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
+                dia.menu_kwargs['options'] = list(map(self._munge_menu_option, mnukwargs))
+            else:
+                raise TypeError("Menu must be dict or list")
+        else:
+            raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
+        self.ids.dialoglayout.add_widget(dia)
+
+    def ok(self, cb=None, *args):
+        self.ids.dialoglayout.clear_widgets()
+        if cb:
+            cb()
+        self._advance_dialog()
+        self.app.engine.universal['last_result_idx'] += 1
+
+    def _trigger_ok(self, cb=None, *args):
+        part = partial(self.ok, cb)
+        Clock.unschedule(part)
+        Clock.schedule_once(part)
+
+    def _lookup_func(self, funcname):
+        if not hasattr(self, '_usermod'):
+            self._usermod = import_module(self.usermod, self.userpkg)
+        return getattr(self.usermod, funcname)
+
+    def _munge_menu_option(self, option):
+        name, func = option
+        if callable(func):
+            return name, partial(self._trigger_ok, func)
+        if isinstance(func, tuple):
+            fun = func[0]
+            if isinstance(fun, str):
+                fun = self._lookup_func(fun)
+            args = func[1]
+            if len(func) == 3:
+                kwargs = func[2]
+                func = partial(fun, *args, **kwargs)
+            else:
+                func = partial(fun, *args)
+        if isinstance(func, str):
+            func = self._lookup_func(func)
+        return name, partial(self._trigger_ok, func)
 
     def play(self, *args):
-        """If the 'play' button is pressed, advance a tick."""
-        # TODO pop out the play button if a dialog gets displayed
+        """If the 'play' button is pressed, advance a turn.
+
+        If you want to disable this, set ``engine.universal['block'] = True``
+
+        """
         if self.playbut.state == 'normal':
             return
-        elif not hasattr(self, '_old_time'):
-            self._old_time = (self.app.branch, self.app.turn, self.app.tick)
-            self.app.engine.next_turn(
-                chars=[self.app.character_name],
-                cb=self._update_from_chardiff
-            )
-        elif self._old_time == (self.app.branch, self.app.turn, self.app.tick):
+        self.next_turn()
+
+    def next_turn(self, *args):
+        """Advance time by one turn, if it's not blocked.
+
+        Block time by setting ``engine.universal['block'] = True``"""
+        eng = self.app.engine
+        if eng.universal.get('block'):
+            Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
             return
-        else:
-            del self._old_time
+        if self.dialog_todo or eng.universal.get('last_result_idx', 0) < len(eng.universal.get('last_result', [])):
+            Logger.info("MainScreen: not advancing time while there's a dialog")
+            return
+        eng.next_turn(
+            chars=[self.app.character_name],
+            cb=self._update_from_next_turn
+        )
 
 
 Builder.load_string(
@@ -326,7 +429,7 @@ Builder.load_string(
         Button:
             text: 'Next turn'
             size_hint_y: 0.3
-            on_press: root.next_turn()
+            on_press: root.screen.next_turn()
     BoxLayout:
         orientation: 'vertical'
         Label:
@@ -363,6 +466,7 @@ Builder.load_string(
     statlist: statpanel.statlist
     statpanel: statpanel
     timepanel: timepanel
+    dialoglayout: dialoglayout
     BoardView:
         id: boardview
         x: statpanel.right
@@ -394,5 +498,12 @@ Builder.load_string(
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
+    FloatLayout:
+        id: dialoglayout
+        size_hint: None, None
+        x: statpanel.right
+        y: timepanel.top
+        width: charmenu.x - statpanel.right
+        height: root.height - timepanel.top
 """
 )

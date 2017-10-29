@@ -18,13 +18,16 @@ class EntitylessCache(Cache):
     def retrieve(self, key, branch, turn, tick):
         return super().retrieve(None, key, branch, turn, tick)
 
-    def iter_entities_or_keys(self, branch, turn, tick):
-        return super().iter_entities_or_keys(None, branch, turn, tick)
+    def iter_entities_or_keys(self, branch, turn, tick, *, forward=False):
+        return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, turn, tick):
-        return super().contains_entity_or_key(None, ke, branch, turn, tick)
+    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=False):
+        return super().contains_entity_or_key(None, ke, branch, turn, tick, forward=forward)
     contains_entity = contains_key = contains_entity_or_key
+
+    def retrieve(self, *args):
+        return super().retrieve(*(None,)+args)
 
 
 class AvatarnessCache(Cache):
@@ -39,6 +42,7 @@ class AvatarnessCache(Cache):
         self.soloav = StructuredDefaultDict(1, TurnDict)
         self.uniqav = StructuredDefaultDict(1, TurnDict)
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
+        self.users = StructuredDefaultDict(1, TurnDict)
 
     def store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning=False):
         if not is_avatar:
@@ -67,12 +71,38 @@ class AvatarnessCache(Cache):
         uniqgraph = self.uniqgraph[character][branch]
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
-        for avmap in (charavs, graphavs, graphs):
-            if not avmap.has_exact_rev(turn):
-                try:
-                    avmap[turn][tick] = avmap[turn][tick].copy()
-                except HistoryError:
-                    avmap[turn][tick] = set()
+        users = self.users[graph, node][branch]
+        for turndict, newkey, getiter in (
+            (users, character, lambda: self._slow_iter_users(graph, node, branch, turn, tick)),
+            (graphs, graph, lambda: self.iter_entities(character, branch, turn, tick)),
+            (graphavs, node, lambda: self.iter_entities(character, graph, branch, turn, tick)),
+            (charavs, (graph, node), lambda: self._slow_iter_character_avatars(character, branch, turn, tick))
+        ):
+            if turndict.has_exact_rev(turn):
+                tickdict = turndict[turn]
+                if tickdict.end > tick:
+                    if planning:
+                        raise HistoryError("Already have stuff after tick " + str(tick))
+                    tickdict.truncate(tick)
+                if tickdict.has_exact_rev(tick):
+                    raise HistoryError("Already have stuff at tick " + str(tick))
+                if tickdict.has_exact_rev(tick - 1):
+                    newstuff = tickdict[tick] = tickdict[tick - 1].copy()
+                    if is_avatar:
+                        newstuff.add(newkey)
+                    else:
+                        newstuff.discard(newkey)
+                else:
+                    tickdict[tick] = set(getiter())
+            elif tick == 0 and turndict.has_exact_rev(turn - 1):
+                tickdict = turndict[turn - 1]
+                newstuff = turndict[turn][0] = tickdict[tickdict.end].copy()
+                if is_avatar:
+                    newstuff.add(newkey)
+                else:
+                    newstuff.discard(newkey)
+            else:
+                turndict[turn][tick] = set(getiter())
         if is_avatar:
             if turn in graphavs and graphavs[turn][tick]:
                 soloav[turn][tick] = None
@@ -126,7 +156,12 @@ class AvatarnessCache(Cache):
             self.graphs[char], branch, turn, tick
         ) or set()
 
-    def iter_node_users(self, graph, node, branch, turn, tick):
+    def _slow_iter_character_avatars(self, character, branch, turn, tick):
+        for graph in self.iter_entities(character, branch, turn, tick):
+            for node in self.iter_entities(character, graph, branch, turn, tick):
+                yield graph, node
+
+    def _slow_iter_users(self, graph, node, branch, turn, tick):
         if graph not in self.user_order:
             return
         for character in self.user_order[graph][node]:
@@ -146,7 +181,7 @@ class RulesHandledCache(object):
     def __init__(self, engine):
         self.engine = engine
         self.handled = {}
-        self.unhandled = StructuredDefaultDict(3, list)
+        self.unhandled = {}
 
     def get_rulebook(self, *args):
         raise NotImplementedError
@@ -158,11 +193,11 @@ class RulesHandledCache(object):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
         shalo = self.handled.setdefault(entity + (rulebook, branch, turn), set())
-        unhandl = self.unhandled[entity]
-        if turn not in unhandl.setdefault(branch, {}):
-            unhandl[branch][turn] = list(self.iter_unhandled_rules(branch, turn, tick))
+        unhandl = self.unhandled.setdefault(entity, {}).setdefault(rulebook, {}).setdefault(branch, {})
+        if turn not in unhandl:
+            unhandl[turn] = list(self.unhandled_rulebook_rules(entity, rulebook, branch, turn, tick))
         try:
-            unhandl[branch][turn].remove(entity + (rulebook, rule))
+            unhandl[turn].remove(rule)
         except ValueError:
             if not loading:
                 raise
@@ -171,21 +206,23 @@ class RulesHandledCache(object):
     def fork(self, branch, turn, tick):
         parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[branch]
         unhandl = self.unhandled
+        handl = self.handled
+        rbcache = self.engine._rulebooks_cache
+        unhandrr = self.unhandled_rulebook_rules
+        getrb = self.get_rulebook
         for entity in unhandl:
-            rulebook = self.get_rulebook(*entity + (branch, turn, tick))
-            if entity + (rulebook, branch, turn) in self.handled:
+            rulebook = getrb(*entity + (branch, turn, tick))
+            if entity + (rulebook, branch, turn) in handl:
                 raise HistoryError(
                     "Tried to fork history in a RulesHandledCache, "
                     "but it seems like rules have already been run where we're "
                     "forking to"
                 )
-            unhandled_rules = unhandl[entity][parent_branch][parent_turn].copy()
+            rules = set(rbcache.retrieve(rulebook, branch, turn, tick))
+            unhandled_rules = unhandrr(entity, rulebook, parent_branch, parent_turn, tick)
             unhandled_rules_set = set(unhandled_rules)
-            self.handled[entity + (rulebook, branch, turn)] = {
-                rule for rule in self.iter_unhandled_rules(branch, turn, tick)
-                if rule not in unhandled_rules_set
-            }
-            unhandl[entity][branch][turn] = unhandled_rules
+            handl[entity + (rulebook, branch, turn)] = rules.difference(unhandled_rules_set)
+            unhandl[entity][rulebook][branch][turn] = unhandled_rules
 
     def retrieve(self, *args):
         return self.handled[args]
@@ -200,7 +237,7 @@ class RulesHandledCache(object):
             ret = self.unhandled[entity][rulebook][branch][turn]
         else:
             try:
-                self.unhandled[entity][rulebook][branch][turn] = ret = [
+                return [
                     rule for rule in
                     self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
                     if rule not in self.handled.setdefault(entity + (rulebook, branch, turn), set())
@@ -216,10 +253,12 @@ class CharacterRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character in self.engine.character:
+            try:
+                rb = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for rule in self.unhandled_rulebook_rules(
-                character,
-                self.get_rulebook(character, branch, turn, tick),
-                branch, turn, tick
+                character, rb, branch, turn, tick
             ):
                 yield character, rule
 
@@ -230,7 +269,10 @@ class AvatarRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for graph in char.avatar.values():
                 for avatar in graph:
                     try:
@@ -247,7 +289,10 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for thing in char.thing:
                 try:
                     rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
@@ -263,7 +308,10 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for place in char.place:
                 try:
                     rules = self.unhandled_rulebook_rules((character, place), rulebook, branch, turn, tick)
@@ -279,7 +327,10 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
     def iter_unhandled_rules(self, branch, turn, tick):
         for character, char in self.engine.character.items():
-            rulebook = self.get_rulebook(character, branch, turn, tick)
+            try:
+                rulebook = self.get_rulebook(character, branch, turn, tick)
+            except KeyError:
+                continue
             for orig in char.portal:
                 for dest in char.portal[orig]:
                     try:

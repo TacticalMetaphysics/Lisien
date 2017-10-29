@@ -249,7 +249,9 @@ class Portal(Edge, RuleFollower):
             branch,
             turn,
             tick,
-            False
+            False,
+            planning=self.engine.planning,
+            forward=self.engine.forward
         )
         self.engine.query.exist_edge(
             self.character.name,
@@ -259,7 +261,7 @@ class Portal(Edge, RuleFollower):
         )
         try:
             del self.engine._portal_objs[
-                (self.graph.name, self.orig, dest)
+                (self.graph.name, self.orig, self.dest)
             ]
         except KeyError:
             pass

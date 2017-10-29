@@ -163,12 +163,13 @@ def queries_for_table_dict(table):
             table['edge_val'].c.orig == bindparam('orig'),
             table['edge_val'].c.dest == bindparam('dest'),
             table['edge_val'].c.idx == bindparam('idx'),
+            table['edge_val'].c.key == bindparam('key'),
             table['edge_val'].c.branch == bindparam('branch'),
             or_(
                 table['edge_val'].c.turn > bindparam('turn'),
                 and_(
                     table['edge_val'].c.turn == bindparam('turn'),
-                    table['edge_val'].c.tick > bindparam('tick')
+                    table['edge_val'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -185,7 +186,7 @@ def queries_for_table_dict(table):
                 table['edges'].c.turn > bindparam('turn'),
                 and_(
                     table['edges'].c.turn == bindparam('turn'),
-                    table['edges'].c.tick > bindparam('tick')
+                    table['edges'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -201,7 +202,7 @@ def queries_for_table_dict(table):
                 table['node_val'].c.turn > bindparam('turn'),
                 and_(
                     table['node_val'].c.turn == bindparam('turn'),
-                    table['node_val'].c.tick > bindparam('tick')
+                    table['node_val'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -233,7 +234,7 @@ def queries_for_table_dict(table):
                 table['graph_val'].c.turn > bindparam('turn'),
                 and_(
                     table['graph_val'].c.turn == bindparam('turn'),
-                    table['graph_val'].c.tick > bindparam('tick')
+                    table['graph_val'].c.tick >= bindparam('tick')
                 )
             )
         )),
@@ -244,6 +245,9 @@ def queries_for_table_dict(table):
             table['graphs'].c.graph,
             table['graphs'].c.type
         ]),
+        'graphs_named': select([func.COUNT()]).select_from(table['graphs']).where(
+            table['graphs'].c.graph == bindparam('graph')
+        ),
         'update_branches': table['branches'].update().values(
             parent=bindparam('parent'),
             parent_turn=bindparam('parent_turn'),
@@ -255,7 +259,7 @@ def queries_for_table_dict(table):
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
-        r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
+        r[t.name + '_count'] = select([func.COUNT()]).select_from(t)
     return r
 
 

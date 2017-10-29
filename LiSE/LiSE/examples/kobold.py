@@ -74,12 +74,12 @@ def inittest(
     # If it is, there's a chance it will try to get to another.
     @kobold.rule
     def shrubsprint(thing):
-        print('shrub_places: {}'.format(thing['shrub_places']))
         shrub_places = sorted(list(thing['shrub_places']))
         if thing['location'] in shrub_places:
             shrub_places.remove(thing['location'])
-        print('shrub_places after: {}'.format(thing['shrub_places']))
-        thing.travel_to(thing.engine.choice(shrub_places))
+            assert thing['location'] not in shrub_places
+        whereto = thing.engine.choice(shrub_places)
+        thing.travel_to(whereto)
 
     @shrubsprint.trigger
     def uncovered(thing):
@@ -101,12 +101,20 @@ def inittest(
             thing.engine.info("kobold already travelling to {}".format(thing['next_location']))
         return thing['next_location'] is None
 
-    @dwarf.rule
-    def kill(thing):
-        thing.character.thing['kobold'].delete()
-        print("===KOBOLD DIES===")
+    @engine.method
+    def set_kill_flag(eng):
+        eng.character['physical'].thing['dwarf']['kill'] = True
 
-    @kill.trigger
+    @engine.method
+    def set_spare_flag(eng):
+        eng.character['physical'].thing['dwarf']['kill'] = False
+
+    @dwarf.rule
+    def fight(thing):
+        method = thing.engine.method
+        return "Kill kobold?", [("Kill", method.set_kill_flag), ("Spare", method.set_spare_flag)]
+
+    @fight.trigger
     def sametile(thing):
         try:
             return (
@@ -115,7 +123,7 @@ def inittest(
         except KeyError:
             return False
 
-    @kill.prereq
+    @fight.prereq
     def kobold_alive(thing):
         return 'kobold' in thing.character.thing
 
@@ -134,7 +142,22 @@ def inittest(
         # if it's <= the dwarf's sight radius, the dwarf is aware of the kobold
         return dist <= thing['sight_radius']
 
-    kill.prereq(aware)
+    fight.prereq(aware)
+
+    @dwarf.rule
+    def kill_kobold(thing):
+        del thing.character.thing['kobold']
+        del thing['kill']
+
+    kill_kobold.prereq(kobold_alive)
+
+    @kill_kobold.prereq
+    def flag_set(thing):
+        return 'kill' in thing
+
+    @kill_kobold.trigger
+    def unmerciful(thing):
+        return thing['kill']
 
     @dwarf.rule
     def go2kobold(thing):
@@ -143,6 +166,10 @@ def inittest(
     go2kobold.trigger(aware)
 
     go2kobold.prereqs = ['kobold_alive']
+
+    @go2kobold.prereq
+    def kobold_not_here(thing):
+        return 'kobold' not in thing.location.content
 
     @dwarf.rule
     def wander(thing):

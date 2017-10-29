@@ -146,12 +146,7 @@ class EngineHandle(object):
     def next_turn(self, chars=()):
         result = self._real.next_turn()
         self.branch, self.turn, self.tick = self._real.btt()
-        ret = {}
-        if result:
-            ret['result'] = result
-        if chars:
-            ret.update(self.get_chardiffs(chars))
-        return ret
+        return result, self.eternal_diff(), self.universal_diff(), self.get_chardiffs(chars)
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
         self._real.time = (branch, turn)
@@ -970,6 +965,18 @@ class EngineHandle(object):
             del self._stores_cache[store][k]
         except KeyError:
             pass
+
+    def call_stored_function(self, store, func, args, kwargs):
+        if store == 'method':
+            args = (self._real,) + tuple(args)
+        store = getattr(self._real, store)
+        if store not in self._real.stores:
+            raise ValueError("{} is not a function store".format(store))
+        callme = getattr(store, func)
+        try:
+            return callme(*args, **kwargs)
+        except Exception as ex:
+            raise
 
     def install_module(self, module):
         import_module(module).install(self._real)

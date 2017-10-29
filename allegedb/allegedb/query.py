@@ -166,7 +166,7 @@ class QueryEngine(object):
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
         graph = self.json_dump(graph)
-        return bool(self.sql('graphs_count', graph).fetchone()[0])
+        return bool(self.sql('graphs_named', graph).fetchone()[0])
 
     def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
@@ -253,36 +253,10 @@ class QueryEngine(object):
 
     def _flush_graph_val(self):
         """Send all new and changed graph values to the database."""
-        def convert_arg(arg):
-            if isinstance(arg, dict):
-                return (
-                    self.json_dump(arg['graph']),
-                    self.json_dump(arg['key']),
-                    arg['branch'], arg['turn'], arg['tick'],
-                    self.json_dump(arg['value']),
-                    arg.get('planning', True)
-                )
-            elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, key, branch, turn, tick, value, planning = arg
-                return (
-                    self.json_dump(graph),
-                    self.json_dump(key),
-                    branch, turn, tick,
-                    self.json_dump(value),
-                    planning
-                )
-            else:
-                raise TypeError(
-                    "Expected dict, list, or tuple, got {}".format(type(arg))
-                )
-
         if not self._graphvals2set:
             return
-        converted = list(map(convert_arg, self._graphvals2set))
         delafter = {}
-        for graph, key, branch, turn, tick, value, planning in converted:
-            if planning:
-                continue
+        for graph, key, branch, turn, tick, value in self._graphvals2set:
             if (graph, key, branch) in delafter:
                 delafter[graph, key, branch] = min((
                     (turn, tick),
@@ -290,71 +264,48 @@ class QueryEngine(object):
                 ))
             else:
                 delafter[graph, key, branch] = (turn, tick)
-        if delafter:
-            self.sqlmany(
-                'del_graph_val_after',
-                *((graph, key, branch, turn, turn, tick)
-                  for ((graph, key, branch), (turn, tick)) in delafter.items())
-            )
-        self.sqlmany('graph_val_insert', *map(lambda x: x[:-1], converted))
+        self.sqlmany(
+            'del_graph_val_after',
+            *((graph, key, branch, turn, turn, tick)
+              for ((graph, key, branch), (turn, tick)) in delafter.items())
+        )
+        self.sqlmany('graph_val_insert', *self._graphvals2set)
         self._graphvals2set = []
 
-    def graph_val_set(self, graph, key, branch, turn, tick, value, planning=False):
-        self._graphvals2set.append((graph, key, branch, turn, tick, value, planning))
+    def graph_val_set(self, graph, key, branch, turn, tick, value):
+        graph, key, value = map(self.json_dump, (graph, key, value))
+        self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
-    def graph_val_del(self, graph, key, branch, turn, tick, planning=False):
+    def graph_val_del(self, graph, key, branch, turn, tick):
         """Indicate that the key is unset."""
-        self.graph_val_set(graph, key, branch, turn, tick, None, planning=planning)
+        self.graph_val_set(graph, key, branch, turn, tick, None)
 
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
             yield (self.json_load(graph), typ)
 
     def _flush_nodes(self):
-        def convert_arg(arg):
-            if isinstance(arg, dict):
-                return (
-                    self.json_dump(arg['graph']),
-                    self.json_dump(arg['node']),
-                    arg['branch'], arg['turn'], arg['tick'], arg['extant'],
-                    arg.get('planning', False)
-                )
-            elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, node, branch, turn, tick, extant, planning = arg
-                return (
-                    self.json_dump(graph),
-                    self.json_dump(node),
-                    branch, turn, tick, extant, planning
-                )
-            else:
-                raise TypeError(
-                    "Expected dict, list, or tuple, got {}".format(type(arg))
-                )
-
         if not self._nodes2set:
             return
         # delete history that is to be overwritten due to paradox
-        converted = list(map(convert_arg, self._nodes2set))
         cleanups = {}
-        for graph, node, branch, turn, tick, extant, planning in converted:
-            if planning:
-                continue
+        for graph, node, branch, turn, tick, extant in self._nodes2set:
             if (graph, node, branch) in cleanups:
                 cleanups[graph, node, branch] = min((
                     (turn, tick), cleanups[graph, node, branch]
                 ))
         if cleanups:
             self.sqlmany('del_node_after', *(k + (turn, turn, tick) for k, (turn, tick) in cleanups.items()))
-        self.sqlmany('nodes_insert', *map(lambda arg: arg[:-1], converted))
+        self.sqlmany('nodes_insert', *self._nodes2set)
         self._nodes2set = []
 
-    def exist_node(self, graph, node, branch, turn, tick, extant, planning=False):
+    def exist_node(self, graph, node, branch, turn, tick, extant):
         """Declare that the node exists or doesn't.
 
         Inserts a new record or updates an old one, as needed.
 
         """
-        self._nodes2set.append((graph, node, branch, turn, tick, extant, planning))
+        self._nodes2set.append((self.json_dump(graph), self.json_dump(node), branch, turn, tick, extant))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
@@ -386,42 +337,10 @@ class QueryEngine(object):
             )
 
     def _flush_node_val(self):
-        def convert_arg(arg):
-            if isinstance(arg, dict):
-                return (
-                    self.json_dump(arg['graph']),
-                    self.json_dump(arg['node']),
-                    self.json_dump(arg['key']),
-                    arg['branch'],
-                    arg['turn'],
-                    arg['tick'],
-                    self.json_dump(arg['value']),
-                    arg.get('planning', False)
-                )
-            elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, node, key, branch, turn, tick, value, planning = arg
-                return (
-                    self.json_dump(graph),
-                    self.json_dump(node),
-                    self.json_dump(key),
-                    branch,
-                    turn,
-                    tick,
-                    self.json_dump(value),
-                    planning
-                )
-            else:
-                raise TypeError(
-                    "Need dict, list, or tuple, not {}".format(type(arg))
-                )
-
         if not self._nodevals2set:
             return
-        converted = list(map(convert_arg, self._nodevals2set))
         delafter = {}
-        for graph, node, key, branch, turn, tick, value, planning in converted:
-            if planning:
-                continue
+        for graph, node, key, branch, turn, tick, value in self._nodevals2set:
             if (graph, node, key, branch) in delafter:
                 delafter[graph, node, key, branch] = min((
                     (turn, tick),
@@ -436,16 +355,17 @@ class QueryEngine(object):
                   for ((graph, node, key, branch), (turn, tick)) in
                   delafter.items())
             )
-        self.sqlmany('node_val_insert', *map(lambda x: x[:-1], converted))
+        self.sqlmany('node_val_insert', *self._nodevals2set)
         self._nodevals2set = []
 
-    def node_val_set(self, graph, node, key, branch, turn, tick, value, planning=False):
+    def node_val_set(self, graph, node, key, branch, turn, tick, value):
         """Set a key-value pair on a node at a specific branch and revision"""
-        self._nodevals2set.append((graph, node, key, branch, turn, tick, value, planning))
+        graph, node, key, value = map(self.json_dump, (graph, node, key, value))
+        self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
-    def node_val_del(self, graph, node, key, branch, turn, tick, planning=False):
+    def node_val_del(self, graph, node, key, branch, turn, tick):
         """Delete a key from a node at a specific branch and revision"""
-        self.node_val_set(graph, node, key, branch, turn, tick, None, planning)
+        self.node_val_set(graph, node, key, branch, turn, tick, None)
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
@@ -465,36 +385,10 @@ class QueryEngine(object):
             )
 
     def _flush_edges(self):
-        def convert_arg(arg):
-            if isinstance(arg, dict):
-                return (
-                    self.json_dump(arg['graph']),
-                    self.json_dump(arg['orig']),
-                    self.json_dump(arg['dest']),
-                    arg['idx'], arg['branch'], arg['turn'],
-                    arg['tick'], arg['extant'],
-                    arg.get('planning', False)
-                )
-            elif isinstance(arg, list) or isinstance(arg, tuple):
-                graph, orig, dest, idx, branch, turn, tick, extant, planning = arg
-                return (
-                    self.json_dump(graph),
-                    self.json_dump(orig),
-                    self.json_dump(dest),
-                    idx, branch, turn, tick, extant, planning
-                )
-            else:
-                raise TypeError(
-                    "Expected dict, list, or tuple, got {}".format(type(arg))
-                )
-
         if not self._edges2set:
             return
-        converted = list(map(convert_arg, self._edges2set))
         delafter = {}
-        for graph, orig, dest, idx, branch, turn, tick, extant, planning in converted:
-            if planning:
-                continue
+        for graph, orig, dest, idx, branch, turn, tick, extant in self._edges2set:
             key = graph, orig, dest, idx, branch
             if key in delafter:
                 delafter[key] = min((
@@ -510,12 +404,13 @@ class QueryEngine(object):
                   for ((graph, orig, dest, idx, branch), (turn, tick)) in
                   delafter.items())
             )
-        self.sqlmany('edges_insert', *map(lambda x: x[:-1], converted))
+        self.sqlmany('edges_insert', *self._edges2set)
         self._edges2set = []
 
-    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant, planning=False):
+    def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
-        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant, planning))
+        graph, orig, dest = map(self.json_dump, (graph, orig, dest))
+        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
@@ -536,42 +431,10 @@ class QueryEngine(object):
             )
 
     def _flush_edge_val(self):
-        def convert_arg(arg):
-            if isinstance(arg, dict):
-                return (
-                    self.json_dump(arg['graph']),
-                    self.json_dump(arg['orig']),
-                    self.json_dump(arg['dest']),
-                    arg['idx'],
-                    self.json_dump(arg['key']),
-                    arg['branch'], arg['turn'], arg['tick'],
-                    self.json_dump(arg['value']),
-                    arg.get('planning', False)
-                )
-            elif isinstance(arg, tuple) or isinstance(arg, list):
-                graph, orig, dest, idx, key, branch, turn, tick, value, planning = arg
-                return (
-                    self.json_dump(graph),
-                    self.json_dump(orig),
-                    self.json_dump(dest),
-                    idx,
-                    self.json_dump(key),
-                    branch, turn, tick,
-                    self.json_dump(value),
-                    planning
-                )
-            else:
-                raise TypeError(
-                    "Expected dict, list, or tuple, got {}".format(type(arg))
-                )
-
         if not self._edgevals2set:
             return
-        converted = list(map(convert_arg, self._edgevals2set))
         delafter = {}
-        for graph, orig, dest, idx, key, branch, turn, tick, value, planning in converted:
-            if planning:
-                continue
+        for graph, orig, dest, idx, key, branch, turn, tick, value in self._edgevals2set:
             dkey = graph, orig, dest, idx, key, branch
             if dkey in delafter:
                 delafter[dkey] = min((
@@ -579,20 +442,20 @@ class QueryEngine(object):
                 ))
             else:
                 delafter[dkey] = (turn, tick)
-        if delafter:
-            self.sqlmany(
-                'del_edge_val_after',
-                *((graph, orig, dest, idx, key, branch, turn, turn, tick)
-                  for ((graph, orig, dest, idx, key, branch), (turn, tick))
-                  in delafter.items())
-            )
-        self.sqlmany('edge_val_ins', *map(lambda x: x[:-1], converted))
+        self.sqlmany(
+            'del_edge_val_after',
+            *((graph, orig, dest, idx, key, branch, turn, turn, tick)
+              for ((graph, orig, dest, idx, key, branch), (turn, tick))
+              in delafter.items())
+        )
+        self.sqlmany('edge_val_insert', *self._edgevals2set)
         self._edgevals2set = []
 
-    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value, planning=False):
+    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
         """Set this key of this edge to this value."""
+        graph, orig, dest, key, value = map(self.json_dump, (graph, orig, dest, key, value))
         self._edgevals2set.append(
-            (graph, orig, dest, idx, key, branch, turn, tick, value, planning)
+            (graph, orig, dest, idx, key, branch, turn, tick, value)
         )
 
     def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick):

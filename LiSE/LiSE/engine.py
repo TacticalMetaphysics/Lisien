@@ -7,6 +7,7 @@ flow of time.
 """
 from random import Random
 from functools import partial
+from types import FunctionType
 from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
@@ -41,7 +42,12 @@ from .cache import (
 
 
 class TimeSignal(Signal):
-    # TODO: always time travel to the last tick in the turn
+    """Acts like a tuple of the time in (branch, turn) for the most part.
+
+    You can also connect to this like it's a Signal, so a function gets
+    called every time the time changes.
+
+    """
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
@@ -57,16 +63,18 @@ class TimeSignal(Signal):
         if i in ('branch', 0):
             return self.engine.branch
         if i in ('turn', 1):
-            return self.engine.tick
+            return self.engine.turn
 
     def __setitem__(self, i, v):
         if i in ('branch', 0):
             self.engine.branch = v
-        if i in ('tick', 'rev', 1):
-            self.engine.tick = v
+        if i in ('turn', 1):
+            self.engine.turn = v
+        self.send(self, branch=self.engine.branch, turn=self.engine.turn)
 
 
 class TimeSignalDescriptor(object):
+    __doc__ = TimeSignal.__doc__
     signals = {}
 
     def __get__(self, inst, cls):
@@ -80,9 +88,12 @@ class TimeSignalDescriptor(object):
         real = self.signals[id(inst)]
         branch_then, turn_then, tick_then = real.engine.btt()
         branch_now, turn_now = val
+        e = real.engine
+        # enforce the arrow of time, if it's in effect
+        if e.forward and branch_now == branch_then and turn_now < turn_then:
+            raise ValueError("Can't time travel backward in a forward context")
         # make sure I'll end up within the revision range of the
         # destination branch
-        e = real.engine
         branches = e._branches
         tick_now = e._turn_end.get((branch_now, turn_now), 0)
         if branch_now != 'trunk':
@@ -134,17 +145,20 @@ class NextTurn(Signal):
 
     def __call__(self):
         engine = self.engine
-        for res in iter(engine.advance, final_rule):
-            if res:
-                branch, turn, tick = engine.btt()
-                engine.universal['rando_state'] = engine.rando.getstate()
-                self.send(
-                    engine,
-                    branch=branch,
-                    turn=turn,
-                    tick=tick
-                )
-                return res
+        with engine.advancing:
+            for res in iter(engine.advance, final_rule):
+                if res:
+                    branch, turn, tick = engine.btt()
+                    engine.universal['last_result'] = res
+                    engine.universal['last_result_idx'] = 0
+                    engine.universal['rando_state'] = engine.rando.getstate()
+                    self.send(
+                        engine,
+                        branch=branch,
+                        turn=turn,
+                        tick=tick
+                    )
+                    return res
         branch, turn = engine.time
         turn += 1
         # As a side effect, the following assignment sets the tick to
@@ -161,9 +175,11 @@ class NextTurn(Signal):
             turn=turn,
             tick=engine.tick
         )
+        return []
 
 
 class DummyEntity(dict):
+    """Something to use in place of a node or edge"""
     __slots__ = ['engine']
 
     def __init__(self, engine):
@@ -187,6 +203,7 @@ json_load_hints = {'final_rule': final_rule}
 
 
 class Encoder(JSONEncoder):
+    """Extend the base JSON encoder to handle a couple of numpy types I might need"""
     def encode(self, o):
         return super().encode(self.listify(o))
 
@@ -205,10 +222,20 @@ class Encoder(JSONEncoder):
 
 
 class AbstractEngine(object):
+    """Parent class to the real Engine as well as EngineProxy.
+
+    Implements serialization methods and the __getattr__ for stored methods.
+
+    """
     def __getattr__(self, att):
         if hasattr(super(), 'method') and hasattr(self.method, att):
             return partial(getattr(self.method, att), self)
         raise AttributeError('No attribute or stored method: {}'.format(att))
+
+    def _listify_function(self, obj):
+        if not hasattr(getattr(self, obj.__module__), obj.__name__):
+            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
+        return [obj.__module__, obj.__name__]
 
     @reify
     def _listify_dispatch(self):
@@ -223,10 +250,12 @@ class AbstractEngine(object):
             self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
-                "portal", obj.character.name, obj.orig, obj.dest]
+                "portal", obj.character.name, obj.orig, obj.dest],
+            FunctionType: self._listify_function
         }
 
     def listify(self, obj):
+        """Turn a LiSE object into a list for easier serialization"""
         try:
             return self._listify_dispatch[type(obj)](obj)
         except KeyError:
@@ -253,10 +282,20 @@ class AbstractEngine(object):
                 self.delistify(obj[1]),
                 self.delistify(obj[2]),
                 self.delistify(obj[3])
-            )]
+            )],
+            'function': lambda obj: getattr(self.function, obj[1]),
+            'method': lambda obj: getattr(self.method, obj[1]),
+            'prereq': lambda obj: getattr(self.prereq, obj[1]),
+            'trigger': lambda obj: getattr(self.trigger, obj[1]),
+            'action': lambda obj: getattr(self.action, obj[1])
         }
 
     def delistify(self, obj):
+        """Turn a list describing a LiSE object into that object
+
+        If this is impossible, return the argument.
+
+        """
         if isinstance(obj, list) or isinstance(obj, tuple):
             return self._delistify_dispatch[obj[0]](obj)
         else:
@@ -332,7 +371,7 @@ class Engine(AbstractEngine, gORM):
     - ``eternal``: Mapping of arbitrary serializable objects. It isn't
       sensitive to sim-time. A good place to keep game settings.
     - ``universal``: Another mapping of arbitrary serializable
-      objects, but this one *is* sensitive to sim-time. Each tick, the
+      objects, but this one *is* sensitive to sim-time. Each turn, the
       state of the randomizer is saved here under the key
       ``'rando_state'``.
     - ``rando``: The randomizer used by all of the rules.
@@ -749,31 +788,13 @@ class Engine(AbstractEngine, gORM):
         """Close on exit."""
         self.close()
 
-    @property
-    def branch(self):
-        if self._obranch is not None:
-            return self._obranch
-        return self.query.globl['branch']
+    def _set_branch(self, v):
+        super()._set_branch(v)
+        self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
-    @branch.setter
-    def branch(self, v):
-        """Set my allegedb's branch and call listeners"""
-        (b, t) = self.time
-        if v == b:
-            return
-        self.time = (v, t)
-
-    @property
-    def turn(self):
-        return self._oturn
-
-    @turn.setter
-    def turn(self, v):
-        if not isinstance(v, int):
-            raise TypeError("turn must be integer")
-        if v == self.turn:
-            return
-        self.time = (self.branch, v)
+    def _set_turn(self, v):
+        super()._set_turn(v)
+        self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
     def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
         try:
@@ -897,8 +918,8 @@ class Engine(AbstractEngine, gORM):
         return actres
 
     def _follow_rules(self):
-        # Currently the user doesn't have a lot of control over the order that
-        # rulebooks get run in. I should implement that.
+        # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
+        # TODO: apply changes to a facade first, and commit it when you're done. Then report changes to the facade
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule
@@ -1014,7 +1035,7 @@ class Engine(AbstractEngine, gORM):
             )
 
     def advance(self):
-        """Follow the next rule if available, or advance to the next tick."""
+        """Follow the next rule if available, or advance to the next turn."""
         try:
             return next(self._rules_iter)
         except StopIteration:
@@ -1071,8 +1092,7 @@ class Engine(AbstractEngine, gORM):
             turn,
             tick,
             loc,
-            nextloc,
-            planning=self.planning
+            nextloc
         )
 
     def _node_exists(self, character, node):
@@ -1104,11 +1124,13 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            exist,
-            planning=planning
+            exist
         )
         self._edges_cache.store(
             character, orig, dest, 0, branch, turn, tick, exist, planning=planning
+        )
+        assert self._edges_cache.contains_entity(
+            character, orig, dest, 0, branch, turn, tick
         )
 
     def alias(self, v, stat='dummy'):

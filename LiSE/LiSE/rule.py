@@ -20,15 +20,19 @@ from collections import (
     Mapping,
     MutableMapping,
     MutableSequence,
-    defaultdict
+    Hashable
 )
 from functools import partial
-from inspect import getsource, getsourcelines
+from inspect import getsourcelines
 from ast import parse
 from astunparse import unparse
 from blinker import Signal
 
-from .util import reify
+from .util import reify, dedent_sourcelines
+
+
+def roundtrip_dedent(lines):
+    return unparse(parse(dedent_sourcelines(lines)))
 
 
 class RuleFuncList(MutableSequence, Signal):
@@ -41,8 +45,9 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                if unparse(parse(getsource(getattr(self._funcstore, v.__name__)))) \
-                        != unparse(parse(self._funcstore._dedent_sourcelines(getsourcelines(v)[0]))):
+                stored_sourcelines = getsourcelines(getattr(self._funcstore, v.__name__))[0]
+                new_sourcelines = getsourcelines(v)[0]
+                if roundtrip_dedent(stored_sourcelines) != roundtrip_dedent(new_sourcelines):
                     raise KeyError(
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "
@@ -207,14 +212,11 @@ class Rule(object):
         if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             tick += 1
             self.engine.tick = tick
-            triggers = triggers or []
-            prereqs = prereqs or []
-            actions = actions or []
+            triggers = list(self._fun_names_iter('trigger', triggers or []))
+            prereqs = list(self._fun_names_iter('prereq', prereqs or []))
+            actions = list(self._fun_names_iter('action', actions or []))
             self.engine.query.set_rule(
-                name, branch, turn, tick,
-                list(self._fun_names_iter('trigger', triggers)),
-                list(self._fun_names_iter('prereq', prereqs)),
-                list(self._fun_names_iter('action', actions)),
+                name, branch, turn, tick, triggers, prereqs, actions
             )
             self.engine._triggers_cache.store(name, branch, turn, tick, triggers)
             self.engine._prereqs_cache.store(name, branch, turn, tick, prereqs)
@@ -281,7 +283,7 @@ class Rule(object):
 
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
-        if 'truth' in self.engine.trigger:
+        if hasattr(self.engine.trigger, 'truth'):
             truth = self.engine.trigger.truth
         else:
             def truth(*args):
@@ -297,11 +299,18 @@ class RuleBook(MutableSequence, Signal):
 
     @property
     def _cache(self):
-        return self.engine._rulebooks_cache.retrieve(self.name, *self.engine.btt())
+        branch, turn, tick = self.engine.btt()
+        try:
+            return self.engine._rulebooks_cache.retrieve(self.name, branch, turn, tick)
+        except KeyError:
+            cache = []
+            self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
+            return cache
+
     @_cache.setter
     def _cache(self, v):
-        branch, tick = self.engine.time
-        self.engine._rulebooks_cache.store(self.name, branch, tick, v)
+        branch, turn, tick = self.engine.btt()
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
 
     def __init__(self, engine, name):
         super().__init__()
@@ -315,7 +324,10 @@ class RuleBook(MutableSequence, Signal):
         return iter(self._cache)
 
     def __len__(self):
-        return len(self._cache)
+        try:
+            return len(self._cache)
+        except KeyError:
+            return 0
 
     def __getitem__(self, i):
         return self.engine.rule[self._cache[i]]
@@ -411,13 +423,12 @@ class RuleMapping(MutableMapping, Signal):
         return self._rule_cache[k]
 
     def __getattr__(self, k):
-        try:
+        if k in self:
             return self[k]
-        except KeyError:
-            raise AttributeError
+        raise AttributeError
 
     def __setitem__(self, k, v):
-        if v in self.engine.rule:
+        if isinstance(v, Hashable) and v in self.engine.rule:
             v = self.engine.rule[v]
         elif isinstance(v, str) and hasattr(self.engine.function, v):
             v = getattr(self.engine.function, v)
