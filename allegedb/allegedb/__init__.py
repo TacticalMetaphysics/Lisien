@@ -204,17 +204,18 @@ class ORM(object):
         # make sure I'll end up within the revision range of the
         # destination branch
         if v != 'trunk' and not self.planning:
-            parturn = self._branches[v][1]
-            if curturn < parturn:
-                raise ValueError(
-                    "Tried to jump to branch {br}, "
-                    "which starts at turn {rv}. "
-                    "Go to turn {rv} or later to use this branch.".format(
-                        br=v,
-                        rv=parturn
+            if v in self._branches:
+                parturn = self._branches[v][1]
+                if curturn < parturn:
+                    raise ValueError(
+                        "Tried to jump to branch {br}, "
+                        "which starts at turn {rv}. "
+                        "Go to turn {rv} or later to use this branch.".format(
+                            br=v,
+                            rv=parturn
+                        )
                     )
-                )
-            if v not in self._branches:
+            else:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
     branch = property(lambda self: self._obranch, _set_branch)  # easier to override this way
