@@ -187,28 +187,6 @@ class MainScreen(Screen):
         Clock.unschedule(self.play)
         Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
-    def on_character(self, *args):
-        """Arrange to remake the customizable widgets when the character's
-        stats change.
-
-        Make them the first time, too, based on the current value of
-        the relevant stat.
-
-        """
-        if not self.canvas:
-            Clock.schedule_once(self.on_character, 0)
-            return
-        if hasattr(self, '_old_character'):
-            self._old_character.stat.unlisten(
-                key='_kv', fun=self._pull_kv
-            )
-        else:
-            self.bind(kv=self._trigger_remake_display)
-        self._old_character = self.character
-        if '_kv' in self.character.stat:
-            self.kv = self.character.stat['_kv']
-        self.board.trigger_update()
-
     def remake_display(self, *args):
         """Remake any affected widgets after a change in my ``kv``.
 
