@@ -219,11 +219,11 @@ class MainScreen(Screen):
 
     def on_touch_up(self, touch):
         if self.timepanel.collide_point(*touch.pos):
-            self.timepanel.dispatch('on_touch_up', touch)
+            return self.timepanel.dispatch('on_touch_up', touch)
         elif self.charmenu.collide_point(*touch.pos):
-            self.charmenu.dispatch('on_touch_up', touch)
+            return self.charmenu.dispatch('on_touch_up', touch)
         elif self.statpanel.collide_point(*touch.pos):
-            self.statpanel.dispatch('on_touch_up', touch)
+            return self.statpanel.dispatch('on_touch_up', touch)
         return self.boardview.dispatch('on_touch_up', touch)
 
     def on_dummies(self, *args):
