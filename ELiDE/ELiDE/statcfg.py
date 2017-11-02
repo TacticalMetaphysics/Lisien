@@ -277,6 +277,7 @@ Builder.load_string("""
         StatListViewConfigurator:
             viewclass: 'ConfigListItem'
             id: cfg
+            app: app
             engine: root.engine
             remote: root.remote
             statlist: root.statlist
