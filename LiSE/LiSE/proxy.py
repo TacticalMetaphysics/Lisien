@@ -1585,30 +1585,27 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
         inst._cache = inst.engine.handle(command='set_language', lang=val)
 
 
-class StringStoreProxy(MutableMapping):
+class StringStoreProxy:
     language = ProxyLanguageDescriptor()
 
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
         self._cache = self.engine.handle('strings_diff')
 
-    def __iter__(self):
-        yield from self._cache
+    def __getattr__(self, k):
+        try:
+            return self._cache[k]
+        except KeyError:
+            raise AttributeError
 
-    def __contains__(self, k):
-        return k in self._cache
-
-    def __len__(self):
-        return len(self._cache)
-
-    def __getitem__(self, k):
-        return self._cache[k]
-
-    def __setitem__(self, k, v):
+    def __setattr__(self, k, v):
+        if k in ('_cache', 'engine', 'language', '_language'):
+            super().__setattr__(k, v)
+            return
         self._cache[k] = v
         self.engine.handle(command='set_string', k=k, v=v, silent=True)
 
-    def __delitem__(self, k):
+    def __delattr__(self, k):
         del self._cache[k]
         self.engine.handle(command='del_string', k=k, silent=True)
 

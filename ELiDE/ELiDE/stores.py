@@ -168,7 +168,7 @@ class Editor(BoxLayout):
 
     def save(self, *args):
         """Put text in my store, return True if it changed"""
-        if not (self.name_wid and self.store):
+        if self.name_wid is None or self.store is None:
             Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
             return
         if not (self.name_wid.text or self.name_wid.hint_text):
