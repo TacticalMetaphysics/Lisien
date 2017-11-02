@@ -406,27 +406,6 @@ class FuncEditor(Editor):
     storelist = ObjectProperty()
     codeinput = ObjectProperty()
     _text = StringProperty()
-    subject_type_params = {
-        'character': ('engine', 'character'),
-        'thing': ('engine', 'character', 'thing'),
-        'place': ('engine', 'character', 'place'),
-        # TODO: change portal type functions to take the portal object
-        # TODO: find some other way than argument length to differentiate them
-        'portal': ('engine', 'character', 'origin', 'destination')
-    }
-    params_subject_type = {v: k for k, v in subject_type_params.items()}
-    subject_type = OptionProperty(
-        'character', options=list(subject_type_params.keys())
-    )
-
-    def _subj_type_from_params(self, v):
-        self.subject_type = self.params_subject_type[v]
-
-    params = AliasProperty(
-        lambda self: self.subject_type_params[self.subject_type],
-        _subj_type_from_params,
-        bind=('subject_type',)
-    )
 
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
@@ -442,15 +421,15 @@ class FuncEditor(Editor):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         self.codeinput.unbind(text=self.setter('_text'))
-        self.params, self.codeinput.text = sanitize_source(v)
+        self.codeinput.text = sanitize_source(v)[1]
         self.codeinput.bind(text=self.setter('_text'))
 
-    source = AliasProperty(_get_source, _set_source, bind=('params', '_text'))
+    source = AliasProperty(_get_source, _set_source, bind=('_text',))
 
     def get_default_text(self, name):
         if not name or name == '+':
             name = 'a'
-        return "def {}({}):\n".format(name, ', '.join(self.params))
+        return "def {}(obj):\n".format(name)
 
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
@@ -638,7 +617,7 @@ Builder.load_string("""
             on_text: root.validate_name_input(self.text)
         Py3CodeInput:
             id: params
-            text: '(' + ', '.join(root.params) + '):'
+            text: '(obj):'
             disabled: True
             size_hint_y: None
             height: self.line_height + self.font_size
@@ -688,7 +667,6 @@ Builder.load_string("""
             validate_name_input: root.validate_name_input
             _trigger_save: root._trigger_save
             _trigger_delete: root._trigger_delete
-            on_subject_type: root.subjtyp(self.subject_type)
     BoxLayout:
         size_hint_y: 0.05
         Button:
@@ -697,60 +675,6 @@ Builder.load_string("""
             size_hint_x: 0.2
         Widget:
             id: spacer
-        BoxLayout:
-            size_hint_x: 0.6
-            BoxLayout:
-                size_hint_x: 0.32
-                CheckBox:
-                    id: char
-                    group: 'subj_type'
-                    size_hint_x: 0.2
-                    on_active: root.setchar(self.active)
-                Label:
-                    text: 'Character'
-                    size_hint_x: 0.8
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
-            BoxLayout:
-                size_hint_x: 0.22
-                CheckBox:
-                    id: thing
-                    group: 'subj_type'
-                    size_hint_x: 0.25
-                    on_active: root.setthing(self.active)
-                Label:
-                    text: 'Thing'
-                    size_hint_x: 0.75
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
-            BoxLayout:
-                size_hint_x: 0.22
-                CheckBox:
-                    id: place
-                    group: 'subj_type'
-                    size_hint_x: 0.25
-                    on_active: root.setplace(self.active)
-                Label:
-                    text: 'Place'
-                    size_hint_x: 0.75
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
-            BoxLayout:
-                size_hint_x: 0.24
-                CheckBox:
-                    id: port
-                    group: 'subj_type'
-                    size_hint_x: 0.25
-                    on_active: root.setport(self.active)
-                Label:
-                    text: 'Portal'
-                    size_hint_x: 0.75
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
 <FuncsEdScreen>:
     name: 'funcs'
     TabbedPanel:
