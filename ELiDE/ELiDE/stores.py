@@ -421,7 +421,7 @@ class FuncEditor(Editor):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         self.codeinput.unbind(text=self.setter('_text'))
-        self.codeinput.text = sanitize_source(v)[1]
+        self.codeinput.text = sanitize_source(str(v))[1]
         self.codeinput.bind(text=self.setter('_text'))
 
     source = AliasProperty(_get_source, _set_source, bind=('_text',))
