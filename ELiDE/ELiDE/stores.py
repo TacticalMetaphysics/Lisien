@@ -405,6 +405,7 @@ class FuncEditor(Editor):
     """
     storelist = ObjectProperty()
     codeinput = ObjectProperty()
+    params = ListProperty(['obj'])
     _text = StringProperty()
 
     def _get_source(self):
@@ -421,10 +422,10 @@ class FuncEditor(Editor):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         self.codeinput.unbind(text=self.setter('_text'))
-        self.codeinput.text = sanitize_source(str(v))[1]
+        self.params, self.codeinput.text = sanitize_source(str(v))
         self.codeinput.bind(text=self.setter('_text'))
 
-    source = AliasProperty(_get_source, _set_source, bind=('_text',))
+    source = AliasProperty(_get_source, _set_source, bind=('_text', 'params'))
 
     def get_default_text(self, name):
         if not name or name == '+':
@@ -573,7 +574,7 @@ Builder.load_string("""
             on_text: root.validate_name_input(self.text)
         Py3CodeInput:
             id: params
-            text: '(obj):'
+            text: '({}):'.format(', '.join(root.params))
             disabled: True
             size_hint_y: None
             height: self.line_height + self.font_size
