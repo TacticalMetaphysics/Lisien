@@ -332,6 +332,8 @@ class MainScreen(Screen):
 
     def _munge_menu_option(self, option):
         name, func = option
+        if func is None:
+            return name, self._trigger_ok
         if callable(func):
             return name, partial(self._trigger_ok, func)
         if isinstance(func, tuple):
