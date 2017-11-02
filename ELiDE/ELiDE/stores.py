@@ -365,7 +365,7 @@ class FunctionNameInput(TextInput):
             self._trigger_save(self.text)
 
 
-def sanitize_source(v, spaces=4):
+def munge_source(v, spaces=4):
     lines = v.split('\n')
     if not lines:
         return tuple(), ''
@@ -422,7 +422,7 @@ class FuncEditor(Editor):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         self.codeinput.unbind(text=self.setter('_text'))
-        self.params, self.codeinput.text = sanitize_source(str(v))
+        self.params, self.codeinput.text = munge_source(str(v))
         self.codeinput.bind(text=self.setter('_text'))
 
     source = AliasProperty(_get_source, _set_source, bind=('_text', 'params'))
