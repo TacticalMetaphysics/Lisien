@@ -445,9 +445,6 @@ class FuncsEdBox(EdBox):
     or close the screen.
 
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._init_set()
 
     def get_default_text(self, newname):
         return self.editor.get_default_text(newname)
@@ -455,47 +452,6 @@ class FuncsEdBox(EdBox):
     @staticmethod
     def valid_name(name):
         return name and name[0] not in string.digits + string.whitespace + string.punctuation
-
-    def subjtyp(self, val):
-        if val == 'character':
-            self.ids.char.active = True
-        elif val == 'thing':
-            self.ids.thing.active = True
-        elif val == 'place':
-            self.ids.place.active = True
-        elif val == 'portal':
-            self.ids.port.active = True
-
-    def _init_set(self, *args):
-        if 'char' not in self.ids:
-            Clock.schedule_once(self._init_set, 0)
-            return
-        self.ids.char.active = True
-
-    def _trigger_subjtyp(self, val):
-        part = partial(self.subjtyp, val)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
-
-    def setchar(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'character'
-
-    def setthing(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'thing'
-
-    def setplace(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'place'
-
-    def setport(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'portal'
 
 
 class FuncsEdScreen(Screen):
