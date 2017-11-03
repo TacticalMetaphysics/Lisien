@@ -211,7 +211,7 @@ class RulesView(FloatLayout):
                 headline_text=name,
                 show_art=False,
                 midline_text=what.capitalize(),
-                text=getattr(getattr(self.engine, what), name)
+                text=str(getattr(getattr(self.engine, what), name))
             )
             for name in rulefuncnames
         ]
