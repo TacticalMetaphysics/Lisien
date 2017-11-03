@@ -1,6 +1,14 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
-"""The query engine provides Pythonic methods to access the database."""
+"""The query engine provides Pythonic methods to access the database.
+
+This module also contains a notably unfinished implementation of a query
+language specific to LiSE. Access some stats using entities' method
+``historical``, and do comparisons on those, and instead of a boolean
+result you'll get a callable object that will return an iterator over
+turn numbers in which the comparison evaluated to ``True``.
+
+"""
 from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
 
