@@ -9,6 +9,7 @@ from collections import (
     MutableMapping,
     MutableSequence
 )
+from functools import partial
 from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
@@ -2260,7 +2261,7 @@ class EngineProxy(AbstractEngine):
                 'command': 'next_turn',
                 'chars': chars
             }))
-            args = [self._upd_caches, self._set_time]
+            args = [partial(self._upd_caches, no_del=True), self._set_time]
             if cb:
                 args.append(cb)
             if silent:
