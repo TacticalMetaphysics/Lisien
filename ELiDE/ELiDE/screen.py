@@ -257,7 +257,7 @@ class MainScreen(Screen):
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
         self.dialog_todo, _, _, chardiffs = ret
-        self._update_from_chardiffs(chardiffs)
+        self._update_from_chardiffs(cmd, branch, turn, tick, ret)
         self._advance_dialog()
 
     def _update_from_chardiffs(self, cmd, branch, turn, tick, received, **kwargs):
