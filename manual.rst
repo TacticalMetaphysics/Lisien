@@ -253,4 +253,5 @@ Strings Editor
 
 The LiSE engine has an attribute ``string`` that is accessed like a dictionary and
 used to store arbitrary strings, such as might be shown in a menu. You can edit those
-here.
+here. You can store strings for multiple languages, and switch between them
+programmatically by setting ``engine.string.language``.
