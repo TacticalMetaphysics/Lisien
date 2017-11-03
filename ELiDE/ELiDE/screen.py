@@ -313,15 +313,15 @@ class MainScreen(Screen):
             raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
         self.ids.dialoglayout.add_widget(dia)
 
-    def ok(self, cb=None, *args):
+    def ok(self, *args, cb=None):
         self.ids.dialoglayout.clear_widgets()
         if cb:
             cb()
         self._advance_dialog()
         self.app.engine.universal['last_result_idx'] += 1
 
-    def _trigger_ok(self, cb=None, *args):
-        part = partial(self.ok, cb)
+    def _trigger_ok(self, *args, cb=None):
+        part = partial(self.ok, cb=cb)
         Clock.unschedule(part)
         Clock.schedule_once(part)
 
@@ -335,7 +335,7 @@ class MainScreen(Screen):
         if func is None:
             return name, self._trigger_ok
         if callable(func):
-            return name, partial(self._trigger_ok, func)
+            return name, partial(self._trigger_ok, cb=func)
         if isinstance(func, tuple):
             fun = func[0]
             if isinstance(fun, str):
@@ -348,7 +348,7 @@ class MainScreen(Screen):
                 func = partial(fun, *args)
         if isinstance(func, str):
             func = self._lookup_func(func)
-        return name, partial(self._trigger_ok, func)
+        return name, partial(self._trigger_ok, cb=func)
 
     def play(self, *args):
         """If the 'play' button is pressed, advance a turn.
