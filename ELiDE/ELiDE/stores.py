@@ -178,12 +178,13 @@ class Editor(BoxLayout):
             # TODO alert the user to invalid name
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
             return
-        try:
-            parse(self.source)
-        except SyntaxError:
-            # TODO alert user to invalid source
-            Logger.debug("{}: Not saving, couldn't parse".format(type(self).__name__))
-            return
+        if hasattr(self, '_do_parse'):
+            try:
+                parse(self.source)
+            except SyntaxError:
+                # TODO alert user to invalid source
+                Logger.debug("{}: Not saving, couldn't parse".format(type(self).__name__))
+                return
         do_redata = False
         if self.name_wid.text:
             if (
@@ -407,6 +408,7 @@ class FuncEditor(Editor):
     codeinput = ObjectProperty()
     params = ListProperty(['obj'])
     _text = StringProperty()
+    _do_parse = True
 
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
