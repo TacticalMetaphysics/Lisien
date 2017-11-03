@@ -150,7 +150,7 @@ at the start of the block.
 As of alpha 8, plans won't carry over to new branches created before
 the plan's completion. This is a planned feature.
 
-Input prompts
+Input Prompts
 -------------
 
 To ask the player to make a decision, first define a method for them to
@@ -202,7 +202,7 @@ indicates how many changes have occurred in the current turn. It's
 not very useful to edit this, but you can, and ELiDE will show you
 the state of the world only partway through a turn if you wish.
 
-Stat editor
+Stat Editor
 -----------
 
 This two-column table displays the keys and values in the selected
@@ -227,3 +227,30 @@ the actual value will still be True or False.
 "Slider" is for numeric values that vary within a range. It needs a
 minimum, a maximum, and a step size determining the smallest possible
 change you can make with it.
+
+You can use this to build a primitive interface to your game, or just monitor
+the state of the world.
+
+Python Editor
+-------------
+
+Click the Python button to edit your game code in the IDE if you like.
+In this case, you can't use any of the decorators. Choose the appropriate tab
+from Trigger, Prereq, or Action at the top, and the function you write will
+show up in the appropriate part of the rules editor.
+
+Rules Editor
+------------
+
+Here you can assemble rules out of prewritten functions. First pick which rule
+to edit from the menu on the left, using the box at the bottom to add one if needed.
+Then go through the trigger, prereq, and action tabs, and drag the functions from
+the right pile to the left to include them in the rule. You may also reorder them
+within the left pile.
+
+Strings Editor
+--------------
+
+The LiSE engine has an attribute ``string`` that is accessed like a dictionary and
+used to store arbitrary strings, such as might be shown in a menu. You can edit those
+here.
