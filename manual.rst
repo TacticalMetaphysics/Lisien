@@ -202,6 +202,10 @@ indicates how many changes have occurred in the current turn. It's
 not very useful to edit this, but you can, and ELiDE will show you
 the state of the world only partway through a turn if you wish.
 
+It's possible to view turns that haven't been simulated yet.
+This is deliberate, but it's not a good idea to do this in alpha 8,
+because ELiDE doesn't know how to make plans yet.
+
 Stat Editor
 -----------
 
