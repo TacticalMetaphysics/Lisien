@@ -816,7 +816,7 @@ class Board(RelativeLayout):
                 int(y * self.height)
             )
         if node_upd:
-            self.engine.handle(
+            self.character.engine.handle(
                 'update_nodes',
                 char=self.character.name,
                 patch=node_upd,
