@@ -32,10 +32,12 @@ from .util import reify, dedent_sourcelines
 
 
 def roundtrip_dedent(lines):
+    """Reformat some lines of code into what unparse makes."""
     return unparse(parse(dedent_sourcelines(lines)))
 
 
 class RuleFuncList(MutableSequence, Signal):
+    """Abstract class for lists of functions like trigger, prereq, action"""
     __slots__ = ['rule']
 
     def __init__(self, rule):
@@ -110,6 +112,7 @@ class RuleFuncList(MutableSequence, Signal):
 
 
 class TriggerList(RuleFuncList):
+    """A list of trigger functions for rules"""
     @reify
     def _funcstore(self):
         return self.rule.engine.trigger
@@ -124,6 +127,7 @@ class TriggerList(RuleFuncList):
 
 
 class PrereqList(RuleFuncList):
+    """A list of prereq functions for rules"""
     @reify
     def _funcstore(self):
         return self.rule.engine.prereq
@@ -138,6 +142,7 @@ class PrereqList(RuleFuncList):
 
 
 class ActionList(RuleFuncList):
+    """A list of action functions for rules"""
     @reify
     def _funcstore(self):
         return self.rule.engine.action
@@ -152,6 +157,7 @@ class ActionList(RuleFuncList):
 
 
 class RuleFuncListDescriptor(object):
+    """Descriptor that lets you get and set a whole RuleFuncList at once"""
     __slots__ = ['cls']
 
     def __init__(self, cls):
@@ -560,6 +566,12 @@ class AllRuleBooks(Mapping, Signal):
 
 
 class AllRules(MutableMapping, Signal):
+    """A mapping of every rule in the game.
+
+    You can use this as a decorator to make a rule and not assign it
+    to anything.
+
+    """
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
@@ -629,6 +641,7 @@ class AllRules(MutableMapping, Signal):
         return self[k]
 
     def new_empty(self, name):
+        """Make a new rule with no actions or anything, and return it."""
         if name in self:
             raise KeyError("Already have rule {}".format(name))
         new = Rule(self.engine, name)

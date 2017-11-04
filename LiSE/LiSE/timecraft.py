@@ -1,5 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+"""This is an interpreter for Benjamin Lortimer's Timecraft crafting ruleset.
+
+It could be useful if you want a similar crafting system in your game; this way,
+you can describe it in the same tabular format.
+
+"""
 from LiSE.rule import Rule
 
 
