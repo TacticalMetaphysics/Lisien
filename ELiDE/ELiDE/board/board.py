@@ -32,6 +32,8 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
     normalized to within (0.0, 0.98).
 
     """
+    assert None in (minx, maxx) or minx != maxx
+    assert None in (miny, maxy) or miny != maxy
     import numpy as np
     xs = []
     ys = []
@@ -123,7 +125,6 @@ class Board(RelativeLayout):
     )
     spots_unposd = ListProperty([])
     layout_tries = NumericProperty(5)
-    new_spots = ListProperty([])
     tracking_vel = BooleanProperty(False)
     selection_candidates = ListProperty([])
     selection = ObjectProperty(allownone=True)
@@ -598,7 +599,7 @@ class Board(RelativeLayout):
             )
         for spot in spots_added:
             spot.finalize()
-        self.new_spots = spots_added
+        self.spots_unposd = spots_added
 
     def add_arrow(self, orign, destn, *args):
         if not (
@@ -739,7 +740,6 @@ class Board(RelativeLayout):
                 self.add_spot(place)
                 spot = self.spot[place]
                 if '_x' not in spot.place or '_y' not in spot.place:
-                    self.new_spots.append(spot)
                     self.spots_unposd.append(spot)
             elif not extant and place in self.spot:
                 self.rm_spot(place)
@@ -787,26 +787,28 @@ class Board(RelativeLayout):
         # TODO: If only some spots are unpositioned, and they remain
         # that way for several frames, put them somewhere that the
         # user will be able to find.
-        if not (self.spots_unposd and self.new_spots) or len(self.spots_unposd) != len(self.new_spots):
+        if not self.spots_unposd:
             return
-        for spot in self.new_spots:
-            if spot not in self.spots_unposd:
-                self.new_spots = self.spots_unposd = []
-                return
-        # No spots have positions;
-        # do a layout.
         try:
-            bounds = detect_2d_grid_layout_bounds(spot.name for spot in self.new_spots)
-            Clock.schedule_once(partial(self.grid_layout, *bounds), 0)
+            minx, miny, maxx, maxy = detect_2d_grid_layout_bounds(spot.name for spot in self.spots_unposd)
+            assert minx != maxx
+            assert miny != maxy
+            self.grid_layout(minx, miny, maxx, maxy)
         except ValueError:
-            Clock.schedule_once(self.nx_layout, 0)
+            self.nx_layout()
 
-    def _apply_node_layout(self, l):
+    def _apply_node_layout(self, l, *args):
+        if self.width == 1 or self.height == 1:
+            Clock.schedule_once(partial(self._apply_node_layout, l), 0.01)
+            return
         node_upd = {}
-        for spot in self.new_spots:
+        for spot in self.spots_unposd:
             (x, y) = l[spot.name]
             assert 0 <= x <= 0.98
             assert 0 <= y <= 0.98
+            assert spot in self.spotlayout.children
+            assert self.spotlayout.width == self.width
+            assert self.spotlayout.height == self.height
             node_upd[spot.name] = {
                 '_x': x,
                 '_y': y
@@ -822,17 +824,17 @@ class Board(RelativeLayout):
                 patch=node_upd,
                 silent=True
             )
-        self.new_spots = self.spots_unposd = []
+        self.spots_unposd = []
 
     def grid_layout(self, minx, miny, maxx, maxy, *args):
         l = normalize_layout(
-            {spot.name: spot.name for spot in self.new_spots},
+            {spot.name: spot.name for spot in self.spots_unposd},
             minx, miny, maxx, maxy
         )
         self._apply_node_layout(l)
 
     def nx_layout(self, *args):
-        for spot in self.new_spots:
+        for spot in self.spots_unposd:
             if not (spot.name and spot.remote):
                 Clock.schedule_once(self.nx_layout, 0)
                 return
