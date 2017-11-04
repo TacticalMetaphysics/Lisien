@@ -105,14 +105,10 @@ def inittest(
     def set_kill_flag(eng):
         eng.character['physical'].thing['dwarf']['kill'] = True
 
-    @engine.method
-    def set_spare_flag(eng):
-        eng.character['physical'].thing['dwarf']['kill'] = False
-
     @dwarf.rule
     def fight(thing):
         method = thing.engine.method
-        return "Kill kobold?", [("Kill", method.set_kill_flag), ("Spare", method.set_spare_flag)]
+        return "Kill kobold?", [("Kill", method.set_kill_flag), ("Spare", None)]
 
     @fight.trigger
     def sametile(thing):
