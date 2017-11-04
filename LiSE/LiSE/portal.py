@@ -25,11 +25,6 @@ class RuleMapping(BaseRuleMapping):
     orign = getatt('portal._orign')
     destn = getatt('portal._destn')
 
-    def __iter__(self):
-        for (rule, active) in self.portal._rule_names_activeness():
-            if active:
-                yield rule
-
 
 class Portal(Edge, RuleFollower):
     """Connection between two Places that Things may travel along.

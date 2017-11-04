@@ -518,23 +518,7 @@ class RuleFollower(object):
     def rules(self):
         if not hasattr(self, 'engine'):
             raise AttributeError("Need an engine before I can get rules")
-        for (rulen, active) in self._rule_names():
-            if (
-                hasattr(self.rule, '_rule_cache') and
-                rulen in self.rulebook._rule_cache
-            ):
-                rule = self.rule._rule_cache[rulen]
-            else:
-                rule = Rule(self.engine, rulen)
-            rule.active = active
-            yield rule
-
-    def _rule_names_activeness(self):
-        """Iterate over pairs of rule names and their activeness for each rule
-        in my rulebook.
-
-        """
-        raise NotImplementedError
+        return self._rule_mapping.values()
 
     def _get_rule_mapping(self):
         """Get the :class:`RuleMapping` for my rulebook."""

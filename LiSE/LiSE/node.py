@@ -32,11 +32,6 @@ class RuleMapping(rule.RuleMapping):
 
     character = getatt('node.character')
 
-    def __iter__(self):
-        for (rul, active) in self.node._rule_names_activeness():
-            if active:
-                yield rul
-
 
 class UserMapping(Mapping):
     """A mapping of the characters that have a particular node as an avatar.
