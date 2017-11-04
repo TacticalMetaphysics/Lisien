@@ -78,7 +78,7 @@ class RuleFuncList(MutableSequence, Signal):
             yield getattr(self._funcstore, funcname)
 
     def __len__(self):
-        return len()
+        return len(self._get())
 
     def __getitem__(self, i):
         return self._get()[i]
