@@ -46,9 +46,11 @@ class RulesList(RecycleView):
     rulebook = ObjectProperty()
     rulesview = ObjectProperty()
 
-    def __init__(self, **kwargs):
-        self.bind(rulebook=self._trigger_redata)
-        super().__init__(**kwargs)
+    def on_rulebook(self, *args):
+        if self.rulebook is None:
+            return
+        self.rulebook.connect(self.redata)
+        self._trigger_redata()
 
     def redata(self, *args):
         self.data = [
@@ -62,6 +64,22 @@ class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty(allownone=True)
+
+    def on_rule(self, *args):
+        if self.rule is None:
+            return
+        self.rule.connect(self._listen_to_rule)
+
+    def _listen_to_rule(self, rule, **kwargs):
+        if rule is not self.rule:
+            rule.disconnect(self._listen_to_rule)
+            return
+        if 'triggers' in kwargs:
+            self.pull_triggers()
+        if 'prereqs' in kwargs:
+            self.pull_prereqs()
+        if 'actions' in kwargs:
+            self.pull_actions()
 
     def _get_headline_text(self):
         # This shows the entity whose rules you're editing if you

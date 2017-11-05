@@ -1068,7 +1068,7 @@ class CharStatProxy(CachingEntityProxy):
         )
 
 
-class RuleProxy(object):
+class RuleProxy(Signal):
     @staticmethod
     def _nominate(v):
         ret = []
@@ -1092,6 +1092,7 @@ class RuleProxy(object):
     def triggers(self, v):
         self._cache['triggers'] = v
         self.engine.handle('set_rule_triggers', rule=self.name, triggers=self._nominate(v), silent=True)
+        self.send(self, triggers=v)
 
     @property
     def prereqs(self):
@@ -1101,6 +1102,7 @@ class RuleProxy(object):
     def prereqs(self, v):
         self._cache['prereqs'] = v
         self.engine.handle('set_rule_prereqs', rule=self.name, prereqs=self._nominate(v), silent=True)
+        self.send(self, prereqs=v)
 
     @property
     def actions(self):
@@ -1110,9 +1112,10 @@ class RuleProxy(object):
     def actions(self, v):
         self._cache['actions'] = v
         self.engine.handle('set_rule_actions', rule=self.name, actions=self._nominate(v), silent=True)
+        self.send(self, actions=v)
 
     def __init__(self, engine, rulename):
-        assert isinstance(engine, EngineProxy)
+        super().__init__()
         self.engine = engine
         self.name = self._name = rulename
 
