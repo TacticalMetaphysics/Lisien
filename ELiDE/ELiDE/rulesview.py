@@ -185,6 +185,9 @@ class RulesView(FloatLayout):
             )
             self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
 
+    def redata(self, *args):
+        self._list.redata()
+
     def _pull_functions(self, what):
         allfuncs = list(map(self._inspect_func, getattr(self.engine, what)._cache.items()))
         rulefuncnames = getattr(self.rule, what+'s')
@@ -327,8 +330,8 @@ class RulesScreen(Screen):
             return
         new_rule = self.engine.rule.new_empty(self.new_rule_name)
         assert(new_rule is not None)
-        # TODO: the rulesview isn't refreshing in response to this anymore?
         self.rulebook.append(new_rule)
+        self.rulesview.redata()
         self.ids.rulesview.rule = new_rule
         self.ids.rulename.text = ''
 
