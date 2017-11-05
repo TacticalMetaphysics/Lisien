@@ -523,6 +523,7 @@ class DeckBuilderLayout(Layout):
         ):
             Clock.schedule_once(self.on_decks, 0)
             return
+        self.clear_widgets()
         decknum = 0
         for deck in self.decks:
             cardnum = 0
