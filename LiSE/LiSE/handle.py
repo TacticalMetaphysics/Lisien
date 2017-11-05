@@ -937,7 +937,12 @@ class EngineHandle(object):
         return ret
 
     def all_rules_diff(self):
-        return {rule: self.rule_diff(rule) for rule in self._real.rule.keys()}
+        ret = {}
+        for rule in self._real.rule.keys():
+            diff = self.rule_diff(rule)
+            if diff:
+                ret[rule] = diff
+        return ret
 
     def source_copy(self, store):
         return dict(getattr(self._real, store).iterplain())

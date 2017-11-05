@@ -125,6 +125,7 @@ class RulebookProxyDescriptor(object):
             rb = RuleBookProxy(inst.engine, val)
         inst._set_rulebook(val)
         inst._set_rulebook_proxy(rb)
+        inst.send(inst, rulebook=rb)
 
 
 class NodeProxy(CachingEntityProxy):
@@ -2245,8 +2246,25 @@ class EngineProxy(AbstractEngine):
         self.universal._update_cache(universal_diff)
         # I think if you travel back to before a rule was created it'll show up empty
         # That's ok I guess
-        self._rules_cache.update(rules_diff)
+        for rule, diff in rules_diff.items():
+            if rule in self._rules_cache:
+                self._rules_cache[rule].update(diff)
+            else:
+                diff.setdefault('triggers', [])
+                diff.setdefault('prereqs', [])
+                diff.setdefault('actions', [])
+                self._rules_cache[rule] = diff
+            if rule not in self._rule_obj_cache:
+                self._rule_obj_cache[rule] = RuleProxy(self, rule)
+            ruleproxy = self._rule_obj_cache[rule]
+            ruleproxy.send(ruleproxy, **diff)
         self._rulebooks_cache.update(rulebooks_diff)
+        for rulebook, diff in rulebooks_diff.items():
+            if rulebook not in self._rulebook_obj_cache:
+                self._rulebook_obj_cache = RuleBookProxy(self, rulebook)
+            rulebookproxy = self._rulebook_obj_cache[rulebook]
+            # the "diff" is just the rules list, for now
+            rulebookproxy.send(rulebookproxy, rules=diff)
         for (char, chardiff) in chardiffs.items():
             if not is_chardiff(chardiff):
                 continue
