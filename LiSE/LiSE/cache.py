@@ -227,7 +227,9 @@ class RulesHandledCache(object):
     def retrieve(self, *args):
         return self.handled[args]
 
-    def unhandled_rulebook_rules(self, entity, rulebook, branch, turn, tick):
+    def unhandled_rulebook_rules(self, *args):
+        entity = args[:-4]
+        rulebook, branch, turn, tick = args[-4:]
         if (
             entity in self.unhandled and
             rulebook in self.unhandled[entity] and
@@ -260,7 +262,7 @@ class CharacterRulesHandledCache(RulesHandledCache):
             for rule in self.unhandled_rulebook_rules(
                 character, rb, branch, turn, tick
             ):
-                yield character, rule
+                yield character, rb, rule
 
 
 class AvatarRulesHandledCache(RulesHandledCache):
