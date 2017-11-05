@@ -1609,13 +1609,25 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 
     def _set_language(self, inst, val):
         inst._language = val
-        inst._cache = inst.engine.handle(command='set_language', lang=val)
+        diff = inst.engine.handle(command='set_language', lang=val)
+        cache = inst._cache
+        for k, v in diff.items():
+            if k in cache:
+                if v is None:
+                    del cache[k]
+                elif cache[k] != v:
+                    cache[k] = v
+                    inst.send(inst, key=k, string=v)
+            elif v is not None:
+                cache[k] = v
+                inst.send(inst, key=k, string=v)
 
 
-class StringStoreProxy:
+class StringStoreProxy(Signal):
     language = ProxyLanguageDescriptor()
 
     def __init__(self, engine_proxy):
+        super().__init__()
         self.engine = engine_proxy
         self._cache = self.engine.handle('strings_diff')
 
@@ -1626,15 +1638,18 @@ class StringStoreProxy:
             raise AttributeError
 
     def __setattr__(self, k, v):
-        if k in ('_cache', 'engine', 'language', '_language'):
+        if k in ('_cache', 'engine', 'language', '_language', 'receivers',
+                 '_by_receiver', '_by_sender', '_weak_senders'):
             super().__setattr__(k, v)
             return
         self._cache[k] = v
         self.engine.handle(command='set_string', k=k, v=v, silent=True)
+        self.send(self, key=k, string=v)
 
     def __delattr__(self, k):
         del self._cache[k]
         self.engine.handle(command='del_string', k=k, silent=True)
+        self.send(self, key=k, string=None)
 
     def lang_items(self, lang=None):
         if lang is None or lang == self.language:
@@ -1796,6 +1811,7 @@ class FuncProxy(object):
 
 class FuncStoreProxy(Signal):
     def __init__(self, engine_proxy, store):
+        super().__init__()
         self.engine = engine_proxy
         self._store = store
         self._cache = self.engine.handle('source_diff', store=store)
@@ -1807,7 +1823,8 @@ class FuncStoreProxy(Signal):
             raise AttributeError
 
     def __setattr__(self, func_name, source):
-        if func_name in ('engine', '_store', '_cache'):
+        if func_name in ('engine', '_store', '_cache', 'receivers',
+                         '_by_sender', '_by_receiver', '_weak_senders'):
             super().__setattr__(func_name, source)
             return
         self.engine.handle(

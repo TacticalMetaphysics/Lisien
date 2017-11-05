@@ -55,7 +55,7 @@ class EngineHandle(object):
         self._char_places_cache = {}
         self._char_portals_cache = {}
         self._node_successors_cache = defaultdict(dict)
-        self._strings_cache = defaultdict(dict)
+        self._strings_cache = {}
         self._eternal_cache = {}
         self._universal_cache = {}
         self._rule_cache = {}
@@ -235,7 +235,7 @@ class EngineHandle(object):
 
     def set_language(self, lang):
         self._real.string.language = lang
-        return self.strings_diff(lang)
+        return self.strings_diff()
 
     def get_string_ids(self):
         return list(self._real.string)
@@ -253,14 +253,12 @@ class EngineHandle(object):
             self._real.string.lang_items(lang)
         )
 
-    def strings_diff(self, lang=None):
-        if lang is None:
-            lang = self._real.string.language
-        else:
-            assert lang == self._real.string.language
-        old = self._strings_cache.get(lang, {})
-        new = self._strings_cache[lang] = self.strings_copy(lang)
-        return dict_diff(old, new)
+    def strings_diff(self):
+        old = self._strings_cache
+        new = dict(self._real.string)
+        ret = dict_diff(old, new)
+        self._strings_cache = new
+        return ret
 
     def get_string(self, k):
         return self._real.string[k]
@@ -270,11 +268,11 @@ class EngineHandle(object):
 
     def set_string(self, k, v):
         self._real.string[k] = v
-        self._strings_cache[self._real.string.language][k] = v
+        self._strings_cache[k] = v
 
     def del_string(self, k):
         del self._real.string[k]
-        del self._strings_cache[self._real.string.language][k]
+        del self._strings_cache[k]
 
     def get_eternal(self, k):
         ret = self._eternal_cache[k] = self._real.eternal[k]

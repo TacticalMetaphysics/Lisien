@@ -83,10 +83,14 @@ class StoreList(RecycleView):
     boxl = ObjectProperty()
 
     def __init__(self, **kwargs):
-        self.bind(table=self._trigger_redata, store=self._trigger_redata)
+        self.bind(table=self._trigger_redata)
         self._i2name = {}
         self._name2i = {}
         super().__init__(**kwargs)
+
+    def on_store(self, *args):
+        self.store.connect(self._trigger_redata)
+        self.redata()
 
     def on_boxl(self, *args):
         self.boxl.bind(selected_nodes=self._pull_selection)
@@ -150,12 +154,19 @@ class StringsEdScreen(Screen):
     toggle = ObjectProperty()
     language = StringProperty('eng')
     language_setter = ObjectProperty()
+    edbox = ObjectProperty()
 
     def on_language(self, *args):
-        self.ids.edbox.storelist.redata()
+        if self.edbox is None:
+            Clock.schedule_once(self.on_language, 0)
+            return
+        self.edbox.storelist.redata()
 
     def save(self, *args):
-        self.ids.edbox.save()
+        if self.edbox is None:
+            Clock.schedule_once(self.save, 0)
+            return
+        self.edbox.save()
 
 
 class Editor(BoxLayout):
@@ -192,7 +203,7 @@ class Editor(BoxLayout):
                 self.name_wid.hint_text != self.name_wid.text and
                 hasattr(self.store, self.name_wid.hint_text)
             ):
-                del self.store[self.name_wid.hint_text]
+                delattr(self.store, self.name_wid.hint_text)
                 do_redata = True
             if (
                 not hasattr(self.store, self.name_wid.text) or
@@ -523,6 +534,7 @@ Builder.load_string("""
             _trigger_delete: root._trigger_delete
 <StringsEdScreen>:
     name: 'strings'
+    edbox: edbox
     BoxLayout:
         orientation: 'vertical'
         StringsEdBox:

@@ -534,6 +534,7 @@ class Engine(AbstractEngine, gORM):
         self.rulebook = AllRuleBooks(self)
         if hasattr(self, '_string_file'):
             self.string = StringStore(
+                self.query,
                 self._string_file,
                 self.eternal.setdefault('language', 'eng')
             )
