@@ -146,7 +146,9 @@ class EngineHandle(object):
     def next_turn(self, chars=()):
         result = self._real.next_turn()
         self.branch, self.turn, self.tick = self._real.btt()
-        return result, self.eternal_diff(), self.universal_diff(), self.get_chardiffs(chars)
+        # the rules diff is less selective than the others, I could look at the rulebooks
+        # on the chars and only diff the rules in those
+        return result, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), self.get_chardiffs(chars)
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
         self._real.time = (branch, turn)
@@ -156,9 +158,9 @@ class EngineHandle(object):
         self.turn = turn
         self.tick = tick or self._real.tick
         if chars:
-            return None, self.eternal_diff(), self.universal_diff(), self.get_chardiffs(chars)
+            return None, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), self.get_chardiffs(chars)
         else:
-            return None, self.eternal_diff(), self.universal_diff(), {}
+            return None, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), {}
 
     def increment_branch(self, chars=[]):
         branch = self._real.branch

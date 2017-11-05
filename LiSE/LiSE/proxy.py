@@ -119,6 +119,8 @@ class RulebookProxyDescriptor(object):
                 raise TypeError
             rb = val
             val = val.name
+        elif val in inst.engine._rulebooks_cache:
+            rb = inst.engine._rulebooks_cache[val]
         else:
             rb = RuleBookProxy(inst.engine, val)
         inst._set_rulebook(val)
@@ -1135,7 +1137,7 @@ class RuleBookProxy(MutableSequence, Signal):
         super().__init__()
         self.engine = engine
         self.name = bookname
-        self._proxy_cache = {}
+        self._proxy_cache = engine._rule_obj_cache
 
     def __iter__(self):
         for k in self._cache:
@@ -1383,6 +1385,26 @@ class CharacterProxy(MutableMapping):
                 else:
                     self.engine._portal_stat_cache[
                         self.name][orig][dest] = portdiff
+        if diff['rulebooks']:
+            if diff['rulebooks']['character'] != self.rulebook.name:
+                self._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['character']])
+            if diff['rulebooks']['avatar'] != self.avatar.rulebook.name:
+                self.avatar._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['avatar']])
+            if diff['rulebooks']['thing'] != self.thing.rulebook.name:
+                self.thing._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['thing']])
+            if diff['rulebooks']['place'] != self.place.rulebook.name:
+                self.place._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['place']])
+            if diff['rulebooks']['portal'] != self.portal.rulebook.name:
+                self.portal._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['portal']])
+        for noden, rb in diff['node_rulebooks'].items():
+            node = self.node[noden]
+            if node.rulebook.name != rb:
+                node._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
+        for orign in diff['portal_rulebooks']:
+            for destn, rb in diff['portal_rulebooks'][orign].items():
+                port = self.portal[orign][destn]
+                if port.rulebook.name != rb:
+                    port._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
@@ -1936,10 +1958,13 @@ class EngineProxy(AbstractEngine):
         )
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
-
-        self._char_cache = {}
+        self._rule_obj_cache = {}
         self._rules_cache = self.handle('all_rules_diff')
+        for rule in self._rules_cache:
+            self._rule_obj_cache[rule] = RuleProxy(self, rule)
+        self._rulebook_obj_cache = {}
         self._rulebooks_cache = self.handle('all_rulebooks_diff')
+        self._char_cache = {}
         charsdiffs = self.handle('get_chardiffs', chars='all')
         for char in charsdiffs:
             self._char_cache[char] = CharacterProxy(self, char)
@@ -1952,18 +1977,33 @@ class EngineProxy(AbstractEngine):
                 self._node_stat_cache[char][node] = stats
             self._character_avatars_cache[char] = charsdiffs[char]['avatars']
             for rbtype, rb in charsdiffs[char]['rulebooks'].items():
-                self._character_rulebooks_cache[char][rbtype] \
-                    = RuleBookProxy(self, rb)
+                if rb in self._rulebook_obj_cache:
+                    self._character_rulebooks_cache[char][rbtype] \
+                        = self._rulebook_obj_cache[rb]
+                else:
+                    self._character_rulebooks_cache[char][rbtype] \
+                        = self._rulebook_obj_cache[rb] \
+                        = RuleBookProxy(self, rb)
             for node, rb in charsdiffs[char]['node_rulebooks'].items():
-                self._char_node_rulebooks_cache[char][node] \
-                    = RuleBookProxy(self, rb)
+                if rb in self._rulebook_obj_cache:
+                    self._char_node_rulebooks_cache[char][node] \
+                        = self._rulebook_obj_cache[rb]
+                else:
+                    self._char_node_rulebooks_cache[char][node] \
+                        = self._rulebook_obj_cache[rb] \
+                        = RuleBookProxy(self, rb)
             for origin, destinations in charsdiffs[
                     char]['portal_rulebooks'].items():
                 for destination, rulebook in destinations.items():
-                    self._char_port_rulebooks_cache[
-                        char][origin][destination] = RuleBookProxy(
-                            self, rulebook
-                        )
+                    if rulebook in self._rulebook_obj_cache:
+                        self._char_port_rulebooks_cache[
+                            char][origin][destination
+                        ] = self._rulebook_obj_cache[rulebook]
+                    else:
+                        self._char_port_rulebooks_cache[
+                            char][origin][destination] \
+                            = self._rulebook_obj_cache[rulebook] \
+                            = RuleBookProxy(self, rulebook)
             for (
                     thing, (loc, nxloc, arrt, nxarrt)
             ) in charsdiffs[char]['things'].items():
@@ -2200,15 +2240,20 @@ class EngineProxy(AbstractEngine):
 
     def _upd_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
-        result, eternal_diff, universal_diff, chardiffs = args[-1]
+        result, eternal_diff, universal_diff, rules_diff, rulebooks_diff, chardiffs = args[-1]
         self.eternal._update_cache(eternal_diff)
         self.universal._update_cache(universal_diff)
+        # I think if you travel back to before a rule was created it'll show up empty
+        # That's ok I guess
+        self._rules_cache.update(rules_diff)
+        self._rulebooks_cache.update(rulebooks_diff)
         for (char, chardiff) in chardiffs.items():
             if not is_chardiff(chardiff):
                 continue
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
-            self.character[char]._apply_diff(chardiff)
+            chara = self.character[char]
+            chara._apply_diff(chardiff)
             deleted.discard(char)
         if kwargs.get('no_del'):
             return
