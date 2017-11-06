@@ -48,8 +48,16 @@ class AvatarnessCache(Cache):
         if not is_avatar:
             is_avatar = None
         Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, planning=False)
-        self.user_order[graph][node][character][branch][turn][tick] = is_avatar
-        self.user_shallow[(graph, node, character, branch)][turn][tick] = is_avatar
+        userturns = self.user_order[graph][node][character][branch]
+        if userturns.has_exact_rev(turn):
+            userturns[turn][tick] = is_avatar
+        else:
+            userturns[turn] = {tick: is_avatar}
+        usershal = self.user_shallow[(graph, node, character, branch)]
+        if usershal.has_exact_rev(turn):
+            usershal[turn][tick] = is_avatar
+        else:
+            usershal[turn] = {tick: is_avatar}
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
         graphs = self.graphs[character][branch]
@@ -174,8 +182,11 @@ class AvatarnessCache(Cache):
                         break
                 else:
                     self.store(character, graph, node, branch, turn, tick, None)
-            if self.user_shallow[(graph, node, character, branch)][turn][tick]:
-                yield character
+            try:
+                if self.user_shallow[(graph, node, character, branch)][turn][tick]:
+                   yield character
+            except HistoryError:
+                continue
 
 
 class RulesHandledCache(object):

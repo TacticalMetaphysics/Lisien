@@ -51,7 +51,12 @@ def sickle_cell_test(
             male=engine.coinflip(),
             last_mate_turn=-1
         )
+        assert name in phys.thing
+        assert name not in phys.place
+        assert name in phys.node
+        assert hasattr(phys.node[name], 'location')
         species.add_avatar("physical", name)
+        assert hasattr(species.avatar['physical'][name], 'location')
 
 
 # putting dieoff earlier in the code than mate means that dieoff will
@@ -60,13 +65,15 @@ def sickle_cell_test(
     def dieoff(critter):
         critter.delete()
         assert(not critter.exists)
-        assert(critter.name not in critter.character.thing)
-        return critter['from_malaria']
+        assert(critter.name not in critter.character.node)
+        if critter['from_malaria']:
+            return 'malaria'
+        else:
+            return 'anemia'
 
     @species.avatar.rule
     def mate(critter):
         """If I share my location with another critter, attempt to mate"""
-        n = 0
         suitors = list(
             oc for oc in critter.location.contents()
             if oc['male'] != critter['male']
@@ -93,8 +100,7 @@ def sickle_cell_test(
         species.add_avatar("physical", name)
         critter['last_mate_turn'] = other_critter['last_mate_turn'] =\
             engine.turn
-        n += 1
-        return n
+        return 'mated'
 
     @mate.prereq
     def once_per_turn(critter):
@@ -151,20 +157,21 @@ def sickle_cell_test(
     )
 
     for i in range(0, turns):
-        r = engine.next_turn()
+        malaria_dead = 0
+        anemia_dead = 0
+        born = 0
+        while engine.turn < i:
+            r = engine.next_turn()
+            if r == 'malaria':
+                malaria_dead += 1
+            elif r == 'anemia':
+                anemia_dead += 1
+            elif r == 'mated':
+                born += 1
         print("On tick {}, {} critters were born; "
               "{} died of malaria, and {} of sickle cell anemia, "
               "leaving {} alive.".format(
-                  i,
-                  sum(tup[0][0] for tup in r if tup[0] and tup[1] == 'mate'),
-                  sum(
-                      1 for tup in r if tup[0] and
-                      tup[0][0] and tup[1] == 'dieoff'
-                  ),
-                  sum(
-                      1 for tup in r if tup[0] and not
-                      tup[0][0] and tup[1] == 'dieoff'
-                  ),
+                  i, born, malaria_dead, anemia_dead,
                   len(engine.character['species'].avatar['physical'])
               ))
     print(
