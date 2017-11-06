@@ -641,7 +641,7 @@ class RuleFollower(BaseRuleFollower):
                 self.character.name, *self.engine.btt()
             )
         except KeyError:
-            return self.character.name
+            return self.character.name, self._book
 
     def _set_rulebook_name(self, n):
         self.engine._set_character_rulebook(self.character.name, self._book, n)

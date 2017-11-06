@@ -961,7 +961,6 @@ class Engine(AbstractEngine, gORM):
                 rulemap[rulen],
                 partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
                 branch, turn,
-                charmap[charn],
                 charmap[graphn].node[avn]
             )
         for (
