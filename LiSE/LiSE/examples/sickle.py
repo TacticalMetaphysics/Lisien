@@ -109,7 +109,7 @@ def sickle_cell_test(
 
     @mate.trigger
     def in_the_mood(critter):
-        return critter.engine.random() < critter.character.stat['mate_chance']
+        return critter.engine.random() < critter.user.stat['mate_chance']
 
     @dieoff.trigger
     def sickle2(critter):
@@ -121,7 +121,7 @@ def sickle_cell_test(
     @dieoff.trigger
     def malaria(critter):
         r = (
-            critter.engine.random() < critter.character.stat['malaria_chance'] and not
+            critter.engine.random() < critter.user.stat['malaria_chance'] and not
             (critter['sickle_a'] or critter['sickle_b'])
         )
         if r:
