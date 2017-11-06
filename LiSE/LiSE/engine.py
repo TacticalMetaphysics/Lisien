@@ -477,7 +477,8 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            is_avatar
+            is_avatar,
+            planning=self.planning
         )
         self.query.avatar_set(
             character,
@@ -486,8 +487,7 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            is_avatar,
-            planning=self.planning
+            is_avatar
         )
 
     def _init_caches(self):
