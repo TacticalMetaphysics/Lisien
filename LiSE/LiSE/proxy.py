@@ -1,6 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
-"""Proxy objects to access LiSE entities from another process."""
+"""Proxy objects to access LiSE entities from another process.
+
+Each proxy class is meant to emulate the equivalent LiSE class,
+and any change you make to a proxy will be made in the corresponding
+entity in the LiSE core.
+
+"""
 import sys
 import logging
 from os import getpid
