@@ -705,11 +705,15 @@ class QueryEngine(allegedb.query.QueryEngine):
             self.json_dump, (character, graph, av, rulebook, rule)
         )
         return self.sql(
-            'handled_avatar_rule',
+            'avatar_rules_handled_insert',
             character,
+            rulebook,
+            rule,
             graph,
             av,
-            rulebook
+            branch,
+            turn,
+            tick
         )
 
     def handled_node_rule(
