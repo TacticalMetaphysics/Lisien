@@ -354,14 +354,14 @@ class GraphNodeMapping(NeatMapping):
             n = self.db._node_objs[(self.graph.name, node)] = Node(
                 self.graph, node
             )
-        self.db.query.exist_node(
-            self.graph.name,
-            node,
-            branch, turn, tick,
-            True
-        )
         n.update(dikt)
         if created:
+            self.db.query.exist_node(
+                self.graph.name,
+                node,
+                branch, turn, tick,
+                True
+            )
             self.created.send(self, node=n)
 
     def __delitem__(self, node):
