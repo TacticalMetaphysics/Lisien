@@ -87,20 +87,36 @@ class AvatarnessCache(Cache):
                 else:
                     newstuff.discard(newkey)
             else:
-                turndict[turn][tick] = set(getiter())
+                turndict[turn] = turndict.cls({tick: set(getiter())})
         if is_avatar:
             if turn in graphavs and graphavs[turn][tick]:
-                soloav[turn][tick] = None
+                if soloav.has_exact_rev(turn):
+                    soloav[turn][tick] = None
+                else:
+                    soloav[turn] = soloav.cls({tick: None})
             else:
-                soloav[turn][tick] = node
+                if soloav.has_exact_rev(turn):
+                    soloav[turn][tick] = node
+                else:
+                    soloav[turn] = soloav.cls({tick: None})
             if turn in charavs and charavs[turn][tick]:
-                uniqav[turn][tick] = None
-            else:
+                if uniqav.has_exact_rev(turn):
+                    uniqav[turn][tick] = None
+                else:
+                    uniqav[turn] = uniqav.cls({tick: None})
+            elif uniqav.has_exact_rev(turn):
                 uniqav[turn][tick] = (graph, node)
-            if turn in graphs and graphs[turn][tick]:
-                uniqgraph[turn][tick] = None
             else:
+                uniqav[turn] = uniqav.cls({tick: (graph, node)})
+            if turn in graphs and graphs[turn][tick]:
+                if uniqgraph.has_exact_rev(turn):
+                    uniqgraph[turn][tick] = None
+                else:
+                    uniqgraph[turn] = uniqgraph.cls({tick: None})
+            elif uniqgraph.has_exact_rev(turn):
                 uniqgraph[turn][tick] = graph
+            else:
+                uniqgraph[turn] = uniqgraph.cls({tick: graph})
             graphavs[turn][tick].add(node)
             charavs[turn][tick].add((graph, node))
             graphs[turn][tick].add(graph)
