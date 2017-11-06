@@ -1770,12 +1770,16 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         self.engine._set_thing_loc_and_next(
             self.name, name, location, None
         )
+        if (self.name, name) in self.engine._node_objs:
+            self.engine._node_objs[self.name, name] = Thing(self, name)
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
         self.engine._set_thing_loc_and_next(
             self.name, name, None, None
         )
+        if (self.name, name) in self.engine._node_objs:
+            self.engine._node_objs[self.name, name] = Place(self, name)
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         """Connect the origin to the destination with a :class:`Portal`.
