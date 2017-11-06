@@ -1601,13 +1601,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                     "I have no avatar, or more than one avatar"
                 )
 
-        def __repr__(self):
-            """Represent myself like a dictionary."""
-            d = {}
-            for k in self:
-                d[k] = dict(self[k])
-            return repr(d)
-
         class CharacterAvatarMapping(Mapping):
             """Mapping of avatars of one Character in another Character."""
             def __init__(self, outer, graphn):

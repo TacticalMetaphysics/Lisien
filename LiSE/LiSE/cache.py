@@ -50,21 +50,6 @@ class AvatarnessCache(Cache):
         Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, planning=False)
         self.user_order[graph][node][character][branch][turn][tick] = is_avatar
         self.user_shallow[(graph, node, character, branch)][turn][tick] = is_avatar
-        self._forward_valcache(self.charavs[character], branch, turn, tick)
-        self._forward_valcache(
-            self.graphavs[(character, graph)], branch, turn, tick
-        )
-        self._forward_valcache(self.graphs[character], branch, turn, tick)
-        self._forward_valcache(
-            self.soloav[(character, graph)],
-            branch, turn, tick, copy=False
-        )
-        self._forward_valcache(
-            self.uniqav[character], branch, turn, tick, copy=False
-        )
-        self._forward_valcache(
-            self.uniqgraph[character], branch, turn, tick, copy=False
-        )
         charavs = self.charavs[character][branch]
         graphavs = self.graphavs[(character, graph)][branch]
         graphs = self.graphs[character][branch]
@@ -132,27 +117,27 @@ class AvatarnessCache(Cache):
                     uniqgraph[turn][tick] = None
 
     def get_char_graph_avs(self, char, graph, branch, turn, tick):
-        return self._forward_valcache(
+        return self._valcache_lookup(
             self.graphavs[(char, graph)], branch, turn, tick
         ) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
-        return self._forward_valcache(
-            self.soloav[(char, graph)], branch, turn, tick, copy=False
+        return self._valcache_lookup(
+            self.soloav[(char, graph)], branch, turn, tick
         )
 
     def get_char_only_av(self, char, branch, turn, tick):
-        return self._forward_valcache(
-            self.uniqav[char], branch, turn, tick, copy=False
+        return self._valcache_lookup(
+            self.uniqav[char], branch, turn, tick
         )
 
     def get_char_only_graph(self, char, branch, turn, tick):
-        return self._forward_valcache(
-            self.uniqgraph[char], branch, turn, tick, copy=False
+        return self._valcache_lookup(
+            self.uniqgraph[char], branch, turn, tick
         )
 
     def get_char_graphs(self, char, branch, turn, tick):
-        return self._forward_valcache(
+        return self._valcache_lookup(
             self.graphs[char], branch, turn, tick
         ) or set()
 
