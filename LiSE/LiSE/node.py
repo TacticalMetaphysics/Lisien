@@ -255,9 +255,15 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
                 continue
             for (branch, turn, tick) in self.engine._iter_parent_btt():
                 if branch in cache[user]:
+                    branchd = cache[user][branch]
                     try:
-                        if cache[user][branch][turn][tick]:
-                            yield user
+                        if branchd.has_exact_rev(turn):
+                            if branchd[turn].get(tick, False):
+                                yield user
+                        elif turn in branchd:
+                            turnd = branchd[turn]
+                            if turnd[turnd.end]:
+                                yield user
                         seen.add(user)
                         break
                     except HistoryError as ex:
