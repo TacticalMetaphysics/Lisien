@@ -23,7 +23,7 @@ setup(
         'ELiDE/kivygarden/texturestack'
     },
     install_requires=[
-        "LiSE==0.0.0a7",
+        "LiSE==0.8.0a",
         "numpy",
         "kivy>=1.10.0",
         "pygments"
