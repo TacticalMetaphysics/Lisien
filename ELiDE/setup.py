@@ -10,7 +10,7 @@ from setuptools import setup
 
 setup(
     name="ELiDE",
-    version="0.0.0a7",
+    version="0.8.0a",
     packages=[
         "ELiDE",
         "ELiDE.board",
