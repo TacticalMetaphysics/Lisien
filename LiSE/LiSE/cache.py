@@ -65,80 +65,88 @@ class AvatarnessCache(Cache):
         soloav = self.soloav[(character, graph)][branch]
         uniqav = self.uniqav[character][branch]
         users = self.users[graph, node][branch]
-        for turndict, newkey, getiter in (
-            (users, character, lambda: self._slow_iter_users(graph, node, branch, turn, tick)),
-            (graphs, graph, lambda: self.iter_entities(character, branch, turn, tick)),
-            (graphavs, node, lambda: self.iter_entities(character, graph, branch, turn, tick)),
-            (charavs, (graph, node), lambda: self._slow_iter_character_avatars(character, branch, turn, tick))
-        ):
-            if turndict.has_exact_rev(turn):
-                tickdict = turndict[turn]
-                if tickdict.end > tick:
-                    if planning:
-                        raise HistoryError("Already have stuff after tick " + str(tick))
-                    tickdict.truncate(tick)
-                if tickdict.has_exact_rev(tick):
-                    raise HistoryError("Already have stuff at tick " + str(tick))
-                if tickdict.has_exact_rev(tick - 1):
-                    newstuff = tickdict[tick] = tickdict[tick - 1].copy()
-                    if is_avatar:
-                        newstuff.add(newkey)
-                    else:
-                        newstuff.discard(newkey)
-                else:
-                    tickdict[tick] = set(getiter())
-            elif tick == 0 and turndict.has_exact_rev(turn - 1):
-                tickdict = turndict[turn - 1]
-                newstuff = turndict[turn][0] = tickdict[tickdict.end].copy()
-                if is_avatar:
-                    newstuff.add(newkey)
-                else:
-                    newstuff.discard(newkey)
+
+        def add_something(cache, what):
+            if cache.has_exact_rev(turn):
+                nucache = cache[turn][tick].copy()
+                nucache.add(what)
+                cache[turn][tick] = nucache
+            elif turn in cache:
+                cacheturn = cache[turn]
+                nucache = cacheturn[cacheturn.end].copy()
+                nucache.add(what)
+                cache[turn] = {tick: nucache}
             else:
-                turndict[turn] = turndict.cls({tick: set(getiter())})
+                cache[turn] = {tick: {what}}
+
+        def remove_something(cache, what):
+            if cache.has_exact_rev(turn):
+                nucache = cache[turn][tick].copy()
+                nucache.remove(what)
+                cache[turn][tick] = nucache
+            elif turn in cache:
+                cacheturn = cache[turn]
+                nucache = cacheturn[cacheturn.end].copy()
+                nucache.remove(what)
+                cache[turn] = {tick: nucache}
+            else:
+                raise ValueError
         if is_avatar:
-            if turn in graphavs and graphavs[turn][tick]:
-                if soloav.has_exact_rev(turn):
-                    soloav[turn][tick] = None
-                else:
-                    soloav[turn] = soloav.cls({tick: None})
-            else:
-                if soloav.has_exact_rev(turn):
-                    soloav[turn][tick] = node
-                else:
-                    soloav[turn] = soloav.cls({tick: None})
-            if turn in charavs and charavs[turn][tick]:
-                if uniqav.has_exact_rev(turn):
-                    uniqav[turn][tick] = None
-                else:
-                    uniqav[turn] = uniqav.cls({tick: None})
-            elif uniqav.has_exact_rev(turn):
-                uniqav[turn][tick] = (graph, node)
-            else:
-                uniqav[turn] = uniqav.cls({tick: (graph, node)})
-            if turn in graphs and graphs[turn][tick]:
-                if uniqgraph.has_exact_rev(turn):
-                    uniqgraph[turn][tick] = None
-                else:
-                    uniqgraph[turn] = uniqgraph.cls({tick: None})
-            elif uniqgraph.has_exact_rev(turn):
-                uniqgraph[turn][tick] = graph
-            else:
-                uniqgraph[turn] = uniqgraph.cls({tick: graph})
-            graphavs[turn][tick].add(node)
-            charavs[turn][tick].add((graph, node))
-            graphs[turn][tick].add(graph)
+            add_something(graphavs, node)
+            add_something(charavs, (graph, node))
+            add_something(graphs, graph)
+            add_something(users, character)
         else:
-            graphavs[turn][tick].remove(node)
-            charavs[turn][tick].remove((graph, node))
-            soloav[turn][tick] = singleton_get(graphavs[turn][tick])
-            uniqav[turn][tick] = singleton_get(charavs[turn][tick])
+            remove_something(graphavs, node)
+            remove_something(charavs, (graph, node))
             if not graphavs[turn][tick]:
-                graphs[turn][tick].remove(graph)
-                if len(graphs[turn][tick]) == 1:
-                    uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
-                else:
-                    uniqgraph[turn][tick] = None
+                remove_something(graphs, graph)
+            if not charavs[turn][tick]:
+                remove_something(users, character)
+        graphav = singleton_get(graphavs[turn][tick])
+        if soloav.has_exact_rev(turn):
+            soloav[turn][tick] = graphav
+        else:
+            soloav[turn] = {tick: graphav}
+        charav = singleton_get(charavs[turn][tick])
+        if uniqav.has_exact_rev(turn):
+            uniqav[turn][tick] = charav
+        else:
+            uniqav[turn] = {tick: charav}
+        if not graphavs[turn][tick]:
+            graphs[turn][tick].remove(graph)
+            if len(graphs[turn][tick]) == 1:
+                uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
+            else:
+                uniqgraph[turn][tick] = None
+        if turn in graphavs and tick in graphavs[turn] and graphavs[turn][tick]:
+            if soloav.has_exact_rev(turn):
+                soloav[turn][tick] = None
+            else:
+                soloav[turn] = soloav.cls({tick: None})
+        else:
+            if soloav.has_exact_rev(turn):
+                soloav[turn][tick] = node
+            else:
+                soloav[turn] = soloav.cls({tick: None})
+        if turn in charavs and tick in charavs[turn] and charavs[turn][tick]:
+            if uniqav.has_exact_rev(turn):
+                uniqav[turn][tick] = None
+            else:
+                uniqav[turn] = uniqav.cls({tick: None})
+        elif uniqav.has_exact_rev(turn):
+            uniqav[turn][tick] = (graph, node)
+        else:
+            uniqav[turn] = uniqav.cls({tick: (graph, node)})
+        if turn in graphs and tick in graphs[turn] and graphs[turn][tick]:
+            if uniqgraph.has_exact_rev(turn):
+                uniqgraph[turn][tick] = None
+            else:
+                uniqgraph[turn] = uniqgraph.cls({tick: None})
+        elif uniqgraph.has_exact_rev(turn):
+            uniqgraph[turn][tick] = graph
+        else:
+            uniqgraph[turn] = uniqgraph.cls({tick: graph})
 
     def get_char_graph_avs(self, char, graph, branch, turn, tick):
         return self._valcache_lookup(

@@ -64,7 +64,6 @@ def sickle_cell_test(
     @species.avatar.rule
     def dieoff(critter):
         critter.delete()
-        assert(not critter.exists)
         assert(critter.name not in critter.character.node)
         if critter['from_malaria']:
             return 'malaria'
@@ -162,6 +161,9 @@ def sickle_cell_test(
         born = 0
         while engine.turn < i:
             r = engine.next_turn()
+            if not r:
+                continue
+            r = r[0]
             if r == 'malaria':
                 malaria_dead += 1
             elif r == 'anemia':
