@@ -28,7 +28,7 @@ setup(
         'LiSE': ['sqlite.json']
     },
     install_requires=[
-        "allegedb>=0.10.0",
+        "allegedb>=0.11.0",
         "astunparse>=1.5.0"
     ],
 )
