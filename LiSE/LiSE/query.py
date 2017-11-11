@@ -623,28 +623,15 @@ class QueryEngine(allegedb.query.QueryEngine):
         name, rules = map(self.json_dump, (name, rules or []))
         self.sql('rulebooks_insert', name, branch, turn, tick, rules)
 
-    def init_character(self, name, branch='trunk', turn=0, tick=0, **stats):
-        for rbtyp in (
-            'character',
-            'avatar',
-            'character_thing',
-            'character_place',
-            'character_portal'
-        ):
-            self.set_rulebook((name, rbtyp), branch, turn, tick)
-            self.sql(rbtyp + '_rulebook_insert', self.json_dump(name), branch, turn, tick, self.json_dump((name, rbtyp)))
-        for k, v in stats.items():
-            self.graph_val_set(name, k, branch, turn, tick, v)
-
-    def _set_rulebook(self, rbtyp, char, rb, branch, turn, tick):
+    def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
         char, rb = map(self.json_dump, (char, rb))
-        self.sql(rbtyp + '_rulebook_insert', char, rb, branch, turn, tick)
+        self.sql(rbtyp + '_rulebook_insert', char, branch, turn, tick, rb)
 
-    set_character_rulebook = partialmethod(_set_rulebook, 'character')
-    set_avatar_rulebook = partialmethod(_set_rulebook, 'avatar')
-    set_character_thing_rulebook = partialmethod(_set_rulebook, 'character_thing')
-    set_character_place_rulebook = partialmethod(_set_rulebook, 'character_place')
-    set_character_portal_rulebook = partialmethod(_set_rulebook, 'character_portal')
+    set_character_rulebook = partialmethod(_set_rulebook_on_character, 'character')
+    set_avatar_rulebook = partialmethod(_set_rulebook_on_character, 'avatar')
+    set_character_thing_rulebook = partialmethod(_set_rulebook_on_character, 'character_thing')
+    set_character_place_rulebook = partialmethod(_set_rulebook_on_character, 'character_place')
+    set_character_portal_rulebook = partialmethod(_set_rulebook_on_character, 'character_portal')
 
     def rulebooks(self):
         for book in self.sql('rulebooks'):
