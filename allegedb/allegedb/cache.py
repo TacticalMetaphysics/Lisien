@@ -8,6 +8,7 @@ you might want to store it in a ``WindowDict``.
 
 """
 from copy import copy as copier
+from operator import itemgetter
 from collections import defaultdict, deque, MutableMapping, KeysView, ItemsView, ValuesView
 
 
@@ -100,6 +101,12 @@ class WindowDict(MutableMapping):
     Optimized for the cases where you look up the same revision
     repeatedly, or its neighbors.
 
+    This supports slice notation to get all values in a given
+    time-frame. If you do not supply a step, you'll just get the
+    values, with no indication of when they're from exactly --
+    so explicitly supply a step of 1 to get the value at each point in
+    the slice.
+
     """
 
     def seek(self, rev):
@@ -188,6 +195,25 @@ class WindowDict(MutableMapping):
         return len(self._past) + len(self._future)
 
     def __getitem__(self, rev):
+        if isinstance(rev, slice):
+            if rev.step is not None:
+                return map(
+                    self.__getitem__,
+                    (i for i in range(rev.start or self.beginning, rev.stop or self.end, rev.step))
+                )
+            if rev.start is None and rev.stop is None:
+                return map(itemgetter(1), self._past + self._future)
+            if rev.stop is None:
+                self._past += self._future
+                self._future = deque()
+            else:
+                self.seek(rev.stop)
+            if not rev.start or not self._past:
+                return map(itemgetter(1), self._past)
+            past = self._past.copy()
+            while past[0][0] < rev.stop:
+                past.popleft()
+            return map(itemgetter(1), past)
         self.seek(rev)
         if not self._past:
             raise HistoryError(
@@ -377,7 +403,7 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower', 'shallowest']
+    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower', 'shallowest', 'settings']
 
     def __init__(self, db):
         self.db = db
@@ -417,6 +443,8 @@ class Cache(object):
         """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
         """A dictionary for plain, unstructured hinting."""
+        self.settings = PickyDefaultDict(TurnDict)
+        """All the ``entity[key] = value`` operations that were performed on some turn"""
 
     def load(self, data, validate=False):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -631,6 +659,16 @@ class Cache(object):
             newb = FuturistWindowDict()
             newb[tick] = value
             branches[turn] = newb
+        turns = self.settings[branch]
+        if turns.has_exact_rev(turn):
+            ticks = turns[turn]
+            if ticks.has_exact_rev(tick):
+                raise HistoryError(
+                    "Tried to set two things at {}, {}, {}".format(branch, turn, tick)
+                )
+            ticks[tick] = (entity, key, value)
+        else:
+            turns[turn] = {tick: (entity, key, value)}
         keys = self.keys[parent+(entity,)][key][branch]
         if planning and turn <= keys.end:
             raise HistoryError(
