@@ -298,14 +298,13 @@ class Edge(AbstractEntityMapping):
         )
 
 
-class GraphNodeMapping(NeatMapping):
+class GraphNodeMapping(NeatMapping, Signal):
     """Mapping for nodes in a graph"""
-    created = Signal()
-    deleted = Signal()
+    db = getatt('graph.db')
 
     def __init__(self, graph):
+        super().__init__()
         self.graph = graph
-        self.db = graph.db
 
     def __iter__(self):
         """Iterate over the names of the nodes"""
@@ -362,7 +361,7 @@ class GraphNodeMapping(NeatMapping):
                 branch, turn, tick,
                 True
             )
-            self.created.send(self, node=n)
+            self.send(self, node_name=node, exists=True)
 
     def __delitem__(self, node):
         """Indicate that the given node no longer exists"""
@@ -382,7 +381,7 @@ class GraphNodeMapping(NeatMapping):
             False,
             planning=self.db.planning, forward=self.db.forward
         )
-        self.deleted.send(self, name=node)
+        self.send(self, node_name=node, exists=False)
 
     def __eq__(self, other):
         """Compare values cast into dicts.
@@ -416,9 +415,7 @@ class GraphEdgeMapping(NeatMapping, Signal):
     def _cache(self):
         return self._metacache[id(self)]
 
-    @property
-    def db(self):
-        return self.graph.db
+    db = getatt('graph.db')
 
     def __init__(self, graph):
         super().__init__()
@@ -450,8 +447,6 @@ class GraphEdgeMapping(NeatMapping, Signal):
 class AbstractSuccessors(GraphEdgeMapping):
     db = getatt('graph.db')
     _metacache = defaultdict(dict)
-    created = Signal()
-    deleted = Signal()
 
     @property
     def _cache(self):
@@ -532,7 +527,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         e.clear()
         e.update(value)
         if created:
-            self.created.send(self, edge=e)
+            self.send(self, orig=self.orig, dest=dest, idx=0, exists=True)
 
     def __delitem__(self, dest):
         """Remove the edge between my orig and the given dest"""
@@ -555,7 +550,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             planning=self.db.planning,
             forward=self.db.forward
         )
-        self.deleted.send(self, from_node=self.orig, to_node=dest)
+        self.send(self, orig=self.orig, dest=dest, idx=0, exists=False)
 
     def clear(self):
         """Delete every edge with origin at my orig"""
@@ -792,15 +787,14 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             self.send(self, key=orig, value=None)
 
 
-class MultiEdges(GraphEdgeMapping):
+class MultiEdges(GraphEdgeMapping, Signal):
     """Mapping of Edges between two nodes"""
+    db = getatt('graph.db')
+
     def __init__(self, graph, orig, dest):
-        """Store graph and node IDs"""
-        self.graph = graph
-        self.db = graph.db
+        super().__init__(graph)
         self.orig = orig
         self.dest = dest
-        self._cache = {}
 
     def __iter__(self):
         return self.db._edges_cache.iter_keys(
@@ -861,7 +855,7 @@ class MultiEdges(GraphEdgeMapping):
             planning=planning, forward=self.db.forward
         )
         if created:
-            self.created.send(self, key=idx, val=val)
+            self.send(self, orig=self.orig, dest=self.dest, idx=idx, exists=True)
 
     def __delitem__(self, idx):
         """Delete the edge at a particular index"""
@@ -877,7 +871,7 @@ class MultiEdges(GraphEdgeMapping):
             branch, turn, tick, None, forward=self.db.forward
         )
         self.db.tick = tick
-        self.deleted.send(self, key=idx)
+        self.send(self, orig=self.orig, dest=self.dest, idx=idx, exists=False)
 
     def clear(self):
         """Delete all edges between these nodes"""
