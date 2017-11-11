@@ -1196,35 +1196,28 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def character(self):
         return self
 
-    def __init__(self, engine, name, data=None, **attr):
+    def __init__(self, engine, name, data=None, *, init_rulebooks=True, **attr):
         """Store engine and name, and set up mappings for Thing, Place, and
         Portal
 
         """
         super().__init__(engine, name, data, **attr)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
-        d = {}
-        for mapp in (
-                'character',
-                'avatar',
-                'thing',
-                'place',
-                'portal',
-                'node'
-        ):
-            if mapp + '_rulebook' in attr:
-                rulebook = attr[mapp + '_rulebook']
-                d[mapp] = rulebook.name \
-                    if isinstance(rulebook, RuleBook) \
-                    else rulebook
-        for rulebook in (
-                'character', 'avatar', 'character_thing',
-                'character_place', 'character_node', 'character_portal'
-        ):
-            if rulebook in d:
-                self.engine._set_character_rulebook(
-                    name, rulebook, d[rulebook]
-                )
+        if not init_rulebooks:
+            return
+        cachemap = {
+            'character': engine._characters_rulebooks_cache,
+            'avatar': engine._avatars_rulebooks_cache,
+            'character_thing': engine._characters_things_rulebooks_cache,
+            'character_place': engine._characters_places_rulebooks_cache,
+            'character_portal': engine._characters_portals_rulebooks_cache
+        }
+        for rulebook, cache in cachemap.items():
+            branch, turn, tick = engine.nbtt()
+            rulebook_or_name = attr.get(rulebook, name)
+            rulebook_name = getattr(rulebook_or_name, 'name', rulebook_or_name)
+            engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, rulebook_name)
+            cache.store((name, rulebook), branch, turn, tick, rulebook_name)
 
     class ThingMapping(MutableMapping, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""

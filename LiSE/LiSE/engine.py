@@ -429,19 +429,6 @@ class Engine(AbstractEngine, gORM):
         self.rule.query.rulebook_del_all(rulebook)
         del self._rulebooks_cache._data[rulebook]
 
-    def _set_character_rulebook(self, character, which, rulebook):
-        if which not in (
-                'character',
-                'avatar',
-                'character_thing',
-                'character_place',
-                'character_node',
-                'character_portal'
-        ):
-            raise ValueError("Not a character rulebook: {}".format(which))
-        self.query.upd_rulebook_char(which, rulebook, character)
-        self._characters_rulebooks_cache.store(character, **{which: rulebook})
-
     def _set_node_rulebook(self, character, node, rulebook):
         branch, turn, tick = self.engine.nbtt()
         self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, rulebook)
@@ -541,7 +528,7 @@ class Engine(AbstractEngine, gORM):
 
     def load_graphs(self):
         for charn in self.query.characters():
-            self._graph_objs[charn] = Character(self, charn)
+            self._graph_objs[charn] = Character(self, charn, init_rulebooks=False)
 
     def __init__(
             self,
@@ -1064,11 +1051,6 @@ class Engine(AbstractEngine, gORM):
 
         """
         self._init_graph(name, 'DiGraph')
-        self.query.init_character(
-            name,
-            *self.time,
-            **kwargs
-        )
         self._graph_objs[name] = Character(self, name, data, **kwargs)
 
     def del_character(self, name):
