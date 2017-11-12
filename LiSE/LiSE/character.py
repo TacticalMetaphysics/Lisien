@@ -1267,6 +1267,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 raise TypeError('Things are made from Mappings')
             if 'location' not in val:
                 raise ValueError('Thing needs location')
+            created = thing not in self
             self.engine._exist_node(self.character.name, thing)
             self.engine._set_thing_loc_and_next(
                 self.character.name,
@@ -1283,10 +1284,12 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 th = cache[(self.name, thing)] = Thing(self.character, thing)
             th.clear()
             th.update(val)
-            self.send(self, key=thing, val=th)
+            if created:
+                self.send(self, thing_name=thing, exists=True)
 
         def __delitem__(self, thing):
             self[thing].delete()
+            self.send(self, thing_name=thing, exists=False)
 
         def __repr__(self):
             return repr(dict(self))
