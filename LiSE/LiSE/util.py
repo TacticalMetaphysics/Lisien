@@ -49,14 +49,7 @@ def dict_diff(old, new):
     Useful for describing changes between two versions of a dict.
 
     """
-    try:
-        oldset = frozenset(old.items())
-        newset = frozenset(new.items())
-        if (oldset, newset) in dict_diff.memo:
-            return dict_diff.memo[(oldset, newset)]
-        r = dict_diff.memo[(oldset, newset)] = {}
-    except TypeError:
-        r = {}
+    r = {}
     for k in set(old.keys()).union(new.keys()):
         if k in old:
             if k not in new:
@@ -66,7 +59,6 @@ def dict_diff(old, new):
         else:  # k in new
             r[k] = new[k]
     return r
-dict_diff.memo = {}
 
 
 def set_diff(old, new):
