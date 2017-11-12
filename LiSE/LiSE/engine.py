@@ -526,7 +526,7 @@ class Engine(AbstractEngine, gORM):
                 self.eternal.setdefault('language', 'eng')
             )
 
-    def load_graphs(self):
+    def _load_graphs(self):
         for charn in self.query.characters():
             self._graph_objs[charn] = Character(self, charn, init_rulebooks=False)
 
