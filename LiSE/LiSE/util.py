@@ -5,6 +5,7 @@
 """
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
+from textwrap import dedent
 from .reify import reify
 
 
@@ -192,38 +193,11 @@ class EntityStatAccessor(object):
         return self.munge(lambda x: x[k])
 
 
-def is_chardiff(d):
-    if not isinstance(d, dict):
-        return False
-    diffkeys = (
-        'character_stat',
-        'node_stat',
-        'things',
-        'places',
-        'portal_stat',
-        'portals',
-        'avatars',
-        'rulebooks',
-        'node_rulebooks',
-        'portal_rulebooks'
-    )
-    return any(key in d for key in diffkeys) and not any(
-        key not in diffkeys for key in d.keys()
-    )
-
-
-def dedent_sourcelines(sourcelines):
-    if sourcelines[0].strip().startswith('@'):
-        del sourcelines[0]
-    indent = 999
-    for line in sourcelines:
-        lineindent = 0
-        for char in line:
-            if char not in ' \t':
-                break
-            lineindent += 1
-        else:
-            indent = 0
-            break
-        indent = min((indent, lineindent))
-    return '\n'.join(line[indent:].strip('\n') for line in sourcelines) + '\n'
+def dedent_source(source):
+    nlidx = source.index('\n')
+    if nlidx is None:
+        raise ValueError("Invalid source")
+    while source[:nlidx].strip().startswith('@'):
+        source = source[nlidx+1:]
+        nlidx = source.index('\n')
+    return dedent(source)

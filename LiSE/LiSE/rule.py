@@ -23,17 +23,17 @@ from collections import (
     Hashable
 )
 from functools import partial
-from inspect import getsourcelines
+from inspect import getsource
 from ast import parse
 from astunparse import unparse
 from blinker import Signal
 
-from .util import reify, dedent_sourcelines
+from .reify import reify
+from .util import dedent_source
 
-
-def roundtrip_dedent(lines):
+def roundtrip_dedent(source):
     """Reformat some lines of code into what unparse makes."""
-    return unparse(parse(dedent_sourcelines(lines)))
+    return unparse(parse(dedent_source(source)))
 
 
 class RuleFuncList(MutableSequence, Signal):
@@ -47,9 +47,9 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                stored_sourcelines = getsourcelines(getattr(self._funcstore, v.__name__))[0]
-                new_sourcelines = getsourcelines(v)[0]
-                if roundtrip_dedent(stored_sourcelines) != roundtrip_dedent(new_sourcelines):
+                stored_source = getsource(getattr(self._funcstore, v.__name__))
+                new_source = getsource(v)
+                if roundtrip_dedent(stored_source) != roundtrip_dedent(new_source):
                     raise KeyError(
                         "Already have a {typ} function named {n}. "
                         "If you really mean to replace it, set "
