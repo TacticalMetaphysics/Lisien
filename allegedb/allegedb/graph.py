@@ -337,7 +337,7 @@ class GraphNodeMapping(NeatMapping):
         is made with them, perhaps clearing out the one already there.
 
         """
-        branch, turn, tick = self.db.btt()
+        branch, turn, tick = self.db.nbtt()
         planning = self.db.planning
         created = node not in self
         self.db._nodes_cache.store(
