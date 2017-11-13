@@ -256,13 +256,13 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self.dialog_todo, _, _, _, _, chardiffs = ret
-        self._update_from_chardiffs(cmd, branch, turn, tick, ret)
+        self.dialog_todo, chardiffs = ret
+        self._update_from_chardiffs(cmd, branch, turn, tick, chardiffs)
         self._advance_dialog()
 
     def _update_from_chardiffs(self, cmd, branch, turn, tick, received, **kwargs):
         self.boardview.board.trigger_update_from_diff(
-            received[-1].get(self.boardview.board.character.name, {})
+            received.get(self.boardview.board.character.name, {})
         )
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
 
@@ -372,7 +372,6 @@ class MainScreen(Screen):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
         eng.next_turn(
-            chars=[self.app.character_name],
             cb=self._update_from_next_turn
         )
 

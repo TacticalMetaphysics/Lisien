@@ -7,6 +7,7 @@ ordinary method calls.
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from re import match
 from collections import defaultdict
+from functools import partial
 from importlib import import_module
 from allegedb.xjson import (
     JSONReWrapper,
@@ -143,12 +144,63 @@ class EngineHandle(object):
                 for char in chars
             }
 
-    def next_turn(self, chars=()):
-        result = self._real.next_turn()
+    def _upd_local_caches(self, diff=None):
+        if diff is None:
+            self._eternal_cache = dict(self._real.eternal)
+            self._universal_cache = dict(self._real.universal)
+            self._rulebook_cache = {
+                rb: self.rulebook_copy(rb) for rb in self._real.rulebook
+            }
+            self._rule_cache = {
+                r: self.rule_copy(r) for r in self._real.rule
+            }
+            self._strings_cache = self.strings_copy()
+            # stores?
+            for charn, char in self._real.character.items():
+                self._char_stat_cache[charn] = self.character_stat_copy(charn)
+                self._node_stat_cache[charn] = {
+                    node: self.node_stat_copy(charn, node) for node in char.node
+                }
+                portst = self._portal_stat_cache[charn]
+                for port in char.portals():
+                    portst.setdefault(port.orig, {})[port.dest] = self.portal_stat_copy(charn, port.orig, port.dest)
+                self._char_things_cache[charn] = self.character_things(char)
+                self._char_places_cache[charn] = self.character_places(char)
+                self._char_portals_cache[charn] = self.character_portals(char)
+                self._char_rulebooks_cache[charn] = self.character_rulebooks_copy(char)
+            return
+
+        def updd(d0, d1):
+            for k, v in d1.items():
+                if v is None:
+                    del d0[k]
+                else:
+                    d0[k] = v
+        updd(self._eternal_cache, diff.pop('eternal', {}))
+        updd(self._universal_cache, diff.pop('universal', {}))
+        updd(self._rulebook_cache, diff.pop('rulebooks', {}))
+        updd(self._strings_cache, diff.pop('strings', {}))
+        for rule, d in diff.pop('rules', {}).items():
+            updd(self._rulebook_cache.setdefault(rule, {}), d)
+        for char, d in diff.items():
+            updd(self._char_things_cache.setdefault(char, {}), d.pop('things', {}))
+            updd(self._char_places_cache.setdefault(char, {}), d.pop('places', {}))
+            nodevd = self._node_stat_cache.setdefault(char, {})
+            for node, val in d.pop('node_val', {}).items():
+                updd(nodevd.setdefault(node, {}), val)
+            edged = self._char_portals_cache.setdefault(char, {})
+            for orig, dests in d.pop('edges', {}).items():
+                updd(edged.setdefault(orig, {}), dests)
+            edgevd = self._portal_stat_cache.setdefault(char, {})
+            for orig, dests in d.pop('edge_val', {}).items():
+                for dest, val in dests.items():
+                    updd(edgevd.setdefault(orig, {}).setdefault(dest, {}), val)
+
+    def next_turn(self):
+        ret, diff = self._real.next_turn()
         self.branch, self.turn, self.tick = self._real.btt()
-        # the rules diff is less selective than the others, I could look at the rulebooks
-        # on the chars and only diff the rules in those
-        return result, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), self.get_chardiffs(chars)
+        self._after_ret = partial(self._upd_local_caches, diff)
+        return ret, diff
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
         self._real.time = (branch, turn)
@@ -157,10 +209,14 @@ class EngineHandle(object):
         self.branch = branch
         self.turn = turn
         self.tick = tick or self._real.tick
+        diff = {}
         if chars:
-            return None, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), self.get_chardiffs(chars)
-        else:
-            return None, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), {}
+            diff = self.get_chardiffs(chars)
+        diff['eternal'] = self.eternal_diff()
+        diff['universal'] = self.universal_diff()
+        diff['rules'] = self.all_rules_diff()
+        diff['rulebooks'] = self.all_rulebooks_diff()
+        return None, diff
 
     def increment_branch(self, chars=[]):
         branch = self._real.branch
@@ -432,18 +488,17 @@ class EngineHandle(object):
 
     def character_diff(self, char):
         """Return a dictionary of changes to ``char`` since previous call."""
-        return {
-            'character_stat': self.character_stat_diff(char),
-            'node_stat': self.character_nodes_stat_diff(char),
-            'things': self.character_things_diff(char),
-            'places': self.character_places_diff(char),
-            'portal_stat': self.character_portals_stat_diff(char),
-            'portals': self.character_portals_diff(char),
-            'avatars': self.character_avatars_diff(char),
-            'rulebooks': self.character_rulebooks_diff(char),
-            'node_rulebooks': self.character_nodes_rulebooks_diff(char),
-            'portal_rulebooks': self.character_portals_rulebooks_diff(char)
-        }
+        ret = self.character_stat_diff(char)
+        ret['things'] = self.character_things_diff(char)
+        ret['places'] = self.character_places_diff(char)
+        ret['portals'] = self.character_portals_diff(char)
+        ret['avatars'] = self.character_avatars_diff(char)
+        ret['rulebooks'] = self.character_rulebooks_diff(char)
+        ret['node_rulebooks'] = self.character_nodes_rulebooks_diff(char)
+        ret['portal_rulebooks'] = self.character_portals_rulebooks_diff(char)
+        ret['node_val'] = self.character_nodes_stat_diff(char)
+        ret['edge_val'] = self.character_portals_stat_diff(char)
+        return ret
 
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v

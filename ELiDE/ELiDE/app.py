@@ -42,7 +42,6 @@ class ELiDEApp(App):
 
     """
     title = 'ELiDE'
-    icon = 'icon.png'
 
     engine = ObjectProperty()
     branch = StringProperty('trunk')
@@ -154,6 +153,7 @@ class ELiDEApp(App):
         return the root widget.
 
         """
+        self.icon = 'icon_24px.png'
         config = self.config
         Logger.debug(
             "ELiDEApp: starting with world {}, path {}".format(

@@ -49,7 +49,7 @@ class PlanningContext(object):
 
 
 class AdvancingContext(object):
-    """A context manager for when time is moving forward.
+    """A context manager for when time is moving forward one turn at a time.
 
     When used in LiSE, this means that the game is being simulated.
     It changes how the caching works, making it more efficient.
@@ -76,6 +76,8 @@ class ORM(object):
     node_cls = _make_node = Node
     edge_cls = _make_edge = Edge
     query_engine_cls = QueryEngine
+    illegal_graph_names = ['global']
+    illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
 
     @property
     def plan(self):
@@ -86,6 +88,63 @@ class ORM(object):
     def advancing(self):
         return AdvancingContext(self)
     advancing.__doc__ = AdvancingContext.__doc__
+
+    def get_turn_diff(self, branch=None, turn=None, tick=None, start_tick=0):
+        """Return a dictionary describing all changes since the start of a turn"""
+        branch = branch or self.branch
+        turn = turn or self.turn
+        tick = tick or self.tick
+        diff = {}
+
+        gvbranches = self._graph_val_cache.settings
+        if branch in gvbranches and gvbranches[branch].has_exact_rev(turn):
+            for entity, key, value in gvbranches[branch][turn][start_tick:tick]:
+                graph = entity[0]
+                if graph in diff:
+                    diff[graph][key] = value
+                else:
+                    diff[graph] = {key: value}
+
+        nbranches = self._nodes_cache.settings
+        if branch in nbranches and nbranches[branch].has_exact_rev(turn):
+            for entity, node, exists in nbranches[branch][turn][start_tick:tick]:
+                graph = entity[0]
+                diff.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
+
+        nvbranches = self._node_val_cache.settings
+        if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
+            for entity, key, value in nvbranches[branch][turn][start_tick:tick]:
+                graph, node = entity
+                nodevd = diff.setdefault(graph, {}).setdefault('node_val', {})
+                if node in nodevd:
+                    nodevd[node][key] = value
+                else:
+                    nodevd[node] = {key: value}
+
+        ebranches = self._edges_cache.settings
+        graph_objs = self._graph_objs
+        if branch in ebranches and ebranches[branch].has_exact_rev(turn):
+            for entity, idx, exists in ebranches[branch][turn][start_tick:tick]:
+                graph, orig, dest = entity
+                if graph_objs[graph].is_multigraph():
+                    diff.setdefault(graph, {}).setdefault('edges', {})\
+                        .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
+                else:
+                    diff.setdefault(graph, {}).setdefault('edges', {})\
+                        .setdefault(orig, {})[dest] = exists
+
+        evbranches = self._edge_val_cache.settings
+        if branch in evbranches and evbranches[branch].has_exact_rev(turn):
+            for entity, key, value in evbranches[branch][turn][start_tick:tick]:
+                graph, orig, dest, idx = entity
+                edgevd = diff.setdefault(graph, {}).setdefault('edge_val', {})\
+                    .setdefault(orig, {}).setdefault(dest, {})
+                if idx in edgevd:
+                    edgevd[idx][key] = value
+                else:
+                    edgevd[idx] = {key: value}
+
+        return diff
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
@@ -324,6 +383,8 @@ class ORM(object):
     def _init_graph(self, name, type_s='Graph'):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
+        if name in self.illegal_graph_names:
+            raise GraphNameError("Illegal name")
         self.query.new_graph(name, type_s)
 
     def new_graph(self, name, data=None, **attr):
@@ -423,4 +484,4 @@ class ORM(object):
                 yield child
 
 
-__all__ = [ORM, 'alchemy', 'graph', 'query', 'window', 'xjson']
+__all__ = [ORM, 'graph', 'query', 'xjson']

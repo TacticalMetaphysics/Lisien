@@ -735,7 +735,7 @@ class Board(RelativeLayout):
 
     def update_from_diff(self, chardiff, *args):
         """Apply the changes described in the dict ``chardiff``."""
-        for (place, extant) in chardiff['places'].items():
+        for (place, extant) in chardiff.get('places', {}).items():
             if extant and place not in self.spot:
                 self.add_spot(place)
                 spot = self.spot[place]
@@ -743,12 +743,12 @@ class Board(RelativeLayout):
                     self.spots_unposd.append(spot)
             elif not extant and place in self.spot:
                 self.rm_spot(place)
-        for (thing, extant) in chardiff['things'].items():
+        for (thing, extant) in chardiff.get('things', {}).items():
             if extant and thing not in self.pawn:
                 self.add_pawn(thing)
             elif not extant and thing in self.pawn:
                 self.rm_pawn(thing)
-        for (node, stats) in chardiff['node_stat'].items():
+        for (node, stats) in chardiff.get('node_val', {}).items():
             if node in self.spot:
                 spot = self.spot[node]
                 x = stats.get('_x')
@@ -772,7 +772,7 @@ class Board(RelativeLayout):
                     "Board: diff tried to change stats of node {} "
                     "but I don't have a widget for it".format(node)
                 )
-        for ((orig, dest), extant) in chardiff['portals'].items():
+        for ((orig, dest), extant) in chardiff.get('edges', {}).items():
             if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
                 self.add_arrow(orig, dest)
             elif not extant and orig in self.arrow and dest in self.arrow[orig]:

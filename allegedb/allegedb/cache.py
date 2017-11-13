@@ -752,20 +752,6 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
-                if args not in self.shallowest:
-                    self.shallowest[args] = ret
-                try:
-                    self.shallower[entity+(key, branch, turn)][tick] = ret
-                except HistoryError:
-                    pass
-                try:
-                    self.shallow[entity+(key, branch)][turn][tick] = ret
-                except HistoryError:
-                    pass
-                try:
-                    self.keys[entity][key][branch][turn][tick] = ret
-                except HistoryError:
-                    pass
                 return ret
         else:
             raise KeyError

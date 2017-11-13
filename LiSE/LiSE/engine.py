@@ -6,7 +6,7 @@ flow of time.
 
 """
 from random import Random
-from functools import partial
+from functools import partial, partialmethod
 from types import FunctionType
 from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
@@ -146,6 +146,7 @@ class NextTurn(Signal):
     def __call__(self):
         engine = self.engine
         with engine.advancing:
+            done = False
             for res in iter(engine.advance, final_rule):
                 if res:
                     branch, turn, tick = engine.btt()
@@ -158,9 +159,14 @@ class NextTurn(Signal):
                         turn=turn,
                         tick=tick
                     )
-                    return res
+                    break
+            else:
+                done = True
+        if not done:
+            return [], engine.get_turn_diff()
         branch, turn = engine.time
         turn += 1
+        diff = engine.get_turn_diff()
         # As a side effect, the following assignment sets the tick to
         # the latest in the new turn, which will be 0 if that turn has not
         # yet been simulated.
@@ -175,7 +181,7 @@ class NextTurn(Signal):
             turn=turn,
             tick=engine.tick
         )
-        return []
+        return [], diff
 
 
 class DummyEntity(dict):
@@ -205,6 +211,8 @@ json_load_hints = {'final_rule': final_rule}
 class Encoder(JSONEncoder):
     """Extend the base JSON encoder to handle a couple of numpy types I might need"""
     def encode(self, o):
+        if type(o) in (str, int, float):
+            return super().encode(o)
         return super().encode(self.listify(o))
 
     def default(self, o):
@@ -241,9 +249,9 @@ class AbstractEngine(object):
             raise ValueError("Function {} is not in my function stores".format(obj.__name__))
         return [obj.__module__, obj.__name__]
 
-    @reify
-    def _listify_dispatch(self):
-        return {
+    def listify(self, obj):
+        """Turn a LiSE object into a list for easier serialization"""
+        listify_dispatch = {
             list: lambda obj: ["list"] + [self.listify(v) for v in obj],
             tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
             dict: lambda obj: ["dict"] + [
@@ -257,21 +265,24 @@ class AbstractEngine(object):
                 "portal", obj.character.name, obj.orig, obj.dest],
             FunctionType: self._listify_function
         }
-
-    def listify(self, obj):
-        """Turn a LiSE object into a list for easier serialization"""
         try:
-            return self._listify_dispatch[type(obj)](obj)
+            listifier = listify_dispatch[type(obj)]
+            return listifier(obj)
         except KeyError:
             return obj
 
-    @reify
-    def _delistify_dispatch(self):
+
+    def delistify(self, obj):
+        """Turn a list describing a LiSE object into that object
+
+        If this is impossible, return the argument.
+
+        """
         def nodeget(obj):
             return self._node_objs[(
                 self.delistify(obj[1]), self.delistify(obj[2])
             )]
-        return {
+        delistify_dispatch = {
             'list': lambda obj: [self.delistify(v) for v in obj[1:]],
             'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
             'dict': lambda obj: {
@@ -293,15 +304,8 @@ class AbstractEngine(object):
             'trigger': lambda obj: getattr(self.trigger, obj[1]),
             'action': lambda obj: getattr(self.action, obj[1])
         }
-
-    def delistify(self, obj):
-        """Turn a list describing a LiSE object into that object
-
-        If this is impossible, return the argument.
-
-        """
         if isinstance(obj, list) or isinstance(obj, tuple):
-            return self._delistify_dispatch[obj[0]](obj)
+            return delistify_dispatch[obj[0]](obj)
         else:
             return obj
 
@@ -387,12 +391,60 @@ class Engine(AbstractEngine, gORM):
     portal_cls = edge_cls = _make_edge = Portal
     query_engine_cls = QueryEngine
     time = TimeSignalDescriptor()
+    illegal_graph_names = ['global', 'eternal', 'universal', 'rulebooks', 'rules']
+    illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
     def _make_node(self, char, node):
         if self._is_thing(char.name, node):
             return Thing(char, node)
         else:
             return Place(char, node)
+
+    def get_turn_diff(self, branch=None, turn=None, tick=None, start_tick=0):
+        branch = branch or self.branch
+        turn = turn or self.turn
+        tick = tick or self.tick
+        diff = super().get_turn_diff(branch, turn, tick, start_tick)
+        diff['rulebooks'] = rbdif = {}
+        if branch in self._rulebooks_cache.settings and self._rulebooks_cache.settings.has_exact_rev(turn):
+            for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                rbdif[rulebook] = rules
+        diff['rules'] = rdif = {}
+        if branch in self._triggers_cache.settings and self._triggers_cache.settings[branch].has_exact_rev(turn):
+            for _, rule, funs in self._triggers_cache.settings[branch][turn][start_tick:tick]:
+                rdif.setdefault(rule, {})['triggers'] = funs
+        if branch in self._prereqs_cache.settings and self._prereqs_cache.settings[branch].has_exact_rev(turn):
+            for _, rule, funs in self._prereqs_cache.settings[branch][turn][start_tick:tick]:
+                rdif.setdefault(rule, {})['prereqs'] = funs
+        if branch in self._actions_cache.settings and self._triggers_cache.settings[branch].has_exact_rev(turn):
+            for _, rule, funs in self._triggers_cache.settings[branch][turn][start_tick:tick]:
+                rdif.setdefault(rule, {})['actions'] = funs
+
+        if branch in self._characters_rulebooks_cache.settings and self._characters_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                diff.setdefault(character, {})['character_rulebook'] = rulebook
+        if branch in self._avatars_rulebooks_cache.settings and self._avatars_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._avatars_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                diff.setdefault(character, {})['avatar_rulebook'] = rulebook
+        if branch in self._characters_things_rulebooks_cache.settings and self._characters_things_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_things_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                diff.setdefault(character, {})['character_thing_rulebook'] = rulebook
+        if branch in self._characters_places_rulebooks_cache.settings and self._characters_places_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_places_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                diff.setdefault(character, {})['character_place_rulebook'] = rulebook
+        if branch in self._characters_portals_rulebooks_cache.settings and self._characters_portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                diff.setdefault(character, {})['character_portal_rulebook'] = rulebook
+
+        if branch in self._nodes_rulebooks_cache.settings and self._nodes_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for character, node, rulebook in self._nodes_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                diff.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
+        if branch in self._portals_rulebooks_cache.settings and self._portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for entity, idx, rulebook in self._portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                character, orig, dest = entity
+                diff.setdefault(character, {}).setdefault('edge_val', {})\
+                    .setdefault(orig, {}).setdefault(dest, {}).setdefault(idx, {})['rulebook'] = rulebook
+        return diff
 
     def _del_rulebook(self, rulebook):
         for (character, character_rulebooks) in \
