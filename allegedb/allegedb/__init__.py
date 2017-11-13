@@ -110,7 +110,7 @@ class ORM(object):
         self._edge_val_cache = Cache(self)
         self._graph_objs = {}
 
-    def load_graphs(self):
+    def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
             self._graph_objs[graph] = {
                 'Graph': Graph,
@@ -146,7 +146,7 @@ class ORM(object):
             self._childbranch[parent].add(branch)
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
-        self.load_graphs()
+        self._load_graphs()
         self._init_load(validate=validate)
 
     def _init_load(self, validate=False):

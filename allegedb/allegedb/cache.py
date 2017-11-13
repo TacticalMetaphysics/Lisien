@@ -453,9 +453,6 @@ class Cache(object):
         incoherent cache.
 
         """
-        def fw_upd(*args):
-            self._update_keycache(*args, validate=validate, forward=True)
-        store = self._store
         dd3 = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         branch_end = defaultdict(lambda: 0)
         turn_end = defaultdict(lambda: 0)
@@ -464,7 +461,6 @@ class Cache(object):
             branch_end[branch] = max((turn, branch_end[branch]))
             turn_end[branch, turn] = max((tick, turn_end[branch, turn]))
             dd3[branch][turn][tick].append(row)
-            store(*row)
         real_branches = self.db._branches
         real_turn_end = self.db._turn_end
         for branch, end in branch_end.items():
@@ -486,6 +482,8 @@ class Cache(object):
         # to make forwarding work.
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
+        store = self._store
+        update_keycache = self._update_keycache
         while branch2do:
             branch = branch2do.popleft()
             turns = branch_end[branch] + 1
@@ -493,7 +491,8 @@ class Cache(object):
                 ticks = turn_end[branch, turn] + 1
                 for tick in range(ticks):
                     for row in dd3[branch][turn][tick]:
-                        fw_upd(*row)
+                        store(*row)
+                        update_keycache(*row, validate=validate, forward=True)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 

@@ -5,10 +5,10 @@ from collections import Mapping, MutableMapping
 from blinker import Signal
 from astunparse import Unparser
 from ast import parse, Expr, Module
-from inspect import getsource, getsourcelines, getmodule
+from inspect import getsource
 import json
 
-from .util import dedent_sourcelines
+from .util import dedent_source
 
 
 class NotThatMap(Mapping):
@@ -170,8 +170,8 @@ class FunctionStore(Signal):
             return
         v.__module__ = self._filename.rstrip('.py')
         self._locl[k] = v
-        sourcelines, _ = getsourcelines(v)
-        outdented = dedent_sourcelines(sourcelines)
+        source = getsource(v)
+        outdented = dedent_source(source)
         expr = Expr(parse(outdented))
         expr.value.body[0].name = k
         if k in self._ast_idx:
@@ -199,7 +199,7 @@ class FunctionStore(Signal):
             yield name, getsource(func)
 
     def store_source(self, v, name=None):
-        outdented = dedent_sourcelines(v.split('\n'))
+        outdented = dedent_source(v)
         mod = parse(outdented)
         expr = Expr(mod)
         if len(expr.value.body) != 1:

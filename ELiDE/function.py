@@ -1,4 +1,0 @@
-
-
-def fuubaa():
-    print('BAH')
