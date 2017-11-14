@@ -25,7 +25,7 @@ from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
-from .util import reify, is_chardiff
+from .reify import reify
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -2289,8 +2289,6 @@ class EngineProxy(AbstractEngine):
             # the "diff" is just the rules list, for now
             rulebookproxy.send(rulebookproxy, rules=diff)
         for (char, chardiff) in chardiffs.items():
-            if not is_chardiff(chardiff):
-                continue
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             chara = self.character[char]
