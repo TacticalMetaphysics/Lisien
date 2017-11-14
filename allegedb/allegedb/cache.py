@@ -7,9 +7,8 @@ methods. But if you need to store historical data some other way,
 you might want to store it in a ``WindowDict``.
 
 """
-from copy import copy as copier
 from operator import itemgetter
-from collections import defaultdict, deque, MutableMapping, KeysView, ItemsView, ValuesView
+from collections import defaultdict, deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 
 
 class HistoryError(KeyError):
@@ -70,6 +69,61 @@ class WindowDictItemsView(ItemsView):
         yield from self._mapping._future
 
 
+class WindowDictPastFutureKeysView(KeysView):
+    def __contains__(self, item):
+        for rev in map(itemgetter(0), self._mapping.deq):
+            if rev == item:
+                return True
+        return False
+
+
+class WindowDictPastKeysView(WindowDictPastFutureKeysView):
+    def __iter__(self):
+        yield from map(itemgetter(0), reversed(self._mapping.deq))
+
+
+class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
+    def __iter__(self):
+        yield from map(itemgetter(0), self._mapping.deq)
+
+
+class WindowDictPastFutureItemsView(ItemsView):
+    def __contains__(self, item):
+        rev, v = item
+        for mrev, mv in self._mapping.deq:
+            if mrev == rev:
+                return mv == v
+        return False
+
+
+class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+    def __iter__(self):
+        yield from reversed(self._mapping.deq)
+
+
+class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
+    def __iter__(self):
+        yield from self._mapping.deq
+
+
+class WindowDictPastFutureValuesView(ValuesView):
+    def __contains__(self, item):
+        for v in map(itemgetter(1), self._mapping.deq):
+            if v == item:
+                return True
+        return False
+
+
+class WindowDictPastValuesView(WindowDictPastFutureValuesView):
+    def __iter__(self):
+        yield from map(itemgetter(1), reversed(self._mapping.deq))
+
+
+class WindowDictFutureValuesView(WindowDictPastFutureValuesView):
+    def __iter__(self):
+        yield from map(itemgetter(1), self._mapping.deq)
+
+
 class WindowDictValuesView(ValuesView):
     """Look through all the values that a WindowDict contains."""
     def __contains__(self, value):
@@ -86,6 +140,74 @@ class WindowDictValuesView(ValuesView):
             yield v
         for rev, v in self._mapping._future:
             yield v
+
+
+class WindowDictPastView(Mapping):
+    __slots__ = ['deq']
+
+    def __init__(self, past):
+        self.deq = past
+
+    def __iter__(self):
+        yield from map(itemgetter(0), reversed(self.deq))
+
+    def __len__(self):
+        return len(self.deq)
+
+    def __getitem__(self, key):
+        future = deque()
+        past = self.deq
+        while past:
+            rev, value = past.pop()
+            future.appendleft((rev, value))
+            if rev == key:
+                self.deq += future
+                return value
+        self.deq = future
+        raise KeyError
+
+    def keys(self):
+        return WindowDictPastKeysView(self)
+
+    def items(self):
+        return WindowDictPastItemsView(self)
+
+    def values(self):
+        return WindowDictPastValuesView(self)
+
+
+class WindowDictFutureView(Mapping):
+    __slots__ = ['deq']
+
+    def __init__(self, future):
+        self.deq = future
+
+    def __iter__(self):
+        yield from map(itemgetter(0), self.deq)
+
+    def __len__(self):
+        return len(self.deq)
+
+    def __getitem__(self, key):
+        future = self.deq
+        past = deque()
+        while future:
+            rev, value = future.popleft()
+            past.append((rev, value))
+            if rev == key:
+                self.deq = past + future
+                return value
+        self.deq = past
+        raise KeyError
+
+    def keys(self):
+        return WindowDictFutureKeysView(self)
+
+    def items(self):
+        return WindowDictFutureItemsView(self)
+
+    def values(self):
+        return WindowDictFutureValuesView(self)
 
 
 class WindowDict(MutableMapping):
@@ -108,6 +230,13 @@ class WindowDict(MutableMapping):
     the slice.
 
     """
+    def future(self):
+        """Return a Mapping of future values."""
+        return WindowDictFutureView(self._future)
+
+    def past(self):
+        """Return a Mapping of past values."""
+        return WindowDictPastView(self._past)
 
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
