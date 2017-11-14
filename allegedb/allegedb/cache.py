@@ -302,6 +302,9 @@ class WindowDict(MutableMapping):
     def values(self):
         return WindowDictValuesView(self)
 
+    def __bool__(self):
+        return bool(self._past) or bool(self._future)
+
     def __init__(self, data={}):
         self._past = deque(sorted(data.items()))
         self._future = deque()
@@ -760,73 +763,105 @@ class Cache(object):
                 newp = FuturistWindowDict()
                 newp[tick] = value
                 parents[turn] = newp
-        branches = self.branches[parent+(entity, key)][branch]
-        if planning and turn < branches.end:
-            raise HistoryError(
-                "Can't plan for the past. "
-                "Already have some turns after {} in branch {}".format(
-                    turn, branch
-                )
-            )
-        if branches.has_exact_rev(turn):
-            if turn < branches.end:
-                # deal with the paradox by erasing history after this turn
-                branches.seek(turn)
-                branches._future = deque()
 
-            branchesturn = branches[turn]
-            if planning and tick <= branchesturn.end:
+        settings_turns = self.settings[branch]
+
+        def truncate_settings(mapp):
+            if mapp.has_exact_rev(turn):
+                mapp_turn = mapp[turn]
+                settings_turn = settings_turns[turn]
+                if mapp_turn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in mapp_turn.future():
+                    del settings_turn[tic]
+            for trn, tics in mapp.future().items():
+                settings_turn = settings_turns[trn]
+                for tic in tics:
+                    del settings_turn[tic]
+
+        branches = self.branches[parent+(entity, key)][branch]
+        if branches and turn < branches.end:
+            if planning:
                 raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
+                    "Can't plan for the past. "
+                    "Already have some turns after {} in branch {}".format(
+                        turn, branch
                     )
                 )
+            # deal with the paradox by erasing history after this tick and turn
+            truncate_settings(branches)
+            branches.truncate(turn)
+        if branches.has_exact_rev(turn):
+            branchesturn = branches[turn]
+            settings_turn = settings_turns[turn]
+            if tick <= branchesturn.end:
+                if planning:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+                if branchesturn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in branchesturn.future():
+                    del settings_turn[tic]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:
             newb = FuturistWindowDict()
             newb[tick] = value
             branches[turn] = newb
-        turns = self.settings[branch]
-        if turns.has_exact_rev(turn):
-            ticks = turns[turn]
-            if ticks.has_exact_rev(tick):
-                raise HistoryError(
-                    "Tried to set two things at {}, {}, {}".format(branch, turn, tick)
-                )
-            ticks[tick] = (entity, key, value)
-        else:
-            turns[turn] = {tick: (entity, key, value)}
         keys = self.keys[parent+(entity,)][key][branch]
-        if planning and turn <= keys.end:
-            raise HistoryError(
-                "Already have some turns after {} in branch {}".format(turn, branch)
-            )
-        keys.truncate(turn)
+        if keys and turn <= keys.end:
+            if planning:
+                raise HistoryError(
+                    "Already have some turns after {} in branch {}".format(turn, branch)
+                )
+            truncate_settings(keys)
+            keys.truncate(turn)
         if keys.has_exact_rev(turn):
             keysturn = keys[turn]
-            if planning and tick <= keysturn.end:
-                raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
+            if tick <= keysturn.end:
+                if planning:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
                     )
-                )
-            keysturn.truncate(tick)
+                settings_turn = settings_turns[turn]
+                if keysturn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in keysturn.future():
+                    del settings_turn[tic]
+                keysturn.truncate(tick)
             keysturn[tick] = value
         else:
             newt = FuturistWindowDict()
             newt[tick] = value
             keys[turn] = newt
         shallow = self.shallow[parent+(entity, key, branch)]
+        if shallow and turn <= shallow.end:
+            if planning:
+                raise HistoryError(
+                    "Already have some turns after {} in branch {}".format(turn, branch)
+                )
+            truncate_settings(shallow)
+            shallow.truncate(turn)
         if shallow.has_exact_rev(turn):
             shalturn = shallow[turn]
-            if planning and tick < shalturn.end:
-                raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
+            settings_turn = settings_turns[turn]
+            if tick < shalturn.end:
+                if planning:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
                     )
-                )
-            shalturn.truncate(tick)
+                if shalturn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in shalturn.future():
+                    del settings_turn[tic]
+                shalturn.truncate(tick)
             shalturn[tick] = value
         else:
             news = FuturistWindowDict()
@@ -838,6 +873,19 @@ class Cache(object):
         except TypeError:
             pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
+        if settings_turns.has_exact_rev(turn):
+            ticks = settings_turns[turn]
+            if ticks.has_exact_rev(tick):
+                raise HistoryError(
+                    "Tried to set {} on top of {} at {}, {}, {}".format(
+                        (entity, key, value),
+                        ticks[tick],
+                        branch, turn, tick
+                    )
+                )
+            ticks[tick] = (entity, key, value)
+        else:
+            settings_turns[turn] = {tick: (entity, key, value)}
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
