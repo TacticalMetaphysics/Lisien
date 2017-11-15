@@ -759,28 +759,10 @@ class Cache(object):
             settings_turns[turn].truncate(tick)
         settings_turns.truncate(turn)
 
-
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
-
         settings_turns = self.settings[branch]
-
-        def cull_settings(mapp):
-            if mapp.has_exact_rev(turn):
-                mapp_turn = mapp[turn]
-                settings_turn = settings_turns[turn]
-                if mapp_turn.has_exact_rev(tick) and settings_turn.has_exact_rev(tick):
-                    del settings_turn[tick]
-                for tic in mapp_turn.future():
-                    if settings_turn.has_exact_rev(tic):
-                        del settings_turn[tic]
-            for trn, tics in mapp.future().items():
-                settings_turn = settings_turns[trn]
-                for tic in tics:
-                    if settings_turn.has_exact_rev(tic):
-                        del settings_turn[tic]
-
         branches = self.branches[parent+(entity, key)][branch]
         keys = self.keys[parent+(entity,)][key][branch]
         shallow = self.shallow[parent+(entity, key, branch)]
@@ -791,6 +773,10 @@ class Cache(object):
                         "Already have some ticks after {} in turn {} of branch {}".format(
                             tick, turn, branch
                         )
+                    )
+                if turn <= shallow.end:
+                    raise HistoryError(
+                        "Already have some turns after {} in branch {}".format(turn, branch)
                     )
             if keys:
                 if turn <= keys.end:
@@ -840,65 +826,54 @@ class Cache(object):
                 parents[turn] = newp
         if branches and turn < branches.end:
             # deal with the paradox by erasing history after this tick and turn
-            cull_settings(branches)
+            if branches.has_exact_rev(turn):
+                mapp_turn = branches[turn]
+                settings_turn = settings_turns[turn]
+                if mapp_turn.has_exact_rev(tick) and settings_turn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in mapp_turn.future():
+                    if settings_turn.has_exact_rev(tic):
+                        del settings_turn[tic]
+            for trn, tics in branches.future().items():
+                settings_turn = settings_turns[trn]
+                for tic in tics:
+                    if settings_turn.has_exact_rev(tic):
+                        del settings_turn[tic]
             branches.truncate(turn)
+            keys.truncate(turn)
+            shallow.truncate(turn)
         if branches.has_exact_rev(turn):
+            assert keys.has_exact_rev(turn)
+            assert shallow.has_exact_rev(turn)
             branchesturn = branches[turn]
+            keysturn = keys[turn]
+            shallowturn = shallow[turn]
             settings_turn = settings_turns[turn]
             if tick <= branchesturn.end:
                 if branchesturn.has_exact_rev(tick):
+                    assert keysturn.has_exact_rev(tick)
+                    assert shallowturn.has_exact_rev(tick)
                     del settings_turn[tick]
+                assert branchesturn.future() == keysturn.future() == shallowturn.future()
                 for tic in branchesturn.future():
                     del settings_turn[tic]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
+            keysturn.truncate(tick)
+            keysturn[tick] = value
+            shallowturn.truncate(tick)
+            shallowturn[tick] = value
         else:
             newb = FuturistWindowDict()
             newb[tick] = value
             branches[turn] = newb
-        if keys and turn <= keys.end:
-            cull_settings(keys)
-            keys.truncate(turn)
-        if keys.has_exact_rev(turn):
-            keysturn = keys[turn]
-            if tick <= keysturn.end:
-                settings_turn = settings_turns[turn]
-                if keysturn.has_exact_rev(tick):
-                    del settings_turn[tick]
-                for tic in keysturn.future():
-                    del settings_turn[tic]
-                keysturn.truncate(tick)
-            keysturn[tick] = value
-        else:
             newt = FuturistWindowDict()
             newt[tick] = value
             keys[turn] = newt
-        if shallow and turn <= shallow.end:
-            if planning:
-                raise HistoryError(
-                    "Already have some turns after {} in branch {}".format(turn, branch)
-                )
-            cull_settings(shallow)
-            shallow.truncate(turn)
-        if shallow.has_exact_rev(turn):
-            shalturn = shallow[turn]
-            settings_turn = settings_turns[turn]
-            if tick < shalturn.end:
-                if shalturn.has_exact_rev(tick):
-                    del settings_turn[tick]
-                for tic in shalturn.future():
-                    del settings_turn[tic]
-                shalturn.truncate(tick)
-            shalturn[tick] = value
-        else:
             news = FuturistWindowDict()
             news[tick] = value
             shallow[turn] = news
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
-        try:
-            hash(parent+(entity, key, branch, turn, tick))
-        except TypeError:
-            pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
     def retrieve(self, *args):
