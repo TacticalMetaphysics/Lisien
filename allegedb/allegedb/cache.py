@@ -816,14 +816,17 @@ class Cache(object):
             ticks[tick] = parent + (entity, key, value)
         else:
             settings_turns[turn] = {tick: parent + (entity, key, value)}
+        new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
-                parents[turn][tick] = value
+                parentsturn = parents[turn]
+                parentsturn.truncate(tick)
+                parentsturn[tick] = value
             else:
-                newp = FuturistWindowDict()
-                newp[tick] = value
-                parents[turn] = newp
+                new = FuturistWindowDict()
+                new[tick] = value
+                parents[turn] = new
         if branches and turn < branches.end:
             # deal with the paradox by erasing history after this tick and turn
             if branches.has_exact_rev(turn):
@@ -846,33 +849,20 @@ class Cache(object):
             assert keys.has_exact_rev(turn)
             assert shallow.has_exact_rev(turn)
             branchesturn = branches[turn]
-            keysturn = keys[turn]
-            shallowturn = shallow[turn]
+            assert branchesturn is keys[turn] is shallow[turn]
             settings_turn = settings_turns[turn]
             if tick <= branchesturn.end:
                 if branchesturn.has_exact_rev(tick):
-                    assert keysturn.has_exact_rev(tick)
-                    assert shallowturn.has_exact_rev(tick)
                     del settings_turn[tick]
-                assert branchesturn.future() == keysturn.future() == shallowturn.future()
                 for tic in branchesturn.future():
                     del settings_turn[tic]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
-            keysturn.truncate(tick)
-            keysturn[tick] = value
-            shallowturn.truncate(tick)
-            shallowturn[tick] = value
         else:
-            newb = FuturistWindowDict()
-            newb[tick] = value
-            branches[turn] = newb
-            newt = FuturistWindowDict()
-            newt[tick] = value
-            keys[turn] = newt
-            news = FuturistWindowDict()
-            news[tick] = value
-            shallow[turn] = news
+            if new is None:
+                new = FuturistWindowDict()
+                new[tick] = value
+            branches[turn] = keys[turn] = shallow[turn] = new
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
