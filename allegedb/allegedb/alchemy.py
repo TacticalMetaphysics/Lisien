@@ -50,6 +50,13 @@ def tables_for_meta(meta):
         CheckConstraint('branch<>parent')
     )
     Table(
+        'turns', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('end_tick', INT),
+        Column('plan_end_tick', INT)
+    )
+    Table(
         'graphs', meta,
         Column('graph', TEXT, primary_key=True),
         Column('type', TEXT, default='Graph'),
@@ -252,7 +259,14 @@ def queries_for_table_dict(table):
             parent_tick=bindparam('parent_tick'),
             end_turn=bindparam('end_turn'),
             end_tick=bindparam('end_tick')
-        ).where(table['branches'].c.branch == bindparam('branch'))
+        ).where(table['branches'].c.branch == bindparam('branch')),
+        'update_turns': table['turns'].update().values(
+            end_tick=bindparam('end_tick'),
+            plan_end_tick=bindparam('plan_end_tick')
+        ).where(and_(
+            table['turns'].c.branch == bindparam('branch'),
+            table['turns'].c.turn == bindparam('turn')
+        ))
     }
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)

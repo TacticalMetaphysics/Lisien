@@ -98,8 +98,7 @@ class ORM(object):
 
         gvbranches = self._graph_val_cache.settings
         if branch in gvbranches and gvbranches[branch].has_exact_rev(turn):
-            for entity, key, value in gvbranches[branch][turn][start_tick:tick]:
-                graph = entity[0]
+            for graph, key, value in gvbranches[branch][turn][start_tick:tick]:
                 if graph in diff:
                     diff[graph][key] = value
                 else:
@@ -107,14 +106,12 @@ class ORM(object):
 
         nbranches = self._nodes_cache.settings
         if branch in nbranches and nbranches[branch].has_exact_rev(turn):
-            for entity, node, exists in nbranches[branch][turn][start_tick:tick]:
-                graph = entity[0]
+            for graph, node, exists in nbranches[branch][turn][start_tick:tick]:
                 diff.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
 
         nvbranches = self._node_val_cache.settings
         if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
-            for entity, key, value in nvbranches[branch][turn][start_tick:tick]:
-                graph, node = entity
+            for graph, node, key, value in nvbranches[branch][turn][start_tick:tick]:
                 nodevd = diff.setdefault(graph, {}).setdefault('node_val', {})
                 if node in nodevd:
                     nodevd[node][key] = value
@@ -124,8 +121,7 @@ class ORM(object):
         ebranches = self._edges_cache.settings
         graph_objs = self._graph_objs
         if branch in ebranches and ebranches[branch].has_exact_rev(turn):
-            for entity, idx, exists in ebranches[branch][turn][start_tick:tick]:
-                graph, orig, dest = entity
+            for graph, orig, dest, idx, exists in ebranches[branch][turn][start_tick:tick]:
                 if graph_objs[graph].is_multigraph():
                     diff.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
@@ -135,8 +131,7 @@ class ORM(object):
 
         evbranches = self._edge_val_cache.settings
         if branch in evbranches and evbranches[branch].has_exact_rev(turn):
-            for entity, key, value in evbranches[branch][turn][start_tick:tick]:
-                graph, orig, dest, idx = entity
+            for graph, orig, dest, idx, key, value in evbranches[branch][turn][start_tick:tick]:
                 edgevd = diff.setdefault(graph, {}).setdefault('edge_val', {})\
                     .setdefault(orig, {}).setdefault(dest, {})
                 if idx in edgevd:
@@ -162,6 +157,7 @@ class ORM(object):
         self._childbranch = defaultdict(set)
         self._branches = {}
         self._turn_end = defaultdict(lambda: 0)
+        self._turn_end_plan = defaultdict(lambda: 0)
         self._graph_val_cache = Cache(self)
         self._nodes_cache = NodesCache(self)
         self._edges_cache = EdgesCache(self)
@@ -203,6 +199,9 @@ class ORM(object):
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
             self._childbranch[parent].add(branch)
+        for (branch, turn, end_tick, plan_end_tick) in self.query.turns_dump():
+            self._turn_end[branch, turn] = end_tick
+            self._turn_end_plan[branch, turn] = plan_end_tick
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._load_graphs()
@@ -297,7 +296,7 @@ class ORM(object):
             raise ValueError("Can't time travel backward in a forward context")
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
-        tick = self._turn_end.setdefault((branch, v), 0)
+        tick = self._turn_end_plan.setdefault((branch, v), 0)
         parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
         if branch != 'trunk':
             if v < turn_start:
@@ -319,6 +318,8 @@ class ORM(object):
         # enforce the arrow of time, if it's in effect
         if self.forward and v < self._otick:
             raise ValueError("Can't time travel backward in a forward context")
+        if v > self._turn_end_plan[time]:
+            self._turn_end_plan[time] = v
         if not self.planning:
             if v > self._turn_end[time]:
                 self._turn_end[time] = v
@@ -342,6 +343,11 @@ class ORM(object):
         """
         branch, turn, tick = self.btt()
         tick += 1
+        if (branch, turn) in self._turn_end_plan:
+            if tick > self._turn_end_plan[branch, turn]:
+                self._turn_end_plan[branch, turn] = tick
+            else:
+                tick = self._turn_end_plan[branch, turn] + 1
         if self._turn_end[branch, turn] > tick:
             raise HistoryError(
                 "You're not at the end of turn {}. Go to tick {} to change things".format(
@@ -366,8 +372,13 @@ class ORM(object):
         self.query.globl['branch'] = self._obranch
         self.query.globl['turn'] = self._oturn
         self.query.globl['tick'] = self._otick
+        update_branch = self.query.update_branch
         for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
-            self.query.update_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
+            update_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
+        turn_end = self._turn_end
+        set_turn = self.query.set_turn
+        for (branch, turn), plan_end_tick in self._turn_end_plan.items():
+            set_turn(branch, turn, turn_end[branch], plan_end_tick)
         self.query.commit()
 
     def close(self):

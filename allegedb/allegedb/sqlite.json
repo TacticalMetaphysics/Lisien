@@ -10,6 +10,7 @@
     "create_graphs": "\nCREATE TABLE graphs (\n\tgraph TEXT NOT NULL, \n\ttype TEXT NOT NULL, \n\tPRIMARY KEY (graph), \n\tCHECK (type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph'))\n)\n\n",
     "create_node_val": "\nCREATE TABLE node_val (\n\tgraph TEXT NOT NULL, \n\tnode TEXT NOT NULL, \n\t\"key\" TEXT NOT NULL, \n\tbranch TEXT NOT NULL, \n\tturn INTEGER NOT NULL, \n\ttick INTEGER NOT NULL, \n\tvalue TEXT, \n\tPRIMARY KEY (graph, node, \"key\", branch, turn, tick), \n\tFOREIGN KEY(graph, node) REFERENCES nodes (graph, node), \n\tFOREIGN KEY(branch) REFERENCES branches (branch)\n)\n\n",
     "create_nodes": "\nCREATE TABLE nodes (\n\tgraph TEXT NOT NULL, \n\tnode TEXT NOT NULL, \n\tbranch TEXT NOT NULL, \n\tturn INTEGER NOT NULL, \n\ttick INTEGER NOT NULL, \n\textant BOOLEAN NOT NULL, \n\tPRIMARY KEY (graph, node, branch, turn, tick), \n\tFOREIGN KEY(graph) REFERENCES graphs (graph), \n\tFOREIGN KEY(branch) REFERENCES branches (branch), \n\tCHECK (extant IN (0, 1))\n)\n\n",
+    "create_turns": "\nCREATE TABLE turns (\n\tbranch TEXT NOT NULL, \n\tturn INTEGER NOT NULL, \n\tend_tick INTEGER NOT NULL, \n\tplan_end_tick INTEGER NOT NULL, \n\tPRIMARY KEY (branch, turn)\n)\n\n",
     "del_edge_val_after": "DELETE FROM edge_val WHERE edge_val.graph = ? AND edge_val.orig = ? AND edge_val.dest = ? AND edge_val.idx = ? AND edge_val.\"key\" = ? AND edge_val.branch = ? AND (edge_val.turn > ? OR edge_val.turn = ? AND edge_val.tick >= ?)",
     "del_edge_val_graph": "DELETE FROM edge_val WHERE edge_val.graph = ?",
     "del_edges_after": "DELETE FROM edges WHERE edges.graph = ? AND edges.orig = ? AND edges.dest = ? AND edges.idx = ? AND edges.branch = ? AND (edges.turn > ? OR edges.turn = ? AND edges.tick >= ?)",
@@ -48,5 +49,9 @@
     "nodes_count": "SELECT COUNT() AS \"COUNT_1\" \nFROM nodes",
     "nodes_dump": "SELECT nodes.graph, nodes.node, nodes.branch, nodes.turn, nodes.tick, nodes.extant \nFROM nodes ORDER BY nodes.graph, nodes.node, nodes.branch, nodes.turn, nodes.tick",
     "nodes_insert": "INSERT INTO nodes (graph, node, branch, turn, tick, extant) VALUES (?, ?, ?, ?, ?, ?)",
-    "update_branches": "UPDATE branches SET parent=?, parent_turn=?, parent_tick=?, end_turn=?, end_tick=? WHERE branches.branch = ?"
+    "turns_count": "SELECT COUNT() AS \"COUNT_1\" \nFROM turns",
+    "turns_dump": "SELECT turns.branch, turns.turn, turns.end_tick, turns.plan_end_tick \nFROM turns ORDER BY turns.branch, turns.turn",
+    "turns_insert": "INSERT INTO turns (branch, turn, end_tick, plan_end_tick) VALUES (?, ?, ?, ?)",
+    "update_branches": "UPDATE branches SET parent=?, parent_turn=?, parent_tick=?, end_turn=?, end_tick=? WHERE branches.branch = ?",
+    "update_turns": "UPDATE turns SET end_tick=?, plan_end_tick=? WHERE turns.branch = ? AND turns.turn = ?"
 }

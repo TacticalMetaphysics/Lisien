@@ -406,7 +406,7 @@ class Engine(AbstractEngine, gORM):
         tick = tick or self.tick
         diff = super().get_turn_diff(branch, turn, tick, start_tick)
         diff['rulebooks'] = rbdif = {}
-        if branch in self._rulebooks_cache.settings and self._rulebooks_cache.settings.has_exact_rev(turn):
+        if branch in self._rulebooks_cache.settings and self._rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
                 rbdif[rulebook] = rules
         diff['rules'] = rdif = {}
@@ -440,10 +440,9 @@ class Engine(AbstractEngine, gORM):
             for character, node, rulebook in self._nodes_rulebooks_cache.settings[branch][turn][start_tick:tick]:
                 diff.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
         if branch in self._portals_rulebooks_cache.settings and self._portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
-            for entity, idx, rulebook in self._portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                character, orig, dest = entity
+            for character, orig, dest, rulebook in self._portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
                 diff.setdefault(character, {}).setdefault('edge_val', {})\
-                    .setdefault(orig, {}).setdefault(dest, {}).setdefault(idx, {})['rulebook'] = rulebook
+                    .setdefault(orig, {}).setdefault(dest, {})['rulebook'] = rulebook
         return diff
 
     def _del_rulebook(self, rulebook):

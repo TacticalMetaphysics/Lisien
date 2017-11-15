@@ -908,7 +908,7 @@ class EngineHandle(object):
         self._real.rulebook[rulebook]
 
     def rulebook_copy(self, rulebook):
-        return list(self._real.rulebook[rulebook]._cache)
+        return list(self._real.rulebook[rulebook]._get_cache(*self._real.btt()))
 
     def rulebook_diff(self, rulebook):
         # TODO: do actual diffing

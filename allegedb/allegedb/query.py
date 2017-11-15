@@ -238,6 +238,21 @@ class QueryEngine(object):
     def update_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
         return self.sql('update_branches', parent, parent_turn, parent_tick, end_turn, end_tick, branch)
 
+    def new_turn(self, branch, turn, end_tick=0, plan_end_tick=0):
+        return self.sql('turns_insert', branch, turn, end_tick, plan_end_tick)
+
+    def update_turn(self, branch, turn, end_tick, plan_end_tick):
+        return self.sql('update_turns', end_tick, plan_end_tick, branch, turn)
+
+    def set_turn(self, branch, turn, end_tick, plan_end_tick):
+        try:
+            return self.sql('turns_insert', branch, turn, end_tick, plan_end_tick)
+        except IntegrityError:
+            return self.sql('update_turns', end_tick, plan_end_tick, branch, turn)
+
+    def turns_dump(self):
+        return self.sql('turns_dump')
+
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
@@ -491,6 +506,10 @@ class QueryEngine(object):
             cursor.execute('SELECT * FROM branches;')
         except OperationalError:
             cursor.execute(self.strings['create_branches'])
+        try:
+            cursor.execute('SELECT * FROM turns;')
+        except OperationalError:
+            cursor.execute(self.strings['create_turns'])
         try:
             cursor.execute('SELECT * FROM graphs;')
         except OperationalError:

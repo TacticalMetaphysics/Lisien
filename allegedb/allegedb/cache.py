@@ -752,9 +752,84 @@ class Cache(object):
             if kc != correct:
                 raise ValueError("Invalid keys cache")
 
+    def truncate_settings(self, branch, turn, tick):
+        """Forget about the fact I set anything after the given time."""
+        settings_turns = self.settings[branch]
+        if settings_turns.has_exact_rev(turn):
+            settings_turns[turn].truncate(tick)
+        settings_turns.truncate(turn)
+
+
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
+
+        settings_turns = self.settings[branch]
+
+        def cull_settings(mapp):
+            if mapp.has_exact_rev(turn):
+                mapp_turn = mapp[turn]
+                settings_turn = settings_turns[turn]
+                if mapp_turn.has_exact_rev(tick) and settings_turn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in mapp_turn.future():
+                    if settings_turn.has_exact_rev(tic):
+                        del settings_turn[tic]
+            for trn, tics in mapp.future().items():
+                settings_turn = settings_turns[trn]
+                for tic in tics:
+                    if settings_turn.has_exact_rev(tic):
+                        del settings_turn[tic]
+
+        branches = self.branches[parent+(entity, key)][branch]
+        keys = self.keys[parent+(entity,)][key][branch]
+        shallow = self.shallow[parent+(entity, key, branch)]
+        if planning:
+            if shallow:
+                if shallow.has_exact_rev(turn) and tick < shallow[turn].end:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+            if keys:
+                if turn <= keys.end:
+                    raise HistoryError(
+                        "Already have some turns after {} in branch {}".format(turn, branch)
+                    )
+                if keys.has_exact_rev(turn) and tick <= keys[turn].end:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+            if branches:
+                if branches.has_exact_rev(turn) and tick <= branches[turn].end:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+                if turn < branches.end:
+                    raise HistoryError(
+                        "Can't plan for the past. "
+                        "Already have some turns after {} in branch {}".format(
+                            turn, branch
+                        )
+                    )
+        if settings_turns.has_exact_rev(turn):
+            ticks = settings_turns[turn]
+            if ticks.has_exact_rev(tick):
+                raise HistoryError(
+                    "Tried to set {} on top of {} at {}, {}, {}".format(
+                        parent + (entity, key, value),
+                        ticks[tick],
+                        branch, turn, tick
+                    )
+                )
+            ticks[tick] = parent + (entity, key, value)
+        else:
+            settings_turns[turn] = {tick: parent + (entity, key, value)}
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
@@ -763,44 +838,14 @@ class Cache(object):
                 newp = FuturistWindowDict()
                 newp[tick] = value
                 parents[turn] = newp
-
-        settings_turns = self.settings[branch]
-
-        def truncate_settings(mapp):
-            if mapp.has_exact_rev(turn):
-                mapp_turn = mapp[turn]
-                settings_turn = settings_turns[turn]
-                if mapp_turn.has_exact_rev(tick):
-                    del settings_turn[tick]
-                for tic in mapp_turn.future():
-                    del settings_turn[tic]
-            for trn, tics in mapp.future().items():
-                settings_turn = settings_turns[trn]
-                for tic in tics:
-                    del settings_turn[tic]
-
-        branches = self.branches[parent+(entity, key)][branch]
         if branches and turn < branches.end:
-            if planning:
-                raise HistoryError(
-                    "Can't plan for the past. "
-                    "Already have some turns after {} in branch {}".format(
-                        turn, branch
-                    )
-                )
             # deal with the paradox by erasing history after this tick and turn
-            truncate_settings(branches)
+            cull_settings(branches)
             branches.truncate(turn)
         if branches.has_exact_rev(turn):
             branchesturn = branches[turn]
             settings_turn = settings_turns[turn]
             if tick <= branchesturn.end:
-                if planning:
-                    raise HistoryError(
-                        "Already have some ticks after {} in turn {} of branch {}".format(
-                            tick, turn, branch
-                        )
-                    )
                 if branchesturn.has_exact_rev(tick):
                     del settings_turn[tick]
                 for tic in branchesturn.future():
@@ -811,23 +856,12 @@ class Cache(object):
             newb = FuturistWindowDict()
             newb[tick] = value
             branches[turn] = newb
-        keys = self.keys[parent+(entity,)][key][branch]
         if keys and turn <= keys.end:
-            if planning:
-                raise HistoryError(
-                    "Already have some turns after {} in branch {}".format(turn, branch)
-                )
-            truncate_settings(keys)
+            cull_settings(keys)
             keys.truncate(turn)
         if keys.has_exact_rev(turn):
             keysturn = keys[turn]
             if tick <= keysturn.end:
-                if planning:
-                    raise HistoryError(
-                        "Already have some ticks after {} in turn {} of branch {}".format(
-                            tick, turn, branch
-                        )
-                    )
                 settings_turn = settings_turns[turn]
                 if keysturn.has_exact_rev(tick):
                     del settings_turn[tick]
@@ -839,24 +873,17 @@ class Cache(object):
             newt = FuturistWindowDict()
             newt[tick] = value
             keys[turn] = newt
-        shallow = self.shallow[parent+(entity, key, branch)]
         if shallow and turn <= shallow.end:
             if planning:
                 raise HistoryError(
                     "Already have some turns after {} in branch {}".format(turn, branch)
                 )
-            truncate_settings(shallow)
+            cull_settings(shallow)
             shallow.truncate(turn)
         if shallow.has_exact_rev(turn):
             shalturn = shallow[turn]
             settings_turn = settings_turns[turn]
             if tick < shalturn.end:
-                if planning:
-                    raise HistoryError(
-                        "Already have some ticks after {} in turn {} of branch {}".format(
-                            tick, turn, branch
-                        )
-                    )
                 if shalturn.has_exact_rev(tick):
                     del settings_turn[tick]
                 for tic in shalturn.future():
@@ -873,19 +900,6 @@ class Cache(object):
         except TypeError:
             pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
-        if settings_turns.has_exact_rev(turn):
-            ticks = settings_turns[turn]
-            if ticks.has_exact_rev(tick):
-                raise HistoryError(
-                    "Tried to set {} on top of {} at {}, {}, {}".format(
-                        (entity, key, value),
-                        ticks[tick],
-                        branch, turn, tick
-                    )
-                )
-            ticks[tick] = (entity, key, value)
-        else:
-            settings_turns[turn] = {tick: (entity, key, value)}
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
