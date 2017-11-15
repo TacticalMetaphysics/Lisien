@@ -832,16 +832,14 @@ class Cache(object):
             if branches.has_exact_rev(turn):
                 mapp_turn = branches[turn]
                 settings_turn = settings_turns[turn]
-                if mapp_turn.has_exact_rev(tick) and settings_turn.has_exact_rev(tick):
+                if mapp_turn.has_exact_rev(tick):
                     del settings_turn[tick]
                 for tic in mapp_turn.future():
-                    if settings_turn.has_exact_rev(tic):
-                        del settings_turn[tic]
+                    del settings_turn[tic]
             for trn, tics in branches.future().items():
                 settings_turn = settings_turns[trn]
                 for tic in tics:
-                    if settings_turn.has_exact_rev(tic):
-                        del settings_turn[tic]
+                    del settings_turn[tic]
             branches.truncate(turn)
             keys.truncate(turn)
             shallow.truncate(turn)
