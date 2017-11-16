@@ -34,6 +34,7 @@ class EngineHandle(object):
         ``(loglevel, message)``.
 
         """
+        kwargs.setdefault('logfun', self.log)
         self._real = Engine(*args, **kwargs)
         self._logq = logq
         self._loglevel = loglevel
@@ -64,6 +65,14 @@ class EngineHandle(object):
         self._stores_cache = defaultdict(dict)
 
     def log(self, level, message):
+        if isinstance(level, str):
+            level = {
+                'debug': 10,
+                'info': 20,
+                'warning': 30,
+                'error': 40,
+                'critical': 50
+            }[level]
         if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
 
