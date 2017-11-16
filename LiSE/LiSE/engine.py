@@ -405,6 +405,11 @@ class Engine(AbstractEngine, gORM):
         turn = turn or self.turn
         tick = tick or self.tick
         diff = super().get_turn_diff(branch, turn, tick, start_tick)
+        if branch in self._things_cache.settings and self._things_cache.settings[branch].has_exact_rev(turn):
+            for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
+                thingd = diff.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
+                thingd['location'] = location
+                thingd['next_location'] = next_location
         diff['rulebooks'] = rbdif = {}
         if branch in self._rulebooks_cache.settings and self._rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
@@ -812,12 +817,8 @@ class Engine(AbstractEngine, gORM):
             return True
         return pct / 100 < self.random()
 
-    def commit(self):
-        super().commit()
-
     def close(self):
         """Commit changes and close the database."""
-        self.commit()
         for store in self.stores:
             if hasattr(store, 'save'):
                 store.save()

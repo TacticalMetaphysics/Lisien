@@ -172,7 +172,7 @@ class EngineHandle(object):
 
         def updd(d0, d1):
             for k, v in d1.items():
-                if v is None:
+                if k not in ('location', 'next_location') and v is None:
                     del d0[k]
                 else:
                     d0[k] = v
@@ -188,9 +188,13 @@ class EngineHandle(object):
             nodevd = self._node_stat_cache.setdefault(char, {})
             for node, val in d.pop('node_val', {}).items():
                 updd(nodevd.setdefault(node, {}), val)
-            edged = self._char_portals_cache.setdefault(char, {})
+            edges = self._char_portals_cache.setdefault(char, set())
             for orig, dests in d.pop('edges', {}).items():
-                updd(edged.setdefault(orig, {}), dests)
+                for dest, exists in dests.items():
+                    if exists:
+                        edges.add((orig, dest))
+                    else:
+                        edges.remove((orig, dest))
             edgevd = self._portal_stat_cache.setdefault(char, {})
             for orig, dests in d.pop('edge_val', {}).items():
                 for dest, val in dests.items():
@@ -812,11 +816,11 @@ class EngineHandle(object):
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
 
     def character_portals(self, char):
-        r = []
+        r = set()
         portal = self._real.character[char].portal
         for o in portal:
             for d in portal[o]:
-                r.append((o, d))
+                r.add((o, d))
         return r
 
     def character_portals_diff(self, char):

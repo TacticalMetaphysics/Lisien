@@ -772,11 +772,12 @@ class Board(RelativeLayout):
                     "Board: diff tried to change stats of node {} "
                     "but I don't have a widget for it".format(node)
                 )
-        for ((orig, dest), extant) in chardiff.get('edges', {}).items():
-            if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
-                self.add_arrow(orig, dest)
-            elif not extant and orig in self.arrow and dest in self.arrow[orig]:
-                self.rm_arrow(orig, dest)
+        for (orig, dests) in chardiff.get('edges', {}).items():
+            for (dest, extant) in dests.items():
+                if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
+                    self.add_arrow(orig, dest)
+                elif not extant and orig in self.arrow and dest in self.arrow[orig]:
+                    self.rm_arrow(orig, dest)
 
     def trigger_update_from_diff(self, chardiff, *args):
         part = partial(self.update_from_diff, chardiff)

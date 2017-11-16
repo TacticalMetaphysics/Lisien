@@ -228,7 +228,7 @@ class QueryEngine(object):
         key = self.json_dump(key)
         return self.sql('global_del', key)
 
-    def new_branch(self, branch, parent, parent_turn, parent_tick):
+    def new_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
         """Declare that the ``branch`` is descended from ``parent`` at
         ``parent_turn``, ``parent_tick``
 
@@ -237,6 +237,12 @@ class QueryEngine(object):
 
     def update_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
         return self.sql('update_branches', parent, parent_turn, parent_tick, end_turn, end_tick, branch)
+
+    def set_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
+        try:
+            self.sql('branches_insert', branch, parent, parent_turn, parent_tick, end_turn, end_tick)
+        except IntegrityError:
+            self.update_branch(branch, parent, parent_turn, parent_tick, end_turn, end_tick)
 
     def new_turn(self, branch, turn, end_tick=0, plan_end_tick=0):
         return self.sql('turns_insert', branch, turn, end_tick, plan_end_tick)

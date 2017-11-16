@@ -372,9 +372,9 @@ class ORM(object):
         self.query.globl['branch'] = self._obranch
         self.query.globl['turn'] = self._oturn
         self.query.globl['tick'] = self._otick
-        update_branch = self.query.update_branch
+        set_branch = self.query.set_branch
         for branch, (parent, turn_start, tick_start, turn_end, tick_end) in self._branches.items():
-            update_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
+            set_branch(branch, parent, turn_start, tick_start, turn_end, tick_end)
         turn_end = self._turn_end
         set_turn = self.query.set_turn
         for (branch, turn), plan_end_tick in self._turn_end_plan.items():
@@ -382,9 +382,7 @@ class ORM(object):
         self.query.commit()
 
     def close(self):
-        self.query.globl['branch'] = self._obranch
-        self.query.globl['turn'] = self._oturn
-        self.query.globl['tick'] = self._otick
+        self.commit()
         self.query.close()
 
     def initdb(self):
