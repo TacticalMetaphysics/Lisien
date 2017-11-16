@@ -1377,30 +1377,31 @@ class CharacterProxy(MutableMapping):
         del self.node[k]
 
     def _apply_diff(self, diff):
+        diff = diff.copy()
         self.thing._apply_diff(diff.pop('things', {}))
         self.place._apply_diff(diff.pop('places', {}))
         self.portal._apply_diff(diff.pop('portals', {}))
-        for (node, nodediff) in diff.pop('node_stat', {}).items():
+        for (node, nodediff) in diff.pop('node_val', {}).items():
             if node not in self.engine._node_stat_cache[self.name]:
                 self.engine._node_stat_cache[self.name][node] = nodediff
             else:
                 self.node[node]._apply_diff(nodediff)
-        for (orig, destdiff) in diff.pop('portal_stat', {}).items():
+        for (orig, destdiff) in diff.pop('edge_val', {}).items():
             for (dest, portdiff) in destdiff.items():
                 if orig in self.portal and dest in self.portal[orig]:
                     self.portal[orig][dest]._apply_diff(portdiff)
                 else:
                     self.engine._portal_stat_cache[
                         self.name][orig][dest] = portdiff
-        if diff.get('character_rulebook', self.rulebook.name) != self.rulebook.name:
+        if diff.pop('character_rulebook', self.rulebook.name) != self.rulebook.name:
             self._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_rulebook')])
-        if diff.get('avatar_rulebook', self.avatar.rulebook.name) != self.avatar.rulebook.name:
+        if diff.pop('avatar_rulebook', self.avatar.rulebook.name) != self.avatar.rulebook.name:
             self.avatar._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('avatar_rulebook')])
-        if diff.get('character_thing_rulebook', self.thing.rulebook.name) != self.thing.rulebook.name:
+        if diff.pop('character_thing_rulebook', self.thing.rulebook.name) != self.thing.rulebook.name:
             self.thing._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_thing_rulebook')])
-        if diff.get('character_place_rulebook', self.place.rulebook.name) != self.place.rulebook.name:
+        if diff.pop('character_place_rulebook', self.place.rulebook.name) != self.place.rulebook.name:
             self.place._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_place_rulebook')])
-        if diff.get('character_portal_rulebook', self.portal.rulebook.name) != self.portal.rulebook.name:
+        if diff.pop('character_portal_rulebook', self.portal.rulebook.name) != self.portal.rulebook.name:
             self.portal._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_portal_rulebook')])
         for noden, rb in diff.pop('node_rulebooks', {}).items():
             node = self.node[noden]

@@ -261,9 +261,17 @@ class MainScreen(Screen):
         self._advance_dialog()
 
     def _update_from_chardiffs(self, cmd, branch, turn, tick, received, **kwargs):
-        self.boardview.board.trigger_update_from_diff(
-            received.get(self.boardview.board.character.name, {})
-        )
+        chardiff = received.get(self.boardview.board.character.name, {})
+        for unwanted in (
+            'character_rulebook',
+            'avatar_rulebook',
+            'character_thing_rulebook',
+            'character_place_rulebook',
+            'character_portal_rulebook'
+        ):
+            if unwanted in chardiff:
+                del chardiff[unwanted]
+        self.boardview.board.trigger_update_from_diff(chardiff)
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
 
     def _advance_dialog(self, *args):
