@@ -488,6 +488,8 @@ class Engine(AbstractEngine, gORM):
         if branch in edgerbbranches:
             updater(updedgerb, edgerbbranches[branch])
 
+        return diff
+
     def get_turn_diff(self, branch=None, turn=None, tick=None, start_tick=0):
         branch = branch or self.branch
         turn = turn or self.turn
