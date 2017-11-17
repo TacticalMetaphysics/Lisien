@@ -186,6 +186,7 @@ class NextTurn(Signal):
             branch=branch,
             turn=turn,
             tick=engine.tick
+        )
         return [], engine.get_diff(
             branch=branch,
             turn_from=start_turn,
