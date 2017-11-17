@@ -343,7 +343,7 @@ class WindowDict(MutableMapping):
             if not rev.start or not self._past:
                 return map(itemgetter(1), self._past)
             past = self._past.copy()
-            while past[0][0] < rev.stop:
+            while past and past[0][0] < rev.start:
                 past.popleft()
             return map(itemgetter(1), past)
         self.seek(rev)

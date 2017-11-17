@@ -1,6 +1,7 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector.
-from collections import defaultdict, deque
+from collections import defaultdict
+from functools import partial
 from .graph import (
     Graph,
     DiGraph,
@@ -67,6 +68,43 @@ class AdvancingContext(object):
         self.orm.forward = False
 
 
+def setnode(diff, graph, node, exists):
+    diff.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
+
+
+def setnodeval(diff, graph, node, key, value):
+    diff.setdefault(graph, {}).setdefault('node_val', {}).setdefault(node, {})[key] = value
+
+
+def setedge(diff, is_multigraph, graph, orig, dest, idx, exists):
+    if is_multigraph(graph):
+        diff.setdefault(graph, {}).setdefault('edges', {})\
+            .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
+    else:
+        diff.setdefault(graph, {}).setdefault('edges', {})\
+            .setdefault(orig, {})[dest] = exists
+
+
+def setedgeval(diff, is_multigraph, graph, orig, dest, idx, key, value):
+    if is_multigraph(graph):
+        diff.setdefault(graph, {}).setdefault('edge_val', {})\
+            .setdefault(orig, {}).setdefault(dest, {})\
+            .setdefault(idx, {})[key] = value
+    else:
+        diff.setdefault(graph, {}).setdefault('edge_val', {})\
+            .setdefault(orig, {}).setdefault(dest, {})[key] = value
+
+
+def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
+    if branchd.has_exact_rev(turn_from):
+        map(updfun, branchd[turn_from][tick_from:])
+    for midturn in range(turn_from+1, turn_to):
+        if branchd.has_exact_rev(midturn):
+            map(updfun, branchd[midturn][:])
+    if branchd.has_exact_rev(turn_to):
+        map(updfun, branchd[turn_to][:tick_to])
+
+
 class ORM(object):
     """Instantiate this with the same string argument you'd use for a
     SQLAlchemy ``create_engine`` call. This will be your interface to
@@ -89,16 +127,56 @@ class ORM(object):
         return AdvancingContext(self)
     advancing.__doc__ = AdvancingContext.__doc__
 
-    def get_turn_diff(self, branch=None, turn=None, tick=None, start_tick=0):
-        """Return a dictionary describing all changes since the start of a turn"""
+    def get_diff(self, branch, turn_from, tick_from, turn_to, tick_to):
+        if turn_from == turn_to:
+            return self.get_turn_diff(branch, turn_from, tick_from, tick_to)
+        if turn_to < turn_from:
+            raise ValueError("No backwards diffs")
+        diff = {}
+        graph_objs = self._graph_objs
+        updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
+
+        gvbranches = self._graph_val_cache.settings
+        if branch in gvbranches:
+            gvbranch = gvbranches[branch]
+            if gvbranch.has_exact_rev(turn_from):
+                for graph, key, value in gvbranch[turn_from][tick_from:]:
+                    diff.setdefault(graph, {})[key] = value
+            for midturn in range(turn_from+1, turn_to):
+                if gvbranch.has_exact_rev(midturn):
+                    for graph, key, value in gvbranch[turn_from][:]:
+                        diff.setdefault(graph, {})[key] = value
+            if gvbranch.has_exact_rev(turn_to):
+                for graph, key, value in gvbranch[turn_to][:tick_to]:
+                    diff.setdefault(graph, {})[key] = value
+
+        nbranches = self._nodes_cache.settings
+        if branch in nbranches:
+            updater(partial(setnode, diff), nbranches[branch])
+
+        nvbranches = self._node_val_cache.settings
+        if branch in nvbranches:
+            updater(partial(setnodeval, diff), nvbranches[branch])
+
+        ebranches = self._edges_cache.settings
+        if branch in ebranches:
+            updater(partial(setedge, diff, lambda g: graph_objs[g].is_multigraph()), ebranches[branch])
+
+        evbranches = self._edge_val_cache.settings
+        if branch in evbranches:
+            updater(partial(setedgeval, diff, lambda g: graph_objs[g].is_multigraph()), evbranches[branch])
+
+        return diff
+
+    def get_turn_diff(self, branch=None, turn=None, tick_from=0, tick_to=None):
         branch = branch or self.branch
         turn = turn or self.turn
-        tick = tick or self.tick
+        tick_to = tick_to or self.tick
         diff = {}
 
         gvbranches = self._graph_val_cache.settings
         if branch in gvbranches and gvbranches[branch].has_exact_rev(turn):
-            for graph, key, value in gvbranches[branch][turn][start_tick:tick]:
+            for graph, key, value in gvbranches[branch][turn][tick_from:tick_to]:
                 if graph in diff:
                     diff[graph][key] = value
                 else:
@@ -106,12 +184,12 @@ class ORM(object):
 
         nbranches = self._nodes_cache.settings
         if branch in nbranches and nbranches[branch].has_exact_rev(turn):
-            for graph, node, exists in nbranches[branch][turn][start_tick:tick]:
+            for graph, node, exists in nbranches[branch][turn][tick_from:tick_to]:
                 diff.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
 
         nvbranches = self._node_val_cache.settings
         if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
-            for graph, node, key, value in nvbranches[branch][turn][start_tick:tick]:
+            for graph, node, key, value in nvbranches[branch][turn][tick_from:tick_to]:
                 nodevd = diff.setdefault(graph, {}).setdefault('node_val', {})
                 if node in nodevd:
                     nodevd[node][key] = value
@@ -121,7 +199,7 @@ class ORM(object):
         ebranches = self._edges_cache.settings
         graph_objs = self._graph_objs
         if branch in ebranches and ebranches[branch].has_exact_rev(turn):
-            for graph, orig, dest, idx, exists in ebranches[branch][turn][start_tick:tick]:
+            for graph, orig, dest, idx, exists in ebranches[branch][turn][tick_from:tick_to]:
                 if graph_objs[graph].is_multigraph():
                     diff.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
@@ -131,7 +209,7 @@ class ORM(object):
 
         evbranches = self._edge_val_cache.settings
         if branch in evbranches and evbranches[branch].has_exact_rev(turn):
-            for graph, orig, dest, idx, key, value in evbranches[branch][turn][start_tick:tick]:
+            for graph, orig, dest, idx, key, value in evbranches[branch][turn][tick_from:tick_to]:
                 edgevd = diff.setdefault(graph, {}).setdefault('edge_val', {})\
                     .setdefault(orig, {}).setdefault(dest, {})
                 if idx in edgevd:
@@ -365,7 +443,8 @@ class ORM(object):
                     "When advancing time outside of a plan, you can't skip turns. Go to turn {}".format(turn_end)
                 )
             self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
-            self._turn_end[branch, turn] = self._otick = tick
+            self._turn_end[branch, turn] = tick
+        self._otick = tick
         return branch, turn, tick
 
     def commit(self):
