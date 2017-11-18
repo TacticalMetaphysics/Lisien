@@ -219,11 +219,12 @@ class EngineHandle(object):
         branch_from, turn_from, tick_from = self._real.btt()
         slow_diff = branch != branch_from
         self._real.time = (branch, turn)
-        if tick is not None:
+        if tick is None:
+            self.tick = tick = self._real.tick
+        else:
             self._real.tick = tick
         self.branch = branch
         self.turn = turn
-        self.tick = tick or self._real.tick
         if slow_diff:
             diff = {}
             if chars:
