@@ -210,6 +210,89 @@ class WindowDictFutureView(Mapping):
         return WindowDictFutureValuesView(self)
 
 
+class WindowDictSlice:
+    __slots__ = ['dict', 'slice']
+
+    def __init__(self, dict, slice):
+        self.dict = dict
+        self.slice = slice
+
+    def __reversed__(self):
+        # makes the iteration start over; I don't care enough to fix
+        return WindowDictReverseSlice(self.dict, self.slice)
+
+    def __iter__(self):
+        dic = self.dict
+        slic = self.slice
+        if slic.step is not None:
+            for i in range(slic.start or dic.beginning, slic.stop or dic.end, slic.step):
+                yield dic[i]
+        if slic.start is None and slic.stop is None:
+            yield from map(itemgetter(1), dic._past + dic._future)
+        elif None not in (slic.start, slic.stop):
+            if slic.stop == slic.start:
+                yield dic[slic.stop]
+                return
+            assert slic.stop > slic.start
+            dic.seek(slic.stop)
+            past = dic._past.copy()
+            while past and past[0][0] < slic.start:
+                past.popleft()
+            yield from map(itemgetter(1), past)
+        elif slic.start is None:
+            stac = dic._past + dic._future
+            while stac and stac[-1][0] > slic.stop:
+                stac.pop()
+            yield from map(itemgetter(1), stac)
+            return
+        else:  # slic.stop is None
+            stac = dic._past + dic._future
+            while stac and stac[0][0] < slic.start:
+                stac.popleft()
+            yield from map(itemgetter(1), stac)
+
+
+class WindowDictReverseSlice:
+    __slots__ = ['dict', 'slice']
+
+    def __init__(self, dict, slice):
+        self.dict = dict
+        self.slice = slice
+
+    def __reversed__(self):
+        # makes the iteration start over; I don't care enough to fix
+        return WindowDictSlice(self.dict, self.slice)
+
+    def __iter__(self):
+        dic = self.dict
+        slic = self.slice
+        if slic.step is not None:
+            for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
+                yield dic[i]
+        if slic.start is None and slic.stop is None:
+            yield from map(itemgetter(1), reversed(dic._past + dic._future))
+        elif None not in (slic.start, slic.stop):
+            if slic.stop == slic.stop:
+                yield dic[slic.stop]
+                return
+            assert slic.start > slic.stop
+            dic.seek(slic.stop)
+            future = dic._future.copy()
+            while future and future[-1][0] > slic.start:
+                future.pop()
+            yield from map(itemgetter(1), reversed(future))
+        elif slic.start is None:
+            stac = dic._past + dic._future
+            while stac and stac[0][0] < slic.stop:
+                stac.popleft()
+            yield from map(itemgetter(1), reversed(stac))
+        else:  # slic.stop is None
+            stac = dic._past + dic._future
+            while stac and stac[0][0] < slic.start:
+                stac.popleft()
+            yield from map(itemgetter(1), reversed(stac))
+
+
 class WindowDict(MutableMapping):
     """A dict that keeps every value that a variable has had over time.
 
@@ -328,24 +411,9 @@ class WindowDict(MutableMapping):
 
     def __getitem__(self, rev):
         if isinstance(rev, slice):
-            if rev.step is not None:
-                return map(
-                    self.__getitem__,
-                    (i for i in range(rev.start or self.beginning, rev.stop or self.end, rev.step))
-                )
-            if rev.start is None and rev.stop is None:
-                return map(itemgetter(1), self._past + self._future)
-            if rev.stop is None:
-                self._past += self._future
-                self._future = deque()
-            else:
-                self.seek(rev.stop)
-            if not rev.start or not self._past:
-                return map(itemgetter(1), self._past)
-            past = self._past.copy()
-            while past and past[0][0] < rev.start:
-                past.popleft()
-            return map(itemgetter(1), past)
+            if None not in (rev.start, rev.stop) and rev.start > rev.stop:
+                return WindowDictReverseSlice(self, rev)
+            return WindowDictSlice(self, rev)
         self.seek(rev)
         if not self._past:
             raise HistoryError(
@@ -535,7 +603,8 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower', 'shallowest', 'settings']
+    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches',
+                 'shallow', 'shallower', 'shallowest', 'settings', 'presettings']
 
     def __init__(self, db):
         self.db = db
@@ -577,6 +646,8 @@ class Cache(object):
         """A dictionary for plain, unstructured hinting."""
         self.settings = PickyDefaultDict(TurnDict)
         """All the ``entity[key] = value`` operations that were performed on some turn"""
+        self.presettings = PickyDefaultDict(TurnDict)
+        """The values prior to ``entity[key] = value`` operations performed on some turn"""
 
     def load(self, data, validate=False):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -746,6 +817,7 @@ class Cache(object):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         settings_turns = self.settings[branch]
+        presettings_turns = self.presettings[branch]
         branches = self.branches[parent+(entity, key)][branch]
         keys = self.keys[parent+(entity,)][key][branch]
         shallow = self.shallow[parent+(entity, key, branch)]
@@ -786,18 +858,27 @@ class Cache(object):
                             turn, branch
                         )
                     )
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
+            prev = None
         if settings_turns.has_exact_rev(turn):
-            ticks = settings_turns[turn]
-            if ticks.has_exact_rev(tick):
+            assert presettings_turns.has_exact_rev(turn)
+            setticks = settings_turns[turn]
+            if setticks.has_exact_rev(tick):
                 raise HistoryError(
                     "Tried to set {} on top of {} at {}, {}, {}".format(
                         parent + (entity, key, value),
-                        ticks[tick],
+                        setticks[tick],
                         branch, turn, tick
                     )
                 )
-            ticks[tick] = parent + (entity, key, value)
+            presetticks = presettings_turns[turn]
+            assert not presetticks.has_exact_rev(tick)
+            presetticks[tick] = parent + (entity, key, prev)
+            setticks[tick] = parent + (entity, key, value)
         else:
+            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
             settings_turns[turn] = {tick: parent + (entity, key, value)}
         new = None
         if parent:
@@ -832,11 +913,14 @@ class Cache(object):
             branchesturn = branches[turn]
             assert branchesturn is keys[turn] is shallow[turn]
             settings_turn = settings_turns[turn]
+            presettings_turn = presettings_turns[turn]
             if tick <= branchesturn.end:
                 if branchesturn.has_exact_rev(tick):
                     del settings_turn[tick]
+                    del presettings_turn[tick]
                 for tic in branchesturn.future():
                     del settings_turn[tic]
+                    del presettings_turn[tic]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:

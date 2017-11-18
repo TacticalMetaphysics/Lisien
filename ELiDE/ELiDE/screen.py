@@ -260,8 +260,10 @@ class MainScreen(Screen):
         self._update_from_chardiffs(cmd, branch, turn, tick, chardiffs)
         self._advance_dialog()
 
-    def _update_from_chardiffs(self, cmd, branch, turn, tick, received, **kwargs):
-        ret, diffs = received
+    def _update_from_time_travel(self, cmd, branch, turn, tick, received, **kwargs):
+        self._update_from_chardiffs(cmd, branch, turn, tick, received[-1])
+
+    def _update_from_chardiffs(self, cmd, branch, turn, tick, diffs, **kwargs):
         chardiff = diffs.get(self.boardview.board.character.name, {})
         for unwanted in (
             'character_rulebook',

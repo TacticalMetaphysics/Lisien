@@ -216,19 +216,25 @@ class EngineHandle(object):
         return ret, diff
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
+        branch_from, turn_from, tick_from = self._real.btt()
+        slow_diff = branch != branch_from
         self._real.time = (branch, turn)
         if tick is not None:
             self._real.tick = tick
         self.branch = branch
         self.turn = turn
         self.tick = tick or self._real.tick
-        diff = {}
-        if chars:
-            diff = self.get_chardiffs(chars)
-        diff['eternal'] = self.eternal_diff()
-        diff['universal'] = self.universal_diff()
-        diff['rules'] = self.all_rules_diff()
-        diff['rulebooks'] = self.all_rulebooks_diff()
+        if slow_diff:
+            diff = {}
+            if chars:
+                diff = self.get_chardiffs(chars)
+            diff['eternal'] = self.eternal_diff()
+            diff['universal'] = self.universal_diff()
+            diff['rules'] = self.all_rules_diff()
+            diff['rulebooks'] = self.all_rulebooks_diff()
+        else:
+            diff = self._real.get_delta(branch, turn_from, tick_from, self.turn, self.tick)
+            self._after_ret = partial(self._upd_local_caches, diff)
         return None, diff
 
     def increment_branch(self, chars=[]):

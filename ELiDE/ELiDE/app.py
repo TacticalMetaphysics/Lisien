@@ -86,7 +86,7 @@ class ELiDEApp(App):
             self.engine.time_travel(
                 self.branch, self.turn, self.tick if self.tick != tick else None,
                 chars=[self.character.name],
-                cb=self.mainscreen._update_from_chardiffs
+                cb=self.mainscreen._update_from_time_travel
             )
 
     def set_tick(self, t):

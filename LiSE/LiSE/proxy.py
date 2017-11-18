@@ -301,6 +301,19 @@ class ThingProxy(NodeProxy):
             return getattr(self, '_' + k)
         return super().__getitem__(k)
 
+    def _apply_diff(self, diff):
+        for (k, v) in diff.items():
+            if v is None:
+                if k in self._cache:
+                    del self._cache[k]
+                    self.send(self, key=k, val=None)
+            elif k in {'location', 'next_location'}:
+                setattr(self, '_'+k, v)
+                self.send(self, key=k, val=v)
+            elif k not in self._cache or self._cache[k] != v:
+                self._cache[k] = v
+                self.send(self, key=k, val=v)
+
     def _set_location(self, v):
         self._location = v
         self.engine.handle(

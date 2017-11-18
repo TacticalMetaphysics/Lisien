@@ -11,7 +11,7 @@ from types import FunctionType
 from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
-from allegedb import ORM as gORM, update_window
+from allegedb import ORM as gORM, update_window, update_backward_window
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
 from .xcollections import (
     StringStore,
@@ -417,14 +417,40 @@ class Engine(AbstractEngine, gORM):
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         diff = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
-        updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
+        if turn_from < turn_to:
+            updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
+            thbranches = self._things_cache.settings
+            rbbranches = self._rulebooks_cache.settings
+            trigbranches = self._triggers_cache.settings
+            preqbranches = self._prereqs_cache.settings
+            actbranches = self._actions_cache.settings
+            charrbbranches = self._characters_rulebooks_cache.settings
+            avrbbranches = self._avatars_rulebooks_cache.settings
+            charthrbbranches = self._characters_things_rulebooks_cache.settings
+            charplrbbranches = self._characters_places_rulebooks_cache.settings
+            charporbbranches = self._characters_portals_rulebooks_cache.settings
+            noderbbranches = self._nodes_rulebooks_cache.settings
+            edgerbbranches = self._portals_rulebooks_cache.settings
+        else:
+            updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
+            thbranches = self._things_cache.presettings
+            rbbranches = self._rulebooks_cache.presettings
+            trigbranches = self._triggers_cache.presettings
+            preqbranches = self._prereqs_cache.presettings
+            actbranches = self._actions_cache.presettings
+            charrbbranches = self._characters_rulebooks_cache.presettings
+            avrbbranches = self._avatars_rulebooks_cache.presettings
+            charthrbbranches = self._characters_things_rulebooks_cache.presettings
+            charplrbbranches = self._characters_places_rulebooks_cache.presettings
+            charporbbranches = self._characters_portals_rulebooks_cache.presettings
+            noderbbranches = self._nodes_rulebooks_cache.presettings
+            edgerbbranches = self._portals_rulebooks_cache.presettings
 
         def updthing(char, thing, locs):
             loc, nxtloc = locs
             thingd = diff.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
             thingd['location'] = loc
             thingd['next_location'] = nxtloc
-        thbranches = self._things_cache.settings
         if branch in thbranches:
             updater(updthing, thbranches[branch])
 
@@ -432,7 +458,6 @@ class Engine(AbstractEngine, gORM):
         def updrb(whatev, rulebook, rules):
             diff['rulebooks'][rulebook] = rules
 
-        rbbranches = self._rulebooks_cache.settings
         if branch in rbbranches:
             updater(updrb, rbbranches[branch])
 
@@ -441,45 +466,36 @@ class Engine(AbstractEngine, gORM):
         def updru(key, rule, funs):
             diff['rules'].setdefault(rule, {})[key] = funs
 
-        trigbranches = self._triggers_cache.settings
         if branch in trigbranches:
             updater(partial(updru, 'triggers'), trigbranches[branch])
 
-        preqbranches = self._prereqs_cache.settings
         if branch in preqbranches:
             updater(partial(updru, 'prereqs'), preqbranches[branch])
 
-        actbranches = self._actions_cache.settings
         if branch in actbranches:
             updater(partial(updru, 'actions'), actbranches[branch])
 
         def updcrb(key, character, rulebook):
             diff.setdefault(character, {})[key] = rulebook
 
-        charrbbranches = self._characters_rulebooks_cache.settings
         if branch in charrbbranches:
             updater(partial(updcrb, 'character_rulebook'), charrbbranches[branch])
 
-        avrbbranches = self._avatars_rulebooks_cache.settings
         if branch in avrbbranches:
             updater(partial(updcrb, 'avatar_rulebook'), avrbbranches[branch])
 
-        charthrbbranches = self._characters_things_rulebooks_cache.settings
         if branch in charthrbbranches:
             updater(partial(updcrb, 'character_thing_rulebook'), charthrbbranches[branch])
 
-        charplrbbranches = self._characters_places_rulebooks_cache.settings
         if branch in charplrbbranches:
             updater(partial(updcrb, 'character_place_rulebook'), charplrbbranches[branch])
 
-        charporbbranches = self._characters_portals_rulebooks_cache.settings
         if branch in charporbbranches:
             updater(partial(updcrb, 'character_portal_rulebook'), charporbbranches[branch])
 
         def updnoderb(character, node, rulebook):
             diff.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
 
-        noderbbranches = self._nodes_rulebooks_cache.settings
         if branch in noderbbranches:
             updater(updnoderb, noderbbranches[branch])
 
@@ -487,7 +503,6 @@ class Engine(AbstractEngine, gORM):
             diff.setdefault(character, {}).setdefault('edge_val', {}).setdefault(
                 orig, {}).setdefault(dest, {})['rulebook'] = rulebook
 
-        edgerbbranches = self._portals_rulebooks_cache.settings
         if branch in edgerbbranches:
             updater(updedgerb, edgerbbranches[branch])
 
