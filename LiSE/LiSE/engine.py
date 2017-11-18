@@ -167,7 +167,7 @@ class NextTurn(Signal):
             else:
                 done = True
         if not done:
-            return [], engine.get_diff(
+            return [], engine.get_delta(
                 branch=start_branch,
                 turn_from=start_turn,
                 turn_to=engine.turn,
@@ -190,7 +190,7 @@ class NextTurn(Signal):
             turn=turn,
             tick=engine.tick
         )
-        return [], engine.get_diff(
+        return [], engine.get_delta(
             branch=branch,
             turn_from=start_turn,
             turn_to=turn,
@@ -415,8 +415,8 @@ class Engine(AbstractEngine, gORM):
         else:
             return Place(char, node)
 
-    def get_diff(self, branch, turn_from, tick_from, turn_to, tick_to):
-        diff = super().get_diff(branch, turn_from, tick_from, turn_to, tick_to)
+    def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
+        diff = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
         updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
 
         def updthing(char, thing, locs):
@@ -497,7 +497,7 @@ class Engine(AbstractEngine, gORM):
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
-        diff = super().get_turn_diff(branch, turn, start_tick, tick)
+        diff = super().get_turn_delta(branch, turn, start_tick, tick)
         if branch in self._things_cache.settings and self._things_cache.settings[branch].has_exact_rev(turn):
             for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
                 thingd = diff.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})

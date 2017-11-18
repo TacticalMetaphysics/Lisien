@@ -130,9 +130,9 @@ class ORM(object):
         return AdvancingContext(self)
     advancing.__doc__ = AdvancingContext.__doc__
 
-    def get_diff(self, branch, turn_from, tick_from, turn_to, tick_to):
+    def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         if turn_from == turn_to:
-            return self.get_turn_diff(branch, turn_from, tick_from, tick_to)
+            return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
         if turn_to < turn_from:
             raise ValueError("No backwards diffs")
         diff = {}
@@ -171,7 +171,7 @@ class ORM(object):
 
         return diff
 
-    def get_turn_diff(self, branch=None, turn=None, tick_from=0, tick_to=None):
+    def get_turn_delta(self, branch=None, turn=None, tick_from=0, tick_to=None):
         branch = branch or self.branch
         turn = turn or self.turn
         tick_to = tick_to or self.tick
