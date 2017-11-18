@@ -280,7 +280,7 @@ class ELiDEApp(App):
         )
         dialog_todo = self.engine.universal.get('last_result', [])
         if dialog_todo:
-            idx = self.engine.universal['last_result_idx']
+            idx = int(self.engine.universal['last_result_idx'])
             if idx >= len(dialog_todo):
                 dialog_todo = []
             else:
