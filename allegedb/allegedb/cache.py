@@ -283,8 +283,8 @@ class WindowDictReverseSlice:
             yield from map(itemgetter(1), reversed(future))
         elif slic.start is None:
             stac = dic._past + dic._future
-            while stac and stac[0][0] < slic.stop:
-                stac.popleft()
+            while stac and stac[-1][0] > slic.stop:
+                stac.pop()
             yield from map(itemgetter(1), reversed(stac))
         else:  # slic.stop is None
             stac = dic._past + dic._future
