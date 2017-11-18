@@ -261,7 +261,8 @@ class MainScreen(Screen):
         self._advance_dialog()
 
     def _update_from_chardiffs(self, cmd, branch, turn, tick, received, **kwargs):
-        chardiff = received.get(self.boardview.board.character.name, {})
+        ret, diffs = received
+        chardiff = diffs.get(self.boardview.board.character.name, {})
         for unwanted in (
             'character_rulebook',
             'avatar_rulebook',
