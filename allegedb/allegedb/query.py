@@ -228,7 +228,7 @@ class QueryEngine(object):
         key = self.json_dump(key)
         return self.sql('global_del', key)
 
-    def new_branch(self, branch, parent, parent_turn, parent_tick, end_turn, end_tick):
+    def new_branch(self, branch, parent, parent_turn, parent_tick):
         """Declare that the ``branch`` is descended from ``parent`` at
         ``parent_turn``, ``parent_tick``
 
