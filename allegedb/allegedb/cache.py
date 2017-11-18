@@ -233,10 +233,10 @@ class WindowDictSlice:
             if slic.stop == slic.start:
                 yield dic[slic.stop]
                 return
-            assert slic.stop > slic.start
-            dic.seek(slic.stop)
+            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
+            dic.seek(right)
             past = dic._past.copy()
-            while past and past[0][0] < slic.start:
+            while past and past[0][0] < left:
                 past.popleft()
             yield from map(itemgetter(1), past)
         elif slic.start is None:
@@ -275,10 +275,10 @@ class WindowDictReverseSlice:
             if slic.stop == slic.stop:
                 yield dic[slic.stop]
                 return
-            assert slic.start > slic.stop
-            dic.seek(slic.stop)
-            future = dic._future.copy()
-            while future and future[-1][0] > slic.start:
+            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
+            dic.seek(right)
+            future = dic._past.copy()
+            while future and future[-1][0] > left:
                 future.pop()
             yield from map(itemgetter(1), reversed(future))
         elif slic.start is None:
