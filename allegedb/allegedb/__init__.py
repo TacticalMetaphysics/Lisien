@@ -97,12 +97,15 @@ def setedgeval(diff, is_multigraph, graph, orig, dest, idx, key, value):
 
 def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
     if branchd.has_exact_rev(turn_from):
-        map(updfun, branchd[turn_from][tick_from:])
+        for past_state in branchd[turn_from][tick_from:]:
+            updfun(*past_state)
     for midturn in range(turn_from+1, turn_to):
         if branchd.has_exact_rev(midturn):
-            map(updfun, branchd[midturn][:])
+            for past_state in branchd[midturn][:]:
+                updfun(*past_state)
     if branchd.has_exact_rev(turn_to):
-        map(updfun, branchd[turn_to][:tick_to])
+        for past_state in branchd[turn_to][:tick_to]:
+            updfun(*past_state)
 
 
 class ORM(object):
