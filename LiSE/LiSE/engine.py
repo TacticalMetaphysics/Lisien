@@ -72,6 +72,9 @@ class TimeSignal(Signal):
             self.engine.turn = v
         self.send(self, branch=self.engine.branch, turn=self.engine.turn)
 
+    def __str__(self):
+        return str((self.engine.branch, self.engine.turn))
+
 
 class TimeSignalDescriptor(object):
     __doc__ = TimeSignal.__doc__
