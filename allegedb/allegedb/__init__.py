@@ -224,7 +224,7 @@ def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun, branc
     if branchd.has_exact_rev(turn_from):
         for future_state in reversed(branchd[turn_from][:tick_from]):
             updfun(*future_state)
-    for midturn in range(turn_from, turn_to, -1):
+    for midturn in range(turn_from-1, turn_to, -1):
         if branchd.has_exact_rev(midturn):
             for future_state in reversed(branchd[midturn][:]):
                 updfun(*future_state)
