@@ -447,7 +447,10 @@ class Engine(AbstractEngine, gORM):
             edgerbbranches = self._portals_rulebooks_cache.presettings
 
         def updthing(char, thing, locs):
-            loc, nxtloc = locs
+            if locs is None:
+                loc = nxtloc = None
+            else:
+                loc, nxtloc = locs
             thingd = diff.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
             thingd['location'] = loc
             thingd['next_location'] = nxtloc
