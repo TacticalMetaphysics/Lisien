@@ -324,7 +324,7 @@ class Engine(AbstractEngine, gORM):
             return Place(char, node)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
-        diff = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
+        delta = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
         if turn_from < turn_to:
             updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
             thbranches = self._things_cache.settings
@@ -359,23 +359,23 @@ class Engine(AbstractEngine, gORM):
                 loc = nxtloc = None
             else:
                 loc, nxtloc = locs
-            thingd = diff.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
+            thingd = delta.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
             thingd['location'] = loc
             thingd['next_location'] = nxtloc
         if branch in thbranches:
             updater(updthing, thbranches[branch])
 
-        diff['rulebooks'] = {}
+        delta['rulebooks'] = {}
         def updrb(whatev, rulebook, rules):
-            diff['rulebooks'][rulebook] = rules
+            delta['rulebooks'][rulebook] = rules
 
         if branch in rbbranches:
             updater(updrb, rbbranches[branch])
 
-        diff['rules'] = {}
+        delta['rules'] = {}
 
         def updru(key, rule, funs):
-            diff['rules'].setdefault(rule, {})[key] = funs
+            delta['rules'].setdefault(rule, {})[key] = funs
 
         if branch in trigbranches:
             updater(partial(updru, 'triggers'), trigbranches[branch])
@@ -387,7 +387,7 @@ class Engine(AbstractEngine, gORM):
             updater(partial(updru, 'actions'), actbranches[branch])
 
         def updcrb(key, character, rulebook):
-            diff.setdefault(character, {})[key] = rulebook
+            delta.setdefault(character, {})[key] = rulebook
 
         if branch in charrbbranches:
             updater(partial(updcrb, 'character_rulebook'), charrbbranches[branch])
@@ -405,35 +405,35 @@ class Engine(AbstractEngine, gORM):
             updater(partial(updcrb, 'character_portal_rulebook'), charporbbranches[branch])
 
         def updnoderb(character, node, rulebook):
-            diff.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
+            delta.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
 
         if branch in noderbbranches:
             updater(updnoderb, noderbbranches[branch])
 
         def updedgerb(character, orig, dest, rulebook):
-            diff.setdefault(character, {}).setdefault('edge_val', {}).setdefault(
+            delta.setdefault(character, {}).setdefault('edge_val', {}).setdefault(
                 orig, {}).setdefault(dest, {})['rulebook'] = rulebook
 
         if branch in edgerbbranches:
             updater(updedgerb, edgerbbranches[branch])
 
-        return diff
+        return delta
 
-    def get_turn_diff(self, branch=None, turn=None, tick=None, start_tick=0):
+    def get_turn_delta(self, branch=None, turn=None, tick=None, start_tick=0):
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
-        diff = super().get_turn_delta(branch, turn, start_tick, tick)
+        delta = super().get_turn_delta(branch, turn, start_tick, tick)
         if branch in self._things_cache.settings and self._things_cache.settings[branch].has_exact_rev(turn):
             for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
-                thingd = diff.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
+                thingd = delta.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
                 thingd['location'] = location
                 thingd['next_location'] = next_location
-        diff['rulebooks'] = rbdif = {}
+        delta['rulebooks'] = rbdif = {}
         if branch in self._rulebooks_cache.settings and self._rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
                 rbdif[rulebook] = rules
-        diff['rules'] = rdif = {}
+        delta['rules'] = rdif = {}
         if branch in self._triggers_cache.settings and self._triggers_cache.settings[branch].has_exact_rev(turn):
             for _, rule, funs in self._triggers_cache.settings[branch][turn][start_tick:tick]:
                 rdif.setdefault(rule, {})['triggers'] = funs
@@ -446,28 +446,28 @@ class Engine(AbstractEngine, gORM):
 
         if branch in self._characters_rulebooks_cache.settings and self._characters_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, character, rulebook in self._characters_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {})['character_rulebook'] = rulebook
+                delta.setdefault(character, {})['character_rulebook'] = rulebook
         if branch in self._avatars_rulebooks_cache.settings and self._avatars_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, character, rulebook in self._avatars_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {})['avatar_rulebook'] = rulebook
+                delta.setdefault(character, {})['avatar_rulebook'] = rulebook
         if branch in self._characters_things_rulebooks_cache.settings and self._characters_things_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, character, rulebook in self._characters_things_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {})['character_thing_rulebook'] = rulebook
+                delta.setdefault(character, {})['character_thing_rulebook'] = rulebook
         if branch in self._characters_places_rulebooks_cache.settings and self._characters_places_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, character, rulebook in self._characters_places_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {})['character_place_rulebook'] = rulebook
+                delta.setdefault(character, {})['character_place_rulebook'] = rulebook
         if branch in self._characters_portals_rulebooks_cache.settings and self._characters_portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for _, character, rulebook in self._characters_portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {})['character_portal_rulebook'] = rulebook
+                delta.setdefault(character, {})['character_portal_rulebook'] = rulebook
 
         if branch in self._nodes_rulebooks_cache.settings and self._nodes_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for character, node, rulebook in self._nodes_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
+                delta.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
         if branch in self._portals_rulebooks_cache.settings and self._portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
             for character, orig, dest, rulebook in self._portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
-                diff.setdefault(character, {}).setdefault('edge_val', {})\
+                delta.setdefault(character, {}).setdefault('edge_val', {})\
                     .setdefault(orig, {}).setdefault(dest, {})['rulebook'] = rulebook
-        return diff
+        return delta
 
     def _del_rulebook(self, rulebook):
         for (character, character_rulebooks) in \

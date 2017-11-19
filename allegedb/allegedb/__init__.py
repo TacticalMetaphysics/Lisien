@@ -180,30 +180,30 @@ def setgraphval(delta, graph, key, val):
     delta.setdefault(graph, {})[key] = val
 
 
-def setnode(diff, graph, node, exists):
-    diff.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
+def setnode(delta, graph, node, exists):
+    delta.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
 
 
-def setnodeval(diff, graph, node, key, value):
-    diff.setdefault(graph, {}).setdefault('node_val', {}).setdefault(node, {})[key] = value
+def setnodeval(delta, graph, node, key, value):
+    delta.setdefault(graph, {}).setdefault('node_val', {}).setdefault(node, {})[key] = value
 
 
-def setedge(diff, is_multigraph, graph, orig, dest, idx, exists):
+def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
     if is_multigraph(graph):
-        diff.setdefault(graph, {}).setdefault('edges', {})\
+        delta.setdefault(graph, {}).setdefault('edges', {})\
             .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
     else:
-        diff.setdefault(graph, {}).setdefault('edges', {})\
+        delta.setdefault(graph, {}).setdefault('edges', {})\
             .setdefault(orig, {})[dest] = exists
 
 
-def setedgeval(diff, is_multigraph, graph, orig, dest, idx, key, value):
+def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
     if is_multigraph(graph):
-        diff.setdefault(graph, {}).setdefault('edge_val', {})\
+        delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})\
             .setdefault(idx, {})[key] = value
     else:
-        diff.setdefault(graph, {}).setdefault('edge_val', {})\
+        delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
 
 
@@ -259,7 +259,7 @@ class ORM(object):
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         if turn_from == turn_to:
             return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
-        diff = {}
+        delta = {}
         graph_objs = self._graph_objs
         if turn_to < turn_from:
             updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
@@ -277,27 +277,27 @@ class ORM(object):
             evbranches = self._edges_cache.settings
 
         if branch in gvbranches:
-            updater(partial(setgraphval, diff), gvbranches[branch])
+            updater(partial(setgraphval, delta), gvbranches[branch])
 
         if branch in nbranches:
-            updater(partial(setnode, diff), nbranches[branch])
+            updater(partial(setnode, delta), nbranches[branch])
 
         if branch in nvbranches:
-            updater(partial(setnodeval, diff), nvbranches[branch])
+            updater(partial(setnodeval, delta), nvbranches[branch])
 
         if branch in ebranches:
-            updater(partial(setedge, diff, lambda g: graph_objs[g].is_multigraph()), ebranches[branch])
+            updater(partial(setedge, delta, lambda g: graph_objs[g].is_multigraph()), ebranches[branch])
 
         if branch in evbranches:
-            updater(partial(setedgeval, diff, lambda g: graph_objs[g].is_multigraph()), evbranches[branch])
+            updater(partial(setedgeval, delta, lambda g: graph_objs[g].is_multigraph()), evbranches[branch])
 
-        return diff
+        return delta
 
     def get_turn_delta(self, branch=None, turn=None, tick_from=0, tick_to=None):
         branch = branch or self.branch
         turn = turn or self.turn
         tick_to = tick_to or self.tick
-        diff = {}
+        delta = {}
         if tick_from < tick_to:
             gvbranches = self._graph_val_cache.settings
             nbranches = self._nodes_cache.settings
@@ -313,18 +313,18 @@ class ORM(object):
 
         if branch in gvbranches and gvbranches[branch].has_exact_rev(turn):
             for graph, key, value in gvbranches[branch][turn][tick_from:tick_to]:
-                if graph in diff:
-                    diff[graph][key] = value
+                if graph in delta:
+                    delta[graph][key] = value
                 else:
-                    diff[graph] = {key: value}
+                    delta[graph] = {key: value}
 
         if branch in nbranches and nbranches[branch].has_exact_rev(turn):
             for graph, node, exists in nbranches[branch][turn][tick_from:tick_to]:
-                diff.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
+                delta.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
 
         if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
             for graph, node, key, value in nvbranches[branch][turn][tick_from:tick_to]:
-                nodevd = diff.setdefault(graph, {}).setdefault('node_val', {})
+                nodevd = delta.setdefault(graph, {}).setdefault('node_val', {})
                 if node in nodevd:
                     nodevd[node][key] = value
                 else:
@@ -334,15 +334,15 @@ class ORM(object):
         if branch in ebranches and ebranches[branch].has_exact_rev(turn):
             for graph, orig, dest, idx, exists in ebranches[branch][turn][tick_from:tick_to]:
                 if graph_objs[graph].is_multigraph():
-                    diff.setdefault(graph, {}).setdefault('edges', {})\
+                    delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
                 else:
-                    diff.setdefault(graph, {}).setdefault('edges', {})\
+                    delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {})[dest] = exists
 
         if branch in evbranches and evbranches[branch].has_exact_rev(turn):
             for graph, orig, dest, idx, key, value in evbranches[branch][turn][tick_from:tick_to]:
-                edgevd = diff.setdefault(graph, {}).setdefault('edge_val', {})\
+                edgevd = delta.setdefault(graph, {}).setdefault('edge_val', {})\
                     .setdefault(orig, {}).setdefault(dest, {})
                 if graph_objs[graph].is_multigraph():
                     if idx in edgevd:
@@ -352,7 +352,7 @@ class ORM(object):
                 else:
                     edgevd[key] = value
 
-        return diff
+        return delta
 
     def _init_caches(self):
         self._global_cache = self.query._global_cache = {}
