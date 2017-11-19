@@ -2,6 +2,7 @@
 # Copyright (C) Zachary Spector.
 from collections import defaultdict
 from functools import partial
+from blinker import Signal
 from .graph import (
     Graph,
     DiGraph,
@@ -66,6 +67,113 @@ class AdvancingContext(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.orm.forward = False
+
+
+class TimeSignal(Signal):
+    """Acts like a tuple of the time in (branch, turn) for the most part.
+
+    This is a Signal, so pass a function to the connect(...) method and
+    it will be called whenever the time changes. Not when the tick
+    changes, though. If you really need something done whenever the
+    tick changes, override the _set_tick method of
+    :class:`allegedb.ORM`.
+
+    """
+    def __init__(self, engine):
+        super().__init__()
+        self.engine = engine
+
+    def __iter__(self):
+        yield self.engine.branch
+        yield self.engine.turn
+
+    def __len__(self):
+        return 2
+
+    def __getitem__(self, i):
+        if i in ('branch', 0):
+            return self.engine.branch
+        if i in ('turn', 1):
+            return self.engine.turn
+
+    def __setitem__(self, i, v):
+        branch_then, turn_then, tick_then = self.engine.btt()
+        if i in ('branch', 0):
+            self.engine.branch = v
+        if i in ('turn', 1):
+            self.engine.turn = v
+        branch_now, turn_now, tick_now = self.engine.btt()
+        self.send(
+            self, branch_then=branch_then, turn_then=turn_then, tick_then=tick_then,
+            branch_now=branch_now, turn_now=turn_now, tick_now=tick_now
+        )
+
+    def __str__(self):
+        return str((self.engine.branch, self.engine.turn))
+
+
+class TimeSignalDescriptor:
+    __doc__ = TimeSignal.__doc__
+    signals = {}
+
+    def __get__(self, inst, cls):
+        if id(inst) not in self.signals:
+            self.signals[id(inst)] = TimeSignal(inst)
+        return self.signals[id(inst)]
+
+    def __set__(self, inst, val):
+        if id(inst) not in self.signals:
+            self.signals[id(inst)] = TimeSignal(inst)
+        real = self.signals[id(inst)]
+        branch_then, turn_then, tick_then = real.engine.btt()
+        branch_now, turn_now = val
+        if (branch_then, turn_then) == (branch_now, turn_now):
+            return
+        e = real.engine
+        # enforce the arrow of time, if it's in effect
+        if e.forward:
+            if branch_now != branch_then:
+                raise ValueError("Can't change branches in a forward context")
+            if turn_now < turn_then:
+                raise ValueError("Can't time travel backward in a forward context")
+            if turn_now > turn_then + 1:
+                raise ValueError("Can't skip turns in a forward context")
+        # make sure I'll end up within the revision range of the
+        # destination branch
+        branches = e._branches
+        tick_now = e._turn_end_plan.setdefault((branch_now, turn_now), 0)
+        if branch_now in branches:
+            parent, turn_start, tick_start, turn_end, tick_end = branches[branch_now]
+            if turn_now < turn_start:
+                raise ValueError(
+                    "The turn number {} "
+                    "occurs before the start of "
+                    "the branch {}".format(turn_now, branch_now)
+                )
+            if not e.planning and (turn_now > turn_end or tick_now > tick_end):
+                branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
+        else:
+            branches[branch_now] = (
+                branch_then, turn_now, tick_now, turn_now, tick_now
+            )
+            e.query.new_branch(branch_then, turn_now, tick_now, turn_now, tick_now)
+        e._obranch, e._oturn = branch, turn = val
+
+        if turn > e._turn_end_plan[val]:
+            e._turn_end_plan[val] = turn
+        if not e.planning:
+            if tick_now > e._turn_end[val]:
+                e._turn_end[val] = tick_now
+        e._otick = tick_now
+        real.send(
+            e,
+            branch_then=branch_then,
+            turn_then=turn_then,
+            tick_then=tick_then,
+            branch_now=branch_now,
+            turn_now=turn_now,
+            tick_now=tick_now
+        )
 
 
 def setgraphval(delta, graph, key, val):
@@ -136,6 +244,7 @@ class ORM(object):
     query_engine_cls = QueryEngine
     illegal_graph_names = ['global']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
+    time = TimeSignalDescriptor()
 
     @property
     def plan(self):

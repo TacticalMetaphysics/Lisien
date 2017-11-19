@@ -41,97 +41,6 @@ from .cache import (
 )
 
 
-class TimeSignal(Signal):
-    """Acts like a tuple of the time in (branch, turn) for the most part.
-
-    You can also connect to this like it's a Signal, so a function gets
-    called every time the time changes.
-
-    """
-    def __init__(self, engine):
-        super().__init__()
-        self.engine = engine
-
-    def __iter__(self):
-        yield self.engine.branch
-        yield self.engine.turn
-
-    def __len__(self):
-        return 2
-
-    def __getitem__(self, i):
-        if i in ('branch', 0):
-            return self.engine.branch
-        if i in ('turn', 1):
-            return self.engine.turn
-
-    def __setitem__(self, i, v):
-        if i in ('branch', 0):
-            self.engine.branch = v
-        if i in ('turn', 1):
-            self.engine.turn = v
-        self.send(self, branch=self.engine.branch, turn=self.engine.turn)
-
-    def __str__(self):
-        return str((self.engine.branch, self.engine.turn))
-
-
-class TimeSignalDescriptor(object):
-    __doc__ = TimeSignal.__doc__
-    signals = {}
-
-    def __get__(self, inst, cls):
-        if id(inst) not in self.signals:
-            self.signals[id(inst)] = TimeSignal(inst)
-        return self.signals[id(inst)]
-
-    def __set__(self, inst, val):
-        if id(inst) not in self.signals:
-            self.signals[id(inst)] = TimeSignal(inst)
-        real = self.signals[id(inst)]
-        branch_then, turn_then, tick_then = real.engine.btt()
-        branch_now, turn_now = val
-        e = real.engine
-        # enforce the arrow of time, if it's in effect
-        if e.forward and branch_now == branch_then and turn_now < turn_then:
-            raise ValueError("Can't time travel backward in a forward context")
-        # make sure I'll end up within the revision range of the
-        # destination branch
-        branches = e._branches
-        tick_now = e._turn_end.get((branch_now, turn_now), 0)
-        if branch_now != 'trunk':
-            if branch_now in branches:
-                parturn = branches[branch_now][1]
-                if turn_now < parturn:
-                    raise ValueError(
-                        "Tried to jump to branch {br}, "
-                        "which starts at turn {t}. "
-                        "Go to turn {t} or later to use branch {br}.".format(
-                            br=branch_now,
-                            t=parturn
-                        )
-                    )
-            else:
-                branches[branch_now] = (
-                    branch_then, turn_now, tick_now, turn_now, tick_now
-                )
-                e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
-        e._obranch, e._oturn = branch, turn = val
-        parent, start_turn, start_tick, end_turn, end_tick = branches[branch]
-        if not e.planning and turn_now > end_turn:
-            branches[branch] = parent, start_turn, start_tick, turn_now, tick_now
-        e._otick = tick_now
-        real.send(
-            e,
-            branch_then=branch_then,
-            turn_then=turn_then,
-            tick_then=tick_then,
-            branch_now=branch_now,
-            turn_now=turn_now,
-            tick_now=tick_now
-        )
-
-
 class NextTurn(Signal):
     """Make time move forward in the simulation.
 
@@ -405,7 +314,6 @@ class Engine(AbstractEngine, gORM):
     place_cls = node_cls = Place
     portal_cls = edge_cls = _make_edge = Portal
     query_engine_cls = QueryEngine
-    time = TimeSignalDescriptor()
     illegal_graph_names = ['global', 'eternal', 'universal', 'rulebooks', 'rules']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
