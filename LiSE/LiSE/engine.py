@@ -324,6 +324,35 @@ class Engine(AbstractEngine, gORM):
             return Place(char, node)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
+        """Get a dictionary describing changes to the world.
+
+        Most keys will be character names, and their values will be dictionaries of
+        the character's stats' new values, with ``None`` for deleted keys. Characters'
+        dictionaries have special keys 'nodes' and 'edges' which contain booleans indicating
+        whether the node or edge exists at the moment, and 'node_val' and 'edge_val' for
+        the stats of those entities. For edges (also called portals) these dictionaries
+        are two layers deep, keyed first by the origin, then by the destination.
+
+        Characters also have special keys for the various rulebooks they have:
+
+        * 'character_rulebook'
+        * 'avatar_rulebook'
+        * 'character_thing_rulebook'
+        * 'character_place_rulebook'
+        * 'character_portal_rulebook'
+
+        And each node and edge may have a 'rulebook' stat of its own. If a node is a thing,
+        it gets a 'location' and possibly 'next_location'; when the 'location' is deleted,
+        that means it's back to being a place.
+
+        Keys at the top level that are not character names:
+
+        * 'rulebooks', a dictionary keyed by the name of each changed rulebook, the value
+        being a list of rule names
+        * 'rules', a dictionary keyed by the name of each changed rule, containing any
+        of the lists 'triggers', 'prereqs', and 'actions'
+
+        """
         if turn_from == turn_to:
             return self.get_turn_delta(branch, turn_to, tick_to, start_tick=tick_from)
         delta = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
@@ -422,6 +451,14 @@ class Engine(AbstractEngine, gORM):
         return delta
 
     def get_turn_delta(self, branch=None, turn=None, tick=None, start_tick=0):
+        """Get a dictionary describing changes to the world within a given turn
+
+        Defaults to the present turn, and stops at the present tick unless specified.
+
+        See the documentation for ``get_delta`` for a detailed description of the
+        delta format.
+
+        """
         branch = branch or self.branch
         turn = turn or self.turn
         tick = tick or self.tick
