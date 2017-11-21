@@ -538,7 +538,7 @@ class PortalProxy(CachingEntityProxy):
         self.engine.del_portal(self._charname, self._origin, self._destination)
 
 
-class NodeMapProxy(MutableMapping):
+class NodeMapProxy(MutableMapping, Signal):
     rulebook = RulebookProxyDescriptor()
 
     def _get_default_rulebook_name(self):
@@ -564,6 +564,7 @@ class NodeMapProxy(MutableMapping):
         return self.engine.character[self._charname]
 
     def __init__(self, engine_proxy, charname):
+        super().__init__()
         self.engine = engine_proxy
         self._charname = charname
 
@@ -1391,9 +1392,34 @@ class CharacterProxy(MutableMapping):
 
     def _apply_diff(self, diff):
         diff = diff.copy()
-        self.thing._apply_diff(diff.pop('things', {}))
-        self.place._apply_diff(diff.pop('places', {}))
-        self.portal._apply_diff(diff.pop('portals', {}))
+        for node, ex in diff.pop('nodes', {}).items():
+            if ex:
+                if node not in self.node:
+                    nodeval = diff.get('node_val', {}).get(node, None)
+                    if nodeval and 'location' in nodeval:
+                        self.thing._cache[node] = prox = ThingProxy(
+                            self.engine, self.name, node, nodeval['location'],
+                            nodeval.get('next_location'), nodeval.get('arrival_time'),
+                            nodeval.get('next_arrival_time')
+                        )
+                        self.thing.send(self.thing, key=node, value=prox)
+                    else:
+                        self.place._cache[node] = prox = PlaceProxy(
+                            self.engine, self.name, node
+                        )
+                        self.place.send(self.place, key=node, value=prox)
+                    self.node.send(self.node, key=node, value=prox)
+            else:
+                if node in self.place._cache:
+                    del self.place._cache[node]
+                    self.place.send(self.place, key=node, value=None)
+                elif node in self.thing._cache:
+                    del self.thing._cache[node]
+                    self.thing.send(self.thing, key=node, value=None)
+                else:
+                    self.engine.warning("Diff deleted {} but it was never created here".format(node))
+                self.node.send(self.node, key=node, value=None)
+        self.portal._apply_diff(diff.pop('edges', {}))
         for (node, nodediff) in diff.pop('node_val', {}).items():
             if node not in self.engine._node_stat_cache[self.name]:
                 self.engine._node_stat_cache[self.name][node] = nodediff
@@ -2042,19 +2068,20 @@ class EngineProxy(AbstractEngine):
                             char][origin][destination] \
                             = self._rulebook_obj_cache[rulebook] \
                             = RuleBookProxy(self, rulebook)
-            for (
-                    thing, (loc, nxloc, arrt, nxarrt)
-            ) in charsdiffs[char].pop('things', {}).items():
-                if loc:
-                    self._things_cache[char][thing] \
-                        = ThingProxy(
-                            self, char, thing, loc, nxloc, arrt, nxarrt
-                        )
-            for (place, ex) in charsdiffs[char].pop('places', {}).items():
+            for node, ex in charsdiffs[char].pop('nodes', {}).items():
                 if ex:
-                    self._character_places_cache[char][place] \
-                        = PlaceProxy(self, char, place)
-            for (orig, dest), ex in charsdiffs[char].pop('portals', {}).items():
+                    noded = charsdiffs[char].get('node_val', {}).get(node)
+                    if noded and 'location' in noded:
+                        self._things_cache[char][node] = ThingProxy(
+                            self, char, node, noded['location'],
+                            noded.get('next_location'), noded.get('arrival_time'),
+                            noded.get('next_arrival_time')
+                        )
+                    else:
+                        self._character_places_cache[char][node] = PlaceProxy(
+                            self, char, node
+                        )
+            for (orig, dest), ex in charsdiffs[char].pop('edges', {}).items():
                 if ex:
                     self._character_portals_cache.store(
                         char, orig, dest, PortalProxy(self, char, orig, dest)

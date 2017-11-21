@@ -53,8 +53,7 @@ class EngineHandle(object):
         self._char_portals_rulebooks_cache = defaultdict(
             lambda: defaultdict(dict)
         )
-        self._char_things_cache = {}
-        self._char_places_cache = {}
+        self._char_nodes_cache = {}
         self._char_portals_cache = {}
         self._node_successors_cache = defaultdict(dict)
         self._strings_cache = {}
@@ -509,9 +508,8 @@ class EngineHandle(object):
     def character_diff(self, char):
         """Return a dictionary of changes to ``char`` since previous call."""
         ret = self.character_stat_diff(char)
-        ret['things'] = self.character_things_diff(char)
-        ret['places'] = self.character_places_diff(char)
-        ret['portals'] = self.character_portals_diff(char)
+        ret['nodes'] = self.character_nodes_diff(char)
+        ret['edges'] = self.character_portals_diff(char)
         ret['avatars'] = self.character_avatars_diff(char)
         ret['rulebooks'] = self.character_rulebooks_diff(char)
         ret['node_rulebooks'] = self.character_nodes_rulebooks_diff(char)
@@ -662,34 +660,14 @@ class EngineHandle(object):
                 if node in porto:
                     del porto[node]
 
-    def character_things(self, char):
-        ret = {}
-        for name, thing in self._real.character[char].thing.items():
-            ret[name] = thing['locations'] + (thing['arrival_time'], thing['next_arrival_time'])
-        return ret
+    def character_nodes(self, char):
+        return list(self._real.character[char].node)
 
-    def character_things_diff(self, char):
-        """Return a dictionary of char's things and their locations.
-
-        Location of ``None`` means the thing doesn't exist anymore.
-
-        """
+    def character_nodes_diff(self, char):
         try:
-            new = self.character_things(char)
-            old = self._char_things_cache.get(char, {})
-            self._char_things_cache[char] = new
-            return dict_diff(old, new)
-        except KeyError:
-            return {}
-
-    def character_places(self, char):
-        return list(self._real.character[char].place)
-
-    def character_places_diff(self, char):
-        try:
-            old = self._char_places_cache.get(char, [])
-            new = self.character_places(char)
-            self._char_places_cache[char] = new
+            old = self._char_nodes_cache.get(char, [])
+            new = self.character_nodes(char)
+            self._char_nodes_cache[char] = new
             return set_diff(old, new)
         except KeyError:
             return None
