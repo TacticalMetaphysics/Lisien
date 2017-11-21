@@ -2049,8 +2049,8 @@ class EngineProxy(AbstractEngine):
         a result. If ``silent=True`` this will happen in a thread.
         ``cb`` will be called with keyword arguments ``command``,
         the same command you asked for; ``result``, the value returned
-        by it, possibly ``None``; and ``branch`` and ``tick``,
-        the present game time, possibly different than when you called
+        by it, possibly ``None``; and the present ``branch``,
+        ``turn``, and ``tick``, possibly different than when you called
         ``handle``.
 
         """
