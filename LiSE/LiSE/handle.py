@@ -191,8 +191,7 @@ class EngineHandle(object):
         for rule, d in diff.pop('rules', {}).items():
             updd(self._rulebook_cache.setdefault(rule, {}), d)
         for char, d in diff.items():
-            updd(self._char_things_cache.setdefault(char, {}), d.pop('things', {}))
-            updd(self._char_places_cache.setdefault(char, {}), d.pop('places', {}))
+            updd(self._char_nodes_cache.setdefault(char, {}), d.pop('nodes', {}))
             nodevd = self._node_stat_cache.setdefault(char, {})
             for node, val in d.pop('node_val', {}).items():
                 updd(nodevd.setdefault(node, {}), val)
