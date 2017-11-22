@@ -395,6 +395,7 @@ class Engine(AbstractEngine, gORM):
             thingd['next_location'] = nxtloc
         if branch in thbranches:
             updater(updthing, thbranches[branch])
+        # TODO handle arrival_time and next_arrival_time stats of things
 
         delta['rulebooks'] = {}
         def updrb(whatev, rulebook, rules):

@@ -57,36 +57,24 @@ class CachingProxy(MutableMapping, Signal):
     def __setitem__(self, k, v):
         self._set_item(k, v)
         self._cache[k] = self._cache_munge(k, v)
-        self.send(self, key=k, val=v)
+        self.send(self, key=k, value=v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
         self._del_item(k)
         del self._cache[k]
-        self.send(self, key=k, val=None)
+        self.send(self, key=k, value=None)
 
     def _apply_diff(self, diff):
         for (k, v) in diff.items():
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
-                    self.send(self, key=k, val=None)
+                    self.send(self, key=k, value=None)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
-                self.send(self, key=k, val=v)
-
-    def update_cache(self):
-        diff = self._get_diff()
-        self.exists = diff is not None
-        if not self.exists:
-            self._cache = {}
-            self.send(self)
-            return
-        self._apply_diff(diff)
-
-    def _get_diff(self):
-        raise NotImplementedError("Abstract method")
+                self.send(self, key=k, value=v)
 
     def _cache_munge(self, k, v):
         raise NotImplementedError("Abstract method")
@@ -195,13 +183,6 @@ class NodeProxy(CachingEntityProxy):
     def _get_state(self):
         return self.engine.handle(
             command='node_stat_copy',
-            char=self._charname,
-            node=self.name
-        )
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='node_stat_diff',
             char=self._charname,
             node=self.name
         )
@@ -348,29 +329,6 @@ class ThingProxy(NodeProxy):
             self._location
         )
 
-    def update_cache(self):
-        (loc, next_loc, arrt, next_arrt) = self.engine.handle(
-            command='get_thing_special_stats',
-            char=self._charname, thing=self.name
-        )
-        if loc is None:
-            self.exists = False
-            self._cache = {}
-            return
-        if loc != self._location:
-            self._location = loc
-            self.send(self, key='location', val=loc)
-        if next_loc != self._next_location:
-            self._next_location = next_loc
-            self.send(self, key='next_location', val=next_loc)
-        if arrt != self._arrival_time:
-            self._arrival_time = arrt
-            self.send(self, key='arrival_time', val=arrt)
-        if next_arrt != self._next_arrival_time:
-            self._next_arrival_time = next_arrt
-            self.send(self, key='next_arrival_time', val=next_arrt)
-        super().update_cache()
-
     def follow_path(self, path, weight=None):
         self.engine.handle(
             command='thing_follow_path',
@@ -472,14 +430,6 @@ class PortalProxy(CachingEntityProxy):
     def destination(self):
         return self.character.node[self._destination]
 
-    def _get_diff(self):
-        return self.engine.handle(
-            commnad='portal_stat_diff',
-            char=self._charname,
-            orig=self._origin,
-            dest=self._destination
-        )
-
     def _set_item(self, k, v):
         self.engine.handle(
             command='set_portal_stat',
@@ -538,7 +488,7 @@ class PortalProxy(CachingEntityProxy):
         self.engine.del_portal(self._charname, self._origin, self._destination)
 
 
-class NodeMapProxy(MutableMapping):
+class NodeMapProxy(MutableMapping, Signal):
     rulebook = RulebookProxyDescriptor()
 
     def _get_default_rulebook_name(self):
@@ -564,6 +514,7 @@ class NodeMapProxy(MutableMapping):
         return self.engine.character[self._charname]
 
     def __init__(self, engine_proxy, charname):
+        super().__init__()
         self.engine = engine_proxy
         self._charname = charname
 
@@ -625,47 +576,6 @@ class ThingMapProxy(CachingProxy):
 
     def __eq__(self, other):
         return self is other
-
-    def _apply_diff(self, diff):
-        for thing, data in diff.items():
-            if data:
-                location, next_location, arrival_time, next_arrival_time = data
-                if location:
-                    if thing in self._cache:
-                        thisthing = self._cache[thing]
-                        if thisthing._location != location:
-                            thisthing._location = location
-                            thisthing.send(thisthing, key='location', val=location)
-                        if thisthing._next_location != next_location:
-                            thisthing._next_location = next_location
-                            thisthing.send(thisthing, key='next_location', val=next_location)
-                        if thisthing._arrival_time != arrival_time:
-                            thisthing._arrival_time = arrival_time
-                            thisthing.send(thisthing, key='arrival_time', val=arrival_time)
-                        if thisthing._next_arrival_time != next_arrival_time:
-                            thisthing._next_arrival_time = next_arrival_time
-                            thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
-                    else:
-                        self._cache[thing] = ThingProxy(
-                            self.engine,
-                            self.name,
-                            thing,
-                            location,
-                            next_location,
-                            arrival_time,
-                            next_arrival_time
-                        )
-                elif thing in self._cache:
-                    self.send(self, key=thing, val=None)
-                    del self._cache[thing]
-            else:
-                assert thing in self._cache
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_things_diff',
-            char=self.name
-        )
 
     def _cache_munge(self, k, v):
         return ThingProxy(
@@ -736,25 +646,6 @@ class PlaceMapProxy(CachingProxy):
     def __eq__(self, other):
         return self is other
 
-    def _apply_diff(self, diff):
-        for (place, ex) in diff.items():
-            if ex:
-                if place not in self._cache:
-                    self._cache[place] = PlaceProxy(
-                        self.engine,
-                        self.name,
-                        place
-                    )
-            else:
-                if place in self._cache:
-                    del self._cache[place]
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_places_diff',
-            char=self.name
-        )
-
     def _cache_munge(self, k, v):
         return PlaceProxy(
             self.engine, self.name, k
@@ -814,13 +705,6 @@ class SuccessorsProxy(CachingProxy):
     def _apply_diff(self, diff):
         raise NotImplementedError(
             "Apply the diff on CharSuccessorsMappingProxy"
-        )
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='node_successors_diff',
-            char=self._charname,
-            node=self._orig
         )
 
     def _cache_munge(self, k, v):
@@ -916,12 +800,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
                     del self._cache[o][d]
                     if len(self._cache[o]) == 0:
                         del self._cache[o]
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_nodes_with_successors_diff',
-            character=self.name
-        )
 
     def _set_item(self, orig, val):
         self.engine.handle(
@@ -1062,12 +940,6 @@ class CharStatProxy(CachingEntityProxy):
     def _get_state(self):
         return self.engine.handle(
             command='character_stat_copy',
-            char=self.name
-        )
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_stat_diff',
             char=self.name
         )
 
@@ -1391,9 +1263,34 @@ class CharacterProxy(MutableMapping):
 
     def _apply_diff(self, diff):
         diff = diff.copy()
-        self.thing._apply_diff(diff.pop('things', {}))
-        self.place._apply_diff(diff.pop('places', {}))
-        self.portal._apply_diff(diff.pop('portals', {}))
+        for node, ex in diff.pop('nodes', {}).items():
+            if ex:
+                if node not in self.node:
+                    nodeval = diff.get('node_val', {}).get(node, None)
+                    if nodeval and 'location' in nodeval:
+                        self.thing._cache[node] = prox = ThingProxy(
+                            self.engine, self.name, node, nodeval['location'],
+                            nodeval.get('next_location'), nodeval.get('arrival_time'),
+                            nodeval.get('next_arrival_time')
+                        )
+                        self.thing.send(self.thing, key=node, value=prox)
+                    else:
+                        self.place._cache[node] = prox = PlaceProxy(
+                            self.engine, self.name, node
+                        )
+                        self.place.send(self.place, key=node, value=prox)
+                    self.node.send(self.node, key=node, value=prox)
+            else:
+                if node in self.place._cache:
+                    del self.place._cache[node]
+                    self.place.send(self.place, key=node, value=None)
+                elif node in self.thing._cache:
+                    del self.thing._cache[node]
+                    self.thing.send(self.thing, key=node, value=None)
+                else:
+                    self.engine.warning("Diff deleted {} but it was never created here".format(node))
+                self.node.send(self.node, key=node, value=None)
+        self.portal._apply_diff(diff.pop('edges', {}))
         for (node, nodediff) in diff.pop('node_val', {}).items():
             if node not in self.engine._node_stat_cache[self.name]:
                 self.engine._node_stat_cache[self.name][node] = nodediff
@@ -2042,19 +1939,20 @@ class EngineProxy(AbstractEngine):
                             char][origin][destination] \
                             = self._rulebook_obj_cache[rulebook] \
                             = RuleBookProxy(self, rulebook)
-            for (
-                    thing, (loc, nxloc, arrt, nxarrt)
-            ) in charsdiffs[char].pop('things', {}).items():
-                if loc:
-                    self._things_cache[char][thing] \
-                        = ThingProxy(
-                            self, char, thing, loc, nxloc, arrt, nxarrt
-                        )
-            for (place, ex) in charsdiffs[char].pop('places', {}).items():
+            for node, ex in charsdiffs[char].pop('nodes', {}).items():
                 if ex:
-                    self._character_places_cache[char][place] \
-                        = PlaceProxy(self, char, place)
-            for (orig, dest), ex in charsdiffs[char].pop('portals', {}).items():
+                    noded = charsdiffs[char].get('node_val', {}).get(node)
+                    if noded and 'location' in noded:
+                        self._things_cache[char][node] = ThingProxy(
+                            self, char, node, noded['location'],
+                            noded.get('next_location'), noded.get('arrival_time'),
+                            noded.get('next_arrival_time')
+                        )
+                    else:
+                        self._character_places_cache[char][node] = PlaceProxy(
+                            self, char, node
+                        )
+            for (orig, dest), ex in charsdiffs[char].pop('edges', {}).items():
                 if ex:
                     self._character_portals_cache.store(
                         char, orig, dest, PortalProxy(self, char, orig, dest)
@@ -2151,8 +2049,8 @@ class EngineProxy(AbstractEngine):
         a result. If ``silent=True`` this will happen in a thread.
         ``cb`` will be called with keyword arguments ``command``,
         the same command you asked for; ``result``, the value returned
-        by it, possibly ``None``; and ``branch`` and ``tick``,
-        the present game time, possibly different than when you called
+        by it, possibly ``None``; and the present ``branch``,
+        ``turn``, and ``tick``, possibly different than when you called
         ``handle``.
 
         """
