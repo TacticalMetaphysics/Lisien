@@ -1905,6 +1905,12 @@ class TimeDescriptor(object):
 
 
 class EngineProxy(AbstractEngine):
+    """An engine-like object for controlling the actual LiSE engine in another process.
+
+    Don't instantiate this directly. Use :class:`EngineProcessManager` instead.
+    The ``start`` method will return an :class:`EngineProxy` instance.
+
+    """
     char_cls = CharacterProxy
     thing_cls = ThingProxy
     place_cls = PlaceProxy
