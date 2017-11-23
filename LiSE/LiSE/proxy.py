@@ -258,7 +258,7 @@ class ThingProxy(NodeProxy):
         super().__init__(engine, character, name)
         self._location = location
         self._next_location = next_location
-        self._arrival_time = arrival_time
+        self._arrival_time = arrival_time or engine.turn
         self._next_arrival_time = next_arrival_time
 
     def __iter__(self):
@@ -1827,14 +1827,14 @@ class EngineProxy(AbstractEngine):
 
     @branch.setter
     def branch(self, v):
-        self.time_travel(v, self.tick)
+        self.time_travel(v, self.turn)
 
     @property
-    def tick(self):
-        return self._tick
+    def turn(self):
+        return self._turn
 
-    @tick.setter
-    def tick(self, v):
+    @turn.setter
+    def turn(self, v):
         self.time_travel(self.branch, v)
 
     def __init__(
