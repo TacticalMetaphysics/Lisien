@@ -255,8 +255,6 @@ class ThingProxy(NodeProxy):
     ):
         if location is None:
             raise TypeError("Thing must have location")
-        if arrival_time is None:
-            raise TypeError("Thing must have arrival_time")
         super().__init__(engine, character, name)
         self._location = location
         self._next_location = next_location
@@ -1941,7 +1939,7 @@ class EngineProxy(AbstractEngine):
                             = RuleBookProxy(self, rulebook)
             for node, ex in charsdiffs[char].pop('nodes', {}).items():
                 if ex:
-                    noded = charsdiffs[char].get('node_val', {}).get(node)
+                    noded = self._node_stat_cache[char].get(node)
                     if noded and 'location' in noded:
                         self._things_cache[char][node] = ThingProxy(
                             self, char, node, noded['location'],

@@ -559,8 +559,6 @@ class EngineHandle(object):
             k: unwrapper(node, k, v)
             for (k, v) in node.items()
             if k not in {
-                    'location',
-                    'next_location',
                     'arrival_time',
                     'next_arrival_time'
             }
