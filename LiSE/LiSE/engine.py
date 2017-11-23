@@ -406,7 +406,7 @@ class Engine(AbstractEngine, gORM):
 
         delta['rules'] = {}
 
-        def updru(key, rule, funs):
+        def updru(key, _, rule, funs):
             delta['rules'].setdefault(rule, {})[key] = funs
 
         if branch in trigbranches:
