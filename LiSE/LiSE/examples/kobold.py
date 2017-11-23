@@ -191,3 +191,8 @@ if __name__ == '__main__':
         print('shrub_places beginning: {}'.format(
             engine.character['physical'].thing['kobold']['shrub_places']
         ))
+    from LiSE.handle import EngineHandle
+    hand = EngineHandle(('LiSEworld.db',), {'random_seed': 69105})
+    ret, diff = hand.next_turn()
+    slowd = hand.get_slow_diff(store=False)
+    assert diff == slowd

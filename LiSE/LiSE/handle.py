@@ -177,7 +177,6 @@ class EngineHandle(object):
                 self._char_portals_cache[charn] = self.character_portals(char)
                 self._char_rulebooks_cache[charn] = self.character_rulebooks_copy(char)
             return
-        assert diff == self.get_slow_diff(store=False), "Incorrect world-state delta"
 
         def updd(d0, d1):
             for k, v in d1.items():
