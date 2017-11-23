@@ -13,6 +13,7 @@ from os import getpid
 from collections import (
     Mapping,
     MutableMapping,
+    Sequence,
     MutableSequence
 )
 from functools import partial
@@ -88,7 +89,11 @@ class CachingProxy(MutableMapping, Signal):
 
 class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
-        return self.engine.json_rewrap(v)
+        if isinstance(v, Mapping):
+            return JSONReWrapper(self, k, v)
+        elif isinstance(v, Sequence):
+            return JSONListReWrapper(self, k, v)
+        return v
 
     def __repr__(self):
         return "{}({}) {}".format(
