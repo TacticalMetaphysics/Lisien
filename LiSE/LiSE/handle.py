@@ -140,15 +140,15 @@ class EngineHandle(object):
     def advance(self):
         self._real.advance()
 
-    def get_chardiffs(self, chars):
+    def get_chardiffs(self, chars, *, store=True):
         if chars == 'all':
             return {
-                char: self.character_diff(char)
+                char: self.character_diff(char, store=store)
                 for char in self._real.character.keys()
             }
         else:
             return {
-                char: self.character_diff(char)
+                char: self.character_diff(char, store=store)
                 for char in chars
             }
 
@@ -177,6 +177,7 @@ class EngineHandle(object):
                 self._char_portals_cache[charn] = self.character_portals(char)
                 self._char_rulebooks_cache[charn] = self.character_rulebooks_copy(char)
             return
+        assert diff == self.get_slow_diff(store=False)
 
         def updd(d0, d1):
             for k, v in d1.items():
@@ -213,6 +214,16 @@ class EngineHandle(object):
         self._after_ret = partial(self._upd_local_caches, diff)
         return ret, diff
 
+    def get_slow_diff(self, chars='all', store=True):
+        diff = {}
+        if chars:
+            diff = self.get_chardiffs(chars, store=store)
+        diff['eternal'] = self.eternal_diff(store=store)
+        diff['universal'] = self.universal_diff(store=store)
+        diff['rules'] = self.all_rules_diff(store=store)
+        diff['rulebooks'] = self.all_rulebooks_diff(store=store)
+        return diff
+
     def time_travel(self, branch, turn, tick=None, chars='all'):
         branch_from, turn_from, tick_from = self._real.btt()
         slow_diff = branch != branch_from
@@ -224,13 +235,7 @@ class EngineHandle(object):
         self.branch = branch
         self.turn = turn
         if slow_diff:
-            diff = {}
-            if chars:
-                diff = self.get_chardiffs(chars)
-            diff['eternal'] = self.eternal_diff()
-            diff['universal'] = self.universal_diff()
-            diff['rules'] = self.all_rules_diff()
-            diff['rulebooks'] = self.all_rulebooks_diff()
+            diff = self.get_slow_diff(chars)
         else:
             diff = self._real.get_delta(branch, turn_from, tick_from, self.turn, self.tick)
             self._after_ret = partial(self._upd_local_caches, diff)
@@ -366,9 +371,11 @@ class EngineHandle(object):
     def eternal_copy(self):
         return dict(self._real.eternal)
 
-    def eternal_diff(self):
+    def eternal_diff(self, *, store=True):
         old = self._eternal_cache
         new = self.eternal_copy()
+        if store:
+            self._eternal_cache = new
         return dict_diff(old, new)
 
     def get_universal(self, k):
@@ -386,9 +393,11 @@ class EngineHandle(object):
     def universal_copy(self):
         return dict(self._real.universal)
 
-    def universal_diff(self):
+    def universal_diff(self, *, store=True):
         old = self._universal_cache
         new = self.universal_copy()
+        if store:
+            self._universal_cache = new
         return dict_diff(old, new)
 
     def init_character(self, char, statdict={}):
@@ -421,14 +430,16 @@ class EngineHandle(object):
         }
 
     @staticmethod
-    def _character_something_diff(char, cache, copier, *args):
+    def _character_something_diff(char, cache, copier, *args, store=True):
         old = cache.get(char, {})
-        new = cache[char] = copier(char, *args)
+        new = copier(char, *args)
+        if store:
+            cache[char] = new
         return dict_diff(old, new)
 
-    def character_stat_diff(self, char):
+    def character_stat_diff(self, char, *, store=True):
         return self._character_something_diff(
-            char, self._char_stat_cache, self.character_stat_copy
+            char, self._char_stat_cache, self.character_stat_copy, store=store
         )
 
     def character_avatars_copy(self, char):
@@ -437,9 +448,9 @@ class EngineHandle(object):
             self._real.character[char].avatar.items()
         }
 
-    def character_avatars_diff(self, char):
+    def character_avatars_diff(self, char, *, store=True):
         return self._character_something_diff(
-            char, self._char_av_cache, self.character_avatars_copy
+            char, self._char_av_cache, self.character_avatars_copy, store=store
         )
 
     def character_rulebooks_copy(self, char):
@@ -453,9 +464,9 @@ class EngineHandle(object):
             'node': chara.node.rulebook.name
         }
 
-    def character_rulebooks_diff(self, char):
+    def character_rulebooks_diff(self, char, *, store=True):
         return self._character_something_diff(
-            char, self._char_rulebooks_cache, self.character_rulebooks_copy
+            char, self._char_rulebooks_cache, self.character_rulebooks_copy, store=store
         )
 
     def character_nodes_rulebooks_copy(self, char, nodes='all'):
@@ -466,10 +477,10 @@ class EngineHandle(object):
             nodeiter = (chara.node[k] for k in nodes)
         return {node.name: node.rulebook.name for node in nodeiter}
 
-    def character_nodes_rulebooks_diff(self, char, nodes='all'):
+    def character_nodes_rulebooks_diff(self, char, nodes='all', *, store=True):
         return self._character_something_diff(
             char, self._char_nodes_rulebooks_cache,
-            self.character_nodes_rulebooks_copy, nodes
+            self.character_nodes_rulebooks_copy, nodes, store=store
         )
 
     def character_portals_rulebooks_copy(self, char, portals='all'):
@@ -484,13 +495,14 @@ class EngineHandle(object):
                 = portal.rulebook.name
         return result
 
-    def character_portals_rulebooks_diff(self, char, portals='all'):
+    def character_portals_rulebooks_diff(self, char, portals='all', *, store=True):
         try:
             old = self._char_portals_rulebooks_cache.get(
                 char, defaultdict(dict)
             )
-            new = self._char_portals_rulebooks_cache[char] \
-                  = self.character_portals_rulebooks_copy(char, portals)
+            new = self.character_portals_rulebooks_copy(char, portals)
+            if store:
+                self._char_portals_rulebooks_cache[char] = new
             result = {}
             for origin in old:
                 if origin in new:
@@ -504,17 +516,17 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_diff(self, char):
+    def character_diff(self, char, *, store=True):
         """Return a dictionary of changes to ``char`` since previous call."""
-        ret = self.character_stat_diff(char)
-        ret['nodes'] = self.character_nodes_diff(char)
-        ret['edges'] = self.character_portals_diff(char)
-        ret['avatars'] = self.character_avatars_diff(char)
-        ret['rulebooks'] = self.character_rulebooks_diff(char)
-        ret['node_rulebooks'] = self.character_nodes_rulebooks_diff(char)
-        ret['portal_rulebooks'] = self.character_portals_rulebooks_diff(char)
-        ret['node_val'] = self.character_nodes_stat_diff(char)
-        ret['edge_val'] = self.character_portals_stat_diff(char)
+        ret = self.character_stat_diff(char, store=store)
+        ret['nodes'] = self.character_nodes_diff(char, store=store)
+        ret['edges'] = self.character_portals_diff(char, store=store)
+        ret['avatars'] = self.character_avatars_diff(char, store=store)
+        ret['rulebooks'] = self.character_rulebooks_diff(char, store=store)
+        ret['node_rulebooks'] = self.character_nodes_rulebooks_diff(char, store=store)
+        ret['portal_rulebooks'] = self.character_portals_rulebooks_diff(char, store=store)
+        ret['node_val'] = self.character_nodes_stat_diff(char, store=store)
+        ret['edge_val'] = self.character_portals_stat_diff(char, store=store)
         return ret
 
     def set_character_stat(self, char, k, v):
@@ -564,7 +576,7 @@ class EngineHandle(object):
             }
         }
 
-    def node_stat_diff(self, char, node):
+    def node_stat_diff(self, char, node, *, store=True):
         """Return a dictionary describing changes to a node's stats since the
         last time you looked at it.
 
@@ -575,20 +587,21 @@ class EngineHandle(object):
         try:
             old = self._node_stat_cache[char].get(node, {})
             new = self.node_stat_copy(self._real.character[char].node[node])
-            self._node_stat_cache[char][node] = new
+            if store:
+                self._node_stat_cache[char][node] = new
             r = dict_diff(old, new)
             return r
         except KeyError:
             return None
 
-    def character_nodes_stat_diff(self, char):
+    def character_nodes_stat_diff(self, char, *, store=True):
         """Return a dictionary of ``node_stat_diff`` output for each node in a
         character.
 
         """
         r = {}
         for node in self._real.character[char].node:
-            diff = self.node_stat_diff(char, node)
+            diff = self.node_stat_diff(char, node, store=store)
             if diff:
                 r[node] = diff
         return r
@@ -660,11 +673,12 @@ class EngineHandle(object):
     def character_nodes(self, char):
         return list(self._real.character[char].node)
 
-    def character_nodes_diff(self, char):
+    def character_nodes_diff(self, char, *, store=True):
         try:
             old = self._char_nodes_cache.get(char, [])
             new = self.character_nodes(char)
-            self._char_nodes_cache[char] = new
+            if store:
+                self._char_nodes_cache[char] = new
             return set_diff(old, new)
         except KeyError:
             return None
@@ -814,11 +828,12 @@ class EngineHandle(object):
                 r.add((o, d))
         return r
 
-    def character_portals_diff(self, char):
+    def character_portals_diff(self, char, *, store=True):
         try:
             old = self._char_portals_cache.get(char, {})
             new = self.character_portals(char)
-            self._char_portals_cache[char] = new
+            if store:
+                self._char_portals_cache[char] = new
             return set_diff(old, new)
         except KeyError:
             return None
@@ -852,20 +867,21 @@ class EngineHandle(object):
             for (k, v) in self._real.character[char].portal[orig][dest].items()
         }
 
-    def portal_stat_diff(self, char, orig, dest):
+    def portal_stat_diff(self, char, orig, dest, *, store=True):
         try:
             old = self._portal_stat_cache[char][orig].get(dest, {})
             new = self.portal_stat_copy(char, orig, dest)
-            self._portal_stat_cache[char][orig][dest] = new
+            if store:
+                self._portal_stat_cache[char][orig][dest] = new
             return dict_diff(old, new)
         except KeyError:
             return None
 
-    def character_portals_stat_diff(self, char):
+    def character_portals_stat_diff(self, char, *, store=True):
         r = {}
         for orig in self._real.character[char].portal:
             for dest in self._real.character[char].portal[orig]:
-                diff = self.portal_stat_diff(char, orig, dest)
+                diff = self.portal_stat_diff(char, orig, dest, store=store)
                 if diff:
                     if orig not in r:
                         r[orig] = {}
@@ -905,18 +921,20 @@ class EngineHandle(object):
     def rulebook_copy(self, rulebook):
         return list(self._real.rulebook[rulebook]._get_cache(*self._real.btt()))
 
-    def rulebook_diff(self, rulebook):
+    def rulebook_diff(self, rulebook, *, store=True):
         # TODO: do actual diffing
         old = self._rulebook_cache[rulebook]
-        new = self._rulebook_cache[rulebook] = self.rulebook_copy(rulebook)
+        new = self.rulebook_copy(rulebook)
+        if store:
+            self._rulebook_cache[rulebook] = new
         if old == new:
             return
         return new
 
-    def all_rulebooks_diff(self):
+    def all_rulebooks_diff(self, *, store=True):
         ret = {}
         for rulebook in self._real.rulebook.keys():
-            diff = self.rulebook_diff(rulebook)
+            diff = self.rulebook_diff(rulebook, store=store)
             if diff:
                 ret[rulebook] = diff
         return ret
@@ -972,9 +990,11 @@ class EngineHandle(object):
             'actions': list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
         }
 
-    def rule_diff(self, rule):
+    def rule_diff(self, rule, *, store=True):
         old = self._rule_cache.get(rule, {'triggers': [], 'prereqs': [], 'actions': []})
-        new = self._rule_cache[rule] = self.rule_copy(rule)
+        new = self.rule_copy(rule)
+        if store:
+            self._rule_cache[rule] = new
         ret = {}
         if new['triggers'] != old['triggers']:
             ret['triggers'] = new['triggers']
@@ -984,10 +1004,10 @@ class EngineHandle(object):
             ret['actions'] = new['actions']
         return ret
 
-    def all_rules_diff(self):
+    def all_rules_diff(self, *, store=True):
         ret = {}
         for rule in self._real.rule.keys():
-            diff = self.rule_diff(rule)
+            diff = self.rule_diff(rule, store=store)
             if diff:
                 ret[rule] = diff
         return ret
