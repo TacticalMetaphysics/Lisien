@@ -163,19 +163,9 @@ class AbstractEngine(object):
     Implements serialization methods and the __getattr__ for stored methods.
 
     """
-    def __getattr__(self, att):
-        if hasattr(super(), 'method') and hasattr(self.method, att):
-            return partial(getattr(self.method, att), self)
-        raise AttributeError('No attribute or stored method: {}'.format(att))
-
-    def _listify_function(self, obj):
-        if not hasattr(getattr(self, obj.__module__), obj.__name__):
-            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
-        return [obj.__module__, obj.__name__]
-
-    def listify(self, obj):
-        """Turn a LiSE object into a list for easier serialization"""
-        listify_dispatch = {
+    @reify
+    def _listify_dispatch(self):
+        return {
             list: lambda obj: ["list"] + [self.listify(v) for v in obj],
             tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
             dict: lambda obj: ["dict"] + [
@@ -189,24 +179,14 @@ class AbstractEngine(object):
                 "portal", obj.character.name, obj.orig, obj.dest],
             FunctionType: self._listify_function
         }
-        try:
-            listifier = listify_dispatch[type(obj)]
-            return listifier(obj)
-        except KeyError:
-            return obj
 
-
-    def delistify(self, obj):
-        """Turn a list describing a LiSE object into that object
-
-        If this is impossible, return the argument.
-
-        """
+    @reify
+    def _delistify_dispatch(self):
         def nodeget(obj):
             return self._node_objs[(
                 self.delistify(obj[1]), self.delistify(obj[2])
             )]
-        delistify_dispatch = {
+        return {
             'list': lambda obj: [self.delistify(v) for v in obj[1:]],
             'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
             'dict': lambda obj: {
@@ -228,8 +208,34 @@ class AbstractEngine(object):
             'trigger': lambda obj: getattr(self.trigger, obj[1]),
             'action': lambda obj: getattr(self.action, obj[1])
         }
+
+    def __getattr__(self, att):
+        if hasattr(super(), 'method') and hasattr(self.method, att):
+            return partial(getattr(self.method, att), self)
+        raise AttributeError('No attribute or stored method: {}'.format(att))
+
+    def _listify_function(self, obj):
+        if not hasattr(getattr(self, obj.__module__), obj.__name__):
+            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
+        return [obj.__module__, obj.__name__]
+
+    def listify(self, obj):
+        """Turn a LiSE object into a list for easier serialization"""
+        try:
+            listifier = self._listify_dispatch[type(obj)]
+            return listifier(obj)
+        except KeyError:
+            return obj
+
+
+    def delistify(self, obj):
+        """Turn a list describing a LiSE object into that object
+
+        If this is impossible, return the argument.
+
+        """
         if isinstance(obj, list) or isinstance(obj, tuple):
-            return delistify_dispatch[obj[0]](obj)
+            return self._delistify_dispatch[obj[0]](obj)
         else:
             return obj
 
