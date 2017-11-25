@@ -339,7 +339,7 @@ class ORM(object):
 
         if branch in nbranches and nbranches[branch].has_exact_rev(turn):
             for graph, node, exists in nbranches[branch][turn][tick_from:tick_to]:
-                delta.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
+                delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(exists)
 
         if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
             for graph, node, key, value in nvbranches[branch][turn][tick_from:tick_to]:
@@ -366,7 +366,7 @@ class ORM(object):
                     ):
                         continue
                     delta.setdefault(graph, {}).setdefault('edges', {})\
-                        .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
+                        .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
                 else:
                     if (
                         graph in delta and 'edges' in delta[graph] and
@@ -375,7 +375,7 @@ class ORM(object):
                     ):
                         continue
                     delta.setdefault(graph, {}).setdefault('edges', {})\
-                        .setdefault(orig, {})[dest] = exists
+                        .setdefault(orig, {})[dest] = bool(exists)
 
         if branch in evbranches and evbranches[branch].has_exact_rev(turn):
             for graph, orig, dest, idx, key, value in evbranches[branch][turn][tick_from:tick_to]:
