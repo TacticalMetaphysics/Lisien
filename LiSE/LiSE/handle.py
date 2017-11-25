@@ -734,10 +734,7 @@ class EngineHandle(object):
 
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
-        _, nxtloc, arrt, nxtarrt = self._char_things_cache.setdefault(char, {}).get(
-            thing, (loc, None, self.tick, None)
-        )
-        self._char_things_cache[char][thing] = (loc, nxtloc, arrt, nxtarrt)
+        self._node_stat_cache.setdefault(char, {}).setdefault(thing, {})['location'] = loc
 
     def get_thing_special_stats(self, char, thing):
         try:
