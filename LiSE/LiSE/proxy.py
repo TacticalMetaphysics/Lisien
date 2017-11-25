@@ -66,8 +66,8 @@ class CachingProxy(MutableMapping, Signal):
         del self._cache[k]
         self.send(self, key=k, value=None)
 
-    def _apply_diff(self, diff):
-        for (k, v) in diff.items():
+    def _apply_delta(self, delta):
+        for (k, v) in delta.items():
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
@@ -284,8 +284,8 @@ class ThingProxy(NodeProxy):
             return getattr(self, '_' + k)
         return super().__getitem__(k)
 
-    def _apply_diff(self, diff):
-        for (k, v) in diff.items():
+    def _apply_delta(self, delta):
+        for (k, v) in delta.items():
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
@@ -704,9 +704,9 @@ class SuccessorsProxy(CachingProxy):
             )
         }
 
-    def _apply_diff(self, diff):
+    def _apply_delta(self, delta):
         raise NotImplementedError(
-            "Apply the diff on CharSuccessorsMappingProxy"
+            "Apply the delta on CharSuccessorsMappingProxy"
         )
 
     def _cache_munge(self, k, v):
@@ -788,8 +788,8 @@ class CharSuccessorsMappingProxy(CachingProxy):
             k
         )
 
-    def _apply_diff(self, diff):
-        for ((o, d), ex) in diff.items():
+    def _apply_delta(self, delta):
+        for ((o, d), ex) in delta.items():
             if ex:
                 if d not in self._cache[o]:
                     self._cache[o][d] = PortalProxy(
@@ -1263,12 +1263,12 @@ class CharacterProxy(MutableMapping):
     def __delitem__(self, k):
         del self.node[k]
 
-    def _apply_diff(self, diff):
-        diff = diff.copy()
-        for node, ex in diff.pop('nodes', {}).items():
+    def _apply_delta(self, delta):
+        delta = delta.copy()
+        for node, ex in delta.pop('nodes', {}).items():
             if ex:
                 if node not in self.node:
-                    nodeval = diff.get('node_val', {}).get(node, None)
+                    nodeval = delta.get('node_val', {}).get(node, None)
                     if nodeval and 'location' in nodeval:
                         self.thing._cache[node] = prox = ThingProxy(
                             self.engine, self.name, node, nodeval['location'],
@@ -1292,40 +1292,40 @@ class CharacterProxy(MutableMapping):
                 else:
                     self.engine.warning("Diff deleted {} but it was never created here".format(node))
                 self.node.send(self.node, key=node, value=None)
-        self.portal._apply_diff(diff.pop('edges', {}))
-        for (node, nodediff) in diff.pop('node_val', {}).items():
+        self.portal._apply_delta(delta.pop('edges', {}))
+        for (node, nodedelta) in delta.pop('node_val', {}).items():
             if node not in self.engine._node_stat_cache[self.name]:
-                self.engine._node_stat_cache[self.name][node] = nodediff
+                self.engine._node_stat_cache[self.name][node] = nodedelta
             else:
-                self.node[node]._apply_diff(nodediff)
-        for (orig, destdiff) in diff.pop('edge_val', {}).items():
-            for (dest, portdiff) in destdiff.items():
+                self.node[node]._apply_delta(nodedelta)
+        for (orig, destdelta) in delta.pop('edge_val', {}).items():
+            for (dest, portdelta) in destdelta.items():
                 if orig in self.portal and dest in self.portal[orig]:
-                    self.portal[orig][dest]._apply_diff(portdiff)
+                    self.portal[orig][dest]._apply_delta(portdelta)
                 else:
                     self.engine._portal_stat_cache[
-                        self.name][orig][dest] = portdiff
-        if diff.pop('character_rulebook', self.rulebook.name) != self.rulebook.name:
-            self._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_rulebook')])
-        if diff.pop('avatar_rulebook', self.avatar.rulebook.name) != self.avatar.rulebook.name:
-            self.avatar._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('avatar_rulebook')])
-        if diff.pop('character_thing_rulebook', self.thing.rulebook.name) != self.thing.rulebook.name:
-            self.thing._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_thing_rulebook')])
-        if diff.pop('character_place_rulebook', self.place.rulebook.name) != self.place.rulebook.name:
-            self.place._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_place_rulebook')])
-        if diff.pop('character_portal_rulebook', self.portal.rulebook.name) != self.portal.rulebook.name:
-            self.portal._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_portal_rulebook')])
-        for noden, rb in diff.pop('node_rulebooks', {}).items():
+                        self.name][orig][dest] = portdelta
+        if delta.pop('character_rulebook', self.rulebook.name) != self.rulebook.name:
+            self._set_rulebook_proxy(self.engine._rulebooks_cache[delta.pop('character_rulebook')])
+        if delta.pop('avatar_rulebook', self.avatar.rulebook.name) != self.avatar.rulebook.name:
+            self.avatar._set_rulebook_proxy(self.engine._rulebooks_cache[delta.pop('avatar_rulebook')])
+        if delta.pop('character_thing_rulebook', self.thing.rulebook.name) != self.thing.rulebook.name:
+            self.thing._set_rulebook_proxy(self.engine._rulebooks_cache[delta.pop('character_thing_rulebook')])
+        if delta.pop('character_place_rulebook', self.place.rulebook.name) != self.place.rulebook.name:
+            self.place._set_rulebook_proxy(self.engine._rulebooks_cache[delta.pop('character_place_rulebook')])
+        if delta.pop('character_portal_rulebook', self.portal.rulebook.name) != self.portal.rulebook.name:
+            self.portal._set_rulebook_proxy(self.engine._rulebooks_cache[delta.pop('character_portal_rulebook')])
+        for noden, rb in delta.pop('node_rulebooks', {}).items():
             node = self.node[noden]
             if node.rulebook.name != rb:
                 node._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
-        portrb = diff.pop('portal_rulebooks', {})
+        portrb = delta.pop('portal_rulebooks', {})
         for orign in portrb:
             for destn, rb in portrb[orign].items():
                 port = self.portal[orign][destn]
                 if port.rulebook.name != rb:
                     port._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
-        self.stat._apply_diff(diff)
+        self.stat._apply_delta(delta)
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
@@ -1529,9 +1529,9 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 
     def _set_language(self, inst, val):
         inst._language = val
-        diff = inst.engine.handle(command='set_language', lang=val)
+        delta = inst.engine.handle(command='set_language', lang=val)
         cache = inst._cache
-        for k, v in diff.items():
+        for k, v in delta.items():
             if k in cache:
                 if v is None:
                     del cache[k]
@@ -1549,7 +1549,7 @@ class StringStoreProxy(Signal):
     def __init__(self, engine_proxy):
         super().__init__()
         self.engine = engine_proxy
-        self._cache = self.engine.handle('strings_diff')
+        self._cache = self.engine.handle('strings_delta')
 
     def __getattr__(self, k):
         try:
@@ -1583,7 +1583,7 @@ class StringStoreProxy(Signal):
 class EternalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('eternal_diff')
+        self._cache = self.engine.handle('eternal_delta')
 
     def __contains__(self, k):
         return k in self._cache
@@ -1624,7 +1624,7 @@ class EternalVarProxy(MutableMapping):
 class GlobalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('universal_diff')
+        self._cache = self.engine.handle('universal_delta')
 
     def __iter__(self):
         return iter(self._cache)
@@ -1734,7 +1734,7 @@ class FuncStoreProxy(Signal):
         super().__init__()
         self.engine = engine_proxy
         self._store = store
-        self._cache = self.engine.handle('source_diff', store=store)
+        self._cache = self.engine.handle('source_delta', store=store)
 
     def __getattr__(self, k):
         if k in self._cache:
@@ -1903,23 +1903,23 @@ class EngineProxy(AbstractEngine):
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
         self._rule_obj_cache = {}
-        self._rules_cache = self.handle('all_rules_diff')
+        self._rules_cache = self.handle('all_rules_delta')
         for rule in self._rules_cache:
             self._rule_obj_cache[rule] = RuleProxy(self, rule)
         self._rulebook_obj_cache = {}
-        self._rulebooks_cache = self.handle('all_rulebooks_diff')
+        self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
-        charsdiffs = self.handle('get_chardiffs', chars='all')
-        for char in charsdiffs:
+        deltas = self.handle('get_char_deltas', chars='all')
+        for char in deltas:
             self._char_cache[char] = CharacterProxy(self, char)
-            for origin, destinations in charsdiffs[
+            for origin, destinations in deltas[
                     char].pop('edge_val', {}).items():
                 for destination,  stats in destinations.items():
                     self._portal_stat_cache[char][origin][destination] = stats
-            for node,  stats in charsdiffs[char].pop('node_val', {}).items():
+            for node,  stats in deltas[char].pop('node_val', {}).items():
                 self._node_stat_cache[char][node] = stats
-            self._character_avatars_cache[char] = charsdiffs[char].pop('avatars', {})
-            for rbtype, rb in charsdiffs[char].pop('rulebooks', {}).items():
+            self._character_avatars_cache[char] = deltas[char].pop('avatars', {})
+            for rbtype, rb in deltas[char].pop('rulebooks', {}).items():
                 if rb in self._rulebook_obj_cache:
                     self._character_rulebooks_cache[char][rbtype] \
                         = self._rulebook_obj_cache[rb]
@@ -1927,7 +1927,7 @@ class EngineProxy(AbstractEngine):
                     self._character_rulebooks_cache[char][rbtype] \
                         = self._rulebook_obj_cache[rb] \
                         = RuleBookProxy(self, rb)
-            for node, rb in charsdiffs[char].pop('node_rulebooks', {}).items():
+            for node, rb in deltas[char].pop('node_rulebooks', {}).items():
                 if rb in self._rulebook_obj_cache:
                     self._char_node_rulebooks_cache[char][node] \
                         = self._rulebook_obj_cache[rb]
@@ -1935,7 +1935,7 @@ class EngineProxy(AbstractEngine):
                     self._char_node_rulebooks_cache[char][node] \
                         = self._rulebook_obj_cache[rb] \
                         = RuleBookProxy(self, rb)
-            for origin, destinations in charsdiffs[
+            for origin, destinations in deltas[
                     char].pop('portal_rulebooks', {}).items():
                 for destination, rulebook in destinations.items():
                     if rulebook in self._rulebook_obj_cache:
@@ -1947,7 +1947,7 @@ class EngineProxy(AbstractEngine):
                             char][origin][destination] \
                             = self._rulebook_obj_cache[rulebook] \
                             = RuleBookProxy(self, rulebook)
-            for node, ex in charsdiffs[char].pop('nodes', {}).items():
+            for node, ex in deltas[char].pop('nodes', {}).items():
                 if ex:
                     noded = self._node_stat_cache[char].get(node)
                     if noded and 'location' in noded:
@@ -1960,13 +1960,13 @@ class EngineProxy(AbstractEngine):
                         self._character_places_cache[char][node] = PlaceProxy(
                             self, char, node
                         )
-            for orig, dests in charsdiffs[char].pop('edges', {}).items():
+            for orig, dests in deltas[char].pop('edges', {}).items():
                 for dest, ex in dests.items():
                     if ex:
                         self._character_portals_cache.store(
                             char, orig, dest, PortalProxy(self, char, orig, dest)
                         )
-            self._char_stat_cache[char] = charsdiffs[char]
+            self._char_stat_cache[char] = deltas[char]
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
@@ -2141,36 +2141,36 @@ class EngineProxy(AbstractEngine):
 
     def _upd_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
-        result, diffs = args[-1]
-        self.eternal._update_cache(diffs.pop('eternal', {}))
-        self.universal._update_cache(diffs.pop('universal', {}))
+        result, deltas = args[-1]
+        self.eternal._update_cache(deltas.pop('eternal', {}))
+        self.universal._update_cache(deltas.pop('universal', {}))
         # I think if you travel back to before a rule was created it'll show up empty
         # That's ok I guess
-        for rule, diff in diffs.pop('rules', {}).items():
+        for rule, delta in deltas.pop('rules', {}).items():
             if rule in self._rules_cache:
-                self._rules_cache[rule].update(diff)
+                self._rules_cache[rule].update(delta)
             else:
-                diff.setdefault('triggers', [])
-                diff.setdefault('prereqs', [])
-                diff.setdefault('actions', [])
-                self._rules_cache[rule] = diff
+                delta.setdefault('triggers', [])
+                delta.setdefault('prereqs', [])
+                delta.setdefault('actions', [])
+                self._rules_cache[rule] = delta
             if rule not in self._rule_obj_cache:
                 self._rule_obj_cache[rule] = RuleProxy(self, rule)
             ruleproxy = self._rule_obj_cache[rule]
-            ruleproxy.send(ruleproxy, **diff)
-        rulebookdiffs = diffs.pop('rulebooks', {})
-        self._rulebooks_cache.update(rulebookdiffs)
-        for rulebook, diff in rulebookdiffs.items():
+            ruleproxy.send(ruleproxy, **delta)
+        rulebookdeltas = deltas.pop('rulebooks', {})
+        self._rulebooks_cache.update(rulebookdeltas)
+        for rulebook, delta in rulebookdeltas.items():
             if rulebook not in self._rulebook_obj_cache:
                 self._rulebook_obj_cache = RuleBookProxy(self, rulebook)
             rulebookproxy = self._rulebook_obj_cache[rulebook]
-            # the "diff" is just the rules list, for now
-            rulebookproxy.send(rulebookproxy, rules=diff)
-        for (char, chardiff) in diffs.items():
+            # the "delta" is just the rules list, for now
+            rulebookproxy.send(rulebookproxy, rules=delta)
+        for (char, chardelta) in deltas.items():
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             chara = self.character[char]
-            chara._apply_diff(chardiff)
+            chara._apply_delta(chardelta)
             deleted.discard(char)
         if kwargs.get('no_del'):
             return
@@ -2191,7 +2191,7 @@ class EngineProxy(AbstractEngine):
             raise TypeError("Uncallable callback")
         self.send(self.json_dump({
             'silent': False,
-            'command': 'get_chardiffs',
+            'command': 'get_char_deltas',
             'chars': chars
         }))
         cbs = [self._upd_caches]
@@ -2202,10 +2202,10 @@ class EngineProxy(AbstractEngine):
     def pull(self, chars='all', cb=None, sync=True):
         """Update the state of all my proxy objects from the real objects."""
         if sync:
-            diffs = self.handle('get_chardiffs', chars=chars)
-            self._upd_caches(diffs)
+            deltas = self.handle('get_char_deltas', chars=chars)
+            self._upd_caches(deltas)
             if cb:
-                cb(diffs)
+                cb(deltas)
         else:
             Thread(
                 target=self._pull_async,

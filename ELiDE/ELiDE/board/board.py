@@ -733,9 +733,9 @@ class Board(RelativeLayout):
             if not ('_x' in spot.remote and '_y' in spot.remote)
         ]
 
-    def update_from_diff(self, chardiff, *args):
-        """Apply the changes described in the dict ``chardiff``."""
-        for (place, extant) in chardiff.get('places', {}).items():
+    def update_from_delta(self, delta, *args):
+        """Apply the changes described in the dict ``delta``."""
+        for (place, extant) in delta.get('places', {}).items():
             if extant and place not in self.spot:
                 self.add_spot(place)
                 spot = self.spot[place]
@@ -743,12 +743,12 @@ class Board(RelativeLayout):
                     self.spots_unposd.append(spot)
             elif not extant and place in self.spot:
                 self.rm_spot(place)
-        for (thing, extant) in chardiff.get('things', {}).items():
+        for (thing, extant) in delta.get('things', {}).items():
             if extant and thing not in self.pawn:
                 self.add_pawn(thing)
             elif not extant and thing in self.pawn:
                 self.rm_pawn(thing)
-        for (node, stats) in chardiff.get('node_val', {}).items():
+        for (node, stats) in delta.get('node_val', {}).items():
             if node in self.spot:
                 spot = self.spot[node]
                 x = stats.get('_x')
@@ -772,15 +772,15 @@ class Board(RelativeLayout):
                     "Board: diff tried to change stats of node {} "
                     "but I don't have a widget for it".format(node)
                 )
-        for (orig, dests) in chardiff.get('edges', {}).items():
+        for (orig, dests) in delta.get('edges', {}).items():
             for (dest, extant) in dests.items():
                 if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
                     self.add_arrow(orig, dest)
                 elif not extant and orig in self.arrow and dest in self.arrow[orig]:
                     self.rm_arrow(orig, dest)
 
-    def trigger_update_from_diff(self, chardiff, *args):
-        part = partial(self.update_from_diff, chardiff)
+    def trigger_update_from_delta(self, delta, *args):
+        part = partial(self.update_from_delta, delta)
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 

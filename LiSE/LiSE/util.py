@@ -41,7 +41,7 @@ def path_len(graph, path, weight=None):
     return n
 
 
-def dict_diff(old, new):
+def dict_delta(old, new):
     """Return a dictionary containing the items of ``new`` that are either
     absent from ``old`` or whose values are different; as well as the
     value ``None`` for those keys that are present in ``old``, but
@@ -62,13 +62,13 @@ def dict_diff(old, new):
     return r
 
 
-def set_diff(old, new):
+def set_delta(old, new):
     try:
         old = frozenset(old)
         new = frozenset(new)
-        if (old, new) in set_diff.memo:
-            return set_diff.memo[(old, new)]
-        r = set_diff.memo[(old, new)] = {}
+        if (old, new) in set_delta.memo:
+            return set_delta.memo[(old, new)]
+        r = set_delta.memo[(old, new)] = {}
     except TypeError:
         r = {}
     for item in old:
@@ -78,7 +78,7 @@ def set_diff(old, new):
         if item not in old:
             r[item] = True
     return r
-set_diff.memo = {}
+set_delta.memo = {}
 
 
 def keycache_iter(keycache, branch, tick, get_iterator):

@@ -194,10 +194,10 @@ if __name__ == '__main__':
     from LiSE.handle import EngineHandle
     hand = EngineHandle(('LiSEworld.db',), {'random_seed': 69105})
     # just set a baseline for the diff
-    hand.get_slow_diff()
+    hand.get_slow_delta()
     ret, diff = hand.next_turn()
-    slowd = hand.get_slow_diff()
+    slowd = hand.get_slow_delta()
     assert diff == slowd
     ret, diff = hand.time_travel('trunk', 0, 0)
-    slowd = hand.get_slow_diff()
+    slowd = hand.get_slow_delta()
     assert diff == slowd

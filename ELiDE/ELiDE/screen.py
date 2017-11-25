@@ -256,15 +256,15 @@ class MainScreen(Screen):
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self.dialog_todo, chardiffs = ret
-        self._update_from_chardiffs(cmd, branch, turn, tick, chardiffs)
+        self.dialog_todo, deltas = ret
+        self._update_from_delta(cmd, branch, turn, tick, deltas)
         self._advance_dialog()
 
     def _update_from_time_travel(self, cmd, branch, turn, tick, received, **kwargs):
-        self._update_from_chardiffs(cmd, branch, turn, tick, received[-1])
+        self._update_from_delta(cmd, branch, turn, tick, received[-1])
 
-    def _update_from_chardiffs(self, cmd, branch, turn, tick, diffs, **kwargs):
-        chardiff = diffs.get(self.boardview.board.character.name, {})
+    def _update_from_delta(self, cmd, branch, turn, tick, delta, **kwargs):
+        chardelta = delta.get(self.boardview.board.character.name, {})
         for unwanted in (
             'character_rulebook',
             'avatar_rulebook',
@@ -272,9 +272,9 @@ class MainScreen(Screen):
             'character_place_rulebook',
             'character_portal_rulebook'
         ):
-            if unwanted in chardiff:
-                del chardiff[unwanted]
-        self.boardview.board.trigger_update_from_diff(chardiff)
+            if unwanted in chardelta:
+                del chardelta[unwanted]
+        self.boardview.board.trigger_update_from_delta(chardelta)
         self.statpanel.statlist.mirror = dict(self.app.selected_remote)
 
     def _advance_dialog(self, *args):
