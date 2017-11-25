@@ -88,9 +88,9 @@ class CachingProxy(MutableMapping, Signal):
 
 class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
-        if isinstance(v, MutableMapping):
+        if isinstance(v, dict):
             return JSONReWrapper(self, k, v)
-        elif isinstance(v, MutableSequence):
+        elif isinstance(v, list):
             return JSONListReWrapper(self, k, v)
         return v
 
