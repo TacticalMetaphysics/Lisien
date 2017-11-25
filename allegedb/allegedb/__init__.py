@@ -156,7 +156,7 @@ class TimeSignalDescriptor:
             branches[branch_now] = (
                 branch_then, turn_now, tick_now, turn_now, tick_now
             )
-            e.query.new_branch(branch_then, turn_now, tick_now, turn_now, tick_now)
+            e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = branch, turn = val
 
         if turn > e._turn_end_plan[val]:
