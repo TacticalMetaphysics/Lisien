@@ -7,6 +7,7 @@ ordinary method calls.
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from re import match
 from collections import defaultdict
+from functools import partial
 from importlib import import_module
 from allegedb.xjson import (
     JSONReWrapper,
@@ -33,6 +34,7 @@ class EngineHandle(object):
         ``(loglevel, message)``.
 
         """
+        kwargs.setdefault('logfun', self.log)
         self._real = Engine(*args, **kwargs)
         self._logq = logq
         self._loglevel = loglevel
@@ -51,8 +53,7 @@ class EngineHandle(object):
         self._char_portals_rulebooks_cache = defaultdict(
             lambda: defaultdict(dict)
         )
-        self._char_things_cache = {}
-        self._char_places_cache = {}
+        self._char_nodes_cache = {}
         self._char_portals_cache = {}
         self._node_successors_cache = defaultdict(dict)
         self._strings_cache = {}
@@ -63,6 +64,14 @@ class EngineHandle(object):
         self._stores_cache = defaultdict(dict)
 
     def log(self, level, message):
+        if isinstance(level, str):
+            level = {
+                'debug': 10,
+                'info': 20,
+                'warning': 30,
+                'error': 40,
+                'critical': 50
+            }[level]
         if self._logq and level >= self._loglevel:
             self._logq.put((level, message))
 
@@ -87,80 +96,119 @@ class EngineHandle(object):
     def json_dump(self, o):
         return self._real.json_dump(o)
 
-    def unwrap_character_stat(self, char, k, v):
-        if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'character', char, k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'character', char, k, v._v)
-        else:
-            return v
-
-    def unwrap_place_stat(self, place, k, v):
-        if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'place', place.character.name, place.name, k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'place', place.character.name, place.name, k, v._v)
-        else:
-            return v
-
-    def unwrap_thing_stat(self, thing, k, v):
-        if isinstance(v, JSONReWrapper):
-            return('JSONReWrapper', 'thing', thing.character.name, thing.name, thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'], k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return('JSONListReWrapper', 'thing', thing.character.name, thing.name, thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'], k, v._v)
-        else:
-            return v
-
-    def unwrap_node_stat(self, node, k, v):
-        if hasattr(node, 'location'):
-            return self.unwrap_thing_stat(node, k, v)
-        else:
-            return self.unwrap_place_stat(node, k, v)
-
-    def unwrap_portal_stat(self, char, orig, dest, k, v):
-        if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'portal', char, orig, dest, k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'portal', char, orig, dest, k, v._v)
-        else:
-            return v
-
     def time_locked(self):
         return hasattr(self._real, 'locktime')
 
     def advance(self):
         self._real.advance()
 
-    def get_chardiffs(self, chars):
+    def get_chardiffs(self, chars, *, store=True):
         if chars == 'all':
             return {
-                char: self.character_diff(char)
+                char: self.character_diff(char, store=store)
                 for char in self._real.character.keys()
             }
         else:
             return {
-                char: self.character_diff(char)
+                char: self.character_diff(char, store=store)
                 for char in chars
             }
 
-    def next_turn(self, chars=()):
-        result = self._real.next_turn()
+    def _upd_local_caches(self, diff=None):
+        if diff is None:
+            self._eternal_cache = dict(self._real.eternal)
+            self._universal_cache = dict(self._real.universal)
+            self._rulebook_cache = {
+                rb: self.rulebook_copy(rb) for rb in self._real.rulebook
+            }
+            self._rule_cache = {
+                r: self.rule_copy(r) for r in self._real.rule
+            }
+            self._strings_cache = self.strings_copy()
+            # stores?
+            for charn, char in self._real.character.items():
+                self._char_stat_cache[charn] = self.character_stat_copy(charn)
+                self._node_stat_cache[charn] = {
+                    node: self.node_stat_copy(charn, node) for node in char.node
+                }
+                portst = self._portal_stat_cache[charn]
+                for port in char.portals():
+                    portst.setdefault(port.orig, {})[port.dest] = self.portal_stat_copy(charn, port.orig, port.dest)
+                self._char_things_cache[charn] = self.character_things(char)
+                self._char_places_cache[charn] = self.character_places(char)
+                self._char_portals_cache[charn] = self.character_portals(char)
+                self._char_rulebooks_cache[charn] = self.character_rulebooks_copy(char)
+            return
+
+        def updd(d0, d1):
+            for k, v in d1.items():
+                if k not in ('location', 'next_location') and v is None:
+                    del d0[k]
+                else:
+                    d0[k] = v
+        updd(self._eternal_cache, diff.pop('eternal', {}))
+        updd(self._universal_cache, diff.pop('universal', {}))
+        updd(self._rulebook_cache, diff.pop('rulebooks', {}))
+        updd(self._strings_cache, diff.pop('strings', {}))
+        for rule, d in diff.pop('rules', {}).items():
+            updd(self._rulebook_cache.setdefault(rule, {}), d)
+        for char, d in diff.items():
+            updd(self._char_nodes_cache.setdefault(char, {}), d.pop('nodes', {}))
+            nodevd = self._node_stat_cache.setdefault(char, {})
+            for node, val in d.pop('node_val', {}).items():
+                updd(nodevd.setdefault(node, {}), val)
+            edges = self._char_portals_cache.setdefault(char, set())
+            for orig, dests in d.pop('edges', {}).items():
+                for dest, exists in dests.items():
+                    if exists:
+                        edges.add((orig, dest))
+                    else:
+                        edges.remove((orig, dest))
+            edgevd = self._portal_stat_cache.setdefault(char, {})
+            for orig, dests in d.pop('edge_val', {}).items():
+                for dest, val in dests.items():
+                    updd(edgevd.setdefault(orig, {}).setdefault(dest, {}), val)
+
+    def next_turn(self):
+        ret, diff = self._real.next_turn()
         self.branch, self.turn, self.tick = self._real.btt()
-        # the rules diff is less selective than the others, I could look at the rulebooks
-        # on the chars and only diff the rules in those
-        return result, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), self.get_chardiffs(chars)
+        self._after_ret = partial(self._upd_local_caches, diff)
+        return ret, diff
+
+    def get_slow_diff(self, chars='all', store=True):
+        diff = {}
+        if chars:
+            diff = self.get_chardiffs(chars, store=store)
+        etd = self.eternal_diff(store=store)
+        if etd:
+            diff['eternal'] = etd
+        unid = self.universal_diff(store=store)
+        if unid:
+            diff['universal'] = unid
+        rud = self.all_rules_diff(store=store)
+        if rud:
+            diff['rules'] = rud
+        rbd = self.all_rulebooks_diff(store=store)
+        if rbd:
+            diff['rulebooks'] = rbd
+        return diff
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
+        branch_from, turn_from, tick_from = self._real.btt()
+        slow_diff = branch != branch_from
         self._real.time = (branch, turn)
-        if tick is not None:
+        if tick is None:
+            self.tick = tick = self._real.tick
+        else:
             self._real.tick = tick
         self.branch = branch
         self.turn = turn
-        self.tick = tick or self._real.tick
-        if chars:
-            return None, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), self.get_chardiffs(chars)
+        if slow_diff:
+            diff = self.get_slow_diff(chars)
         else:
-            return None, self.eternal_diff(), self.universal_diff(), self.all_rules_diff(), self.all_rulebooks_diff(), {}
+            diff = self._real.get_delta(branch, turn_from, tick_from, self.turn, self.tick)
+            self._after_ret = partial(self._upd_local_caches, diff)
+        return None, diff
 
     def increment_branch(self, chars=[]):
         branch = self._real.branch
@@ -292,9 +340,11 @@ class EngineHandle(object):
     def eternal_copy(self):
         return dict(self._real.eternal)
 
-    def eternal_diff(self):
+    def eternal_diff(self, *, store=True):
         old = self._eternal_cache
         new = self.eternal_copy()
+        if store:
+            self._eternal_cache = new
         return dict_diff(old, new)
 
     def get_universal(self, k):
@@ -312,9 +362,11 @@ class EngineHandle(object):
     def universal_copy(self):
         return dict(self._real.universal)
 
-    def universal_diff(self):
+    def universal_diff(self, *, store=True):
         old = self._universal_cache
         new = self.universal_copy()
+        if store:
+            self._universal_cache = new
         return dict_diff(old, new)
 
     def init_character(self, char, statdict={}):
@@ -341,20 +393,19 @@ class EngineHandle(object):
                 del cache[char]
 
     def character_stat_copy(self, char):
-        return {
-            k: self.unwrap_character_stat(char, k, v)
-            for (k, v) in self._real.character[char].stat.items()
-        }
+        return dict(self._real.character[char].stat.items())
 
     @staticmethod
-    def _character_something_diff(char, cache, copier, *args):
+    def _character_something_diff(char, cache, copier, *args, store=True):
         old = cache.get(char, {})
-        new = cache[char] = copier(char, *args)
+        new = copier(char, *args)
+        if store:
+            cache[char] = new
         return dict_diff(old, new)
 
-    def character_stat_diff(self, char):
+    def character_stat_diff(self, char, *, store=True):
         return self._character_something_diff(
-            char, self._char_stat_cache, self.character_stat_copy
+            char, self._char_stat_cache, self.character_stat_copy, store=store
         )
 
     def character_avatars_copy(self, char):
@@ -363,9 +414,9 @@ class EngineHandle(object):
             self._real.character[char].avatar.items()
         }
 
-    def character_avatars_diff(self, char):
+    def character_avatars_diff(self, char, *, store=True):
         return self._character_something_diff(
-            char, self._char_av_cache, self.character_avatars_copy
+            char, self._char_av_cache, self.character_avatars_copy, store=store
         )
 
     def character_rulebooks_copy(self, char):
@@ -379,9 +430,9 @@ class EngineHandle(object):
             'node': chara.node.rulebook.name
         }
 
-    def character_rulebooks_diff(self, char):
+    def character_rulebooks_diff(self, char, *, store=True):
         return self._character_something_diff(
-            char, self._char_rulebooks_cache, self.character_rulebooks_copy
+            char, self._char_rulebooks_cache, self.character_rulebooks_copy, store=store
         )
 
     def character_nodes_rulebooks_copy(self, char, nodes='all'):
@@ -392,10 +443,10 @@ class EngineHandle(object):
             nodeiter = (chara.node[k] for k in nodes)
         return {node.name: node.rulebook.name for node in nodeiter}
 
-    def character_nodes_rulebooks_diff(self, char, nodes='all'):
+    def character_nodes_rulebooks_diff(self, char, nodes='all', *, store=True):
         return self._character_something_diff(
             char, self._char_nodes_rulebooks_cache,
-            self.character_nodes_rulebooks_copy, nodes
+            self.character_nodes_rulebooks_copy, nodes, store=store
         )
 
     def character_portals_rulebooks_copy(self, char, portals='all'):
@@ -410,13 +461,14 @@ class EngineHandle(object):
                 = portal.rulebook.name
         return result
 
-    def character_portals_rulebooks_diff(self, char, portals='all'):
+    def character_portals_rulebooks_diff(self, char, portals='all', *, store=True):
         try:
             old = self._char_portals_rulebooks_cache.get(
                 char, defaultdict(dict)
             )
-            new = self._char_portals_rulebooks_cache[char] \
-                  = self.character_portals_rulebooks_copy(char, portals)
+            new = self.character_portals_rulebooks_copy(char, portals)
+            if store:
+                self._char_portals_rulebooks_cache[char] = new
             result = {}
             for origin in old:
                 if origin in new:
@@ -430,20 +482,34 @@ class EngineHandle(object):
         except KeyError:
             return None
 
-    def character_diff(self, char):
+    def character_diff(self, char, *, store=True):
         """Return a dictionary of changes to ``char`` since previous call."""
-        return {
-            'character_stat': self.character_stat_diff(char),
-            'node_stat': self.character_nodes_stat_diff(char),
-            'things': self.character_things_diff(char),
-            'places': self.character_places_diff(char),
-            'portal_stat': self.character_portals_stat_diff(char),
-            'portals': self.character_portals_diff(char),
-            'avatars': self.character_avatars_diff(char),
-            'rulebooks': self.character_rulebooks_diff(char),
-            'node_rulebooks': self.character_nodes_rulebooks_diff(char),
-            'portal_rulebooks': self.character_portals_rulebooks_diff(char)
-        }
+        ret = self.character_stat_diff(char, store=store)
+        nodes = self.character_nodes_diff(char, store=store)
+        if nodes:
+            ret['nodes'] = nodes
+        edges = self.character_portals_diff(char, store=store)
+        if edges:
+            ret['edges'] = edges
+        avs = self.character_avatars_diff(char, store=store)
+        if avs:
+            ret['avatars'] = avs
+        rbs = self.character_rulebooks_diff(char, store=store)
+        if rbs:
+            ret['rulebooks'] = rbs
+        nrbs = self.character_nodes_rulebooks_diff(char, store=store)
+        if nrbs:
+            ret['node_rulebooks'] = nrbs
+        porbs = self.character_portals_rulebooks_diff(char, store=store)
+        if porbs:
+            ret['portal_rulebooks'] = porbs
+        nv = self.character_nodes_stat_diff(char, store=store)
+        if nv:
+            ret['node_val'] = nv
+        ev = self.character_portals_stat_diff(char, store=store)
+        if ev:
+            ret['edge_val'] = ev
+        return ret
 
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
@@ -482,19 +548,15 @@ class EngineHandle(object):
             node = node_or_char
         else:
             node = self._real.character[node_or_char].node[node]
-        unwrapper = self.unwrap_thing_stat if isinstance(node, self._real.thing_cls) else self.unwrap_place_stat
         return {
-            k: unwrapper(node, k, v)
-            for (k, v) in node.items()
+            k: v for (k, v) in node.items()
             if k not in {
-                    'location',
-                    'next_location',
                     'arrival_time',
                     'next_arrival_time'
             }
         }
 
-    def node_stat_diff(self, char, node):
+    def node_stat_diff(self, char, node, *, store=True):
         """Return a dictionary describing changes to a node's stats since the
         last time you looked at it.
 
@@ -505,20 +567,21 @@ class EngineHandle(object):
         try:
             old = self._node_stat_cache[char].get(node, {})
             new = self.node_stat_copy(self._real.character[char].node[node])
-            self._node_stat_cache[char][node] = new
+            if store:
+                self._node_stat_cache[char][node] = new
             r = dict_diff(old, new)
             return r
         except KeyError:
             return None
 
-    def character_nodes_stat_diff(self, char):
+    def character_nodes_stat_diff(self, char, *, store=True):
         """Return a dictionary of ``node_stat_diff`` output for each node in a
         character.
 
         """
         r = {}
         for node in self._real.character[char].node:
-            diff = self.node_stat_diff(char, node)
+            diff = self.node_stat_diff(char, node, store=store)
             if diff:
                 r[node] = diff
         return r
@@ -587,34 +650,15 @@ class EngineHandle(object):
                 if node in porto:
                     del porto[node]
 
-    def character_things(self, char):
-        ret = {}
-        for name, thing in self._real.character[char].thing.items():
-            ret[name] = thing['locations'] + (thing['arrival_time'], thing['next_arrival_time'])
-        return ret
+    def character_nodes(self, char):
+        return list(self._real.character[char].node)
 
-    def character_things_diff(self, char):
-        """Return a dictionary of char's things and their locations.
-
-        Location of ``None`` means the thing doesn't exist anymore.
-
-        """
+    def character_nodes_diff(self, char, *, store=True):
         try:
-            new = self.character_things(char)
-            old = self._char_things_cache.get(char, {})
-            self._char_things_cache[char] = new
-            return dict_diff(old, new)
-        except KeyError:
-            return {}
-
-    def character_places(self, char):
-        return list(self._real.character[char].place)
-
-    def character_places_diff(self, char):
-        try:
-            old = self._char_places_cache.get(char, [])
-            new = self.character_places(char)
-            self._char_places_cache[char] = new
+            old = self._char_nodes_cache.get(char, [])
+            new = self.character_nodes(char)
+            if store:
+                self._char_nodes_cache[char] = new
             return set_diff(old, new)
         except KeyError:
             return None
@@ -757,19 +801,27 @@ class EngineHandle(object):
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
 
     def character_portals(self, char):
-        r = []
+        r = set()
         portal = self._real.character[char].portal
         for o in portal:
             for d in portal[o]:
-                r.append((o, d))
+                r.add((o, d))
         return r
 
-    def character_portals_diff(self, char):
+    def character_portals_diff(self, char, *, store=True):
         try:
             old = self._char_portals_cache.get(char, {})
             new = self.character_portals(char)
-            self._char_portals_cache[char] = new
-            return set_diff(old, new)
+            if store:
+                self._char_portals_cache[char] = new
+            ret = {}
+            for orig, dest in old:
+                if (orig, dest) not in new:
+                    ret.setdefault(orig, {})[dest] = False
+            for orig, dest in new:
+                if (orig, dest) not in old:
+                    ret.setdefault(orig, {})[dest] = True
+            return ret
         except KeyError:
             return None
 
@@ -797,25 +849,23 @@ class EngineHandle(object):
         del self._portal_stat_cache[char][orig][dest][k]
 
     def portal_stat_copy(self, char, orig, dest):
-        return {
-            k: self.unwrap_portal_stat(char, orig, dest, k, v)
-            for (k, v) in self._real.character[char].portal[orig][dest].items()
-        }
+        return dict(self._real.character[char].portal[orig][dest].items())
 
-    def portal_stat_diff(self, char, orig, dest):
+    def portal_stat_diff(self, char, orig, dest, *, store=True):
         try:
             old = self._portal_stat_cache[char][orig].get(dest, {})
             new = self.portal_stat_copy(char, orig, dest)
-            self._portal_stat_cache[char][orig][dest] = new
+            if store:
+                self._portal_stat_cache[char][orig][dest] = new
             return dict_diff(old, new)
         except KeyError:
             return None
 
-    def character_portals_stat_diff(self, char):
+    def character_portals_stat_diff(self, char, *, store=True):
         r = {}
         for orig in self._real.character[char].portal:
             for dest in self._real.character[char].portal[orig]:
-                diff = self.portal_stat_diff(char, orig, dest)
+                diff = self.portal_stat_diff(char, orig, dest, store=store)
                 if diff:
                     if orig not in r:
                         r[orig] = {}
@@ -853,20 +903,22 @@ class EngineHandle(object):
         self._real.rulebook[rulebook]
 
     def rulebook_copy(self, rulebook):
-        return list(self._real.rulebook[rulebook]._cache)
+        return list(self._real.rulebook[rulebook]._get_cache(*self._real.btt()))
 
-    def rulebook_diff(self, rulebook):
+    def rulebook_diff(self, rulebook, *, store=True):
         # TODO: do actual diffing
         old = self._rulebook_cache[rulebook]
-        new = self._rulebook_cache[rulebook] = self.rulebook_copy(rulebook)
+        new = self.rulebook_copy(rulebook)
+        if store:
+            self._rulebook_cache[rulebook] = new
         if old == new:
             return
         return new
 
-    def all_rulebooks_diff(self):
+    def all_rulebooks_diff(self, *, store=True):
         ret = {}
         for rulebook in self._real.rulebook.keys():
-            diff = self.rulebook_diff(rulebook)
+            diff = self.rulebook_diff(rulebook, store=store)
             if diff:
                 ret[rulebook] = diff
         return ret
@@ -922,9 +974,11 @@ class EngineHandle(object):
             'actions': list(self._real._actions_cache.retrieve(rule, branch, turn, tick))
         }
 
-    def rule_diff(self, rule):
+    def rule_diff(self, rule, *, store=True):
         old = self._rule_cache.get(rule, {'triggers': [], 'prereqs': [], 'actions': []})
-        new = self._rule_cache[rule] = self.rule_copy(rule)
+        new = self.rule_copy(rule)
+        if store:
+            self._rule_cache[rule] = new
         ret = {}
         if new['triggers'] != old['triggers']:
             ret['triggers'] = new['triggers']
@@ -934,10 +988,10 @@ class EngineHandle(object):
             ret['actions'] = new['actions']
         return ret
 
-    def all_rules_diff(self):
+    def all_rules_diff(self, *, store=True):
         ret = {}
         for rule in self._real.rule.keys():
-            diff = self.rule_diff(rule)
+            diff = self.rule_diff(rule, store=store)
             if diff:
                 ret[rule] = diff
         return ret

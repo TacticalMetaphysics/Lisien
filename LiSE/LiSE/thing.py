@@ -249,7 +249,10 @@ class Thing(Node):
         loc, nxtloc = self._get_locations()
         nobjs = self.engine._node_objs
         charn = self.character.name
-        return nobjs[charn, loc], [charn, nxtloc]
+        loc = nobjs[charn, loc]
+        if nxtloc is not None:
+            nxtloc = nobjs[charn, nxtloc]
+        return loc, nxtloc
 
     @locations.setter
     def locations(self, v):
