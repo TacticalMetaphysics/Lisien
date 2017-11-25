@@ -91,7 +91,7 @@ class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
         if isinstance(v, Mapping):
             return JSONReWrapper(self, k, v)
-        elif isinstance(v, Sequence):
+        elif isinstance(v, Sequence) and not isinstance(v, str):
             return JSONListReWrapper(self, k, v)
         return v
 
@@ -1955,11 +1955,12 @@ class EngineProxy(AbstractEngine):
                         self._character_places_cache[char][node] = PlaceProxy(
                             self, char, node
                         )
-            for (orig, dest), ex in charsdiffs[char].pop('edges', {}).items():
-                if ex:
-                    self._character_portals_cache.store(
-                        char, orig, dest, PortalProxy(self, char, orig, dest)
-                    )
+            for orig, dests in charsdiffs[char].pop('edges', {}).items():
+                for dest, ex in dests.items():
+                    if ex:
+                        self._character_portals_cache.store(
+                            char, orig, dest, PortalProxy(self, char, orig, dest)
+                        )
             self._char_stat_cache[char] = charsdiffs[char]
 
     def delistify(self, obj):

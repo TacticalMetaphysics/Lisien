@@ -399,6 +399,12 @@ class Engine(AbstractEngine, gORM):
             edgerbbranches = self._portals_rulebooks_cache.presettings
 
         def updthing(char, thing, locs):
+            if (
+                char in delta and 'nodes' in delta[char]
+                and thing in delta[char]['nodes'] and not
+                delta[char]['nodes'][thing]
+            ):
+                return
             if locs is None:
                 loc = nxtloc = None
             else:
@@ -410,17 +416,14 @@ class Engine(AbstractEngine, gORM):
             updater(updthing, thbranches[branch])
         # TODO handle arrival_time and next_arrival_time stats of things
 
-        delta['rulebooks'] = {}
         def updrb(whatev, rulebook, rules):
-            delta['rulebooks'][rulebook] = rules
+            delta.setdefault('rulebooks', {})[rulebook] = rules
 
         if branch in rbbranches:
             updater(updrb, rbbranches[branch])
 
-        delta['rules'] = {}
-
         def updru(key, _, rule, funs):
-            delta['rules'].setdefault(rule, {})[key] = funs
+            delta.setdefault('rules', {}).setdefault(rule, {})[key] = funs
 
         if branch in trigbranches:
             updater(partial(updru, 'triggers'), trigbranches[branch])
@@ -431,7 +434,7 @@ class Engine(AbstractEngine, gORM):
         if branch in actbranches:
             updater(partial(updru, 'actions'), actbranches[branch])
 
-        def updcrb(key, character, rulebook):
+        def updcrb(key, _, character, rulebook):
             delta.setdefault(character, {})[key] = rulebook
 
         if branch in charrbbranches:
@@ -450,12 +453,23 @@ class Engine(AbstractEngine, gORM):
             updater(partial(updcrb, 'character_portal_rulebook'), charporbbranches[branch])
 
         def updnoderb(character, node, rulebook):
+            if (
+                character in delta and 'nodes' in delta[character]
+                and node in delta[character]['nodes'] and not delta[character]['nodes'][node]
+            ):
+                return
             delta.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
 
         if branch in noderbbranches:
             updater(updnoderb, noderbbranches[branch])
 
         def updedgerb(character, orig, dest, rulebook):
+            if (
+                character in delta and 'edges' in delta[character]
+                and orig in delta[character]['edges'] and dest in delta[character]['edges'][orig]
+                and not delta[character]['edges'][orig][dest]
+            ):
+                return
             delta.setdefault(character, {}).setdefault('edge_val', {}).setdefault(
                 orig, {}).setdefault(dest, {})['rulebook'] = rulebook
 

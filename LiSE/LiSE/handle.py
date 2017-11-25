@@ -179,10 +179,18 @@ class EngineHandle(object):
         diff = {}
         if chars:
             diff = self.get_chardiffs(chars, store=store)
-        diff['eternal'] = self.eternal_diff(store=store)
-        diff['universal'] = self.universal_diff(store=store)
-        diff['rules'] = self.all_rules_diff(store=store)
-        diff['rulebooks'] = self.all_rulebooks_diff(store=store)
+        etd = self.eternal_diff(store=store)
+        if etd:
+            diff['eternal'] = etd
+        unid = self.universal_diff(store=store)
+        if unid:
+            diff['universal'] = unid
+        rud = self.all_rules_diff(store=store)
+        if rud:
+            diff['rules'] = rud
+        rbd = self.all_rulebooks_diff(store=store)
+        if rbd:
+            diff['rulebooks'] = rbd
         return diff
 
     def time_travel(self, branch, turn, tick=None, chars='all'):
@@ -477,14 +485,30 @@ class EngineHandle(object):
     def character_diff(self, char, *, store=True):
         """Return a dictionary of changes to ``char`` since previous call."""
         ret = self.character_stat_diff(char, store=store)
-        ret['nodes'] = self.character_nodes_diff(char, store=store)
-        ret['edges'] = self.character_portals_diff(char, store=store)
-        ret['avatars'] = self.character_avatars_diff(char, store=store)
-        ret['rulebooks'] = self.character_rulebooks_diff(char, store=store)
-        ret['node_rulebooks'] = self.character_nodes_rulebooks_diff(char, store=store)
-        ret['portal_rulebooks'] = self.character_portals_rulebooks_diff(char, store=store)
-        ret['node_val'] = self.character_nodes_stat_diff(char, store=store)
-        ret['edge_val'] = self.character_portals_stat_diff(char, store=store)
+        nodes = self.character_nodes_diff(char, store=store)
+        if nodes:
+            ret['nodes'] = nodes
+        edges = self.character_portals_diff(char, store=store)
+        if edges:
+            ret['edges'] = edges
+        avs = self.character_avatars_diff(char, store=store)
+        if avs:
+            ret['avatars'] = avs
+        rbs = self.character_rulebooks_diff(char, store=store)
+        if rbs:
+            ret['rulebooks'] = rbs
+        nrbs = self.character_nodes_rulebooks_diff(char, store=store)
+        if nrbs:
+            ret['node_rulebooks'] = nrbs
+        porbs = self.character_portals_rulebooks_diff(char, store=store)
+        if porbs:
+            ret['portal_rulebooks'] = porbs
+        nv = self.character_nodes_stat_diff(char, store=store)
+        if nv:
+            ret['node_val'] = nv
+        ev = self.character_portals_stat_diff(char, store=store)
+        if ev:
+            ret['edge_val'] = ev
         return ret
 
     def set_character_stat(self, char, k, v):
@@ -790,7 +814,14 @@ class EngineHandle(object):
             new = self.character_portals(char)
             if store:
                 self._char_portals_cache[char] = new
-            return set_diff(old, new)
+            ret = {}
+            for orig, dest in old:
+                if (orig, dest) not in new:
+                    ret.setdefault(orig, {})[dest] = False
+            for orig, dest in new:
+                if (orig, dest) not in old:
+                    ret.setdefault(orig, {})[dest] = True
+            return ret
         except KeyError:
             return None
 

@@ -181,35 +181,54 @@ def setgraphval(delta, graph, key, val):
 
 
 def setnode(delta, graph, node, exists):
-    delta.setdefault(graph, {}).setdefault('nodes', {})[node] = exists
+    delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(exists)
 
 
 def setnodeval(delta, graph, node, key, value):
+    if (
+        graph in delta and 'nodes' in delta[graph] and
+        node in delta[graph]['nodes'] and not delta[graph]['nodes'][node]
+    ):
+        return
     delta.setdefault(graph, {}).setdefault('node_val', {}).setdefault(node, {})[key] = value
 
 
 def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
     if is_multigraph(graph):
         delta.setdefault(graph, {}).setdefault('edges', {})\
-            .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
+            .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
     else:
         delta.setdefault(graph, {}).setdefault('edges', {})\
-            .setdefault(orig, {})[dest] = exists
+            .setdefault(orig, {})[dest] = bool(exists)
 
 
 def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
     if is_multigraph(graph):
+        if (
+            graph in delta and 'edges' in delta[graph] and
+            orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
+            and idx in delta[graph]['edges'][orig][dest]
+            and not delta[graph]['edges'][orig][dest][idx]
+        ):
+            return
         delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})\
             .setdefault(idx, {})[key] = value
     else:
+        if (
+                                    graph in delta and 'edges' in delta[graph] and
+                                orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
+                and not delta[graph]['edges'][orig][dest]
+        ):
+            return
         delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
 
 
 def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
     if branchd.has_exact_rev(turn_from):
-        for past_state in branchd[turn_from][tick_from:]:
+        # Not including the exact tick you started from because deltas are *changes*
+        for past_state in branchd[turn_from][tick_from+1:]:
             updfun(*past_state)
     for midturn in range(turn_from+1, turn_to):
         if branchd.has_exact_rev(midturn):
@@ -324,6 +343,11 @@ class ORM(object):
 
         if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
             for graph, node, key, value in nvbranches[branch][turn][tick_from:tick_to]:
+                if (
+                    graph in delta and 'nodes' in delta[graph] and
+                    node in delta[graph]['nodes'] and not delta[graph]['nodes'][node]
+                ):
+                    continue
                 nodevd = delta.setdefault(graph, {}).setdefault('node_val', {})
                 if node in nodevd:
                     nodevd[node][key] = value
@@ -334,9 +358,22 @@ class ORM(object):
         if branch in ebranches and ebranches[branch].has_exact_rev(turn):
             for graph, orig, dest, idx, exists in ebranches[branch][turn][tick_from:tick_to]:
                 if graph_objs[graph].is_multigraph():
+                    if (
+                        graph in delta and 'edges' in delta[graph] and
+                        orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
+                        and idx in delta[graph]['edges'][orig][dest]
+                        and not delta[graph]['edges'][orig][dest][idx]
+                    ):
+                        continue
                     delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {}).setdefault(dest, {})[idx] = exists
                 else:
+                    if (
+                        graph in delta and 'edges' in delta[graph] and
+                        orig in delta[graph]['edges'] and dest in delta[graph]['edges'][orig]
+                        and not delta[graph]['edges'][orig][dest]
+                    ):
+                        continue
                     delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {})[dest] = exists
 
