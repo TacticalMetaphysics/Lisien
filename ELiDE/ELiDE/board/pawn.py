@@ -36,15 +36,15 @@ class Pawn(PawnSpot):
     loc_name = ObjectProperty()
     next_loc_name = ObjectProperty(None, allownone=True)
     thing = AliasProperty(
-        lambda self: self.remote,
-        lambda self, v: self.remote.setter()(v),
-        bind=('remote',)
+        lambda self: self.proxy,
+        lambda self, v: self.proxy.setter()(v),
+        bind=('proxy',)
     )
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
 
     def __init__(self, **kwargs):
         if 'thing' in kwargs:
-            kwargs['remote'] = kwargs['thing']
+            kwargs['proxy'] = kwargs['thing']
             del kwargs['thing']
         super().__init__(**kwargs)
 
@@ -55,7 +55,7 @@ class Pawn(PawnSpot):
                 loc_name=self._trigger_relocate,
                 next_loc_name=self._trigger_relocate
             )
-            if self.remote:
+            if self.proxy:
                 self._trigger_relocate()
         else:
             if not hasattr(self, '_board'):
@@ -70,7 +70,7 @@ class Pawn(PawnSpot):
             del self._board
 
     def relocate(self, *args):
-        if not self.remote.exists:
+        if not self.proxy.exists:
             return
         try:
             location = self.board.arrow[self.loc_name][self.next_loc_name]
@@ -85,12 +85,12 @@ class Pawn(PawnSpot):
             location.add_widget(self)
     _trigger_relocate = trigger(relocate)
 
-    def on_remote(self, *args):
-        super().on_remote(*args)
-        if not self.remote or not self.remote.exists:
+    def on_proxy(self, *args):
+        super().on_proxy(*args)
+        if not self.proxy or not self.proxy.exists:
             return
-        self.loc_name = self.remote['location']
-        self.next_loc_name = self.remote.get('next_location', None)
+        self.loc_name = self.proxy['location']
+        self.next_loc_name = self.proxy.get('next_location', None)
 
     def finalize(self):
         super().finalize()
@@ -104,21 +104,21 @@ class Pawn(PawnSpot):
             loc_name=self._trigger_push_location
         )
 
-    def pull_from_remote(self, *args):
-        super().pull_from_remote(*args)
+    def pull_from_proxy(self, *args):
+        super().pull_from_proxy(*args)
         relocate = False
-        if self.loc_name != self.remote['location']:
-            self.loc_name = self.remote['location']  # aliasing? could be trouble
+        if self.loc_name != self.proxy['location']:
+            self.loc_name = self.proxy['location']  # aliasing? could be trouble
             relocate = True
-        if self.next_loc_name != self.remote['next_location']:
-            self.next_loc_name = self.remote['next_location']
+        if self.next_loc_name != self.proxy['next_location']:
+            self.next_loc_name = self.proxy['next_location']
             relocate = True
         if relocate:
             self.relocate()
 
     def push_location(self, *args):
-        if self.remote['location'] != self.loc_name:
-            self.remote['location'] = self.loc_name
+        if self.proxy['location'] != self.loc_name:
+            self.proxy['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)
 
     def add_widget(self, pawn, index=0, canvas='after'):

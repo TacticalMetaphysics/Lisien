@@ -49,7 +49,7 @@ class ELiDEApp(App):
     tick = NumericProperty(0)
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
-    selected_remote = ObjectProperty()
+    selected_proxy = ObjectProperty()
 
     def on_selection(self, *args):
         Logger.debug("App: {} selected".format(self.selection))
@@ -276,7 +276,7 @@ class ELiDEApp(App):
             engine=self.engine
         )
         self.bind(
-            selected_remote=self.statcfg.setter('remote')
+            selected_proxy=self.statcfg.setter('proxy')
         )
         dialog_todo = self.engine.universal.get('last_result', [])
         if dialog_todo:
@@ -300,10 +300,10 @@ class ELiDEApp(App):
             self.statcfg.statlist = self.mainscreen.statlist
         self.mainscreen.bind(statlist=self.statcfg.setter('statlist'))
         self.bind(
-            selection=self.reremote,
-            character=self.reremote
+            selection=self.refresh_selected_proxy,
+            character=self.refresh_selected_proxy
         )
-        self.selected_remote = self._get_selected_remote()
+        self.selected_proxy = self._get_selected_proxy()
         for wid in (
                 self.mainscreen,
                 self.pawncfg,
@@ -319,11 +319,11 @@ class ELiDEApp(App):
     def _set_language(self, lang):
         self.engine.string.language = lang
 
-    def _get_selected_remote(self):
+    def _get_selected_proxy(self):
         if self.selection is None:
             return self.character.stat
-        elif hasattr(self.selection, 'remote'):
-            return self.selection.remote
+        elif hasattr(self.selection, 'proxy'):
+            return self.selection.proxy
         elif (
                 hasattr(self.selection, 'portal') and
                 self.selection.portal is not None
@@ -332,8 +332,8 @@ class ELiDEApp(App):
         else:
             raise ValueError("Invalid selection: {}".format(self.selection))
 
-    def reremote(self, *args):
-        self.selected_remote = self._get_selected_remote()
+    def refresh_selected_proxy(self, *args):
+        self.selected_proxy = self._get_selected_proxy()
 
     def on_character_name(self, *args):
         if self.config['ELiDE']['boardchar'] != self.character_name:
@@ -378,12 +378,12 @@ class ELiDEApp(App):
         elif isinstance(selection, Spot):
             self.selection = None
             self.mainscreen.boardview.board.rm_spot(selection.name)
-            selection.remote.delete()
+            selection.proxy.delete()
         else:
             assert isinstance(selection, Pawn)
             self.selection = None
             self.mainscreen.boardview.board.rm_pawn(selection.name)
-            selection.remote.delete()
+            selection.proxy.delete()
 
     def new_board(self, name):
         """Make a board for a character name, and switch to it."""

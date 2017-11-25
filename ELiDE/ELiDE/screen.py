@@ -54,22 +54,22 @@ class StatListPanel(BoxLayout):
     engine = ObjectProperty()
     branch = StringProperty('trunk')
     tick = NumericProperty(0)
-    remote = ObjectProperty()
+    proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
 
-    def on_remote(self, *args):
-        if hasattr(self.remote, 'name'):
-            self.selection_name = str(self.remote.name)
+    def on_proxy(self, *args):
+        if hasattr(self.proxy, 'name'):
+            self.selection_name = str(self.proxy.name)
 
     def set_value(self, k, v):
         if v is None:
-            del self.remote[k]
+            del self.proxy[k]
         else:
             try:
                 vv = self.engine.json_load(v)
             except (TypeError, ValueError):
                 vv = v
-            self.remote[k] = vv
+            self.proxy[k] = vv
 
 
 class TimePanel(BoxLayout):
@@ -170,7 +170,7 @@ class MainScreen(Screen):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
             return
-        self.app.bind(selected_remote=self.statpanel.setter('remote'))
+        self.app.bind(selected_proxy=self.statpanel.setter('proxy'))
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -275,7 +275,7 @@ class MainScreen(Screen):
             if unwanted in chardelta:
                 del chardelta[unwanted]
         self.boardview.board.trigger_update_from_delta(chardelta)
-        self.statpanel.statlist.mirror = dict(self.app.selected_remote)
+        self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
     def _advance_dialog(self, *args):
         self.ids.dialoglayout.clear_widgets()
@@ -402,7 +402,7 @@ Builder.load_string(
         id: statlist
         size_hint_y: 0.95
         engine: root.engine
-        remote: root.remote
+        proxy: root.proxy
     Button:
         id: cfgstatbut
         size_hint_y: 0.05

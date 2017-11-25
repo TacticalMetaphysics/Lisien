@@ -221,8 +221,8 @@ class Board(RelativeLayout):
             # already a portal between the origin and this
             # destination, create one.
             destspot = next(self.spots_at(*touch.pos))
-            orig = self.origspot.remote
-            dest = destspot.remote
+            orig = self.origspot.proxy
+            dest = destspot.proxy
             if not(
                 orig.name in self.character.portal and
                 dest.name in self.character.portal[orig.name]
@@ -730,7 +730,7 @@ class Board(RelativeLayout):
         self.add_new_pawns()
         self.spots_unposd = [
             spot for spot in self.spot.values()
-            if not ('_x' in spot.remote and '_y' in spot.remote)
+            if not ('_x' in spot.proxy and '_y' in spot.proxy)
         ]
 
     def update_from_delta(self, delta, *args):
@@ -836,7 +836,7 @@ class Board(RelativeLayout):
 
     def nx_layout(self, *args):
         for spot in self.spots_unposd:
-            if not (spot.name and spot.remote):
+            if not (spot.name and spot.proxy):
                 Clock.schedule_once(self.nx_layout, 0)
                 return
         spots_only = self.character.facade()

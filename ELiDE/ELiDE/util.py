@@ -55,22 +55,6 @@ class trigger(object):
         return retval
 
 
-def set_remote_value(loader, remote, k, v):
-    if v is None:
-        del remote[k]
-    else:
-        remote[k] = loader(v)
-
-
-def remote_setter(loader, remote):
-    """Return a function taking two arguments, ``k`` and ``v``, which sets
-    ``remote[k] = v``, interpreting ``v`` as JSON if possible, or
-    deleting ``remote[k]`` if ``v is None``.
-
-    """
-    return lambda k, v: set_remote_value(loader, remote, k, v)
-
-
 def try_load(loader, obj):
     """Return the JSON interpretation the object if possible, or just the
     object otherwise.
