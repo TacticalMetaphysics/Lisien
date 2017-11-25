@@ -7,8 +7,8 @@ methods. But if you need to store historical data some other way,
 you might want to store it in a ``WindowDict``.
 
 """
-from copy import copy as copier
-from collections import defaultdict, deque, MutableMapping, KeysView, ItemsView, ValuesView
+from operator import itemgetter
+from collections import defaultdict, deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 
 
 class HistoryError(KeyError):
@@ -69,6 +69,61 @@ class WindowDictItemsView(ItemsView):
         yield from self._mapping._future
 
 
+class WindowDictPastFutureKeysView(KeysView):
+    def __contains__(self, item):
+        for rev in map(itemgetter(0), self._mapping.deq):
+            if rev == item:
+                return True
+        return False
+
+
+class WindowDictPastKeysView(WindowDictPastFutureKeysView):
+    def __iter__(self):
+        yield from map(itemgetter(0), reversed(self._mapping.deq))
+
+
+class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
+    def __iter__(self):
+        yield from map(itemgetter(0), self._mapping.deq)
+
+
+class WindowDictPastFutureItemsView(ItemsView):
+    def __contains__(self, item):
+        rev, v = item
+        for mrev, mv in self._mapping.deq:
+            if mrev == rev:
+                return mv == v
+        return False
+
+
+class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+    def __iter__(self):
+        yield from reversed(self._mapping.deq)
+
+
+class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
+    def __iter__(self):
+        yield from self._mapping.deq
+
+
+class WindowDictPastFutureValuesView(ValuesView):
+    def __contains__(self, item):
+        for v in map(itemgetter(1), self._mapping.deq):
+            if v == item:
+                return True
+        return False
+
+
+class WindowDictPastValuesView(WindowDictPastFutureValuesView):
+    def __iter__(self):
+        yield from map(itemgetter(1), reversed(self._mapping.deq))
+
+
+class WindowDictFutureValuesView(WindowDictPastFutureValuesView):
+    def __iter__(self):
+        yield from map(itemgetter(1), self._mapping.deq)
+
+
 class WindowDictValuesView(ValuesView):
     """Look through all the values that a WindowDict contains."""
     def __contains__(self, value):
@@ -87,6 +142,157 @@ class WindowDictValuesView(ValuesView):
             yield v
 
 
+class WindowDictPastView(Mapping):
+    __slots__ = ['deq']
+
+    def __init__(self, past):
+        self.deq = past
+
+    def __iter__(self):
+        yield from map(itemgetter(0), reversed(self.deq))
+
+    def __len__(self):
+        return len(self.deq)
+
+    def __getitem__(self, key):
+        future = deque()
+        past = self.deq
+        while past:
+            rev, value = past.pop()
+            future.appendleft((rev, value))
+            if rev == key:
+                self.deq += future
+                return value
+        self.deq = future
+        raise KeyError
+
+    def keys(self):
+        return WindowDictPastKeysView(self)
+
+    def items(self):
+        return WindowDictPastItemsView(self)
+
+    def values(self):
+        return WindowDictPastValuesView(self)
+
+
+class WindowDictFutureView(Mapping):
+    __slots__ = ['deq']
+
+    def __init__(self, future):
+        self.deq = future
+
+    def __iter__(self):
+        yield from map(itemgetter(0), self.deq)
+
+    def __len__(self):
+        return len(self.deq)
+
+    def __getitem__(self, key):
+        future = self.deq
+        past = deque()
+        while future:
+            rev, value = future.popleft()
+            past.append((rev, value))
+            if rev == key:
+                self.deq = past + future
+                return value
+        self.deq = past
+        raise KeyError
+
+    def keys(self):
+        return WindowDictFutureKeysView(self)
+
+    def items(self):
+        return WindowDictFutureItemsView(self)
+
+    def values(self):
+        return WindowDictFutureValuesView(self)
+
+
+class WindowDictSlice:
+    __slots__ = ['dict', 'slice']
+
+    def __init__(self, dict, slice):
+        self.dict = dict
+        self.slice = slice
+
+    def __reversed__(self):
+        # makes the iteration start over; I don't care enough to fix
+        return WindowDictReverseSlice(self.dict, self.slice)
+
+    def __iter__(self):
+        dic = self.dict
+        slic = self.slice
+        if slic.step is not None:
+            for i in range(slic.start or dic.beginning, slic.stop or dic.end, slic.step):
+                yield dic[i]
+        if slic.start is None and slic.stop is None:
+            yield from map(itemgetter(1), dic._past + dic._future)
+        elif None not in (slic.start, slic.stop):
+            if slic.stop == slic.start:
+                yield dic[slic.stop]
+                return
+            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
+            dic.seek(right)
+            past = dic._past.copy()
+            while past and past[0][0] < left:
+                past.popleft()
+            yield from map(itemgetter(1), past)
+        elif slic.start is None:
+            stac = dic._past + dic._future
+            while stac and stac[-1][0] > slic.stop:
+                stac.pop()
+            yield from map(itemgetter(1), stac)
+            return
+        else:  # slic.stop is None
+            stac = dic._past + dic._future
+            while stac and stac[0][0] < slic.start:
+                stac.popleft()
+            yield from map(itemgetter(1), stac)
+
+
+class WindowDictReverseSlice:
+    __slots__ = ['dict', 'slice']
+
+    def __init__(self, dict, slice):
+        self.dict = dict
+        self.slice = slice
+
+    def __reversed__(self):
+        # makes the iteration start over; I don't care enough to fix
+        return WindowDictSlice(self.dict, self.slice)
+
+    def __iter__(self):
+        dic = self.dict
+        slic = self.slice
+        if slic.step is not None:
+            for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
+                yield dic[i]
+        if slic.start is None and slic.stop is None:
+            yield from map(itemgetter(1), reversed(dic._past + dic._future))
+        elif None not in (slic.start, slic.stop):
+            if slic.stop == slic.stop:
+                yield dic[slic.stop]
+                return
+            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
+            dic.seek(right)
+            future = dic._past.copy()
+            while future and future[-1][0] > left:
+                future.pop()
+            yield from map(itemgetter(1), reversed(future))
+        elif slic.start is None:
+            stac = dic._past + dic._future
+            while stac and stac[-1][0] > slic.stop:
+                stac.pop()
+            yield from map(itemgetter(1), reversed(stac))
+        else:  # slic.stop is None
+            stac = dic._past + dic._future
+            while stac and stac[0][0] < slic.start:
+                stac.popleft()
+            yield from map(itemgetter(1), reversed(stac))
+
+
 class WindowDict(MutableMapping):
     """A dict that keeps every value that a variable has had over time.
 
@@ -100,7 +306,20 @@ class WindowDict(MutableMapping):
     Optimized for the cases where you look up the same revision
     repeatedly, or its neighbors.
 
+    This supports slice notation to get all values in a given
+    time-frame. If you do not supply a step, you'll just get the
+    values, with no indication of when they're from exactly --
+    so explicitly supply a step of 1 to get the value at each point in
+    the slice.
+
     """
+    def future(self):
+        """Return a Mapping of future values."""
+        return WindowDictFutureView(self._future)
+
+    def past(self):
+        """Return a Mapping of past values."""
+        return WindowDictPastView(self._past)
 
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
@@ -166,6 +385,9 @@ class WindowDict(MutableMapping):
     def values(self):
         return WindowDictValuesView(self)
 
+    def __bool__(self):
+        return bool(self._past) or bool(self._future)
+
     def __init__(self, data={}):
         self._past = deque(sorted(data.items()))
         self._future = deque()
@@ -188,6 +410,10 @@ class WindowDict(MutableMapping):
         return len(self._past) + len(self._future)
 
     def __getitem__(self, rev):
+        if isinstance(rev, slice):
+            if None not in (rev.start, rev.stop) and rev.start > rev.stop:
+                return WindowDictReverseSlice(self, rev)
+            return WindowDictSlice(self, rev)
         self.seek(rev)
         if not self._past:
             raise HistoryError(
@@ -377,7 +603,8 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower', 'shallowest']
+    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches',
+                 'shallow', 'shallower', 'shallowest', 'settings', 'presettings']
 
     def __init__(self, db):
         self.db = db
@@ -417,6 +644,10 @@ class Cache(object):
         """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
         """A dictionary for plain, unstructured hinting."""
+        self.settings = PickyDefaultDict(TurnDict)
+        """All the ``entity[key] = value`` operations that were performed on some turn"""
+        self.presettings = PickyDefaultDict(TurnDict)
+        """The values prior to ``entity[key] = value`` operations performed on some turn"""
 
     def load(self, data, validate=False):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -433,23 +664,6 @@ class Cache(object):
             branch_end[branch] = max((turn, branch_end[branch]))
             turn_end[branch, turn] = max((tick, turn_end[branch, turn]))
             dd3[branch][turn][tick].append(row)
-        real_branches = self.db._branches
-        real_turn_end = self.db._turn_end
-        for branch, end in branch_end.items():
-            if branch not in real_branches:
-                assert branch == 'trunk'
-
-            parent, start_turn, start_tick, end_turn, end_tick = real_branches[branch]
-            if end > end_turn:
-                if (branch, end) in turn_end:
-                    tick = turn_end[branch, end]
-                elif (branch, end) in real_turn_end:
-                    tick = real_turn_end[branch, end]
-                else:
-                    tick = 0
-                real_branches[branch] = parent, start_turn, start_tick, end, tick
-        for (branch, turn), end in turn_end.items():
-            real_turn_end[branch, turn] = max((real_turn_end[branch, turn], end))
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
         childbranch = self.db._childbranch
@@ -592,84 +806,129 @@ class Cache(object):
             if kc != correct:
                 raise ValueError("Invalid keys cache")
 
+    def truncate_settings(self, branch, turn, tick):
+        """Forget about the fact I set anything after the given time."""
+        settings_turns = self.settings[branch]
+        if settings_turns.has_exact_rev(turn):
+            settings_turns[turn].truncate(tick)
+        settings_turns.truncate(turn)
+
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
+        settings_turns = self.settings[branch]
+        presettings_turns = self.presettings[branch]
+        branches = self.branches[parent+(entity, key)][branch]
+        keys = self.keys[parent+(entity,)][key][branch]
+        shallow = self.shallow[parent+(entity, key, branch)]
+        if planning:
+            if shallow:
+                if shallow.has_exact_rev(turn) and tick < shallow[turn].end:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+                if turn <= shallow.end:
+                    raise HistoryError(
+                        "Already have some turns after {} in branch {}".format(turn, branch)
+                    )
+            if keys:
+                if turn <= keys.end:
+                    raise HistoryError(
+                        "Already have some turns after {} in branch {}".format(turn, branch)
+                    )
+                if keys.has_exact_rev(turn) and tick <= keys[turn].end:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+            if branches:
+                if branches.has_exact_rev(turn) and tick <= branches[turn].end:
+                    raise HistoryError(
+                        "Already have some ticks after {} in turn {} of branch {}".format(
+                            tick, turn, branch
+                        )
+                    )
+                if turn < branches.end:
+                    raise HistoryError(
+                        "Can't plan for the past. "
+                        "Already have some turns after {} in branch {}".format(
+                            turn, branch
+                        )
+                    )
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
+            prev = None
+        if settings_turns.has_exact_rev(turn):
+            assert presettings_turns.has_exact_rev(turn)
+            setticks = settings_turns[turn]
+            if setticks.has_exact_rev(tick):
+                raise HistoryError(
+                    "Tried to set {} on top of {} at {}, {}, {}".format(
+                        parent + (entity, key, value),
+                        setticks[tick],
+                        branch, turn, tick
+                    )
+                )
+            presetticks = presettings_turns[turn]
+            assert not presetticks.has_exact_rev(tick)
+            presetticks[tick] = parent + (entity, key, prev)
+            setticks[tick] = parent + (entity, key, value)
+        else:
+            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
+            settings_turns[turn] = {tick: parent + (entity, key, value)}
+        new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
             if parents.has_exact_rev(turn):
-                parents[turn][tick] = value
+                parentsturn = parents[turn]
+                parentsturn.truncate(tick)
+                parentsturn[tick] = value
             else:
-                newp = FuturistWindowDict()
-                newp[tick] = value
-                parents[turn] = newp
-        branches = self.branches[parent+(entity, key)][branch]
-        if planning and turn < branches.end:
-            raise HistoryError(
-                "Can't plan for the past. "
-                "Already have some turns after {} in branch {}".format(
-                    turn, branch
-                )
-            )
+                new = FuturistWindowDict()
+                new[tick] = value
+                parents[turn] = new
+        if branches and turn < branches.end:
+            # deal with the paradox by erasing history after this tick and turn
+            if branches.has_exact_rev(turn):
+                mapp_turn = branches[turn]
+                settings_turn = settings_turns[turn]
+                if mapp_turn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                for tic in mapp_turn.future():
+                    del settings_turn[tic]
+            for trn, tics in branches.future().items():
+                settings_turn = settings_turns[trn]
+                for tic in tics:
+                    del settings_turn[tic]
+            branches.truncate(turn)
+            keys.truncate(turn)
+            shallow.truncate(turn)
         if branches.has_exact_rev(turn):
-            if turn < branches.end:
-                # deal with the paradox by erasing history after this turn
-                branches.seek(turn)
-                branches._future = deque()
-
+            assert keys.has_exact_rev(turn)
+            assert shallow.has_exact_rev(turn)
             branchesturn = branches[turn]
-            if planning and tick <= branchesturn.end:
-                raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
-                    )
-                )
+            assert branchesturn is keys[turn] is shallow[turn]
+            settings_turn = settings_turns[turn]
+            presettings_turn = presettings_turns[turn]
+            if tick <= branchesturn.end:
+                if branchesturn.has_exact_rev(tick):
+                    del settings_turn[tick]
+                    del presettings_turn[tick]
+                for tic in branchesturn.future():
+                    del settings_turn[tic]
+                    del presettings_turn[tic]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:
-            newb = FuturistWindowDict()
-            newb[tick] = value
-            branches[turn] = newb
-        keys = self.keys[parent+(entity,)][key][branch]
-        if planning and turn <= keys.end:
-            raise HistoryError(
-                "Already have some turns after {} in branch {}".format(turn, branch)
-            )
-        keys.truncate(turn)
-        if keys.has_exact_rev(turn):
-            keysturn = keys[turn]
-            if planning and tick <= keysturn.end:
-                raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
-                    )
-                )
-            keysturn.truncate(tick)
-            keysturn[tick] = value
-        else:
-            newt = FuturistWindowDict()
-            newt[tick] = value
-            keys[turn] = newt
-        shallow = self.shallow[parent+(entity, key, branch)]
-        if shallow.has_exact_rev(turn):
-            shalturn = shallow[turn]
-            if planning and tick < shalturn.end:
-                raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
-                    )
-                )
-            shalturn.truncate(tick)
-            shalturn[tick] = value
-        else:
-            news = FuturistWindowDict()
-            news[tick] = value
-            shallow[turn] = news
+            if new is None:
+                new = FuturistWindowDict()
+                new[tick] = value
+            branches[turn] = keys[turn] = shallow[turn] = new
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
-        try:
-            hash(parent+(entity, key, branch, turn, tick))
-        except TypeError:
-            pass
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
     def retrieve(self, *args):
@@ -714,20 +973,6 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
-                if args not in self.shallowest:
-                    self.shallowest[args] = ret
-                try:
-                    self.shallower[entity+(key, branch, turn)][tick] = ret
-                except HistoryError:
-                    pass
-                try:
-                    self.shallow[entity+(key, branch)][turn][tick] = ret
-                except HistoryError:
-                    pass
-                try:
-                    self.keys[entity][key][branch][turn][tick] = ret
-                except HistoryError:
-                    pass
                 return ret
         else:
             raise KeyError

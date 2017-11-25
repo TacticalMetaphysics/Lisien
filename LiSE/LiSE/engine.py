@@ -6,12 +6,12 @@ flow of time.
 
 """
 from random import Random
-from functools import partial
+from functools import partial, partialmethod
 from types import FunctionType
 from json import dumps, loads, JSONEncoder
 from operator import gt, lt, ge, le, eq, ne
 from blinker import Signal
-from allegedb import ORM as gORM
+from allegedb import ORM as gORM, update_window, update_backward_window
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
 from .xcollections import (
     StringStore,
@@ -41,94 +41,6 @@ from .cache import (
 )
 
 
-class TimeSignal(Signal):
-    """Acts like a tuple of the time in (branch, turn) for the most part.
-
-    You can also connect to this like it's a Signal, so a function gets
-    called every time the time changes.
-
-    """
-    def __init__(self, engine):
-        super().__init__()
-        self.engine = engine
-
-    def __iter__(self):
-        yield self.engine.branch
-        yield self.engine.turn
-
-    def __len__(self):
-        return 2
-
-    def __getitem__(self, i):
-        if i in ('branch', 0):
-            return self.engine.branch
-        if i in ('turn', 1):
-            return self.engine.turn
-
-    def __setitem__(self, i, v):
-        if i in ('branch', 0):
-            self.engine.branch = v
-        if i in ('turn', 1):
-            self.engine.turn = v
-        self.send(self, branch=self.engine.branch, turn=self.engine.turn)
-
-
-class TimeSignalDescriptor(object):
-    __doc__ = TimeSignal.__doc__
-    signals = {}
-
-    def __get__(self, inst, cls):
-        if id(inst) not in self.signals:
-            self.signals[id(inst)] = TimeSignal(inst)
-        return self.signals[id(inst)]
-
-    def __set__(self, inst, val):
-        if id(inst) not in self.signals:
-            self.signals[id(inst)] = TimeSignal(inst)
-        real = self.signals[id(inst)]
-        branch_then, turn_then, tick_then = real.engine.btt()
-        branch_now, turn_now = val
-        e = real.engine
-        # enforce the arrow of time, if it's in effect
-        if e.forward and branch_now == branch_then and turn_now < turn_then:
-            raise ValueError("Can't time travel backward in a forward context")
-        # make sure I'll end up within the revision range of the
-        # destination branch
-        branches = e._branches
-        tick_now = e._turn_end.get((branch_now, turn_now), 0)
-        if branch_now != 'trunk':
-            if branch_now in branches:
-                parturn = branches[branch_now][1]
-                if turn_now < parturn:
-                    raise ValueError(
-                        "Tried to jump to branch {br}, "
-                        "which starts at turn {t}. "
-                        "Go to turn {t} or later to use branch {br}.".format(
-                            br=branch_now,
-                            t=parturn
-                        )
-                    )
-            else:
-                branches[branch_now] = (
-                    branch_then, turn_now, tick_now, turn_now, tick_now
-                )
-                e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
-        e._obranch, e._oturn = branch, turn = val
-        parent, start_turn, start_tick, end_turn, end_tick = branches[branch]
-        if not e.planning and turn_now > end_turn:
-            branches[branch] = parent, start_turn, start_tick, turn_now, tick_now
-        e._otick = tick_now
-        real.send(
-            e,
-            branch_then=branch_then,
-            turn_then=turn_then,
-            tick_then=tick_then,
-            branch_now=branch_now,
-            turn_now=turn_now,
-            tick_now=tick_now
-        )
-
-
 class NextTurn(Signal):
     """Make time move forward in the simulation.
 
@@ -145,7 +57,9 @@ class NextTurn(Signal):
 
     def __call__(self):
         engine = self.engine
+        start_branch, start_turn, start_tick = engine.btt()
         with engine.advancing:
+            done = False
             for res in iter(engine.advance, final_rule):
                 if res:
                     branch, turn, tick = engine.btt()
@@ -158,7 +72,17 @@ class NextTurn(Signal):
                         turn=turn,
                         tick=tick
                     )
-                    return res
+                    break
+            else:
+                done = True
+        if not done:
+            return [], engine.get_delta(
+                branch=start_branch,
+                turn_from=start_turn,
+                turn_to=engine.turn,
+                tick_from=start_tick,
+                tick_to=engine.tick
+            )
         branch, turn = engine.time
         turn += 1
         # As a side effect, the following assignment sets the tick to
@@ -175,7 +99,13 @@ class NextTurn(Signal):
             turn=turn,
             tick=engine.tick
         )
-        return []
+        return [], engine.get_delta(
+            branch=branch,
+            turn_from=start_turn,
+            turn_to=turn,
+            tick_from=start_tick,
+            tick_to=engine.tick
+        )
 
 
 class DummyEntity(dict):
@@ -205,6 +135,8 @@ json_load_hints = {'final_rule': final_rule}
 class Encoder(JSONEncoder):
     """Extend the base JSON encoder to handle a couple of numpy types I might need"""
     def encode(self, o):
+        if type(o) in (str, int, float):
+            return super().encode(o)
         return super().encode(self.listify(o))
 
     def default(self, o):
@@ -231,25 +163,22 @@ class AbstractEngine(object):
     Implements serialization methods and the __getattr__ for stored methods.
 
     """
-    def __getattr__(self, att):
-        if hasattr(super(), 'method') and hasattr(self.method, att):
-            return partial(getattr(self.method, att), self)
-        raise AttributeError('No attribute or stored method: {}'.format(att))
-
-    def _listify_function(self, obj):
-        if not hasattr(getattr(self, obj.__module__), obj.__name__):
-            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
-        return [obj.__module__, obj.__name__]
-
     @reify
     def _listify_dispatch(self):
-        return {
-            list: lambda obj: ["list"] + [self.listify(v) for v in obj],
-            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
-            dict: lambda obj: ["dict"] + [
+        def listify_list(obj):
+            return ["list"] + [self.listify(v) for v in obj]
+
+        def listify_dict(obj):
+            return ["dict"] + [
                 [self.listify(k), self.listify(v)]
                 for (k, v) in obj.items()
-            ],
+            ]
+        return {
+            list: listify_list,
+            JSONListReWrapper: listify_list,
+            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
+            dict: listify_dict,
+            JSONReWrapper: listify_dict,
             self.char_cls: lambda obj: ["character", obj.name],
             self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
@@ -257,13 +186,6 @@ class AbstractEngine(object):
                 "portal", obj.character.name, obj.orig, obj.dest],
             FunctionType: self._listify_function
         }
-
-    def listify(self, obj):
-        """Turn a LiSE object into a list for easier serialization"""
-        try:
-            return self._listify_dispatch[type(obj)](obj)
-        except KeyError:
-            return obj
 
     @reify
     def _delistify_dispatch(self):
@@ -293,6 +215,25 @@ class AbstractEngine(object):
             'trigger': lambda obj: getattr(self.trigger, obj[1]),
             'action': lambda obj: getattr(self.action, obj[1])
         }
+
+    def __getattr__(self, att):
+        if hasattr(super(), 'method') and hasattr(self.method, att):
+            return partial(getattr(self.method, att), self)
+        raise AttributeError('No attribute or stored method: {}'.format(att))
+
+    def _listify_function(self, obj):
+        if not hasattr(getattr(self, obj.__module__), obj.__name__):
+            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
+        return [obj.__module__, obj.__name__]
+
+    def listify(self, obj):
+        """Turn a LiSE object into a list for easier serialization"""
+        try:
+            listifier = self._listify_dispatch[type(obj)]
+            return listifier(obj)
+        except KeyError:
+            return obj
+
 
     def delistify(self, obj):
         """Turn a list describing a LiSE object into that object
@@ -386,13 +327,214 @@ class Engine(AbstractEngine, gORM):
     place_cls = node_cls = Place
     portal_cls = edge_cls = _make_edge = Portal
     query_engine_cls = QueryEngine
-    time = TimeSignalDescriptor()
+    illegal_graph_names = ['global', 'eternal', 'universal', 'rulebooks', 'rules']
+    illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
     def _make_node(self, char, node):
         if self._is_thing(char.name, node):
             return Thing(char, node)
         else:
             return Place(char, node)
+
+    def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
+        """Get a dictionary describing changes to the world.
+
+        Most keys will be character names, and their values will be dictionaries of
+        the character's stats' new values, with ``None`` for deleted keys. Characters'
+        dictionaries have special keys 'nodes' and 'edges' which contain booleans indicating
+        whether the node or edge exists at the moment, and 'node_val' and 'edge_val' for
+        the stats of those entities. For edges (also called portals) these dictionaries
+        are two layers deep, keyed first by the origin, then by the destination.
+
+        Characters also have special keys for the various rulebooks they have:
+
+        * 'character_rulebook'
+        * 'avatar_rulebook'
+        * 'character_thing_rulebook'
+        * 'character_place_rulebook'
+        * 'character_portal_rulebook'
+
+        And each node and edge may have a 'rulebook' stat of its own. If a node is a thing,
+        it gets a 'location' and possibly 'next_location'; when the 'location' is deleted,
+        that means it's back to being a place.
+
+        Keys at the top level that are not character names:
+
+        * 'rulebooks', a dictionary keyed by the name of each changed rulebook, the value
+        being a list of rule names
+        * 'rules', a dictionary keyed by the name of each changed rule, containing any
+        of the lists 'triggers', 'prereqs', and 'actions'
+
+        """
+        if turn_from == turn_to:
+            return self.get_turn_delta(branch, turn_to, tick_to, start_tick=tick_from)
+        delta = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
+        if turn_from < turn_to:
+            updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
+            thbranches = self._things_cache.settings
+            rbbranches = self._rulebooks_cache.settings
+            trigbranches = self._triggers_cache.settings
+            preqbranches = self._prereqs_cache.settings
+            actbranches = self._actions_cache.settings
+            charrbbranches = self._characters_rulebooks_cache.settings
+            avrbbranches = self._avatars_rulebooks_cache.settings
+            charthrbbranches = self._characters_things_rulebooks_cache.settings
+            charplrbbranches = self._characters_places_rulebooks_cache.settings
+            charporbbranches = self._characters_portals_rulebooks_cache.settings
+            noderbbranches = self._nodes_rulebooks_cache.settings
+            edgerbbranches = self._portals_rulebooks_cache.settings
+        else:
+            updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
+            thbranches = self._things_cache.presettings
+            rbbranches = self._rulebooks_cache.presettings
+            trigbranches = self._triggers_cache.presettings
+            preqbranches = self._prereqs_cache.presettings
+            actbranches = self._actions_cache.presettings
+            charrbbranches = self._characters_rulebooks_cache.presettings
+            avrbbranches = self._avatars_rulebooks_cache.presettings
+            charthrbbranches = self._characters_things_rulebooks_cache.presettings
+            charplrbbranches = self._characters_places_rulebooks_cache.presettings
+            charporbbranches = self._characters_portals_rulebooks_cache.presettings
+            noderbbranches = self._nodes_rulebooks_cache.presettings
+            edgerbbranches = self._portals_rulebooks_cache.presettings
+
+        def updthing(char, thing, locs):
+            if (
+                char in delta and 'nodes' in delta[char]
+                and thing in delta[char]['nodes'] and not
+                delta[char]['nodes'][thing]
+            ):
+                return
+            if locs is None:
+                loc = nxtloc = None
+            else:
+                loc, nxtloc = locs
+            thingd = delta.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
+            thingd['location'] = loc
+            thingd['next_location'] = nxtloc
+        if branch in thbranches:
+            updater(updthing, thbranches[branch])
+        # TODO handle arrival_time and next_arrival_time stats of things
+
+        def updrb(whatev, rulebook, rules):
+            delta.setdefault('rulebooks', {})[rulebook] = rules
+
+        if branch in rbbranches:
+            updater(updrb, rbbranches[branch])
+
+        def updru(key, _, rule, funs):
+            delta.setdefault('rules', {}).setdefault(rule, {})[key] = funs
+
+        if branch in trigbranches:
+            updater(partial(updru, 'triggers'), trigbranches[branch])
+
+        if branch in preqbranches:
+            updater(partial(updru, 'prereqs'), preqbranches[branch])
+
+        if branch in actbranches:
+            updater(partial(updru, 'actions'), actbranches[branch])
+
+        def updcrb(key, _, character, rulebook):
+            delta.setdefault(character, {})[key] = rulebook
+
+        if branch in charrbbranches:
+            updater(partial(updcrb, 'character_rulebook'), charrbbranches[branch])
+
+        if branch in avrbbranches:
+            updater(partial(updcrb, 'avatar_rulebook'), avrbbranches[branch])
+
+        if branch in charthrbbranches:
+            updater(partial(updcrb, 'character_thing_rulebook'), charthrbbranches[branch])
+
+        if branch in charplrbbranches:
+            updater(partial(updcrb, 'character_place_rulebook'), charplrbbranches[branch])
+
+        if branch in charporbbranches:
+            updater(partial(updcrb, 'character_portal_rulebook'), charporbbranches[branch])
+
+        def updnoderb(character, node, rulebook):
+            if (
+                character in delta and 'nodes' in delta[character]
+                and node in delta[character]['nodes'] and not delta[character]['nodes'][node]
+            ):
+                return
+            delta.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
+
+        if branch in noderbbranches:
+            updater(updnoderb, noderbbranches[branch])
+
+        def updedgerb(character, orig, dest, rulebook):
+            if (
+                character in delta and 'edges' in delta[character]
+                and orig in delta[character]['edges'] and dest in delta[character]['edges'][orig]
+                and not delta[character]['edges'][orig][dest]
+            ):
+                return
+            delta.setdefault(character, {}).setdefault('edge_val', {}).setdefault(
+                orig, {}).setdefault(dest, {})['rulebook'] = rulebook
+
+        if branch in edgerbbranches:
+            updater(updedgerb, edgerbbranches[branch])
+
+        return delta
+
+    def get_turn_delta(self, branch=None, turn=None, tick=None, start_tick=0):
+        """Get a dictionary describing changes to the world within a given turn
+
+        Defaults to the present turn, and stops at the present tick unless specified.
+
+        See the documentation for ``get_delta`` for a detailed description of the
+        delta format.
+
+        """
+        branch = branch or self.branch
+        turn = turn or self.turn
+        tick = tick or self.tick
+        delta = super().get_turn_delta(branch, turn, start_tick, tick)
+        if branch in self._things_cache.settings and self._things_cache.settings[branch].has_exact_rev(turn):
+            for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
+                thingd = delta.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
+                thingd['location'] = location
+                thingd['next_location'] = next_location
+        delta['rulebooks'] = rbdif = {}
+        if branch in self._rulebooks_cache.settings and self._rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                rbdif[rulebook] = rules
+        delta['rules'] = rdif = {}
+        if branch in self._triggers_cache.settings and self._triggers_cache.settings[branch].has_exact_rev(turn):
+            for _, rule, funs in self._triggers_cache.settings[branch][turn][start_tick:tick]:
+                rdif.setdefault(rule, {})['triggers'] = funs
+        if branch in self._prereqs_cache.settings and self._prereqs_cache.settings[branch].has_exact_rev(turn):
+            for _, rule, funs in self._prereqs_cache.settings[branch][turn][start_tick:tick]:
+                rdif.setdefault(rule, {})['prereqs'] = funs
+        if branch in self._actions_cache.settings and self._triggers_cache.settings[branch].has_exact_rev(turn):
+            for _, rule, funs in self._triggers_cache.settings[branch][turn][start_tick:tick]:
+                rdif.setdefault(rule, {})['actions'] = funs
+
+        if branch in self._characters_rulebooks_cache.settings and self._characters_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {})['character_rulebook'] = rulebook
+        if branch in self._avatars_rulebooks_cache.settings and self._avatars_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._avatars_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {})['avatar_rulebook'] = rulebook
+        if branch in self._characters_things_rulebooks_cache.settings and self._characters_things_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_things_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {})['character_thing_rulebook'] = rulebook
+        if branch in self._characters_places_rulebooks_cache.settings and self._characters_places_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_places_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {})['character_place_rulebook'] = rulebook
+        if branch in self._characters_portals_rulebooks_cache.settings and self._characters_portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for _, character, rulebook in self._characters_portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {})['character_portal_rulebook'] = rulebook
+
+        if branch in self._nodes_rulebooks_cache.settings and self._nodes_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for character, node, rulebook in self._nodes_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
+        if branch in self._portals_rulebooks_cache.settings and self._portals_rulebooks_cache.settings[branch].has_exact_rev(turn):
+            for character, orig, dest, rulebook in self._portals_rulebooks_cache.settings[branch][turn][start_tick:tick]:
+                delta.setdefault(character, {}).setdefault('edge_val', {})\
+                    .setdefault(orig, {}).setdefault(dest, {})['rulebook'] = rulebook
+        return delta
 
     def _del_rulebook(self, rulebook):
         for (character, character_rulebooks) in \
@@ -761,12 +903,8 @@ class Engine(AbstractEngine, gORM):
             return True
         return pct / 100 < self.random()
 
-    def commit(self):
-        super().commit()
-
     def close(self):
         """Commit changes and close the database."""
-        self.commit()
         for store in self.stores:
             if hasattr(store, 'save'):
                 store.save()

@@ -13,6 +13,7 @@ from os import getpid
 from collections import (
     Mapping,
     MutableMapping,
+    Sequence,
     MutableSequence
 )
 from functools import partial
@@ -25,7 +26,7 @@ from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
 from allegedb.xjson import JSONReWrapper, JSONListReWrapper
-from .reify import reify
+from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
@@ -57,36 +58,24 @@ class CachingProxy(MutableMapping, Signal):
     def __setitem__(self, k, v):
         self._set_item(k, v)
         self._cache[k] = self._cache_munge(k, v)
-        self.send(self, key=k, val=v)
+        self.send(self, key=k, value=v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
         self._del_item(k)
         del self._cache[k]
-        self.send(self, key=k, val=None)
+        self.send(self, key=k, value=None)
 
     def _apply_diff(self, diff):
         for (k, v) in diff.items():
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
-                    self.send(self, key=k, val=None)
+                    self.send(self, key=k, value=None)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
-                self.send(self, key=k, val=v)
-
-    def update_cache(self):
-        diff = self._get_diff()
-        self.exists = diff is not None
-        if not self.exists:
-            self._cache = {}
-            self.send(self)
-            return
-        self._apply_diff(diff)
-
-    def _get_diff(self):
-        raise NotImplementedError("Abstract method")
+                self.send(self, key=k, value=v)
 
     def _cache_munge(self, k, v):
         raise NotImplementedError("Abstract method")
@@ -100,7 +89,11 @@ class CachingProxy(MutableMapping, Signal):
 
 class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
-        return self.engine.json_rewrap(v)
+        if isinstance(v, Mapping):
+            return JSONReWrapper(self, k, v)
+        elif isinstance(v, Sequence) and not isinstance(v, str):
+            return JSONListReWrapper(self, k, v)
+        return v
 
     def __repr__(self):
         return "{}({}) {}".format(
@@ -199,13 +192,6 @@ class NodeProxy(CachingEntityProxy):
             node=self.name
         )
 
-    def _get_diff(self):
-        return self.engine.handle(
-            command='node_stat_diff',
-            char=self._charname,
-            node=self.name
-        )
-
     def _set_item(self, k, v):
         if k == 'name':
             raise KeyError("Nodes can't be renamed")
@@ -274,12 +260,10 @@ class ThingProxy(NodeProxy):
     ):
         if location is None:
             raise TypeError("Thing must have location")
-        if arrival_time is None:
-            raise TypeError("Thing must have arrival_time")
         super().__init__(engine, character, name)
         self._location = location
         self._next_location = next_location
-        self._arrival_time = arrival_time
+        self._arrival_time = arrival_time or engine.turn
         self._next_arrival_time = next_arrival_time
 
     def __iter__(self):
@@ -300,6 +284,19 @@ class ThingProxy(NodeProxy):
         }:
             return getattr(self, '_' + k)
         return super().__getitem__(k)
+
+    def _apply_diff(self, diff):
+        for (k, v) in diff.items():
+            if v is None:
+                if k in self._cache:
+                    del self._cache[k]
+                    self.send(self, key=k, val=None)
+            elif k in {'location', 'next_location'}:
+                setattr(self, '_'+k, v)
+                self.send(self, key=k, val=v)
+            elif k not in self._cache or self._cache[k] != v:
+                self._cache[k] = v
+                self.send(self, key=k, val=v)
 
     def _set_location(self, v):
         self._location = v
@@ -334,29 +331,6 @@ class ThingProxy(NodeProxy):
             self.name,
             self._location
         )
-
-    def update_cache(self):
-        (loc, next_loc, arrt, next_arrt) = self.engine.handle(
-            command='get_thing_special_stats',
-            char=self._charname, thing=self.name
-        )
-        if loc is None:
-            self.exists = False
-            self._cache = {}
-            return
-        if loc != self._location:
-            self._location = loc
-            self.send(self, key='location', val=loc)
-        if next_loc != self._next_location:
-            self._next_location = next_loc
-            self.send(self, key='next_location', val=next_loc)
-        if arrt != self._arrival_time:
-            self._arrival_time = arrt
-            self.send(self, key='arrival_time', val=arrt)
-        if next_arrt != self._next_arrival_time:
-            self._next_arrival_time = next_arrt
-            self.send(self, key='next_arrival_time', val=next_arrt)
-        super().update_cache()
 
     def follow_path(self, path, weight=None):
         self.engine.handle(
@@ -459,14 +433,6 @@ class PortalProxy(CachingEntityProxy):
     def destination(self):
         return self.character.node[self._destination]
 
-    def _get_diff(self):
-        return self.engine.handle(
-            commnad='portal_stat_diff',
-            char=self._charname,
-            orig=self._origin,
-            dest=self._destination
-        )
-
     def _set_item(self, k, v):
         self.engine.handle(
             command='set_portal_stat',
@@ -525,7 +491,7 @@ class PortalProxy(CachingEntityProxy):
         self.engine.del_portal(self._charname, self._origin, self._destination)
 
 
-class NodeMapProxy(MutableMapping):
+class NodeMapProxy(MutableMapping, Signal):
     rulebook = RulebookProxyDescriptor()
 
     def _get_default_rulebook_name(self):
@@ -551,6 +517,7 @@ class NodeMapProxy(MutableMapping):
         return self.engine.character[self._charname]
 
     def __init__(self, engine_proxy, charname):
+        super().__init__()
         self.engine = engine_proxy
         self._charname = charname
 
@@ -612,47 +579,6 @@ class ThingMapProxy(CachingProxy):
 
     def __eq__(self, other):
         return self is other
-
-    def _apply_diff(self, diff):
-        for thing, data in diff.items():
-            if data:
-                location, next_location, arrival_time, next_arrival_time = data
-                if location:
-                    if thing in self._cache:
-                        thisthing = self._cache[thing]
-                        if thisthing._location != location:
-                            thisthing._location = location
-                            thisthing.send(thisthing, key='location', val=location)
-                        if thisthing._next_location != next_location:
-                            thisthing._next_location = next_location
-                            thisthing.send(thisthing, key='next_location', val=next_location)
-                        if thisthing._arrival_time != arrival_time:
-                            thisthing._arrival_time = arrival_time
-                            thisthing.send(thisthing, key='arrival_time', val=arrival_time)
-                        if thisthing._next_arrival_time != next_arrival_time:
-                            thisthing._next_arrival_time = next_arrival_time
-                            thisthing.send(thisthing, key='next_arrival_time', val=next_arrival_time)
-                    else:
-                        self._cache[thing] = ThingProxy(
-                            self.engine,
-                            self.name,
-                            thing,
-                            location,
-                            next_location,
-                            arrival_time,
-                            next_arrival_time
-                        )
-                elif thing in self._cache:
-                    self.send(self, key=thing, val=None)
-                    del self._cache[thing]
-            else:
-                assert thing in self._cache
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_things_diff',
-            char=self.name
-        )
 
     def _cache_munge(self, k, v):
         return ThingProxy(
@@ -723,25 +649,6 @@ class PlaceMapProxy(CachingProxy):
     def __eq__(self, other):
         return self is other
 
-    def _apply_diff(self, diff):
-        for (place, ex) in diff.items():
-            if ex:
-                if place not in self._cache:
-                    self._cache[place] = PlaceProxy(
-                        self.engine,
-                        self.name,
-                        place
-                    )
-            else:
-                if place in self._cache:
-                    del self._cache[place]
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_places_diff',
-            char=self.name
-        )
-
     def _cache_munge(self, k, v):
         return PlaceProxy(
             self.engine, self.name, k
@@ -803,13 +710,6 @@ class SuccessorsProxy(CachingProxy):
             "Apply the diff on CharSuccessorsMappingProxy"
         )
 
-    def _get_diff(self):
-        return self.engine.handle(
-            command='node_successors_diff',
-            char=self._charname,
-            node=self._orig
-        )
-
     def _cache_munge(self, k, v):
         if isinstance(v, PortalProxy):
             assert v._origin == self._orig
@@ -841,23 +741,23 @@ class CharSuccessorsMappingProxy(CachingProxy):
     rulebook = RulebookProxyDescriptor()
 
     def _get_default_rulebook_anme(self):
-        return self._charname, 'character_portal'
+        return self.name, 'character_portal'
 
     def _get_rulebook_proxy(self):
-        return self.engine._character_rulebooks_cache[self._charname]['portal']
+        return self.engine._character_rulebooks_cache[self.name]['portal']
 
     def _set_rulebook_proxy(self, rb):
-        self.engine._character_rulebooks_cache[self._charname]['portal'] = rb
+        self.engine._character_rulebooks_cache[self.name]['portal'] = rb
 
     def _set_rulebook(self, rb):
         self.engine.handle(
             'set_character_portal_rulebook',
-            char=self._charname, rulebook=rb, silent=True, branching=True
+            char=self.character.name, rulebook=rb, silent=True, branching=True
         )
 
     @property
     def character(self):
-        return self.engine.character[self._charname]
+        return self.engine.character[self.character.name]
 
     @property
     def _cache(self):
@@ -903,12 +803,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
                     del self._cache[o][d]
                     if len(self._cache[o]) == 0:
                         del self._cache[o]
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_nodes_with_successors_diff',
-            character=self.name
-        )
 
     def _set_item(self, orig, val):
         self.engine.handle(
@@ -1049,12 +943,6 @@ class CharStatProxy(CachingEntityProxy):
     def _get_state(self):
         return self.engine.handle(
             command='character_stat_copy',
-            char=self.name
-        )
-
-    def _get_diff(self):
-        return self.engine.handle(
-            command='character_stat_diff',
             char=self.name
         )
 
@@ -1204,6 +1092,7 @@ class RuleBookProxy(MutableSequence, Signal):
 
 class AvatarMapProxy(Mapping):
     rulebook = RulebookProxyDescriptor()
+    engine = getatt('character.engine')
 
     def _get_default_rulebook_name(self):
         return self.character.name, 'avatar'
@@ -1376,42 +1265,68 @@ class CharacterProxy(MutableMapping):
         del self.node[k]
 
     def _apply_diff(self, diff):
-        self.stat._apply_diff(diff['character_stat'])
-        self.thing._apply_diff(diff['things'])
-        self.place._apply_diff(diff['places'])
-        self.portal._apply_diff(diff['portals'])
-        for (node, nodediff) in diff['node_stat'].items():
+        diff = diff.copy()
+        for node, ex in diff.pop('nodes', {}).items():
+            if ex:
+                if node not in self.node:
+                    nodeval = diff.get('node_val', {}).get(node, None)
+                    if nodeval and 'location' in nodeval:
+                        self.thing._cache[node] = prox = ThingProxy(
+                            self.engine, self.name, node, nodeval['location'],
+                            nodeval.get('next_location'), nodeval.get('arrival_time'),
+                            nodeval.get('next_arrival_time')
+                        )
+                        self.thing.send(self.thing, key=node, value=prox)
+                    else:
+                        self.place._cache[node] = prox = PlaceProxy(
+                            self.engine, self.name, node
+                        )
+                        self.place.send(self.place, key=node, value=prox)
+                    self.node.send(self.node, key=node, value=prox)
+            else:
+                if node in self.place._cache:
+                    del self.place._cache[node]
+                    self.place.send(self.place, key=node, value=None)
+                elif node in self.thing._cache:
+                    del self.thing._cache[node]
+                    self.thing.send(self.thing, key=node, value=None)
+                else:
+                    self.engine.warning("Diff deleted {} but it was never created here".format(node))
+                self.node.send(self.node, key=node, value=None)
+        self.portal._apply_diff(diff.pop('edges', {}))
+        for (node, nodediff) in diff.pop('node_val', {}).items():
             if node not in self.engine._node_stat_cache[self.name]:
                 self.engine._node_stat_cache[self.name][node] = nodediff
             else:
                 self.node[node]._apply_diff(nodediff)
-        for (orig, destdiff) in diff['portal_stat'].items():
+        for (orig, destdiff) in diff.pop('edge_val', {}).items():
             for (dest, portdiff) in destdiff.items():
                 if orig in self.portal and dest in self.portal[orig]:
                     self.portal[orig][dest]._apply_diff(portdiff)
                 else:
                     self.engine._portal_stat_cache[
                         self.name][orig][dest] = portdiff
-        if diff['rulebooks']:
-            if diff['rulebooks']['character'] != self.rulebook.name:
-                self._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['character']])
-            if diff['rulebooks']['avatar'] != self.avatar.rulebook.name:
-                self.avatar._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['avatar']])
-            if diff['rulebooks']['thing'] != self.thing.rulebook.name:
-                self.thing._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['thing']])
-            if diff['rulebooks']['place'] != self.place.rulebook.name:
-                self.place._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['place']])
-            if diff['rulebooks']['portal'] != self.portal.rulebook.name:
-                self.portal._set_rulebook_proxy(self.engine._rulebooks_cache[diff['rulebooks']['portal']])
-        for noden, rb in diff['node_rulebooks'].items():
+        if diff.pop('character_rulebook', self.rulebook.name) != self.rulebook.name:
+            self._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_rulebook')])
+        if diff.pop('avatar_rulebook', self.avatar.rulebook.name) != self.avatar.rulebook.name:
+            self.avatar._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('avatar_rulebook')])
+        if diff.pop('character_thing_rulebook', self.thing.rulebook.name) != self.thing.rulebook.name:
+            self.thing._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_thing_rulebook')])
+        if diff.pop('character_place_rulebook', self.place.rulebook.name) != self.place.rulebook.name:
+            self.place._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_place_rulebook')])
+        if diff.pop('character_portal_rulebook', self.portal.rulebook.name) != self.portal.rulebook.name:
+            self.portal._set_rulebook_proxy(self.engine._rulebooks_cache[diff.pop('character_portal_rulebook')])
+        for noden, rb in diff.pop('node_rulebooks', {}).items():
             node = self.node[noden]
             if node.rulebook.name != rb:
                 node._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
-        for orign in diff['portal_rulebooks']:
-            for destn, rb in diff['portal_rulebooks'][orign].items():
+        portrb = diff.pop('portal_rulebooks', {})
+        for orign in portrb:
+            for destn, rb in portrb[orign].items():
                 port = self.portal[orign][destn]
                 if port.rulebook.name != rb:
                     port._set_rulebook_proxy(self.engine._rulebooks_cache[rb])
+        self.stat._apply_diff(diff)
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
@@ -1917,14 +1832,14 @@ class EngineProxy(AbstractEngine):
 
     @branch.setter
     def branch(self, v):
-        self.time_travel(v, self.tick)
+        self.time_travel(v, self.turn)
 
     @property
-    def tick(self):
-        return self._tick
+    def turn(self):
+        return self._turn
 
-    @tick.setter
-    def tick(self, v):
+    @turn.setter
+    def turn(self, v):
         self.time_travel(self.branch, v)
 
     def __init__(
@@ -1992,15 +1907,14 @@ class EngineProxy(AbstractEngine):
         charsdiffs = self.handle('get_chardiffs', chars='all')
         for char in charsdiffs:
             self._char_cache[char] = CharacterProxy(self, char)
-            self._char_stat_cache[char] = charsdiffs[char]['character_stat']
             for origin, destinations in charsdiffs[
-                    char]['portal_stat'].items():
+                    char].pop('edge_val', {}).items():
                 for destination,  stats in destinations.items():
                     self._portal_stat_cache[char][origin][destination] = stats
-            for node,  stats in charsdiffs[char]['node_stat'].items():
+            for node,  stats in charsdiffs[char].pop('node_val', {}).items():
                 self._node_stat_cache[char][node] = stats
-            self._character_avatars_cache[char] = charsdiffs[char]['avatars']
-            for rbtype, rb in charsdiffs[char]['rulebooks'].items():
+            self._character_avatars_cache[char] = charsdiffs[char].pop('avatars', {})
+            for rbtype, rb in charsdiffs[char].pop('rulebooks', {}).items():
                 if rb in self._rulebook_obj_cache:
                     self._character_rulebooks_cache[char][rbtype] \
                         = self._rulebook_obj_cache[rb]
@@ -2008,7 +1922,7 @@ class EngineProxy(AbstractEngine):
                     self._character_rulebooks_cache[char][rbtype] \
                         = self._rulebook_obj_cache[rb] \
                         = RuleBookProxy(self, rb)
-            for node, rb in charsdiffs[char]['node_rulebooks'].items():
+            for node, rb in charsdiffs[char].pop('node_rulebooks', {}).items():
                 if rb in self._rulebook_obj_cache:
                     self._char_node_rulebooks_cache[char][node] \
                         = self._rulebook_obj_cache[rb]
@@ -2017,7 +1931,7 @@ class EngineProxy(AbstractEngine):
                         = self._rulebook_obj_cache[rb] \
                         = RuleBookProxy(self, rb)
             for origin, destinations in charsdiffs[
-                    char]['portal_rulebooks'].items():
+                    char].pop('portal_rulebooks', {}).items():
                 for destination, rulebook in destinations.items():
                     if rulebook in self._rulebook_obj_cache:
                         self._char_port_rulebooks_cache[
@@ -2028,23 +1942,26 @@ class EngineProxy(AbstractEngine):
                             char][origin][destination] \
                             = self._rulebook_obj_cache[rulebook] \
                             = RuleBookProxy(self, rulebook)
-            for (
-                    thing, (loc, nxloc, arrt, nxarrt)
-            ) in charsdiffs[char]['things'].items():
-                if loc:
-                    self._things_cache[char][thing] \
-                        = ThingProxy(
-                            self, char, thing, loc, nxloc, arrt, nxarrt
+            for node, ex in charsdiffs[char].pop('nodes', {}).items():
+                if ex:
+                    noded = self._node_stat_cache[char].get(node)
+                    if noded and 'location' in noded:
+                        self._things_cache[char][node] = ThingProxy(
+                            self, char, node, noded['location'],
+                            noded.get('next_location'), noded.get('arrival_time'),
+                            noded.get('next_arrival_time')
                         )
-            for (place, ex) in charsdiffs[char]['places'].items():
-                if ex:
-                    self._character_places_cache[char][place] \
-                        = PlaceProxy(self, char, place)
-            for (orig, dest), ex in charsdiffs[char]['portals'].items():
-                if ex:
-                    self._character_portals_cache.store(
-                        char, orig, dest, PortalProxy(self, char, orig, dest)
-                    )
+                    else:
+                        self._character_places_cache[char][node] = PlaceProxy(
+                            self, char, node
+                        )
+            for orig, dests in charsdiffs[char].pop('edges', {}).items():
+                for dest, ex in dests.items():
+                    if ex:
+                        self._character_portals_cache.store(
+                            char, orig, dest, PortalProxy(self, char, orig, dest)
+                        )
+            self._char_stat_cache[char] = charsdiffs[char]
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
@@ -2136,8 +2053,8 @@ class EngineProxy(AbstractEngine):
         a result. If ``silent=True`` this will happen in a thread.
         ``cb`` will be called with keyword arguments ``command``,
         the same command you asked for; ``result``, the value returned
-        by it, possibly ``None``; and ``branch`` and ``tick``,
-        the present game time, possibly different than when you called
+        by it, possibly ``None``; and the present ``branch``,
+        ``turn``, and ``tick``, possibly different than when you called
         ``handle``.
 
         """
@@ -2210,51 +2127,6 @@ class EngineProxy(AbstractEngine):
         if cb:
             cb(command, branch, turn, tick, **r)
 
-    def json_rewrap(self, r):
-        if isinstance(r, tuple):
-            if r[0] in ('JSONListReWrapper', 'JSONReWrapper'):
-                cls = JSONReWrapper if r[0] == 'JSONReWrapper' \
-                      else JSONListReWrapper
-                if r[1] == 'character':
-                    (charn, k, v) = r[2:]
-                    try:
-                        char = self._char_cache[charn]
-                    except KeyError:
-                        char = self._char_cache[charn] = CharacterProxy(self, charn)
-                    return cls(char.stat, k, v)
-                elif r[1] == 'place':
-                    (char, noden, k, v) = r[2:]
-                    try:
-                        place = self.character[char].place[noden]
-                    except KeyError:
-                        place = self._character_places_cache.setdefault(char, {})[noden] = PlaceProxy(self, char, noden)
-                    return cls(place, k, v)
-                elif r[1] == 'thing':
-                    (char, thingn, loc, nxtloc, arrt, nxtarrt, k, v) = r[2:]
-                    try:
-                        thing = self._things_cache[char][thingn]
-                    except (KeyError, TypeError):
-                        # TypeError because StructuredDefaultDict can't instantiate ThingProxy
-                        thing = self._things_cache.setdefault(char, {})[thingn] = ThingProxy(
-                            self, char, thingn, loc, nxtloc, arrt, nxtarrt
-                        )
-                    return cls(thing, k, v)
-                else:
-                    assert (r[1] == 'portal')
-                    (char, orig, dest, k, v) = r[2:]
-                    return cls(PortalProxy(self, char, orig, dest), k, v)
-            else:
-                return tuple(self.json_rewrap(v) for v in r)
-        elif isinstance(r, dict):
-            # These can't have been stored in a stat
-            return {k: self.json_rewrap(v) for (k, v) in r.items()}
-        elif isinstance(r, list):
-            return [self.json_rewrap(v) for v in r]
-        return r
-
-    def json_load(self, s):
-        return self.json_rewrap(super().json_load(s))
-
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
         received = self.json_load(res)
@@ -2264,12 +2136,12 @@ class EngineProxy(AbstractEngine):
 
     def _upd_caches(self, *args, **kwargs):
         deleted = set(self.character.keys())
-        result, eternal_diff, universal_diff, rules_diff, rulebooks_diff, chardiffs = args[-1]
-        self.eternal._update_cache(eternal_diff)
-        self.universal._update_cache(universal_diff)
+        result, diffs = args[-1]
+        self.eternal._update_cache(diffs.pop('eternal', {}))
+        self.universal._update_cache(diffs.pop('universal', {}))
         # I think if you travel back to before a rule was created it'll show up empty
         # That's ok I guess
-        for rule, diff in rules_diff.items():
+        for rule, diff in diffs.pop('rules', {}).items():
             if rule in self._rules_cache:
                 self._rules_cache[rule].update(diff)
             else:
@@ -2281,14 +2153,15 @@ class EngineProxy(AbstractEngine):
                 self._rule_obj_cache[rule] = RuleProxy(self, rule)
             ruleproxy = self._rule_obj_cache[rule]
             ruleproxy.send(ruleproxy, **diff)
-        self._rulebooks_cache.update(rulebooks_diff)
-        for rulebook, diff in rulebooks_diff.items():
+        rulebookdiffs = diffs.pop('rulebooks', {})
+        self._rulebooks_cache.update(rulebookdiffs)
+        for rulebook, diff in rulebookdiffs.items():
             if rulebook not in self._rulebook_obj_cache:
                 self._rulebook_obj_cache = RuleBookProxy(self, rulebook)
             rulebookproxy = self._rulebook_obj_cache[rulebook]
             # the "diff" is just the rules list, for now
             rulebookproxy.send(rulebookproxy, rules=diff)
-        for (char, chardiff) in chardiffs.items():
+        for (char, chardiff) in diffs.items():
             if char not in self._char_cache:
                 self._char_cache[char] = CharacterProxy(self, char)
             chara = self.character[char]
@@ -2335,22 +2208,17 @@ class EngineProxy(AbstractEngine):
             ).start()
 
     # TODO: make this into a Signal, like it is in the LiSE core
-    def next_turn(self, chars=(), cb=None, silent=False):
-        if cb and not chars:
-            raise TypeError("Callback requires chars")
+    def next_turn(self, cb=None, silent=False):
         if not callable(cb):
             raise TypeError("Uncallable callback")
         if silent:
-            self.handle(command='next_turn', chars=chars, silent=True, cb=cb)
-        elif chars:
+            self.handle(command='next_turn', silent=True, cb=cb)
+        elif cb:
             self.send(self.json_dump({
                 'silent': False,
-                'command': 'next_turn',
-                'chars': chars
+                'command': 'next_turn'
             }))
-            args = [partial(self._upd_caches, no_del=True), self._set_time]
-            if cb:
-                args.append(cb)
+            args = [partial(self._upd_caches, no_del=True), self._set_time, cb]
             if silent:
                 Thread(
                     target=self._call_with_recv,
@@ -2359,7 +2227,7 @@ class EngineProxy(AbstractEngine):
             else:
                 return self._call_with_recv(*args)
         else:
-            ret = self.handle(command='next_turn', chars='all')
+            ret = self.handle(command='next_turn')
             self.time.send(self, branch=ret['branch'], turn=ret['turn'], tick=ret['tick'])
             return ret
 
@@ -2497,8 +2365,6 @@ def subprocess(
     args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel
 ):
     def log(typ, data):
-        if loglevel > logging.DEBUG:
-            return
         if typ == 'command':
             (cmd, kvs) = data
             logs = "LiSE proc {}: calling {}({})".format(
@@ -2543,6 +2409,9 @@ def subprocess(
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
             engine_handle.json_dump(r)
         ))
+        if hasattr(engine_handle, '_after_ret'):
+            engine_handle._after_ret()
+            del engine_handle._after_ret
 
 
 class RedundantProcessError(ProcessError):

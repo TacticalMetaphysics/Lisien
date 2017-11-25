@@ -27,25 +27,24 @@ class reify(object):
     attribute creation on objects that are meant to be immutable.
 
     Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
-    Modified for LiSE to make it work with __slots__ around October 2016.
 
+    To use this as a decorator::
+
+         @reify
+         def lazy(self):
+              ...
+              return hard_to_compute_int
+         first_time = self.lazy   # lazy is reify obj, reify.__get__() runs
+         second_time = self.lazy  # lazy is hard_to_compute_int
     '''
-    __slots__ = ['func', 'reified']
 
     def __init__(self, func):
         self.func = func
-        self.reified = {}
+        self.__doc__ = func.__doc__
 
     def __get__(self, inst, cls):
         if inst is None:
             return self
-        if id(inst) in self.reified:
-            return self.reified[id(inst)]
-        self.reified[id(inst)] = retval = self.func(inst)
+        retval = self.func(inst)
+        setattr(inst, self.func.__name__, retval)
         return retval
-
-    def __set__(self, inst, val):
-        if id(inst) not in self.reified:
-            # shouldn't happen, but it's easy to handle
-            self.reified[id(inst)] = self.func(inst)
-        self.reified[id(inst)].update(val)
