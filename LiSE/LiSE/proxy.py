@@ -2126,51 +2126,6 @@ class EngineProxy(AbstractEngine):
         if cb:
             cb(command, branch, turn, tick, **r)
 
-    def json_rewrap(self, r):
-        if isinstance(r, tuple):
-            if r[0] in ('JSONListReWrapper', 'JSONReWrapper'):
-                cls = JSONReWrapper if r[0] == 'JSONReWrapper' \
-                      else JSONListReWrapper
-                if r[1] == 'character':
-                    (charn, k, v) = r[2:]
-                    try:
-                        char = self._char_cache[charn]
-                    except KeyError:
-                        char = self._char_cache[charn] = CharacterProxy(self, charn)
-                    return cls(char.stat, k, v)
-                elif r[1] == 'place':
-                    (char, noden, k, v) = r[2:]
-                    try:
-                        place = self.character[char].place[noden]
-                    except KeyError:
-                        place = self._character_places_cache.setdefault(char, {})[noden] = PlaceProxy(self, char, noden)
-                    return cls(place, k, v)
-                elif r[1] == 'thing':
-                    (char, thingn, loc, nxtloc, arrt, nxtarrt, k, v) = r[2:]
-                    try:
-                        thing = self._things_cache[char][thingn]
-                    except (KeyError, TypeError):
-                        # TypeError because StructuredDefaultDict can't instantiate ThingProxy
-                        thing = self._things_cache.setdefault(char, {})[thingn] = ThingProxy(
-                            self, char, thingn, loc, nxtloc, arrt, nxtarrt
-                        )
-                    return cls(thing, k, v)
-                else:
-                    assert (r[1] == 'portal')
-                    (char, orig, dest, k, v) = r[2:]
-                    return cls(PortalProxy(self, char, orig, dest), k, v)
-            else:
-                return tuple(self.json_rewrap(v) for v in r)
-        elif isinstance(r, dict):
-            # These can't have been stored in a stat
-            return {k: self.json_rewrap(v) for (k, v) in r.items()}
-        elif isinstance(r, list):
-            return [self.json_rewrap(v) for v in r]
-        return r
-
-    def json_load(self, s):
-        return self.json_rewrap(super().json_load(s))
-
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
         received = self.json_load(res)

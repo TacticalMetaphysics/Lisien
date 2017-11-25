@@ -96,44 +96,6 @@ class EngineHandle(object):
     def json_dump(self, o):
         return self._real.json_dump(o)
 
-    def unwrap_character_stat(self, char, k, v):
-        if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'character', char, k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'character', char, k, v._v)
-        else:
-            return v
-
-    def unwrap_place_stat(self, place, k, v):
-        if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'place', place.character.name, place.name, k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'place', place.character.name, place.name, k, v._v)
-        else:
-            return v
-
-    def unwrap_thing_stat(self, thing, k, v):
-        if isinstance(v, JSONReWrapper):
-            return('JSONReWrapper', 'thing', thing.character.name, thing.name, thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'], k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return('JSONListReWrapper', 'thing', thing.character.name, thing.name, thing['location'], thing['next_location'], thing['arrival_time'], thing['next_arrival_time'], k, v._v)
-        else:
-            return v
-
-    def unwrap_node_stat(self, node, k, v):
-        if hasattr(node, 'location'):
-            return self.unwrap_thing_stat(node, k, v)
-        else:
-            return self.unwrap_place_stat(node, k, v)
-
-    def unwrap_portal_stat(self, char, orig, dest, k, v):
-        if isinstance(v, JSONReWrapper):
-            return ('JSONReWrapper', 'portal', char, orig, dest, k, v._v)
-        elif isinstance(v, JSONListReWrapper):
-            return ('JSONListReWrapper', 'portal', char, orig, dest, k, v._v)
-        else:
-            return v
-
     def time_locked(self):
         return hasattr(self._real, 'locktime')
 
@@ -423,10 +385,7 @@ class EngineHandle(object):
                 del cache[char]
 
     def character_stat_copy(self, char):
-        return {
-            k: self.unwrap_character_stat(char, k, v)
-            for (k, v) in self._real.character[char].stat.items()
-        }
+        return dict(self._real.character[char].stat.items())
 
     @staticmethod
     def _character_something_diff(char, cache, copier, *args, store=True):
@@ -565,10 +524,8 @@ class EngineHandle(object):
             node = node_or_char
         else:
             node = self._real.character[node_or_char].node[node]
-        unwrapper = self.unwrap_thing_stat if isinstance(node, self._real.thing_cls) else self.unwrap_place_stat
         return {
-            k: unwrapper(node, k, v)
-            for (k, v) in node.items()
+            k: v for (k, v) in node.items()
             if k not in {
                     'arrival_time',
                     'next_arrival_time'
@@ -861,10 +818,7 @@ class EngineHandle(object):
         del self._portal_stat_cache[char][orig][dest][k]
 
     def portal_stat_copy(self, char, orig, dest):
-        return {
-            k: self.unwrap_portal_stat(char, orig, dest, k, v)
-            for (k, v) in self._real.character[char].portal[orig][dest].items()
-        }
+        return dict(self._real.character[char].portal[orig][dest].items())
 
     def portal_stat_diff(self, char, orig, dest, *, store=True):
         try:

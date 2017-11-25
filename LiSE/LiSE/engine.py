@@ -165,13 +165,20 @@ class AbstractEngine(object):
     """
     @reify
     def _listify_dispatch(self):
-        return {
-            list: lambda obj: ["list"] + [self.listify(v) for v in obj],
-            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
-            dict: lambda obj: ["dict"] + [
+        def listify_list(obj):
+            return ["list"] + [self.listify(v) for v in obj]
+
+        def listify_dict(obj):
+            return ["dict"] + [
                 [self.listify(k), self.listify(v)]
                 for (k, v) in obj.items()
-            ],
+            ]
+        return {
+            list: listify_list,
+            JSONListReWrapper: listify_list,
+            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
+            dict: listify_dict,
+            JSONReWrapper: listify_dict,
             self.char_cls: lambda obj: ["character", obj.name],
             self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
