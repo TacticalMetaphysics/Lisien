@@ -385,8 +385,7 @@ class EngineHandle(object):
                 self._char_rulebooks_cache,
                 self._char_nodes_rulebooks_cache,
                 self._char_portals_rulebooks_cache,
-                self._char_things_cache,
-                self._char_places_cache,
+                self._char_nodes_cache,
                 self._char_portals_cache
         ):
             if char in cache:
