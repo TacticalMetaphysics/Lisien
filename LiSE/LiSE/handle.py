@@ -754,15 +754,16 @@ class EngineHandle(object):
     def thing_go_to_place(self, char, thing, place, weight):
         return self._real.character[char].thing[thing].go_to_place(place, weight)
 
-    def thing_travel_to(self, char, thing, dest, weight, graph):
-        return self._real.character[char].thing[thing].travel_to(dest, weight, graph)
+    def thing_travel_to(self, char, thing, dest, weight=None, graph=None):
+        """Make something find a path to ``dest`` and follow it.
 
-    def thing_travel_to_by(
-            self, char, thing, dest, arrival_tick, weight, graph
-    ):
-        return self._real.character[char].thing[thing].travel_to_by(
-            dest, arrival_tick, weight, graph
-        )
+        Optional argument ``weight`` is the portal stat to use to schedule movement times.
+
+        Optional argument ``graph`` is an alternative graph to use for pathfinding.
+        Should resemble a networkx DiGraph.
+
+        """
+        return self._real.character[char].thing[thing].travel_to(dest, weight, graph)
 
     def init_place(self, char, place, statdict={}):
         if place in self._real.character[char].place:

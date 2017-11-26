@@ -364,34 +364,3 @@ class Thing(Node):
         if len(path) == 1:
             return self.go_to_place(destn, weight)
         return self.follow_path(path, weight)
-
-    def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
-        """Arrange to travel to ``dest`` such that I arrive there at
-        ``arrival_tick``.
-
-        Optional argument ``weight`` indicates what attribute of
-        portals will indicate how long they take to go through.
-
-        Optional argument ``graph`` is the graph to perform
-        pathfinding with. If it contains a viable path that my
-        character does not, you'll get a TravelException.
-
-        """
-        curtick = self.character.engine.tick
-        if arrival_tick <= curtick:
-            raise ValueError("travel always takes positive amount of time")
-        destn = dest.name if hasattr(dest, 'name') else dest
-        graph = self.character if graph is None else graph
-        curloc = self["location"]
-        path = nx.shortest_path(graph, curloc, destn, weight)
-        travel_time = path_len(graph, path, weight)
-        start_tick = arrival_tick - travel_time
-        if start_tick <= curtick:
-            raise TravelException(
-                "path too heavy to follow by the specified tick",
-                path=path,
-                traveller=self
-            )
-        self.character.engine.tick = start_tick
-        self.follow_path(path, weight)
-        self.character.engine.tick = curtick
