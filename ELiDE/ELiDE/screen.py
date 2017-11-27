@@ -78,11 +78,11 @@ class TimePanel(BoxLayout):
 
     There's a "play" button, which is toggleable. When toggled on, the
     simulation will continue to run until it's toggled off
-    again. Below this is a "Next tick" button, which will simulate
-    exactly one tick and stop. And there are two text fields in which
+    again. Below this is a "Next turn" button, which will simulate
+    exactly one turn and stop. And there are two text fields in which
     you can manually enter a Branch and Tick to go to. Moving through
     time this way doesn't simulate anything--you'll only see what
-    happened as a result of "play," "next tick," or some other input
+    happened as a result of "play," "next turn," or some other input
     that's been made to call the ``advance`` method of the LiSE core.
 
     """

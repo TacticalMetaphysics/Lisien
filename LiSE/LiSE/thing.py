@@ -127,12 +127,12 @@ class Thing(Node):
 
         ``location``: return the name of my location
 
-        ``arrival_time``: return the tick when I arrived in the
+        ``arrival_time``: return the turn when I arrived in the
         present location
 
         ``next_location``: if I'm in transit, return where to, else return None
 
-        ``next_arrival_time``: return the tick when I'm going to
+        ``next_arrival_time``: return the turn when I'm going to
         arrive at ``next_location``
 
         ``locations``: return a pair of ``(location, next_location)``
@@ -268,9 +268,9 @@ class Thing(Node):
         to the given :class:`Place`, schedule myself to travel to the
         given :class:`Place`, taking an amount of time indicated by
         the ``weight`` stat on the :class:`Portal`, if given; else 1
-        tick.
+        turn.
 
-        Return the number of ticks to travel.
+        Return the number of turns the travel will take.
 
         """
         if hasattr(place, 'name'):
@@ -292,7 +292,7 @@ class Thing(Node):
         spend in each by consulting the ``weight`` stat of the
         :class:`Portal` connecting the one :class:`Place` to the next.
 
-        Return the total number of ticks the travel will take. Raise
+        Return the total number of turns the travel will take. Raise
         :class:`TravelException` if I can't follow the whole path,
         either because some of its nodes don't exist, or because I'm
         scheduled to be somewhere else.
@@ -353,7 +353,7 @@ class Thing(Node):
         attribute holds the part of the path that I *can* follow. To
         make me follow it, pass it to my ``follow_path`` method.
 
-        Return value is the number of ticks the travel will take.
+        Return value is the number of turns the travel will take.
 
         """
         destn = dest.name if hasattr(dest, 'name') else dest
