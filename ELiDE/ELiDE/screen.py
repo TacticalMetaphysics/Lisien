@@ -323,6 +323,7 @@ class MainScreen(Screen):
         self.ids.dialoglayout.add_widget(dia)
 
     def ok(self, *args, cb=None):
+        """Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue"""
         self.ids.dialoglayout.clear_widgets()
         if cb:
             cb()

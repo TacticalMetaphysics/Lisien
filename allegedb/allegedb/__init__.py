@@ -276,6 +276,13 @@ class ORM(object):
     advancing.__doc__ = AdvancingContext.__doc__
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
+        """Get a dictionary describing changes to all graphs.
+
+        The keys are graph names. Their values are dictionaries of the graphs'
+        attributes' new values, with ``None`` for deleted keys. Also in those graph
+        dictionaries are special keys 'node_val' and 'edge_val' describing changes
+        to node and edge attributes, and 'nodes' and 'edges' full of booleans
+        indicating whether a node or edge exists."""
         if turn_from == turn_to:
             return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
         delta = {}
