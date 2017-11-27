@@ -52,8 +52,6 @@ class StatListPanel(BoxLayout):
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
     proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
 
@@ -467,14 +465,10 @@ Builder.load_string(
         screen: root
         engine: app.engine
         board: root.boards[app.character_name]
-        branch: app.branch
-        tick: app.tick
         adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
         engine: app.engine
-        branch: app.branch
-        tick: app.tick
         toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
