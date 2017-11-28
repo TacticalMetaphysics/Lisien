@@ -282,7 +282,9 @@ class ORM(object):
         attributes' new values, with ``None`` for deleted keys. Also in those graph
         dictionaries are special keys 'node_val' and 'edge_val' describing changes
         to node and edge attributes, and 'nodes' and 'edges' full of booleans
-        indicating whether a node or edge exists."""
+        indicating whether a node or edge exists.
+
+        """
         if turn_from == turn_to:
             return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
         delta = {}
@@ -320,6 +322,18 @@ class ORM(object):
         return delta
 
     def get_turn_delta(self, branch=None, turn=None, tick_from=0, tick_to=None):
+        """Get a dictionary describing changes made on a given turn.
+
+        If ``tick_to`` is not supplied, report all changes after ``tick_from``
+        (default 0).
+
+        The keys are graph names. Their values are dictionaries of the graphs'
+        attributes' new values, with ``None`` for deleted keys. Also in those graph
+        dictionaries are special keys 'node_val' and 'edge_val' describing changes
+        to node and edge attributes, and 'nodes' and 'edges' full of booleans
+        indicating whether a node or edge exists.
+
+        """
         branch = branch or self.branch
         turn = turn or self.turn
         tick_to = tick_to or self.tick
