@@ -371,5 +371,20 @@ class SimTest(TestCase):
                                 )
 
 
+def test_fast_delta():
+    from LiSE.examples.kobold import inittest
+    from LiSE.handle import EngineHandle
+    hand = EngineHandle((':memory:',), {'random_seed': 69105})
+    inittest(hand._real, shrubberies=20, kobold_sprint_chance=.9)
+    # just set a baseline for the diff
+    hand.get_slow_delta()
+    ret, diff = hand.next_turn()
+    slowd = hand.get_slow_delta()
+    assert diff == slowd
+    ret, diff2 = hand.time_travel('trunk', 0, 0)
+    slowd2 = hand.get_slow_delta()
+    assert diff2 == slowd2
+
+
 if __name__ == '__main__':
     unittest.main()
