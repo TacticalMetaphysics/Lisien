@@ -206,7 +206,7 @@ class EngineHandle(object):
         if slow_delta:
             delta = self.get_slow_delta(chars)
         else:
-            delta = self._real.get_delta(branch, turn_from, tick_from, self.turn, self.tick)
+            delta = self._real.get_delta(branch, turn_from, tick_from, turn, tick)
             self._after_ret = partial(self._upd_local_caches, delta)
         return None, delta
 
