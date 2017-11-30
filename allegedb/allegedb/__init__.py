@@ -601,6 +601,7 @@ class ORM(object):
     tick = property(lambda self: self._otick, _set_tick)  # easier to override this way
 
     def btt(self):
+        """Return the branch, turn, and tick."""
         return self._obranch, self._oturn, self._otick
 
     def nbtt(self):
@@ -641,6 +642,11 @@ class ORM(object):
         return branch, turn, tick
 
     def commit(self):
+        """Write the state of all graphs to the database and commit the transaction.
+
+        Also saves the current branch, turn, and tick.
+
+        """
         self.query.globl['branch'] = self._obranch
         self.query.globl['turn'] = self._oturn
         self.query.globl['tick'] = self._otick
@@ -654,6 +660,7 @@ class ORM(object):
         self.query.commit()
 
     def close(self):
+        """Write changes to database and close the connection"""
         self.commit()
         self.query.close()
 
