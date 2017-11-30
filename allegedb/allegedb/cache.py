@@ -603,11 +603,10 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches',
-                 'shallow', 'shallower', 'shallowest', 'settings', 'presettings']
 
-    def __init__(self, db):
+    def __init__(self, db, preternal=False):
         self.db = db
+        self.preternal = preternal
         self.parents = StructuredDefaultDict(3, TurnDict)
         """Entity data keyed by the entities' parents.
 
@@ -863,7 +862,7 @@ class Cache(object):
         except KeyError:
             prev = None
         if settings_turns.has_exact_rev(turn):
-            assert presettings_turns.has_exact_rev(turn)
+            #assert presettings_turns.has_exact_rev(turn)
             setticks = settings_turns[turn]
             if setticks.has_exact_rev(tick):
                 raise HistoryError(
@@ -874,11 +873,13 @@ class Cache(object):
                     )
                 )
             presetticks = presettings_turns[turn]
-            assert not presetticks.has_exact_rev(tick)
-            presetticks[tick] = parent + (entity, key, prev)
+            #assert not presetticks.has_exact_rev(tick)
+            if prev is not None or ((turn > 0 or tick > 0) and not self.preternal):
+                presetticks[tick] = parent + (entity, key, prev)
             setticks[tick] = parent + (entity, key, value)
         else:
-            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
+            if prev is not None or ((turn > 0 or tick > 0) and not self.preternal):
+                presettings_turns[turn] = {tick: parent + (entity, key, prev)}
             settings_turns[turn] = {tick: parent + (entity, key, value)}
         new = None
         if parent:

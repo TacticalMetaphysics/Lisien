@@ -460,23 +460,12 @@ class Engine(AbstractEngine, gORM):
             updater(partial(updcrb, 'character_portal_rulebook'), charporbbranches[branch])
 
         def updnoderb(character, node, rulebook):
-            if (
-                character in delta and 'nodes' in delta[character]
-                and node in delta[character]['nodes'] and not delta[character]['nodes'][node]
-            ):
-                return
             delta.setdefault(character, {}).setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rulebook
 
         if branch in noderbbranches:
             updater(updnoderb, noderbbranches[branch])
 
         def updedgerb(character, orig, dest, rulebook):
-            if (
-                character in delta and 'edges' in delta[character]
-                and orig in delta[character]['edges'] and dest in delta[character]['edges'][orig]
-                and not delta[character]['edges'][orig][dest]
-            ):
-                return
             delta.setdefault(character, {}).setdefault('edge_val', {}).setdefault(
                 orig, {}).setdefault(dest, {})['rulebook'] = rulebook
 
@@ -632,17 +621,17 @@ class Engine(AbstractEngine, gORM):
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
-        self._rulebooks_cache = EntitylessCache(self)
-        self._characters_rulebooks_cache = EntitylessCache(self)
-        self._avatars_rulebooks_cache = EntitylessCache(self)
-        self._characters_things_rulebooks_cache = EntitylessCache(self)
-        self._characters_places_rulebooks_cache = EntitylessCache(self)
-        self._characters_portals_rulebooks_cache = EntitylessCache(self)
+        self._rulebooks_cache = EntitylessCache(self, preternal=True)
+        self._characters_rulebooks_cache = EntitylessCache(self, preternal=True)
+        self._avatars_rulebooks_cache = EntitylessCache(self, preternal=True)
+        self._characters_things_rulebooks_cache = EntitylessCache(self, preternal=True)
+        self._characters_places_rulebooks_cache = EntitylessCache(self, preternal=True)
+        self._characters_portals_rulebooks_cache = EntitylessCache(self, preternal=True)
         self._nodes_rulebooks_cache = Cache(self)
         self._portals_rulebooks_cache = Cache(self)
-        self._triggers_cache = EntitylessCache(self)
-        self._prereqs_cache = EntitylessCache(self)
-        self._actions_cache = EntitylessCache(self)
+        self._triggers_cache = EntitylessCache(self, preternal=True)
+        self._prereqs_cache = EntitylessCache(self, preternal=True)
+        self._actions_cache = EntitylessCache(self, preternal=True)
         self._node_rules_handled_cache = NodeRulesHandledCache(self)
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)

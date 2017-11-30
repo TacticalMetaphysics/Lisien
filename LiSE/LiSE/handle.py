@@ -103,16 +103,12 @@ class EngineHandle(object):
         self._real.advance()
 
     def get_char_deltas(self, chars, *, store=True):
-        if chars == 'all':
-            return {
-                char: self.character_delta(char, store=store)
-                for char in self._real.character.keys()
-            }
-        else:
-            return {
-                char: self.character_delta(char, store=store)
-                for char in chars
-            }
+        ret = {}
+        for char in (self._real.character.keys() if chars == 'all' else chars):
+            delta = self.character_delta(char, store=store)
+            if delta:
+                ret[char] = delta
+        return ret
 
     def _upd_local_caches(self, delta=None):
         if delta is None:
