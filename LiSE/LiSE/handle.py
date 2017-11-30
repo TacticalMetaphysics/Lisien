@@ -498,10 +498,15 @@ class EngineHandle(object):
             ret['rulebooks'] = rbs
         nrbs = self.character_nodes_rulebooks_delta(char, store=store)
         if nrbs:
-            ret['node_rulebooks'] = nrbs
+            ret.setdefault('node_val', {})
+            for node, rb in nrbs.items():
+                ret['node_val'].setdefault(node, {})['rulebook'] = rb
         porbs = self.character_portals_rulebooks_delta(char, store=store)
         if porbs:
-            ret['portal_rulebooks'] = porbs
+            ret.setdefault('edge_val', {})
+            for orig, dests in porbs.items():
+                for dest, rb in dests.items():
+                    ret['edge_val'].setdefault(orig, {}).setdefault(dest, {})['rulebook'] = rb
         nv = self.character_nodes_stat_delta(char, store=store)
         if nv:
             ret['node_val'] = nv
