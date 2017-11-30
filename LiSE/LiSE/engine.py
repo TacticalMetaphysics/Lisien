@@ -371,6 +371,7 @@ class Engine(AbstractEngine, gORM):
         delta = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
         if turn_from < turn_to:
             updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
+            univbranches = self._universal_cache.settings
             thbranches = self._things_cache.settings
             rbbranches = self._rulebooks_cache.settings
             trigbranches = self._triggers_cache.settings
@@ -385,6 +386,7 @@ class Engine(AbstractEngine, gORM):
             edgerbbranches = self._portals_rulebooks_cache.settings
         else:
             updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
+            univbranches = self._universal_cache.presettings
             thbranches = self._things_cache.presettings
             rbbranches = self._rulebooks_cache.presettings
             trigbranches = self._triggers_cache.presettings
@@ -397,6 +399,11 @@ class Engine(AbstractEngine, gORM):
             charporbbranches = self._characters_portals_rulebooks_cache.presettings
             noderbbranches = self._nodes_rulebooks_cache.presettings
             edgerbbranches = self._portals_rulebooks_cache.presettings
+
+        def upduniv(_, key, val):
+            delta.setdefault('universal', {})[key] = val
+        if branch in univbranches:
+            updater(upduniv, univbranches[branch])
 
         def updthing(char, thing, locs):
             if (
