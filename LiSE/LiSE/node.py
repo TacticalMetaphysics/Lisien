@@ -228,7 +228,12 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         return RuleMapping(self)
 
     def _get_rulebook_name(self):
-        return self.engine._nodes_rulebooks_cache.retrieve(self.character.name, self.name, *self.engine.btt())
+        try:
+            return self.engine._nodes_rulebooks_cache.retrieve(
+                self.character.name, self.name, *self.engine.btt()
+            )
+        except KeyError:
+            return self.character.name, self.name
 
     def _get_rulebook(self):
         return rule.RuleBook(

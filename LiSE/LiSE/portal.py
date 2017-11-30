@@ -82,11 +82,7 @@ class Portal(Edge, RuleFollower):
                 except HistoryError as ex:
                     if ex.deleted:
                         break
-        raise CacheError(
-            "Rulebook for portal {}->{} in character {} is not cached.".format(
-                self.orig, self.dest, self.character.name
-            )
-        )
+        return self.character.name, self.orig, self.dest
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
