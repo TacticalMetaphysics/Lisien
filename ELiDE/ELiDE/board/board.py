@@ -172,6 +172,8 @@ class Board(ScatterLayout):
             self.apply_scale(scale)
             return True
 
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.selection:
             self.selection.hit = self.selection.collide_point(*touch.pos)
             if self.selection.hit:
@@ -183,6 +185,7 @@ class Board(ScatterLayout):
             self.selection_candidates = pawns
             if self.selection in self.selection_candidates:
                 self.selection_candidates.remove(self.selection)
+            touch.pop()
             return True
         spots = list(self.spots_at(*touch.pos))
         if spots:
@@ -208,25 +211,33 @@ class Board(ScatterLayout):
                         origin=self.protodest
                     )
                     self.add_widget(self.protoportal2)
+            touch.pop()
             return True
         if not self.selection_candidates:
             arrows = list(self.arrows_at(*touch.pos))
             if arrows:
                 Logger.debug("Board: hit {} arrows".format(len(arrows)))
                 self.selection_candidates = arrows
+                touch.pop()
                 return True
-        return super().on_touch_down(touch)
+        ret = super().on_touch_down(touch)
+        touch.pop()
+        return ret
 
     def on_touch_move(self, touch):
         """If an entity is selected, drag it."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.selection in self.selection_candidates:
             self.selection_candidates.remove(self.selection)
         if self.selection:
             if not self.selection_candidates:
                 self.keep_selection = True
-            return self.selection.dispatch('on_touch_move', touch)
+            ret = self.selection.dispatch('on_touch_move', touch)
+            touch.pop()
+            return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
@@ -237,9 +248,13 @@ class Board(ScatterLayout):
                     self.selection = cand
                     cand.hit = cand.selected = True
                     touch.grab(cand)
-                    return cand.dispatch('on_touch_move', touch)
+                    ret = cand.dispatch('on_touch_move', touch)
+                    touch.pop()
+                    return ret
         else:
-            return super().on_touch_move(touch)
+            ret = super().on_touch_move(touch)
+            touch.pop()
+            return ret
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
@@ -289,13 +304,18 @@ class Board(ScatterLayout):
         """Delegate touch handling if possible, else select something."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         self._lasttouch = touch
         if hasattr(self, 'protodest'):
             Logger.debug("Board: on_touch_up making a portal")
             touch.ungrab(self)
-            return self.portal_touch_up(touch)
+            ret = self.portal_touch_up(touch)
+            touch.pop()
+            return ret
         if hasattr(self.selection, 'on_touch_up') and \
            self.selection.dispatch('on_touch_up', touch):
+            touch.pop()
             return True
         while self.selection_candidates:
             candidate = self.selection_candidates.pop(0)
@@ -329,6 +349,7 @@ class Board(ScatterLayout):
         if not super().on_touch_up(touch):
             self.keep_selection = False
             touch.ungrab(self)
+        touch.pop()
 
     def on_parent(self, *args):
         """Create some subwidgets and trigger the first update."""
