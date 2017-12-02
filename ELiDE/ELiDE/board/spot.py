@@ -15,7 +15,6 @@ from kivy.properties import (
     NumericProperty,
     BooleanProperty
 )
-from ..kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
 from ..util import trigger
 
@@ -33,9 +32,9 @@ class Spot(PawnSpot):
     collider = ObjectProperty()
     collided = BooleanProperty(False)
     place = AliasProperty(
-        lambda self: self.remote,
-        lambda self, v: self.setter('remote')(v),
-        bind=('remote',)
+        lambda self: self.proxy,
+        lambda self, v: self.setter('proxy')(v),
+        bind=('proxy',)
     )
     default_image_paths = ['orb.png']
     default_pos = (0.5, 0.5)
@@ -50,32 +49,13 @@ class Spot(PawnSpot):
         self._pospawn_triggers = {}
         kwargs['size_hint'] = (None, None)
         if 'place' in kwargs:
-            kwargs['remote'] = kwargs['place']
+            kwargs['proxy'] = kwargs['place']
             del kwargs['place']
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
-        self.bind(
-            size=self._trigger_upd_collider,
-            pos=self._trigger_upd_collider
-        )
 
     def on_board(self, *args):
         self.board.bind(size=self._upd_pos)
-
-    def _upd_collider(self, *args):
-        rx = self.width / 2
-        ry = self.height / 2
-        if (
-                not self.collider or
-                not hasattr(self.collider, 'pos') or
-                self.collider.pos != self.center or
-                self.collider.rx != rx or
-                self.collider.ry != ry
-        ):
-            self.collider = CollideEllipse(
-                x=self.center_x, y=self.center_y, rx=rx, ry=ry
-            )
-    _trigger_upd_collider = trigger(_upd_collider)
 
     def _get_pospawn_partial(self, pawn):
         if pawn not in self._pospawn_partials:
@@ -118,23 +98,23 @@ class Spot(PawnSpot):
             Clock.schedule_once(self._upd_pos, 0)
             return
         self.pos = (
-            int(self.remote.get('_x', self.default_pos[0]) * self.board.width),
-            int(self.remote.get('_y', self.default_pos[1]) * self.board.height)
+            int(self.proxy.get('_x', self.default_pos[0]) * self.board.width),
+            int(self.proxy.get('_y', self.default_pos[1]) * self.board.height)
         )
 
-    def on_remote(self, *args):
-        super().on_remote(*args)
+    def on_proxy(self, *args):
+        super().on_proxy(*args)
         self._upd_pos()
 
     def push_pos(self, *args):
         """Set my current position, expressed as proportions of the board's
         width and height, into the ``_x`` and ``_y`` keys of the
-        entity in my ``remote`` property, such that it will be
+        entity in my ``proxy`` property, such that it will be
         recorded in the database.
 
         """
-        self.remote['_x'] = self.x / self.board.width
-        self.remote['_y'] = self.y / self.board.height
+        self.proxy['_x'] = self.x / self.board.width
+        self.proxy['_y'] = self.y / self.board.height
     _trigger_push_pos = trigger(push_pos)
 
     def add_widget(self, wid, i=0, canvas=None):
@@ -202,12 +182,6 @@ class Spot(PawnSpot):
         for pawn in self.children:
             self.pospawn(pawn)
     _trigger_upd_pawns_here = trigger(_upd_pawns_here)
-
-    def collide_point(self, x, y):
-        """Check my collider."""
-        self._upd_collider()
-        assert (self.collider is not None)
-        return (x, y) in self.collider
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""

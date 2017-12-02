@@ -2,6 +2,8 @@ LiSE is an application for developing life simulation games.
 
 [Development blog](http://forums.tigsource.com/index.php?topic=35227.0)
 
+[Survey for prospective users](https://goo.gl/7N1TBj)
+
 # What is a life simulation game?
 
 For the purposes of LiSE, it is any game where you are primarily
@@ -16,19 +18,14 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Redshirt
-* Animal Crossing
 * Princess Maker
 * Monster Rancher
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
 * The King of Dragon Pass
-* Cart Life
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
-
-To demonstrate the capabilities of the engine, I will develop the game
-[Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
 
 # Why should I use LiSE for this purpose?
 
@@ -65,9 +62,12 @@ yourself, after all.
 # Getting started
 
 ```
-# install the development version of kivy
-sudo apt-get install cython3 python3-dev python3-pip python3-setuptools libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-pip3 install --user git+https://github.com/kivy/kivy.git
+# install the Kivy app framework
+sudo apt-get install cython3 python3-dev python3-pip \
+libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
+libsdl2-ttf-dev
+# ELiDE doesn't play movies, so disable gstreamer
+USE_GSTREAMER=0 pip3 install --user kivy
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
@@ -85,6 +85,7 @@ ELiDE uses third-party graphics sets:
 * The [RLTiles](http://rltiles.sourceforge.net/), available under [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the public domain where it exists.
 * "Crypt" and "Island" from the [PROCJAM 2015 Art Pack](http://www.procjam.com/2015/09/procjam-art-pack-now-available/), by Marsh Davies, available under the terms of [Creative Commons BY-NC](http://creativecommons.org/licenses/by-nc/4.0/)
 * The default wallpaper, wallpape.jpg, is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
+* The ELiDE icon is by Robin Hill, used with permission.
 
 The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George
 Douros, in the public domain.
@@ -93,6 +94,11 @@ Douros, in the public domain.
 LiSE's data model, is available under
 [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My
 versions of the networkx graph classes are in the ``allegedb``
-directory, and use the same license. The rest of the LiSE source files
-are licensed under the terms of the GNU General Public License version
-3. See each directory for a copy of each license.
+directory, and use the same license.
+
+reify.py is derived from the Pyramid project and carries its BSD-like license.
+
+collide.py is ported from Kivy's garden.collider module and carries the MIT license.
+
+The rest of the LiSE source files are licensed under the terms of the GNU General Public License
+version 3

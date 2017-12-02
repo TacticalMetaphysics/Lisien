@@ -3,10 +3,12 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from blinker import Signal
-from astunparse import unparse
+from astunparse import Unparser
 from ast import parse, Expr, Module
-from inspect import getsource, getsourcelines, getmodule
+from inspect import getsource
 import json
+
+from .util import dedent_source
 
 
 class NotThatMap(Mapping):
@@ -83,12 +85,13 @@ class StringStore(MutableMapping, Signal):
     """
     language = LanguageDescriptor()
 
-    def __init__(self, filename, lang='eng'):
+    def __init__(self, query, filename, lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
         super().__init__()
+        self.query = query
         self._filename = filename
         self._language = lang
         try:
@@ -104,7 +107,7 @@ class StringStore(MutableMapping, Signal):
         return len(self.cache[self.language])
 
     def __getitem__(self, k):
-        return self.cache[self.language][k].format_map(NotThatMap(self, k))
+        return self.cache[self.language][k]
 
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
@@ -119,11 +122,15 @@ class StringStore(MutableMapping, Signal):
         del self.cache[self.language][k]
         self.send(self, key=k, val=None)
 
+    def format(self, k):
+        """Return a stored string with other strings substituted into it."""
+        return self[k].format_map(NotThatMap(self, k))
+
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
-        yield from self.cache[lang].items()
+        yield from self.cache.setdefault(lang, {}).items()
 
     def save(self):
         with open(self._filename, 'w') as outf:
@@ -139,11 +146,12 @@ class FunctionStore(Signal):
                 self._ast = parse(inf.read(), filename)
                 self._ast_idx = {}
                 for i, node in enumerate(self._ast.body):
-                    if hasattr(node, 'value') and hasattr(node.value, 'func'):
-                        self._ast_idx[node.value.func.id] = i
+                    self._ast_idx[node.name] = i
                 self._globl = {}
                 self._locl = {}
                 self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
+                for thing in self._locl.values():
+                    thing.__module__ = self._filename.rstrip('.py')
         except FileNotFoundError:
             self._ast = Module(body=[])
             self._ast_idx = {}
@@ -160,9 +168,10 @@ class FunctionStore(Signal):
         if not callable(v):
             super().__setattr__(k, v)
             return
+        v.__module__ = self._filename.rstrip('.py')
         self._locl[k] = v
-        sourcelines, _ = getsourcelines(v)
-        outdented = self._dedent_sourcelines(sourcelines)
+        source = getsource(v)
+        outdented = dedent_source(source)
         expr = Expr(parse(outdented))
         expr.value.body[0].name = k
         if k in self._ast_idx:
@@ -172,53 +181,42 @@ class FunctionStore(Signal):
             self._ast.body.append(expr)
         self.send(self, attr=k, val=v)
 
-    @staticmethod
-    def _dedent_sourcelines(sourcelines):
-        if sourcelines[0].strip().startswith('@'):
-            del sourcelines[0]
-        indent = 999
-        for line in sourcelines:
-            lineindent = 0
-            for char in line:
-                if char not in ' \t':
-                    break
-                lineindent += 1
-            else:
-                indent = 0
-                break
-            indent = min((indent, lineindent))
-        return '\n'.join(line[indent:] for line in sourcelines)
-
     def __call__(self, v):
         setattr(self, v.__name__, v)
 
     def __delattr__(self, k):
         del self._locl[k]
-        delattr(self._ast, k)
+        del self._ast.body[self._ast_idx[k]]
+        del self._ast_idx[k]
         self.send(self, attr=k, val=None)
 
     def save(self):
         with open(self._filename, 'w') as outf:
-            outf.write(unparse(self._ast))
+            Unparser(self._ast, outf)
 
     def iterplain(self):
         for name, func in self._locl.items():
             yield name, getsource(func)
 
     def store_source(self, v, name=None):
-        v = self._dedent_sourcelines(v.split('\n'))
+        outdented = dedent_source(v)
+        mod = parse(outdented)
+        expr = Expr(mod)
+        if len(expr.value.body) != 1:
+            raise ValueError("Tried to store more than one function")
+        if name is None:
+            name = expr.value.body[0].name
+        else:
+            expr.value.body[0].name = name
+        if name in self._ast_idx:
+            self._ast.body[self._ast_idx[name]] = expr
+        else:
+            self._ast_idx[name] = len(self._ast.body)
+            self._ast.body.append(expr)
         locl = {}
-        ast = parse(v)
-        if name:
-            ast.body[0].name = name
-        exec(compile(ast, '<LiSE>', 'exec'))
+        exec(compile(mod, '<LiSE>', 'exec'), {}, locl)
         self._locl.update(locl)
-        for expr in ast.body:
-            if expr.name in self._ast_idx:
-                self._ast.body[self._ast_idx[expr.name]] = expr
-            else:
-                self._ast_idx[expr.name] = len(self._ast_idx)
-                self._ast.body.append(expr)
+        self.send(self, attr=name, val=locl[name])
 
     def get_source(self, name):
         return getsource(getattr(self, name))
@@ -237,27 +235,28 @@ class UniversalMapping(MutableMapping, Signal):
         self.engine = engine
 
     def __iter__(self):
-        return self.engine._universal_cache.iter_keys(*self.engine.time)
+        return self.engine._universal_cache.iter_keys(*self.engine.btt())
 
     def __len__(self):
-        return self.engine._universal_cache.count_keys(*self.engine.time)
+        return self.engine._universal_cache.count_keys(*self.engine.btt())
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        return self.engine._universal_cache.retrieve(k, *self.engine.time)
+        return self.engine._universal_cache.retrieve(k, *self.engine.btt())
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
-        (branch, tick) = self.engine.time
-        self.engine.query.universal_set(k, branch, tick, v)
-        self.engine._universal_cache.store(k, branch, tick, v)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine._universal_cache.store(k, branch, turn, tick, v)
+        self.engine.query.universal_set(k, branch, turn, tick, v)
+        self.engine.tick = tick
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        branch, tick = self.engine.time
-        self.engine.query.universal_del(k, branch, tick)
-        self.engine._universal_cache.store(k, branch, tick, None)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine._universal_cache.store(k, branch, turn, tick, None)
+        self.engine.query.universal_del(k, branch, turn, tick)
         self.send(self, key=k, val=None)
 
 
@@ -277,6 +276,7 @@ class CharacterMapping(MutableMapping, Signal):
         """Store the engine, initialize caches"""
         super().__init__()
         self.engine = engine
+        self._cache = None
 
     def __iter__(self):
         """Iterate over every character name."""
@@ -284,9 +284,13 @@ class CharacterMapping(MutableMapping, Signal):
 
     def __contains__(self, name):
         """Has this character been created?"""
-        if name in self.engine._graph_objs:
-            return True
-        return self.engine.query.have_character(name)
+        if self.engine._graph_objs:
+            self._cache = None
+            return name in self.engine._graph_objs
+        # hack to make initial load work
+        if self._cache is None:
+            self._cache = [ch for ch, typ in self.engine.query.graphs_types() if typ == 'DiGraph']
+        return name in self._cache
 
     def __len__(self):
         """How many characters have been created?"""

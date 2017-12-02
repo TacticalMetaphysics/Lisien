@@ -24,7 +24,7 @@ class PawnSpot(ImageStack):
 
     """
     board = ObjectProperty()
-    remote = ObjectProperty()
+    proxy = ObjectProperty()
     engine = ObjectProperty()
     selected = BooleanProperty(False)
     hit = BooleanProperty(False)
@@ -32,22 +32,22 @@ class PawnSpot(ImageStack):
     name = ObjectProperty()
     use_boardspace = True
 
-    def on_remote(self, *args):
+    def on_proxy(self, *args):
         if (
-                self.remote is None or
-                not hasattr(self.remote, 'name')
+                self.proxy is None or
+                not hasattr(self.proxy, 'name')
         ):
-            Logger.debug('PawnSpot: bad remote {}'.format(self.remote))
+            Logger.debug('PawnSpot: bad proxy {}'.format(self.proxy))
             return
-        self.name = self.remote.name
-        self.paths = self.remote.setdefault(
+        self.name = self.proxy.name
+        self.paths = self.proxy.setdefault(
             '_image_paths', self.default_image_paths
         )
         zeroes = [0] * len(self.paths)
-        self.offxs = self.remote.setdefault('_offxs', zeroes)
-        self.offys = self.remote.setdefault('_offys', zeroes)
-        self.stackhs = self.remote.setdefault('_stackhs', zeroes)
-        self.remote.connect(self._trigger_pull_from_remote)
+        self.offxs = self.proxy.setdefault('_offxs', zeroes)
+        self.offys = self.proxy.setdefault('_offys', zeroes)
+        self.stackhs = self.proxy.setdefault('_stackhs', zeroes)
+        self.proxy.connect(self._trigger_pull_from_proxy)
 
     def finalize(self):
         self.bind(
@@ -65,7 +65,7 @@ class PawnSpot(ImageStack):
             stackhs=self._trigger_push_stackhs
         )
 
-    def pull_from_remote(self, *args):
+    def pull_from_proxy(self, *args):
         self.unfinalize()
         for key, att in [
                 ('_image_paths', 'paths'),
@@ -73,29 +73,29 @@ class PawnSpot(ImageStack):
                 ('_offys', 'offys'),
                 ('_stackhs', 'stackhs')
         ]:
-            if key in self.remote and self.remote[key] != getattr(self, att):
-                setattr(self, att, self.remote[key])
+            if key in self.proxy and self.proxy[key] != getattr(self, att):
+                setattr(self, att, self.proxy[key])
         self.finalize()
 
-    def _trigger_pull_from_remote(self, *args, **kwargs):
-        Clock.unschedule(self.pull_from_remote)
-        Clock.schedule_once(self.pull_from_remote, 0)
+    def _trigger_pull_from_proxy(self, *args, **kwargs):
+        Clock.unschedule(self.pull_from_proxy)
+        Clock.schedule_once(self.pull_from_proxy, 0)
 
     @trigger
     def _trigger_push_image_paths(self, *args):
-        self.remote['_image_paths'] = list(self.paths)
+        self.proxy['_image_paths'] = list(self.paths)
 
     @trigger
     def _trigger_push_offxs(self, *args):
-        self.remote['_offxs'] = list(self.offxs)
+        self.proxy['_offxs'] = list(self.offxs)
 
     @trigger
     def _trigger_push_offys(self, *args):
-        self.remote['_offys'] = list(self.offys)
+        self.proxy['_offys'] = list(self.offys)
 
     @trigger
     def _trigger_push_stackhs(self, *args):
-        self.remote['_stackhs'] = list(self.stackhs)
+        self.proxy['_stackhs'] = list(self.stackhs)
 
     def on_linecolor(self, *args):
         """If I don't yet have the instructions for drawing the selection box

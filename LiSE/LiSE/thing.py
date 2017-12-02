@@ -15,6 +15,7 @@ import networkx as nx
 from .node import Node
 from .util import path_len
 from .exc import TravelException
+from allegedb.cache import HistoryError
 
 
 def roerror(*args, **kwargs):
@@ -64,13 +65,22 @@ class Thing(Node):
         self._set_loc_and_next(*v)
 
     def _get_arrival_time(self):
-        return self.engine._things_cache.tick_before(
-            self.character.name, self.name, *self.engine.time
-        )
+        charn = self.character.name
+        n = self.name
+        thingcache = self.engine._things_cache
+        for b, trn, tck in self.engine._iter_parent_btt():
+            try:
+                v = thingcache.turn_before(charn, n, b, trn)
+            except KeyError:
+                v = thingcache.turn_after(charn, n, b, trn)
+            if v is not None:
+                return v
+        else:
+            raise ValueError("Couldn't find arrival time")
 
     def _get_next_arrival_time(self):
         try:
-            return self.engine._things_cache.tick_after(
+            return self.engine._things_cache.turn_after(
                 self.character.name, self.name, *self.engine.time
             )
         except KeyError:
@@ -78,7 +88,7 @@ class Thing(Node):
 
     def _get_locations(self):
         return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine.time
+            self.character.name, self.name, *self.engine.btt()
         )
 
     _getitem_dispatch = {
@@ -117,12 +127,12 @@ class Thing(Node):
 
         ``location``: return the name of my location
 
-        ``arrival_time``: return the tick when I arrived in the
+        ``arrival_time``: return the turn when I arrived in the
         present location
 
         ``next_location``: if I'm in transit, return where to, else return None
 
-        ``next_arrival_time``: return the tick when I'm going to
+        ``next_arrival_time``: return the turn when I'm going to
         arrive at ``next_location``
 
         ``locations``: return a pair of ``(location, next_location)``
@@ -137,6 +147,8 @@ class Thing(Node):
         """Set ``key``=``value`` for the present game-time."""
         try:
             self._setitem_dispatch[key](self, value)
+        except HistoryError as ex:
+            raise ex
         except KeyError:
             super().__setitem__(key, value)
 
@@ -161,12 +173,10 @@ class Thing(Node):
             self['location']
         )
 
-    def delete(self, nochar=False):
+    def delete(self):
         super().delete()
-        if not nochar:
-            del self.character.thing[self.name]
-        (branch, tick) = self.engine.time
         self._set_loc_and_next(None, None)
+        self.character.thing.send(self.character.thing, key=self.name, val=None)
 
     def clear(self):
         """Unset everything."""
@@ -193,10 +203,7 @@ class Thing(Node):
 
         """
         loc, nxtloc = self._get_locations()
-        try:
-            return self.engine._node_objs[(self.character.name, loc)]
-        except KeyError:
-            raise ValueError("Nonexistent location: {}".format(loc))
+        return self.engine._node_objs.get((self.character.name, loc))
 
     @location.setter
     def location(self, v):
@@ -237,14 +244,33 @@ class Thing(Node):
         )
         self.send(self, key='locations', val=(loc, nextloc))
 
+    @property
+    def locations(self):
+        loc, nxtloc = self._get_locations()
+        nobjs = self.engine._node_objs
+        charn = self.character.name
+        loc = nobjs[charn, loc]
+        if nxtloc is not None:
+            nxtloc = nobjs[charn, nxtloc]
+        return loc, nxtloc
+
+    @locations.setter
+    def locations(self, v):
+        loc, nxtloc = v
+        if hasattr(loc, 'name'):
+            loc = loc.name
+        if hasattr(nxtloc, 'name'):
+            nxtloc = nxtloc.name
+        self._set_loc_and_next(loc, nxtloc)
+
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
         to the given :class:`Place`, schedule myself to travel to the
         given :class:`Place`, taking an amount of time indicated by
         the ``weight`` stat on the :class:`Portal`, if given; else 1
-        tick.
+        turn.
 
-        Return the number of ticks to travel.
+        Return the number of turns the travel will take.
 
         """
         if hasattr(place, 'name'):
@@ -253,77 +279,61 @@ class Thing(Node):
             placen = place
         curloc = self["location"]
         orm = self.character.engine
-        curtick = orm.tick
-        ticks = self.engine._portal_objs[
+        turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
-        orm.tick += ticks
-        self['locations'] = (placen, None)
-        orm.tick = curtick
-        return ticks
+        with self.engine.plan:
+            orm.turn += turns
+            self['locations'] = (placen, None)
+        return turns
 
     def follow_path(self, path, weight=None):
         """Go to several :class:`Place`s in succession, deciding how long to
         spend in each by consulting the ``weight`` stat of the
         :class:`Portal` connecting the one :class:`Place` to the next.
 
-        Return the total number of ticks the travel will take. Raise
+        Return the total number of turns the travel will take. Raise
         :class:`TravelException` if I can't follow the whole path,
         either because some of its nodes don't exist, or because I'm
         scheduled to be somewhere else.
 
         """
-        curtick = self.character.engine.tick
-        prevplace = path.pop(0)
-        if prevplace != self['location']:
-            raise ValueError("Path does not start at my present location")
-        subpath = [prevplace]
-        for place in path:
-            if (
-                    prevplace not in self.character.portal or
-                    place not in self.character.portal[prevplace]
-            ):
-                raise TravelException(
-                    "Couldn't follow portal from {} to {}".format(
-                        prevplace,
-                        place
-                    ),
-                    path=subpath,
-                    traveller=self
-                )
-            subpath.append(place)
-            prevplace = place
-        ticks_total = 0
-        prevsubplace = subpath.pop(0)
-        subsubpath = [prevsubplace]
-        for subplace in subpath:
-            if prevsubplace != self["location"]:
-                l = self["location"]
-                fintick = self.character.engine.tick
-                self.character.engine.tick = curtick
-                raise TravelException(
-                    "When I tried traveling to {}, at tick {}, "
-                    "I ended up at {}".format(
-                        prevsubplace,
-                        fintick,
-                        l
-                    ),
-                    path=subpath,
-                    followed=subsubpath,
-                    branch=self.character.engine.branch,
-                    tick=fintick,
-                    lastplace=l,
-                    traveller=self
-                )
-            portal = self.character.portal[prevsubplace][subplace]
-            tick_inc = portal.get(weight, 1)
-            self.go_to_place(subplace, weight)
-            self.character.engine.tick += tick_inc
-            ticks_total += tick_inc
-            subsubpath.append(subplace)
-            prevsubplace = subplace
-        self.character.engine.tick = curtick
-        return ticks_total
+        if len(path) < 2:
+            raise ValueError("Paths need at least 2 nodes")
+        eng = self.character.engine
+        with eng.plan:
+            prevplace = path.pop(0)
+            if prevplace != self['location']:
+                raise ValueError("Path does not start at my present location")
+            subpath = [prevplace]
+            for place in path:
+                if (
+                        prevplace not in self.character.portal or
+                        place not in self.character.portal[prevplace]
+                ):
+                    raise TravelException(
+                        "Couldn't follow portal from {} to {}".format(
+                            prevplace,
+                            place
+                        ),
+                        path=subpath,
+                        traveller=self
+                    )
+                subpath.append(place)
+                prevplace = place
+            turns_total = 0
+            prevsubplace = subpath.pop(0)
+            subsubpath = [prevsubplace]
+            for subplace in subpath:
+                portal = self.character.portal[prevsubplace][subplace]
+                turn_inc = portal.get(weight, 1)
+                self.locations = prevsubplace, subplace
+                eng.turn += turn_inc
+                turns_total += turn_inc
+                subsubpath.append(subplace)
+                prevsubplace = subplace
+            self.locations = subplace, None
+            return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):
         """Find the shortest path to the given :class:`Place` from where I am
@@ -343,67 +353,14 @@ class Thing(Node):
         attribute holds the part of the path that I *can* follow. To
         make me follow it, pass it to my ``follow_path`` method.
 
-        Return value is the number of ticks the travel will take.
+        Return value is the number of turns the travel will take.
 
         """
         destn = dest.name if hasattr(dest, 'name') else dest
+        if destn == self.location.name:
+            raise ValueError("I'm already at {}".format(destn))
         graph = self.character if graph is None else graph
         path = nx.shortest_path(graph, self["location"], destn, weight)
+        if len(path) == 1:
+            return self.go_to_place(destn, weight)
         return self.follow_path(path, weight)
-
-    def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
-        """Arrange to travel to ``dest`` such that I arrive there at
-        ``arrival_tick``.
-
-        Optional argument ``weight`` indicates what attribute of
-        portals will indicate how long they take to go through.
-
-        Optional argument ``graph`` is the graph to perform
-        pathfinding with. If it contains a viable path that my
-        character does not, you'll get a TravelException.
-
-        """
-        curtick = self.character.engine.tick
-        if arrival_tick <= curtick:
-            raise ValueError("travel always takes positive amount of time")
-        destn = dest.name if hasattr(dest, 'name') else dest
-        graph = self.character if graph is None else graph
-        curloc = self["location"]
-        path = nx.shortest_path(graph, curloc, destn, weight)
-        travel_time = path_len(graph, path, weight)
-        start_tick = arrival_tick - travel_time
-        if start_tick <= curtick:
-            raise self.TravelException(
-                "path too heavy to follow by the specified tick",
-                path=path,
-                traveller=self
-            )
-        self.character.engine.tick = start_tick
-        self.follow_path(path, weight)
-        self.character.engine.tick = curtick
-
-    def _get_json_dict(self):
-        (branch, tick) = self.character.engine.time
-        return {
-            "type": "Thing",
-            "version": 0,
-            "character": self.character.name,
-            "name": self.name,
-            "branch": branch,
-            "tick": tick,
-            "stat": dict(self)
-        }
-
-    def dump(self):
-        """Return a JSON representation of my present state only, not any of
-        my history.
-
-        """
-        return self.engine.json_dump(self._get_json_dict())
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Thing) and
-            self.character.name == other.character.name and
-            self.name == other.name
-        )

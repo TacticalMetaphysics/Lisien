@@ -17,7 +17,6 @@ testdata.append(('lol', deepcopy(testdata)))
 class AllegedTest(unittest.TestCase):
     def setUp(self):
         self.engine = allegedb.ORM('sqlite:///:memory:')
-        self.engine.initdb()
         self.graphmakers = (self.engine.new_graph, self.engine.new_digraph, self.engine.new_multigraph, self.engine.new_multidigraph)
 
     def tearDown(self):
@@ -36,7 +35,7 @@ class GraphTest(AllegedTest):
         self.assertIn(1, g.adj[0])
         self.assertIn(0, g.adj[1])
         # TODO: test adding edges whose nodes do not yet exist
-        self.engine.rev = 1
+        self.engine.turn = 1
         self.assertIn(0, g)
         self.assertIn(1, g)
         self.engine.branch = 'no_edge'
@@ -56,7 +55,7 @@ class GraphTest(AllegedTest):
         g.add_edge(1, 2)
         g.add_edge(2, 0)
         self.engine.branch = 'square'
-        self.engine.rev = 2
+        self.engine.turn = 2
         self.assertIn(2, g)
         self.assertIn(2, list(g.node.keys()))
         g.remove_edge(2, 0)
@@ -66,7 +65,7 @@ class GraphTest(AllegedTest):
         self.engine.branch = 'nothing'
         g.remove_nodes_from((0, 1, 2, 3))
         self.engine.branch = 'trunk'
-        self.engine.rev = 0
+        self.engine.turn = 0
 
 
 class BranchLineageTest(GraphTest):
@@ -87,12 +86,12 @@ class BranchLineageTest(GraphTest):
         self.assertIn(1, g.node)
         self.assertIn(0, g.edge)
         self.assertIn(1, g.edge[0])
-        self.engine.rev = 0
+        self.engine.turn = 0
 
         def badjump():
             self.engine.branch = 'no_edge'
         self.assertRaises(ValueError, badjump)
-        self.engine.rev = 2
+        self.engine.turn = 2
         self.engine.branch = 'no_edge'
         self.assertIn(0, g)
         self.assertIn(0, list(g.node.keys()))
@@ -109,7 +108,7 @@ class BranchLineageTest(GraphTest):
         self.engine.branch = 'square'
         self.assertNotIn(0, g.edge[2])
         self.assertRaises(KeyError, lambda: g.edge[2][0])
-        self.engine.rev = 2
+        self.engine.turn = 2
         self.assertIn(3, g.node)
         self.assertIn(1, g.edge[0])
         self.assertIn(2, g.edge[1])
@@ -120,7 +119,7 @@ class BranchLineageTest(GraphTest):
             self.assertNotIn(node, g.node)
             self.assertNotIn(node, g.edge)
         self.engine.branch = 'trunk'
-        self.engine.rev = 0
+        self.engine.turn = 0
         self.assertIn(0, g.node)
         self.assertIn(1, g.node)
         self.assertIn(0, g.edge)

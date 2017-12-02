@@ -34,7 +34,9 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=True )
+          console=True,
+          icon='ELiDE_icon/Windows/ELiDE.ico'
+)
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,

@@ -1,7 +1,20 @@
+== Alpha 8 | 2017-10-06 ==
+This release is for ProcJam 2017.
+
+* Made the time model more granular. What was formerly called a tick is now a turn, which contains as many ticks as you need.
+* Support a rudimentary form of dialog menu for player interaction.
+* Rules and rulebooks are now journaled, and may change throughout the game.
+* Python source code is no longer stored in SQLite--just plain text files.
+* Changed the rule API so that rule functions are only ever called with a single argument, the entity that they apply to.
+* ELiDE is now a pure Python module.
+* Performance improvements.
+
+
 === Alpha 7 | 2017-05-06 ===
 * Restructure everything in LiSE around a new caching strategy.
 * Generally cleaner UI.
 * If all your places are named with pairs of integers, you get automatic grid layout in ELiDE.
+
 
 === Alpha 6 | 2016-02-01 ===
 * Opening a functions editor no longer crashes the app.
@@ -21,12 +34,14 @@
 * Some new graphics from Marsh Davies for Procjam 2015. And it's easier to include your own now, with an atlas and a change in elide.ini (though undocumented).
 * Real version numbers in the Python packages.
 
+
 === Alpha 4 | 2015-08-26 ===
 * The rules editor is now usable under normal conditions. After you've made Actions and Triggers, check this out by selecting something and pressing the Rules button.
 * The big > button will cause time to pass for so long as it is toggled, as it was always meant to.
 * Improvements to input handling and collision detection.
 * Less cryptic README.
 * Crash fixes.
+
 
 === Alpha 3 | 2015-08-11 ===
 * Performance improvements.

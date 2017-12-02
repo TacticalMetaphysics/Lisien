@@ -207,47 +207,50 @@ class BaseStatListView(RecycleView):
     control = DictProperty({})
     config = DictProperty({})
     mirror = DictProperty({})
-    remote = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
+    proxy = ObjectProperty()
     engine = ObjectProperty()
+    app = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._listeners = {}
         self.bind(
-            branch=self.refresh_mirror,
-            tick=self.refresh_mirror,
-            remote=self.refresh_mirror,
+            proxy=self.refresh_mirror,
             mirror=self._trigger_upd_data
         )
         super().__init__(**kwargs)
 
+    def on_app(self, *args):
+        self.app.bind(
+            branch=self.refresh_mirror,
+            turn=self.refresh_mirror,
+            tick=self.refresh_mirror
+        )
+
     def del_key(self, k):
         if k not in self.mirror:
             raise KeyError
-        del self.remote[k]
+        del self.proxy[k]
         del self.mirror[k]
         if k in self.control:
-            del self.remote['_control'][k]
+            del self.proxy['_control'][k]
             del self.control[k]
         if k in self.config:
-            del self.remote['_config'][k]
+            del self.proxy['_config'][k]
             del self.config[k]
 
     def set_value(self, k, v):
-        if self.engine is None or self.remote is None:
+        if self.engine is None or self.proxy is None:
             self._trigger_set_value(k, v)
             return
         if v is None:
-            del self.remote[k]
+            del self.proxy[k]
             del self.mirror[k]
         else:
             try:
                 vv = self.engine.json_load(v)
             except (TypeError, ValueError):
                 vv = v
-            self.remote[k] = self.mirror[k] = vv
+            self.proxy[k] = self.mirror[k] = vv
 
     def _trigger_set_value(self, k, v, *args):
         todo = partial(self.set_value, k, v)
@@ -260,13 +263,13 @@ class BaseStatListView(RecycleView):
         if key not in self.config:
             cfgd = dict(self.config)
             cfgd[key] = default_cfg
-            self.remote['_config'] = cfgd
+            self.proxy['_config'] = cfgd
         else:
             cfgd = dict(self.config)
             for option in default_cfg:
                 if option not in cfgd[key]:
                     cfgd[key][option] = default_cfg[option]
-            self.remote['_config'] = cfgd
+            self.proxy['_config'] = cfgd
 
     def set_control(self, key, control):
         if '_control' not in self.mirror:
@@ -274,30 +277,30 @@ class BaseStatListView(RecycleView):
         else:
             ctrld = dict(self.control)
             ctrld[key] = control
-        self.remote['_control'] \
+        self.proxy['_control'] \
             = self.mirror['_control'] \
             = self.control \
             = ctrld
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
-            self.remote['_config'] \
+            self.proxy['_config'] \
                 = self.config \
                 = {key: {option: value}}
         elif key in self.config:
             newcfg = dict(self.config)
             newcfg[key][option] = value
-            self.remote['_config'] = self.config = newcfg
+            self.proxy['_config'] = self.config = newcfg
         else:
             newcfg = dict(default_cfg)
             newcfg[option] = value
-            self.remote['_config'][key] = self.config = newcfg
+            self.proxy['_config'][key] = self.config = newcfg
 
     def set_configs(self, key, d):
         if '_config' in self.mirror:
-            self.mirror['_config'][key] = self.remote['_config'][key] = d
+            self.mirror['_config'][key] = self.proxy['_config'][key] = d
         else:
-            self.mirror['_config'] = self.remote['_config'] = {key: d}
+            self.mirror['_config'] = self.proxy['_config'] = {key: d}
         self.config[key] = d
 
     def iter_data(self):
@@ -319,9 +322,9 @@ class BaseStatListView(RecycleView):
     @trigger
     def refresh_mirror(self, *args):
         Logger.debug('{}: refreshing mirror'.format(type(self)))
-        if self.remote is None:
+        if self.proxy is None:
             return
-        new = dict(self.remote)
+        new = dict(self.proxy)
         if '_control' in new and new['_control'] != self.control:
             self.control = new['_control']
         if '_config' in new and new['_config'] != self.config:
@@ -334,10 +337,10 @@ class BaseStatListView(RecycleView):
             'key': k,
             'reg': self._reg_widget,
             'unreg': self._unreg_widget,
-            'gett': self.remote.__getitem__,
+            'gett': self.proxy.__getitem__,
             'sett': self.set_value,
-            'listen': self.remote.connect,
-            'unlisten': self.remote.disconnect,
+            'listen': self.proxy.connect,
+            'unlisten': self.proxy.disconnect,
             'control': self.control.get(k, 'readout'),
             'config': self.config.get(k, default_cfg)
         }
@@ -385,6 +388,8 @@ Builder.load_string(
     max: self.config['max']
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
+    app: app
+    proxy: app.selected_proxy
     RecycleBoxLayout:
         default_size: None, dp(56)
         default_size_hint: 1, None

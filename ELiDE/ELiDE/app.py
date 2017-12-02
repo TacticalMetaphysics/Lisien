@@ -27,7 +27,7 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
-from ELiDE.board.board import ScatterBoard
+from ELiDE.board.board import Board
 from ELiDE.board.arrow import ArrowWidget
 from ELiDE.board.spot import Spot
 from ELiDE.board.pawn import Pawn
@@ -42,14 +42,17 @@ class ELiDEApp(App):
 
     """
     title = 'ELiDE'
-    icon = 'icon.png'
 
     engine = ObjectProperty()
     branch = StringProperty('trunk')
+    turn = NumericProperty(0)
     tick = NumericProperty(0)
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
-    selected_remote = ObjectProperty()
+    selected_proxy = ObjectProperty()
+
+    def on_selection(self, *args):
+        Logger.debug("App: {} selected".format(self.selection))
 
     def _get_character_name(self, *args):
         if self.character is None:
@@ -70,27 +73,28 @@ class ELiDEApp(App):
         if not self.engine:
             Clock.schedule_once(self._pull_time, 0)
             return
-        (self.branch, self.tick) = self.engine.time
+        branch, turn, tick = self.engine.btt()
+        self.branch = branch
+        self.turn = turn
+        self.tick = tick
     pull_time = trigger(_pull_time)
 
     @trigger
     def _push_time(self, *args):
-        if self.engine.time != (self.branch, self.tick):
+        branch, turn, tick = self.engine.btt()
+        if (self.branch, self.turn, self.tick) != (branch, turn, tick):
             self.engine.time_travel(
-                self.branch, self.tick,
+                self.branch, self.turn, self.tick if self.tick != tick else None,
                 chars=[self.character.name],
-                cb=self.mainscreen._update_from_chardiff
+                cb=self.mainscreen._update_from_time_travel
             )
 
     def set_tick(self, t):
         """Set my tick to the given value, cast to an integer."""
         self.tick = int(t)
 
-    def set_time(self, b, t=None):
-        if t is None:
-            (b, t) = b
-        t = int(t)
-        (self.branch, self.tick) = (b, t)
+    def set_turn(self, t):
+        self.turn = int(t)
 
     def select_character(self, char):
         """Change my ``character`` to the selected character object if they
@@ -149,6 +153,7 @@ class ELiDEApp(App):
         return the root widget.
 
         """
+        self.icon = 'icon_24px.png'
         config = self.config
         Logger.debug(
             "ELiDEApp: starting with world {}, path {}".format(
@@ -172,10 +177,19 @@ class ELiDEApp(App):
         Clock.schedule_once(self._add_screens, 0.2)
         return self.manager
 
+    def _pull_lang(self, *args, **kwargs):
+        self.strings.language = kwargs['language']
+
+    def _pull_chars(self, *args, **kwargs):
+        self.chars.names = list(self.engine.character)
+
+    def _pull_time_from_signal(self, *args, branch, turn, tick):
+        self.branch, self.turn, self.tick = branch, turn, tick
+
     def _start_subprocess(self, *args):
         config = self.config
         self.procman = EngineProcessManager()
-        enkw = {'logger': Logger}
+        enkw = {'logger': Logger, 'validate': True}
         if config['LiSE'].get('logfile'):
             enkw['logfile'] = config['LiSE']['logfile']
         if config['LiSE'].get('loglevel'):
@@ -185,22 +199,14 @@ class ELiDEApp(App):
             **enkw
         )
         self.pull_time()
-        
-        @self.engine.time.connect
-        def pull_time(inst, **kwargs):
-            self.branch = inst.branch
-            self.tick = inst.tick
 
-        @self.engine.string.language.connect
-        def pull_lang(inst, **kwargs):
-            self.strings.language = kwargs['language']
-        
-        @self.engine.character.connect
-        def pull_chars(*args):
-            self.chars.names = list(self.engine.character)
+        self.engine.time.connect(self._pull_time_from_signal, weak=False)
+        self.engine.string.language.connect(self._pull_lang, weak=False)
+        self.engine.character.connect(self._pull_chars, weak=False)
 
         self.bind(
             branch=self._push_time,
+            turn=self._push_time,
             tick=self._push_time
         )
 
@@ -267,21 +273,25 @@ class ELiDEApp(App):
 
         self.statcfg = ELiDE.statcfg.StatScreen(
             toggle=toggler('statcfg'),
-            branch=self.branch,
-            tick=self.tick,
             engine=self.engine
         )
         self.bind(
-            selected_remote=self.statcfg.setter('remote'),
-            branch=self.statcfg.setter('branch'),
-            tick=self.statcfg.setter('tick')
+            selected_proxy=self.statcfg.setter('proxy')
         )
+        dialog_todo = self.engine.universal.get('last_result', [])
+        if dialog_todo:
+            idx = int(self.engine.universal['last_result_idx'])
+            if idx >= len(dialog_todo):
+                dialog_todo = []
+            else:
+                dialog_todo = dialog_todo[idx:]
 
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
+            dialog_todo=dialog_todo,
             boards={
-                name: ScatterBoard(
+                name: Board(
                     character=char
                 ) for name, char in self.engine.character.items()
             }
@@ -290,10 +300,10 @@ class ELiDEApp(App):
             self.statcfg.statlist = self.mainscreen.statlist
         self.mainscreen.bind(statlist=self.statcfg.setter('statlist'))
         self.bind(
-            selection=self.reremote,
-            character=self.reremote
+            selection=self.refresh_selected_proxy,
+            character=self.refresh_selected_proxy
         )
-        self.selected_remote = self._get_selected_remote()
+        self.selected_proxy = self._get_selected_proxy()
         for wid in (
                 self.mainscreen,
                 self.pawncfg,
@@ -309,11 +319,11 @@ class ELiDEApp(App):
     def _set_language(self, lang):
         self.engine.string.language = lang
 
-    def _get_selected_remote(self):
+    def _get_selected_proxy(self):
         if self.selection is None:
             return self.character.stat
-        elif hasattr(self.selection, 'remote'):
-            return self.selection.remote
+        elif hasattr(self.selection, 'proxy'):
+            return self.selection.proxy
         elif (
                 hasattr(self.selection, 'portal') and
                 self.selection.portal is not None
@@ -322,15 +332,21 @@ class ELiDEApp(App):
         else:
             raise ValueError("Invalid selection: {}".format(self.selection))
 
-    def reremote(self, *args):
-        self.selected_remote = self._get_selected_remote()
+    def refresh_selected_proxy(self, *args):
+        self.selected_proxy = self._get_selected_proxy()
 
     def on_character_name(self, *args):
         if self.config['ELiDE']['boardchar'] != self.character_name:
             self.config['ELiDE']['boardchar'] = self.character_name
 
     def on_character(self, *args):
+        if not hasattr(self, 'mainscreen'):
+            Clock.schedule_once(self.on_character, 0)
+            return
+        if hasattr(self, '_oldchar'):
+            self.mainscreen.boards[self._oldchar.name].unbind(selection=self.setter('selection'))
         self.selection = None
+        self.mainscreen.boards[self.character.name].bind(selection=self.setter('selection'))
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
@@ -347,9 +363,6 @@ class ELiDEApp(App):
         self.procman.shutdown()
         self.config.write()
 
-    def on_selection(self, *args):
-        Logger.debug("ELiDEApp: selection {}".format(self.selection))
-
     def delete_selection(self):
         """Delete both the selected widget and whatever it represents."""
         selection = self.selection
@@ -365,12 +378,12 @@ class ELiDEApp(App):
         elif isinstance(selection, Spot):
             self.selection = None
             self.mainscreen.boardview.board.rm_spot(selection.name)
-            selection.remote.delete()
+            selection.proxy.delete()
         else:
             assert isinstance(selection, Pawn)
             self.selection = None
             self.mainscreen.boardview.board.rm_pawn(selection.name)
-            selection.remote.delete()
+            selection.proxy.delete()
 
     def new_board(self, name):
         """Make a board for a character name, and switch to it."""
@@ -378,17 +391,3 @@ class ELiDEApp(App):
         board = Board(character=char)
         self.mainscreen.boards[name] = board
         self.character = char
-
-
-kv = """
-<App>:
-    time: [root.branch, root.tick]
-    selected_remote: root.selection.remote if root.selection else None
-<SymbolLabel@Label>:
-    font_name: "Symbola.ttf"
-    font_size: 50
-<SymbolButton@Button>:
-    font_name: "Symbola.ttf"
-    font_size: 50
-"""
-Builder.load_string(kv)

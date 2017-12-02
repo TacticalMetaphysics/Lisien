@@ -37,7 +37,7 @@ class MenuTextInput(TextInput):
 
 
 class MenuIntInput(MenuTextInput):
-    """Special text input for setting the tick"""
+    """Special text input for setting the turn or tick"""
     def insert_text(self, s, from_undo=False):
         """Natural numbers only."""
         return super().insert_text(

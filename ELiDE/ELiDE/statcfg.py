@@ -48,9 +48,9 @@ class ControlTypePicker(Button):
 
     def set_value(self, k, v):
         if v is None:
-            del self.app.selected_remote[k]
+            del self.app.selected_proxy[k]
         else:
-            self.app.selected_remote[k] = v
+            self.app.selected_proxy[k] = v
 
     def build(self, *args):
         if None in (
@@ -196,10 +196,7 @@ class StatScreen(Screen):
     statcfg = ObjectProperty()
     toggle = ObjectProperty()
     engine = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
-    remote = ObjectProperty()
+    proxy = ObjectProperty()
 
     def new_stat(self):
         """Look at the key and value that the user has entered into the stat
@@ -214,12 +211,12 @@ class StatScreen(Screen):
             # you need to enter things
             return
         try:
-            self.remote[key] \
+            self.proxy[key] \
                 = self.statlist.mirror[key] \
                 = self.statcfg.mirror[key] \
                 = self.engine.json_load(value)
         except (TypeError, ValueError):
-            self.remote[key] \
+            self.proxy[key] \
                 = self.statlist.mirror[key] \
                 = self.statcfg.mirror[key] \
                 = value
@@ -280,10 +277,9 @@ Builder.load_string("""
         StatListViewConfigurator:
             viewclass: 'ConfigListItem'
             id: cfg
+            app: app
             engine: root.engine
-            remote: root.remote
-            branch: root.branch
-            tick: root.tick
+            proxy: root.proxy
             statlist: root.statlist
             size_hint_y: 0.95
             RecycleBoxLayout:

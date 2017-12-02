@@ -50,7 +50,7 @@ def inittest(
 
     # Basic day night cycle
     @engine.action
-    def time_slipping(engine, character, *, daylen: int, nightlen: int, twilightlen: float=0.0):
+    def time_slipping(character, *, daylen: int, nightlen: int, twilightlen: float=0.0):
         if 'hour' not in character.stat:
             character.stat['hour'] = 0
             character.stat['day_period'] = 'dawn' if twilightlen else 'day'
@@ -73,57 +73,61 @@ def inittest(
     # If the kobold is not in a shrubbery, it will try to get to one.
     # If it is, there's a chance it will try to get to another.
     @kobold.rule
-    def shrubsprint(engine, character, thing):
-        print('shrub_places: {}'.format(thing['shrub_places']))
+    def shrubsprint(thing):
         shrub_places = sorted(list(thing['shrub_places']))
         if thing['location'] in shrub_places:
             shrub_places.remove(thing['location'])
-        print('shrub_places after: {}'.format(thing['shrub_places']))
-        thing.travel_to(engine.choice(shrub_places))
+            assert thing['location'] not in shrub_places
+        whereto = thing.engine.choice(shrub_places)
+        thing.travel_to(whereto)
 
     @shrubsprint.trigger
-    def uncovered(engine, character, thing):
+    def uncovered(thing):
         for shrub_candidate in thing.location.contents():
             if shrub_candidate.name[:5] == "shrub":
                 return False
-        engine.info("kobold uncovered")
+        thing.engine.info("kobold uncovered")
         return True
 
     @shrubsprint.trigger
-    def breakcover(engine, character, thing):
-        if engine.random() < thing['sprint_chance']:
-            engine.info("kobold breaking cover")
+    def breakcover(thing):
+        if thing.engine.random() < thing['sprint_chance']:
+            thing.engine.info("kobold breaking cover")
             return True
 
     @shrubsprint.prereq
-    def not_traveling(engine, character, thing):
+    def not_traveling(thing):
         if thing['next_location'] is not None:
-            engine.info("kobold already travelling to {}".format(thing['next_location']))
+            thing.engine.info("kobold already travelling to {}".format(thing['next_location']))
         return thing['next_location'] is None
 
-    @dwarf.rule
-    def kill(engine, character, thing):
-        character.thing['kobold'].delete()
-        print("===KOBOLD DIES===")
+    @engine.method
+    def set_kill_flag(eng):
+        eng.character['physical'].thing['dwarf']['kill'] = True
 
-    @kill.trigger
-    def sametile(engine, character, thing):
+    @dwarf.rule
+    def fight(thing):
+        method = thing.engine.method
+        return "Kill kobold?", [("Kill", method.set_kill_flag), ("Spare", None)]
+
+    @fight.trigger
+    def sametile(thing):
         try:
             return (
-                thing['location'] == character.thing['kobold']['location']
+                thing['location'] == thing.character.thing['kobold']['location']
             )
         except KeyError:
             return False
 
-    @kill.prereq
-    def kobold_alive(engine, character, thing):
-        return 'kobold' in character.thing
+    @fight.prereq
+    def kobold_alive(thing):
+        return 'kobold' in thing.character.thing
 
-    def aware(engine, character, thing):
+    def aware(thing):
         # calculate the distance from dwarf to kobold
         from math import hypot
         try:
-            bold = character.thing['kobold']
+            bold = thing.character.thing['kobold']
         except KeyError:
             return False
         (dx, dy) = bold['location']
@@ -134,24 +138,43 @@ def inittest(
         # if it's <= the dwarf's sight radius, the dwarf is aware of the kobold
         return dist <= thing['sight_radius']
 
-    kill.prereq(aware)
+    fight.prereq(aware)
 
     @dwarf.rule
-    def go2kobold(engine, character, thing):
-        thing.travel_to(character.thing['kobold']['location'])
+    def kill_kobold(thing):
+        del thing.character.thing['kobold']
+        del thing['kill']
+
+    kill_kobold.prereq(kobold_alive)
+
+    @kill_kobold.prereq
+    def flag_set(thing):
+        return 'kill' in thing
+
+    @kill_kobold.trigger
+    def unmerciful(thing):
+        return thing['kill']
+
+    @dwarf.rule
+    def go2kobold(thing):
+        thing.travel_to(thing.character.thing['kobold']['location'])
 
     go2kobold.trigger(aware)
 
     go2kobold.prereqs = ['kobold_alive']
 
+    @go2kobold.prereq
+    def kobold_not_here(thing):
+        return 'kobold' not in thing.location.content
+
     @dwarf.rule
-    def wander(engine, character, thing):
-        dests = sorted(list(character.place.keys()))
+    def wander(thing):
+        dests = sorted(list(thing.character.place.keys()))
         dests.remove(thing['location'])
-        thing.travel_to(engine.choice(dests))
+        thing.travel_to(thing.engine.choice(dests))
 
     @wander.trigger
-    def standing_still(engine, character, thing):
+    def standing_still(thing):
         return thing['next_location'] is None
 
 
@@ -163,7 +186,7 @@ if __name__ == '__main__':
     except FileNotFoundError:
         pass
     with Engine('LiSEworld.db', random_seed=69105) as engine:
-        inittest(engine)
+        inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(
             engine.character['physical'].thing['kobold']['shrub_places']

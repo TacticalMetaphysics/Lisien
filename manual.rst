@@ -1,17 +1,10 @@
 Introduction
 ============
 
-LiSE is a tool for constructing tick-based simulations following rules
+LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
 genre.
-
-Tick-based simulations are those in which time is broken into discrete
-units of uniform size, called "ticks". Each change to the simulation
-happens in a single tick, and nothing can happen in any amount of time
-shorter than the tick. Just how much time a tick represents will vary
-depending on the game--it could be seconds, days, years, whatever you
-want.
 
 Rules are things the game should do in certain conditions. In LiSE,
 the "things to do" are called Actions, and are functions that can run
@@ -38,13 +31,13 @@ a Thing, Place, or Portal by treating it like a dictionary.
 
 LiSE's directed graphs are called Characters. Every time something
 about a Character changes, LiSE remembers when it happened -- that is,
-which tick of the simulation. This allows the developer to look up the
+which turn of the simulation. This allows the developer to look up the
 state of the world at some point in the past.
 
 When time moves forward in LiSE, it checks all its rules and allows
 them to change the state of the world. Then, LiSE sets its clock to
-the next tick, and is ready for time to move forward another
-tick. LiSE can keep track of multiple timelines, called "branches,"
+the next turn, and is ready for time to move forward another
+turn. LiSE can keep track of multiple timelines, called "branches,"
 which can split off from one another. Branches normally don't affect
 one another, though it's possible to write rules that change one
 branch when they are run in another.
@@ -70,8 +63,8 @@ different string ``name`` s, then linking them together with the
 method ``add_portal(origin, destination)``.  To store data pertaining
 to some particular place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
-name is ``'home'``, you might do it like ``home =
-world.place['home']``. Portals are retrieved from the ``portal``
+name is ``'home'``, you might do it like
+``home = world.place['home']``. Portals are retrieved from the ``portal``
 mapping, where you'll need the origin and the destination: if there's
 a portal from ``'home'`` to ``'narnia'``, you can get it like
 ``wardrobe = world.portal['home']['narnia']``, but if you haven't also
@@ -129,29 +122,51 @@ Time Control
 ------------
 
 The current time is always accessible from the engine's ``branch`` and
-``tick`` properties. In the common case where time is advancing
+``turn`` properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine's
-``next_tick`` method, which polls all the game rules before going to
+``next_turn`` method, which polls all the game rules before going to
 the next tick; but you can also change the time whenever you want, as
-long as ``branch`` is a string and ``tick`` is an integer. The rules
+long as ``branch`` is a string and ``turn`` is an integer. The rules
 will never be followed in response to your changing the time "by
 hand".
 
 It is possible--indeed, expected--to change the time as part of the
 action of a rule. This is how you would make something happen after a
 delay. Say you want a rule that puts the character ``alice`` to sleep,
-then wakes her up after eight ticks (presumably hour-long).::
+then wakes her up after eight turns (presumably hour-long).::
 
     alice = engine.character['alice']
 
     @alice.rule
-    def sleep(engine, character):
+    def sleep(character):
         character.stat['awake'] = False
-        engine.tick += 8
-        character.stat['awake'] = True
+        with character.engine.plan:
+            character.engine.turn += 8
+            character.stat['awake'] = True
 
-After any function that is part of a rule is called, the branch and
-tick will be reset to their prior values.
+At the end of a ``plan`` block, time will return to whenever it was
+at the start of the block.
+
+As of alpha 8, plans won't carry over to new branches created before
+the plan's completion. This is a planned feature.
+
+Input Prompts
+-------------
+
+To ask the player to make a decision, first define a method for them to
+call, then return a menu description like this one.::
+
+    @engine.method
+    def wake_alice(engine):
+        engine.character['alice'].stat['awake'] = True
+
+    alice = engine.character['alice']
+
+    @alice.rule
+    def wakeup(character):
+        return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
+
+Only methods defined with the ``@engine.method`` decorator may be used in a menu.
 
 IDE
 ===
@@ -166,7 +181,7 @@ any input handling code to make a functional game in ELiDE.
 ELiDE has three columns. On the right are a lot of buttons to access
 the parts of ELiDE that aren't visible right now, plus a couple of
 icons that you can drag into the middle. In the middle, you have a
-graphical display of the Character under consideraction; dragging
+graphical display of the Character under consideration; dragging
 those icons here will make a new Place or Thing. To connect Places
 with Portals, press the button with the arrow on it, then drag from
 one Place to another. Press the button again when you're done. On the
@@ -178,13 +193,20 @@ Character you are viewing is selected. There's a button in the
 top-right to view another Character.
 
 Below all this are some bits to let you manipulate time, mainly the
-Play and Next Tick buttons. Play will start moving time forward when
+Play and Next Turn buttons. Play will start moving time forward when
 you press it, and stop when you press it again. Next Tick will only
 move time forward by one tick. There are also text fields with which
-you can enter the Branch and Tick by hand. Note that rules are only
-run when you advance time using Play or Next Tick.
+you can enter the Branch and Turn by hand. Note that rules are only
+run when you advance time using Play or Next Turn. The Tick field
+indicates how many changes have occurred in the current turn. It's
+not very useful to edit this, but you can, and ELiDE will show you
+the state of the world only partway through a turn if you wish.
 
-Stat editor
+It's possible to view turns that haven't been simulated yet.
+This is deliberate, but it's not a good idea to do this in alpha 8,
+because ELiDE doesn't know how to make plans yet.
+
+Stat Editor
 -----------
 
 This two-column table displays the keys and values in the selected
@@ -209,3 +231,31 @@ the actual value will still be True or False.
 "Slider" is for numeric values that vary within a range. It needs a
 minimum, a maximum, and a step size determining the smallest possible
 change you can make with it.
+
+You can use this to build a primitive interface to your game, or just monitor
+the state of the world.
+
+Python Editor
+-------------
+
+Click the Python button to edit your game code in the IDE if you like.
+In this case, you can't use any of the decorators. Choose the appropriate tab
+from Trigger, Prereq, or Action at the top, and the function you write will
+show up in the appropriate part of the rules editor.
+
+Rules Editor
+------------
+
+Here you can assemble rules out of prewritten functions. First pick which rule
+to edit from the menu on the left, using the box at the bottom to add one if needed.
+Then go through the trigger, prereq, and action tabs, and drag the functions from
+the right pile to the left to include them in the rule. You may also reorder them
+within the left pile.
+
+Strings Editor
+--------------
+
+The LiSE engine has an attribute ``string`` that is accessed like a dictionary and
+used to store arbitrary strings, such as might be shown in a menu. You can edit those
+here. You can store strings for multiple languages, and switch between them
+programmatically by setting ``engine.string.language``.

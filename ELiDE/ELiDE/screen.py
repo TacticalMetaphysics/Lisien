@@ -8,7 +8,7 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
-
+from importlib import import_module
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -20,12 +20,14 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
+    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
     StringProperty
 )
 from .charmenu import CharMenu
+from .dialog import Dialog
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -50,24 +52,22 @@ class StatListPanel(BoxLayout):
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
-    branch = StringProperty('trunk')
-    tick = NumericProperty(0)
-    remote = ObjectProperty()
+    proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
 
-    def on_remote(self, *args):
-        if hasattr(self.remote, 'name'):
-            self.selection_name = str(self.remote.name)
+    def on_proxy(self, *args):
+        if hasattr(self.proxy, 'name'):
+            self.selection_name = str(self.proxy.name)
 
     def set_value(self, k, v):
         if v is None:
-            del self.remote[k]
+            del self.proxy[k]
         else:
             try:
                 vv = self.engine.json_load(v)
             except (TypeError, ValueError):
                 vv = v
-            self.remote[k] = vv
+            self.proxy[k] = vv
 
 
 class TimePanel(BoxLayout):
@@ -76,11 +76,11 @@ class TimePanel(BoxLayout):
 
     There's a "play" button, which is toggleable. When toggled on, the
     simulation will continue to run until it's toggled off
-    again. Below this is a "Next tick" button, which will simulate
-    exactly one tick and stop. And there are two text fields in which
+    again. Below this is a "Next turn" button, which will simulate
+    exactly one turn and stop. And there are two text fields in which
     you can manually enter a Branch and Tick to go to. Moving through
     time this way doesn't simulate anything--you'll only see what
-    happened as a result of "play," "next tick," or some other input
+    happened as a result of "play," "next turn," or some other input
     that's been made to call the ``advance`` method of the LiSE core.
 
     """
@@ -91,31 +91,35 @@ class TimePanel(BoxLayout):
         self.ids.branchfield.text = ''
         self.screen.app.branch = branch
 
+    def set_turn(self, *args):
+        turn = int(self.ids.turnfield.text)
+        self.ids.turnfield.text = ''
+        self.screen.app.turn = turn
+
     def set_tick(self, *args):
         tick = int(self.ids.tickfield.text)
         self.ids.tickfield.text = ''
         self.screen.app.tick = tick
 
-    def next_tick(self, *args):
-        self.screen.app.engine.next_tick(
-            chars=[self.screen.app.character_name],
-            cb=self.screen._update_from_chardiff
-        )
-
     def _upd_branch_hint(self, *args):
         self.ids.branchfield.hint_text = self.screen.app.branch
+
+    def _upd_turn_hint(self, *args):
+        self.ids.turnfield.hint_text = str(self.screen.app.turn)
 
     def _upd_tick_hint(self, *args):
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
 
     def on_screen(self, *args):
-        if 'branchfield' not in self.ids or 'tickfield' not in self.ids:
+        if not all(field in self.ids for field in ('branchfield', 'turnfield', 'tickfield')):
             Clock.schedule_once(self.on_screen, 0)
             return
         self.ids.branchfield.hint_text = self.screen.app.branch
+        self.ids.turnfield.hint_text = str(self.screen.app.turn)
         self.ids.tickfield.hint_text = str(self.screen.app.tick)
         self.screen.app.bind(
             branch=self._upd_branch_hint,
+            turn=self._upd_turn_hint,
             tick=self._upd_tick_hint
         )
 
@@ -147,10 +151,19 @@ class MainScreen(Screen):
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
     dummies = ReferenceListProperty(dummyplace, dummything)
+    dialoglayout = ObjectProperty()
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
+    dialog_todo = ListProperty([])
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+    usermod = StringProperty('user')
+    userpkg = StringProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.dialog_todo:
+            self._advance_dialog()
 
     def on_board(self, *args):
         if not self.charmenu:
@@ -176,7 +189,7 @@ class MainScreen(Screen):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
             return
-        self.app.bind(selected_remote=self.statpanel.setter('remote'))
+        self.app.bind(selected_proxy=self.statpanel.setter('proxy'))
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -192,28 +205,6 @@ class MainScreen(Screen):
         """
         Clock.unschedule(self.play)
         Clock.schedule_interval(self.play, 1.0 / self.play_speed)
-
-    def on_character(self, *args):
-        """Arrange to remake the customizable widgets when the character's
-        stats change.
-
-        Make them the first time, too, based on the current value of
-        the relevant stat.
-
-        """
-        if not self.canvas:
-            Clock.schedule_once(self.on_character, 0)
-            return
-        if hasattr(self, '_old_character'):
-            self._old_character.stat.unlisten(
-                key='_kv', fun=self._pull_kv
-            )
-        else:
-            self.bind(kv=self._trigger_remake_display)
-        self._old_character = self.character
-        if '_kv' in self.character.stat:
-            self.kv = self.character.stat['_kv']
-        self.board.trigger_update()
 
     def remake_display(self, *args):
         """Remake any affected widgets after a change in my ``kv``.
@@ -241,15 +232,17 @@ class MainScreen(Screen):
                 interceptor.dispatch('on_touch_down', touch)
                 self.board.keep_selection = True
                 return True
+        if self.dialoglayout.dispatch('on_touch_down', touch):
+            return True
         return self.boardview.dispatch('on_touch_down', touch)
 
     def on_touch_up(self, touch):
         if self.timepanel.collide_point(*touch.pos):
-            self.timepanel.dispatch('on_touch_up', touch)
+            return self.timepanel.dispatch('on_touch_up', touch)
         elif self.charmenu.collide_point(*touch.pos):
-            self.charmenu.dispatch('on_touch_up', touch)
+            return self.charmenu.dispatch('on_touch_up', touch)
         elif self.statpanel.collide_point(*touch.pos):
-            self.statpanel.dispatch('on_touch_up', touch)
+            return self.statpanel.dispatch('on_touch_up', touch)
         return self.boardview.dispatch('on_touch_up', touch)
 
     def on_dummies(self, *args):
@@ -281,27 +274,137 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_chardiff(self, chardiff, **kwargs):
-        self.board.trigger_update_from_diff(
-            chardiff.get(self.boardview.board.character.name, {})
-        )
-        self.statpanel.statlist.mirror = dict(self.app.selected_remote)
-        self.app.pull_time()
+    def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
+        self.dialog_todo, deltas = ret
+        self._update_from_delta(cmd, branch, turn, tick, deltas)
+        self._advance_dialog()
+
+    def _update_from_time_travel(self, cmd, branch, turn, tick, received, **kwargs):
+        self._update_from_delta(cmd, branch, turn, tick, received[-1])
+
+    def _update_from_delta(self, cmd, branch, turn, tick, delta, **kwargs):
+        chardelta = delta.get(self.boardview.board.character.name, {})
+        for unwanted in (
+            'character_rulebook',
+            'avatar_rulebook',
+            'character_thing_rulebook',
+            'character_place_rulebook',
+            'character_portal_rulebook'
+        ):
+            if unwanted in chardelta:
+                del chardelta[unwanted]
+        self.boardview.board.trigger_update_from_delta(chardelta)
+        self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
+
+    def _advance_dialog(self, *args):
+        self.ids.dialoglayout.clear_widgets()
+        if not self.dialog_todo:
+            return
+        self._update_dialog(self.dialog_todo.pop(0))
+
+    def _update_dialog(self, diargs, **kwargs):
+        if diargs is None:
+            Logger.debug("Screen: null dialog")
+            return
+        if not hasattr(self, '_dia'):
+            self._dia = Dialog()
+        dia = self._dia
+        # Simple text dialogs just tell the player something and let them click OK
+        if isinstance(diargs, str):
+            dia.message_kwargs = {'text': diargs}
+            dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
+        # List dialogs are for when you need the player to make a choice and don't care much
+        # about presentation
+        elif isinstance(diargs, list):
+            dia.message_kwargs = {'text': 'Select from the following:'}
+            dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
+        # For real control of the dialog, you need a pair of dicts --
+        # the 0th describes the message shown to the player, the 1th
+        # describes the menu below
+        elif isinstance(diargs, tuple):
+            if len(diargs) != 2:
+                # TODO more informative error
+                raise TypeError('Need a tuple of length 2')
+            msgkwargs, mnukwargs = diargs
+            if isinstance(msgkwargs, dict):
+                dia.message_kwargs = msgkwargs
+            elif isinstance(msgkwargs, str):
+                dia.message_kwargs['text'] = msgkwargs
+            else:
+                raise TypeError("Message must be dict or str")
+            if isinstance(mnukwargs, dict):
+                mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
+                dia.menu_kwargs = mnukwargs
+            elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
+                dia.menu_kwargs['options'] = list(map(self._munge_menu_option, mnukwargs))
+            else:
+                raise TypeError("Menu must be dict or list")
+        else:
+            raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
+        self.ids.dialoglayout.add_widget(dia)
+
+    def ok(self, *args, cb=None):
+        """Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue"""
+        self.ids.dialoglayout.clear_widgets()
+        if cb:
+            cb()
+        self._advance_dialog()
+        self.app.engine.universal['last_result_idx'] += 1
+
+    def _trigger_ok(self, *args, cb=None):
+        part = partial(self.ok, cb=cb)
+        Clock.unschedule(part)
+        Clock.schedule_once(part)
+
+    def _lookup_func(self, funcname):
+        if not hasattr(self, '_usermod'):
+            self._usermod = import_module(self.usermod, self.userpkg)
+        return getattr(self.usermod, funcname)
+
+    def _munge_menu_option(self, option):
+        name, func = option
+        if func is None:
+            return name, self._trigger_ok
+        if callable(func):
+            return name, partial(self._trigger_ok, cb=func)
+        if isinstance(func, tuple):
+            fun = func[0]
+            if isinstance(fun, str):
+                fun = self._lookup_func(fun)
+            args = func[1]
+            if len(func) == 3:
+                kwargs = func[2]
+                func = partial(fun, *args, **kwargs)
+            else:
+                func = partial(fun, *args)
+        if isinstance(func, str):
+            func = self._lookup_func(func)
+        return name, partial(self._trigger_ok, cb=func)
 
     def play(self, *args):
-        """If the 'play' button is pressed, advance a tick."""
+        """If the 'play' button is pressed, advance a turn.
+
+        If you want to disable this, set ``engine.universal['block'] = True``
+
+        """
         if self.playbut.state == 'normal':
             return
-        elif not hasattr(self, '_old_time'):
-            self._old_time = (self.app.branch, self.app.tick)
-            self.app.engine.next_tick(
-                chars=[self.app.character_name],
-                cb=self._update_from_chardiff
-            )
-        elif self._old_time == (self.app.branch, self.app.tick):
+        self.next_turn()
+
+    def next_turn(self, *args):
+        """Advance time by one turn, if it's not blocked.
+
+        Block time by setting ``engine.universal['block'] = True``"""
+        eng = self.app.engine
+        if eng.universal.get('block'):
+            Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
             return
-        else:
-            del self._old_time
+        if self.dialog_todo or eng.universal.get('last_result_idx', 0) < len(eng.universal.get('last_result', [])):
+            Logger.info("MainScreen: not advancing time while there's a dialog")
+            return
+        eng.next_turn(
+            cb=self._update_from_next_turn
+        )
 
 
 Builder.load_string(
@@ -318,9 +421,7 @@ Builder.load_string(
         id: statlist
         size_hint_y: 0.95
         engine: root.engine
-        branch: root.branch
-        tick: root.tick
-        remote: root.remote
+        proxy: root.proxy
     Button:
         id: cfgstatbut
         size_hint_y: 0.05
@@ -335,9 +436,9 @@ Builder.load_string(
             font_size: 40
             text: '>'
         Button:
-            text: 'Next tick'
+            text: 'Next turn'
             size_hint_y: 0.3
-            on_press: root.next_tick()
+            on_press: root.screen.next_turn()
     BoxLayout:
         orientation: 'vertical'
         Label:
@@ -346,6 +447,14 @@ Builder.load_string(
             id: branchfield
             setter: root.set_branch
             hint_text: root.screen.app.branch if root.screen else ''
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Turn'
+        MenuIntInput:
+            id: turnfield
+            setter: root.set_turn
+            hint_text: str(root.screen.app.turn) if root.screen else ''
     BoxLayout:
         orientation: 'vertical'
         Label:
@@ -367,15 +476,21 @@ Builder.load_string(
     statlist: statpanel.statlist
     statpanel: statpanel
     timepanel: timepanel
+    dialoglayout: dialoglayout
     BoardScrollView:
         id: boardview
         x: statpanel.right
         y: timepanel.top
+        size_hint: (None, None)
+        width: charmenu.x - statpanel.right
+        height: root.height - timepanel.height
+        screen: root
+        engine: app.engine
+        board: root.boards[app.character_name]
+        adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
         engine: app.engine
-        branch: app.branch
-        tick: app.tick
         toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
@@ -389,5 +504,12 @@ Builder.load_string(
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
+    FloatLayout:
+        id: dialoglayout
+        size_hint: None, None
+        x: statpanel.right
+        y: timepanel.top
+        width: charmenu.x - statpanel.right
+        height: root.height - timepanel.top
 """
 )

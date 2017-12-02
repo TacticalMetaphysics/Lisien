@@ -69,7 +69,7 @@ class TravelException(Exception):
             followed=None,
             traveller=None,
             branch=None,
-            tick=None,
+            turn=None,
             lastplace=None
     ):
         """Store the message as usual, and also the optional arguments:
@@ -92,6 +92,6 @@ class TravelException(Exception):
         self.followed = followed
         self.traveller = traveller
         self.branch = branch
-        self.tick = tick
+        self.turn = turn
         self.lastplace = lastplace
         super().__init__(message)

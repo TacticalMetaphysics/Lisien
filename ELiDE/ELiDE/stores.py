@@ -17,6 +17,7 @@ code.
 import re
 import string
 from functools import partial
+from ast import parse
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -82,10 +83,14 @@ class StoreList(RecycleView):
     boxl = ObjectProperty()
 
     def __init__(self, **kwargs):
-        self.bind(table=self._trigger_redata, store=self._trigger_redata)
+        self.bind(table=self._trigger_redata)
         self._i2name = {}
         self._name2i = {}
         super().__init__(**kwargs)
+
+    def on_store(self, *args):
+        self.store.connect(self._trigger_redata)
+        self.redata()
 
     def on_boxl(self, *args):
         self.boxl.bind(selected_nodes=self._pull_selection)
@@ -149,9 +154,19 @@ class StringsEdScreen(Screen):
     toggle = ObjectProperty()
     language = StringProperty('eng')
     language_setter = ObjectProperty()
+    edbox = ObjectProperty()
 
     def on_language(self, *args):
-        self.ids.edbox.storelist.redata()
+        if self.edbox is None:
+            Clock.schedule_once(self.on_language, 0)
+            return
+        self.edbox.storelist.redata()
+
+    def save(self, *args):
+        if self.edbox is None:
+            Clock.schedule_once(self.save, 0)
+            return
+        self.edbox.save()
 
     def save(self):
         self.ids.edbox.save()
@@ -167,7 +182,7 @@ class Editor(BoxLayout):
 
     def save(self, *args):
         """Put text in my store, return True if it changed"""
-        if not (self.name_wid and self.store):
+        if self.name_wid is None or self.store is None:
             Logger.debug("{}: Not saving, missing name_wid or store".format(type(self).__name__))
             return
         if not (self.name_wid.text or self.name_wid.hint_text):
@@ -177,14 +192,21 @@ class Editor(BoxLayout):
             # TODO alert the user to invalid name
             Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
             return
+        if hasattr(self, '_do_parse'):
+            try:
+                parse(self.source)
+            except SyntaxError:
+                # TODO alert user to invalid source
+                Logger.debug("{}: Not saving, couldn't parse".format(type(self).__name__))
+                return
         do_redata = False
         if self.name_wid.text:
             if (
                 self.name_wid.hint_text and
                 self.name_wid.hint_text != self.name_wid.text and
-                self.name_wid.hint_text in self.store
+                hasattr(self.store, self.name_wid.hint_text)
             ):
-                del self.store[self.name_wid.hint_text]
+                delattr(self.store, self.name_wid.hint_text)
                 do_redata = True
             if (
                 not hasattr(self.store, self.name_wid.text) or
@@ -205,12 +227,12 @@ class Editor(BoxLayout):
 
     def delete(self, *args):
         key = self.name_wid.text or self.name_wid.hint_text
-        if key not in self.store:
+        if not hasattr(self.store, key):
             # TODO feedback about missing key
             return
-        del self.store[key]
+        delattr(self.store, key)
         try:
-            return min(kee for kee in self.store if kee > key)
+            return min(kee for kee in dir(self.store) if kee > key)
         except ValueError:
             return '+'
 
@@ -295,7 +317,7 @@ class EdBox(BoxLayout):
         save_select = self.editor.save()
         if save_select:
             name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
-            self.storelist.redata(name)
+            self.storelist.redata(select_name=name)
         else:
             del self._lock_save
 
@@ -358,7 +380,7 @@ class FunctionNameInput(TextInput):
             self._trigger_save(self.text)
 
 
-def sanitize_source(v, spaces=4):
+def munge_source(v, spaces=4):
     lines = v.split('\n')
     if not lines:
         return tuple(), ''
@@ -398,31 +420,17 @@ class FuncEditor(Editor):
     """
     storelist = ObjectProperty()
     codeinput = ObjectProperty()
+    params = ListProperty(['obj'])
     _text = StringProperty()
-    subject_type_params = {
-        'character': ('engine', 'character'),
-        'thing': ('engine', 'character', 'thing'),
-        'place': ('engine', 'character', 'place'),
-        'portal': ('engine', 'character', 'origin', 'destination')
-    }
-    params_subject_type = {v: k for k, v in subject_type_params.items()}
-    subject_type = OptionProperty(
-        'character', options=list(subject_type_params.keys())
-    )
-
-    def _subj_type_from_params(self, v):
-        self.subject_type = self.params_subject_type[v]
-
-    params = AliasProperty(
-        lambda self: self.subject_type_params[self.subject_type],
-        _subj_type_from_params,
-        bind=('subject_type',)
-    )
+    _do_parse = True
 
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
-        for line in self._text.split('\n'):
-            code += (' ' * 4 + line + '\n')
+        if self._text:
+            for line in self._text.split('\n'):
+                code += (' ' * 4 + line + '\n')
+        else:
+            code += ' ' * 4 + 'pass'
         return code.rstrip(' \n\t')
 
     def _set_source(self, v):
@@ -430,15 +438,15 @@ class FuncEditor(Editor):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         self.codeinput.unbind(text=self.setter('_text'))
-        self.params, self.codeinput.text = sanitize_source(v)
+        self.params, self.codeinput.text = munge_source(str(v))
         self.codeinput.bind(text=self.setter('_text'))
 
-    source = AliasProperty(_get_source, _set_source, bind=('params', '_text'))
+    source = AliasProperty(_get_source, _set_source, bind=('_text', 'params'))
 
     def get_default_text(self, name):
         if not name or name == '+':
             name = 'a'
-        return "def {}({}):\n".format(name, ', '.join(self.params))
+        return "def {}(obj):\n".format(name)
 
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
@@ -461,36 +469,6 @@ class FuncsEdBox(EdBox):
     @staticmethod
     def valid_name(name):
         return name and name[0] not in string.digits + string.whitespace + string.punctuation
-
-    def subjtyp(self, val):
-        if val == 'character':
-            self.ids.char.active = True
-        elif val == 'thing':
-            self.ids.thing.active = True
-        elif val == 'place':
-            self.ids.place.active = True
-        elif val == 'portal':
-            self.ids.port.active = True
-
-    def setchar(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'character'
-
-    def setthing(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'thing'
-
-    def setplace(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'place'
-
-    def setport(self, active):
-        if not active:
-            return
-        self.editor.subject_type = 'portal'
 
 
 class FuncsEdScreen(Screen):
@@ -559,6 +537,7 @@ Builder.load_string("""
             _trigger_delete: root._trigger_delete
 <StringsEdScreen>:
     name: 'strings'
+    edbox: edbox
     BoxLayout:
         orientation: 'vertical'
         StringsEdBox:
@@ -612,7 +591,7 @@ Builder.load_string("""
             on_text: root.validate_name_input(self.text)
         Py3CodeInput:
             id: params
-            text: '(' + ', '.join(root.params) + '):'
+            text: '({}):'.format(', '.join(root.params))
             disabled: True
             size_hint_y: None
             height: self.line_height + self.font_size
@@ -662,7 +641,6 @@ Builder.load_string("""
             validate_name_input: root.validate_name_input
             _trigger_save: root._trigger_save
             _trigger_delete: root._trigger_delete
-            on_subject_type: root.subjtyp(self.subject_type)
     BoxLayout:
         size_hint_y: 0.05
         Button:
@@ -671,60 +649,6 @@ Builder.load_string("""
             size_hint_x: 0.2
         Widget:
             id: spacer
-        BoxLayout:
-            size_hint_x: 0.6
-            BoxLayout:
-                size_hint_x: 0.32
-                CheckBox:
-                    id: char
-                    group: 'subj_type'
-                    size_hint_x: 0.2
-                    on_active: root.setchar(self.active)
-                Label:
-                    text: 'Character'
-                    size_hint_x: 0.8
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
-            BoxLayout:
-                size_hint_x: 0.22
-                CheckBox:
-                    id: thing
-                    group: 'subj_type'
-                    size_hint_x: 0.25
-                    on_active: root.setthing(self.active)
-                Label:
-                    text: 'Thing'
-                    size_hint_x: 0.75
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
-            BoxLayout:
-                size_hint_x: 0.22
-                CheckBox:
-                    id: place
-                    group: 'subj_type'
-                    size_hint_x: 0.25
-                    on_active: root.setplace(self.active)
-                Label:
-                    text: 'Place'
-                    size_hint_x: 0.75
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
-            BoxLayout:
-                size_hint_x: 0.24
-                CheckBox:
-                    id: port
-                    group: 'subj_type'
-                    size_hint_x: 0.25
-                    on_active: root.setport(self.active)
-                Label:
-                    text: 'Portal'
-                    size_hint_x: 0.75
-                    text_size: self.size
-                    halign: 'left'
-                    valign: 'middle'
 <FuncsEdScreen>:
     name: 'funcs'
     TabbedPanel:

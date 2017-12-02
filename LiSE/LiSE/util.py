@@ -5,41 +5,8 @@
 """
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
-
-
-class reify(object):
-    '''
-    Put the result of a method which uses this (non-data) descriptor decorator
-    in the instance dict after the first call, effectively replacing the
-    decorator with an instance variable.
-
-    It acts like @property, except that the function is only ever called once;
-    after that, the value is cached as a regular attribute. This gives you lazy
-    attribute creation on objects that are meant to be immutable.
-
-    Taken from the `Pyramid project <https://pypi.python.org/pypi/pyramid/>`_.
-    Modified for LiSE
-
-    '''
-    __slots__ = ['func', 'reified']
-
-    def __init__(self, func):
-        self.func = func
-        self.reified = {}
-
-    def __get__(self, inst, cls):
-        if inst is None:
-            return self
-        if id(inst) in self.reified:
-            return self.reified[id(inst)]
-        self.reified[id(inst)] = retval = self.func(inst)
-        return retval
-
-    def __set__(self, inst, val):
-        if id(inst) not in self.reified:
-            # shouldn't happen, but it's easy to handle
-            self.reified[id(inst)] = self.func(inst)
-        self.reified[id(inst)].update(val)
+from textwrap import dedent
+from .reify import reify
 
 
 def getatt(attribute_name):
@@ -74,7 +41,7 @@ def path_len(graph, path, weight=None):
     return n
 
 
-def dict_diff(old, new):
+def dict_delta(old, new):
     """Return a dictionary containing the items of ``new`` that are either
     absent from ``old`` or whose values are different; as well as the
     value ``None`` for those keys that are present in ``old``, but
@@ -83,14 +50,7 @@ def dict_diff(old, new):
     Useful for describing changes between two versions of a dict.
 
     """
-    try:
-        oldset = frozenset(old.items())
-        newset = frozenset(new.items())
-        if (oldset, newset) in dict_diff.memo:
-            return dict_diff.memo[(oldset, newset)]
-        r = dict_diff.memo[(oldset, newset)] = {}
-    except TypeError:
-        r = {}
+    r = {}
     for k in set(old.keys()).union(new.keys()):
         if k in old:
             if k not in new:
@@ -100,16 +60,15 @@ def dict_diff(old, new):
         else:  # k in new
             r[k] = new[k]
     return r
-dict_diff.memo = {}
 
 
-def set_diff(old, new):
+def set_delta(old, new):
     try:
         old = frozenset(old)
         new = frozenset(new)
-        if (old, new) in set_diff.memo:
-            return set_diff.memo[(old, new)]
-        r = set_diff.memo[(old, new)] = {}
+        if (old, new) in set_delta.memo:
+            return set_delta.memo[(old, new)]
+        r = set_delta.memo[(old, new)] = {}
     except TypeError:
         r = {}
     for item in old:
@@ -119,7 +78,7 @@ def set_diff(old, new):
         if item not in old:
             r[item] = True
     return r
-set_diff.memo = {}
+set_delta.memo = {}
 
 
 def keycache_iter(keycache, branch, tick, get_iterator):
@@ -232,3 +191,13 @@ class EntityStatAccessor(object):
 
     def __getitem__(self, k):
         return self.munge(lambda x: x[k])
+
+
+def dedent_source(source):
+    nlidx = source.index('\n')
+    if nlidx is None:
+        raise ValueError("Invalid source")
+    while source[:nlidx].strip().startswith('@'):
+        source = source[nlidx+1:]
+        nlidx = source.index('\n')
+    return dedent(source)

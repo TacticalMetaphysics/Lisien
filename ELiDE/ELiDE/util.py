@@ -6,6 +6,7 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
 from functools import partial
 from math import sin, cos, atan, pi
+from .collide import Collide2DPoly
 
 ninety = pi / 2
 """pi / 2"""
@@ -52,22 +53,6 @@ class trigger(object):
         )
         setattr(instance, self.func.__name__, retval)
         return retval
-
-
-def set_remote_value(loader, remote, k, v):
-    if v is None:
-        del remote[k]
-    else:
-        remote[k] = loader(v)
-
-
-def remote_setter(loader, remote):
-    """Return a function taking two arguments, ``k`` and ``v``, which sets
-    ``remote[k] = v``, interpreting ``v`` as JSON if possible, or
-    deleting ``remote[k]`` if ``v is None``.
-
-    """
-    return lambda k, v: set_remote_value(loader, remote, k, v)
 
 
 def try_load(loader, obj):

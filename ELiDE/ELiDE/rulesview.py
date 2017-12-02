@@ -28,39 +28,58 @@ from .util import trigger
 dbg = Logger.debug
 
 
-def getname(o):
-    return o if isinstance(o, str) else o.__name__
-
-
 # How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
     rulesview = ObjectProperty()
+    ruleslist = ObjectProperty()
     rule = ObjectProperty()
 
     def on_state(self, *args):
         if self.state == 'down':
             self.rulesview.rule = self.rule
+            for button in self.ruleslist.children[0].children:
+                if button != self:
+                    button.state = 'normal'
 
 
 class RulesList(RecycleView):
     rulebook = ObjectProperty()
     rulesview = ObjectProperty()
 
-    def __init__(self, **kwargs):
-        self.bind(rulebook=self.redata)
-        super().__init__(**kwargs)
+    def on_rulebook(self, *args):
+        if self.rulebook is None:
+            return
+        self.rulebook.connect(self._trigger_redata, weak=False)
+        self._trigger_redata()
 
     def redata(self, *args):
         self.data = [
-            {'rulesview': self.rulesview, 'rule': rule, 'index': i}
+            {'rulesview': self.rulesview, 'rule': rule, 'index': i, 'ruleslist': self}
             for i, rule in enumerate(self.rulebook)
         ]
+    _trigger_redata = trigger(redata)
 
 
 class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty(allownone=True)
+
+    def on_rule(self, *args):
+        if self.rule is None:
+            return
+        self.rule.connect(self._listen_to_rule)
+
+    def _listen_to_rule(self, rule, **kwargs):
+        if rule is not self.rule:
+            rule.disconnect(self._listen_to_rule)
+            return
+        if 'triggers' in kwargs:
+            self.pull_triggers()
+        if 'prereqs' in kwargs:
+            self.pull_prereqs()
+        if 'actions' in kwargs:
+            self.pull_actions()
 
     def _get_headline_text(self):
         # This shows the entity whose rules you're editing if you
@@ -139,150 +158,97 @@ class RulesView(FloatLayout):
         )
         self._box.add_widget(self._tabs)
 
-        self._action_tab = TabbedPanelItem(text='Actions')
-        self._tabs.add_widget(self._action_tab)
-        self._action_builder = DeckBuilderView(**deck_builder_kwargs)
-        self._action_builder.bind(decks=self._trigger_push_actions)
-        self._scroll_left_action = DeckBuilderScrollBar(
-            size_hint_x=0.01,
-            pos_hint={'x': 0, 'y': 0},
-            deckbuilder=self._action_builder,
-            deckidx=0,
-            scroll_min=0
-        )
-        self._scroll_right_action = DeckBuilderScrollBar(
-            size_hint_x=0.01,
-            pos_hint={'right': 1, 'y': 0},
-            deckbuilder=self._action_builder,
-            deckidx=1,
-            scroll_min=0
-        )
-        self._actions_layout = FloatLayout()
-        self._action_tab.add_widget(self._actions_layout)
-        self._actions_layout.add_widget(self._action_builder)
-        self._actions_layout.add_widget(self._scroll_left_action)
-        self._actions_layout.add_widget(self._scroll_right_action)
-        self._actions_layout.add_widget(
-            Label(
-                text='Used',
-                pos_hint={'center_x': 0.1, 'center_y': 0.98},
-                size_hint=(None, None)
+        for functyp in 'trigger', 'prereq', 'action':
+            tab = TabbedPanelItem(text=functyp.capitalize())
+            setattr(self, '_{}_tab'.format(functyp), tab)
+            self._tabs.add_widget(getattr(self, '_{}_tab'.format(functyp)))
+            builder = DeckBuilderView(**deck_builder_kwargs)
+            setattr(self, '_{}_builder'.format(functyp), builder)
+            builder.bind(decks=getattr(self, '_trigger_push_{}s'.format(functyp)))
+            scroll_left = DeckBuilderScrollBar(
+                size_hint_x=0.01,
+                pos_hint={'x': 0, 'y': 0},
+                deckbuilder=builder,
+                deckidx=0,
+                scroll_min=0
             )
-        )
-        self._actions_layout.add_widget(
-            Label(
-                text='Unused',
-                pos_hint={'center_x': 0.5, 'center_y': 0.98},
-                size_hint=(None, None)
+            setattr(self, '_scroll_left_' + functyp, scroll_left)
+            scroll_right = DeckBuilderScrollBar(
+                size_hint_x=0.01,
+                pos_hint={'right': 1, 'y': 0},
+                deckbuilder=builder,
+                deckidx=1,
+                scroll_min=0
             )
-        )
+            setattr(self, '_scroll_right_' + functyp, scroll_right)
+            layout = FloatLayout()
+            setattr(self, '_{}_layout'.format(functyp), layout)
+            tab.add_widget(layout)
+            layout.add_widget(builder)
+            layout.add_widget(scroll_left)
+            layout.add_widget(scroll_right)
+            layout.add_widget(
+                Label(
+                    text='Used',
+                    pos_hint={'center_x': 0.1, 'center_y': 0.98},
+                    size_hint=(None, None)
+                )
+            )
+            layout.add_widget(
+                Label(
+                    text='Unused',
+                    pos_hint={'center_x': 0.5, 'center_y': 0.98},
+                    size_hint=(None, None)
+                )
+            )
+            self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
 
-        self._trigger_tab = TabbedPanelItem(text='Triggers')
-        self._tabs.add_widget(self._trigger_tab)
-        self._trigger_builder = DeckBuilderView(**deck_builder_kwargs)
-        self._trigger_builder.bind(decks=self._trigger_push_triggers)
-        self._scroll_left_trigger = DeckBuilderScrollBar(
-            size_hint_x=0.01,
-            pos_hint={'x': 0, 'y': 0},
-            deckbuilder=self._trigger_builder,
-            deckidx=0
-        )
-        self._scroll_right_trigger = DeckBuilderScrollBar(
-            size_hint_x=0.01,
-            pos_hint={'right': 1, 'y': 0},
-            deckbuilder=self._trigger_builder,
-            deckidx=1
-        )
-        self._triggers_layout = FloatLayout()
-        self._trigger_tab.add_widget(self._triggers_layout)
-        self._triggers_layout.add_widget(self._trigger_builder)
-        self._triggers_layout.add_widget(self._scroll_left_trigger)
-        self._triggers_layout.add_widget(
-            Label(
-                text='Used',
-                pos_hint={'center_x': 0.1, 'center_y': 0.98},
-                size_hint=(None, None)
-            )
-        )
-        self._triggers_layout.add_widget(
-            Label(
-                text='Unused',
-                pos_hint={'center_x': 0.5, 'center_y': 0.98},
-                size_hint=(None, None)
-            )
-        )
-        self._triggers_layout.add_widget(self._scroll_right_trigger)
+    def redata(self, *args):
+        self._list.redata()
 
-        self._prereq_tab = TabbedPanelItem(text='Prereqs')
-        self._tabs.add_widget(self._prereq_tab)
-        self._prereq_builder = DeckBuilderView(**deck_builder_kwargs)
-        self._prereq_builder.bind(decks=self._trigger_push_prereqs)
-        self._scroll_left_prereq = DeckBuilderScrollBar(
-            size_hint_x=0.01,
-            pos_hint={'x': 0, 'y': 0},
-            deckbuilder=self._prereq_builder,
-            deckidx=0
-        )
-        self._scroll_right_prereq = DeckBuilderScrollBar(
-            size_hint_x=0.01,
-            pos_hint={'right': 1, 'y': 0},
-            deckbuilder=self._prereq_builder,
-            deckidx=1
-        )
-        self._prereqs_layout = FloatLayout()
-        self._prereq_tab.add_widget(self._prereqs_layout)
-        self._prereqs_layout.add_widget(self._prereq_builder)
-        self._prereqs_layout.add_widget(self._scroll_left_prereq)
-        self._prereqs_layout.add_widget(self._scroll_right_prereq)
-        self._prereqs_layout.add_widget(
-            Label(
-                text='Used',
-                pos_hint={'center_x': 0.1, 'center_y': 0.98},
-                size_hint=(None, None)
-            )
-        )
-        self._prereqs_layout.add_widget(
-            Label(
-                text='Unused',
-                pos_hint={'center_x': 0.5, 'center_y': 0.98},
-                size_hint=(None, None)
-            )
-        )
-        self.bind(rule=self._trigger_update_builders)
-
-    def pull_triggers(self, *args):
-        if not self.rule:
-            return
-        unused_triggers = [
+    def _pull_functions(self, what):
+        allfuncs = list(map(self._inspect_func, getattr(self.engine, what)._cache.items()))
+        rulefuncnames = getattr(self.rule, what+'s')
+        unused = [
             Card(
                 ud={
-                    'type': 'trigger',
+                    'type': what,
                     'funcname': name,
                     'signature': sig
                 },
                 headline_text=name,
                 show_art=False,
-                midline_text='Trigger',
+                midline_text=what.capitalize(),
                 text=source
             )
-            for (name, source, sig) in
-            map(self._inspect_func, self.engine.trigger.items())
+            for (name, source, sig) in allfuncs if name not in rulefuncnames
         ]
-        used_triggers = [
+        used = [
             Card(
                 ud={
-                    'type': 'trigger',
-                    'funcname': getname(trig),
+                    'type': what,
+                    'funcname': name,
                 },
-                headline_text=getname(trig),
+                headline_text=name,
                 show_art=False,
-                midline_text='Trigger',
-                text=self.engine.trigger.plain(getname(trig)),
+                midline_text=what.capitalize(),
+                text=str(getattr(getattr(self.engine, what), name))
             )
-            for trig in self.rule.triggers
+            for name in rulefuncnames
         ]
-        self._trigger_builder.decks = [used_triggers, unused_triggers]
+        return used, unused
+
+    def pull_triggers(self, *args):
+        self._trigger_builder.decks = self._pull_functions('trigger')
     _trigger_pull_triggers = trigger(pull_triggers)
+
+    def pull_prereqs(self, *args):
+        self._prereq_builder.decks = self._pull_functions('prereq')
+    _trigger_pull_prereqs = trigger(pull_prereqs)
+
+    def pull_actions(self, *args):
+        self._action_builder.decks = self._pull_functions('action')
+    _trigger_pull_actions = trigger(pull_actions)
 
     def _inspect_func(self, namesrc):
         (name, src) = namesrc
@@ -292,74 +258,6 @@ class RulesView(FloatLayout):
         assert name in lcls
         func = lcls[name]
         return name, src, signature(func)
-
-    def pull_prereqs(self, *args):
-        if not self.rule:
-            return
-        unused_prereqs = [
-            Card(
-                ud={
-                    'type': 'prereq',
-                    'funcname': name,
-                    'signature': sig
-                },
-                headline_text=name,
-                show_art=False,
-                midline_text='Prereq',
-                text=source
-            )
-            for (name, source, sig) in
-            map(self._inspect_func, self.engine.prereq.items())
-        ]
-        used_prereqs = [
-            Card(
-                ud={
-                    'type': 'prereq',
-                    'funcname': getname(prereq)
-                },
-                headline_text=getname(prereq),
-                show_art=False,
-                midline_text='Prereq',
-                text=self.engine.prereq.plain(getname(prereq))
-            )
-            for prereq in self.rule.prereqs
-        ]
-        self._prereq_builder.decks = [used_prereqs, unused_prereqs]
-    _trigger_pull_prereqs = trigger(pull_prereqs)
-
-    def pull_actions(self, *args):
-        if not self.rule:
-            return
-        unused_actions = [
-            Card(
-                ud={
-                    'type': 'action',
-                    'funcname': name,
-                    'signature': sig
-                },
-                headline_text=name,
-                show_art=False,
-                midline_text='Action',
-                text=source
-            )
-            for (name, source, sig) in
-            map(self._inspect_func, self.engine.action.items())
-        ]
-        used_actions = [
-            Card(
-                ud={
-                    'type': 'action',
-                    'funcname': getname(action)
-                },
-                headline_text=getname(action),
-                show_art=False,
-                midline_text='Action',
-                text=self.engine.action.plain(getname(action))
-            )
-            for action in self.rule.actions
-        ]
-        self._action_builder.decks = [used_actions, unused_actions]
-    _trigger_pull_actions = trigger(pull_actions)
 
     def update_builders(self, *args):
         for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
@@ -380,98 +278,61 @@ class RulesView(FloatLayout):
         self.pull_actions()
     _trigger_update_builders = trigger(update_builders)
 
-    def push_actions(self, *args):
-        actions = [
-            card.ud['funcname'] for card in
-            self._action_builder.decks[0]
-        ]
-        if self.rule.actions != actions:
-            self.rule.actions = actions
-    _trigger_push_actions = trigger(push_actions)
-
-    def upd_unused_actions(self, *args):
-        """Make sure to have exactly one copy of every valid action in the
+    def _upd_unused(self, what):
+        """Make sure to have exactly one copy of every valid function in the
         "unused" pile on the right.
 
         Doesn't read from the database.
 
         """
-        self._action_builder.unbind(decks=self._trigger_upd_unused_actions)
-        actions = OrderedDict()
+        builder = getattr(self, '_{}_builder'.format(what))
+        updtrig = getattr(self, '_trigger_upd_unused_{}s'.format(what))
+        builder.unbind(decks=updtrig)
+        funcs = OrderedDict()
         cards = list(self._action_builder.decks[1])
         cards.reverse()
         for card in cards:
-            actions[card.ud['funcname']] = card
+            funcs[card.ud['funcname']] = card
         for card in self._action_builder.decks[0]:
-            if card.ud['funcname'] not in actions:
-                actions[card.ud['funcname']] = card.copy()
-        unused = list(actions.values())
+            if card.ud['funcname'] not in funcs:
+                funcs[card.ud['funcname']] = card.copy()
+        unused = list(funcs.values())
         unused.reverse()
-        self._action_builder.decks[1] = unused
-        self._action_builder.bind(decks=self._trigger_upd_unused_actions)
+        builder.decks[1] = unused
+        builder.bind(decks=updtrig)
+
+    def upd_unused_actions(self, *args):
+        self._upd_unused('action')
     _trigger_upd_unused_actions = trigger(upd_unused_actions)
 
-    def push_prereqs(self, *args):
-        prereqs = [
-            card.ud['funcname'] for card in
-            self._prereq_builder.decks[0]
-        ]
-        if self.rule.prereqs != prereqs:
-            self.rule.prereqs = prereqs
-    _trigger_push_prereqs = trigger(push_prereqs)
+    def upd_unused_triggers(self, *args):
+        self._upd_unused('trigger')
+    _trigger_upd_unused_triggers = trigger(upd_unused_triggers)
 
     def upd_unused_prereqs(self, *args):
-        """Make sure to have exactly one copy of every valid prereq in the
-        "unused" pile on the right.
-
-        Doesn't read from the database.
-
-        """
-        self._prereq_builder.unbind(decks=self._trigger_upd_unused_prereqs)
-        prereqs = OrderedDict()
-        cards = list(self._prereq_builder.decks[1])
-        cards.reverse()
-        for card in cards:
-            prereqs[card.ud['funcname']] = card
-        for card in self._prereq_builder.decks[0]:
-            if card.ud['funcname'] not in prereqs:
-                prereqs[card.ud['funcname']] = card.copy()
-        unused = list(prereqs.values())
-        unused.reverse()
-        self._prereq_builder.decks[1] = unused
-        self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
+        self._upd_unused('prereq')
     _trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
 
-    def push_triggers(self, att, *args):
-        triggers = [
+    def _push_funcs(self, what):
+        funcs = [
             card.ud['funcname'] for card in
-            self._trigger_builder.decks[0]
+            getattr(self, '_{}_builder'.format(what)).decks[0]
         ]
-        if self.rule.triggers != triggers:
-            self.rule.triggers = triggers
+        funlist = getattr(self.rule, what+'s')
+        if funlist != funcs:
+            setattr(self.rule, what+'s', funcs)
+
+    def push_actions(self, *args):
+        self._push_funcs('action')
+    _trigger_push_actions = trigger(push_actions)
+
+    def push_prereqs(self, *args):
+        self._push_funcs('prereq')
+    _trigger_push_prereqs = trigger(push_prereqs)
+
+    def push_triggers(self, att, *args):
+        self._push_funcs('trigger')
     _trigger_push_triggers = trigger(push_triggers)
-
-    def upd_unused_triggers(self, *args):
-        """Make sure to have exactly one copy of every valid prereq in the
-        "unused" pile on the right.
-
-        Doesn't read from the database.
-
-        """
-        self._trigger_builder.unbind(decks=self._trigger_upd_unused_triggers)
-        triggers = OrderedDict()
-        cards = list(self._trigger_builder.decks[1])
-        cards.reverse()
-        for card in cards:
-            triggers[card.ud['funcname']] = card
-        for card in self._trigger_builder.decks[0]:
-            if card.ud['funcname'] not in triggers:
-                triggers[card.ud['funcname']] = card.copy()
-        unused = list(triggers.values())
-        unused.reverse()
-        self._trigger_builder.decks[1] = unused
-        self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
-    _trigger_upd_unused_triggers = trigger(upd_unused_triggers)
 
 
 class RulesScreen(Screen):
@@ -488,6 +349,7 @@ class RulesScreen(Screen):
         new_rule = self.engine.rule.new_empty(self.new_rule_name)
         assert(new_rule is not None)
         self.rulebook.append(new_rule)
+        self.rulesview.redata()
         self.ids.rulesview.rule = new_rule
         self.ids.rulename.text = ''
 

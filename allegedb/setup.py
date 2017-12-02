@@ -1,7 +1,7 @@
 from setuptools import setup
 setup(
     name = "allegedb",
-    version = "0.10.0",
+    version = "0.11.0",
     packages = ["allegedb"],
     install_requires = ['networkx>=1.9', 'blinker'],
     author = "Zachary Spector",

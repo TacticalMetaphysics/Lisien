@@ -25,6 +25,7 @@ from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+from allegedb.cache import HistoryError
 
 
 def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
@@ -34,6 +35,8 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
     normalized to within (0.0, 0.98).
 
     """
+    assert None in (minx, maxx) or minx != maxx
+    assert None in (miny, maxy) or miny != maxy
     import numpy as np
     xs = []
     ys = []
@@ -48,18 +51,18 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
         maxx = np.max(xs)
     try:
         xco = 0.98 / (maxx - minx)
-        xnorm = np.multiply(xs, xco)
+        xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
     except ZeroDivisionError:
-        xnorm = np.array(xs)
+        xnorm = np.array([0.5] * len(xs))
     if miny is None:
         miny = np.min(ys)
     if maxy is None:
         maxy = np.max(ys)
     try:
         yco = 0.98 / (maxy - miny)
-        ynorm = np.multiply(ys, yco)
+        ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
     except ZeroDivisionError:
-        ynorm = np.array(ys)
+        ynorm = np.array([0.5] * len(ys))
     o = {}
     for i in range(len(ks)):
         o[ks[i]] = (xnorm[i], ynorm[i])
@@ -101,7 +104,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class Board(Widget):
+class Board(ScatterLayout):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
 
@@ -245,8 +248,8 @@ class Board(Widget):
             # already a portal between the origin and this
             # destination, create one.
             destspot = next(self.spots_at(*touch.pos))
-            orig = self.origspot.remote
-            dest = destspot.remote
+            orig = self.origspot.proxy
+            dest = destspot.proxy
             if not(
                 orig.name in self.character.portal and
                 dest.name in self.character.portal[orig.name]
@@ -347,10 +350,6 @@ class Board(Widget):
             if wid != self.kvlayoutback:
                 self.bind(size=wid.setter('size'))
             self.add_widget(wid)
-        if hasattr(self.parent, 'effect_x'):
-            self.parent.effect_x.bind(velocity=self.track_vel)
-        if hasattr(self.parent, 'effect_y'):
-            self.parent.effect_y.bind(velocity=self.track_vel)
         self.trigger_update()
 
     def on_character(self, *args):
@@ -361,14 +360,6 @@ class Board(Widget):
             return
 
         self.engine = self.character.engine
-        if hasattr(self.parent, 'scroll_x'):
-            self.parent.scroll_x = self.character.stat.setdefault(
-                '_scroll_x', 0.0
-            )
-        if hasattr(self.parent, 'scroll_y'):
-            self.parent.scroll_y = self.character.stat.setdefault(
-                '_scroll_y', 0.0
-            )
         self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
         if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat['_control']:
             control = self.character.stat.setdefault('_control', {})
@@ -636,7 +627,7 @@ class Board(Widget):
             )
         for spot in spots_added:
             spot.finalize()
-        self.new_spots = spots_added
+        self.spots_unposd = spots_added
 
     def add_arrow(self, orign, destn, *args):
         if not (
@@ -767,34 +758,35 @@ class Board(Widget):
         self.add_new_pawns()
         self.spots_unposd = [
             spot for spot in self.spot.values()
-            if not ('_x' in spot.remote and '_y' in spot.remote)
+            if not ('_x' in spot.proxy and '_y' in spot.proxy)
         ]
 
-    def update_from_diff(self, chardiff, *args):
-        """Apply the changes described in the dict ``chardiff``."""
-        for (place, extant) in chardiff['places'].items():
+    def update_from_delta(self, delta, *args):
+        """Apply the changes described in the dict ``delta``."""
+        for (place, extant) in delta.get('places', {}).items():
             if extant and place not in self.spot:
                 self.add_spot(place)
                 spot = self.spot[place]
                 if '_x' not in spot.place or '_y' not in spot.place:
-                    self.new_spots.append(spot)
                     self.spots_unposd.append(spot)
             elif not extant and place in self.spot:
                 self.rm_spot(place)
-        for (thing, extant) in chardiff['things'].items():
+        for (thing, extant) in delta.get('things', {}).items():
             if extant and thing not in self.pawn:
                 self.add_pawn(thing)
             elif not extant and thing in self.pawn:
                 self.rm_pawn(thing)
-        for (node, stats) in chardiff['node_stat'].items():
+        for (node, stats) in delta.get('node_val', {}).items():
             if node in self.spot:
                 spot = self.spot[node]
-                if '_x' in stats:
-                    spot.x = stats['_x'] * self.width
-                if '_y' in stats:
-                    spot.y = stats['_y'] * self.height
+                x = stats.get('_x')
+                y = stats.get('_y')
+                if x is not None:
+                    spot.x = x * self.width
+                if y is not None:
+                    spot.y = y * self.height
                 if '_image_paths' in stats:
-                    spot.paths = stats['_image_paths']
+                    spot.paths = stats['_image_paths'] or spot.default_image_paths
             elif node in self.pawn:
                 pawn = self.pawn[node]
                 if 'location' in stats:
@@ -802,20 +794,21 @@ class Board(Widget):
                 if 'next_location' in stats:
                     pawn.next_loc_name = stats['next_location']
                 if '_image_paths' in stats:
-                    pawn.paths = stats['_image_paths']
+                    pawn.paths = stats['_image_paths'] or pawn.default_image_paths
             else:
-                raise ValueError(
-                    "Diff tried to change stats of "
-                    "nonexistent node {}".format(node)
+                Logger.warning(
+                    "Board: diff tried to change stats of node {} "
+                    "but I don't have a widget for it".format(node)
                 )
-        for ((orig, dest), extant) in chardiff['portals'].items():
-            if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
-                self.add_arrow(orig, dest)
-            elif not extant and orig in self.arrow and dest in self.arrow[orig]:
-                self.rm_arrow(orig, dest)
+        for (orig, dests) in delta.get('edges', {}).items():
+            for (dest, extant) in dests.items():
+                if extant and (orig not in self.arrow or dest not in self.arrow[orig]):
+                    self.add_arrow(orig, dest)
+                elif not extant and orig in self.arrow and dest in self.arrow[orig]:
+                    self.rm_arrow(orig, dest)
 
-    def trigger_update_from_diff(self, chardiff, *args):
-        part = partial(self.update_from_diff, chardiff)
+    def trigger_update_from_delta(self, delta, *args):
+        part = partial(self.update_from_delta, delta)
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)
 
@@ -823,26 +816,28 @@ class Board(Widget):
         # TODO: If only some spots are unpositioned, and they remain
         # that way for several frames, put them somewhere that the
         # user will be able to find.
-        if not (self.spots_unposd and self.new_spots) or len(self.spots_unposd) != len(self.new_spots):
+        if not self.spots_unposd:
             return
-        for spot in self.new_spots:
-            if spot not in self.spots_unposd:
-                self.new_spots = self.spots_unposd = []
-                return
-        # No spots have positions;
-        # do a layout.
         try:
-            bounds = detect_2d_grid_layout_bounds(spot.name for spot in self.new_spots)
-            Clock.schedule_once(partial(self.grid_layout, *bounds), 0)
+            minx, miny, maxx, maxy = detect_2d_grid_layout_bounds(spot.name for spot in self.spots_unposd)
+            assert minx != maxx
+            assert miny != maxy
+            self.grid_layout(minx, miny, maxx, maxy)
         except ValueError:
-            Clock.schedule_once(self.nx_layout, 0)
+            self.nx_layout()
 
-    def _apply_node_layout(self, l):
+    def _apply_node_layout(self, l, *args):
+        if self.width == 1 or self.height == 1:
+            Clock.schedule_once(partial(self._apply_node_layout, l), 0.01)
+            return
         node_upd = {}
-        for spot in self.new_spots:
+        for spot in self.spots_unposd:
             (x, y) = l[spot.name]
             assert 0 <= x <= 0.98
             assert 0 <= y <= 0.98
+            assert spot in self.spotlayout.children
+            assert self.spotlayout.width == self.width
+            assert self.spotlayout.height == self.height
             node_upd[spot.name] = {
                 '_x': x,
                 '_y': y
@@ -852,24 +847,24 @@ class Board(Widget):
                 int(y * self.height)
             )
         if node_upd:
-            self.engine.handle(
+            self.character.engine.handle(
                 'update_nodes',
                 char=self.character.name,
                 patch=node_upd,
                 silent=True
             )
-        self.new_spots = self.spots_unposd = []
+        self.spots_unposd = []
 
     def grid_layout(self, minx, miny, maxx, maxy, *args):
         l = normalize_layout(
-            {spot.name: spot.name for spot in self.new_spots},
+            {spot.name: spot.name for spot in self.spots_unposd},
             minx, miny, maxx, maxy
         )
         self._apply_node_layout(l)
 
     def nx_layout(self, *args):
-        for spot in self.new_spots:
-            if not (spot.name and spot.remote):
+        for spot in self.spots_unposd:
+            if not (spot.name and spot.proxy):
                 Clock.schedule_once(self.nx_layout, 0)
                 return
         spots_only = self.character.facade()
@@ -972,39 +967,13 @@ class Board(Widget):
         dummy.num += 1
 
 
-class ScatterBoard(Board, ScatterLayout):
-    tracking_vel = BooleanProperty()
-
-    def track_vel(self, *args):
-        """Track scrolling once it starts, so that we can tell when it
-        stops.
-
-        """
-        if not self.parent:
-            return
-        if (
-                not self.tracking_vel and (
-                    self.parent.effect_x.velocity > 0 or
-                    self.parent.effect_y.velocity > 0
-                )
-        ):
-            self.upd_pos_when_scrolling_stops()
-            self.tracking_vel = True
-
-    def upd_pos_when_scrolling_stops(self, *args):
-        """Wait for the scroll to stop, then store where it ended."""
-        if not self.parent:
-            return
-        if self.parent.effect_x.velocity \
-           == self.parent.effect_y.velocity == 0:
-            self.character.stat['_scroll_x'] = self.parent.scroll_x
-            self.character.stat['_scroll_y'] = self.parent.scroll_y
-            self.tracking_vel = False
-            return
-        Clock.schedule_once(self.upd_pos_when_scrolling_stops, 0.001)
-
-
 class BoardScrollView(ScrollView):
+    board = ObjectProperty()
+
+    def on_board(self, *args):
+        self.clear_widgets()
+        self.add_widget(self.board)
+
     def on_touch_down(self, touch):
         if self.children and touch.is_mouse_scrolling:
             return self.children[0].dispatch('on_touch_down', touch)
@@ -1023,7 +992,7 @@ Builder.load_string(
         size_hint: (None, None)
         size: self.texture.size if self.texture else (1, 1)
         pos: root.pos
-<ScatterBoard>:
+<Board>:
     size_hint: None, None
     do_rotation: False
     do_scroll: False

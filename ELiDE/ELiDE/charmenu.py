@@ -49,9 +49,9 @@ class CharMenu(BoxLayout):
         """Display or hide the view for constructing rules out of cards."""
         if self.app.manager.current != 'rules':
             try:
-                rb = self.app.selected_remote.rulebook
+                rb = self.app.selected_proxy.rulebook
             except AttributeError:
-                charn = self.app.selected_remote.name
+                charn = self.app.selected_proxy.name
                 rb = self.app.engine.character[charn].rulebook
             self.app.rules.rulebook = rb
         self.app.rules.toggle()

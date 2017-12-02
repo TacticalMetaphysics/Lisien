@@ -114,12 +114,12 @@ class JSONWrapper(MutableMapping):
             return r
 
     def __setitem__(self, k, v):
-        me = self._get()
+        me = dict(self._get())
         me[k] = v
         self._set(me)
 
     def __delitem__(self, k):
-        me = self._get()
+        me = dict(self._get())
         del me[k]
         self._set(me)
 
