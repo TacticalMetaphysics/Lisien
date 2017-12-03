@@ -346,7 +346,7 @@ class Board(Scatter):
             if hasattr(self.selection, 'hit'):
                 self.selection.hit = False
             self.selection = None
-        if not super().on_touch_up(touch):
+        if not super(Scatter, self).on_touch_up(touch):
             self.keep_selection = False
             touch.ungrab(self)
         touch.pop()
