@@ -16,8 +16,7 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.vector import Vector
 from kivy.graphics.transformation import Matrix
-from kivy.uix.widget import Widget
-from kivy.uix.scatter import Scatter
+from kivy.uix.scatterlayout import ScatterLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from .spot import Spot
@@ -25,7 +24,6 @@ from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
-from allegedb.cache import HistoryError
 
 
 def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
@@ -104,12 +102,11 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class Board(Scatter):
+class Board(ScatterLayout):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
 
     """
-    # TODO: Make this usable outside of ScatterBoard
     character = ObjectProperty()
     wallpaper_path = StringProperty()
     spot = DictProperty({})
@@ -346,7 +343,7 @@ class Board(Scatter):
             if hasattr(self.selection, 'hit'):
                 self.selection.hit = False
             self.selection = None
-        if not super(Scatter, self).on_touch_up(touch):
+        if not super(ScatterLayout, self).on_touch_up(touch):
             self.keep_selection = False
             touch.ungrab(self)
         touch.pop()
