@@ -17,7 +17,7 @@ from kivy.clock import Clock
 from kivy.vector import Vector
 from kivy.graphics.transformation import Matrix
 from kivy.uix.widget import Widget
-from kivy.uix.scatterlayout import ScatterLayout
+from kivy.uix.scatter import Scatter
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from .spot import Spot
@@ -104,7 +104,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class Board(ScatterLayout):
+class Board(Scatter):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
 
