@@ -147,10 +147,10 @@ class Board(ScatterLayout):
             'pos': (0, 0)
         }
 
-    def apply_scale(self, scale):
+    def apply_scale(self, scale, x, y):
         self.apply_transform(
             Matrix().scale(scale, scale, scale),
-            anchor=Vector(*self.to_local(*self.center))
+            anchor=Vector(x, y)
         )
 
     def on_touch_down(self, touch):
@@ -159,6 +159,8 @@ class Board(ScatterLayout):
             return
         if not self.collide_point(*touch.pos):
             return
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if touch.is_mouse_scrolling:
             scale = 1.05 if touch.button == 'scrollup' else 0.95
             new_scale = scale * self.scale
@@ -166,11 +168,10 @@ class Board(ScatterLayout):
                 scale = self.scale_min / self.scale
             elif new_scale > self.scale_max:
                 scale = self.scale_max / self.scale
-            self.apply_scale(scale)
+            self.apply_scale(scale, *touch.pos)
+            touch.pop()
             return True
 
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
         if self.selection:
             self.selection.hit = self.selection.collide_point(*touch.pos)
             if self.selection.hit:
