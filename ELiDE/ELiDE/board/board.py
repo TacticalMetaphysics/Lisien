@@ -15,7 +15,6 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.vector import Vector
 from kivy.graphics.transformation import Matrix
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
