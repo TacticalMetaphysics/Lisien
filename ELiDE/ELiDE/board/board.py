@@ -8,6 +8,7 @@ from kivy.properties import (
     DictProperty,
     ObjectProperty,
     NumericProperty,
+    BoundedNumericProperty,
     ListProperty,
     StringProperty
 )
@@ -16,8 +17,10 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.vector import Vector
 from kivy.graphics.transformation import Matrix
+from kivy.uix.image import Image
+from kivy.uix.widget import Widget
+from kivy.uix.scatter import Scatter
 from kivy.uix.scatterlayout import ScatterLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from .spot import Spot
 from .arrow import Arrow, ArrowWidget
@@ -84,16 +87,15 @@ def detect_2d_grid_layout_bounds(nodenames):
     return minx, miny, maxx, maxy
 
 
-class KvLayoutBack(FloatLayout):
+class KvLayoutBack(ScatterLayout):
     """What to show behind the graph.
 
     By default, shows a static image.
 
     """
-    wallpaper_path = StringProperty()
 
 
-class KvLayoutFront(FloatLayout):
+class KvLayoutFront(ScatterLayout):
     """What to show in front of the graph.
 
     By default, shows nothing.
@@ -102,28 +104,32 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class Board(ScatterLayout):
+class Board(Widget):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
 
     """
     character = ObjectProperty()
     wallpaper_path = StringProperty()
+    wallpaper_image = ObjectProperty()
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
     kvlayoutback = ObjectProperty()
+    wallpaper = ObjectProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
     pawnlayout = ObjectProperty()
     kvlayoutfront = ObjectProperty()
     wids = ReferenceListProperty(
+        wallpaper,
         kvlayoutback,
         arrowlayout,
         spotlayout,
         pawnlayout,
         kvlayoutfront
     )
+    scale = BoundedNumericProperty(1.0, min=0.2, max=4.0)
     spots_unposd = ListProperty([])
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
@@ -138,6 +144,11 @@ class Board(ScatterLayout):
     grabbed = ObjectProperty(None, allownone=True)
     app = ObjectProperty()
     screen = ObjectProperty()
+    transform = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.transform = Matrix()
 
     @property
     def widkwargs(self):
@@ -148,10 +159,13 @@ class Board(ScatterLayout):
         }
 
     def apply_scale(self, scale, x, y):
-        self.apply_transform(
-            Matrix().scale(scale, scale, scale),
-            anchor=Vector(x, y)
-        )
+        t = Matrix().translate(x, y, 0)
+        trans = Matrix().scale(scale, scale, scale)
+        t = t.multiply(trans)
+        t = t.multiply(Matrix().translate(-x, -y, 0))
+        self.transform = t.multiply(self.transform)
+        for wid in self.wids:
+            wid.transform = self.transform
 
     def on_touch_down(self, touch):
         """Check for collisions and select an appropriate entity."""
@@ -164,10 +178,12 @@ class Board(ScatterLayout):
         if touch.is_mouse_scrolling:
             scale = 1.05 if touch.button == 'scrollup' else 0.95
             new_scale = scale * self.scale
-            if new_scale < self.scale_min:
-                scale = self.scale_min / self.scale
-            elif new_scale > self.scale_max:
-                scale = self.scale_max / self.scale
+            if new_scale < 0.2:
+                scale = 0.2 / self.scale
+            elif new_scale > 4.0:
+                scale = 4.0 / self.scale
+            else:
+                scale = new_scale
             self.apply_scale(scale, *touch.pos)
             touch.pop()
             return True
@@ -344,38 +360,37 @@ class Board(ScatterLayout):
             if hasattr(self.selection, 'hit'):
                 self.selection.hit = False
             self.selection = None
-        if not super(ScatterLayout, self).on_touch_up(touch):
+        if not super().on_touch_up(touch):
             self.keep_selection = False
             touch.ungrab(self)
         touch.pop()
+
+    def _get_size(self, *args):
+        if self.wallpaper_image.texture is None:
+            Clock.schedule_once(self._get_size, 0.001)
+            return
+        self.size = self.wallpaper_image.size = self.wallpaper_image.texture.size
+        self.wallpaper.add_widget(self.wallpaper_image)
 
     def on_parent(self, *args):
         """Create some subwidgets and trigger the first update."""
         if not self.parent or hasattr(self, '_parented'):
             return
         self._parented = True
-        self.kvlayoutback = KvLayoutBack(
-            wallpaper_path=self.wallpaper_path,
-            pos=(0, 0)
-        )
-        self.bind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
-        self.size = self.kvlayoutback.size
-        self.kvlayoutback.bind(size=self.setter('size'))
-        self.arrowlayout = FloatLayout(**self.widkwargs)
-        self.spotlayout = FloatLayout(**self.widkwargs)
-        self.pawnlayout = FloatLayout(**self.widkwargs)
+        self.wallpaper = Scatter(do_rotation=False, do_translation=False, do_scale=True)
+        self.wallpaper_image = Image(source=self.wallpaper_path)
+        self.kvlayoutback = KvLayoutBack(pos=(0, 0))
+        self.arrowlayout = ScatterLayout(**self.widkwargs)
+        self.spotlayout = ScatterLayout(**self.widkwargs)
+        self.pawnlayout = ScatterLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
-            if wid != self.kvlayoutback:
-                self.bind(size=wid.setter('size'))
             self.add_widget(wid)
+        self._get_size()
         self.trigger_update()
 
     def on_character(self, *args):
         if self.character is None:
-            return
-        if self.parent is None:
-            Clock.schedule_once(self.on_character, 0)
             return
 
         self.engine = self.character.engine
@@ -852,11 +867,11 @@ class Board(ScatterLayout):
         node_upd = {}
         for spot in self.spots_unposd:
             (x, y) = l[spot.name]
-            assert 0 <= x <= 0.98
-            assert 0 <= y <= 0.98
-            assert spot in self.spotlayout.children
-            assert self.spotlayout.width == self.width
-            assert self.spotlayout.height == self.height
+            # assert 0 <= x <= 0.98
+            # assert 0 <= y <= 0.98
+            # assert spot in self.spotlayout.children
+            # assert self.spotlayout.width == self.width
+            # assert self.spotlayout.height == self.height
             node_upd[spot.name] = {
                 '_x': x,
                 '_y': y
@@ -1002,21 +1017,10 @@ Builder.load_string(
     """
 #: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
 #: import resource_find kivy.resources.resource_find
-<KvLayoutBack>:
-    size: wallpaper.size
-    size_hint: (None, None)
-    Image:
-        id: wallpaper
-        source: resource_find(root.wallpaper_path) or ''
-        size_hint: (None, None)
-        size: self.texture.size if self.texture else (1, 1)
-        pos: root.pos
 <Board>:
     size_hint: None, None
     do_rotation: False
     do_scroll: False
-    scale_max: 4.0
-    scale_min: 0.2
     app: app
 """
 )

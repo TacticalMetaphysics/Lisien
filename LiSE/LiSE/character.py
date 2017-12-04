@@ -68,6 +68,8 @@ class AbstractCharacter(object):
 
     """
     engine = getatt('db')
+    _node = getatt('node')
+    _adj = getatt('adj')
 
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
