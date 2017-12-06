@@ -456,17 +456,21 @@ Builder.load_string(
     statpanel: statpanel
     timepanel: timepanel
     dialoglayout: dialoglayout
-    BoardView:
-        id: boardview
+    StencilView:
+        id: boardstencil
         x: statpanel.right
         y: timepanel.top
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.height
-        screen: root
-        engine: app.engine
-        board: root.boards[app.character_name]
-        adding_portal: charmenu.portaladdbut.state == 'down'
+        BoardScatterPlane:
+            id: boardview
+            pos: boardstencil.pos
+            size: boardstencil.size
+            board: root.boards[app.character_name]
+            adding_portal: charmenu.portaladdbut.state == 'down'
+            scale_min: 0.2
+            scale_max: 4.0
     StatListPanel:
         id: statpanel
         engine: app.engine

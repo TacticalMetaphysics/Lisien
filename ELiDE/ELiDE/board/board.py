@@ -14,15 +14,15 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
+from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
+from kivy.uix.scatter import ScatterPlane
 from .spot import Spot
 from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
-from allegedb.cache import HistoryError
 
 
 def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
@@ -111,12 +111,14 @@ class Board(RelativeLayout):
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
+    wallpaper = ObjectProperty()
     kvlayoutback = ObjectProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
     pawnlayout = ObjectProperty()
     kvlayoutfront = ObjectProperty()
     wids = ReferenceListProperty(
+        wallpaper,
         kvlayoutback,
         arrowlayout,
         spotlayout,
@@ -302,26 +304,37 @@ class Board(RelativeLayout):
         touch.ungrab(self)
         return
 
+    def _pull_size(self, *args):
+        if self.wallpaper.texture is None:
+            Clock.schedule_once(self._pull_size, 0.001)
+            return
+        self.size = self.wallpaper.size = self.wallpaper.texture.size
+
+    def _pull_image(self, *args):
+        self.wallpaper.source = self.wallpaper_path
+        self._pull_size()
+
     def on_parent(self, *args):
         """Create some subwidgets and trigger the first update."""
         if not self.parent or hasattr(self, '_parented'):
             return
         self._parented = True
-        self.kvlayoutback = KvLayoutBack(
-            wallpaper_path=self.wallpaper_path,
-            pos=(0, 0)
-        )
-        self.bind(wallpaper_path=self.kvlayoutback.setter('wallpaper_path'))
-        self.size = self.kvlayoutback.size
-        self.kvlayoutback.bind(size=self.setter('size'))
+        self.wallpaper = Image(source=self.wallpaper_path)
+        self.bind(wallpaper_path=self._pull_image)
+        if self.wallpaper_path:
+            self._pull_size()
+        self.kvlayoutback = KvLayoutBack(**self.widkwargs)
         self.arrowlayout = FloatLayout(**self.widkwargs)
         self.spotlayout = FloatLayout(**self.widkwargs)
         self.pawnlayout = FloatLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
-            if wid != self.kvlayoutback:
-                self.bind(size=wid.setter('size'))
             self.add_widget(wid)
+            wid.pos = self.pos
+            wid.size = self.size
+            self.bind(pos=wid.setter('pos'))
+            if wid is not self.wallpaper:
+                self.bind(size=wid.setter('size'))
         self.trigger_update()
 
     def on_character(self, *args):
@@ -869,50 +882,13 @@ class Board(RelativeLayout):
                 yield arrow
 
 
-class BoardView(ScrollView):
-    """A ScrollView that contains the Board for the character being
-    viewed.
-
-    """
-    app = ObjectProperty()
-    screen = ObjectProperty()
-    engine = ObjectProperty()
-    board = ObjectProperty()
+class BoardScatterPlane(ScatterPlane):
     selection_candidates = ListProperty([])
     selection = ObjectProperty(allownone=True)
     keep_selection = BooleanProperty(False)
+    board = ObjectProperty()
     adding_portal = BooleanProperty(False)
     reciprocal_portal = BooleanProperty(False)
-
-    def on_touch_down(self, touch):
-        """See if the board can handle the touch. If not, scroll."""
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
-        if self.board and self.board.dispatch('on_touch_down', touch):
-            touch.pop()
-            return True
-        touch.pop()
-        return super().on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        """See if the board can handle the touch. If not, scroll."""
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
-        if self.board and self.board.dispatch('on_touch_move', touch):
-            touch.pop()
-            return True
-        touch.pop()
-        return super().on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        """See if the board can handle the touch. If not, scroll."""
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
-        if self.board and self.board.dispatch('on_touch_up', touch):
-            touch.pop()
-            return True
-        touch.pop()
-        return super().on_touch_up(touch)
 
     def spot_from_dummy(self, dummy):
         """Create a new :class:`board.Spot` instance, along with the
@@ -985,40 +961,28 @@ class BoardView(ScrollView):
         )
 
     def on_board(self, *args):
-        if not self.app:
-            Clock.schedule_once(self.on_board, 0)
-            return
-        for prop in (
-                'keep_selection', 'adding_portal', 'reciprocal_portal'
-        ):
-            if hasattr(self, '_oldboard'):
-                self.unbind(**{prop: self._oldboard.setter(prop)})
-            self.bind(**{prop: self.board.setter(prop)})
-            setattr(self.board, prop, getattr(self, prop))
-        self._oldboard = self.board
+        if hasattr(self, '_oldboard'):
+            self.unbind(
+                adding_portal=self._oldboard.setter('adding_portal'),
+                reciprocal_portal=self._oldboard.setter('reciprocal_portal')
+            )
         self.clear_widgets()
         self.add_widget(self.board)
+        self.bind(
+            adding_portal=self.board.setter('adding_portal'),
+            reciprocal_portal=self.board.setter('reciprocal_portal')
+        )
+        self._oldboard = self.board
+
+    def on_touch_down(self, touch):
+        if touch.is_mouse_scrolling:
+            scale = 0.05 if touch.button == 'scrolldown' else -0.05
+            self.scale += scale
+            return True
+        return super().on_touch_down(touch)
 
 
-Builder.load_string(
-    """
-#: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
-#: import resource_find kivy.resources.resource_find
-<KvLayoutBack>:
-    size: wallpaper.size
-    size_hint: (None, None)
-    Image:
-        id: wallpaper
-        source: resource_find(root.wallpaper_path) or ''
-        size_hint: (None, None)
-        size: self.texture.size if self.texture else (1, 1)
-        pos: root.pos
+Builder.load_string("""
 <Board>:
     size_hint: None, None
-<BoardView>:
-    effect_cls: StiffScrollEffect
-    app: app
-    selection_candidates: self.board.selection_candidates if self.board else []
-    selection: self.board.selection if self.board else None
-"""
-)
+""")
