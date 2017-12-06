@@ -978,18 +978,21 @@ class BoardScatterPlane(ScatterPlane):
         if touch.is_mouse_scrolling:
             scale = 0.05 if touch.button == 'scrolldown' else -0.05
             self.scale += scale
-            return True
+            return self.dispatch('on_transform_with_touch', touch)
         return super().on_touch_down(touch)
 
     def on_transform_with_touch(self, touch):
-        if self.x > self.parent.x:
+        x, y = self.pos
+        w = self.board.width * self.scale
+        h = self.board.height * self.scale
+        if x > self.parent.x:
             self.x = self.parent.x
-        if self.y > self.parent.y:
+        if y > self.parent.y:
             self.y = self.parent.y
-        if self.y + self.board.height < self.parent.top:
-            self.y = self.parent.top - self.board.height
-        if self.x + self.board.width < self.parent.right:
-            self.x = self.parent.right - self.board.width
+        if x + w < self.parent.right:
+            self.x = self.parent.right - w
+        if y + h < self.parent.top:
+            self.y = self.parent.top - h
 
 
 Builder.load_string("""
