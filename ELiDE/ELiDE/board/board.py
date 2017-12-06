@@ -981,6 +981,16 @@ class BoardScatterPlane(ScatterPlane):
             return True
         return super().on_touch_down(touch)
 
+    def on_transform_with_touch(self, touch):
+        if self.x > self.parent.x:
+            self.x = self.parent.x
+        if self.y > self.parent.y:
+            self.y = self.parent.y
+        if self.y + self.board.height < self.parent.top:
+            self.y = self.parent.top - self.board.height
+        if self.x + self.board.width < self.parent.right:
+            self.x = self.parent.right - self.board.width
+
 
 Builder.load_string("""
 <Board>:
