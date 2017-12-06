@@ -18,6 +18,7 @@ from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import ScatterPlane
+from kivy.graphics.transformation import Matrix
 from .spot import Spot
 from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
@@ -976,8 +977,11 @@ class BoardScatterPlane(ScatterPlane):
 
     def on_touch_down(self, touch):
         if touch.is_mouse_scrolling:
-            scale = 0.05 if touch.button == 'scrolldown' else -0.05
-            self.scale += scale
+            scale = self.scale + (0.05 if touch.button == 'scrolldown' else -0.05)
+            rescale = scale * 1.0 / self.scale
+            self.apply_transform(Matrix().scale(rescale, rescale, rescale),
+                                 post_multiply=True,
+                                 anchor=self.to_local(*touch.pos))
             return self.dispatch('on_transform_with_touch', touch)
         return super().on_touch_down(touch)
 
