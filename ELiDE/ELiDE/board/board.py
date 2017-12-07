@@ -978,6 +978,9 @@ class BoardScatterPlane(ScatterPlane):
     def on_touch_down(self, touch):
         if touch.is_mouse_scrolling:
             scale = self.scale + (0.05 if touch.button == 'scrolldown' else -0.05)
+            if (self.scale_min and scale < self.scale_min) \
+                    or (self.scale_max and scale > self.scale_max):
+                return
             rescale = scale * 1.0 / self.scale
             self.apply_transform(Matrix().scale(rescale, rescale, rescale),
                                  post_multiply=True,
