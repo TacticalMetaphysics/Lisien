@@ -18,6 +18,7 @@ from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import ScatterPlane
+from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
 from .spot import Spot
 from .arrow import Arrow, ArrowWidget
@@ -1010,7 +1011,34 @@ class BoardScatterPlane(ScatterPlane):
             self.y = self.parent.top - h
 
 
+class BoardView(StencilView):
+    board = ObjectProperty()
+    plane = ObjectProperty()
+    adding_portal = BooleanProperty()
+    reciprocal_portal = BooleanProperty()
+
+    def spot_from_dummy(self, dummy):
+        self.plane.spot_from_dummy(dummy)
+
+    def pawn_from_dummy(self, dummy):
+        self.plane.pawn_from_dummy(dummy)
+
+    def arrow_from_wid(self, wid):
+        self.plane.arrow_from_wid(wid)
+
+
 Builder.load_string("""
 <Board>:
     size_hint: None, None
+<BoardView>:
+    plane: boardplane
+    BoardScatterPlane:
+        id: boardplane
+        pos: root.pos
+        size: root.size
+        board: root.board
+        adding_portal: root.adding_portal
+        reciprocal_portal: root.reciprocal_portal
+        scale_min: 0.2
+        scale_max: 4.0
 """)
