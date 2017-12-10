@@ -812,6 +812,10 @@ class Cache(object):
         if settings_turns.has_exact_rev(turn):
             settings_turns[turn].truncate(tick)
         settings_turns.truncate(turn)
+        presettings_turns = self.presettings[branch]
+        if presettings_turns.has_exact_rev(turn):
+            presettings_turns[turn].truncate(tick)
+        presettings_turns.truncate(turn)
 
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
@@ -858,6 +862,7 @@ class Cache(object):
                             turn, branch
                         )
                     )
+        self.truncate_settings(branch, turn, tick)
         try:
             prev = self.retrieve(*args[:-1])
         except KeyError:
@@ -865,16 +870,7 @@ class Cache(object):
         if settings_turns.has_exact_rev(turn):
             assert presettings_turns.has_exact_rev(turn)
             setticks = settings_turns[turn]
-            if setticks.has_exact_rev(tick):
-                raise HistoryError(
-                    "Tried to set {} on top of {} at {}, {}, {}".format(
-                        parent + (entity, key, value),
-                        setticks[tick],
-                        branch, turn, tick
-                    )
-                )
             presetticks = presettings_turns[turn]
-            assert not presetticks.has_exact_rev(tick)
             presetticks[tick] = parent + (entity, key, prev)
             setticks[tick] = parent + (entity, key, value)
         else:
@@ -900,10 +896,6 @@ class Cache(object):
                     del settings_turn[tick]
                 for tic in mapp_turn.future():
                     del settings_turn[tic]
-            for trn, tics in branches.future().items():
-                settings_turn = settings_turns[trn]
-                for tic in tics:
-                    del settings_turn[tic]
             branches.truncate(turn)
             keys.truncate(turn)
             shallow.truncate(turn)
@@ -912,15 +904,6 @@ class Cache(object):
             assert shallow.has_exact_rev(turn)
             branchesturn = branches[turn]
             assert branchesturn is keys[turn] is shallow[turn]
-            settings_turn = settings_turns[turn]
-            presettings_turn = presettings_turns[turn]
-            if tick <= branchesturn.end:
-                if branchesturn.has_exact_rev(tick):
-                    del settings_turn[tick]
-                    del presettings_turn[tick]
-                for tic in branchesturn.future():
-                    del settings_turn[tic]
-                    del presettings_turn[tic]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:
