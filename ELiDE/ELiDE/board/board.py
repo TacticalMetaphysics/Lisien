@@ -1018,6 +1018,8 @@ class BoardView(StencilView):
     plane = ObjectProperty()
     adding_portal = BooleanProperty()
     reciprocal_portal = BooleanProperty()
+    scale_min = NumericProperty(allownone=True)
+    scale_max = NumericProperty(allownone=True)
 
     def on_pos(self, *args):
         if self.board and self.children:
@@ -1061,6 +1063,6 @@ Builder.load_string("""
         board: root.board
         adding_portal: root.adding_portal
         reciprocal_portal: root.reciprocal_portal
-        scale_min: 0.2
-        scale_max: 4.0
+        scale_min: root.scale_min
+        scale_max: root.scale_max
 """)

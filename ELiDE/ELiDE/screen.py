@@ -458,6 +458,8 @@ Builder.load_string(
     dialoglayout: dialoglayout
     BoardView:
         id: boardview
+        scale_min: 0.2
+        scale_max: 4.0
         x: statpanel.right
         y: timepanel.top
         size_hint: (None, None)
