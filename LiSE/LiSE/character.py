@@ -1086,6 +1086,8 @@ class FacadePortalMapping(FacadeEntityMapping):
 
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
+    _node = getatt('node')
+    _adj = getatt('adj')
 
     def __init__(self, character):
         """Store the character."""
