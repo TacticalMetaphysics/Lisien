@@ -1019,12 +1019,15 @@ class BoardView(StencilView):
 
     def spot_from_dummy(self, dummy):
         self.plane.spot_from_dummy(dummy)
+    spot_from_dummy.__doc__ = BoardScatterPlane.spot_from_dummy.__doc__
 
     def pawn_from_dummy(self, dummy):
         self.plane.pawn_from_dummy(dummy)
+    pawn_from_dummy.__doc__ = BoardScatterPlane.pawn_from_dummy.__doc__
 
     def arrow_from_wid(self, wid):
         self.plane.arrow_from_wid(wid)
+    arrow_from_wid.__doc__ = BoardScatterPlane.arrow_from_wid.__doc__
 
 
 Builder.load_string("""
