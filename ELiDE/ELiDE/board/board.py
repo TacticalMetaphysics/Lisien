@@ -332,9 +332,8 @@ class Board(RelativeLayout):
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
             self.add_widget(wid)
-            wid.pos = self.pos
+            wid.pos = 0, 0
             wid.size = self.size
-            self.bind(pos=wid.setter('pos'))
             if wid is not self.wallpaper:
                 self.bind(size=wid.setter('size'))
         self.trigger_update()
@@ -1012,10 +1011,32 @@ class BoardScatterPlane(ScatterPlane):
 
 
 class BoardView(StencilView):
+    """A view onto a ``Board`` that lets you scroll and zoom.
+
+    Put the ``Board`` object in my ``board`` property."""
     board = ObjectProperty()
     plane = ObjectProperty()
     adding_portal = BooleanProperty()
     reciprocal_portal = BooleanProperty()
+
+    def on_pos(self, *args):
+        if self.board and self.children:
+            self.children[0].pos = self.pos
+        else:
+            Clock.schedule_once(self.on_pos, 0.001)
+
+    def on_size(self, *args):
+        if self.board and self.children:
+            self.children[0].size = self.size
+        else:
+            Clock.schedule_once(self.on_size, 0.001)
+
+    def on_parent(self, *args):
+        if self.board and self.children:
+            self.children[0].pos = self.pos
+            self.children[0].size = self.size
+        else:
+            Clock.schedule_once(self.on_parent, 0.001)
 
     def spot_from_dummy(self, dummy):
         self.plane.spot_from_dummy(dummy)
@@ -1037,8 +1058,6 @@ Builder.load_string("""
     plane: boardplane
     BoardScatterPlane:
         id: boardplane
-        pos: root.pos
-        size: root.size
         board: root.board
         adding_portal: root.adding_portal
         reciprocal_portal: root.reciprocal_portal
