@@ -5,14 +5,19 @@ could use them independently if you wanted.
 
 """
 from functools import partial
-from kivy.properties import DictProperty, ListProperty, StringProperty, NumericProperty, VariableListProperty
+from importlib import import_module
+from kivy.properties import (
+    DictProperty, ListProperty, ObjectProperty, StringProperty, NumericProperty, VariableListProperty
+)
 from kivy.core.text import DEFAULT_FONT
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.logger import Logger
 
 
 class Box(Widget):
@@ -108,6 +113,120 @@ class Dialog(BoxLayout):
         kw.setdefault('background', 'atlas://data/images/defaulttheme/vkeyboard_background')
         for k, v in kw.items():
             setattr(self.ids.menu, k, v)
+
+
+class DialogLayout(FloatLayout):
+    """A layout that can generate dialogs"""
+    dialog = ObjectProperty(allownone=True)
+    engine = ObjectProperty()
+    todo = ListProperty()
+    idx = NumericProperty()
+    usermod = StringProperty('user')
+    userpkg = StringProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.dialog = Dialog()
+
+    def on_engine(self, *args):
+        self.todo = self.engine.universal.get('last_result', [])
+        self.idx = self.engine.universal.get('last_result_idx', 0)
+        self.engine.universal.connect(self._pull)
+        if self.todo:
+            self.advance_dialog()
+
+    def _pull(self, *args, key, value):
+        if key == 'last_result':
+            self.todo = value or []
+        elif key == 'last_result_idx':
+            self.idx = value
+
+    def on_idx(self, *args):
+        if self.engine.universal.get('last_result_idx') != self.idx:
+            self.engine.universal['last_result_idx'] = self.idx
+
+    def advance_dialog(self, *args):
+        self.clear_widgets()
+        if not self.todo:
+            return
+        self._update_dialog(self.todo.pop(0))
+
+    def _update_dialog(self, diargs, **kwargs):
+        if diargs is None:
+            Logger.debug("DialogLayout: null dialog")
+            return
+        dia = self.dialog
+        # Simple text dialogs just tell the player something and let them click OK
+        if isinstance(diargs, str):
+            dia.message_kwargs = {'text': diargs}
+            dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
+        # List dialogs are for when you need the player to make a choice and don't care much
+        # about presentation
+        elif isinstance(diargs, list):
+            dia.message_kwargs = {'text': 'Select from the following:'}
+            dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
+        # For real control of the dialog, you need a pair of dicts --
+        # the 0th describes the message shown to the player, the 1th
+        # describes the menu below
+        elif isinstance(diargs, tuple):
+            if len(diargs) != 2:
+                # TODO more informative error
+                raise TypeError('Need a tuple of length 2')
+            msgkwargs, mnukwargs = diargs
+            if isinstance(msgkwargs, dict):
+                dia.message_kwargs = msgkwargs
+            elif isinstance(msgkwargs, str):
+                dia.message_kwargs['text'] = msgkwargs
+            else:
+                raise TypeError("Message must be dict or str")
+            if isinstance(mnukwargs, dict):
+                mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
+                dia.menu_kwargs = mnukwargs
+            elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
+                dia.menu_kwargs['options'] = list(map(self._munge_menu_option, mnukwargs))
+            else:
+                raise TypeError("Menu must be dict or list")
+        else:
+            raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
+        self.add_widget(dia)
+
+    def ok(self, *args, cb=None):
+        """Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue"""
+        self.clear_widgets()
+        if cb:
+            cb()
+        self.advance_dialog()
+        self.idx += 1
+
+    def _trigger_ok(self, *args, cb=None):
+        part = partial(self.ok, cb=cb)
+        Clock.unschedule(part)
+        Clock.schedule_once(part)
+
+    def _lookup_func(self, funcname):
+        if not hasattr(self, '_usermod'):
+            self._usermod = import_module(self.usermod, self.userpkg)
+        return getattr(self.usermod, funcname)
+
+    def _munge_menu_option(self, option):
+        name, func = option
+        if func is None:
+            return name, self._trigger_ok
+        if callable(func):
+            return name, partial(self._trigger_ok, cb=func)
+        if isinstance(func, tuple):
+            fun = func[0]
+            if isinstance(fun, str):
+                fun = self._lookup_func(fun)
+            args = func[1]
+            if len(func) == 3:
+                kwargs = func[2]
+                func = partial(fun, *args, **kwargs)
+            else:
+                func = partial(fun, *args)
+        if isinstance(func, str):
+            func = self._lookup_func(func)
+        return name, partial(self._trigger_ok, cb=func)
 
 
 Builder.load_string("""

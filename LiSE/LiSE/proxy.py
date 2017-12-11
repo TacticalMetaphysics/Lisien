@@ -289,13 +289,13 @@ class ThingProxy(NodeProxy):
             if v is None:
                 if k in self._cache:
                     del self._cache[k]
-                    self.send(self, key=k, val=None)
+                    self.send(self, key=k, value=None)
             elif k in {'location', 'next_location'}:
                 setattr(self, '_'+k, v)
-                self.send(self, key=k, val=v)
+                self.send(self, key=k, value=v)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
-                self.send(self, key=k, val=v)
+                self.send(self, key=k, value=v)
 
     def _set_location(self, v):
         self._location = v
@@ -307,7 +307,7 @@ class ThingProxy(NodeProxy):
             silent=True,
             branching=True
         )
-        self.send(self, key='location', val=v)
+        self.send(self, key='location', value=v)
 
     def __setitem__(self, k, v):
         if k == 'location':
@@ -1621,8 +1621,9 @@ class EternalVarProxy(MutableMapping):
                 self._cache[k] = v
 
 
-class GlobalVarProxy(MutableMapping):
+class GlobalVarProxy(MutableMapping, Signal):
     def __init__(self, engine_proxy):
+        super().__init__()
         self.engine = engine_proxy
         self._cache = self.engine.handle('universal_delta')
 
@@ -1638,17 +1639,21 @@ class GlobalVarProxy(MutableMapping):
     def __setitem__(self, k, v):
         self._cache[k] = v
         self.engine.handle('set_universal', k=k, v=v, silent=True, branching=True)
+        self.send(self, key=k, value=v)
 
     def __delitem__(self, k):
         del self._cache[k]
         self.engine.handle('del_universal', k=k, silent=True, branching=True)
+        self.send(self, key=k, value=None)
 
     def _update_cache(self, data):
         for k, v in data.items():
             if v is None:
                 del self._cache[k]
+                self.send(self, key=k, value=None)
             else:
                 self._cache[k] = v
+                self.send(self, key=k, value=v)
 
 
 class AllRuleBooksProxy(Mapping):

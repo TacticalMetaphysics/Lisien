@@ -153,16 +153,8 @@ class MainScreen(Screen):
     dialoglayout = ObjectProperty()
     visible = BooleanProperty()
     _touch = ObjectProperty(None, allownone=True)
-    dialog_todo = ListProperty([])
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
-    usermod = StringProperty('user')
-    userpkg = StringProperty(None, allownone=True)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.dialog_todo:
-            self._advance_dialog()
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -253,11 +245,6 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self.dialog_todo, deltas = ret
-        self._update_from_delta(cmd, branch, turn, tick, deltas)
-        self._advance_dialog()
-
     def _update_from_time_travel(self, cmd, branch, turn, tick, received, **kwargs):
         self._update_from_delta(cmd, branch, turn, tick, received[-1])
 
@@ -275,91 +262,6 @@ class MainScreen(Screen):
         self.boardview.board.trigger_update_from_delta(chardelta)
         self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
-    def _advance_dialog(self, *args):
-        self.ids.dialoglayout.clear_widgets()
-        if not self.dialog_todo:
-            return
-        self._update_dialog(self.dialog_todo.pop(0))
-
-    def _update_dialog(self, diargs, **kwargs):
-        if diargs is None:
-            Logger.debug("Screen: null dialog")
-            return
-        if not hasattr(self, '_dia'):
-            self._dia = Dialog()
-        dia = self._dia
-        # Simple text dialogs just tell the player something and let them click OK
-        if isinstance(diargs, str):
-            dia.message_kwargs = {'text': diargs}
-            dia.menu_kwargs = {'options': [('OK', self._trigger_ok)]}
-        # List dialogs are for when you need the player to make a choice and don't care much
-        # about presentation
-        elif isinstance(diargs, list):
-            dia.message_kwargs = {'text': 'Select from the following:'}
-            dia.menu_kwargs = {'options': list(map(self._munge_menu_option, diargs))}
-        # For real control of the dialog, you need a pair of dicts --
-        # the 0th describes the message shown to the player, the 1th
-        # describes the menu below
-        elif isinstance(diargs, tuple):
-            if len(diargs) != 2:
-                # TODO more informative error
-                raise TypeError('Need a tuple of length 2')
-            msgkwargs, mnukwargs = diargs
-            if isinstance(msgkwargs, dict):
-                dia.message_kwargs = msgkwargs
-            elif isinstance(msgkwargs, str):
-                dia.message_kwargs['text'] = msgkwargs
-            else:
-                raise TypeError("Message must be dict or str")
-            if isinstance(mnukwargs, dict):
-                mnukwargs['options'] = list(map(self._munge_menu_option, mnukwargs['options']))
-                dia.menu_kwargs = mnukwargs
-            elif isinstance(mnukwargs, list) or isinstance(mnukwargs, tuple):
-                dia.menu_kwargs['options'] = list(map(self._munge_menu_option, mnukwargs))
-            else:
-                raise TypeError("Menu must be dict or list")
-        else:
-            raise TypeError("Don't know how to turn {} into a dialog".format(type(diargs)))
-        self.ids.dialoglayout.add_widget(dia)
-
-    def ok(self, *args, cb=None):
-        """Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue"""
-        self.ids.dialoglayout.clear_widgets()
-        if cb:
-            cb()
-        self._advance_dialog()
-        self.app.engine.universal['last_result_idx'] += 1
-
-    def _trigger_ok(self, *args, cb=None):
-        part = partial(self.ok, cb=cb)
-        Clock.unschedule(part)
-        Clock.schedule_once(part)
-
-    def _lookup_func(self, funcname):
-        if not hasattr(self, '_usermod'):
-            self._usermod = import_module(self.usermod, self.userpkg)
-        return getattr(self.usermod, funcname)
-
-    def _munge_menu_option(self, option):
-        name, func = option
-        if func is None:
-            return name, self._trigger_ok
-        if callable(func):
-            return name, partial(self._trigger_ok, cb=func)
-        if isinstance(func, tuple):
-            fun = func[0]
-            if isinstance(fun, str):
-                fun = self._lookup_func(fun)
-            args = func[1]
-            if len(func) == 3:
-                kwargs = func[2]
-                func = partial(fun, *args, **kwargs)
-            else:
-                func = partial(fun, *args)
-        if isinstance(func, str):
-            func = self._lookup_func(func)
-        return name, partial(self._trigger_ok, cb=func)
-
     def play(self, *args):
         """If the 'play' button is pressed, advance a turn.
 
@@ -370,15 +272,21 @@ class MainScreen(Screen):
             return
         self.next_turn()
 
+    def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
+        self.dialoglayout.dialog_todo, deltas = ret
+        self._update_from_delta(cmd, branch, turn, tick, deltas)
+        self.dialoglayout.advance_dialog()
+
     def next_turn(self, *args):
         """Advance time by one turn, if it's not blocked.
 
         Block time by setting ``engine.universal['block'] = True``"""
         eng = self.app.engine
+        dial = self.dialoglayout
         if eng.universal.get('block'):
             Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
             return
-        if self.dialog_todo or eng.universal.get('last_result_idx', 0) < len(eng.universal.get('last_result', [])):
+        if dial.todo or dial.idx < len(dial.todo):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
         eng.next_turn(
@@ -483,8 +391,9 @@ Builder.load_string(
         screen: root
         pos_hint: {'right': 1, 'top': 1}
         size_hint: (0.1, 0.9)
-    FloatLayout:
+    DialogLayout:
         id: dialoglayout
+        engine: app.engine
         size_hint: None, None
         x: statpanel.right
         y: timepanel.top
