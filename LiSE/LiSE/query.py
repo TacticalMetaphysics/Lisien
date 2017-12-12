@@ -678,7 +678,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             self.json_dump, (character, rulebook, rule)
         )
         return self.sql(
-            'handled_character_rule',
+            'character_rules_handled_insert',
             character,
             rulebook,
             rule,
