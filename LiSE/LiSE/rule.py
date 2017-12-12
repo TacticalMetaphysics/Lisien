@@ -370,10 +370,10 @@ class RuleBook(MutableSequence, Signal):
         self.engine.rulebook.send(self, i=i, v=v)
         self.send(self, i=i, v=v)
 
-    def index(self, v):
+    def index(self, v, start=0, stop=None):
         if isinstance(v, str):
             try:
-                return self._get_cache(*self.engine.btt()).index(v)
+                return self._get_cache(*self.engine.btt()).index(v, start, stop)
             except KeyError:
                 raise ValueError
         return super().index(v)
