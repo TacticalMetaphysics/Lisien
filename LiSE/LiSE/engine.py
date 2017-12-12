@@ -59,7 +59,6 @@ class NextTurn(Signal):
         engine = self.engine
         start_branch, start_turn, start_tick = engine.btt()
         with engine.advancing:
-            done = False
             for res in iter(engine.advance, final_rule):
                 if res:
                     branch, turn, tick = engine.btt()
@@ -72,17 +71,14 @@ class NextTurn(Signal):
                         turn=turn,
                         tick=tick
                     )
-                    break
-            else:
-                done = True
-        if not done:
-            return [], engine.get_delta(
-                branch=start_branch,
-                turn_from=start_turn,
-                turn_to=engine.turn,
-                tick_from=start_tick,
-                tick_to=engine.tick
-            )
+                    return res, engine.get_delta(
+                        branch=start_branch,
+                        turn_from=start_turn,
+                        turn_to=engine.turn,
+                        tick_from=start_tick,
+                        tick_to=engine.tick
+                    )
+
         branch, turn = engine.time
         turn += 1
         # As a side effect, the following assignment sets the tick to
