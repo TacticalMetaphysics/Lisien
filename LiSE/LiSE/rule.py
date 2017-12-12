@@ -341,8 +341,14 @@ class RuleBook(MutableSequence, Signal):
     def __setitem__(self, i, v):
         v = getattr(v, 'name', v)
         branch, turn, tick = self.engine.nbtt()
-        cache = self._get_cache(branch, turn, tick)
-        cache[i] = v
+        try:
+            cache = self._get_cache(branch, turn, tick)
+            cache[i] = v
+        except KeyError:
+            if i != 0:
+                raise IndexError
+            cache = [v]
+            self._set_cache(branch, turn, tick, cache)
         self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         self.engine.rulebook.send(self, i=i, v=v)
@@ -351,8 +357,14 @@ class RuleBook(MutableSequence, Signal):
     def insert(self, i, v):
         v = getattr(v, 'name', v)
         branch, turn, tick = self.engine.nbtt()
-        cache = self._get_cache(branch, turn, tick)
-        cache.insert(i, v)
+        try:
+            cache = self._get_cache(branch, turn, tick)
+            cache.insert(i, v)
+        except KeyError:
+            if i != 0:
+                raise IndexError
+            cache = [v]
+            self._set_cache(branch, turn, tick, cache)
         self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         self.engine.rulebook.send(self, i=i, v=v)
@@ -360,12 +372,18 @@ class RuleBook(MutableSequence, Signal):
 
     def index(self, v):
         if isinstance(v, str):
-            return self._get_cache(*self.engine.btt()).index(v)
+            try:
+                return self._get_cache(*self.engine.btt()).index(v)
+            except KeyError:
+                raise ValueError
         return super().index(v)
 
     def __delitem__(self, i):
         branch, turn, tick = self.engine.btt()
-        cache = self._get_cache(branch, turn, tick)
+        try:
+            cache = self._get_cache(branch, turn, tick)
+        except KeyError:
+            raise IndexError
         del cache[i]
         self.engine.query.set_rulebook(self.name, branch, tick, cache)
         self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
