@@ -209,6 +209,8 @@ class DialogLayout(FloatLayout):
         return getattr(self.usermod, funcname)
 
     def _munge_menu_option(self, option):
+        if not isinstance(option, tuple):
+            raise TypeError
         name, func = option
         if func is None:
             return name, self._trigger_ok
