@@ -273,7 +273,7 @@ class MainScreen(Screen):
         self.next_turn()
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self.dialoglayout.dialog_todo, deltas = ret
+        self.dialoglayout.todo, deltas = ret
         self._update_from_delta(cmd, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
 
