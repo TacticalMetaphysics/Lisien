@@ -127,7 +127,7 @@ class DialogLayout(FloatLayout):
     * Lists of pairs of strings and callables, which generate buttons with the string
     on them that, when clicked, call the callable
     * Lists of pairs of dictionaries, which are interpreted as keyword arguments
-    to :class:`Dialog` and :class:`DialogMenu:
+    to :class:`MessageBox` and :class:`DialogMenu:
 
     In place of a callable you can use the name of a function in my ``usermod``,
     a Python module given by name. I'll import it when I need it.
