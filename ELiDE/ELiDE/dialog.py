@@ -1,8 +1,5 @@
 """Generic dialog boxes and menus, for in front of a Board
 
-Mostly these will be added as children of KvLayoutFront but you
-could use them independently if you wanted.
-
 """
 from functools import partial
 from importlib import import_module
