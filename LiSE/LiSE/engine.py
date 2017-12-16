@@ -169,6 +169,7 @@ class AbstractEngine(object):
                 [self.listify(k), self.listify(v)]
                 for (k, v) in obj.items()
             ]
+
         return {
             list: listify_list,
             JSONListReWrapper: listify_list,
@@ -176,7 +177,13 @@ class AbstractEngine(object):
             dict: listify_dict,
             JSONReWrapper: listify_dict,
             self.char_cls: lambda obj: ["character", obj.name],
-            self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name if obj.next_location else None), obj['arrival_time'], obj['next_arrival_time']],
+            self.thing_cls: lambda obj: [
+                "thing",
+                obj.character.name, obj.name,
+                self.listify(obj.location.name),
+                self.listify(obj.next_location.name if obj.next_location else None),
+                obj['arrival_time'], obj['next_arrival_time']
+            ],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
                 "portal", obj.character.name, obj.orig, obj.dest],
@@ -189,6 +196,7 @@ class AbstractEngine(object):
             return self._node_objs[(
                 self.delistify(obj[1]), self.delistify(obj[2])
             )]
+
         return {
             'list': lambda obj: [self.delistify(v) for v in obj[1:]],
             'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
