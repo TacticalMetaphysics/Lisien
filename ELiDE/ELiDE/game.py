@@ -21,11 +21,11 @@ class GameScreen(Screen):
 class Screens(Widget):
     app = ObjectProperty()
 
-    def add_widget(self, wid, index=0):
+    def add_widget(self, wid, index=0, canvas=None):
         wid.engine = self.app.engine
         wid.switch_screen = self.app.screen_manager.setter('screen')
         wid.shutdown = self.app.stop
-        super().add_widget(wid, index)
+        super().add_widget(wid, index, canvas)
 
 
 class GameApp(App):
