@@ -32,7 +32,6 @@ class GameApp(App):
     modules = []
     engine = ObjectProperty()
     world_file = None
-    code_file = None
 
     def _get_worlddb(self):
         filen = self.world_file or \
@@ -44,34 +43,19 @@ class GameApp(App):
         lambda self, v: None
     )
 
-    def _get_codedb(self):
-        filen = self.code_file or self.name + 'Code.db' \
-                if self.name else 'LiSECode.db'
-        return resource_find(filen) or filen
-    codedb = AliasProperty(
-        _get_codedb,
-        lambda self, v: None
-    )
-    screens = ObjectProperty()
-
     def build(self):
-        have_world = have_code = False
+        have_world = False
         try:
             os.stat(self.worlddb)
             have_world = True
         except FileNotFoundError:
             pass
-        try:
-            os.stat(self.codedb)
-            have_code = True
-        except FileNotFoundError:
-            pass
         self.procman = LiSE.proxy.EngineProcessManager()
         self.engine = self.procman.start(
-            self.worlddb, self.codedb,
+            self.worlddb,
             logger=Logger, loglevel='debug',
             do_game_start=not have_world,
-            install_modules=self.modules if not have_code else []
+            install_modules=self.modules
         )
         self.screen_manager = ScreenManager()
         self.screens = Screens(app=self)
