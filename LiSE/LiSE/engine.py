@@ -176,7 +176,7 @@ class AbstractEngine(object):
             dict: listify_dict,
             JSONReWrapper: listify_dict,
             self.char_cls: lambda obj: ["character", obj.name],
-            self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name), obj['arrival_time'], obj['next_arrival_time']],
+            self.thing_cls: lambda obj: ["thing", obj.character.name, obj.name, self.listify(obj.location.name), self.listify(obj.next_location.name if obj.next_location else None), obj['arrival_time'], obj['next_arrival_time']],
             self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
             self.portal_cls: lambda obj: [
                 "portal", obj.character.name, obj.orig, obj.dest],
