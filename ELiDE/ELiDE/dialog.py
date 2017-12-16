@@ -136,7 +136,7 @@ class DialogLayout(FloatLayout):
     :class:`EngineProxy`.
 
     """
-    dialog = ObjectProperty(allownone=True)
+    dialog = ObjectProperty()
     engine = ObjectProperty()
     todo = ListProperty()
     idx = NumericProperty()
