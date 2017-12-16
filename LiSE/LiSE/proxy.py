@@ -1993,9 +1993,9 @@ class EngineProxy(AbstractEngine):
         elif obj[0] == 'thing':
             charname, nodename, loc, nxtloc, arrt, nxtarrt = map(self.delistify, obj[1:])
             try:
-                return self._character_things_cache[charname][nodename]
+                return self._things_cache[charname][nodename]
             except KeyError:
-                return self._character_things_cache.setdefault(charname, {}).setdefault(
+                return self._things_cache.setdefault(charname, {}).setdefault(
                     nodename, ThingProxy(self, charname, nodename, loc, nxtloc, arrt, nxtarrt)
                 )
         elif obj[0] == 'portal':
