@@ -543,10 +543,13 @@ class PickyDefaultDict(dict):
     def __getitem__(self, k):
         if k in self:
             return super(PickyDefaultDict, self).__getitem__(k)
-        ret = self[k] = self.type(
-            *self.args_munger(self, k),
-            **self.kwargs_munger(self, k)
-        )
+        try:
+            ret = self[k] = self.type(
+                *self.args_munger(self, k),
+                **self.kwargs_munger(self, k)
+            )
+        except TypeError:
+            raise KeyError
         return ret
 
     def __setitem__(self, k, v):
