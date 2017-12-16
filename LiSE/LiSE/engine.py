@@ -213,8 +213,11 @@ class AbstractEngine(object):
         }
 
     def __getattr__(self, att):
-        if hasattr(super(), 'method') and hasattr(self.method, att):
-            return partial(getattr(self.method, att), self)
+        if att == 'method':
+            return super().method
+        method_store = self.method
+        if hasattr(method_store, att):
+            return partial(getattr(method_store, att), self)
         raise AttributeError('No attribute or stored method: {}'.format(att))
 
     def _listify_function(self, obj):
