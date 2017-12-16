@@ -2,7 +2,9 @@ import os
 from kivy.logger import Logger
 from kivy.properties import (
     AliasProperty,
-    ObjectProperty
+    ObjectProperty,
+    NumericProperty,
+    StringProperty
 )
 from kivy.resources import resource_find
 from kivy.app import App
@@ -32,6 +34,17 @@ class GameApp(App):
     modules = []
     engine = ObjectProperty()
     world_file = None
+    branch = StringProperty('trunk')
+    turn = NumericProperty(0)
+    tick = NumericProperty(0)
+
+    def on_engine(self, *args):
+        self.branch, self.turn, self.tick = self.engine.btt()
+        self.engine.time.connect(self._pull_time, weak=False)
+
+    @trigger
+    def _pull_time(self, *args):
+        self.branch, self.turn, self.tick = self.engine.btt()
 
     def _get_worlddb(self):
         filen = self.world_file or \
