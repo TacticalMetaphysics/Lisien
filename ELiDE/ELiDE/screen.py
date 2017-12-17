@@ -289,9 +289,7 @@ class MainScreen(Screen):
         if dial.todo or dial.idx < len(dial.todo):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
-        eng.next_turn(
-            cb=self._update_from_next_turn
-        )
+        eng.next_turn(cb=self._update_from_next_turn)
 
 
 Builder.load_string(

@@ -170,6 +170,7 @@ class EngineHandle(object):
                     updd(edgevd.setdefault(orig, {}).setdefault(dest, {}), val)
 
     def next_turn(self):
+        self.debug('calling next_turn at {}, {}, {}'.format(*self._real.btt()))
         ret, delta = self._real.next_turn()
         self.branch, self.turn, self.tick = self._real.btt()
         self._after_ret = partial(self._upd_local_caches, delta)

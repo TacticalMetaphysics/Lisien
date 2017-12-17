@@ -718,7 +718,7 @@ class Board(RelativeLayout):
                 'update_nodes',
                 char=self.character.name,
                 patch=nodes_patch,
-                silent=True
+                block=False
             )
         for pwn in pawns_added:
             pwn.finalize()
@@ -837,7 +837,7 @@ class Board(RelativeLayout):
                 'update_nodes',
                 char=self.character.name,
                 patch=node_upd,
-                silent=True
+                block=False
             )
         self.spots_unposd = []
 
