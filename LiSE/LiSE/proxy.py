@@ -2219,7 +2219,7 @@ class EngineProxy(AbstractEngine):
 
     # TODO: make this into a Signal, like it is in the LiSE core
     def next_turn(self, cb=None, silent=False):
-        if not callable(cb):
+        if cb and not callable(cb):
             raise TypeError("Uncallable callback")
         if silent:
             self.handle(command='next_turn', silent=True, cb=cb)
