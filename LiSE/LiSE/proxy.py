@@ -2223,15 +2223,15 @@ class EngineProxy(AbstractEngine):
             raise TypeError("Uncallable callback")
         if silent:
             self.handle(command='next_turn', silent=True, cb=cb)
-        elif cb:
+        else:
             self.send(self.json_dump({
                 'silent': False,
                 'command': 'next_turn'
             }))
-            return self._call_with_recv(partial(self._upd_caches, no_del=True), self._set_time, cb)
-        else:
-            cmd, ret = self.handle(command='next_turn')
-            return ret
+            cbs = [partial(self._upd_caches, no_del=True), self._set_time]
+            if cb:
+                cbs.append(cb)
+            return self._call_with_recv(*cbs)
 
     def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         """Move to a different point in the timestream.
