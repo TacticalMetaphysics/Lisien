@@ -42,9 +42,8 @@ class GameApp(App):
         self.branch, self.turn, self.tick = self.engine.btt()
         self.engine.time.connect(self._pull_time, weak=False)
 
-    @trigger
-    def _pull_time(self, *args):
-        self.branch, self.turn, self.tick = self.engine.btt()
+    def _pull_time(self, *args, branch, turn, tick):
+        self.branch, self.turn, self.tick = branch, turn, tick
 
     def _get_worlddb(self):
         filen = self.world_file or \
