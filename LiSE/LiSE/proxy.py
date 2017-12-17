@@ -2228,14 +2228,7 @@ class EngineProxy(AbstractEngine):
                 'silent': False,
                 'command': 'next_turn'
             }))
-            args = [partial(self._upd_caches, no_del=True), self._set_time, cb]
-            if silent:
-                Thread(
-                    target=self._call_with_recv,
-                    args=args
-                ).start()
-            else:
-                return self._call_with_recv(*args)
+            return self._call_with_recv(partial(self._upd_caches, no_del=True), self._set_time, cb)
         else:
             cmd, ret = self.handle(command='next_turn')
             return ret
