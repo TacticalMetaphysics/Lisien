@@ -2237,8 +2237,7 @@ class EngineProxy(AbstractEngine):
             else:
                 return self._call_with_recv(*args)
         else:
-            ret = self.handle(command='next_turn')
-            self.time.send(self, branch=ret['branch'], turn=ret['turn'], tick=ret['tick'])
+            cmd, ret = self.handle(command='next_turn')
             return ret
 
     def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
