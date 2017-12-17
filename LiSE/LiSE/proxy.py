@@ -2234,18 +2234,34 @@ class EngineProxy(AbstractEngine):
             return ret
 
     def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
+        """Move to a different point in the timestream.
+
+        Needs ``branch`` and ``turn`` arguments. The ``tick`` is optional; if unspecified,
+        you'll travel to the last tick in the turn.
+
+        May take a callback function ``cb``, which will receive a dictionary describing
+        changes to the characters in ``chars``. ``chars`` defaults to 'all', indicating
+        that every character should be included, but may be a list of character names
+        to include.
+
+        With ``block=True`` (the default), wait until finished computing differences
+        before returning. Otherwise my ``branch``, ``turn``, and ``tick`` will stay
+        where they are until that's done.
+
+        """
         if cb and not chars:
-            raise TypeError("Callbacks require char name")
+            raise TypeError("Callbacks require chars")
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
-        if chars:
+        if chars and cb:
             args = [self._set_time, self._upd_caches]
             if cb:
                 args.append(cb)
             self._time_travel_thread = Thread(
                 target=self._call_with_recv,
                 args=args,
-                kwargs={'no_del': True}
+                kwargs={'no_del': True},
+                daemon=True
             )
             self._time_travel_thread.start()
             self.send(self.json_dump({
@@ -2265,8 +2281,9 @@ class EngineProxy(AbstractEngine):
                 turn=turn,
                 tick=tick,
                 chars=[],
-                silent=True
+                silent=not block
             )
+            self._branch, self._turn, self._tick = branch, turn, tick
 
     def add_character(self, char, data={}, **attr):
         if char in self._char_cache:
