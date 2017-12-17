@@ -65,7 +65,7 @@ class GameApp(App):
         self.procman = LiSE.proxy.EngineProcessManager()
         self.engine = self.procman.start(
             self.worlddb,
-            logger=Logger, loglevel='debug',
+            logger=Logger, loglevel=getattr(self, 'loglevel', 'debug'),
             do_game_start=not have_world,
             install_modules=self.modules
         )
