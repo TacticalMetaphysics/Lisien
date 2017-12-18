@@ -87,6 +87,8 @@ class AbstractCharacter(object):
     def node(self):
         return self.ThingPlaceMapping(self)
 
+    _node = getatt('node')
+
     @reify
     def portal(self):
         return self.PortalSuccessorsMapping(self)
@@ -103,8 +105,8 @@ class AbstractCharacter(object):
     def stat(self):
         return self.StatMapping(self)
 
-    pred = getatt('preportal')
-    adj = succ = edge = getatt('portal')
+    pred = _pred = getatt('preportal')
+    adj = succ = edge = _adj = _succ = getatt('portal')
 
     def historical(self, stat):
         return StatusAlias(
@@ -1086,8 +1088,6 @@ class FacadePortalMapping(FacadeEntityMapping):
 
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
-    _node = getatt('node')
-    _adj = getatt('adj')
 
     def __init__(self, character):
         """Store the character."""
