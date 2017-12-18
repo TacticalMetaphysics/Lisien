@@ -832,6 +832,7 @@ class FacadePlace(MutableMapping, Signal):
         Otherwise use a plain dict for the underlying 'place'.
 
         """
+        self.facade = facade
         self._patch = kwargs
         self._masked = set()
         super().__init__()
