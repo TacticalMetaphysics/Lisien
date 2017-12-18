@@ -85,24 +85,20 @@ class Pawn(PawnSpot):
             location.add_widget(self)
     _trigger_relocate = trigger(relocate)
 
-    def on_proxy(self, *args):
-        super().on_proxy(*args)
-        if not self.proxy or not self.proxy.exists:
-            return
-        self.loc_name = self.proxy['location']
-        self.next_loc_name = self.proxy.get('next_location', None)
-
-    def finalize(self):
-        super().finalize()
+    def finalize(self, initial=True):
+        if initial:
+            self.loc_name = self.proxy['location']
+            self.next_loc_name = self.proxy.get('next_location', None)
         self.bind(
             loc_name=self._trigger_push_location
         )
+        super().finalize(initial)
 
     def unfinalize(self):
-        super().unfinalize()
         self.unbind(
             loc_name=self._trigger_push_location
         )
+        super().unfinalize()
 
     def pull_from_proxy(self, *args):
         super().pull_from_proxy(*args)

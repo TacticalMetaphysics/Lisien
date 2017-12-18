@@ -583,17 +583,18 @@ class Board(RelativeLayout):
                 self.character.name
             )
         )
+        places2add = []
         spots_added = []
         nodes_patch = {}
         for place_name in self.character.place:
             if place_name not in self.spot:
                 place = self.character.place[place_name]
-                spot = self.make_spot(place)
+                places2add.append(place)
                 patch = {}
                 if '_image_paths' in place:
                     zeroes = [0] * len(place['_image_paths'])
                 else:
-                    patch['_image_paths'] = spot.default_image_paths
+                    patch['_image_paths'] = Spot.default_image_paths
                     zeroes = [0]
                 if '_offxs' not in place:
                     patch['_offxs'] = zeroes
@@ -603,14 +604,12 @@ class Board(RelativeLayout):
                     patch['_stackhs'] = zeroes
                 if patch:
                     nodes_patch[place_name] = patch
-                self.spotlayout.add_widget(spot)
-                spots_added.append(spot)
         if nodes_patch:
-            self.engine.handle(
-                'update_nodes',
-                char=self.character.name,
-                patch=nodes_patch,
-            )
+            self.character.node.patch(nodes_patch)
+        for place in places2add:
+            spot = self.make_spot(place)
+            self.spotlayout.add_widget(spot)
+            spots_added.append(spot)
         for spot in spots_added:
             spot.finalize()
         self.spots_unposd = spots_added
@@ -684,11 +683,11 @@ class Board(RelativeLayout):
             )
         )
         nodes_patch = {}
+        things2add = []
         pawns_added = []
         for (thing_name, thing) in self.character.thing.items():
             if thing_name not in self.pawn:
-                pwn = self.make_pawn(thing)
-                pawns_added.append(pwn)
+                things2add.append(thing)
                 patch = {}
                 if '_image_paths' in thing:
                     zeroes = [0] * len(thing['_image_paths'])
@@ -703,23 +702,20 @@ class Board(RelativeLayout):
                     patch['_stackhs'] = zeroes
                 if patch:
                     nodes_patch[thing_name] = patch
-                try:
-                    whereat = self.arrow[
-                        pwn.thing['location']
-                    ][
-                        pwn.thing['next_location']
-                    ]
-                except KeyError:
-                    whereat = self.spot[pwn.thing['location']]
-                whereat.add_widget(pwn)
-                self.pawn[thing_name] = pwn
         if nodes_patch:
-            self.engine.handle(
-                'update_nodes',
-                char=self.character.name,
-                patch=nodes_patch,
-                block=False
-            )
+            self.character.node.patch(nodes_patch)
+        for thing in things2add:
+            pwn = self.make_pawn(thing)
+            pawns_added.append(pwn)
+            try:
+                whereat = self.arrow[
+                    thing['location']
+                ][
+                    thing['next_location']
+                ]
+            except KeyError:
+                whereat = self.spot[thing['location']]
+            whereat.add_widget(pwn)
         for pwn in pawns_added:
             pwn.finalize()
 

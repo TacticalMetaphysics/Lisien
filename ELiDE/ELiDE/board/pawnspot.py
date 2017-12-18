@@ -26,36 +26,40 @@ class PawnSpot(ImageStack):
     board = ObjectProperty()
     proxy = ObjectProperty()
     engine = ObjectProperty()
+    _finalized = BooleanProperty()
     selected = BooleanProperty(False)
     hit = BooleanProperty(False)
     linecolor = ListProperty()
     name = ObjectProperty()
     use_boardspace = True
 
-    def on_proxy(self, *args):
+    def finalize(self, initial=True):
+        """Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
+        if not self._finalized:
+            return
         if (
                 self.proxy is None or
                 not hasattr(self.proxy, 'name')
         ):
-            Logger.debug('PawnSpot: bad proxy {}'.format(self.proxy))
+            Clock.schedule_once(self.finalize, 0)
             return
-        self.name = self.proxy.name
-        self.paths = self.proxy.setdefault(
-            '_image_paths', self.default_image_paths
-        )
-        zeroes = [0] * len(self.paths)
-        self.offxs = self.proxy.setdefault('_offxs', zeroes)
-        self.offys = self.proxy.setdefault('_offys', zeroes)
-        self.stackhs = self.proxy.setdefault('_stackhs', zeroes)
-        self.proxy.connect(self._trigger_pull_from_proxy)
-
-    def finalize(self):
+        if initial:
+            self.name = self.proxy.name
+            self.paths = self.proxy.setdefault(
+                '_image_paths', self.default_image_paths
+            )
+            zeroes = [0] * len(self.paths)
+            self.offxs = self.proxy.setdefault('_offxs', zeroes)
+            self.offys = self.proxy.setdefault('_offys', zeroes)
+            self.stackhs = self.proxy.setdefault('_stackhs', zeroes)
+            self.proxy.connect(self._trigger_pull_from_proxy)
         self.bind(
             paths=self._trigger_push_image_paths,
             offxs=self._trigger_push_offxs,
             offys=self._trigger_push_offys,
             stackhs=self._trigger_push_stackhs
         )
+        self._finalized = True
 
     def unfinalize(self):
         self.unbind(
@@ -64,8 +68,10 @@ class PawnSpot(ImageStack):
             offys=self._trigger_push_offys,
             stackhs=self._trigger_push_stackhs
         )
+        self._finalized = False
 
     def pull_from_proxy(self, *args):
+        initial = self._finalized is None
         self.unfinalize()
         for key, att in [
                 ('_image_paths', 'paths'),
@@ -75,7 +81,7 @@ class PawnSpot(ImageStack):
         ]:
             if key in self.proxy and self.proxy[key] != getattr(self, att):
                 setattr(self, att, self.proxy[key])
-        self.finalize()
+        self.finalize(initial)
 
     def _trigger_pull_from_proxy(self, *args, **kwargs):
         Clock.unschedule(self.pull_from_proxy)

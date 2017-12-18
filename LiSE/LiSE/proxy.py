@@ -542,6 +542,24 @@ class NodeMapProxy(MutableMapping, Signal):
         else:
             del self.character.place[k]
 
+    def patch(self, patch):
+        """Change a bunch of node stats at once.
+
+        This works similarly to ``update``, but only accepts a dict-like argument,
+        and it recurses one level.
+
+        The patch is sent to the LiSE core all at once, so this is faster than
+        using ``update``, too.
+
+        """
+        self.engine.handle(
+            'update_nodes',
+            char=self.character.name,
+            patch=patch
+        )
+        for node, pat in patch.items():
+            self[node]._cache.update(pat)
+
 
 class ThingMapProxy(CachingProxy):
     rulebook = RulebookProxyDescriptor()

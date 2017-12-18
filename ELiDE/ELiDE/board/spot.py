@@ -102,9 +102,10 @@ class Spot(PawnSpot):
             int(self.proxy.get('_y', self.default_pos[1]) * self.board.height)
         )
 
-    def on_proxy(self, *args):
-        super().on_proxy(*args)
-        self._upd_pos()
+    def finalize(self, initial=True):
+        if initial:
+            self._upd_pos()
+        super().finalize(initial)
 
     def push_pos(self, *args):
         """Set my current position, expressed as proportions of the board's
