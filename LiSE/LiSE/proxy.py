@@ -2210,6 +2210,11 @@ class EngineProxy(AbstractEngine):
                 args=(chars, cb)
             ).start()
 
+    def _upd_and_cb(self, cb, *args, **kwargs):
+        self._upd_caches(*args, **kwargs, no_del=True)
+        self._set_time(*args, **kwargs)
+        cb(*args, **kwargs)
+
     # TODO: make this into a Signal, like it is in the LiSE core
     def next_turn(self, cb=None, block=False):
         if cb and not callable(cb):
@@ -2224,7 +2229,7 @@ class EngineProxy(AbstractEngine):
                 cbs.append(cb)
             return self._call_with_recv(*cbs)
         else:
-            self.handle(command='next_turn', block=False, cb=cb)
+            self.handle(command='next_turn', block=False, cb=partial(self._upd_and_cb, cb))
 
     def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         """Move to a different point in the timestream.
