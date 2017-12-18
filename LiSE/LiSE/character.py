@@ -826,16 +826,19 @@ class FacadePlace(MutableMapping, Signal):
             if thing.container is self:
                 yield thing
 
-    def __init__(self, facade, real_or_name, **kwargs):
+    def __init__(self, facade, *args, **kwargs):
         """Store ``facade``; store ``real_or_name`` if it's a Place.
 
         Otherwise use a plain dict for the underlying 'place'.
 
         """
+        super().__init__()
         self.facade = facade
         self._patch = kwargs
         self._masked = set()
-        super().__init__()
+        self._init_real(*args)
+
+    def _init_real(self, real_or_name):
         if isinstance(real_or_name, Place) or \
            isinstance(real_or_name, FacadePlace):
             self._real = real_or_name
@@ -885,7 +888,7 @@ class FacadeThing(FacadePlace):
     def name(self):
         return self._real['name']
 
-    def __init__(self, facade, real_or_name, location=None, *args, **kwargs):
+    def _init_real(self, real_or_name, location):
         if location is None and not (
                 isinstance(real_or_name, Thing) or
                 isinstance(real_or_name, FacadeThing)
@@ -894,11 +897,6 @@ class FacadeThing(FacadePlace):
                 "FacadeThing needs to wrap a real Thing or another "
                 "FacadeThing, or have a location of its own."
             )
-        self._patch = kwargs
-        if hasattr(location, 'name'):
-            location = location.name
-        if location is not None and location not in self.facade.place:
-            self.facade.new_place(location)
         self._real = {
             'name': real_or_name.name if hasattr(real_or_name, 'name')
             else real_or_name,
