@@ -72,13 +72,7 @@ class Pawn(PawnSpot):
     def relocate(self, *args):
         if not self.proxy.exists:
             return
-        try:
-            location = self.board.arrow[self.loc_name][self.next_loc_name]
-        except KeyError:
-            try:
-                location = self.board.spot[self.loc_name]
-            except KeyError:
-                return
+        location = self.board.spot[self.loc_name]
         if location != self.parent:
             if self.parent:
                 self.parent.remove_widget(self)
