@@ -29,6 +29,7 @@ from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
+from LiSE.node import NodeContent
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -217,6 +218,13 @@ class NodeProxy(CachingEntityProxy):
 
     def delete(self):
         self.engine.del_node(self._charname, self.name)
+
+    @property
+    def content(self):
+        return NodeContent(self)
+
+    def contents(self):
+        return self.content.values()
 
 
 class PlaceProxy(NodeProxy):
