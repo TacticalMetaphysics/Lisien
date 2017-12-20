@@ -2231,7 +2231,8 @@ class EngineProxy(AbstractEngine):
     def _upd_and_cb(self, cb, *args, **kwargs):
         self._upd_caches(*args, **kwargs, no_del=True)
         self._set_time(*args, **kwargs)
-        cb(*args, **kwargs)
+        if cb:
+            cb(*args, **kwargs)
 
     # TODO: make this into a Signal, like it is in the LiSE core
     def next_turn(self, cb=None, block=False):
