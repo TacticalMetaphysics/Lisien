@@ -51,12 +51,39 @@ class UserMapping(Mapping):
 
     engine = getatt('node.engine')
 
+    def _user_names(self):
+        cache = self.engine._avatarness_cache.user_order
+        if self.node.character.name not in cache or \
+           self.node.name not in cache[self.node.character.name]:
+            return
+        cache = cache[self.node.character.name][self.node.name]
+        seen = set()
+        for user in cache:
+            if user in seen:
+                continue
+            for (branch, turn, tick) in self.node.engine._iter_parent_btt():
+                if branch in cache[user]:
+                    branchd = cache[user][branch]
+                    try:
+                        if branchd.has_exact_rev(turn):
+                            if branchd[turn].get(tick, False):
+                                yield user
+                        elif turn in branchd:
+                            turnd = branchd[turn]
+                            if turnd[turnd.end]:
+                                yield user
+                        seen.add(user)
+                        break
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            break
+
     def __iter__(self):
-        yield from self.node._user_names()
+        yield from self._user_names()
 
     def __len__(self):
         n = 0
-        for user in self.node._user_names():
+        for user in self._user_names():
             n += 1
         return n
 
@@ -71,7 +98,7 @@ class UserMapping(Mapping):
 
     def __getitem__(self, k):
         if len(self) == 1:
-            me = self.engine.character[next(self.node._user_names())]
+            me = self.engine.character[next(self._user_names())]
             if k in me:
                 return me[k]
         if k not in self:
@@ -86,12 +113,12 @@ class UserMapping(Mapping):
                 "More than one user. "
                 "Look up the one you want to set a stat on."
             )
-        me = self.engine.character[next(self.node._user_names())]
+        me = self.engine.character[next(self._user_names())]
         me[k] = v
 
     def __getattr__(self, attr):
         if len(self) == 1:
-            me = self.engine.character[next(self.node._user_names())]
+            me = self.engine.character[next(self._user_names())]
             if hasattr(me, attr):
                 return getattr(me, attr)
 
@@ -210,6 +237,16 @@ class Origs(Mapping):
         return OrigsValues(self)
 
 
+class UserDescriptor:
+    usermapping = UserMapping
+
+    def __get__(self, instance, owner):
+        mapping = self.usermapping(instance)
+        if len(mapping) == 1:
+            return mapping[next(iter(mapping))]
+        return mapping
+
+
 class Node(allegedb.graph.Node, rule.RuleFollower):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
@@ -219,7 +256,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ['user', 'graph', 'db', 'node']
+    __slots__ = ['graph', 'db', 'node']
     engine = getatt('db')
     character = getatt('graph')
     name = getatt('node')
@@ -248,33 +285,6 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             v
         )
 
-    def _user_names(self):
-        cache = self.engine._avatarness_cache.user_order
-        if self.character.name not in cache or \
-           self.name not in cache[self.character.name]:
-            return
-        cache = cache[self.character.name][self.name]
-        seen = set()
-        for user in cache:
-            if user in seen:
-                continue
-            for (branch, turn, tick) in self.engine._iter_parent_btt():
-                if branch in cache[user]:
-                    branchd = cache[user][branch]
-                    try:
-                        if branchd.has_exact_rev(turn):
-                            if branchd[turn].get(tick, False):
-                                yield user
-                        elif turn in branchd:
-                            turnd = branchd[turn]
-                            if turnd[turnd.end]:
-                                yield user
-                        seen.add(user)
-                        break
-                    except HistoryError as ex:
-                        if ex.deleted:
-                            break
-
     @property
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
@@ -286,10 +296,11 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         return Origs(self)
     predecessor = pred = preportal
 
+    user = UserDescriptor()
+
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
         super().__init__(character, name)
-        self.user = UserMapping(self)
         self.db = character.engine
 
     def __iter__(self):

@@ -30,7 +30,7 @@ from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
-from LiSE.node import NodeContent, UserMapping
+from LiSE.node import NodeContent, UserMapping, UserDescriptor
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -130,7 +130,13 @@ class RulebookProxyDescriptor(object):
 
 class ProxyUserMapping(UserMapping):
     def _user_names(self):
-        yield from self.node.engine._avatar_characters_cache[self.node._charname]
+        for user, avatars in self.node.engine._avatar_characters_cache[self.node._charname].items():
+            if self.node.name in avatars:
+                yield user
+
+
+class ProxyUserDescriptor(UserDescriptor):
+    usermapping = ProxyUserMapping
 
 
 class NodeProxy(CachingEntityProxy):
@@ -159,10 +165,11 @@ class NodeProxy(CachingEntityProxy):
             branching=True
         )
 
+    user = ProxyUserDescriptor()
+
     def __init__(self, engine_proxy, charname, nodename):
         self._charname = charname
         self.name = nodename
-        self.user = ProxyUserMapping(self)
         super().__init__(engine_proxy)
 
     def __iter__(self):
