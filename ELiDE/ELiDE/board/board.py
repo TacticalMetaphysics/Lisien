@@ -815,8 +815,8 @@ class Board(RelativeLayout):
         node_upd = {}
         for spot in self.spots_unposd:
             (x, y) = l[spot.name]
-            assert 0 <= x <= 0.98
-            assert 0 <= y <= 0.98
+            assert 0 <= x <= 0.99, "{} has invalid x: {}".format(spot.name, x)
+            assert 0 <= y <= 0.99, "{} has invalid y: {}".format(spot.name, y)
             assert spot in self.spotlayout.children
             assert self.spotlayout.width == self.width
             assert self.spotlayout.height == self.height
