@@ -379,6 +379,7 @@ class Engine(AbstractEngine, gORM):
         if turn_from < turn_to:
             updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
             univbranches = self._universal_cache.settings
+            avbranches = self._avatarness_cache.settings
             thbranches = self._things_cache.settings
             rbbranches = self._rulebooks_cache.settings
             trigbranches = self._triggers_cache.settings
@@ -394,6 +395,7 @@ class Engine(AbstractEngine, gORM):
         else:
             updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
             univbranches = self._universal_cache.presettings
+            avbranches = self._avatarness_cache.presettings
             thbranches = self._things_cache.presettings
             rbbranches = self._rulebooks_cache.presettings
             trigbranches = self._triggers_cache.presettings
@@ -411,6 +413,11 @@ class Engine(AbstractEngine, gORM):
             delta.setdefault('universal', {})[key] = val
         if branch in univbranches:
             updater(upduniv, univbranches[branch])
+
+        def updav(char, graph, node, av):
+            delta.setdefault(char, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = av
+        if branch in avbranches:
+            updater(updav, avbranches[branch])
 
         def updthing(char, thing, locs):
             if (
@@ -505,6 +512,9 @@ class Engine(AbstractEngine, gORM):
         turn = turn or self.turn
         tick = tick or self.tick
         delta = super().get_turn_delta(branch, turn, start_tick, tick)
+        if branch in self._avatarness_cache.settings and self._avatarness_cache.settings[branch].has_exact_rev(turn):
+            for chara, graph, node, is_av in self._avatarness_cache.settings[branch][start_tick:tick]:
+                delta.setdefault(chara, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = is_av
         if branch in self._things_cache.settings and self._things_cache.settings[branch].has_exact_rev(turn):
             for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
                 thingd = delta.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
