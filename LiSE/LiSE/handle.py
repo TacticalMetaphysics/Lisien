@@ -1032,6 +1032,9 @@ class EngineHandle(object):
         except Exception as ex:
             raise
 
+    def call_randomizer(self, method, *args, **kwargs):
+        return getattr(self._real.rando, method)(*args, **kwargs)
+
     def install_module(self, module):
         import_module(module).install(self._real)
 

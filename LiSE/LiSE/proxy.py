@@ -10,6 +10,7 @@ entity in the LiSE core.
 import sys
 import logging
 from os import getpid
+from random import Random
 from collections import (
     Mapping,
     MutableMapping,
@@ -1855,6 +1856,52 @@ class TimeDescriptor(object):
         inst.time_travel(*val)
 
 
+class RandoProxy(Random):
+    """Proxy to a randomizer"""
+    def __init__(self, engine, seed=None):
+        self.engine = engine
+        self._handle = engine.handle
+        self.gauss_next = None
+        if seed:
+            self.seed(seed)
+
+    def seed(self, a=None, version=2):
+        self._handle(
+            cmd='call_randomizer',
+            method='seed',
+            a=a,
+            version=version,
+            block=False
+        )
+
+    def getstate(self):
+        return self._handle(
+            cmd='call_randomizer',
+            method='getstate'
+        )
+
+    def setstate(self, state):
+        return self._handle(
+            cmd='call_randomizer',
+            method='setstate',
+            state=state
+        )
+
+    def _randbelow(self, n, int=int, maxsize=1, type=type, Method=None, BuiltinMethod=None):
+        return self._handle(
+            cmd='call_randomizer',
+            method='_randbelow',
+            n=n,
+            maxsize=maxsize
+        )
+
+    def random(self):
+        return self._handle(
+            cmd='call_randomizer',
+            method='random'
+        )
+
+
 class EngineProxy(AbstractEngine):
     """An engine-like object for controlling the actual LiSE engine in another process.
 
@@ -1907,6 +1954,7 @@ class EngineProxy(AbstractEngine):
         self.prereq = FuncStoreProxy(self, 'prereq')
         self.trigger = FuncStoreProxy(self, 'trigger')
         self.function = FuncStoreProxy(self, 'function')
+        self.rando = RandoProxy(self)
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
