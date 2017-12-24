@@ -13,7 +13,6 @@ contained by Places, or possibly other Things.
 """
 import networkx as nx
 from .node import Node
-from .util import path_len
 from .exc import TravelException
 from allegedb.cache import HistoryError
 
@@ -361,6 +360,4 @@ class Thing(Node):
             raise ValueError("I'm already at {}".format(destn))
         graph = self.character if graph is None else graph
         path = nx.shortest_path(graph, self["location"], destn, weight)
-        if len(path) == 1:
-            return self.go_to_place(destn, weight)
         return self.follow_path(path, weight)
