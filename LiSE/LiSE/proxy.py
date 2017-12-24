@@ -29,7 +29,7 @@ from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
-from LiSE.node import NodeContent
+from LiSE.node import NodeContent, UserMapping
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -127,6 +127,11 @@ class RulebookProxyDescriptor(object):
         inst.send(inst, rulebook=rb)
 
 
+class ProxyUserMapping(UserMapping):
+    def _user_names(self):
+        yield from self.node.engine._avatar_characters_cache[self.node._charname]
+
+
 class NodeProxy(CachingEntityProxy):
     rulebook = RulebookProxyDescriptor()
     @property
@@ -156,6 +161,7 @@ class NodeProxy(CachingEntityProxy):
     def __init__(self, engine_proxy, charname, nodename):
         self._charname = charname
         self.name = nodename
+        self.user = ProxyUserMapping(self)
         super().__init__(engine_proxy)
 
     def __iter__(self):
@@ -1933,6 +1939,7 @@ class EngineProxy(AbstractEngine):
         )
         self._character_portals_cache = PortalObjCache()
         self._character_avatars_cache = PickyDefaultDict(dict)
+        self._avatar_characters_cache = PickyDefaultDict(dict)
         self._rule_obj_cache = {}
         self._rules_cache = self.handle('all_rules_delta')
         for rule in self._rules_cache:
@@ -1949,7 +1956,9 @@ class EngineProxy(AbstractEngine):
                     self._portal_stat_cache[char][origin][destination] = stats
             for node,  stats in deltas[char].pop('node_val', {}).items():
                 self._node_stat_cache[char][node] = stats
-            self._character_avatars_cache[char] = deltas[char].pop('avatars', {})
+            avatars = self._character_avatars_cache[char] = deltas[char].pop('avatars', {})
+            for av, node in avatars.items():
+                self._avatar_characters_cache[av].setdefault(char, node)
             for rbtype, rb in deltas[char].pop('rulebooks', {}).items():
                 if rb in self._rulebook_obj_cache:
                     self._character_rulebooks_cache[char][rbtype] \
