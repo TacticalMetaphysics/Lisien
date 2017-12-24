@@ -277,6 +277,81 @@ class AbstractEngine(object):
             return json_load_hints[s]
         return self.delistify(loads(s))
 
+    def coinflip(self):
+        """Return True or False with equal probability."""
+        return self.choice((True, False))
+
+    def roll_die(self, d):
+        """Roll a die with ``d`` faces. Return the result."""
+        return self.randint(1, d)
+
+    def dice(self, n, d):
+        """Roll ``n`` dice with ``d`` faces, and yield the results.
+
+        This is an iterator. You'll get the result of each die in
+        successon.
+
+        """
+        for i in range(0, n):
+            yield self.roll_die(d)
+
+    def dice_check(self, n, d, target, comparator=le):
+        """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
+        are <= ``target``.
+
+        If ``comparator`` is provided, use it instead of <=. You may
+        use a string like '<' or '>='.
+
+        """
+        comps = {
+            '>': gt,
+            '<': lt,
+            '>=': ge,
+            '<=': le,
+            '=': eq,
+            '==': eq,
+            '!=': ne
+        }
+        try:
+            comparator = comps.get(comparator, comparator)
+        except TypeError:
+            pass
+        return comparator(sum(self.dice(n, d)), target)
+
+    def percent_chance(self, pct):
+        """Given a ``pct``% chance of something happening right now, decide at
+        random whether it actually happens, and return ``True`` or
+        ``False`` as appropriate.
+
+        Values not between 0 and 100 are treated as though they
+        were 0 or 100, whichever is nearer.
+
+        """
+        if pct <= 0:
+            return False
+        if pct >= 100:
+            return True
+        return pct / 100 < self.random()
+
+    betavariate = getatt('rando.betavariate')
+    choice = getatt('rando.choice')
+    expovariate = getatt('rando.expovariate')
+    gammavariate = getatt('rando.gammavariate')
+    gauss = getatt('rando.gauss')
+    getrandbits = getatt('rando.getrandbits')
+    lognormvariate = getatt('rando.lognormvariate')
+    normalvariate = getatt('rando.normalvariate')
+    paretovariate = getatt('rando.paretovariate')
+    randint = getatt('rando.randint')
+    random = getatt('rando.random')
+    randrange = getatt('rando.randrange')
+    sample = getatt('rando.sample')
+    shuffle = getatt('rando.shuffle')
+    triangular = getatt('rando.triangular')
+    uniform = getatt('rando.uniform')
+    vonmisesvariate = getatt('rando.vonmisesvariate')
+    weibullvariate = getatt('rando.weibullvariate')
+
 
 class Engine(AbstractEngine, gORM):
     """LiSE, the Life Simulator Engine.
@@ -821,25 +896,6 @@ class Engine(AbstractEngine, gORM):
             self._portal_rules_handled_cache.store(character, orig, dest, rulebook, rule, branch, turn, tick)
         self._rules_cache = {name: Rule(self, name, create=False) for name in q.rules_dump()}
 
-    betavariate = getatt('rando.betavariate')
-    choice = getatt('rando.choice')
-    expovariate = getatt('rando.expovariate')
-    gammavariate = getatt('rando.gammavariate')
-    gauss = getatt('rando.gauss')
-    getrandbits = getatt('rando.getrandbits')
-    lognormvariate = getatt('rando.lognormvariate')
-    normalvariate = getatt('rando.normalvariate')
-    paretovariate = getatt('rando.paretovariate')
-    randint = getatt('rando.randint')
-    random = getatt('rando.random')
-    randrange = getatt('rando.randrange')
-    sample = getatt('rando.sample')
-    shuffle = getatt('rando.shuffle')
-    triangular = getatt('rando.triangular')
-    uniform = getatt('rando.uniform')
-    vonmisesvariate = getatt('rando.vonmisesvariate')
-    weibullvariate = getatt('rando.weibullvariate')
-
     @property
     def stores(self):
         return (
@@ -870,62 +926,6 @@ class Engine(AbstractEngine, gORM):
     def critical(self, msg):
         """Log a message at level 'critical'"""
         self.log('critical', msg)
-
-    def coinflip(self):
-        """Return True or False with equal probability."""
-        return self.choice((True, False))
-
-    def roll_die(self, d):
-        """Roll a die with ``d`` faces. Return the result."""
-        return self.randint(1, d)
-
-    def dice(self, n, d):
-        """Roll ``n`` dice with ``d`` faces, and yield the results.
-
-        This is an iterator. You'll get the result of each die in
-        successon.
-
-        """
-        for i in range(0, n):
-            yield self.roll_die(d)
-
-    def dice_check(self, n, d, target, comparator=le):
-        """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
-        are <= ``target``.
-
-        If ``comparator`` is provided, use it instead of <=. You may
-        use a string like '<' or '>='.
-
-        """
-        comps = {
-            '>': gt,
-            '<': lt,
-            '>=': ge,
-            '<=': le,
-            '=': eq,
-            '==': eq,
-            '!=': ne
-        }
-        try:
-            comparator = comps.get(comparator, comparator)
-        except TypeError:
-            pass
-        return comparator(sum(self.dice(n, d)), target)
-
-    def percent_chance(self, pct):
-        """Given a ``pct``% chance of something happening right now, decide at
-        random whether it actually happens, and return ``True`` or
-        ``False`` as appropriate.
-
-        Values not between 0 and 100 are treated as though they
-        were 0 or 100, whichever is nearer.
-
-        """
-        if pct <= 0:
-            return False
-        if pct >= 100:
-            return True
-        return pct / 100 < self.random()
 
     def close(self):
         """Commit changes and close the database."""
