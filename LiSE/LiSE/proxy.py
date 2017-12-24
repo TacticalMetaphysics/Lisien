@@ -141,6 +141,10 @@ class ProxyUserDescriptor(UserDescriptor):
 
 class NodeProxy(CachingEntityProxy):
     rulebook = RulebookProxyDescriptor()
+
+    @property
+    def users(self):
+        return ProxyUserMapping(self)
     @property
     def character(self):
         return self.engine.character[self._charname]

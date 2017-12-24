@@ -298,6 +298,10 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     user = UserDescriptor()
 
+    @property
+    def users(self):
+        return UserMapping(self)
+
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
         super().__init__(character, name)
