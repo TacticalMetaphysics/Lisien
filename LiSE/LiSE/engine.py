@@ -1232,7 +1232,7 @@ class Engine(AbstractEngine, gORM):
             self, character, node, loc, nextloc=None
     ):
         branch, turn, tick = self.nbtt()
-        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
+        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc), planning=self.planning)
         self.query.thing_loc_and_next_set(
             character,
             node,
