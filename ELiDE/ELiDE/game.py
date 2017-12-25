@@ -41,7 +41,7 @@ class GameApp(App):
     branch = StringProperty('trunk')
     turn = NumericProperty(0)
     tick = NumericProperty(0)
-    turn_length = 0.5
+    turn_length = NumericProperty(0.5)
 
     def wait_turns(self, n, dt=None, *, cb=None):
         """Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
