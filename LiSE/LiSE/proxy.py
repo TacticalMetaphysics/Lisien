@@ -384,14 +384,13 @@ class ThingProxy(NodeProxy):
             dest = dest.name
         if hasattr(graph, 'name'):
             graph = graph.name
-        self.engine.handle(
+        return self.engine.handle(
             command='thing_travel_to',
             char=self._charname,
             thing=self.name,
             dest=dest,
             weight=weight,
-            graph=graph,
-            block=False
+            graph=graph
         )
 
     def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
