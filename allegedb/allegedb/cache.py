@@ -836,15 +836,7 @@ class Cache(object):
                             tick, turn, branch
                         )
                     )
-                if turn <= shallow.end:
-                    raise HistoryError(
-                        "Already have some turns after {} in branch {}".format(turn, branch)
-                    )
             if keys:
-                if turn <= keys.end:
-                    raise HistoryError(
-                        "Already have some turns after {} in branch {}".format(turn, branch)
-                    )
                 if keys.has_exact_rev(turn) and tick <= keys[turn].end:
                     raise HistoryError(
                         "Already have some ticks after {} in turn {} of branch {}".format(
@@ -858,14 +850,8 @@ class Cache(object):
                             tick, turn, branch
                         )
                     )
-                if turn < branches.end:
-                    raise HistoryError(
-                        "Can't plan for the past. "
-                        "Already have some turns after {} in branch {}".format(
-                            turn, branch
-                        )
-                    )
-        self.truncate_settings(branch, turn, tick)
+        else:
+            self.truncate_settings(branch, turn, tick)
         try:
             prev = self.retrieve(*args[:-1])
         except KeyError:
