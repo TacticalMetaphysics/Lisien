@@ -1,5 +1,6 @@
 import os
 from kivy.logger import Logger
+from kivy.clock import Clock
 from kivy.properties import (
     AliasProperty,
     ObjectProperty,
@@ -12,10 +13,12 @@ from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
 import LiSE.proxy
 from .util import trigger
+from functools import partial
 
 
 class GameScreen(Screen):
     switch_screen = ObjectProperty()
+    app = ObjectProperty()
     engine = ObjectProperty()
     shutdown = ObjectProperty()
 
@@ -24,6 +27,7 @@ class Screens(Widget):
     app = ObjectProperty()
 
     def add_widget(self, wid, index=0, canvas=None):
+        wid.app = self.app
         wid.engine = self.app.engine
         wid.switch_screen = self.app.screen_manager.setter('screen')
         wid.shutdown = self.app.stop
@@ -37,6 +41,22 @@ class GameApp(App):
     branch = StringProperty('trunk')
     turn = NumericProperty(0)
     tick = NumericProperty(0)
+    turn_length = 0.5
+
+    def wait_turns(self, n, dt=None, *, cb=None):
+        """Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between
+
+        If provided, call ``cb`` when done.
+
+        """
+        print(dt)
+        self.engine.next_turn()
+        n -= 1
+        if n == 0:
+            if cb:
+                cb()
+        else:
+            Clock.schedule_once(partial(self.wait_turns, n, cb=cb), self.turn_length)
 
     def on_engine(self, *args):
         self.branch, self.turn, self.tick = self.engine.btt()
