@@ -3,6 +3,7 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import (
     AliasProperty,
+    BooleanProperty,
     ObjectProperty,
     NumericProperty,
     StringProperty
@@ -21,6 +22,46 @@ class GameScreen(Screen):
     app = ObjectProperty()
     engine = ObjectProperty()
     shutdown = ObjectProperty()
+    disabled = BooleanProperty(False)
+
+    def disable_input(self, cb=None):
+        self.disabled = True
+        if cb:
+            cb()
+
+    def enable_input(self, cb=None):
+        self.disabled = False
+        if cb:
+            cb()
+
+    def wait_travel(self, character, thing, dest, cb=None):
+        """Schedule a thing to travel someplace, then wait for it to finish."""
+        self.disable_input()
+        self.app.wait_travel(character, thing, dest, cb=partial(self.enable_input, cb))
+
+    def wait_turns(self, n, cb=None):
+        """Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between
+
+        Disables input for the duration.
+
+        """
+        self.disable_input()
+        self.app.wait_turns(n, cb=partial(self.enable_input, cb))
+
+    def _call_and_enable_input(self, cb):
+        if cb:
+            cb()
+        self.enable_input()
+
+    def wait_command(self, start_func, end_func=None, turns=1):
+        """Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
+
+        Disables input for the duration.
+
+        """
+        self.disable_input()
+        start_func()
+        self.app.wait_turns(turns, cb=partial(self._call_and_enable_input, end_func))
 
 
 class Screens(Widget):
@@ -57,6 +98,15 @@ class GameApp(App):
                 cb()
         else:
             Clock.schedule_once(partial(self.wait_turns, n, cb=cb), self.turn_length)
+
+    def wait_travel(self, character, thing, destination, cb=None):
+        """Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided"""
+        self.wait_turns(self.engine.character[character].thing[thing].travel_to(destination), cb=cb)
+
+    def wait_command(self, start_func, end_func=None, turns=1):
+        """Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)"""
+        start_func()
+        self.wait_turns(turns, cb=end_func)
 
     def on_engine(self, *args):
         self.branch, self.turn, self.tick = self.engine.btt()
