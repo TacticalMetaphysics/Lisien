@@ -809,16 +809,8 @@ class Cache(object):
             if kc != correct:
                 raise ValueError("Invalid keys cache")
 
-    def truncate_settings(self, branch, turn, tick):
+    def truncate_settings(self, prefix, branch, turn, tick):
         """Forget about the fact I set anything after the given time."""
-        settings_turns = self.settings[branch]
-        if settings_turns.has_exact_rev(turn):
-            settings_turns[turn].truncate(tick)
-        settings_turns.truncate(turn)
-        presettings_turns = self.presettings[branch]
-        if presettings_turns.has_exact_rev(turn):
-            presettings_turns[turn].truncate(tick)
-        presettings_turns.truncate(turn)
 
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
@@ -851,7 +843,18 @@ class Cache(object):
                         )
                     )
         else:
-            self.truncate_settings(branch, turn, tick)
+            # truncate settings
+            prefix = parent + (entity, key)
+            for settings in self.settings, self.presettings:
+                settings_turns = settings[branch]
+                settings_turns.seek(turn)
+                for trn, tics in settings_turns.future():
+                    deletable = [
+                        tic for tic in tics
+                        if tic >= tick and tics[tic][:len(prefix)] == prefix
+                    ]
+                    for tic in deletable:
+                        del settings_turns[trn][tic]
         try:
             prev = self.retrieve(*args[:-1])
         except KeyError:
