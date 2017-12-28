@@ -809,9 +809,6 @@ class Cache(object):
             if kc != correct:
                 raise ValueError("Invalid keys cache")
 
-    def truncate_settings(self, prefix, branch, turn, tick):
-        """Forget about the fact I set anything after the given time."""
-
     def _store(self, *args, planning=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
