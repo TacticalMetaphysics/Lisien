@@ -334,12 +334,13 @@ class WindowDict(MutableMapping):
         while self._past and self._past[-1][0] > rev:
             self._future.appendleft(self._past.pop())
 
-    def has_exact_rev(self, rev):
-        """Return whether I have a value at this exact revision."""
-        if not within_history(rev, self):
+    def rev_gettable(self, rev):
+        if self._past:
+            return rev >= self._past[0][0]
+        elif self._future:
+            return rev >= self._future[0][0]
+        else:
             return False
-        self.seek(rev)
-        return self._past and self._past[-1][0] == rev
 
     def rev_before(self, rev):
         """Return the latest past rev on which the value changed."""
@@ -399,12 +400,10 @@ class WindowDict(MutableMapping):
             yield rev
 
     def __contains__(self, item):
-        if self._past:
-            return item >= self._past[0][0]
-        elif self._future:
-            return item >= self._future[0][0]
-        else:
+        if not within_history(item, self):
             return False
+        self.seek(item)
+        return self._past and self._past[-1][0] == item
 
     def __len__(self):
         return len(self._past) + len(self._future)
@@ -688,7 +687,7 @@ class Cache(object):
     def _valcache_lookup(self, cache, branch, turn, tick):
         if branch in cache:
             branc = cache[branch]
-            if branc.has_exact_rev(turn):
+            if turn in branc:
                 return branc[turn].get(tick, None)
             try:
                 turnd = branc[turn]
@@ -706,13 +705,13 @@ class Cache(object):
 
     def _get_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward=False):
         keycache_key = parentity + (branch,)
-        if keycache_key in keycache and keycache[keycache_key].has_exact_rev(turn) and keycache[keycache_key][turn].has_exact_rev(tick):
+        if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
             return keycache[keycache_key][turn][tick]
         if forward and keycache_key in keycache:
             # Take valid values from the past of a keycache and copy them forward, into the present.
             kc = keycache[keycache_key]
             try:
-                if not kc.has_exact_rev(turn):
+                if turn not in kc:
                     if tick == 0 and kc.rev_before(turn) == turn - 1:
                         # We had valid keys a turn ago. Reuse those.
                         old_turn_kc = kc[turn]
@@ -723,7 +722,7 @@ class Cache(object):
                     else:
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
                 kcturn = kc[turn]
-                if not kcturn.has_exact_rev(tick):
+                if tick not in kcturn:
                     if kcturn.rev_before(tick) == tick - 1:
                         # We have keys from the previous tick. Use those.
                         kcturn[tick] = kcturn[tick - 1].copy()
@@ -745,11 +744,11 @@ class Cache(object):
     def _slow_iter_keys(self, cache, branch, turn, tick):
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
-                if branc not in branches or trn not in branches[branc]:
+                if branc not in branches or not branches[branch].rev_gettable(trn):
                     continue
                 turnd = branches[branc]
-                if turnd.has_exact_rev(trn):
-                    if tck in turnd[trn]:
+                if trn in turnd:
+                    if turnd[trn].rev_gettable(tck):
                         try:
                             if turnd[trn][tck] is not None:
                                 yield key
@@ -819,21 +818,21 @@ class Cache(object):
         shallow = self.shallow[parent+(entity, key, branch)]
         if planning:
             if shallow:
-                if shallow.has_exact_rev(turn) and tick < shallow[turn].end:
+                if turn in shallow and tick < shallow[turn].end:
                     raise HistoryError(
                         "Already have some ticks after {} in turn {} of branch {}".format(
                             tick, turn, branch
                         )
                     )
             if keys:
-                if keys.has_exact_rev(turn) and tick <= keys[turn].end:
+                if turn in keys and tick <= keys[turn].end:
                     raise HistoryError(
                         "Already have some ticks after {} in turn {} of branch {}".format(
                             tick, turn, branch
                         )
                     )
             if branches:
-                if branches.has_exact_rev(turn) and tick <= branches[turn].end:
+                if turn in branches and tick <= branches[turn].end:
                     raise HistoryError(
                         "Already have some ticks after {} in turn {} of branch {}".format(
                             tick, turn, branch
@@ -856,8 +855,8 @@ class Cache(object):
             prev = self.retrieve(*args[:-1])
         except KeyError:
             prev = None
-        if settings_turns.has_exact_rev(turn):
-            assert presettings_turns.has_exact_rev(turn)
+        if turn in settings_turns:
+            assert turn in presettings_turns
             setticks = settings_turns[turn]
             presetticks = presettings_turns[turn]
             presetticks[tick] = parent + (entity, key, prev)
@@ -868,7 +867,7 @@ class Cache(object):
         new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
-            if parents.has_exact_rev(turn):
+            if turn in parents:
                 parentsturn = parents[turn]
                 parentsturn.truncate(tick)
                 parentsturn[tick] = value
@@ -878,19 +877,19 @@ class Cache(object):
                 parents[turn] = new
         if branches and turn < branches.end:
             # deal with the paradox by erasing history after this tick and turn
-            if branches.has_exact_rev(turn):
+            if turn in branches:
                 mapp_turn = branches[turn]
                 settings_turn = settings_turns[turn]
-                if mapp_turn.has_exact_rev(tick):
+                if tick in mapp_turn:
                     del settings_turn[tick]
                 for tic in mapp_turn.future():
                     del settings_turn[tic]
             branches.truncate(turn)
             keys.truncate(turn)
             shallow.truncate(turn)
-        if branches.has_exact_rev(turn):
-            assert keys.has_exact_rev(turn)
-            assert shallow.has_exact_rev(turn)
+        if turn in branches:
+            assert turn in keys
+            assert turn in shallow
             branchesturn = branches[turn]
             assert branchesturn is keys[turn] is shallow[turn]
             branchesturn.truncate(tick)
@@ -923,13 +922,13 @@ class Cache(object):
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
         if entity+(key, branch, turn) in self.shallower and \
-                self.shallower[entity+(key, branch, turn)].has_exact_rev(tick):
+                tick in self.shallower[entity+(key, branch, turn)]:
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick]
             return ret
         if entity+(key, branch) in self.shallow and \
-                self.shallow[entity+(key, branch)].has_exact_rev(turn) and \
-                tick in self.shallow[entity+(key, branch)][turn]:
+                turn in self.shallow[entity+(key, branch)] and \
+                self.shallow[entity+(key, branch)][turn].rev_gettable(tick):
             ret = self.shallowest[args] \
                 = self.shallower[entity+(key, branch, turn)][tick] \
                 = self.shallow[entity + (key, branch)][turn].get(tick)
@@ -937,10 +936,10 @@ class Cache(object):
         for (b, r, t) in self.db._iter_parent_btt(branch):
             if (
                     b in self.branches[entity+(key,)]
-                    and r in self.branches[entity+(key,)][b]
+                    and self.branches[entity+(key,)][b].rev_gettable(r)
             ):
                 brancs = self.branches[entity+(key,)][b]
-                if brancs.has_exact_rev(r) and t in brancs[r]:
+                if r in brancs and t in brancs[r]:
                     ret = brancs[r][t]
                 else:
                     ret = brancs[r]
@@ -1124,7 +1123,7 @@ class EdgesCache(Cache):
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
         preds = self.predecessors[(graph, dest)][orig][idx][branch]
-        if preds.has_exact_rev(turn):
+        if turn in preds:
             preds[turn][tick] = ex
         else:
             newp = FuturistWindowDict()

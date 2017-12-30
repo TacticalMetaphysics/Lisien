@@ -224,28 +224,28 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
 
 
 def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
-    if branchd.has_exact_rev(turn_from):
+    if turn_from in branchd:
         # Not including the exact tick you started from because deltas are *changes*
         for past_state in branchd[turn_from][tick_from+1:]:
             updfun(*past_state)
     for midturn in range(turn_from+1, turn_to):
-        if branchd.has_exact_rev(midturn):
+        if midturn in branchd:
             for past_state in branchd[midturn][:]:
                 updfun(*past_state)
-    if branchd.has_exact_rev(turn_to):
+    if turn_to in branchd:
         for past_state in branchd[turn_to][:tick_to]:
             updfun(*past_state)
 
 
 def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
-    if branchd.has_exact_rev(turn_from):
+    if turn_from in branchd:
         for future_state in reversed(branchd[turn_from][:tick_from]):
             updfun(*future_state)
     for midturn in range(turn_from-1, turn_to, -1):
-        if branchd.has_exact_rev(midturn):
+        if midturn in branchd:
             for future_state in reversed(branchd[midturn][:]):
                 updfun(*future_state)
-    if branchd.has_exact_rev(turn_to):
+    if turn_to in branchd:
         for future_state in reversed(branchd[turn_to][tick_to:]):
             updfun(*future_state)
 
@@ -349,18 +349,18 @@ class ORM(object):
             ebranches = self._edges_cache.presettings
             evbranches = self._edge_val_cache.presettings
 
-        if branch in gvbranches and gvbranches[branch].has_exact_rev(turn):
+        if branch in gvbranches and turn in gvbranches[branch]:
             for graph, key, value in gvbranches[branch][turn][tick_from:tick_to]:
                 if graph in delta:
                     delta[graph][key] = value
                 else:
                     delta[graph] = {key: value}
 
-        if branch in nbranches and nbranches[branch].has_exact_rev(turn):
+        if branch in nbranches and turn in nbranches[branch]:
             for graph, node, exists in nbranches[branch][turn][tick_from:tick_to]:
                 delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(exists)
 
-        if branch in nvbranches and nvbranches[branch].has_exact_rev(turn):
+        if branch in nvbranches and turn in nvbranches[branch]:
             for graph, node, key, value in nvbranches[branch][turn][tick_from:tick_to]:
                 if (
                     graph in delta and 'nodes' in delta[graph] and
@@ -374,7 +374,7 @@ class ORM(object):
                     nodevd[node] = {key: value}
 
         graph_objs = self._graph_objs
-        if branch in ebranches and ebranches[branch].has_exact_rev(turn):
+        if branch in ebranches and turn in ebranches[branch]:
             for graph, orig, dest, idx, exists in ebranches[branch][turn][tick_from:tick_to]:
                 if graph_objs[graph].is_multigraph():
                     if (
@@ -396,7 +396,7 @@ class ORM(object):
                     delta.setdefault(graph, {}).setdefault('edges', {})\
                         .setdefault(orig, {})[dest] = bool(exists)
 
-        if branch in evbranches and evbranches[branch].has_exact_rev(turn):
+        if branch in evbranches and turn in evbranches[branch]:
             for graph, orig, dest, idx, key, value in evbranches[branch][turn][tick_from:tick_to]:
                 edgevd = delta.setdefault(graph, {}).setdefault('edge_val', {})\
                     .setdefault(orig, {}).setdefault(dest, {})

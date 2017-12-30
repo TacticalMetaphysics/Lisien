@@ -49,12 +49,12 @@ class AvatarnessCache(Cache):
             is_avatar = None
         Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, planning=False)
         userturns = self.user_order[graph][node][character][branch]
-        if userturns.has_exact_rev(turn):
+        if turn in userturns:
             userturns[turn][tick] = is_avatar
         else:
             userturns[turn] = {tick: is_avatar}
         usershal = self.user_shallow[(graph, node, character, branch)]
-        if usershal.has_exact_rev(turn):
+        if turn in usershal:
             usershal[turn][tick] = is_avatar
         else:
             usershal[turn] = {tick: is_avatar}
@@ -67,11 +67,11 @@ class AvatarnessCache(Cache):
         users = self.users[graph, node][branch]
 
         def add_something(cache, what):
-            if cache.has_exact_rev(turn):
+            if turn in cache:
                 nucache = cache[turn][tick].copy()
                 nucache.add(what)
                 cache[turn][tick] = nucache
-            elif turn in cache:
+            elif cache.rev_gettable(turn):
                 cacheturn = cache[turn]
                 nucache = cacheturn[cacheturn.end].copy()
                 nucache.add(what)
@@ -80,11 +80,11 @@ class AvatarnessCache(Cache):
                 cache[turn] = {tick: {what}}
 
         def remove_something(cache, what):
-            if cache.has_exact_rev(turn):
+            if turn in cache:
                 nucache = cache[turn][tick].copy()
                 nucache.remove(what)
                 cache[turn][tick] = nucache
-            elif turn in cache:
+            elif cache.rev_gettable(turn):
                 cacheturn = cache[turn]
                 nucache = cacheturn[cacheturn.end].copy()
                 nucache.remove(what)
@@ -104,12 +104,12 @@ class AvatarnessCache(Cache):
             if not charavs[turn][tick]:
                 remove_something(users, character)
         graphav = singleton_get(graphavs[turn][tick])
-        if soloav.has_exact_rev(turn):
+        if turn in soloav:
             soloav[turn][tick] = graphav
         else:
             soloav[turn] = {tick: graphav}
         charav = singleton_get(charavs[turn][tick])
-        if uniqav.has_exact_rev(turn):
+        if turn in uniqav:
             uniqav[turn][tick] = charav
         else:
             uniqav[turn] = {tick: charav}
@@ -120,30 +120,30 @@ class AvatarnessCache(Cache):
             else:
                 uniqgraph[turn][tick] = None
         if turn in graphavs and tick in graphavs[turn] and graphavs[turn][tick]:
-            if soloav.has_exact_rev(turn):
+            if turn in soloav:
                 soloav[turn][tick] = None
             else:
                 soloav[turn] = soloav.cls({tick: None})
         else:
-            if soloav.has_exact_rev(turn):
+            if turn in soloav:
                 soloav[turn][tick] = node
             else:
                 soloav[turn] = soloav.cls({tick: None})
-        if turn in charavs and tick in charavs[turn] and charavs[turn][tick]:
-            if uniqav.has_exact_rev(turn):
+        if turn in charavs and charavs[turn].rev_gettable(tick) and charavs[turn][tick]:
+            if turn in uniqav:
                 uniqav[turn][tick] = None
             else:
                 uniqav[turn] = uniqav.cls({tick: None})
-        elif uniqav.has_exact_rev(turn):
+        elif turn in uniqav:
             uniqav[turn][tick] = (graph, node)
         else:
             uniqav[turn] = uniqav.cls({tick: (graph, node)})
-        if turn in graphs and tick in graphs[turn] and graphs[turn][tick]:
-            if uniqgraph.has_exact_rev(turn):
+        if turn in graphs and graphs[turn].rev_gettable(tick) and graphs[turn][tick]:
+            if turn in uniqgraph:
                 uniqgraph[turn][tick] = None
             else:
                 uniqgraph[turn] = uniqgraph.cls({tick: None})
-        elif uniqgraph.has_exact_rev(turn):
+        elif turn in uniqgraph:
             uniqgraph[turn][tick] = graph
         else:
             uniqgraph[turn] = uniqgraph.cls({tick: graph})

@@ -65,10 +65,10 @@ class UserMapping(Mapping):
                 if branch in cache[user]:
                     branchd = cache[user][branch]
                     try:
-                        if branchd.has_exact_rev(turn):
+                        if turn in branchd:
                             if branchd[turn].get(tick, False):
                                 yield user
-                        elif turn in branchd:
+                        elif branchd.rev_gettable(turn):
                             turnd = branchd[turn]
                             if turnd[turnd.end]:
                                 yield user
