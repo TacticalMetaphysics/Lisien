@@ -495,14 +495,7 @@ class FuturistWindowDict(WindowDict):
             )
 
 
-class TurnDict(FuturistWindowDict):
-    """A ``FuturistWindowDict`` for storing other ``FuturistWindowDict``s.
-
-    Only used for storing turns that contain ticks.
-
-    """
-    cls = FuturistWindowDict
-
+class AbstractTurnDict(WindowDict):
     def __getitem__(self, rev):
         try:
             return super().__getitem__(rev)
@@ -514,6 +507,14 @@ class TurnDict(FuturistWindowDict):
         if not isinstance(value, self.cls):
             value = self.cls(value)
         super().__setitem__(turn, value)
+
+
+class TurnDict(AbstractTurnDict, FuturistWindowDict):
+    cls = FuturistWindowDict
+
+
+class SettingsTurnDict(AbstractTurnDict):
+    cls = WindowDict
 
 
 class PickyDefaultDict(dict):
@@ -646,9 +647,9 @@ class Cache(object):
         """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
         """A dictionary for plain, unstructured hinting."""
-        self.settings = PickyDefaultDict(TurnDict)
+        self.settings = PickyDefaultDict(SettingsTurnDict)
         """All the ``entity[key] = value`` operations that were performed on some turn"""
-        self.presettings = PickyDefaultDict(TurnDict)
+        self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
 
     def load(self, data, validate=False):
@@ -1010,12 +1011,13 @@ class NodesCache(Cache):
                 = self._make_node(self.db.graph[graph], node)
         Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, forward=forward, validate=validate)
         if validate:
-            kc = self.keycache[graph, node, branch]
+            kc = self._get_keycache((graph,), branch, turn, tick, forward=forward)
+            correct_kc = set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
             if (
                     node not in kc or
                     not self.contains_entity_or_key(graph, node, branch, turn, tick) or
                     node not in set(self.iter_entities(graph, branch, turn, tick)) or
-                    kc != set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
+                    kc != correct_kc
             ):
                 raise ValueError("Invalid keycache")
 
@@ -1024,7 +1026,7 @@ class NodesCache(Cache):
             ex = None
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
 
-    def _update_keycache(self, graph, node, branch, turn, tick, ex, *, validate=False, forward=False):
+    def _update_keycache(self, graph, node, branch, turn, tick, ex, *, validate=True, forward=False):
         if not ex:
             ex = None
         return super()._update_keycache(graph, node, branch, turn, tick, ex, validate=validate, forward=forward)
