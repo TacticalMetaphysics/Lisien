@@ -1026,7 +1026,7 @@ class NodesCache(Cache):
             ex = None
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
 
-    def _update_keycache(self, graph, node, branch, turn, tick, ex, *, validate=True, forward=False):
+    def _update_keycache(self, graph, node, branch, turn, tick, ex, *, validate=False, forward=False):
         if not ex:
             ex = None
         return super()._update_keycache(graph, node, branch, turn, tick, ex, validate=validate, forward=forward)
