@@ -888,7 +888,9 @@ class BoardScatterPlane(ScatterPlane):
     reciprocal_portal = BooleanProperty(False)
 
     def spot_from_dummy(self, dummy):
-        """Create a new :class:`board.Spot` instance, along with the
+        """Make a real place and its spot from a dummy spot.
+
+        Create a new :class:`board.Spot` instance, along with the
         underlying :class:`LiSE.Place` instance, and give it the name,
         position, and imagery of the provided dummy.
 
@@ -909,7 +911,9 @@ class BoardScatterPlane(ScatterPlane):
         dummy.num += 1
 
     def pawn_from_dummy(self, dummy):
-        """Create a new :class:`board.Pawn` instance, along with the
+        """Make a real thing and its pawn from a dummy pawn.
+
+        Create a new :class:`board.Pawn` instance, along with the
         underlying :class:`LiSE.Place` instance, and give it the name,
         location, and imagery of the provided dummy.
 
@@ -933,12 +937,13 @@ class BoardScatterPlane(ScatterPlane):
         dummy.num += 1
 
     def arrow_from_wid(self, wid):
-        """When the user has released touch after dragging to make an arrow,
-        check whether they've drawn a valid one, and if so, make it.
+        """Make a real portal and its arrow from a dummy arrow.
 
         This doesn't handle touch events. It takes a widget as its
         argument: the one the user has been dragging to indicate where
         they want the arrow to go. Said widget ought to be invisible.
+        It checks if the dummy arrow connects two real spots first,
+        and does nothing if it doesn't.
 
         """
         for spot in self.board.spotlayout.children:
