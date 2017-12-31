@@ -844,7 +844,7 @@ class Cache(object):
             for settings in self.settings, self.presettings:
                 settings_turns = settings[branch]
                 settings_turns.seek(turn)
-                for trn, tics in settings_turns.future():
+                for trn, tics in settings_turns.future().items():
                     deletable = [
                         tic for tic in tics
                         if tic >= tick and tics[tic][:len(prefix)] == prefix
@@ -855,8 +855,8 @@ class Cache(object):
             prev = self.retrieve(*args[:-1])
         except KeyError:
             prev = None
-        if turn in settings_turns:
-            assert turn in presettings_turns
+        if turn in settings_turns or turn in settings_turns.future():
+            assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
             presetticks = presettings_turns[turn]
             presetticks[tick] = parent + (entity, key, prev)
