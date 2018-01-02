@@ -783,7 +783,10 @@ class Cache(object):
         With ``validate=True``, check the cache after storing,
         and raise ``ValueError`` if it's not coherent.
 
-        With ``planning=True``, you won't be able to overwrite anything.
+        With ``planning=True``, raise HistoryError instead of overwriting.
+        Otherwise, any information about this key of this entity in the
+        future will be deleted. Separate branches of history will be
+        unaffected.
 
         With ``forward=True``, enable an optimization that assumes time
         will never go backward.
