@@ -166,9 +166,10 @@ class DialogLayout(FloatLayout):
 
     def advance_dialog(self, *args):
         self.clear_widgets()
-        if not self.todo:
-            return
-        self._update_dialog(self.todo.pop(0))
+        try:
+            self._update_dialog(self.todo[self.idx])
+        except IndexError:
+            pass
 
     def _update_dialog(self, diargs, **kwargs):
         if diargs is None:
@@ -214,8 +215,8 @@ class DialogLayout(FloatLayout):
         self.clear_widgets()
         if cb:
             cb()
-        self.advance_dialog()
         self.idx += 1
+        self.advance_dialog()
 
     def _trigger_ok(self, *args, cb=None):
         part = partial(self.ok, cb=cb)

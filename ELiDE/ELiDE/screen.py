@@ -274,6 +274,7 @@ class MainScreen(Screen):
 
     def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
         self.dialoglayout.todo, deltas = ret
+        self.dialoglayout.idx = 0
         self._update_from_delta(cmd, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
 
@@ -286,7 +287,7 @@ class MainScreen(Screen):
         if eng.universal.get('block'):
             Logger.info("MainScreen: next_turn blocked, delete universal['block'] to unblock")
             return
-        if dial.children or dial.todo or dial.idx < len(dial.todo):
+        if dial.idx < len(dial.todo):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
         eng.next_turn(cb=self._update_from_next_turn)
