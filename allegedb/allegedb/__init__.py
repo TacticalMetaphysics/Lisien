@@ -300,7 +300,7 @@ class ORM(object):
             nbranches = self._nodes_cache.settings
             nvbranches = self._node_val_cache.settings
             ebranches = self._edges_cache.settings
-            evbranches = self._edges_cache.settings
+            evbranches = self._edge_val_cache.settings
 
         if branch in gvbranches:
             updater(partial(setgraphval, delta), gvbranches[branch])
