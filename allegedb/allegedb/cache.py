@@ -855,19 +855,7 @@ class Cache(object):
                     ]
                     for tic in deletable:
                         del settings_turns[trn][tic]
-        try:
-            prev = self.retrieve(*args[:-1])
-        except KeyError:
-            prev = None
-        if turn in settings_turns or turn in settings_turns.future():
-            assert turn in presettings_turns or turn in presettings_turns.future()
-            setticks = settings_turns[turn]
-            presetticks = presettings_turns[turn]
-            presetticks[tick] = parent + (entity, key, prev)
-            setticks[tick] = parent + (entity, key, value)
-        else:
-            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
-            settings_turns[turn] = {tick: parent + (entity, key, value)}
+        self._store_journal(*args)
         new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
@@ -905,6 +893,26 @@ class Cache(object):
             branches[turn] = keys[turn] = shallow[turn] = new
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
+
+    def _store_journal(self, *args):
+        # overridden in LiSE.cache.InitializedCache
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
+        settings_turns = self.settings[branch]
+        presettings_turns = self.presettings[branch]
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
+            prev = None
+        if turn in settings_turns or turn in settings_turns.future():
+            assert turn in presettings_turns or turn in presettings_turns.future()
+            setticks = settings_turns[turn]
+            presetticks = presettings_turns[turn]
+            presetticks[tick] = parent + (entity, key, prev)
+            setticks[tick] = parent + (entity, key, value)
+        else:
+            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
+            settings_turns[turn] = {tick: parent + (entity, key, value)}
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.

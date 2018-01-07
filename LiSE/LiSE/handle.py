@@ -486,6 +486,7 @@ class EngineHandle(object):
         """Return a dictionary of changes to ``char`` since previous call."""
         ret = self.character_stat_delta(char, store=store)
         nodes = self.character_nodes_delta(char, store=store)
+        chara = self._real.character[char]
         if nodes:
             ret['nodes'] = nodes
         edges = self.character_portals_delta(char, store=store)
@@ -499,15 +500,20 @@ class EngineHandle(object):
             ret['rulebooks'] = rbs
         nrbs = self.character_nodes_rulebooks_delta(char, store=store)
         if nrbs:
-            ret.setdefault('node_val', {})
             for node, rb in nrbs.items():
-                ret['node_val'].setdefault(node, {})['rulebook'] = rb
+                if node not in chara.node:
+                    continue
+                ret.setdefault('node_val', {}).setdefault(node, {})['rulebook'] = rb
         porbs = self.character_portals_rulebooks_delta(char, store=store)
         if porbs:
-            ret.setdefault('edge_val', {})
             for orig, dests in porbs.items():
+                if orig not in chara.portal:
+                    continue
+                portals = chara.portal[orig]
                 for dest, rb in dests.items():
-                    ret['edge_val'].setdefault(orig, {}).setdefault(dest, {})['rulebook'] = rb
+                    if dest not in portals:
+                        continue
+                    ret.setdefault('edge_val', {}).setdefault(orig, {}).setdefault(dest, {})['rulebook'] = rb
         nv = self.character_nodes_stat_delta(char, store=store)
         if nv:
             ret['node_val'] = nv

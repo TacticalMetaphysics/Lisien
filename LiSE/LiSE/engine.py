@@ -28,7 +28,9 @@ from .query import Query, QueryEngine
 from .util import getatt, reify, EntityStatAccessor
 from .cache import (
     Cache,
+    InitializedCache,
     EntitylessCache,
+    InitializedEntitylessCache,
     AvatarnessCache,
     AvatarRulesHandledCache,
     CharacterThingRulesHandledCache,
@@ -724,17 +726,17 @@ class Engine(AbstractEngine, gORM):
         self._things_cache = ThingsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
-        self._rulebooks_cache = EntitylessCache(self)
-        self._characters_rulebooks_cache = EntitylessCache(self)
-        self._avatars_rulebooks_cache = EntitylessCache(self)
-        self._characters_things_rulebooks_cache = EntitylessCache(self)
-        self._characters_places_rulebooks_cache = EntitylessCache(self)
-        self._characters_portals_rulebooks_cache = EntitylessCache(self)
-        self._nodes_rulebooks_cache = Cache(self)
-        self._portals_rulebooks_cache = Cache(self)
-        self._triggers_cache = EntitylessCache(self)
-        self._prereqs_cache = EntitylessCache(self)
-        self._actions_cache = EntitylessCache(self)
+        self._rulebooks_cache = InitializedEntitylessCache(self)
+        self._characters_rulebooks_cache = InitializedEntitylessCache(self)
+        self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
+        self._characters_things_rulebooks_cache = InitializedEntitylessCache(self)
+        self._characters_places_rulebooks_cache = InitializedEntitylessCache(self)
+        self._characters_portals_rulebooks_cache = InitializedEntitylessCache(self)
+        self._nodes_rulebooks_cache = InitializedCache(self)
+        self._portals_rulebooks_cache = InitializedCache(self)
+        self._triggers_cache = InitializedEntitylessCache(self)
+        self._prereqs_cache = InitializedEntitylessCache(self)
+        self._actions_cache = InitializedEntitylessCache(self)
         self._node_rules_handled_cache = NodeRulesHandledCache(self)
         self._portal_rules_handled_cache = PortalRulesHandledCache(self)
         self._character_rules_handled_cache = CharacterRulesHandledCache(self)

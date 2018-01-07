@@ -8,6 +8,27 @@ from allegedb.cache import (
 from .util import singleton_get
 
 
+class InitializedCache(Cache):
+    def _store_journal(self, *args):
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
+        settings_turns = self.settings[branch]
+        presettings_turns = self.presettings[branch]
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
+            return  # because you can't rewind past this
+        if turn in settings_turns or turn in settings_turns.future():
+            assert turn in presettings_turns or turn in presettings_turns.future()
+            setticks = settings_turns[turn]
+            presetticks = presettings_turns[turn]
+            presetticks[tick] = parent + (entity, key, prev)
+            setticks[tick] = parent + (entity, key, value)
+        else:
+            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
+            settings_turns[turn] = {tick: parent + (entity, key, value)}
+
+
 class EntitylessCache(Cache):
     def store(self, key, branch, turn, tick, value, *, planning=False):
         super().store(None, key, branch, turn, tick, value, planning=planning)
@@ -28,6 +49,10 @@ class EntitylessCache(Cache):
 
     def retrieve(self, *args):
         return super().retrieve(*(None,)+args)
+
+
+class InitializedEntitylessCache(EntitylessCache, InitializedCache):
+    pass
 
 
 class AvatarnessCache(Cache):
