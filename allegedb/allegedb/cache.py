@@ -816,7 +816,6 @@ class Cache(object):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         settings_turns = self.settings[branch]
-        presettings_turns = self.presettings[branch]
         branches = self.branches[parent+(entity, key)][branch]
         keys = self.keys[parent+(entity,)][key][branch]
         shallow = self.shallow[parent+(entity, key, branch)]
