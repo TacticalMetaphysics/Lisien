@@ -384,6 +384,12 @@ def test_fast_delta():
     ret, diff2 = hand.time_travel('trunk', 0, 0)
     slowd2 = hand.get_slow_delta()
     assert diff2 == slowd2, "Fast delta differs from slow delta"
+    ret, diff3 = hand.time_travel('trunk', 3)
+    slowd3 = hand.get_slow_delta()
+    assert diff3 == slowd3, "Fast delta differs from slow delta"
+    ret, diff4 = hand.time_travel('trunk', 1)
+    slowd4 = hand.get_slow_delta()
+    assert diff4 == slowd4, "Fast delta differs from slow delta"
 
 
 if __name__ == '__main__':
