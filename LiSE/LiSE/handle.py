@@ -562,8 +562,10 @@ class EngineHandle(object):
         return {
             k: v for (k, v) in node.items()
             if k not in {
-                    'arrival_time',
-                    'next_arrival_time'
+                'character',
+                'name',
+                'arrival_time',
+                'next_arrival_time'
             }
         }
 
@@ -591,10 +593,15 @@ class EngineHandle(object):
 
         """
         r = {}
-        for node in self._real.character[char].node:
+        nodes = set(self._real.character[char].node.keys())
+        for node in nodes:
             delta = self.node_stat_delta(char, node, store=store)
             if delta:
                 r[node] = delta
+        nsc = self._node_stat_cache[char]
+        for node in list(nsc.keys()):
+            if node not in nodes:
+                del nsc[node]
         return r
 
     def update_node(self, char, node, patch):
