@@ -1700,9 +1700,27 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
     def add_node(self, n, **kwargs):
         super().add_node(n, **kwargs)
-        branch, turn, tick = self.engine.nbtt()
-        self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
-        self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])
+
+        def init_store_node_rulebook():
+            try:
+                if (self.name, n) == self.engine._nodes_rulebooks_cache.retrieve(self.name, n, *self.engine.btt()):
+                    return
+            except KeyError:
+                pass
+            branch, turn, tick = self.engine.nbtt()
+            self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
+
+        def init_store_rulebook():
+            try:
+                if [] == self.engine._rulebooks_cache.retrieve((self.name, n), *self.engine.btt()):
+                    return
+            except KeyError:
+                pass
+            branch, turn, tick = self.engine.nbtt()
+            self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])
+
+        init_store_node_rulebook()
+        init_store_rulebook()
     add_place = add_node
 
     def add_places_from(self, seq):

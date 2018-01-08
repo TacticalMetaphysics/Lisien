@@ -521,6 +521,11 @@ class RuleFollower(object):
     @rulebook.setter
     def rulebook(self, v):
         n = v.name if isinstance(v, RuleBook) else v
+        try:
+            if n == self._get_rulebook_name():
+                return
+        except KeyError:
+            pass
         self._set_rulebook_name(n)
         self._upd_rulebook()
 

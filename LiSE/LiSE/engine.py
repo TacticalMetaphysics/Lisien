@@ -673,11 +673,21 @@ class Engine(AbstractEngine, gORM):
         del self._rulebooks_cache._data[rulebook]
 
     def _set_node_rulebook(self, character, node, rulebook):
+        try:
+            if rulebook == self._nodes_rulebooks_cache.retrieve(character, node, *self.engine.btt()):
+                return
+        except KeyError:
+            pass
         branch, turn, tick = self.engine.nbtt()
         self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, rulebook)
         self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
 
     def _set_portal_rulebook(self, character, orig, dest, rulebook):
+        try:
+            if rulebook == self._portals_rulebooks_cache.retrieve(character, orig, dest, *self.engine.btt()):
+                return
+        except KeyError:
+            pass
         branch, turn, tick = self.engine.nbtt()
         self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, rulebook)
         self.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
@@ -1249,6 +1259,8 @@ class Engine(AbstractEngine, gORM):
         return self._nodes_cache.contains_entity(character, node, *self.btt())
 
     def _exist_node(self, character, node):
+        if self._node_exists(character, node):
+            return
         branch, turn, tick = self.nbtt()
         self.query.exist_node(
             character,
@@ -1261,9 +1273,16 @@ class Engine(AbstractEngine, gORM):
         self._nodes_cache.store(character, node, branch, turn, tick, True, forward=self.forward, planning=self.planning, validate=True)
         self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node), forward=self.forward, planning=self.planning, validate=True)
 
+    def _edge_exists(self, character, orig, dest):
+        return self._edges_cache.contains_entity(
+            character, orig, dest, 0, *self.btt()
+        )
+
     def _exist_edge(
             self, character, orig, dest, exist=True
     ):
+        if exist is self._edge_exists(character, orig, dest):
+            return
         branch, turn, tick = self.nbtt()
         planning = self.planning
         self.query.exist_edge(
@@ -1278,9 +1297,6 @@ class Engine(AbstractEngine, gORM):
         )
         self._edges_cache.store(
             character, orig, dest, 0, branch, turn, tick, exist, planning=planning
-        )
-        assert self._edges_cache.contains_entity(
-            character, orig, dest, 0, branch, turn, tick
         )
 
     def alias(self, v, stat='dummy'):
