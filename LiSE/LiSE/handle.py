@@ -410,7 +410,7 @@ class EngineHandle(object):
 
     def character_avatars_copy(self, char):
         return {
-            graph: list(nodes.keys()) for (graph, nodes) in
+            graph: frozenset(nodes.keys()) for (graph, nodes) in
             self._real.character[char].avatar.items()
         }
 
@@ -669,7 +669,7 @@ class EngineHandle(object):
                     del porto[node]
 
     def character_nodes(self, char):
-        return list(self._real.character[char].node)
+        return frozenset(self._real.character[char].node)
 
     def character_nodes_delta(self, char, *, store=True):
         try:
