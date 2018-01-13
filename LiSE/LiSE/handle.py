@@ -482,6 +482,49 @@ class EngineHandle(object):
         except KeyError:
             return None
 
+    def character_copy(self, char):
+        """Return a dictionary describing character ``char``."""
+        ret = self.character_stat_copy(char)
+        chara = self._real.character[char]
+        nv = self.character_nodes_stat_copy(char)
+        if nv:
+            ret['node_val'] = nv
+        ev = self.character_portals_stat_copy(char)
+        if ev:
+            ret['edge_val'] = ev
+        avs = self.character_avatars_copy(char)
+        if avs:
+            ret['avatars'] = avs
+        rbs = self.character_rulebooks_copy(char)
+        if rbs:
+            ret['rulebooks'] = rbs
+        nrbs = self.character_nodes_rulebooks_copy(char)
+        if nrbs:
+            for node, rb in nrbs.items():
+                assert node in chara.node
+                if 'node_val' not in ret:
+                    ret['node_val'] = {}
+                nv = ret['node_val']
+                if node not in nv:
+                    nv[node] = {}
+                nv[node]['rulebook'] = rb
+        porbs = self.character_portals_rulebooks_copy(char)
+        if porbs:
+            for orig, dests in porbs.items():
+                ports = chara.portal[orig]
+                for dest, rb in dests.items():
+                    assert dest in ports
+                    if 'edge_val' not in ret:
+                        ret['edge_val'] = {}
+                    ev = ret['edge_val']
+                    if orig not in ev:
+                        ev[orig] = {}
+                    ov = ev[orig]
+                    if dest not in ov:
+                        ov[dest] = {}
+                    ov[dest]['rulebook'] = rb
+        return ret
+
     def character_delta(self, char, *, store=True):
         """Return a dictionary of changes to ``char`` since previous call."""
         ret = self.character_stat_delta(char, store=store)
@@ -603,6 +646,9 @@ class EngineHandle(object):
             if node not in nodes:
                 del nsc[node]
         return r
+
+    def character_nodes_stat_copy(self, char):
+        return {node: self.node_stat_copy(char, node) for node in self._real.character[char].node}
 
     def update_node(self, char, node, patch):
         """Change a node's stats according to a dictionary.
@@ -876,6 +922,16 @@ class EngineHandle(object):
             return dict_delta(old, new)
         except KeyError:
             return None
+
+    def character_portals_stat_copy(self, char):
+        r = {}
+        chara = self._real.character[char]
+        for orig, dests in chara.portal.items():
+            for dest in dests:
+                if orig not in r:
+                    r[orig] = {}
+                r[orig][dest] = self.portal_stat_copy(char, orig, dest)
+        return r
 
     def character_portals_stat_delta(self, char, *, store=True):
         r = {}
