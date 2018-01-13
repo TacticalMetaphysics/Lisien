@@ -53,7 +53,8 @@ class SimTest(TestCase):
         logger = getLogger('LiSE.engine')
         logger.setLevel('DEBUG')
         logger.addHandler(FileHandler('test.log'))
-        sim.install(self.engine)
+        with self.engine.advancing:
+            sim.install(self.engine)
         for i in range(72):
             self.engine.next_tick()
         self.engine.commit()
@@ -375,7 +376,8 @@ def test_fast_delta():
     from LiSE.examples.kobold import inittest
     from LiSE.handle import EngineHandle
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
-    inittest(hand._real, shrubberies=20, kobold_sprint_chance=.9)
+    with hand._real.advancing:
+        inittest(hand._real, shrubberies=20, kobold_sprint_chance=.9)
     # just set a baseline for the diff
     hand.get_slow_delta()
     ret, diff = hand.next_turn()
@@ -397,7 +399,8 @@ def test_assignment():
     from LiSE.handle import EngineHandle
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     eng = hand._real
-    install(eng)
+    with eng.advancing:
+        install(eng)
     physical_inital_copy = {'edge_val': {
         'classroom': {'common0': {'is_mirror': True}, 'common1': {'is_mirror': True}, 'common2': {'is_mirror': True}},
         'dorm1room5': {'common1': {}}, 'dorm0room3': {'common0': {}}, 'dorm0room2': {'common0': {}},
