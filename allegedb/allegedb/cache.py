@@ -722,9 +722,8 @@ class Cache(object):
                         kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
                 kcturn = kc[turn]
                 if tick not in kcturn:
-                    if kcturn.rev_before(tick) == tick - 1:
-                        # We have keys from the previous tick. Use those.
-                        kcturn[tick] = kcturn[tick - 1].copy()
+                    if kcturn.rev_gettable(tick):
+                        kcturn[tick] = kcturn[tick].copy()
                     else:
                         kcturn[tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
                 return kcturn[tick]
