@@ -166,6 +166,9 @@ class AbstractEngine(object):
         def listify_list(obj):
             return ["list"] + [self.listify(v) for v in obj]
 
+        def listify_frozenset(obj):
+            return ["frozenset"] + [self.listify(v) for v in obj]
+
         def listify_dict(obj):
             return ["dict"] + [
                 [self.listify(k), self.listify(v)]
@@ -174,6 +177,7 @@ class AbstractEngine(object):
 
         return {
             list: listify_list,
+            frozenset: listify_frozenset,
             JSONListReWrapper: listify_list,
             tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
             dict: listify_dict,
@@ -200,6 +204,7 @@ class AbstractEngine(object):
             )]
 
         return {
+            'frozenset': lambda obj: frozenset(self.delistify(v) for v in obj[1:]),
             'list': lambda obj: [self.delistify(v) for v in obj[1:]],
             'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
             'dict': lambda obj: {
