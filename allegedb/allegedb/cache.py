@@ -606,8 +606,6 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches',
-                 'shallow', 'shallower', 'shallowest', 'settings', 'presettings']
 
     def __init__(self, db):
         self.db = db
@@ -1044,9 +1042,6 @@ class NodesCache(Cache):
 
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
-    __slots__ = ['db', 'parents', 'keys', 'keycache', 'branches', 'shallow', 'shallower',
-                 'origcache', 'destcache', 'predecessors']
-
     @property
     def successors(self):
         return self.parents
