@@ -1135,10 +1135,8 @@ class DiGraph(AllegedGraph, networkx.DiGraph):
         if v not in self.node:
             self.node[v] = {}
         self.succ[u][v] = datadict
-        assert(
-            u in self.succ and
-            v in self.succ[u]
-        )
+        assert u in self.succ, "Failed to add edge {u}->{v} ({u} not in successors)".format(u=u, v=v)
+        assert v in self.succ[u], "Failed to add edge {u}->{v} ({v} not in succ[{u}])".format(u=u, v=v)
 
     def add_edges_from(self, ebunch, attr_dict=None, **attr):
         """Version of add_edges_from that only writes to the database once"""
