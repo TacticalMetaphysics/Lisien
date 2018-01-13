@@ -1023,7 +1023,7 @@ class NodesCache(Cache):
             if (
                     node not in kc or
                     not self.contains_entity_or_key(graph, node, branch, turn, tick) or
-                    node not in set(self.iter_entities(graph, branch, turn, tick)) or
+                    node not in set(self.iter_entities(graph, branch, turn, tick, forward=forward)) or
                     kc != correct_kc
             ):
                 raise ValueError("Invalid keycache")

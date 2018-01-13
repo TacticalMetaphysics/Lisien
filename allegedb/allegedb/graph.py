@@ -94,6 +94,9 @@ class AbstractEntityMapping(NeatMapping, Signal):
 
         return wrapval(self._get_cache(key, *self.db.btt()))
 
+    def __contains__(self, item):
+        return self._cache_contains(item, *self.db.btt())
+
     def __setitem__(self, key, value):
         """Set key=value at the present branch and revision"""
         if value is None:

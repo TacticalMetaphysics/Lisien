@@ -30,8 +30,8 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=False):
-        super().store(None, key, branch, turn, tick, value, planning=planning)
+    def store(self, key, branch, turn, tick, value, *, planning=False, forward=False):
+        super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward)
 
     def load(self, data, validate=False):
         return super().load(((None,) + row for row in data), validate)
@@ -69,10 +69,10 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning=False):
+    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, forward=False, planning=False):
         if not is_avatar:
             is_avatar = None
-        Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, planning=False)
+        Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, forward=forward, planning=planning)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar

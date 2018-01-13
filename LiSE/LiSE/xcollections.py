@@ -247,7 +247,8 @@ class UniversalMapping(MutableMapping, Signal):
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
         branch, turn, tick = self.engine.nbtt()
-        self.engine._universal_cache.store(k, branch, turn, tick, v)
+        self.engine._universal_cache.store(k, branch, turn, tick, v,
+                                           planning=self.engine.planning, forward=self.engine.forward)
         self.engine.query.universal_set(k, branch, turn, tick, v)
         self.engine.tick = tick
         self.send(self, key=k, val=v)

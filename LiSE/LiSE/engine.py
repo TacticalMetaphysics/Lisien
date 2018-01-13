@@ -723,6 +723,7 @@ class Engine(AbstractEngine, gORM):
             turn,
             tick,
             is_avatar,
+            forward=self.forward,
             planning=self.planning
         )
         self.query.avatar_set(
@@ -1243,13 +1244,13 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        return self._things_cache.contains_entity(character, node, *self.btt())
+        return self._things_cache.contains_entity(character, node, *self.btt(), forward=self.forward)
 
     def _set_thing_loc_and_next(
             self, character, node, loc, nextloc=None
     ):
         branch, turn, tick = self.nbtt()
-        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc), planning=self.planning)
+        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc), forward=self.forward, planning=self.planning)
         self.query.thing_loc_and_next_set(
             character,
             node,
@@ -1261,7 +1262,7 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self.btt())
+        return self._nodes_cache.contains_entity(character, node, *self.btt(), forward=self.forward)
 
     def _exist_node(self, character, node):
         if self._node_exists(character, node):
@@ -1280,7 +1281,7 @@ class Engine(AbstractEngine, gORM):
 
     def _edge_exists(self, character, orig, dest):
         return self._edges_cache.contains_entity(
-            character, orig, dest, 0, *self.btt()
+            character, orig, dest, 0, *self.btt(), forward=self.forward
         )
 
     def _exist_edge(
