@@ -1097,6 +1097,12 @@ class EdgesCache(Cache):
             kc.add(orig)
         return kc
 
+    def _update_keycache(self, *args, validate=False, forward=False):
+        super()._update_keycache(*args, validate=validate, forward=forward)
+        graph, orig, dest, idx, branch, turn, tick, value = args
+        self._update_origcache(graph, dest, branch, turn, tick, orig, value, forward=forward)
+        self._update_destcache(graph, orig, branch, turn, tick, dest, value, forward=forward)
+
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=False):
         """Iterate over successors of a given origin node at a given time."""
         yield from self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
