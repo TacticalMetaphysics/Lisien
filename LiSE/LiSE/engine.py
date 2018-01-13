@@ -1301,8 +1301,10 @@ class Engine(AbstractEngine, gORM):
             exist
         )
         self._edges_cache.store(
-            character, orig, dest, 0, branch, turn, tick, exist, planning=planning
+            character, orig, dest, 0, branch, turn, tick, exist, planning=self.planning, forward=self.forward
         )
+        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, (character, orig, dest),
+                                            planning=self.planning, forward=self.forward)
 
     def alias(self, v, stat='dummy'):
         r = DummyEntity(self)
