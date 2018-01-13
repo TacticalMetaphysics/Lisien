@@ -30,12 +30,7 @@ class Place(Node):
             self['name']
         )
 
-    def delete(self, nochar=False):
-        """Remove myself from the world model immediately.
-
-        With ``nochar=True``, avoid the final step of removing myself
-        from my character's ``place`` mapping.
-
-        """
+    def delete(self):
+        """Remove myself from the world model immediately."""
         super().delete()
         self.character.place.send(self.character.place, key=self.name, val=None)
