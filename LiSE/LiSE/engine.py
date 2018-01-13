@@ -1290,7 +1290,6 @@ class Engine(AbstractEngine, gORM):
         if exist is self._edge_exists(character, orig, dest):
             return
         branch, turn, tick = self.nbtt()
-        planning = self.planning
         self.query.exist_edge(
             character,
             orig,
