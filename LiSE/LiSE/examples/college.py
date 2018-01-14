@@ -50,7 +50,7 @@ def install(eng):
 
     @go_to_class.prereq
     def class_in_session(node):
-        return 8 <= node.character.stat['hour'] < 15
+        return 8 <= node.engine.character['physical'].stat['hour'] < 15
 
 
     @go_to_class.prereq
@@ -72,7 +72,7 @@ def install(eng):
     @student_body.avatar.rule
     def leave_class(node):
         for user in node.users.values():
-            if user.name != 'physical':
+            if user.name != 'student_body':
                 node.travel_to(user.stat['room'])
                 return
 
