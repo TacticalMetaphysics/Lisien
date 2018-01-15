@@ -489,15 +489,15 @@ class ORM(object):
             in self.query.edges_dump()
         ]
         self._edges_cache.load(edgerows, validate=validate)
-        self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
-        self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
-        self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
         if not hasattr(self, 'graph'):
             self.graph = self._graph_objs
         for graph, node, branch, turn, tick, ex in noderows:
             self._node_objs[(graph, node)] = self._make_node(self.graph[graph], node)
         for graph, orig, dest, idx, branch, turn, tick, ex in edgerows:
             self._edge_objs[(graph, orig, dest, idx)] = self._make_edge(self.graph[graph], orig, dest, idx)
+        self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
+        self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
+        self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
