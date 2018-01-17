@@ -56,7 +56,7 @@ class SimTest(TestCase):
         with self.engine.advancing:
             sim.install(self.engine)
         for i in range(72):
-            self.engine.next_tick()
+            self.engine.next_turn()
         self.engine.commit()
 
     def tearDown(self):
