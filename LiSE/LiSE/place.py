@@ -25,7 +25,8 @@ class Place(Node):
             return {'name': self.name, 'character': self.character.name}[key]
 
     def __repr__(self):
-        return "{}.place[{}]".format(
+        return "{}.character['{}'].place['{}']".format(
+            self.engine,
             self['character'],
             self['name']
         )

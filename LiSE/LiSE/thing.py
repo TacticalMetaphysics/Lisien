@@ -158,18 +158,10 @@ class Thing(Node):
         super().__delitem__(key)
 
     def __repr__(self):
-        """Return my character, name, and location."""
-        if self['next_location'] is not None:
-            return "{}.thing[{}]@{}->{}".format(
-                self['character'],
-                self['name'],
-                self['location'],
-                self['next_location']
-            )
-        return "{}.thing[{}]@{}".format(
-            self['character'],
-            self['name'],
-            self['location']
+        return "{}.character['{}'].thing['{}']".format(
+            self.engine,
+            self.character.name,
+            self.name
         )
 
     def delete(self):

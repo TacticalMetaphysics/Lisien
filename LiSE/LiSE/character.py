@@ -1197,6 +1197,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def character(self):
         return self
 
+    def __repr__(self):
+        return "{}.character['{}']".format(self.engine, self.name)
+
     def __init__(self, engine, name, data=None, *, init_rulebooks=True, **attr):
         """Store engine and name, and set up mappings for Thing, Place, and
         Portal
