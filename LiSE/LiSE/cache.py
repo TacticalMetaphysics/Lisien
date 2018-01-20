@@ -69,14 +69,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, forward=None, planning=None):
-        if not is_avatar:
-            is_avatar = None
-        if forward is None:
-            forward = self.db.forward
-        if planning is None:
-            planning = self.db.planning
-        Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, forward=forward, planning=planning)
+    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
+        is_avatar = True if is_avatar else None
+        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -148,7 +143,7 @@ class AvatarnessCache(Cache):
                 uniqgraph[turn][tick] = next(iter(graphs[turn][tick]))
             else:
                 uniqgraph[turn][tick] = None
-        if turn in graphavs and tick in graphavs[turn] and graphavs[turn][tick]:
+        if turn in graphavs and tick in graphavs[turn] and len(graphavs[turn][tick]) != 1:
             if turn in soloav:
                 soloav[turn][tick] = None
             else:
@@ -158,7 +153,7 @@ class AvatarnessCache(Cache):
                 soloav[turn][tick] = node
             else:
                 soloav[turn] = soloav.cls({tick: None})
-        if turn in charavs and charavs[turn].rev_gettable(tick) and charavs[turn][tick]:
+        if turn in charavs and charavs[turn].rev_gettable(tick) and len(charavs[turn][tick]) != 1:
             if turn in uniqav:
                 uniqav[turn][tick] = None
             else:
@@ -167,7 +162,7 @@ class AvatarnessCache(Cache):
             uniqav[turn][tick] = (graph, node)
         else:
             uniqav[turn] = uniqav.cls({tick: (graph, node)})
-        if turn in graphs and graphs[turn].rev_gettable(tick) and graphs[turn][tick]:
+        if turn in graphs and graphs[turn].rev_gettable(tick) and len(graphs[turn][tick]) != 1:
             if turn in uniqgraph:
                 uniqgraph[turn][tick] = None
             else:
