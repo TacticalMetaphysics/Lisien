@@ -30,7 +30,7 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=False, forward=False):
+    def store(self, key, branch, turn, tick, value, *, planning=None, forward=None):
         super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward)
 
     def load(self, data, validate=False):
@@ -39,11 +39,11 @@ class EntitylessCache(Cache):
     def retrieve(self, key, branch, turn, tick):
         return super().retrieve(None, key, branch, turn, tick)
 
-    def iter_entities_or_keys(self, branch, turn, tick, *, forward=False):
+    def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
         return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=False):
+    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=None):
         return super().contains_entity_or_key(None, ke, branch, turn, tick, forward=forward)
     contains_entity = contains_key = contains_entity_or_key
 
@@ -69,9 +69,13 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, forward=False, planning=False):
+    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, forward=None, planning=None):
         if not is_avatar:
             is_avatar = None
+        if forward is None:
+            forward = self.db.forward
+        if planning is None:
+            planning = self.db.planning
         Cache.store(self, character, graph, node, branch, turn, tick, is_avatar, forward=forward, planning=planning)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
@@ -198,9 +202,9 @@ class AvatarnessCache(Cache):
             self.graphs[char], branch, turn, tick
         ) or set()
 
-    def _slow_iter_character_avatars(self, character, branch, turn, tick):
-        for graph in self.iter_entities(character, branch, turn, tick):
-            for node in self.iter_entities(character, graph, branch, turn, tick):
+    def _slow_iter_character_avatars(self, character, branch, turn, tick, *, forward):
+        for graph in self.iter_entities(character, branch, turn, tick, forward=forward):
+            for node in self.iter_entities(character, graph, branch, turn, tick, forward=forward):
                 yield graph, node
 
     def _slow_iter_users(self, graph, node, branch, turn, tick):
@@ -211,6 +215,7 @@ class AvatarnessCache(Cache):
                 for (b, t, tc) in self.db._iter_parent_btt(branch, turn, tick):
                     if b in self.user_order[graph][node][character]:
                         isav = self.user_order[graph][node][character][b][t]
+                        # side effect!! bad!
                         self.store(character, graph, node, branch, turn, tick, isav[tc])
                         break
                 else:
