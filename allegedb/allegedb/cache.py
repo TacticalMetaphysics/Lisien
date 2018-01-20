@@ -850,12 +850,14 @@ class Cache(object):
             for settings in self.settings, self.presettings:
                 settings_turns = settings[branch]
                 settings_turns.seek(turn)
+                deletable = {}
                 for trn, tics in settings_turns.future().items():
-                    deletable = [
+                    deletable[trn] = [
                         tic for tic in tics
                         if tic >= tick and tics[tic][:len(prefix)] == prefix
                     ]
-                    for tic in deletable:
+                for trn, tics in deletable.items():
+                    for tic in tics:
                         del settings_turns[trn][tic]
         self._store_journal(*args)
         new = None
