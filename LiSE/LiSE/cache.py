@@ -237,7 +237,7 @@ class RulesHandledCache(object):
     def store(self, *args, loading=False):
         entity = args[:-5]
         rulebook, rule, branch, turn, tick = args[-5:]
-        shalo = self.handled.setdefault(entity + (rulebook, branch, turn), set())
+        self.handled.setdefault(entity + (rulebook, branch, turn), set()).add(rule)
         unhandl = self.unhandled.setdefault(entity, {}).setdefault(rulebook, {}).setdefault(branch, {})
         if turn not in unhandl:
             unhandl[turn] = list(self.unhandled_rulebook_rules(entity, rulebook, branch, turn, tick))
@@ -246,7 +246,6 @@ class RulesHandledCache(object):
         except ValueError:
             if not loading:
                 raise
-        shalo.add(rule)
 
     def fork(self, branch, turn, tick):
         parent_branch, parent_turn, parent_tick, end_turn, end_tick = self.engine._branches[branch]
