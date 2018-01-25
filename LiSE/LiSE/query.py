@@ -674,8 +674,8 @@ class QueryEngine(allegedb.query.QueryEngine):
     def handled_character_rule(
             self, character, rulebook, rule, branch, turn, tick
     ):
-        (character, rulebook, rule) = map(
-            self.json_dump, (character, rulebook, rule)
+        (character, rulebook) = map(
+            self.json_dump, (character, rulebook)
         )
         return self.sql(
             'character_rules_handled_insert',
@@ -688,8 +688,8 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
 
     def handled_avatar_rule(self, character, graph, av, rulebook, rule, branch, turn, tick):
-        character, graph, av, rulebook, rule = map(
-            self.json_dump, (character, graph, av, rulebook, rule)
+        character, graph, av, rulebook = map(
+            self.json_dump, (character, graph, av, rulebook)
         )
         return self.sql(
             'avatar_rules_handled_insert',
@@ -723,8 +723,8 @@ class QueryEngine(allegedb.query.QueryEngine):
     def handled_portal_rule(
             self, character, orig, dest, rulebook, rule, branch, turn, tick
     ):
-        (character, orig, dest, rulebook, rule) = map(
-            self.json_dump, (character, orig, dest, rulebook, rule)
+        (character, orig, dest, rulebook) = map(
+            self.json_dump, (character, orig, dest, rulebook)
         )
         return self.sql(
             'portal_rules_handled_insert',
