@@ -1306,5 +1306,5 @@ class Engine(AbstractEngine, gORM):
             return v
         return self.alias(v, stat)
 
-    def ticks_when(self, query):
-        return query()
+    def turns_when(self, qry):
+        return qry.iter_turns()

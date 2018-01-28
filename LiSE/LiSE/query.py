@@ -16,8 +16,7 @@ import allegedb.query
 
 from .exc import (
     IntegrityError,
-    OperationalError,
-    RedundantRuleError
+    OperationalError
 )
 from .util import EntityStatAccessor
 import LiSE
@@ -144,8 +143,11 @@ class Query(object):
         me.windows = kwargs.get('windows', [])
         return me
 
-    def __call__(self):
-        raise NotImplementedError("Query is abstract")
+    def iter_turns(self):
+        raise NotImplementedError
+
+    def iter_ticks(self, turn):
+        raise NotImplementedError
 
     def __eq__(self, other):
         return EqQuery(self.engine, self, self.engine.entityfy(other))
@@ -220,8 +222,8 @@ class Union(Query):
 class ComparisonQuery(Query):
     oper = lambda x, y: NotImplemented
 
-    def __call__(self):
-        return QueryResults(iter_eval_cmp(self, self.oper, engine=self.engine))
+    def iter_turns(self):
+        return iter_turns_eval_cmp(self, self.oper, engine=self.engine)
 
 
 class EqQuery(ComparisonQuery):
@@ -278,101 +280,64 @@ class StatusAlias(EntityStatAccessor):
         return LeQuery(self.engine, self, other)
 
 
-def intersect_qry(qry):
-    windows = []
-    windowses = 0
-    if hasattr(qry.leftside, 'windows'):
-        windows.extend(qry.leftside.windows)
-        windowses += 1
-    if hasattr(qry.rightside, 'windows'):
-        windows.extend(qry.rightside.windows)
-        windowses += 1
-    if windowses > 1:
-        windows = windows_intersection(windowses)
-    return windows
-
-
-def iter_intersection_ticks2check(ticks, windows):
+def iter_intersection_revs2check(revs, windows):
+    """Iterate over the ``revs`` that fall within the ranges ``windows``"""
     windows = windows_intersection(windows)
     if not windows:
-        yield from ticks
+        yield from revs
         return
-    for tick in sorted(ticks):
+    for rev in sorted(revs):
         (left, right) = windows.pop(0)
         if left is None:
-            if tick <= right:
-                yield tick
+            if rev <= right:
+                yield rev
                 windows.insert(0, (left, right))
         elif right is None:
-            if tick >= left:
-                yield from ticks
+            if rev >= left:
+                yield from revs
                 return
             windows.insert(0, (left, right))
-        elif left <= tick <= right:
-            yield tick
+        elif left <= rev <= right:
+            yield rev
             windows.insert(0, (left, right))
-        elif tick < left:
+        elif rev < left:
             windows.insert(0, (left, right))
 
 
-class QueryResults(object):
-    def __init__(self, iter):
-        self.iter = iter
-        try:
-            self.next = next(self.iter)
-        except StopIteration:
-            return
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        try:
-            r = self.next
-        except AttributeError:
-            raise StopIteration
-        try:
-            self.next = next(self.iter)
-        except StopIteration:
-            del self.next
-        return r
-
-    def __bool__(self):
-        return hasattr(self, 'next')
-
-
-def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
+def iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
     def mungeside(side):
         if isinstance(side, Query):
-            return side()
+            return side.iter_turns
         elif isinstance(side, StatusAlias):
             return EntityStatAccessor(
                 side.entity, side.stat, side.engine,
-                side.branch, side.tick, side.current, side.mungers
+                side.branch, side.turn, side.tick, side.current, side.mungers
             )
         elif isinstance(side, EntityStatAccessor):
             return side
         else:
-            return lambda b, t: side
+            return lambda: side
+    leftside = mungeside(qry.leftside)
+    rightside = mungeside(qry.rightside)
+    engine = engine or leftside.engine or rightside.engine
 
     def getcache(side):
         if hasattr(side, 'cache'):
             return side.cache
         if hasattr(side, 'entity'):
-            if side.stat in (
-                    'location', 'next_location', 'locations',
-                    'arrival_time', 'next_arrival_time'
-            ):
+            if side.stat in {'location', 'next_location', 'locations', 'arrival_time', 'next_arrival_time'}:
                 return engine._things_cache.branches[
                     (side.entity.character.name, side.entity.name)]
-            if side.stat in side.entity._cache:
-                return side.entity._cache[side.stat]
+            if hasattr(side.entity, 'location'):
+                return engine._node_val_cache.branches[side.entity.character.name, side.entity.name, side.stat]
+            else:
+                return engine._edge_val_cache.branches[
+                    side.entity.character.name, side.entity.orig, side.entity.dest, side.stat
+                ]
 
-    leftside = mungeside(qry.leftside)
-    rightside = mungeside(qry.rightside)
+
     windows = qry.windows or [(0, None)]
-    engine = engine or leftside.engine or rightside.engine
-    for (branch, _, _) in engine._iter_parent_btt(start_branch):
+    for (branch, _, _) in engine._iter_parent_btt(start_branch or engine.branch):
         try:
             lkeys = frozenset(getcache(leftside)[branch].keys())
         except AttributeError:
@@ -381,19 +346,20 @@ def iter_eval_cmp(qry, oper, start_branch=None, engine=None):
             rkeys = getcache(rightside)[branch].keys()
         except AttributeError:
             rkeys = frozenset()
-        ticks = lkeys.union(rkeys)
-        if ticks:
+        turns = lkeys.union(rkeys)
+        if turns:
             yield from (
-                (branch, tick) for tick in
-                iter_intersection_ticks2check(ticks, windows)
-                if oper(leftside(branch, tick), rightside(branch, tick))
+                (branch, turn) for turn in
+                iter_intersection_revs2check(turns, windows)
+                if oper(leftside(branch, turn), rightside(branch, turn))
             )
+        elif branch is None:
+            return
         else:
-            yield from (
-                (branch, tick) for tick in
-                range(engine._branch_start.get(branch, 0), engine.tick+1)
-                if oper(leftside(branch, tick), rightside(branch, tick))
-            )
+            parent, turn_start, tick_start, turn_end, tick_end = engine._branches[branch]
+            for turn in range(turn_start, engine.turn + 1):
+                if oper(leftside(branch, turn), rightside(branch, turn)):
+                    yield branch, turn
 
 
 class QueryEngine(allegedb.query.QueryEngine):

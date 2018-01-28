@@ -91,35 +91,42 @@ def keycache_iter(keycache, branch, tick, get_iterator):
 
 class EntityStatAccessor(object):
     __slots__ = [
-        'engine', 'entity', 'branch', 'tick', 'stat', 'current', 'mungers'
+        'engine', 'entity', 'branch', 'turn', 'tick', 'stat', 'current', 'mungers'
     ]
 
     def __init__(
             self, entity, stat,
-            engine=None, branch=None, tick=None, current=False, mungers=[]
+            engine=None, branch=None, turn=None, tick=None, current=False, mungers=[]
     ):
         if engine is None:
             engine = entity.engine
-        if branch is None and engine is not None:
+        if branch is None:
             branch = engine.branch
-        if tick is None and engine is not None:
+        if turn is None:
+            turn = engine.turn
+        if tick is None:
             tick = engine.tick
         self.current = current
         self.engine = engine
         self.entity = entity
         self.stat = stat
         self.branch = branch
+        self.turn = turn
         self.tick = tick
         self.mungers = mungers
 
-    def __call__(self, branch=None, tick=None):
+    def __call__(self, branch=None, turn=None, tick=None):
         if self.current:
             res = self.entity[self.stat]
         else:
-            time = self.engine.time
-            self.engine.time = (branch or self.branch, tick or self.tick)
+            branc, trn, tck = self.engine.btt()
+            self.engine.branch = branch or self.branch
+            self.engine.turn = turn or self.turn
+            self.engine.tick = tick or self.tick
             res = self.entity[self.stat]
-            self.engine.time = time
+            self.engine.branch = branc
+            self.engine.turn = trn
+            self.engine.tick = tck
         for munger in self.mungers:
             res = munger(res)
         return res
@@ -138,7 +145,7 @@ class EntityStatAccessor(object):
             self.entity,
             self.stat,
             "" if self.current else
-            ", branch={}, tick={}".format(self.branch, self.tick),
+            ", branch={}, turn={}, tick={}".format(self.branch, self.turn, self.tick),
             len(self.mungers)
         )
 
