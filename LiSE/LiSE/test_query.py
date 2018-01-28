@@ -57,9 +57,6 @@ def roommate_collisions(engine):
         assert len(same_loc_turns) >= 6, "{} and {} did not share their room for at least 6 turns".format(
                 student.name, other_student.name
             )
-        assert len(same_loc_turns) <= 17, "{} and {} shared their room for more than 17 turns".format(
-            student.name, other_student.name
-        )
 
         done.add(student.name)
         done.add(other_student.name)
