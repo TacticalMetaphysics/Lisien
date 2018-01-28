@@ -2,23 +2,7 @@ import re
 from functools import reduce
 from collections import defaultdict
 from LiSE.engine import Engine
-from LiSE.examples import college
 import pytest
-
-
-# Test once on a premade world state, and once on a fresh one in memory;
-# might catch unexpected changes in the way the sim runs, or the
-# loader working wrong
-
-
-@pytest.fixture(scope="module")
-def college24_inmem():
-    eng = Engine(":memory:", random_seed=69105)
-    college.install(eng)
-    for i in range(24):
-        eng.next_turn()
-    yield eng
-    eng.close()
 
 
 @pytest.fixture
@@ -62,10 +46,6 @@ def roommate_collisions(engine):
         done.add(other_student.name)
 
 
-def test_roomie_collisions_inmem(college24_inmem):
-    roommate_collisions(college24_inmem)
-
-
 def test_roomie_collisions_premade(college24_premade):
     roommate_collisions(college24_premade)
 
@@ -102,9 +82,6 @@ def sober_collisions(engine):
 
     reduce(sameClasstime, students)
 
-
-def test_sober_collisions_inmem(college24_inmem):
-    sober_collisions(college24_inmem)
 
 def test_sober_collisions_premade(college24_premade):
     sober_collisions(college24_premade)
@@ -146,9 +123,20 @@ def noncollision(engine):
                             )
 
 
-def test_noncollision_inmem(college24_inmem):
-    noncollision(college24_inmem)
-
-
 def test_noncollision_premade(college24_premade):
     noncollision(college24_premade)
+
+
+if __name__ == '__main__':
+    # regen test data
+    import os
+    from LiSE.examples.college import install
+    try:
+        os.remove('college24_premade.db')
+    except FileNotFoundError:
+        pass
+    with Engine('college24_premade.db', random_seed=69105) as eng:
+        install(eng)
+        for i in range(24):
+            print(i)
+            eng.next_turn()
