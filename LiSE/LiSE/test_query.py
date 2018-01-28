@@ -3,10 +3,19 @@ from functools import reduce
 from collections import defaultdict
 from LiSE.engine import Engine
 import pytest
+import os
 
 
 @pytest.fixture
 def college24_premade():
+    if not os.path.exists("college24_premade.db"):
+        print("generating test data for query")
+        from LiSE.examples.college import install
+        with Engine('college24_premade.db', random_seed=69105) as eng:
+            install(eng)
+            for i in range(24):
+                print(i)
+                eng.next_turn()
     eng = Engine("college24_premade.db")
     yield eng
     eng.close()
@@ -125,18 +134,3 @@ def noncollision(engine):
 
 def test_noncollision_premade(college24_premade):
     noncollision(college24_premade)
-
-
-if __name__ == '__main__':
-    # regen test data
-    import os
-    from LiSE.examples.college import install
-    try:
-        os.remove('college24_premade.db')
-    except FileNotFoundError:
-        pass
-    with Engine('college24_premade.db', random_seed=69105) as eng:
-        install(eng)
-        for i in range(24):
-            print(i)
-            eng.next_turn()
