@@ -993,8 +993,8 @@ class AllegedGraph(object):
     @property
     def graph(self):
         if self._name not in self._statmaps:
-            self._statmaps[self._name] = GraphMapping(self)
-        return self._statmaps[self._name]
+            self._statmaps[id(self)] = GraphMapping(self)
+        return self._statmaps[id(self)]
 
     @graph.setter
     def graph(self, v):
@@ -1006,8 +1006,8 @@ class AllegedGraph(object):
     @property
     def node(self):
         if self._name not in self._nodemaps:
-            self._nodemaps[self._name] = GraphNodeMapping(self)
-        return self._nodemaps[self._name]
+            self._nodemaps[id(self)] = GraphNodeMapping(self)
+        return self._nodemaps[id(self)]
 
     @node.setter
     def node(self, v):
@@ -1020,8 +1020,8 @@ class AllegedGraph(object):
     @property
     def adj(self):
         if self._name not in self._succmaps:
-            self._succmaps[self._name] = self.adj_cls(self)
-        return self._succmaps[self._name]
+            self._succmaps[id(self)] = self.adj_cls(self)
+        return self._succmaps[id(self)]
 
     @adj.setter
     def adj(self, v):
@@ -1036,8 +1036,8 @@ class AllegedGraph(object):
         if not hasattr(self, 'pred_cls'):
             raise TypeError("Undirected graph")
         if self._name not in self._predmaps:
-            self._predmaps[self._name] = self.pred_cls(self)
-        return self._predmaps[self._name]
+            self._predmaps[id(self)] = self.pred_cls(self)
+        return self._predmaps[id(self)]
 
     @pred.setter
     def pred(self, v):
