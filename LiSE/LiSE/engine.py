@@ -1307,4 +1307,5 @@ class Engine(AbstractEngine, gORM):
         return self.alias(v, stat)
 
     def turns_when(self, qry):
-        return qry.iter_turns()
+        for branch, turn in qry.iter_turns():
+            yield turn
