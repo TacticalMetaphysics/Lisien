@@ -101,9 +101,7 @@ class AbstractCharacter(object):
     def avatar(self):
         return self.AvatarGraphMapping(self)
 
-    @reify
-    def stat(self):
-        return self.StatMapping(self)
+    stat = getatt('graph')
 
     pred = _pred = getatt('preportal')
     adj = succ = edge = _adj = _succ = getatt('portal')
@@ -1665,39 +1663,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 for k in self:
                     d[k] = dict(self[k])
                 return repr(d)
-
-    class StatMapping(MutableMapping, Signal):
-        """Caching dict-alike for character stats"""
-        engine = getatt('character.engine')
-        _real = getatt('character.graph')
-
-        def __init__(self, char):
-            """Store character."""
-            super().__init__()
-            self.character = char
-
-        def __iter__(self):
-            return iter(self._real)
-
-        def __len__(self):
-            return len(self._real)
-
-        def __getitem__(self, k):
-            return self._real[k]
-
-        def _get(self, k=None):
-            if k is None:
-                return self
-            return self[k]
-
-        def __setitem__(self, k, v):
-            assert(v is not None)
-            self._real[k] = v
-            self.send(self, key=k, val=v)
-
-        def __delitem__(self, k):
-            del self._real[k]
-            self.send(self, key=k, val=None)
 
     def facade(self):
         return Facade(self)

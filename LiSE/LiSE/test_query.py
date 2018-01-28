@@ -2,182 +2,163 @@ import unittest
 import re
 from functools import reduce
 from collections import defaultdict
-from allegedb.cache import StructuredDefaultDict, WindowDict
 from LiSE.engine import Engine
-from LiSE.examples import college as sim
+from LiSE.examples import college
+import pytest
+import os
 
 
-def deepDictDiffIter(d0, d1, lvl=0):
-    tabs = "\t" * lvl
-    if d0.keys() != d1.keys():
-        deld = set(d0.keys()) - set(d1.keys())
-        addd = set(d1.keys()) - set(d0.keys())
-        if deld:
-            for k in sorted(deld):
-                yield tabs + str(k) + " deleted"
-        if addd:
-            for k in sorted(addd):
-                yield tabs + str(k) + " added"
-    for k in sorted(set(d0.keys()).intersection(d1.keys())):
-        if d0[k] != d1[k]:
-            if isinstance(d0[k], dict) and isinstance(d1[k], dict):
-                yield "{}{}:".format(tabs, k)
-                yield from deepDictDiffIter(d0[k], d1[k], lvl+1)
-            else:
-                yield "{}{}: {} != {}".format(tabs, k, d0[k], d1[k])
+@pytest.mark.skip("slow")
+@pytest.fixture(scope="module")
+def college24_inmem():
+    eng = Engine(":memory:")
+    college.install(eng)
+    for i in range(24):
+        eng.next_turn()
+    yield eng
+    eng.close()
 
 
-class TestCase(unittest.TestCase):
-    def assertDictEqual(self, d0, d1, msg=None):
-        if d0 != d1:
-            self.fail(self._formatMessage(
-                msg,
-                self._truncateMessage(
-                    "Dicts not equal. Sizes {}, {}\n".format(
-                        len(d0), len(d1)
-                    ), "\n".join(deepDictDiffIter(d0, d1))
-                )
-            ))
+@pytest.mark.skip("slow")
+@pytest.fixture(scope="module")
+def college24_disk():
+    eng = Engine("test.db")
+    college.install(eng)
+    for i in range(24):
+        eng.next_turn()
+    eng.close()
+    yield Engine("test.db")
+    eng.close()
+    os.remove("test.db")
 
 
-class SimTest(TestCase):
-    maxDiff = None
-    def setUp(self):
-        """Start an engine, install the sim module, and run it a while.
-
-        This gives us some world-state to test upon.
-
-        """
-        from logging import getLogger, FileHandler
-        self.engine = Engine(":memory:")
-        logger = getLogger('LiSE.engine')
-        logger.setLevel('DEBUG')
-        logger.addHandler(FileHandler('test.log'))
-        with self.engine.advancing:
-            sim.install(self.engine)
-        for i in range(72):
-            self.engine.next_turn()
-        self.engine.commit()
-
-    def tearDown(self):
-        """Close my engine."""
-        self.engine.close()
+@pytest.fixture
+def college24_premade():
+    eng = Engine("college24_premade.db")
+    yield eng
+    eng.close()
 
 
-    def testRoommateCollisions(self):
-        """Test queries' ability to tell that all of the students that share
-        rooms have been in the same place.
+def test_roommate_collisions(engine):
+    """Test queries' ability to tell that all of the students that share
+    rooms have been in the same place.
 
-        """
-        done = set()
-        for chara in self.engine.character.values():
-            if chara.name in done:
-                continue
-            match = re.match('dorm(\d)room(\d)student(\d)', chara.name)
-            if not match:
-                continue
-            dorm, room, student = match.groups()
-            other_student = 1 if student == 0 else 0
-            student = chara
-            other_student = self.engine.character[
-                'dorm{}room{}student{}'.format(dorm, room, other_student)
-            ]
-            
-            same_loc_ticks = list(self.engine.ticks_when(
-                student.avatar.only.historical('location')
-                == other_student.avatar.only.historical('location')
-            ))
-            self.assertTrue(
-                same_loc_ticks,
-                "{} and {} don't seem to share a room".format(
-                    student.name, other_student.name
-                )
-            )
-            self.assertGreater(
-                len(same_loc_ticks),
-                6,
-                "{} and {} share their room for less than 6 ticks".format(
-                    student.name, other_student.name
-                )
-            )
-            done.add(student.name)
-            done.add(other_student.name)
-
-    def testSoberCollisions(self):
-        """Students that are neither lazy nor drunkards should all have been
-        in class together at least once.
-
-        """
-        students = [
-            stu for stu in
-            self.engine.character['student_body'].stat['characters']
-            if not (stu.stat['drunkard'] or stu.stat['lazy'])
+    """
+    done = set()
+    for chara in engine.character.values():
+        if chara.name in done:
+            continue
+        match = re.match('dorm(\d)room(\d)student(\d)', chara.name)
+        if not match:
+            continue
+        dorm, room, student = match.groups()
+        other_student = 1 if student == 0 else 0
+        student = chara
+        other_student = engine.character[
+            'dorm{}room{}student{}'.format(dorm, room, other_student)
         ]
 
-        assert students
-
-        def sameClasstime(stu0, stu1):
-            self.assertTrue(
-                self.engine.ticks_when(
-                    stu0.avatar.only.historical('location') ==
-                    stu1.avatar.only.historical('location') ==
-                    self.engine.alias('classroom')
-                ),
-                "{stu0} seems not to have been in the classroom "
-                "at the same time as {stu1}.\n"
-                "{stu0} was there at ticks {ticks0}\n"
-                "{stu1} was there at ticks {ticks1}".format(
-                    stu0=stu0.name,
-                    stu1=stu1.name,
-                    ticks0=list(self.engine.ticks_when(stu0.avatar.only.historical('location') == self.engine.alias('classroom'))),
-                    ticks1=list(self.engine.ticks_when(stu1.avatar.only.historical('location') == self.engine.alias('classroom')))
-                )
+        same_loc_turns = list(engine.turns_when(
+            student.avatar.only.historical('location')
+            == other_student.avatar.only.historical('location')
+        ))
+        assert (
+            same_loc_turns,
+            "{} and {} don't seem to share a room".format(
+                student.name, other_student.name
             )
-            return stu1
+        )
+        assert (
+            len(same_loc_turns) < 6,
+            "{} and {} share their room for less than 6 ticks".format(
+                student.name, other_student.name
+            )
+        )
+        done.add(student.name)
+        done.add(other_student.name)
 
-        reduce(sameClasstime, students)
 
-    def testNoncollision(self):
-        """Make sure students *not* from the same room never go there together"""
-        dorm = defaultdict(lambda: defaultdict(dict))
-        for character in self.engine.character.values():
-            match = re.match('dorm(\d)room(\d)student(\d)', character.name)
-            if not match:
-                continue
-            d, r, s = match.groups()
-            dorm[d][r][s] = character
-        for d in dorm:
-            other_dorms = [dd for dd in dorm if dd != d]
-            for r in dorm[d]:
-                other_rooms = [rr for rr in dorm[d] if rr != r]
-                for stu0 in dorm[d][r].values():
-                    for rr in other_rooms:
-                        for stu1 in dorm[d][rr].values():
-                            self.assertFalse(
-                                self.engine.ticks_when(
+def test_roommate_collisions_inmem(college24_inmem):
+    roommate_collisions(college24_inmem)
+
+
+def test_roommate_collisions_disk(college24_disk):
+    roommate_collisions(college24_disk)
+
+
+def test_roommate_collisions_premade(college24_premade):
+    roommate_collisions(college24_premade)
+
+
+def test_sober_collisions(engine):
+    """Students that are neither lazy nor drunkards should all have been
+    in class together at least once.
+
+    """
+    students = [
+        stu for stu in
+        engine.character['student_body'].stat['characters']
+        if not (stu.stat['drunkard'] or stu.stat['lazy'])
+    ]
+
+    assert students
+
+    def sameClasstime(stu0, stu1):
+        assert (
+            engine.turns_when(
+                stu0.avatar.only.historical('location') ==
+                stu1.avatar.only.historical('location') ==
+                engine.alias('classroom')
+            ),
+            "{stu0} seems not to have been in the classroom "
+            "at the same time as {stu1}.\n"
+            "{stu0} was there at turns {turns0}\n"
+            "{stu1} was there at turns {turns1}".format(
+                stu0=stu0.name,
+                stu1=stu1.name,
+                turns0=list(engine.turns_when(stu0.avatar.only.historical('location') == engine.alias('classroom'))),
+                turns1=list(engine.turns_when(stu1.avatar.only.historical('location') == engine.alias('classroom')))
+            )
+        )
+        return stu1
+
+    reduce(sameClasstime, students)
+
+
+def test_noncollision(engine):
+    """Make sure students *not* from the same room never go there together"""
+    dorm = defaultdict(lambda: defaultdict(dict))
+    for character in engine.character.values():
+        match = re.match('dorm(\d)room(\d)student(\d)', character.name)
+        if not match:
+            continue
+        d, r, s = match.groups()
+        dorm[d][r][s] = character
+    for d in dorm:
+        other_dorms = [dd for dd in dorm if dd != d]
+        for r in dorm[d]:
+            other_rooms = [rr for rr in dorm[d] if rr != r]
+            for stu0 in dorm[d][r].values():
+                for rr in other_rooms:
+                    for stu1 in dorm[d][rr].values():
+                        assert not engine.turns_when(
+                                stu0.avatar.only.historical('location') ==
+                                stu1.avatar.only.historical('location') ==
+                                engine.alias('dorm{}room{}'.format(d, r))
+                        ), "{} seems to share a room with {}".format(
+                            stu0.name, stu1.name
+                        )
+                common = 'common{}'.format(d)
+                for dd in other_dorms:
+                    for rr in dorm[dd]:
+                        for stu1 in dorm[dd][rr].values():
+                            assert not engine.turns_when(
                                     stu0.avatar.only.historical('location') ==
                                     stu1.avatar.only.historical('location') ==
-                                    self.engine.alias('dorm{}room{}'.format(d, r))
-                                ),
-                                "{} seems to share a room with {}".format(
-                                    stu0.name, stu1.name
-                                )
+                                    engine.alias(common)
+                            ), "{} seems to have been in the same common room  as {}".format(
+                                stu0.name, stu1.name
                             )
-                    common = 'common{}'.format(d)
-                    for dd in other_dorms:
-                        for rr in dorm[dd]:
-                            for stu1 in dorm[dd][rr].values():
-                                self.assertFalse(
-                                    self.engine.ticks_when(
-                                        stu0.avatar.only.historical('location') ==
-                                        stu1.avatar.only.historical('location') ==
-                                        self.engine.alias(common)
-                                    ),
-                                    "{} seems to have been in the same"
-                                    "common room  as {}".format(
-                                        stu0.name, stu1.name
-                                    )
-                                )
 
 
 def test_fast_delta():
