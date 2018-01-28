@@ -239,7 +239,7 @@ class ComparisonQuery(Query):
     oper = lambda x, y: NotImplemented
 
     def iter_turns(self):
-        return iter_turns_eval_cmp(self, self.oper, engine=self.engine)
+        return slow_iter_turns_eval_cmp(self, self.oper, engine=self.engine)
 
 
 class EqQuery(ComparisonQuery):
@@ -296,31 +296,12 @@ class StatusAlias(EntityStatAccessor):
         return LeQuery(self.engine, self, other)
 
 
-def iter_intersection_revs2check(revs, windows):
-    """Iterate over the ``revs`` that fall within the ranges ``windows``"""
-    windows = windows_intersection(windows)
-    if not windows:
-        yield from revs
-        return
-    for rev in sorted(revs):
-        (left, right) = windows.pop(0)
-        if left is None:
-            if rev <= right:
-                yield rev
-                windows.insert(0, (left, right))
-        elif right is None:
-            if rev >= left:
-                yield from revs
-                return
-            windows.insert(0, (left, right))
-        elif left <= rev <= right:
-            yield rev
-            windows.insert(0, (left, right))
-        elif rev < left:
-            windows.insert(0, (left, right))
+def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
+    """Iterate over all turns on which a comparison holds.
 
+    This is expensive. It evaluates the query for every turn in history.
 
-def iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
+    """
     def mungeside(side):
         if isinstance(side, Query):
             return side.iter_turns
@@ -337,45 +318,12 @@ def iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
     rightside = mungeside(qry.rightside)
     engine = engine or leftside.engine or rightside.engine
 
-    def getcache(side):
-        if hasattr(side, 'cache'):
-            return side.cache
-        if hasattr(side, 'entity'):
-            if side.stat in {'location', 'next_location', 'locations', 'arrival_time', 'next_arrival_time'}:
-                return engine._things_cache.branches[
-                    (side.entity.character.name, side.entity.name)]
-            if hasattr(side.entity, 'location'):
-                return engine._node_val_cache.branches[side.entity.character.name, side.entity.name, side.stat]
-            else:
-                return engine._edge_val_cache.branches[
-                    side.entity.character.name, side.entity.orig, side.entity.dest, side.stat
-                ]
-
-
-    windows = qry.windows or [(0, None)]
-    for (branch, _, _) in engine._iter_parent_btt(start_branch or engine.branch):
-        try:
-            lkeys = frozenset(getcache(leftside)[branch].keys())
-        except AttributeError:
-            lkeys = frozenset()
-        try:
-            rkeys = getcache(rightside)[branch].keys()
-        except AttributeError:
-            rkeys = frozenset()
-        turns = lkeys.union(rkeys)
-        if turns:
-            yield from (
-                (branch, turn) for turn in
-                iter_intersection_revs2check(turns, windows)
-                if oper(leftside(branch, turn), rightside(branch, turn))
-            )
-        elif branch is None:
+    for (branch, turn_start, tick_start) in engine._iter_parent_btt(start_branch or engine.branch):
+        if branch is None:
             return
-        else:
-            parent, turn_start, tick_start, turn_end, tick_end = engine._branches[branch]
-            for turn in range(turn_start, engine.turn + 1):
-                if oper(leftside(branch, turn), rightside(branch, turn)):
-                    yield branch, turn
+        for turn in range(turn_start, engine.turn + 1):
+            if oper(leftside(branch, turn), rightside(branch, turn)):
+                yield branch, turn
 
 
 class QueryEngine(allegedb.query.QueryEngine):
