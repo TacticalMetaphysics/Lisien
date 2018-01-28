@@ -23,6 +23,11 @@ import LiSE
 
 
 def windows_union(windows):
+    """Given a list of (beginning, ending), return a minimal version that contains the same ranges.
+
+    :rtype: list
+
+    """
     def fix_overlap(left, right):
         if left == right:
             return [left]
@@ -35,13 +40,15 @@ def windows_union(windows):
         return [left, right]
 
     if len(windows) == 1:
-        yield windows[0]
-        return
+        return windows
     none_left = []
+    none_right = []
     otherwise = []
     for window in windows:
         if window[0] is None:
             none_left.append(window)
+        elif window[1] is None:
+            none_right.append(window)
         else:
             otherwise.append(window)
 
@@ -58,11 +65,16 @@ def windows_union(windows):
             res.append(window)
             continue
         res.extend(fix_overlap(res.pop(), window))
+    for window in none_right:
+        if not res:
+            res.append(window)
+            continue
+        res.extend(fix_overlap(res.pop(), window))
     return res
 
 
 def windows_intersection(windows):
-    """
+    """Given a list of (beginning, ending), return another describing where they overlap.
 
     :rtype: list
     """
@@ -110,10 +122,14 @@ def windows_intersection(windows):
     if len(windows) == 1:
         return windows
     left_none = []
+    right_none = []
     otherwise = []
     for window in windows:
+        assert window is not None, None
         if window[0] is None:
             left_none.append(window)
+        elif window[1] is None:
+            right_none.append(window)
         else:
             otherwise.append(window)
 
