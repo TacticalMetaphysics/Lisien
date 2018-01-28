@@ -41,7 +41,7 @@ def roommate_collisions(engine):
         if not match:
             continue
         dorm, room, student = match.groups()
-        other_student = 1 if student == 0 else 0
+        other_student = '1' if student == '0' else '0'
         student = chara
         other_student = engine.character[
             'dorm{}room{}student{}'.format(dorm, room, other_student)
@@ -54,10 +54,10 @@ def roommate_collisions(engine):
         assert same_loc_turns, "{} and {} don't seem to share a room".format(
                 student.name, other_student.name
             )
-        assert len(same_loc_turns) >= 3, "{} and {} did not share their room for at least 3 turns".format(
+        assert len(same_loc_turns) >= 6, "{} and {} did not share their room for at least 6 turns".format(
                 student.name, other_student.name
             )
-        assert len(same_loc_turns) < 12, "{} and {} shared their room for too long".format(
+        assert len(same_loc_turns) <= 17, "{} and {} shared their room for more than 17 turns".format(
             student.name, other_student.name
         )
 
