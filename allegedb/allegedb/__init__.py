@@ -529,6 +529,7 @@ class ORM(object):
     def _set_branch(self, v):
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
+            self._otick = self._turn_end_plan[curbranch, curturn]
             return
         if v not in self._branches:
             # assumes the present turn in the parent branch has
@@ -557,6 +558,7 @@ class ORM(object):
 
     def _set_turn(self, v):
         if v == self.turn:
+            self._otick = self._turn_end_plan[tuple(self.time)]
             return
         if not isinstance(v, int):
             raise TypeError("turn must be an integer")
