@@ -19,9 +19,6 @@ class AllegedTest(unittest.TestCase):
         self.engine = allegedb.ORM('sqlite:///:memory:')
         self.graphmakers = (self.engine.new_graph, self.engine.new_digraph, self.engine.new_multigraph, self.engine.new_multidigraph)
 
-    def tearDown(self):
-        self.engine.close()
-
 
 class GraphTest(AllegedTest):
     def setUp(self):
