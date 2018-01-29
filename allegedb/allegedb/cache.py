@@ -744,7 +744,7 @@ class Cache(object):
     def _slow_iter_keys(self, cache, branch, turn, tick):
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
-                if branc not in branches or not branches[branch].rev_gettable(trn):
+                if branc not in branches or not branches[branc].rev_gettable(trn):
                     continue
                 turnd = branches[branc]
                 if trn in turnd:
