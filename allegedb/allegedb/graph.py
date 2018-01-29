@@ -134,7 +134,7 @@ class GraphMapping(AbstractEntityMapping):
 
     def _cache_contains(self, key, branch, turn, tick):
         return self.db._graph_val_cache.contains_key(
-            self.graph, key, branch, turn, tick, forward=self.db.forward
+            self.graph.name, key, branch, turn, tick, forward=self.db.forward
         )
 
     def __len__(self):
@@ -190,7 +190,7 @@ class Node(AbstractEntityMapping):
 
     def _cache_contains(self, key, branch, turn, tick):
         return self.db._node_val_cache.contains_key(
-            self.graph, self.node, key, branch, turn, tick,
+            self.graph.name, self.node, key, branch, turn, tick,
             forward=self.db.forward
         )
 
