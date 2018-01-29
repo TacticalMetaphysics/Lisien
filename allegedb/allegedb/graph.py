@@ -846,8 +846,7 @@ class MultiEdges(GraphEdgeMapping, Signal):
             self.dest,
             idx,
             branch, turn, tick,
-            True,
-            planning=planning
+            True
         )
         e = self._getedge(idx)
         e.clear()
