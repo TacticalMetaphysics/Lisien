@@ -14,7 +14,7 @@ randomly show up late (brain cells become useless in proportion to
 how late, recovering immediately afterward) or drunk (some brain
 cells made useless per drink, recovering as time passes).
 
-This script will initialize LiSEworld.db and LiSEcode.db to run the
+This script will initialize LiSEworld.db and code libraries to run the
 simulation described. To view it, run ELiDE from the same directory
 as you ran this script from.
 
