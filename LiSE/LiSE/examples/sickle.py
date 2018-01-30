@@ -164,11 +164,11 @@ def sickle_cell_test(
             if not r:
                 continue
             r = r[0]
-            if r == 'malaria':
+            if 'malaria' in r:
                 malaria_dead += 1
-            elif r == 'anemia':
+            if 'anemia' in r:
                 anemia_dead += 1
-            elif r == 'mated':
+            if 'mated' in r:
                 born += 1
         print("On tick {}, {} critters were born; "
               "{} died of malaria, and {} of sickle cell anemia, "
