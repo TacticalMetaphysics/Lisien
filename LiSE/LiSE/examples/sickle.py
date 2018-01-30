@@ -170,7 +170,7 @@ def sickle_cell_test(
                 anemia_dead += 1
             if 'mated' in r:
                 born += 1
-        print("On tick {}, {} critters were born; "
+        print("On turn {}, {} critters were born; "
               "{} died of malaria, and {} of sickle cell anemia, "
               "leaving {} alive.".format(
                   i, born, malaria_dead, anemia_dead,
