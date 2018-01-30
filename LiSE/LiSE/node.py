@@ -419,7 +419,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             del self.character.preportal[self.name]
         for contained in list(self.contents()):
             contained.delete()
-        for user in list(self.user.values()):
+        for user in list(self.users.values()):
             user.del_avatar(self.character.name, self.name)
         branch, turn, tick = self.engine.btt()
         self.engine._nodes_cache.store(
