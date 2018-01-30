@@ -595,7 +595,7 @@ class Engine(AbstractEngine, gORM):
         tick = tick or self.tick
         delta = super().get_turn_delta(branch, turn, start_tick, tick)
         if branch in self._avatarness_cache.settings and turn in self._avatarness_cache.settings[branch]:
-            for chara, graph, node, is_av in self._avatarness_cache.settings[branch][start_tick:tick]:
+            for chara, graph, node, is_av in self._avatarness_cache.settings[branch][turn][start_tick:tick]:
                 delta.setdefault(chara, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = is_av
         if branch in self._things_cache.settings and turn in self._things_cache.settings[branch]:
             for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
