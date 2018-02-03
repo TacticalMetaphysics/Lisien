@@ -111,6 +111,24 @@ class TimeSignal(Signal):
     def __str__(self):
         return str((self.engine.branch, self.engine.turn))
 
+    def __eq__(self, other):
+        return tuple(self) == other
+
+    def __ne__(self, other):
+        return tuple(self) != other
+
+    def __gt__(self, other):
+        return tuple(self) > other
+
+    def __ge__(self, other):
+        return tuple(self) >= other
+
+    def __lt__(self, other):
+        return tuple(self) < other
+
+    def __le__(self, other):
+        return tuple(self) <= other
+
 
 class TimeSignalDescriptor:
     __doc__ = TimeSignal.__doc__
