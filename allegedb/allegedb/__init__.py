@@ -551,6 +551,9 @@ class ORM(object):
             return True
         return self.is_parent_of(parent, self._branches[child][0])
 
+    def _get_branch(self):
+        return self._obranch
+
     def _set_branch(self, v):
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
@@ -579,7 +582,10 @@ class ORM(object):
             else:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
-    branch = property(lambda self: self._obranch, _set_branch)  # easier to override this way
+    branch = property(_get_branch, _set_branch)  # easier to override this way
+
+    def _get_turn(self):
+        return self._oturn
 
     def _set_turn(self, v):
         if v == self.turn:
@@ -605,7 +611,10 @@ class ORM(object):
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
-    turn = property(lambda self: self._oturn, _set_turn)  # easier to override this way
+    turn = property(_get_turn, _set_turn)  # easier to override this way
+
+    def _get_tick(self):
+        return self._otick
 
     def _set_tick(self, v):
         if not isinstance(v, int):
@@ -623,7 +632,7 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
-    tick = property(lambda self: self._otick, _set_tick)  # easier to override this way
+    tick = property(_get_tick, _set_tick)  # easier to override this way
 
     def btt(self):
         """Return the branch, turn, and tick."""
