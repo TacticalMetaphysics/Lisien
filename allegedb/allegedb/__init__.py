@@ -222,8 +222,14 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
         delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
 
+# TODO: cancel changes that would put something back to where it was at the start
+# This will complicate the update_window functions though, and I don't think it'll
+# improve much apart from a bit of efficiency in that the deltas are smaller
+# sometimes.
+
 
 def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
+    """Iterate over a window of time in ``branchd`` and call ``updfun`` on the values"""
     if turn_from in branchd:
         # Not including the exact tick you started from because deltas are *changes*
         for past_state in branchd[turn_from][tick_from+1:]:
@@ -238,6 +244,7 @@ def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
 
 
 def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
+    """Iterate backward over a window of time in ``branchd`` and call ``updfun`` on the values"""
     if turn_from in branchd:
         for future_state in reversed(branchd[turn_from][:tick_from]):
             updfun(*future_state)
