@@ -32,7 +32,6 @@ class Pawn(PawnSpot):
     _touch_oy_diff = NumericProperty()
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
     _touch = ObjectProperty(None, allownone=True)
-    travel_on_drop = BooleanProperty(False)
     loc_name = ObjectProperty()
     next_loc_name = ObjectProperty(None, allownone=True)
     thing = AliasProperty(
@@ -140,11 +139,6 @@ class Pawn(PawnSpot):
         return True
 
     def on_touch_up(self, touch):
-        """See if I've been dropped on a :class:`Spot`. If so, command the
-        underlying :class:`Thing` to either travel there or teleport
-        there. Otherwise, snap back to my present location.
-
-        """
         if touch.grab_current != self:
             return False
         if hasattr(self.parent, 'place') and hasattr(self, '_pospawn_unbound'):
@@ -165,13 +159,14 @@ class Pawn(PawnSpot):
         if myplace != theirplace:
             if hasattr(self, '_start'):
                 del self._start
-            if self.travel_on_drop:
-                self.thing.travel_to(new_spot.name)
-            else:
+            if not self.dispatch('on_drop', new_spot):
                 self.loc_name = new_spot.name
         self.parent.remove_widget(self)
         new_spot.add_widget(self)
         return True
+
+    def on_drop(self, spot):
+        pass
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
