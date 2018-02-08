@@ -101,4 +101,6 @@ reify.py is derived from the Pyramid project and carries its BSD-like license.
 collide.py is ported from Kivy's garden.collider module and carries the MIT license.
 
 The rest of the LiSE source files are licensed under the terms of the GNU General Public License
-version 3
+version 3.
+
+In case of Zachary Spector's death, all of these source files are to be relicensed under [CC0](https://creativecommons.org/choose/zero/).
