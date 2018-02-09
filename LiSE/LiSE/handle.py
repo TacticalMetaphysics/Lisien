@@ -9,10 +9,6 @@ from re import match
 from collections import defaultdict
 from functools import partial
 from importlib import import_module
-from allegedb.xjson import (
-    JSONReWrapper,
-    JSONListReWrapper
-)
 from .engine import Engine
 from .util import dict_delta, set_delta
 
@@ -90,11 +86,11 @@ class EngineHandle(object):
     def critical(self, message):
         self.log(CRITICAL, message)
 
-    def json_load(self, s):
-        return self._real.json_load(s)
+    def unpack(self, s):
+        return self._real.unpack(s)
 
-    def json_dump(self, o):
-        return self._real.json_dump(o)
+    def pack(self, o):
+        return self._real.pack(o)
 
     def time_locked(self):
         return hasattr(self._real, 'locktime')

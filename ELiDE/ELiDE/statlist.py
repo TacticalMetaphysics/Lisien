@@ -247,7 +247,7 @@ class BaseStatListView(RecycleView):
             del self.mirror[k]
         else:
             try:
-                vv = self.engine.json_load(v)
+                vv = self.engine.unpack(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = self.mirror[k] = vv

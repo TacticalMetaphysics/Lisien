@@ -484,7 +484,7 @@ class ORM(object):
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
-                getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
+                getattr(self, 'pack', None), getattr(self, 'unpack', None)
             )
         self.query.initdb()
         # in case this is the first startup
@@ -808,4 +808,4 @@ class ORM(object):
                 yield child
 
 
-__all__ = [ORM, 'graph', 'query', 'xjson']
+__all__ = [ORM, 'graph', 'query']

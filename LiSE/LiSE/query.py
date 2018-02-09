@@ -328,21 +328,21 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 
 
 class QueryEngine(allegedb.query.QueryEngine):
-    json_path = LiSE.__path__[0]
+    path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
     def universals_dump(self):
         for key, branch, turn, tick, value in self.sql('universals_dump'):
-            yield self.json_load(key), branch, turn, tick, self.json_load(value)
+            yield self.unpack(key), branch, turn, tick, self.unpack(value)
 
     def rulebooks_dump(self):
         for rulebook, branch, turn, tick, rules in self.sql('rulebooks_dump'):
-            yield self.json_load(rulebook), branch, turn, tick, self.json_load(rules)
+            yield self.unpack(rulebook), branch, turn, tick, self.unpack(rules)
 
     def _rule_dump(self, typ):
         for rule, branch, turn, tick, lst in self.sql('rule_{}_dump'.format(typ)):
-            yield rule, branch, turn, tick, self.json_load(lst)
+            yield rule, branch, turn, tick, self.unpack(lst)
 
     def rule_triggers_dump(self):
         return self._rule_dump('triggers')
@@ -356,23 +356,23 @@ class QueryEngine(allegedb.query.QueryEngine):
     def characters_dump(self):
         for graph, typ in self.sql('graphs_dump'):
             if typ == 'DiGraph':
-                yield self.json_load(graph)
+                yield self.unpack(graph)
     characters = characters_dump
 
     def node_rulebook_dump(self):
         for character, node, branch, turn, tick, rulebook in self.sql('node_rulebook_dump'):
-            yield self.json_load(character), self.json_load(node), branch, turn, tick, self.json_load(rulebook)
+            yield self.unpack(character), self.unpack(node), branch, turn, tick, self.unpack(rulebook)
 
     def portal_rulebook_dump(self):
         for character, orig, dest, branch, turn, tick, rulebook in self.sql('portal_rulebook_dump'):
             yield (
-                self.json_load(character), self.json_load(orig), self.json_load(dest),
-                branch, turn, tick, self.json_load(rulebook)
+                self.unpack(character), self.unpack(orig), self.unpack(dest),
+                branch, turn, tick, self.unpack(rulebook)
             )
 
     def _charactery_rulebook_dump(self, qry):
         for character, branch, turn, tick, rulebook in self.sql(qry+'_rulebook_dump'):
-            yield self.json_load(character), branch, turn, tick, self.json_load(rulebook)
+            yield self.unpack(character), branch, turn, tick, self.unpack(rulebook)
 
     character_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character')
     avatar_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'avatar')
@@ -382,26 +382,26 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def character_rules_handled_dump(self):
         for character, rulebook, rule, branch, turn, tick in self.sql('character_rules_handled_dump'):
-            yield self.json_load(character), self.json_load(rulebook), rule, branch, turn, tick
+            yield self.unpack(character), self.unpack(rulebook), rule, branch, turn, tick
 
     def character_rules_changes_dump(self):
         for (
                 character, rulebook, rule, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('character_rules_changes_dump'):
             yield (
-                self.json_load(character), self.json_load(rulebook),
+                self.unpack(character), self.unpack(rulebook),
                 rule, branch, turn, tick, handled_branch, handled_turn
             )
 
     def avatar_rules_handled_dump(self):
         for character, rulebook, rule, graph, avatar, branch, turn, tick in self.sql('avatar_rules_handled_dump'):
             yield (
-                self.json_load(character), self.json_load(rulebook), rule,
-                self.json_load(graph), self.json_load(avatar), branch, turn, tick
+                self.unpack(character), self.unpack(rulebook), rule,
+                self.unpack(graph), self.unpack(avatar), branch, turn, tick
             )
 
     def avatar_rules_changes_dump(self):
-        jl = self.json_load
+        jl = self.unpack
         for (
             character, rulebook, rule, graph, avatar, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('avatar_rules_changes_dump'):
@@ -412,10 +412,10 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def character_thing_rules_handled_dump(self):
         for character, rulebook, rule, thing, branch, turn, tick in self.sql('character_thing_rules_handled_dump'):
-            yield self.json_load(character), self.json_load(rulebook), rule, self.json_load(thing), branch, turn, tick
+            yield self.unpack(character), self.unpack(rulebook), rule, self.unpack(thing), branch, turn, tick
 
     def character_thing_rules_changes_dump(self):
-        jl = self.json_load
+        jl = self.unpack
         for (
             character, rulebook, rule, thing, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('character_thing_rules_changes_dump'):
@@ -426,10 +426,10 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def character_place_rules_handled_dump(self):
         for character, rulebook, rule, place, branch, turn, tick in self.sql('character_place_rules_handled_dump'):
-            yield self.json_load(character), self.json_load(rulebook), rule, self.json_load(place), branch, turn, tick
+            yield self.unpack(character), self.unpack(rulebook), rule, self.unpack(place), branch, turn, tick
 
     def character_place_rules_changes_dump(self):
-        jl = self.json_load
+        jl = self.unpack
         for (
             character, rulebook, rule, place, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('character_place_rules_changes_dump'):
@@ -441,12 +441,12 @@ class QueryEngine(allegedb.query.QueryEngine):
     def character_portal_rules_handled_dump(self):
         for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql('character_portal_rules_handled_dump'):
             yield (
-                self.json_load(character), self.json_load(rulebook), rule, self.json_load(orig), self.json_load(dest),
+                self.unpack(character), self.unpack(rulebook), rule, self.unpack(orig), self.unpack(dest),
                 branch, turn, tick
             )
 
     def character_portal_rules_changes_dump(self):
-        jl = self.json_load
+        jl = self.unpack
         for (
             character, rulebook, rule, orig, dest, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('character_portal_rules_changes_dump'):
@@ -457,10 +457,10 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def node_rules_handled_dump(self):
         for character, node, rulebook, rule, branch, turn, tick in self.sql('node_rules_handled_dump'):
-            yield self.json_load(character), self.json_load(node), self.json_load(rulebook), rule, branch, turn, tick
+            yield self.unpack(character), self.unpack(node), self.unpack(rulebook), rule, branch, turn, tick
 
     def node_rules_changes_dump(self):
-        jl = self.json_load
+        jl = self.unpack
         for (
                 character, node, rulebook, rule, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('node_rules_changes_dump'):
@@ -472,12 +472,12 @@ class QueryEngine(allegedb.query.QueryEngine):
     def portal_rules_handled_dump(self):
         for character, orig, dest, rulebook, rule, branch, turn, tick in self.sql('portal_rules_handled_dump'):
             yield (
-                self.json_load(character), self.json_load(orig), self.json_load(dest),
-                self.json_load(rulebook), rule, branch, turn, tick
+                self.unpack(character), self.unpack(orig), self.unpack(dest),
+                self.unpack(rulebook), rule, branch, turn, tick
             )
 
     def portal_rules_changes_dump(self):
-        jl = self.json_load
+        jl = self.unpack
         for (
             character, orig, dest, rulebook, rule, branch, turn, tick, handled_branch, handled_turn
         ) in self.sql('portal_rules_changes_dump'):
@@ -488,28 +488,28 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def senses_dump(self):
         for character, sense, branch, turn, tick, function in self.sql('senses_dump'):
-            yield self.json_load(character), sense, branch, turn, tick, function
+            yield self.unpack(character), sense, branch, turn, tick, function
 
     def things_dump(self):
         for character, thing, branch, turn, tick, location, next_location in self.sql('things_dump'):
             yield (
-                self.json_load(character), self.json_load(thing), branch, turn, tick,
-                self.json_load(location), self.json_load(next_location) if next_location else None
+                self.unpack(character), self.unpack(thing), branch, turn, tick,
+                self.unpack(location), self.unpack(next_location) if next_location else None
             )
 
     def avatars_dump(self):
         for character_graph, avatar_graph, avatar_node, branch, turn, tick, is_av in self.sql('avatars_dump'):
             yield (
-                self.json_load(character_graph), self.json_load(avatar_graph),
-                self.json_load(avatar_node), branch, turn, tick, is_av
+                self.unpack(character_graph), self.unpack(avatar_graph),
+                self.unpack(avatar_node), branch, turn, tick, is_av
             )
 
     def universal_set(self, key, branch, turn, tick, val):
-        key, val = map(self.json_dump, (key, val))
+        key, val = map(self.pack, (key, val))
         self.sql('universals_insert', key, branch, turn, tick, val)
 
     def universal_del(self, key, branch, turn, tick):
-        key = self.json_dump(key)
+        key = self.pack(key)
         self.sql('universals_insert', key, branch, turn, tick, None)
 
     def comparison(
@@ -537,7 +537,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield name
 
     def _set_rule_something(self, what, rule, branch, turn, tick, flist):
-        flist = self.json_dump(flist)
+        flist = self.pack(flist)
         return self.sql('rule_{}_insert'.format(what), rule, branch, turn, tick, flist)
 
     set_rule_triggers = partialmethod(_set_rule_something, 'triggers')
@@ -551,11 +551,11 @@ class QueryEngine(allegedb.query.QueryEngine):
         self.set_rule_actions(rule, branch, turn, tick, actions or [])
 
     def set_rulebook(self, name, branch, turn, tick, rules=None):
-        name, rules = map(self.json_dump, (name, rules or []))
+        name, rules = map(self.pack, (name, rules or []))
         self.sql('rulebooks_insert', name, branch, turn, tick, rules)
 
     def _set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
-        char, rb = map(self.json_dump, (char, rb))
+        char, rb = map(self.pack, (char, rb))
         self.sql(rbtyp + '_rulebook_insert', char, branch, turn, tick, rb)
 
     set_character_rulebook = partialmethod(_set_rulebook_on_character, 'character')
@@ -566,7 +566,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def rulebooks(self):
         for book in self.sql('rulebooks'):
-            yield self.json_load(book)
+            yield self.unpack(book)
 
     def exist_node(self, character, node, branch, turn, tick, extant, keep_rulebook=False):
         super().exist_node(character, node, branch, turn, tick, extant)
@@ -583,13 +583,13 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
         (character, node, rulebook) = map(
-            self.json_dump, (character, node, rulebook)
+            self.pack, (character, node, rulebook)
         )
         return self.sql('node_rulebook_insert', character, node, branch, turn, tick, rulebook)
 
     def set_portal_rulebook(self, character, orig, dest, branch, turn, tick, rulebook):
         (character, orig, dest, rulebook) = map(
-            self.json_dump, (character, orig, dest, rulebook)
+            self.pack, (character, orig, dest, rulebook)
         )
         return self.sql(
             'portal_rulebook_insert',
@@ -606,7 +606,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             self, character, rulebook, rule, branch, turn, tick
     ):
         (character, rulebook) = map(
-            self.json_dump, (character, rulebook)
+            self.pack, (character, rulebook)
         )
         return self.sql(
             'character_rules_handled_insert',
@@ -620,7 +620,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def handled_avatar_rule(self, character, graph, av, rulebook, rule, branch, turn, tick):
         character, graph, av, rulebook = map(
-            self.json_dump, (character, graph, av, rulebook)
+            self.pack, (character, graph, av, rulebook)
         )
         return self.sql(
             'avatar_rules_handled_insert',
@@ -638,7 +638,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             self, character, node, rulebook, rule, branch, turn, tick
     ):
         (character, node, rulebook) = map(
-            self.json_dump, (character, node, rulebook)
+            self.pack, (character, node, rulebook)
         )
         return self.sql(
             'node_rules_handled_insert',
@@ -655,7 +655,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             self, character, orig, dest, rulebook, rule, branch, turn, tick
     ):
         (character, orig, dest, rulebook) = map(
-            self.json_dump, (character, orig, dest, rulebook)
+            self.pack, (character, orig, dest, rulebook)
         )
         return self.sql(
             'portal_rules_handled_insert',
@@ -670,22 +670,22 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
 
     def get_rulebook_char(self, rulemap, character):
-        character = self.json_dump(character)
+        character = self.pack(character)
         for (book,) in self.sql(
                 'rulebook_get_{}'.format(rulemap), character
         ):
-            return self.json_load(book)
+            return self.unpack(book)
         raise KeyError("No rulebook")
 
     def thing_loc_and_next_set(
             self, character, thing, branch, turn, tick, loc, nextloc
     ):
         (character, thing) = map(
-            self.json_dump,
+            self.pack,
             (character, thing)
         )
-        loc = self.json_dump(loc)
-        nextloc = self.json_dump(nextloc)
+        loc = self.pack(loc)
+        nextloc = self.pack(nextloc)
         self.sql('del_things_after', character, thing, branch, turn, turn, tick)
         self.sql(
             'things_insert',
@@ -700,7 +700,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def avatar_set(self, character, graph, node, branch, turn, tick, isav):
         (character, graph, node) = map(
-            self.json_dump, (character, graph, node)
+            self.pack, (character, graph, node)
         )
         self.sql(
             'del_avatars_after',
@@ -712,12 +712,12 @@ class QueryEngine(allegedb.query.QueryEngine):
 
     def rulebooks_rules(self):
         for (rulebook, rule) in self.sql('rulebooks_rules'):
-            yield map(self.json_load, (rulebook, rule))
+            yield map(self.unpack, (rulebook, rule))
 
     def rulebook_get(self, rulebook, idx):
-        return self.json_load(
+        return self.unpack(
             self.sql(
-                'rulebook_get', self.json_dump(rulebook), idx
+                'rulebook_get', self.pack(rulebook), idx
             ).fetchone()[0]
         )
 

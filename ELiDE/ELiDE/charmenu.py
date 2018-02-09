@@ -137,7 +137,7 @@ class CharMenu(BoxLayout):
 
     def new_character(self, but):
         charn = try_load(
-            self.app.engine.json_load,
+            self.app.engine.unpack,
             self.app.chars.ids.newname.text
         )
         self.app.select_character(self.app.engine.new_character(charn))

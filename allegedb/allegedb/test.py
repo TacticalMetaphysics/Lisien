@@ -167,7 +167,7 @@ class CompiledQueriesTest(AllegedTest):
         self.assertTrue(hasattr(self.engine.query, 'alchemist'))
         self.assertTrue(isinstance(self.engine.query.alchemist, Alchemist))
         from json import load
-        with open(self.engine.query.json_path + '/sqlite.json', 'r') as jsonfile:
+        with open(self.engine.query.path + '/sqlite.json', 'r') as jsonfile:
             precompiled = load(jsonfile)
         self.assertEqual(
             precompiled.keys(), self.engine.query.alchemist.sql.keys()

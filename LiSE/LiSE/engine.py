@@ -6,13 +6,11 @@ flow of time.
 
 """
 from random import Random
-from functools import partial, partialmethod
-from types import FunctionType
-from json import dumps, loads, JSONEncoder
+from functools import partial
 from operator import gt, lt, ge, le, eq, ne
+import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM, update_window, update_backward_window
-from allegedb.xjson import JSONReWrapper, JSONListReWrapper
 from .xcollections import (
     StringStore,
     FunctionStore,
@@ -126,33 +124,12 @@ class FinalRule:
 final_rule = FinalRule()
 
 
-json_dump_hints = {final_rule: 'final_rule'}
-json_load_hints = {'final_rule': final_rule}
-
-
-class Encoder(JSONEncoder):
-    """Extend the base JSON encoder to handle a couple of numpy types I might need"""
-    def encode(self, o):
-        if type(o) in (str, int, float):
-            return super().encode(o)
-        return super().encode(self.listify(o))
-
-    def default(self, o):
-        t = type(o)
-        if t is JSONReWrapper:
-            return dict(o)
-        elif t is JSONListReWrapper:
-            return list(o)
-        try:
-            from numpy import sctypes
-        except ImportError:
-            return super().default(o)
-        if t in sctypes['int']:
-            return int(o)
-        elif t in sctypes['float']:
-            return float(o)
-        else:
-            return super().default(o)
+MSGPACK_TUPLE = 0x00
+MSGPACK_CHARACTER = 0x7f
+MSGPACK_PLACE = 0x7e
+MSGPACK_THING = 0x7d
+MSGPACK_PORTAL = 0x7c
+MSGPACK_FINAL_RULE = 0x7b
 
 
 class AbstractEngine(object):
@@ -161,128 +138,72 @@ class AbstractEngine(object):
     Implements serialization methods and the __getattr__ for stored methods.
 
     """
+    def _pack_character(self, char):
+        return umsgpack.Ext(MSGPACK_CHARACTER, umsgpack.packb(char.name, ext_handlers=self._pack_handlers))
+
+    def _pack_place(self, place):
+        return umsgpack.Ext(MSGPACK_PLACE, umsgpack.packb(
+            (place.character.name, place.name), ext_handlers=self._pack_handlers
+        ))
+
+    def _pack_thing(self, thing):
+        return umsgpack.Ext(MSGPACK_THING, umsgpack.packb(
+            (thing.character.name, thing.name), ext_handlers=self._pack_handlers
+        ))
+
+    def _pack_portal(self, port):
+        return umsgpack.Ext(MSGPACK_PORTAL, umsgpack.packb(
+            (port.character.name, port.orig, port.dest), ext_handlers=self._pack_handlers
+        ))
+
+    def _pack_tuple(self, tup):
+        return umsgpack.Ext(MSGPACK_TUPLE, umsgpack.packb(list(tup), ext_handlers=self._pack_handlers))
+
+    def _unpack_char(self, ext):
+        return self.character[umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)]
+
+    def _unpack_place(self, ext):
+        charn, placen = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        return self.character[charn].place[placen]
+
+    def _unpack_thing(self, ext):
+        charn, thingn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        return self.character[charn].thing[thingn]
+
+    def _unpack_portal(self, ext):
+        char, orig, dest = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        return self.character[char].portal[orig][dest]
+
+    def _unpack_tuple(self, ext):
+        return tuple(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
+
     @reify
-    def _listify_dispatch(self):
-        def listify_list(obj):
-            return ["list"] + [self.listify(v) for v in obj]
-
-        def listify_frozenset(obj):
-            return ["frozenset"] + [self.listify(v) for v in obj]
-
-        def listify_dict(obj):
-            return ["dict"] + [
-                [self.listify(k), self.listify(v)]
-                for (k, v) in obj.items()
-            ]
-
+    def _unpack_handlers(self):
         return {
-            list: listify_list,
-            frozenset: listify_frozenset,
-            JSONListReWrapper: listify_list,
-            tuple: lambda obj: ["tuple"] + [self.listify(v) for v in obj],
-            dict: listify_dict,
-            JSONReWrapper: listify_dict,
-            self.char_cls: lambda obj: ["character", obj.name],
-            self.thing_cls: lambda obj: [
-                "thing",
-                obj.character.name, obj.name,
-                self.listify(obj.location.name),
-                self.listify(obj.next_location.name if obj.next_location else None),
-                obj['arrival_time'], obj['next_arrival_time']
-            ],
-            self.place_cls: lambda obj: ["place", obj.character.name, obj.name],
-            self.portal_cls: lambda obj: [
-                "portal", obj.character.name, obj.orig, obj.dest],
-            FunctionType: self._listify_function
+            MSGPACK_CHARACTER: self._unpack_char,
+            MSGPACK_PLACE: self._unpack_place,
+            MSGPACK_THING: self._unpack_thing,
+            MSGPACK_PORTAL: self._unpack_portal,
+            MSGPACK_FINAL_RULE: lambda obj: final_rule,
+            MSGPACK_TUPLE: self._unpack_tuple
         }
 
     @reify
-    def _delistify_dispatch(self):
-        def nodeget(obj):
-            return self._node_objs[(
-                self.delistify(obj[1]), self.delistify(obj[2])
-            )]
-
+    def _pack_handlers(self):
         return {
-            'frozenset': lambda obj: frozenset(self.delistify(v) for v in obj[1:]),
-            'list': lambda obj: [self.delistify(v) for v in obj[1:]],
-            'tuple': lambda obj: tuple(self.delistify(v) for v in obj[1:]),
-            'dict': lambda obj: {
-                self.delistify(k): self.delistify(v)
-                for (k, v) in obj[1:]
-            },
-            'character': lambda obj: self.character[self.delistify(obj[1])],
-            'place': nodeget,
-            'thing': nodeget,
-            'node': nodeget,
-            'portal': lambda obj: self._portal_objs[(
-                self.delistify(obj[1]),
-                self.delistify(obj[2]),
-                self.delistify(obj[3])
-            )],
-            'function': lambda obj: getattr(self.function, obj[1]),
-            'method': lambda obj: getattr(self.method, obj[1]),
-            'prereq': lambda obj: getattr(self.prereq, obj[1]),
-            'trigger': lambda obj: getattr(self.trigger, obj[1]),
-            'action': lambda obj: getattr(self.action, obj[1])
+            self.char_cls: self._pack_character,
+            self.place_cls: self._pack_place,
+            self.thing_cls: self._pack_thing,
+            self.portal_cls: self._pack_portal,
+            tuple: self._pack_tuple,
+            FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b"")
         }
 
-    def __getattr__(self, att):
-        if att == 'method':
-            return super().method
-        method_store = self.method
-        if hasattr(method_store, att):
-            return partial(getattr(method_store, att), self)
-        raise AttributeError('No attribute or stored method: {}'.format(att))
+    def pack(self, obj):
+        return umsgpack.packb(obj, ext_handlers=self._pack_handlers)
 
-    def _listify_function(self, obj):
-        if not hasattr(getattr(self, obj.__module__), obj.__name__):
-            raise ValueError("Function {} is not in my function stores".format(obj.__name__))
-        return [obj.__module__, obj.__name__]
-
-    def listify(self, obj):
-        """Turn a LiSE object into a list for easier serialization"""
-        try:
-            listifier = self._listify_dispatch[type(obj)]
-            return listifier(obj)
-        except KeyError:
-            return obj
-
-
-    def delistify(self, obj):
-        """Turn a list describing a LiSE object into that object
-
-        If this is impossible, return the argument.
-
-        """
-        if isinstance(obj, list) or isinstance(obj, tuple):
-            return self._delistify_dispatch[obj[0]](obj)
-        else:
-            return obj
-
-    @reify
-    def json_encoder(self):
-        class EngEncoder(Encoder):
-            listify = self.listify
-        return EngEncoder
-
-    def json_dump(self, obj):
-        global json_dump_hints, json_load_hints
-        try:
-            if obj not in json_dump_hints:
-                dumped = json_dump_hints[obj] = dumps(
-                    obj, cls=self.json_encoder
-                )
-                json_load_hints[dumped] = obj
-            return json_dump_hints[obj]
-        except TypeError:
-            return dumps(obj, cls=self.json_encoder)
-
-    def json_load(self, s):
-        global json_dump_hints, json_load_hints
-        if s in json_load_hints:
-            return json_load_hints[s]
-        return self.delistify(loads(s))
+    def unpack(self, bs):
+        return umsgpack.unpackb(bs, ext_handlers=self._unpack_handlers)
 
     def coinflip(self):
         """Return True or False with equal probability."""

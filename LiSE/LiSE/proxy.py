@@ -25,7 +25,7 @@ from blinker import Signal
 from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
-from allegedb.xjson import JSONReWrapper, JSONListReWrapper
+from allegedb.wrap import DictWrapper, ListWrapper
 from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
@@ -91,9 +91,9 @@ class CachingProxy(MutableMapping, Signal):
 class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
         if isinstance(v, dict):
-            return JSONReWrapper(self, k, v)
+            return DictWrapper(self, k, v)
         elif isinstance(v, list):
-            return JSONListReWrapper(self, k, v)
+            return ListWrapper(self, k, v)
         return v
 
     def __repr__(self):
@@ -1950,8 +1950,8 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
-        self.send(self.json_dump({'command': 'get_watched_btt'}))
-        self._branch, self._turn, self._tick = self.json_load(self.recv()[-1])
+        self.send(self.pack({'command': 'get_watched_btt'}))
+        self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
         self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
@@ -2171,14 +2171,14 @@ class EngineProxy(AbstractEngine):
         self._handle_lock.acquire()
         if kwargs.pop('block', True):
             assert not kwargs.get('silent')
-            self.send(self.json_dump(kwargs))
+            self.send(self.pack(kwargs))
             command, branch, turn, tick, result = self.recv()
             assert cmd == command, \
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
             self._handle_lock.release()
-            r = self.json_load(result)
+            r = self.unpack(result)
             if (branch, turn, tick) != self.btt():
                 self._branch = branch
                 self._turn = turn
@@ -2189,7 +2189,7 @@ class EngineProxy(AbstractEngine):
             return r
         else:
             kwargs['silent'] = not (branching or cb)
-            self.send(self.json_dump(kwargs))
+            self.send(self.pack(kwargs))
             if branching:
                 self._branching_thread = Thread(
                     target=self._branching, args=[cb], daemon=True
@@ -2207,12 +2207,12 @@ class EngineProxy(AbstractEngine):
     def _callback(self, cb):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
-        cb(command, branch, turn, tick, self.json_load(result))
+        cb(command, branch, turn, tick, self.unpack(result))
 
     def _branching(self, cb=None):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
-        r = self.json_load(result)
+        r = self.unpack(result)
         if branch != self._branch:
             self._branch = branch
             self._turn = turn
@@ -2225,7 +2225,7 @@ class EngineProxy(AbstractEngine):
 
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
-        received = self.json_load(res)
+        received = self.unpack(res)
         for cb in cbs:
             cb(cmd, branch, turn, tick, received, **kwargs)
         return received
@@ -2280,7 +2280,7 @@ class EngineProxy(AbstractEngine):
     def _pull_async(self, chars, cb):
         if not callable(cb):
             raise TypeError("Uncallable callback")
-        self.send(self.json_dump({
+        self.send(self.pack({
             'silent': False,
             'command': 'get_char_deltas',
             'chars': chars
@@ -2314,7 +2314,7 @@ class EngineProxy(AbstractEngine):
         if cb and not callable(cb):
             raise TypeError("Uncallable callback")
         if block:
-            self.send(self.json_dump({
+            self.send(self.pack({
                 'silent': False,
                 'command': 'next_turn'
             }))
@@ -2356,7 +2356,7 @@ class EngineProxy(AbstractEngine):
                 daemon=True
             )
             self._time_travel_thread.start()
-            self.send(self.json_dump({
+            self.send(self.pack({
                 'command': 'time_travel',
                 'silent': False,
                 'branch': branch,
@@ -2499,7 +2499,7 @@ def subprocess(
             handle_in_pipe.close()
             logq.close()
             return 0
-        instruction = engine_handle.json_load(inst)
+        instruction = engine_handle.unpack(inst)
         silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
         log('command', (cmd, instruction))
@@ -2518,7 +2518,7 @@ def subprocess(
         log('result', r)
         handle_in_pipe.send((
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
-            engine_handle.json_dump(r)
+            engine_handle.pack(r)
         ))
         if hasattr(engine_handle, '_after_ret'):
             engine_handle._after_ret()
