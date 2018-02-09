@@ -186,9 +186,11 @@ def sickle_cell_test(
         )
     )
 
-try:
-    remove('LiSEworld.db')
-except OSError:
-    pass
-with Engine('LiSEworld.db', random_seed=69105) as engine:
-    sickle_cell_test(engine)
+
+if __name__ == '__main__':
+    try:
+        remove('LiSEworld.db')
+    except OSError:
+        pass
+    with Engine('LiSEworld.db', random_seed=69105) as engine:
+        sickle_cell_test(engine)

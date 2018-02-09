@@ -29,6 +29,7 @@ setup(
     },
     install_requires=[
         "allegedb>=0.11.0",
-        "astunparse>=1.5.0"
+        "astunparse>=1.5.0",
+        "u-msgpack-python>=2.4.1"
     ],
 )

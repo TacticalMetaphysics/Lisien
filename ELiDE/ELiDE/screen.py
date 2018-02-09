@@ -64,7 +64,7 @@ class StatListPanel(BoxLayout):
             del self.proxy[k]
         else:
             try:
-                vv = self.engine.json_load(v)
+                vv = self.engine.unpack(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv

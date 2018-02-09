@@ -9,12 +9,12 @@ from collections import MutableMapping
 from sqlite3 import IntegrityError as sqliteIntegError
 try:
     # python 2
-    import xjson
+    import wrap
 except ImportError:
     # python 3
-    from allegedb import xjson
+    from allegedb import wrap
 import os
-xjpath = os.path.dirname(xjson.__file__)
+wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
 try:
     from sqlalchemy.exc import IntegrityError as alchemyIntegError
@@ -69,11 +69,11 @@ class QueryEngine(object):
     Alchemist. Provides methods to run queries using either.
 
     """
-    json_path = xjpath
+    path = os.path.dirname(__file__)
 
     def __init__(
             self, dbstring, connect_args, alchemy,
-            json_dump=None, json_load=None
+            pack=None, unpack=None
     ):
         """If ``alchemy`` is True and ``dbstring`` is a legit database URI,
         instantiate an Alchemist and start a transaction with
@@ -102,9 +102,9 @@ class QueryEngine(object):
 
         def lite_init(dbstring, connect_args):
             from sqlite3 import connect, Connection
-            from json import loads
-            self.strings = loads(
-                open(self.json_path + '/sqlite.json', 'r').read()
+            from json import load
+            self.strings = load(
+                open(os.path.join(self.path, 'sqlite.json'))
             )
             if isinstance(dbstring, Connection):
                 self.connection = dbstring
@@ -129,8 +129,10 @@ class QueryEngine(object):
         self._graphvals2set = []
         self._nodes2set = []
         self._edges2set = []
-        self.json_dump = json_dump or xjson.json_dump
-        self.json_load = json_load or xjson.json_load
+        if unpack is None:
+            from ast import literal_eval as unpack
+        self.pack = pack or repr
+        self.unpack = unpack
 
     def sql(self, stringname, *args, **kwargs):
         """Wrapper for the various prewritten or compiled SQL calls.
@@ -165,17 +167,17 @@ class QueryEngine(object):
 
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
-        graph = self.json_dump(graph)
+        graph = self.pack(graph)
         return bool(self.sql('graphs_named', graph).fetchone()[0])
 
     def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
-        graph = self.json_dump(graph)
+        graph = self.pack(graph)
         return self.sql('new_graph', graph, typ)
 
     def del_graph(self, graph):
         """Delete all records to do with the graph"""
-        g = self.json_dump(graph)
+        g = self.pack(graph)
         self.sql('del_edge_val_graph', g)
         self.sql('del_node_val_graph', g)
         self.sql('del_edge_val_graph', g)
@@ -185,7 +187,7 @@ class QueryEngine(object):
 
     def graph_type(self, graph):
         """What type of graph is this?"""
-        graph = self.json_dump(graph)
+        graph = self.pack(graph)
         return self.sql('graph_type', graph).fetchone()[0]
 
     def have_branch(self, branch):
@@ -201,23 +203,23 @@ class QueryEngine(object):
 
     def global_get(self, key):
         """Return the value for the given key in the ``globals`` table."""
-        key = self.json_dump(key)
+        key = self.pack(key)
         r = self.sql('global_get', key).fetchone()
         if r is None:
             raise KeyError("Not set")
-        return self.json_load(r[0])
+        return self.unpack(r[0])
 
     def global_items(self):
         """Iterate over (key, value) pairs in the ``globals`` table."""
         for (k, v) in self.sql('global_dump'):
-            yield (self.json_load(k), self.json_load(v))
+            yield (self.unpack(k), self.unpack(v))
 
     def global_set(self, key, value):
         """Set ``key`` to ``value`` globally (not at any particular branch or
         revision)
 
         """
-        (key, value) = map(self.json_dump, (key, value))
+        (key, value) = map(self.pack, (key, value))
         try:
             return self.sql('global_insert', key, value)
         except IntegrityError:
@@ -225,7 +227,7 @@ class QueryEngine(object):
 
     def global_del(self, key):
         """Delete the global record for the key."""
-        key = self.json_dump(key)
+        key = self.pack(key)
         return self.sql('global_del', key)
 
     def new_branch(self, branch, parent, parent_turn, parent_tick):
@@ -264,12 +266,12 @@ class QueryEngine(object):
         self._flush_graph_val()
         for (graph, key, branch, turn, tick, value) in self.sql('graph_val_dump'):
             yield (
-                self.json_load(graph),
-                self.json_load(key),
+                self.unpack(graph),
+                self.unpack(key),
                 branch,
                 turn,
                 tick,
-                self.json_load(value)
+                self.unpack(value)
             )
 
     def _flush_graph_val(self):
@@ -294,7 +296,7 @@ class QueryEngine(object):
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, turn, tick, value):
-        graph, key, value = map(self.json_dump, (graph, key, value))
+        graph, key, value = map(self.pack, (graph, key, value))
         self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
     def graph_val_del(self, graph, key, branch, turn, tick):
@@ -303,7 +305,7 @@ class QueryEngine(object):
 
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
-            yield (self.json_load(graph), typ)
+            yield (self.unpack(graph), typ)
 
     def _flush_nodes(self):
         if not self._nodes2set:
@@ -327,15 +329,15 @@ class QueryEngine(object):
         Inserts a new record or updates an old one, as needed.
 
         """
-        self._nodes2set.append((self.json_dump(graph), self.json_dump(node), branch, turn, tick, extant))
+        self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, extant))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
         for (graph, node, branch, turn,tick, extant) in self.sql('nodes_dump'):
             yield (
-                self.json_load(graph),
-                self.json_load(node),
+                self.unpack(graph),
+                self.unpack(node),
                 branch,
                 turn,
                 tick,
@@ -349,13 +351,13 @@ class QueryEngine(object):
                 graph, node, key, branch, turn, tick, value
         ) in self.sql('node_val_dump'):
             yield (
-                self.json_load(graph),
-                self.json_load(node),
-                self.json_load(key),
+                self.unpack(graph),
+                self.unpack(node),
+                self.unpack(key),
                 branch,
                 turn,
                 tick,
-                self.json_load(value)
+                self.unpack(value)
             )
 
     def _flush_node_val(self):
@@ -382,7 +384,7 @@ class QueryEngine(object):
 
     def node_val_set(self, graph, node, key, branch, turn, tick, value):
         """Set a key-value pair on a node at a specific branch and revision"""
-        graph, node, key, value = map(self.json_dump, (graph, node, key, value))
+        graph, node, key, value = map(self.pack, (graph, node, key, value))
         self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
     def node_val_del(self, graph, node, key, branch, turn, tick):
@@ -396,9 +398,9 @@ class QueryEngine(object):
                 graph, orig, dest, idx, branch, turn, tick, extant
         ) in self.sql('edges_dump'):
             yield (
-                self.json_load(graph),
-                self.json_load(orig),
-                self.json_load(dest),
+                self.unpack(graph),
+                self.unpack(orig),
+                self.unpack(dest),
                 idx,
                 branch,
                 turn,
@@ -431,7 +433,7 @@ class QueryEngine(object):
 
     def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
-        graph, orig, dest = map(self.json_dump, (graph, orig, dest))
+        graph, orig, dest = map(self.pack, (graph, orig, dest))
         self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
 
     def edge_val_dump(self):
@@ -441,15 +443,15 @@ class QueryEngine(object):
                 graph, orig, dest, idx, key, branch, turn, tick, value
         ) in self.sql('edge_val_dump'):
             yield (
-                self.json_load(graph),
-                self.json_load(orig),
-                self.json_load(dest),
+                self.unpack(graph),
+                self.unpack(orig),
+                self.unpack(dest),
                 idx,
-                self.json_load(key),
+                self.unpack(key),
                 branch,
                 turn,
                 tick,
-                self.json_load(value)
+                self.unpack(value)
             )
 
     def _flush_edge_val(self):
@@ -475,7 +477,7 @@ class QueryEngine(object):
 
     def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
         """Set this key of this edge to this value."""
-        graph, orig, dest, key, value = map(self.json_dump, (graph, orig, dest, key, value))
+        graph, orig, dest, key, value = map(self.pack, (graph, orig, dest, key, value))
         self._edgevals2set.append(
             (graph, orig, dest, idx, key, branch, turn, tick, value)
         )

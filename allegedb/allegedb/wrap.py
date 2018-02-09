@@ -1,83 +1,13 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. zacharyspector@gmail.com
 from collections import MutableMapping, MutableSequence
-from json import dumps, loads
 from copy import deepcopy
 
 
-def enc_tuple(o):
-    """Return the object, converted to a form that will preserve the
-    distinction between lists and tuples when written to JSON
+class CoreDictWrapper(MutableMapping):
+    """A dictionary-like object stored serialized.
 
-    """
-    if isinstance(o, tuple):
-        return ['tuple'] + [enc_tuple(p) for p in o]
-    elif isinstance(o, list):
-        return ['list'] + [enc_tuple(v) for v in o]
-    elif isinstance(o, dict):
-        r = {}
-        for (k, v) in o.items():
-            r[enc_tuple(k)] = enc_tuple(v)
-        return r
-    else:
-        return o
-
-
-def dec_tuple(o):
-    """Take an object previously encoded with ``enc_tuple`` and return it
-    with the encoded tuples turned back into actual tuples
-
-    """
-    if isinstance(o, dict):
-        r = {}
-        for (k, v) in o.items():
-            r[dec_tuple(k)] = dec_tuple(v)
-        return r
-    elif isinstance(o, list):
-        if o[0] == 'list':
-            return list(dec_tuple(p) for p in o[1:])
-        else:
-            assert(o[0] == 'tuple')
-            return tuple(dec_tuple(p) for p in o[1:])
-    else:
-        return o
-
-
-json_dump_hints = {}
-
-
-def json_dump(obj,  hint=True):
-    """JSON dumper that distinguishes lists from tuples"""
-    if not hint:
-        return dumps(enc_tuple(obj))
-    k = str(obj)
-    if k not in json_dump_hints:
-        json_dump_hints[k] = dumps(enc_tuple(obj))
-    return json_dump_hints[k]
-
-
-json_load_hints = {}
-
-
-def json_load(s,  hint=True):
-    """JSON loader that distinguishes lists from tuples"""
-    if s is None:
-        return None
-    if s == '["list"]':
-        return []
-    if s == '["tuple"]':
-        return tuple()
-    if not hint:
-        return dec_tuple(loads(s))
-    if s not in json_load_hints:
-        json_load_hints[s] = dec_tuple(loads(s))
-    return json_load_hints[s]
-
-
-class JSONWrapper(MutableMapping):
-    """A dictionary-like object stored in a JSON-encoded string field.
-
-    This isn't meant to be used on its own; see ``JSONReWrapper``.
+    This isn't meant to be used on its own; see ``DictWrapper``.
 
     """
     __slots__ = ['outer', 'outkey']
@@ -107,9 +37,9 @@ class JSONWrapper(MutableMapping):
     def __getitem__(self, k):
         r = self._get()[k]
         if isinstance(r, list):
-            return JSONListWrapper(self, k)
+            return CoreListWrapper(self, k)
         elif isinstance(r, dict):
-            return JSONWrapper(self, k)
+            return CoreDictWrapper(self, k)
         else:
             return r
 
@@ -142,10 +72,10 @@ class JSONWrapper(MutableMapping):
         return self._get().copy()
 
 
-class JSONListWrapper(JSONWrapper):
-    """A list synchronized with a JSON-encoded string field.
+class CoreListWrapper(CoreDictWrapper):
+    """A list synchronized with a serialized field.
 
-    This isn't meant to be used on its own; see ``JSONListReWrapper``.
+    This isn't meant to be used on its own; see ``ListWrapper``.
 
     """
     def append(self, v):
@@ -159,8 +89,8 @@ class JSONListWrapper(JSONWrapper):
         self._set(me)
 
 
-class JSONReWrapper(MutableMapping):
-    """A dictionary synchronized with a JSON-encoded string field.
+class DictWrapper(MutableMapping, dict):
+    """A dictionary synchronized with a serialized field.
 
     This is meant to be used in allegedb entities (graph, node, or
     edge), for when the user stores a dictionary in them.
@@ -171,11 +101,11 @@ class JSONReWrapper(MutableMapping):
     def __init__(self, outer, key, initval):
         self._outer = outer
         self._key = key
-        self._inner = JSONWrapper(outer, key)
+        self._inner = CoreDictWrapper(outer, key)
         self._v = initval
         if not isinstance(self._v, dict):
             raise TypeError(
-                "JSONReWrapper only wraps dicts"
+                "DictWrapper only wraps dicts"
             )
 
     def _get(self, k=None):
@@ -195,9 +125,9 @@ class JSONReWrapper(MutableMapping):
     def __getitem__(self, k):
         r = self._v[k]
         if isinstance(r, dict):
-            return JSONReWrapper(self, k, r)
+            return DictWrapper(self, k, r)
         if isinstance(r, list):
-            return JSONListReWrapper(self, k, r)
+            return ListWrapper(self, k, r)
         return r
 
     def __setitem__(self, k, v):
@@ -212,8 +142,8 @@ class JSONReWrapper(MutableMapping):
         return repr(self._v)
 
 
-class JSONListReWrapper(MutableSequence):
-    """A list synchronized with a JSON-encoded string field.
+class ListWrapper(MutableSequence, list):
+    """A list synchronized with a serialized field.
 
     This is meant to be used in allegedb entities (graph, node, or
     edge), for when the user stores a list in them.
@@ -223,11 +153,11 @@ class JSONListReWrapper(MutableSequence):
     __slots__ = ['_inner', '_v']
 
     def __init__(self, outer, key, initval=None):
-        self._inner = JSONListWrapper(outer, key)
+        self._inner = CoreListWrapper(outer, key)
         self._v = initval
         if not isinstance(self._v, list):
             raise TypeError(
-                "JSONListReWrapper only wraps lists"
+                "ListWrapper only wraps lists"
             )
 
     def __iter__(self):
@@ -242,9 +172,9 @@ class JSONListReWrapper(MutableSequence):
     def __getitem__(self, i):
         r = self._v[i]
         if isinstance(r, dict):
-            return JSONReWrapper(self, i, r)
+            return DictWrapper(self, i, r)
         if isinstance(r, list):
-            return JSONListReWrapper(self, i, r)
+            return ListWrapper(self, i, r)
         return r
 
     def __setitem__(self, i, v):
@@ -268,8 +198,8 @@ def json_deepcopy(obj):
     r = {}
     for (k, v) in obj.items():
         if (
-            isinstance(v, JSONReWrapper) or
-            isinstance(v, JSONListReWrapper)
+            isinstance(v, DictWrapper) or
+            isinstance(v, ListWrapper)
         ):
             r[k] = deepcopy(v._v)
         else:

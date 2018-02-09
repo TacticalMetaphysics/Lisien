@@ -111,6 +111,24 @@ class TimeSignal(Signal):
     def __str__(self):
         return str((self.engine.branch, self.engine.turn))
 
+    def __eq__(self, other):
+        return tuple(self) == other
+
+    def __ne__(self, other):
+        return tuple(self) != other
+
+    def __gt__(self, other):
+        return tuple(self) > other
+
+    def __ge__(self, other):
+        return tuple(self) >= other
+
+    def __lt__(self, other):
+        return tuple(self) < other
+
+    def __le__(self, other):
+        return tuple(self) <= other
+
 
 class TimeSignalDescriptor:
     __doc__ = TimeSignal.__doc__
@@ -222,8 +240,14 @@ def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
         delta.setdefault(graph, {}).setdefault('edge_val', {})\
             .setdefault(orig, {}).setdefault(dest, {})[key] = value
 
+# TODO: cancel changes that would put something back to where it was at the start
+# This will complicate the update_window functions though, and I don't think it'll
+# improve much apart from a bit of efficiency in that the deltas are smaller
+# sometimes.
+
 
 def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
+    """Iterate over a window of time in ``branchd`` and call ``updfun`` on the values"""
     if turn_from in branchd:
         # Not including the exact tick you started from because deltas are *changes*
         for past_state in branchd[turn_from][tick_from+1:]:
@@ -238,6 +262,7 @@ def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
 
 
 def update_backward_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
+    """Iterate backward over a window of time in ``branchd`` and call ``updfun`` on the values"""
     if turn_from in branchd:
         for future_state in reversed(branchd[turn_from][:tick_from]):
             updfun(*future_state)
@@ -459,7 +484,7 @@ class ORM(object):
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
-                getattr(self, 'json_dump', None), getattr(self, 'json_load', None)
+                getattr(self, 'pack', None), getattr(self, 'unpack', None)
             )
         self.query.initdb()
         # in case this is the first startup
@@ -526,6 +551,9 @@ class ORM(object):
             return True
         return self.is_parent_of(parent, self._branches[child][0])
 
+    def _get_branch(self):
+        return self._obranch
+
     def _set_branch(self, v):
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
@@ -554,7 +582,10 @@ class ORM(object):
             else:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
-    branch = property(lambda self: self._obranch, _set_branch)  # easier to override this way
+    branch = property(_get_branch, _set_branch)  # easier to override this way
+
+    def _get_turn(self):
+        return self._oturn
 
     def _set_turn(self, v):
         if v == self.turn:
@@ -580,7 +611,10 @@ class ORM(object):
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
-    turn = property(lambda self: self._oturn, _set_turn)  # easier to override this way
+    turn = property(_get_turn, _set_turn)  # easier to override this way
+
+    def _get_tick(self):
+        return self._otick
 
     def _set_tick(self, v):
         if not isinstance(v, int):
@@ -598,7 +632,7 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
-    tick = property(lambda self: self._otick, _set_tick)  # easier to override this way
+    tick = property(_get_tick, _set_tick)  # easier to override this way
 
     def btt(self):
         """Return the branch, turn, and tick."""
@@ -774,4 +808,4 @@ class ORM(object):
                 yield child
 
 
-__all__ = [ORM, 'graph', 'query', 'xjson']
+__all__ = [ORM, 'graph', 'query']

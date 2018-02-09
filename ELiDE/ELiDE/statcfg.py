@@ -214,7 +214,7 @@ class StatScreen(Screen):
             self.proxy[key] \
                 = self.statlist.mirror[key] \
                 = self.statcfg.mirror[key] \
-                = self.engine.json_load(value)
+                = self.engine.unpack(value)
         except (TypeError, ValueError):
             self.proxy[key] \
                 = self.statlist.mirror[key] \

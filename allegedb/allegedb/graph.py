@@ -5,12 +5,7 @@ from networkx.exception import NetworkXError
 from blinker import Signal
 from collections import MutableMapping, defaultdict
 from operator import attrgetter
-from .xjson import (
-    JSONWrapper,
-    JSONListWrapper,
-    JSONReWrapper,
-    JSONListReWrapper
-)
+from .wrap import DictWrapper, ListWrapper
 
 
 def getatt(attribute_name):
@@ -86,9 +81,9 @@ class AbstractEntityMapping(NeatMapping, Signal):
         """
         def wrapval(v):
             if isinstance(v, list):
-                return JSONListReWrapper(self, key, v)
+                return ListWrapper(self, key, v)
             elif isinstance(v, dict):
-                return JSONReWrapper(self, key, v)
+                return DictWrapper(self, key, v)
             else:
                 return v
 
