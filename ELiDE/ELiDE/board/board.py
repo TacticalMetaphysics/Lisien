@@ -137,6 +137,10 @@ class Board(RelativeLayout):
     reciprocal_portal = BooleanProperty(False)
     grabbing = BooleanProperty(True)
     grabbed = ObjectProperty(None, allownone=True)
+    spot_cls = ObjectProperty(Spot)
+    pawn_cls = ObjectProperty(Pawn)
+    arrow_cls = ObjectProperty(Arrow)
+    proto_arrow_cls = ObjectProperty(ArrowWidget)
 
     @property
     def widkwargs(self):
@@ -177,13 +181,13 @@ class Board(RelativeLayout):
                 )
                 self.add_widget(self.protodest)
                 self.protodest.on_touch_down(touch)
-                self.protoportal = ArrowWidget(
+                self.protoportal = self.proto_arrow_cls(
                     origin=self.origspot,
                     destination=self.protodest
                 )
                 self.add_widget(self.protoportal)
                 if self.reciprocal_portal:
-                    self.protoportal2 = ArrowWidget(
+                    self.protoportal2 = self.proto_arrow_cls(
                         destination=self.origspot,
                         origin=self.protodest
                     )
@@ -382,7 +386,7 @@ class Board(RelativeLayout):
         """
         if thing["name"] in self.pawn:
             raise KeyError("Already have a Pawn for this Thing")
-        r = Pawn(
+        r = self.pawn_cls(
             board=self,
             thing=thing
         )
@@ -396,7 +400,7 @@ class Board(RelativeLayout):
         """
         if place["name"] in self.spot:
             raise KeyError("Already have a Spot for this Place")
-        r = Spot(
+        r = self.spot_cls(
             board=self,
             place=place
         )
@@ -426,7 +430,7 @@ class Board(RelativeLayout):
                 portal["destination"] in self.arrow[portal["origin"]]
         ):
             raise KeyError("Already have an Arrow for this Portal")
-        r = Arrow(
+        r = self.arrow_cls(
             board=self,
             portal=portal
         )
