@@ -62,10 +62,7 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
         ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
     except ZeroDivisionError:
         ynorm = np.array([0.5] * len(ys))
-    o = {}
-    for i in range(len(ks)):
-        o[ks[i]] = (xnorm[i], ynorm[i])
-    return o
+    return dict(zip(ks, zip(xnorm, ynorm)))
 
 
 def detect_2d_grid_layout_bounds(nodenames):
