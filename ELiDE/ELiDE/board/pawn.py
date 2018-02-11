@@ -135,7 +135,7 @@ class Pawn(PawnSpot):
         if hasattr(self.parent, 'place') and \
            not hasattr(self, '_pospawn_unbound'):
             self.parent.unbind_trigger_pospawn(self)
-            self._pospawn_bound = True
+            self._pospawn_unbound = True
         self.center = touch.pos
         return True
 
@@ -153,8 +153,6 @@ class Pawn(PawnSpot):
             self.dispatch('on_drop', None)
             return True
 
-        if hasattr(self, '_start'):
-            del self._start
         self.dispatch('on_drop', new_spot)
         return True
 
