@@ -25,18 +25,16 @@ from .arrow import Arrow, ArrowWidget
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+import numpy as np
 
 
-def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
+def normalize_layout(l):
     """Make sure all the spots in a layout are where you can click.
 
     Returns a copy of the layout with all spot coordinates are
     normalized to within (0.0, 0.98).
 
     """
-    assert None in (minx, maxx) or minx != maxx
-    assert None in (miny, maxy) or miny != maxy
-    import numpy as np
     xs = []
     ys = []
     ks = []
@@ -44,42 +42,21 @@ def normalize_layout(l, minx=None, miny=None, maxx=None, maxy=None):
         xs.append(x)
         ys.append(y)
         ks.append(k)
-    if minx is None:
-        minx = np.min(xs)
-    if maxx is None:
-        maxx = np.max(xs)
+    minx = np.min(xs)
+    maxx = np.max(xs)
     try:
         xco = 0.98 / (maxx - minx)
         xnorm = np.multiply(np.subtract(xs, [minx] * len(xs)), xco)
     except ZeroDivisionError:
         xnorm = np.array([0.5] * len(xs))
-    if miny is None:
-        miny = np.min(ys)
-    if maxy is None:
-        maxy = np.max(ys)
+    miny = np.min(ys)
+    maxy = np.max(ys)
     try:
         yco = 0.98 / (maxy - miny)
         ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
     except ZeroDivisionError:
         ynorm = np.array([0.5] * len(ys))
     return dict(zip(ks, zip(xnorm, ynorm)))
-
-
-def detect_2d_grid_layout_bounds(nodenames):
-    minx = miny = maxx = maxy = None
-    for nn in nodenames:
-        if not isinstance(nn, tuple) or len(nn) != 2:
-            raise ValueError("Not a 2d grid layout")
-        x, y = nn
-        if minx is None or x < minx:
-            minx = x
-        if maxx is None or x > maxx:
-            maxx = x
-        if miny is None or y < miny:
-            miny = y
-        if maxy is None or y > maxy:
-            maxy = y
-    return minx, miny, maxx, maxy
 
 
 class KvLayoutBack(FloatLayout):
@@ -802,11 +779,8 @@ class Board(RelativeLayout):
         if not self.spots_unposd:
             return
         try:
-            minx, miny, maxx, maxy = detect_2d_grid_layout_bounds(spot.name for spot in self.spots_unposd)
-            assert minx != maxx
-            assert miny != maxy
-            self.grid_layout(minx, miny, maxx, maxy)
-        except ValueError:
+            self.grid_layout()
+        except (TypeError, ValueError):
             self.nx_layout()
 
     def _apply_node_layout(self, l, *args):
@@ -838,12 +812,12 @@ class Board(RelativeLayout):
             )
         self.spots_unposd = []
 
-    def grid_layout(self, minx, miny, maxx, maxy, *args):
-        l = normalize_layout(
-            {spot.name: spot.name for spot in self.spots_unposd},
-            minx, miny, maxx, maxy
+    def grid_layout(self, *args):
+        self._apply_node_layout(
+            normalize_layout(
+                {spot.name: spot.name for spot in self.spots_unposd}
+            )
         )
-        self._apply_node_layout(l)
 
     def nx_layout(self, *args):
         for spot in self.spots_unposd:
