@@ -46,6 +46,7 @@ class Pawn(PawnSpot):
             kwargs['proxy'] = kwargs['thing']
             del kwargs['thing']
         super().__init__(**kwargs)
+        self.register_event_type('on_drop')
 
     def on_parent(self, *args):
         if self.parent:
@@ -149,24 +150,23 @@ class Pawn(PawnSpot):
                 new_spot = spot
                 break
         else:
-            parent = self.parent
-            parent.remove_widget(self)
-            parent.add_widget(self)
+            self.dispatch('on_drop', None)
             return True
 
-        myplace = self.loc_name
-        theirplace = new_spot.name
-        if myplace != theirplace:
-            if hasattr(self, '_start'):
-                del self._start
-            if not self.dispatch('on_drop', new_spot):
-                self.loc_name = new_spot.name
-        self.parent.remove_widget(self)
-        new_spot.add_widget(self)
+        if hasattr(self, '_start'):
+            del self._start
+        self.dispatch('on_drop', new_spot)
         return True
 
     def on_drop(self, spot):
-        pass
+        parent = self.parent
+        if spot:
+            self.loc_name = spot.name
+            parent.remove_widget(self)
+            spot.add_widget(self)
+        else:
+            parent.remove_widget(self)
+            parent.add_widget(self)
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
