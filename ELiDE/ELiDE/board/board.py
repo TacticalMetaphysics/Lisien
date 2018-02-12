@@ -62,10 +62,9 @@ def normalize_layout(l):
 class KvLayoutBack(FloatLayout):
     """What to show behind the graph.
 
-    By default, shows a static image.
+    By default, shows nothing.
 
     """
-    wallpaper_path = StringProperty()
 
 
 class KvLayoutFront(FloatLayout):
