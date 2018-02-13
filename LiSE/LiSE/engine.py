@@ -138,6 +138,11 @@ class AbstractEngine(object):
     Implements serialization methods and the __getattr__ for stored methods.
 
     """
+    def __getattr__(self, item):
+        if 'method' in self.__dict__ and hasattr(self.__dict__['method'], item):
+            return partial(getattr(self.__dict__['method'], item), self)
+        raise AttributeError
+
     def _pack_character(self, char):
         return umsgpack.Ext(MSGPACK_CHARACTER, umsgpack.packb(char.name, ext_handlers=self._pack_handlers))
 
