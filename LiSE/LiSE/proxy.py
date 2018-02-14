@@ -34,9 +34,8 @@ from LiSE.node import NodeContent, UserMapping, UserDescriptor
 
 
 class CachingProxy(MutableMapping, Signal):
-    def __init__(self, engine_proxy):
+    def __init__(self):
         super().__init__()
-        self.engine = engine_proxy
         self.exists = True
 
     def __bool__(self):
@@ -171,10 +170,11 @@ class NodeProxy(CachingEntityProxy):
 
     user = ProxyUserDescriptor()
 
-    def __init__(self, engine_proxy, charname, nodename):
-        self._charname = charname
+    def __init__(self, character, nodename):
+        self.engine = character.engine
+        self._charname = character.name
         self.name = nodename
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __iter__(self):
         yield from super().__iter__()
@@ -280,15 +280,15 @@ class ThingProxy(NodeProxy):
         return self.engine.character[self._charname].node[self._next_location]
 
     def __init__(
-            self, engine, character, name, location, next_location,
-            arrival_time, next_arrival_time
+            self, character, name, location=None, next_location=None,
+            arrival_time=None, next_arrival_time=None
     ):
-        if location is None:
-            raise TypeError("Thing must have location")
-        super().__init__(engine, character, name)
+        if location is None and getattr(character.engine, '_initialized', True):
+            raise ValueError("Thing must have location")
+        super().__init__(character, name)
         self._location = location
         self._next_location = next_location
-        self._arrival_time = arrival_time or engine.turn
+        self._arrival_time = arrival_time or character.engine.turn
         self._next_arrival_time = next_arrival_time
 
     def __iter__(self):
@@ -479,11 +479,12 @@ class PortalProxy(CachingEntityProxy):
             branching=True
         )
 
-    def __init__(self, engine_proxy, charname, origname, destname):
-        self._charname = charname
+    def __init__(self, character, origname, destname):
+        self.engine = character.engine
+        self._charname = character.name
         self._origin = origname
         self._destination = destname
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __eq__(self, other):
         return (
@@ -616,15 +617,16 @@ class ThingMapProxy(CachingProxy):
         return self.engine._things_cache[self.name]
 
     def __init__(self, engine_proxy, charname):
+        self.engine = engine_proxy
         self.name = charname
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __eq__(self, other):
         return self is other
 
     def _cache_munge(self, k, v):
         return ThingProxy(
-            self.engine, self.name, *self.engine.handle(
+            self, *self.engine.handle(
                 'get_thing_special_stats', char=self.name, thing=k
             )
         )
@@ -685,8 +687,9 @@ class PlaceMapProxy(CachingProxy):
         return self.engine._character_places_cache[self.name]
 
     def __init__(self, engine_proxy, character):
+        self.engine = engine_proxy
         self.name = character
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __eq__(self, other):
         return self is other
@@ -724,9 +727,10 @@ class SuccessorsProxy(CachingProxy):
             self._charname][self._orig]
 
     def __init__(self, engine_proxy, charname, origname):
+        self.engine = engine_proxy
         self._charname = charname
         self._orig = origname
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __eq__(self, other):
         return (
@@ -806,8 +810,9 @@ class CharSuccessorsMappingProxy(CachingProxy):
         return self.engine._character_portals_cache.successors[self.name]
 
     def __init__(self, engine_proxy, charname):
+        self.engine = engine_proxy
         self.name = charname
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __eq__(self, other):
         return (
@@ -967,8 +972,9 @@ class CharStatProxy(CachingEntityProxy):
         return self.engine._char_stat_cache[self.name]
 
     def __init__(self, engine_proxy, character):
+        self.engine = engine_proxy
         self.name = character
-        super().__init__(engine_proxy)
+        super().__init__()
 
     def __eq__(self, other):
         return (
@@ -1314,7 +1320,7 @@ class CharacterProxy(MutableMapping):
                     nodeval = delta.get('node_val', {}).get(node, None)
                     if nodeval and 'location' in nodeval:
                         self.thing._cache[node] = prox = ThingProxy(
-                            self.engine, self.name, node, nodeval['location'],
+                            self, node, nodeval['location'],
                             nodeval.get('next_location'), nodeval.get('arrival_time'),
                             nodeval.get('next_arrival_time')
                         )
@@ -2005,9 +2011,10 @@ class EngineProxy(AbstractEngine):
         self._rulebook_obj_cache = {}
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
+        self._initialized = False
         deltas = self.handle('get_char_deltas', chars='all')
         for char in deltas:
-            self._char_cache[char] = CharacterProxy(self, char)
+            self._char_cache[char] = character = CharacterProxy(self, char)
             for origin, destinations in deltas[
                     char].pop('edge_val', {}).items():
                 for destination,  stats in destinations.items():
@@ -2050,21 +2057,22 @@ class EngineProxy(AbstractEngine):
                     noded = self._node_stat_cache[char].get(node)
                     if noded and 'location' in noded:
                         self._things_cache[char][node] = ThingProxy(
-                            self, char, node, noded['location'],
+                            character, node, noded['location'],
                             noded.get('next_location'), noded.get('arrival_time'),
                             noded.get('next_arrival_time')
                         )
                     else:
                         self._character_places_cache[char][node] = PlaceProxy(
-                            self, char, node
+                            character, node
                         )
             for orig, dests in deltas[char].pop('edges', {}).items():
                 for dest, ex in dests.items():
                     if ex:
                         self._character_portals_cache.store(
-                            char, orig, dest, PortalProxy(self, char, orig, dest)
+                            char, orig, dest, PortalProxy(character, orig, dest)
                         )
             self._char_stat_cache[char] = deltas[char]
+        self._initialized = True
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):

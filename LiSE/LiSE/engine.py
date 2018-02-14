@@ -138,6 +138,11 @@ class AbstractEngine(object):
 
     Implements serialization methods and the __getattr__ for stored methods.
 
+    By default, the deserializers will refuse to create LiSE entities. If
+    you want them to, set my property ``_initialized`` to ``False``.
+    This is not recommended except when first copying a LiSE core's data
+    to a client. Set it to ``True`` right after you're done.
+
     """
     def __getattr__(self, item):
         if 'method' in self.__dict__ and hasattr(self.__dict__['method'], item):
@@ -169,19 +174,58 @@ class AbstractEngine(object):
         return umsgpack.Ext(MSGPACK_FROZENSET, umsgpack.packb(list(frozs), ext_handlers=self._pack_handlers))
 
     def _unpack_char(self, ext):
-        return self.character[umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)]
+        charn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        try:
+            return self.character[charn]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            return self.char_cls(self, charn)
 
     def _unpack_place(self, ext):
         charn, placen = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
-        return self.character[charn].place[placen]
+        try:
+            char = self.character[charn]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            return self.place_cls(self.char_cls(self, charn), placen)
+        try:
+            return char.place[placen]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            return self.place_cls(char, placen)
 
     def _unpack_thing(self, ext):
         charn, thingn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
-        return self.character[charn].thing[thingn]
+        try:
+            char = self.character[charn]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            return self.thing_cls(self.char_cls(self, charn), thingn)
+        try:
+            return char.thing[thingn]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            return self.thing_cls(char, thingn)
 
     def _unpack_portal(self, ext):
-        char, orig, dest = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
-        return self.character[char].portal[orig][dest]
+        charn, orign, destn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        try:
+            char = self.character[charn]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            char = self.char_cls(self, charn)
+        try:
+            return char.portal[orign][destn]
+        except KeyError:
+            if getattr(self, '_initialized', True):
+                raise
+            return self.portal_cls(char, orign, destn)
 
     def _unpack_tuple(self, ext):
         return tuple(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
