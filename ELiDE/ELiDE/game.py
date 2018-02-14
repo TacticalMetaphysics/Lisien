@@ -25,14 +25,16 @@ class GameScreen(Screen):
     disabled = BooleanProperty(False)
 
     def disable_input(self, cb=None):
+        """Set ``self.disabled`` to ``True``, then call ``cb`` if provided"""
         self.disabled = True
         if cb:
             cb()
 
     def enable_input(self, cb=None):
-        self.disabled = False
+        """Call ``cb`` if provided, then set ``self.disabled`` to ``False``"""
         if cb:
             cb()
+        self.disabled = False
 
     def wait_travel(self, character, thing, dest, cb=None):
         """Schedule a thing to travel someplace, then wait for it to finish."""
@@ -48,11 +50,6 @@ class GameScreen(Screen):
         self.disable_input()
         self.app.wait_turns(n, cb=partial(self.enable_input, cb))
 
-    def _call_and_enable_input(self, cb):
-        if cb:
-            cb()
-        self.enable_input()
-
     def wait_command(self, start_func, end_func=None, turns=1):
         """Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
 
@@ -61,7 +58,7 @@ class GameScreen(Screen):
         """
         self.disable_input()
         start_func()
-        self.app.wait_turns(turns, cb=partial(self._call_and_enable_input, end_func))
+        self.app.wait_turns(turns, cb=partial(self.enable_input, end_func))
 
 
 class Screens(Widget):

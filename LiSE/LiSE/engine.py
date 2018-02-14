@@ -125,6 +125,7 @@ final_rule = FinalRule()
 
 
 MSGPACK_TUPLE = 0x00
+MSGPACK_FROZENSET = 0x01
 MSGPACK_CHARACTER = 0x7f
 MSGPACK_PLACE = 0x7e
 MSGPACK_THING = 0x7d
@@ -138,6 +139,11 @@ class AbstractEngine(object):
     Implements serialization methods and the __getattr__ for stored methods.
 
     """
+    def __getattr__(self, item):
+        if 'method' in self.__dict__ and hasattr(self.__dict__['method'], item):
+            return partial(getattr(self.__dict__['method'], item), self)
+        raise AttributeError
+
     def _pack_character(self, char):
         return umsgpack.Ext(MSGPACK_CHARACTER, umsgpack.packb(char.name, ext_handlers=self._pack_handlers))
 
@@ -159,6 +165,9 @@ class AbstractEngine(object):
     def _pack_tuple(self, tup):
         return umsgpack.Ext(MSGPACK_TUPLE, umsgpack.packb(list(tup), ext_handlers=self._pack_handlers))
 
+    def _pack_frozenset(self, frozs):
+        return umsgpack.Ext(MSGPACK_FROZENSET, umsgpack.packb(list(frozs), ext_handlers=self._pack_handlers))
+
     def _unpack_char(self, ext):
         return self.character[umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)]
 
@@ -177,6 +186,9 @@ class AbstractEngine(object):
     def _unpack_tuple(self, ext):
         return tuple(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
 
+    def _unpack_frozenset(self, ext):
+        return frozenset(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
+
     @reify
     def _unpack_handlers(self):
         return {
@@ -185,7 +197,8 @@ class AbstractEngine(object):
             MSGPACK_THING: self._unpack_thing,
             MSGPACK_PORTAL: self._unpack_portal,
             MSGPACK_FINAL_RULE: lambda obj: final_rule,
-            MSGPACK_TUPLE: self._unpack_tuple
+            MSGPACK_TUPLE: self._unpack_tuple,
+            MSGPACK_FROZENSET: self._unpack_frozenset
         }
 
     @reify
@@ -196,6 +209,7 @@ class AbstractEngine(object):
             self.thing_cls: self._pack_thing,
             self.portal_cls: self._pack_portal,
             tuple: self._pack_tuple,
+            frozenset: self._pack_frozenset,
             FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b"")
         }
 
