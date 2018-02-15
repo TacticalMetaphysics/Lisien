@@ -2011,68 +2011,67 @@ class EngineProxy(AbstractEngine):
         self._rulebook_obj_cache = {}
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
-        self._initialized = False
-        deltas = self.handle('get_char_deltas', chars='all')
-        for char in deltas:
-            self._char_cache[char] = character = CharacterProxy(self, char)
-            for origin, destinations in deltas[
-                    char].pop('edge_val', {}).items():
-                for destination,  stats in destinations.items():
-                    self._portal_stat_cache[char][origin][destination] = stats
-            for node,  stats in deltas[char].pop('node_val', {}).items():
-                self._node_stat_cache[char][node] = stats
-            avatars = self._character_avatars_cache[char] = deltas[char].pop('avatars', {})
-            for av, node in avatars.items():
-                self._avatar_characters_cache[av].setdefault(char, node)
-            for rbtype, rb in deltas[char].pop('rulebooks', {}).items():
-                if rb in self._rulebook_obj_cache:
-                    self._character_rulebooks_cache[char][rbtype] \
-                        = self._rulebook_obj_cache[rb]
-                else:
-                    self._character_rulebooks_cache[char][rbtype] \
-                        = self._rulebook_obj_cache[rb] \
-                        = RuleBookProxy(self, rb)
-            for node, rb in deltas[char].pop('node_rulebooks', {}).items():
-                if rb in self._rulebook_obj_cache:
-                    self._char_node_rulebooks_cache[char][node] \
-                        = self._rulebook_obj_cache[rb]
-                else:
-                    self._char_node_rulebooks_cache[char][node] \
-                        = self._rulebook_obj_cache[rb] \
-                        = RuleBookProxy(self, rb)
-            for origin, destinations in deltas[
-                    char].pop('portal_rulebooks', {}).items():
-                for destination, rulebook in destinations.items():
-                    if rulebook in self._rulebook_obj_cache:
-                        self._char_port_rulebooks_cache[
-                            char][origin][destination
-                        ] = self._rulebook_obj_cache[rulebook]
+        with self.loading:
+            deltas = self.handle('get_char_deltas', chars='all')
+            for char in deltas:
+                self._char_cache[char] = character = CharacterProxy(self, char)
+                for origin, destinations in deltas[
+                        char].pop('edge_val', {}).items():
+                    for destination,  stats in destinations.items():
+                        self._portal_stat_cache[char][origin][destination] = stats
+                for node,  stats in deltas[char].pop('node_val', {}).items():
+                    self._node_stat_cache[char][node] = stats
+                avatars = self._character_avatars_cache[char] = deltas[char].pop('avatars', {})
+                for av, node in avatars.items():
+                    self._avatar_characters_cache[av].setdefault(char, node)
+                for rbtype, rb in deltas[char].pop('rulebooks', {}).items():
+                    if rb in self._rulebook_obj_cache:
+                        self._character_rulebooks_cache[char][rbtype] \
+                            = self._rulebook_obj_cache[rb]
                     else:
-                        self._char_port_rulebooks_cache[
-                            char][origin][destination] \
-                            = self._rulebook_obj_cache[rulebook] \
-                            = RuleBookProxy(self, rulebook)
-            for node, ex in deltas[char].pop('nodes', {}).items():
-                if ex:
-                    noded = self._node_stat_cache[char].get(node)
-                    if noded and 'location' in noded:
-                        self._things_cache[char][node] = ThingProxy(
-                            character, node, noded['location'],
-                            noded.get('next_location'), noded.get('arrival_time'),
-                            noded.get('next_arrival_time')
-                        )
+                        self._character_rulebooks_cache[char][rbtype] \
+                            = self._rulebook_obj_cache[rb] \
+                            = RuleBookProxy(self, rb)
+                for node, rb in deltas[char].pop('node_rulebooks', {}).items():
+                    if rb in self._rulebook_obj_cache:
+                        self._char_node_rulebooks_cache[char][node] \
+                            = self._rulebook_obj_cache[rb]
                     else:
-                        self._character_places_cache[char][node] = PlaceProxy(
-                            character, node
-                        )
-            for orig, dests in deltas[char].pop('edges', {}).items():
-                for dest, ex in dests.items():
+                        self._char_node_rulebooks_cache[char][node] \
+                            = self._rulebook_obj_cache[rb] \
+                            = RuleBookProxy(self, rb)
+                for origin, destinations in deltas[
+                        char].pop('portal_rulebooks', {}).items():
+                    for destination, rulebook in destinations.items():
+                        if rulebook in self._rulebook_obj_cache:
+                            self._char_port_rulebooks_cache[
+                                char][origin][destination
+                            ] = self._rulebook_obj_cache[rulebook]
+                        else:
+                            self._char_port_rulebooks_cache[
+                                char][origin][destination] \
+                                = self._rulebook_obj_cache[rulebook] \
+                                = RuleBookProxy(self, rulebook)
+                for node, ex in deltas[char].pop('nodes', {}).items():
                     if ex:
-                        self._character_portals_cache.store(
-                            char, orig, dest, PortalProxy(character, orig, dest)
-                        )
-            self._char_stat_cache[char] = deltas[char]
-        self._initialized = True
+                        noded = self._node_stat_cache[char].get(node)
+                        if noded and 'location' in noded:
+                            self._things_cache[char][node] = ThingProxy(
+                                character, node, noded['location'],
+                                noded.get('next_location'), noded.get('arrival_time'),
+                                noded.get('next_arrival_time')
+                            )
+                        else:
+                            self._character_places_cache[char][node] = PlaceProxy(
+                                character, node
+                            )
+                for orig, dests in deltas[char].pop('edges', {}).items():
+                    for dest, ex in dests.items():
+                        if ex:
+                            self._character_portals_cache.store(
+                                char, orig, dest, PortalProxy(character, orig, dest)
+                            )
+                self._char_stat_cache[char] = deltas[char]
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):

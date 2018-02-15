@@ -133,17 +133,33 @@ MSGPACK_PORTAL = 0x7c
 MSGPACK_FINAL_RULE = 0x7b
 
 
+class LoadingContext:
+    __slots__ = ['engine']
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def __enter__(self):
+        self.engine._initialized = False
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.engine._initialized = True
+
+
 class AbstractEngine(object):
     """Parent class to the real Engine as well as EngineProxy.
 
     Implements serialization methods and the __getattr__ for stored methods.
 
     By default, the deserializers will refuse to create LiSE entities. If
-    you want them to, set my property ``_initialized`` to ``False``.
-    This is not recommended except when first copying a LiSE core's data
-    to a client. Set it to ``True`` right after you're done.
+    you want them to, use my ``loading`` property to open a ``with`` block,
+    in which deserialized entities will be created as needed.
 
     """
+    @property
+    def loading(self):
+        return LoadingContext(self)
+
     def __getattr__(self, item):
         if 'method' in self.__dict__ and hasattr(self.__dict__['method'], item):
             return partial(getattr(self.__dict__['method'], item), self)
