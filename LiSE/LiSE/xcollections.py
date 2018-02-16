@@ -2,6 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
+from types import MethodType
 from blinker import Signal
 from astunparse import Unparser
 from ast import parse, Expr, Module
@@ -220,6 +221,15 @@ class FunctionStore(Signal):
 
     def get_source(self, name):
         return getsource(getattr(self, name))
+
+
+class MethodStore(FunctionStore):
+    def __init__(self, engine):
+        self.engine = engine
+        super().__init__('method.py')
+
+    def __getattr__(self, item):
+        return MethodType(super().__getattr__(item), self.engine)
 
 
 class UniversalMapping(MutableMapping, Signal):

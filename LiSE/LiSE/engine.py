@@ -6,9 +6,9 @@ flow of time.
 
 """
 from random import Random
-from functools import partial
 from operator import gt, lt, ge, le, eq, ne
-from types import FunctionType
+from functools import partial
+from types import FunctionType, MethodType
 import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM, update_window, update_backward_window
@@ -167,9 +167,8 @@ class AbstractEngine(object):
         return LoadingContext(self)
 
     def __getattr__(self, item):
-        if 'method' in self.__dict__ and hasattr(self.__dict__['method'], item):
-            return partial(getattr(self.__dict__['method'], item), self)
-        raise AttributeError
+        meth = super().__getattribute__('method').__getattr__(item)
+        return MethodType(meth, self)
 
     def _pack_character(self, char):
         return umsgpack.Ext(MSGPACK_CHARACTER, umsgpack.packb(char.name, ext_handlers=self._pack_handlers))
@@ -203,6 +202,9 @@ class AbstractEngine(object):
             'prereq': MSGPACK_PREREQ,
             'action': MSGPACK_ACTION
         }[func.__module__], umsgpack.packb(func.__name__))
+
+    def _pack_meth(self, func):
+        return umsgpack.Ext(MSGPACK_METHOD, umsgpack.packb(func.__name__))
 
     def _unpack_char(self, ext):
         charn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
@@ -306,7 +308,8 @@ class AbstractEngine(object):
             tuple: self._pack_tuple,
             frozenset: self._pack_frozenset,
             FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b""),
-            FunctionType: self._pack_func
+            FunctionType: self._pack_func,
+            MethodType: self._pack_meth
         }
 
     def pack(self, obj):
