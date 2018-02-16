@@ -171,6 +171,11 @@ class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
     db = getatt('graph.db')
 
+    def __new__(cls, graph, node):
+        if (graph.name, node) in graph.db._node_objs:
+            return graph.db._node_objs[graph.name, node]
+        return super(Node, cls).__new__(cls)
+
     def __init__(self, graph, node):
         """Store name and graph"""
         super().__init__()
@@ -223,6 +228,11 @@ class Node(AbstractEntityMapping):
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
     db = getatt('graph.db')
+
+    def __new__(cls, graph, orig, dest, idx=0):
+        if (graph.name, orig, dest, idx) in graph.db._edge_objs:
+            return graph.db._edge_objs[graph.name, orig, dest, idx]
+        return super(Edge, cls).__new__(cls)
 
     def __init__(self, graph, orig, dest, idx=0):
         """Store the graph, the names of the nodes, and the index.
@@ -974,6 +984,11 @@ class AllegedGraph(object):
     """
     _succs = {}
     _statmaps = {}
+
+    def __new__(cls, db, name, data=None, **attr):
+        if name in db._graph_objs:
+            return db._graph_objs[name]
+        return super(AllegedGraph, cls).__new__(cls)
 
     def __init__(self, db, name, data=None, **attr):
         self._name = name

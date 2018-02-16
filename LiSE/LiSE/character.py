@@ -1758,6 +1758,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.name, name, location, None
         )
         if (self.name, name) in self.engine._node_objs:
+            del self.engine._node_objs[self.name, name]
             self.engine._node_objs[self.name, name] = Thing(self, name)
 
     def thing2place(self, name):
@@ -1766,6 +1767,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             self.name, name, None, None
         )
         if (self.name, name) in self.engine._node_objs:
+            del self.engine._node_objs[self.name, name]
             self.engine._node_objs[self.name, name] = Place(self, name)
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
