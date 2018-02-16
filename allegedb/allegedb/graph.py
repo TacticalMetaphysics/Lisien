@@ -8,6 +8,10 @@ from operator import attrgetter
 from .wrap import DictWrapper, ListWrapper
 
 
+class EntityCollisionError(ValueError):
+    """For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""
+
+
 def getatt(attribute_name):
     """An easy way to make an alias"""
     return property(attrgetter(attribute_name))
@@ -173,7 +177,11 @@ class Node(AbstractEntityMapping):
 
     def __new__(cls, graph, node):
         if (graph.name, node) in graph.db._node_objs:
-            return graph.db._node_objs[graph.name, node]
+            ret = graph.db._node_objs[graph.name, node]
+            if not isinstance(ret, cls):
+                raise EntityCollisionError("Already have node {} in graph {}, but it's of class {}".format(
+                    node, graph.name, type(ret)))
+            return ret
         return super(Node, cls).__new__(cls)
 
     def __init__(self, graph, node):
@@ -231,7 +239,14 @@ class Edge(AbstractEntityMapping):
 
     def __new__(cls, graph, orig, dest, idx=0):
         if (graph.name, orig, dest, idx) in graph.db._edge_objs:
-            return graph.db._edge_objs[graph.name, orig, dest, idx]
+            ret = graph.db._edge_objs[graph.name, orig, dest, idx]
+            if not isinstance(ret, cls):
+                raise EntityCollisionError(
+                    "Already have an edge {}->{}[{}] in graph {}, but of class {}".format(
+                        orig, dest, idx, graph.name, type(ret)
+                    )
+                )
+            return ret
         return super(Edge, cls).__new__(cls)
 
     def __init__(self, graph, orig, dest, idx=0):
@@ -987,7 +1002,12 @@ class AllegedGraph(object):
 
     def __new__(cls, db, name, data=None, **attr):
         if name in db._graph_objs:
-            return db._graph_objs[name]
+            ret = db._graph_objs[name]
+            if not isinstance(ret, cls):
+                raise EntityCollisionError("Already have a graph named {}, but it's of class {}".format(
+                    name, type(ret)
+                ))
+            return ret
         return super(AllegedGraph, cls).__new__(cls)
 
     def __init__(self, db, name, data=None, **attr):
