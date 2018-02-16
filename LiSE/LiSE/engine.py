@@ -8,6 +8,7 @@ flow of time.
 from random import Random
 from functools import partial
 from operator import gt, lt, ge, le, eq, ne
+from types import FunctionType
 import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM, update_window, update_backward_window
@@ -131,6 +132,11 @@ MSGPACK_PLACE = 0x7e
 MSGPACK_THING = 0x7d
 MSGPACK_PORTAL = 0x7c
 MSGPACK_FINAL_RULE = 0x7b
+MSGPACK_FUNCTION = 0x7a
+MSGPACK_METHOD = 0x79
+MSGPACK_TRIGGER = 0x78
+MSGPACK_PREREQ = 0x77
+MSGPACK_ACTION = 0x76
 
 
 class LoadingContext:
@@ -189,6 +195,15 @@ class AbstractEngine(object):
     def _pack_frozenset(self, frozs):
         return umsgpack.Ext(MSGPACK_FROZENSET, umsgpack.packb(list(frozs), ext_handlers=self._pack_handlers))
 
+    def _pack_func(self, func):
+        return umsgpack.Ext({
+            'method': MSGPACK_METHOD,
+            'function': MSGPACK_FUNCTION,
+            'trigger': MSGPACK_TRIGGER,
+            'prereq': MSGPACK_PREREQ,
+            'action': MSGPACK_ACTION
+        }[func.__module__], umsgpack.packb(func.__name__))
+
     def _unpack_char(self, ext):
         charn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
         try:
@@ -243,6 +258,21 @@ class AbstractEngine(object):
                 raise
             return self.portal_cls(char, orign, destn)
 
+    def _unpack_trigger(self, ext):
+        return getattr(self.trigger, umsgpack.unpackb(ext.data))
+
+    def _unpack_prereq(self, ext):
+        return getattr(self.prereq, umsgpack.unpackb(ext.data))
+
+    def _unpack_action(self, ext):
+        return getattr(self.action, umsgpack.unpackb(ext.data))
+
+    def _unpack_function(self, ext):
+        return getattr(self.function, umsgpack.unpackb(ext.data))
+
+    def _unpack_method(self, ext):
+        return getattr(self.method, umsgpack.unpackb(ext.data))
+
     def _unpack_tuple(self, ext):
         return tuple(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
 
@@ -258,7 +288,12 @@ class AbstractEngine(object):
             MSGPACK_PORTAL: self._unpack_portal,
             MSGPACK_FINAL_RULE: lambda obj: final_rule,
             MSGPACK_TUPLE: self._unpack_tuple,
-            MSGPACK_FROZENSET: self._unpack_frozenset
+            MSGPACK_FROZENSET: self._unpack_frozenset,
+            MSGPACK_TRIGGER: self._unpack_trigger,
+            MSGPACK_PREREQ: self._unpack_prereq,
+            MSGPACK_ACTION: self._unpack_action,
+            MSGPACK_FUNCTION: self._unpack_function,
+            MSGPACK_METHOD: self._unpack_method
         }
 
     @reify
@@ -270,7 +305,8 @@ class AbstractEngine(object):
             self.portal_cls: self._pack_portal,
             tuple: self._pack_tuple,
             frozenset: self._pack_frozenset,
-            FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b"")
+            FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b""),
+            FunctionType: self._pack_func
         }
 
     def pack(self, obj):
