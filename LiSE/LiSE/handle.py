@@ -139,7 +139,8 @@ class EngineHandle(object):
         def updd(d0, d1):
             for k, v in d1.items():
                 if k not in ('location', 'next_location') and v is None:
-                    del d0[k]
+                    if k in d0:
+                        del d0[k]
                 else:
                     d0[k] = v
         updd(self._eternal_cache, delta.pop('eternal', {}))
