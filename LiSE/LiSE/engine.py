@@ -455,9 +455,9 @@ class Engine(AbstractEngine, gORM):
 
     def _make_node(self, char, node):
         if self._is_thing(char.name, node):
-            return Thing(char, node)
+            return self.thing_cls(char, node)
         else:
-            return Place(char, node)
+            return self.place_cls(char, node)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to the world.
