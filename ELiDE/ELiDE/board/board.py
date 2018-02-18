@@ -129,6 +129,8 @@ class Board(RelativeLayout):
             return
         if not self.collide_point(*touch.pos):
             return
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.selection:
             self.selection.hit = self.selection.collide_point(*touch.pos)
             if self.selection.hit:
@@ -140,6 +142,7 @@ class Board(RelativeLayout):
             self.selection_candidates = pawns
             if self.selection in self.selection_candidates:
                 self.selection_candidates.remove(self.selection)
+            touch.pop()
             return True
         spots = list(self.spots_at(*touch.pos))
         if spots:
@@ -165,13 +168,16 @@ class Board(RelativeLayout):
                         origin=self.protodest
                     )
                     self.add_widget(self.protoportal2)
+            touch.pop()
             return True
         if not self.selection_candidates:
             arrows = list(self.arrows_at(*touch.pos))
             if arrows:
                 Logger.debug("Board: hit {} arrows".format(len(arrows)))
                 self.selection_candidates = arrows
+                touch.pop()
                 return True
+        touch.pop()
 
     def on_touch_move(self, touch):
         """If an entity is selected, drag it."""
@@ -179,10 +185,14 @@ class Board(RelativeLayout):
             return
         if self.selection in self.selection_candidates:
             self.selection_candidates.remove(self.selection)
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if self.selection:
             if not self.selection_candidates:
                 self.keep_selection = True
-            return self.selection.dispatch('on_touch_move', touch)
+            ret = self.selection.dispatch('on_touch_move', touch)
+            touch.pop()
+            return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
@@ -193,7 +203,10 @@ class Board(RelativeLayout):
                     self.selection = cand
                     cand.hit = cand.selected = True
                     touch.grab(cand)
-                    return cand.dispatch('on_touch_move', touch)
+                    ret = cand.dispatch('on_touch_move', touch)
+                    touch.pop()
+                    return ret
+        touch.pop()
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
@@ -244,10 +257,14 @@ class Board(RelativeLayout):
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
         self._lasttouch = touch
+        touch.push()
+        touch.apply_transform_2d(self.to_local)
         if hasattr(self, 'protodest'):
             Logger.debug("Board: on_touch_up making a portal")
             touch.ungrab(self)
-            return self.portal_touch_up(touch)
+            ret = self.portal_touch_up(touch)
+            touch.pop()
+            return ret
         if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         while self.selection_candidates:
@@ -281,6 +298,7 @@ class Board(RelativeLayout):
             self.selection = None
         self.keep_selection = False
         touch.ungrab(self)
+        touch.pop()
         return
 
     def _pull_size(self, *args):
