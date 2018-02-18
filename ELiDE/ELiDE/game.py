@@ -74,9 +74,7 @@ class GameScreen(Screen):
         :return: ``None``
         """
         self.disable_input()
-        self.app.wait_travel(character, thing, dest, cb=partial(
-            self.app.wait_command, start_func, turns, partial(self.enable_input, end_func))
-        )
+        self.app.wait_travel_command(character, thing, dest, start_func, turns, partial(self.enable_input, end_func))
 
 
 class Screens(Widget):
@@ -122,6 +120,21 @@ class GameApp(App):
         """Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)"""
         start_func()
         self.wait_turns(turns, cb=end_func)
+
+    def wait_travel_command(self, character, thing, dest, start_func, turns=1, end_func=None):
+        """Schedule a thing to travel someplace and do something, then wait for it to finish.
+
+        :param character: name of the character
+        :param thing: name of the thing
+        :param dest: name of the destination (a place)
+        :param start_func: function to call when the thing gets to dest
+        :param turns: number of turns to wait after start_func before re-enabling input
+        :param end_func: optional. Function to call after waiting ``turns`` after start_func
+        :return: ``None``
+        """
+        self.wait_travel(character, thing, dest, cb=partial(
+            self.wait_command, start_func, turns, end_func)
+        )
 
     def on_engine(self, *args):
         self.branch, self.turn, self.tick = self.engine.btt()
