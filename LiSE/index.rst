@@ -11,42 +11,42 @@ Welcome to LiSE's documentation!
    :caption: Contents:
 
 engine
-======
+------
 .. automodule:: LiSE.engine
    :members:
 
 character
-=========
+---------
 .. automodule:: LiSE.character
    :members:
 
 node
-====
+----
 .. automodule:: LiSE.node
    :members:
 
 place
-=====
+-----
 .. automodule:: LiSE.place
    :members:
 
 thing
-=====
+-----
 .. automodule:: LiSE.thing
    :members:
 
 portal
-======
+------
 .. automodule:: LiSE.portal
    :members:
 
 rule
-====
+----
 .. automodule:: LiSE.rule
    :members:
 
 query
-=====
+-----
 .. automodule:: LiSE.query
    :members:
 

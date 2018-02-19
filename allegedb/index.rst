@@ -23,7 +23,7 @@ graphs in the program will change. All the different branches and
 revisions remain in the database to be brought back when needed.
 
 usage
-=====
+-----
 
 ::
 
@@ -49,9 +49,9 @@ usage
     True
     >>> orm.rev = 1
     >>> blue.add_edge(17, 15)
-    >>> red.edge == blue.edge
+    >>> red.edge = blue.edge
     False
-    >>> orm.rev = 0  # undoing what I did when rev=1
+    >>> orm.rev = 0  # undoing what I did when rev-1
     >>> red.edge == blue.edge
     True
     >>> orm.rev = 0
@@ -64,27 +64,27 @@ usage
     False
 
 allegedb
-=========
+---------
 .. automodule:: allegedb
    :members:
 
 cache
-=====
+-----
 .. automodule:: allegedb.cache
    :members:
 
 graph
-=====
+-----
 .. automodule:: allegedb.graph
    :members:
 
 query
-=====
+-----
 .. automodule:: allegedb.query
    :members:
 
 wrap
-====
+----
 .. automodule:: allegedb.wrap
    :members:
 
