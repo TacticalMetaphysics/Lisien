@@ -28,22 +28,27 @@ node
 place
 =====
 .. automodule:: LiSE.place
+   :members:
 
 thing
 =====
 .. automodule:: LiSE.thing
+   :members:
 
 portal
 ======
 .. automodule:: LiSE.portal
+   :members:
 
 rule
 ====
 .. automodule:: LiSE.rule
+   :members:
 
 query
 =====
 .. automodule:: LiSE.query
+   :members:
 
 
 
