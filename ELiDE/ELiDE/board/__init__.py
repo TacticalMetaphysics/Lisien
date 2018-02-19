@@ -5,4 +5,4 @@ from .board import Board
 from .pawn import Pawn
 from .spot import Spot
 
-__all__ = [Arrow, Board, Pawn, Spot]
+__all__ = ['Arrow', 'Board', 'Pawn', 'Spot']
