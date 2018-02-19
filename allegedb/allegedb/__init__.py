@@ -806,6 +806,3 @@ class ORM(object):
         for (parent, (child, _, _, _, _)) in self._branches.items():
             if parent == branch:
                 yield child
-
-
-__all__ = [ORM, 'graph', 'query']
