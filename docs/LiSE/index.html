@@ -4,20 +4,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>LiSE &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.9dev',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
@@ -31,8 +23,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
@@ -55,7 +46,7 @@ flow of time.</p>
 <dd><p>Parent class to the real Engine as well as EngineProxy.</p>
 <p>Implements serialization methods and the __getattr__ for stored methods.</p>
 <p>By default, the deserializers will refuse to create LiSE entities. If
-you want them to, use my <code class="docutils literal"><span class="pre">loading</span></code> property to open a <code class="docutils literal"><span class="pre">with</span></code> block,
+you want them to, use my <code class="docutils literal notranslate"><span class="pre">loading</span></code> property to open a <code class="docutils literal notranslate"><span class="pre">with</span></code> block,
 in which deserialized entities will be created as needed.</p>
 <dl class="attribute">
 <dt id="LiSE.engine.AbstractEngine.betavariate">
@@ -88,7 +79,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="method">
 <dt id="LiSE.engine.AbstractEngine.dice">
 <code class="descname">dice</code><span class="sig-paren">(</span><em>n</em>, <em>d</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#AbstractEngine.dice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.AbstractEngine.dice" title="Permalink to this definition">¶</a></dt>
-<dd><p>Roll <code class="docutils literal"><span class="pre">n</span></code> dice with <code class="docutils literal"><span class="pre">d</span></code> faces, and yield the results.</p>
+<dd><p>Roll <code class="docutils literal notranslate"><span class="pre">n</span></code> dice with <code class="docutils literal notranslate"><span class="pre">d</span></code> faces, and yield the results.</p>
 <p>This is an iterator. You’ll get the result of each die in
 successon.</p>
 </dd></dl>
@@ -96,9 +87,9 @@ successon.</p>
 <dl class="method">
 <dt id="LiSE.engine.AbstractEngine.dice_check">
 <code class="descname">dice_check</code><span class="sig-paren">(</span><em>n</em>, <em>d</em>, <em>target</em>, <em>comparator=&lt;built-in function le&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#AbstractEngine.dice_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.AbstractEngine.dice_check" title="Permalink to this definition">¶</a></dt>
-<dd><p>Roll <code class="docutils literal"><span class="pre">n</span></code> dice with <code class="docutils literal"><span class="pre">d</span></code> sides, sum them, and return whether they
-are &lt;= <code class="docutils literal"><span class="pre">target</span></code>.</p>
-<p>If <code class="docutils literal"><span class="pre">comparator</span></code> is provided, use it instead of &lt;=. You may
+<dd><p>Roll <code class="docutils literal notranslate"><span class="pre">n</span></code> dice with <code class="docutils literal notranslate"><span class="pre">d</span></code> sides, sum them, and return whether they
+are &lt;= <code class="docutils literal notranslate"><span class="pre">target</span></code>.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">comparator</span></code> is provided, use it instead of &lt;=. You may
 use a string like ‘&lt;’ or ‘&gt;=’.</p>
 </dd></dl>
 
@@ -182,9 +173,9 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="method">
 <dt id="LiSE.engine.AbstractEngine.percent_chance">
 <code class="descname">percent_chance</code><span class="sig-paren">(</span><em>pct</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#AbstractEngine.percent_chance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.AbstractEngine.percent_chance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a <code class="docutils literal"><span class="pre">pct``%</span> <span class="pre">chance</span> <span class="pre">of</span> <span class="pre">something</span> <span class="pre">happening</span> <span class="pre">right</span> <span class="pre">now,</span> <span class="pre">decide</span> <span class="pre">at</span>
+<dd><p>Given a <code class="docutils literal notranslate"><span class="pre">pct``%</span> <span class="pre">chance</span> <span class="pre">of</span> <span class="pre">something</span> <span class="pre">happening</span> <span class="pre">right</span> <span class="pre">now,</span> <span class="pre">decide</span> <span class="pre">at</span>
 <span class="pre">random</span> <span class="pre">whether</span> <span class="pre">it</span> <span class="pre">actually</span> <span class="pre">happens,</span> <span class="pre">and</span> <span class="pre">return</span> <span class="pre">``True</span></code> or
-<code class="docutils literal"><span class="pre">False</span></code> as appropriate.</p>
+<code class="docutils literal notranslate"><span class="pre">False</span></code> as appropriate.</p>
 <p>Values not between 0 and 100 are treated as though they
 were 0 or 100, whichever is nearer.</p>
 </dd></dl>
@@ -225,7 +216,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="method">
 <dt id="LiSE.engine.AbstractEngine.roll_die">
 <code class="descname">roll_die</code><span class="sig-paren">(</span><em>d</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#AbstractEngine.roll_die"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.AbstractEngine.roll_die" title="Permalink to this definition">¶</a></dt>
-<dd><p>Roll a die with <code class="docutils literal"><span class="pre">d</span></code> faces. Return the result.</p>
+<dd><p>Roll a die with <code class="docutils literal notranslate"><span class="pre">d</span></code> faces. Return the result.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -320,43 +311,43 @@ will be written to the database.</p>
 simulation rule is evaluated once for each of the simulated
 entities it’s been applied to. World changes in a given turn are
 remembered together, such that the whole world state can be
-rewound: simply set the properties <code class="docutils literal"><span class="pre">branch</span></code> and <code class="docutils literal"><span class="pre">turn</span></code> back to
+rewound: simply set the properties <code class="docutils literal notranslate"><span class="pre">branch</span></code> and <code class="docutils literal notranslate"><span class="pre">turn</span></code> back to
 what they were just before the change you want to undo.</p>
 <p>Properties:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">branch</span></code>: The fork of the timestream that we’re on.</li>
-<li><code class="docutils literal"><span class="pre">turn</span></code>: Units of time that have passed since the sim started.</li>
-<li><code class="docutils literal"><span class="pre">time</span></code>: <code class="docutils literal"><span class="pre">(branch,</span> <span class="pre">turn)</span></code></li>
-<li><code class="docutils literal"><span class="pre">tick</span></code>: A counter of how many changes have occurred this turn</li>
-<li><code class="docutils literal"><span class="pre">character</span></code>: A mapping of <code class="xref py py-class docutils literal"><span class="pre">Character</span></code> objects by name.</li>
-<li><code class="docutils literal"><span class="pre">rule</span></code>: A mapping of all rules that have been made.</li>
-<li><code class="docutils literal"><span class="pre">rulebook</span></code>: A mapping of lists of rules. They are followed in
+<li><code class="docutils literal notranslate"><span class="pre">branch</span></code>: The fork of the timestream that we’re on.</li>
+<li><code class="docutils literal notranslate"><span class="pre">turn</span></code>: Units of time that have passed since the sim started.</li>
+<li><code class="docutils literal notranslate"><span class="pre">time</span></code>: <code class="docutils literal notranslate"><span class="pre">(branch,</span> <span class="pre">turn)</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">tick</span></code>: A counter of how many changes have occurred this turn</li>
+<li><code class="docutils literal notranslate"><span class="pre">character</span></code>: A mapping of <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> objects by name.</li>
+<li><code class="docutils literal notranslate"><span class="pre">rule</span></code>: A mapping of all rules that have been made.</li>
+<li><code class="docutils literal notranslate"><span class="pre">rulebook</span></code>: A mapping of lists of rules. They are followed in
 their order.  A whole rulebook full of rules may be assigned to
 an entity at once.</li>
-<li><code class="docutils literal"><span class="pre">trigger</span></code>: A mapping of functions that might trigger a rule.</li>
-<li><code class="docutils literal"><span class="pre">prereq</span></code>: A mapping of functions a rule might require to return
-<code class="docutils literal"><span class="pre">True</span></code> for it to run.</li>
-<li><code class="docutils literal"><span class="pre">action</span></code>: A mapping of functions that might manipulate the world
+<li><code class="docutils literal notranslate"><span class="pre">trigger</span></code>: A mapping of functions that might trigger a rule.</li>
+<li><code class="docutils literal notranslate"><span class="pre">prereq</span></code>: A mapping of functions a rule might require to return
+<code class="docutils literal notranslate"><span class="pre">True</span></code> for it to run.</li>
+<li><code class="docutils literal notranslate"><span class="pre">action</span></code>: A mapping of functions that might manipulate the world
 state as a result of a rule running.</li>
-<li><code class="docutils literal"><span class="pre">function</span></code>: A mapping of generic functions stored in the same
+<li><code class="docutils literal notranslate"><span class="pre">function</span></code>: A mapping of generic functions stored in the same
 database as the previous.</li>
-<li><code class="docutils literal"><span class="pre">string</span></code>: A mapping of strings, probably shown to the player
+<li><code class="docutils literal notranslate"><span class="pre">string</span></code>: A mapping of strings, probably shown to the player
 at some point.</li>
-<li><code class="docutils literal"><span class="pre">eternal</span></code>: Mapping of arbitrary serializable objects. It isn’t
+<li><code class="docutils literal notranslate"><span class="pre">eternal</span></code>: Mapping of arbitrary serializable objects. It isn’t
 sensitive to sim-time. A good place to keep game settings.</li>
-<li><code class="docutils literal"><span class="pre">universal</span></code>: Another mapping of arbitrary serializable
+<li><code class="docutils literal notranslate"><span class="pre">universal</span></code>: Another mapping of arbitrary serializable
 objects, but this one <em>is</em> sensitive to sim-time. Each turn, the
 state of the randomizer is saved here under the key
-<code class="docutils literal"><span class="pre">'rando_state'</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">rando</span></code>: The randomizer used by all of the rules.</li>
+<code class="docutils literal notranslate"><span class="pre">'rando_state'</span></code>.</li>
+<li><code class="docutils literal notranslate"><span class="pre">rando</span></code>: The randomizer used by all of the rules.</li>
 </ul>
 <dl class="method">
 <dt id="LiSE.engine.Engine.add_character">
 <code class="descname">add_character</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.add_character"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine.add_character" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a new character.</p>
-<p>You’ll be able to access it as a <code class="xref py py-class docutils literal"><span class="pre">Character</span></code> object by
-looking up <code class="docutils literal"><span class="pre">name</span></code> in my <code class="docutils literal"><span class="pre">character</span></code> property.</p>
-<p><code class="docutils literal"><span class="pre">data</span></code>, if provided, should be a networkx-compatible graph
+<p>You’ll be able to access it as a <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> object by
+looking up <code class="docutils literal notranslate"><span class="pre">name</span></code> in my <code class="docutils literal notranslate"><span class="pre">character</span></code> property.</p>
+<p><code class="docutils literal notranslate"><span class="pre">data</span></code>, if provided, should be a networkx-compatible graph
 object. Your new character will be a copy of it.</p>
 <p>Any keyword arguments will be set as stats of the new character.</p>
 </dd></dl>
@@ -370,7 +361,7 @@ object. Your new character will be a copy of it.</p>
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.char_cls">
 <code class="descname">char_cls</code><a class="headerlink" href="#LiSE.engine.Engine.char_cls" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Character</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.character.Character</span></code></a></p>
 </dd></dl>
 
 <dl class="method">
@@ -401,7 +392,7 @@ object. Your new character will be a copy of it.</p>
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.edge_cls">
 <code class="descname">edge_cls</code><a class="headerlink" href="#LiSE.engine.Engine.edge_cls" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.portal.Portal</span></code></a></p>
 </dd></dl>
 
 <dl class="method">
@@ -415,7 +406,7 @@ object. Your new character will be a copy of it.</p>
 <code class="descname">get_delta</code><span class="sig-paren">(</span><em>branch</em>, <em>turn_from</em>, <em>tick_from</em>, <em>turn_to</em>, <em>tick_to</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.get_delta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine.get_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a dictionary describing changes to the world.</p>
 <p>Most keys will be character names, and their values will be dictionaries of
-the character’s stats’ new values, with <code class="docutils literal"><span class="pre">None</span></code> for deleted keys. Characters’
+the character’s stats’ new values, with <code class="docutils literal notranslate"><span class="pre">None</span></code> for deleted keys. Characters’
 dictionaries have special keys ‘nodes’ and ‘edges’ which contain booleans indicating
 whether the node or edge exists at the moment, and ‘node_val’ and ‘edge_val’ for
 the stats of those entities. For edges (also called portals) these dictionaries
@@ -445,7 +436,7 @@ of the lists ‘triggers’, ‘prereqs’, and ‘actions’</p>
 <code class="descname">get_turn_delta</code><span class="sig-paren">(</span><em>branch=None</em>, <em>turn=None</em>, <em>tick=None</em>, <em>start_tick=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.get_turn_delta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine.get_turn_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a dictionary describing changes to the world within a given turn</p>
 <p>Defaults to the present turn, and stops at the present tick unless specified.</p>
-<p>See the documentation for <code class="docutils literal"><span class="pre">get_delta</span></code> for a detailed description of the
+<p>See the documentation for <code class="docutils literal notranslate"><span class="pre">get_delta</span></code> for a detailed description of the
 delta format.</p>
 </dd></dl>
 
@@ -458,31 +449,37 @@ delta format.</p>
 <dl class="method">
 <dt id="LiSE.engine.Engine.new_character">
 <code class="descname">new_character</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.new_character"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine.new_character" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create and return a new <code class="xref py py-class docutils literal"><span class="pre">Character</span></code>.</p>
+<dd><p>Create and return a new <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.node_cls">
 <code class="descname">node_cls</code><a class="headerlink" href="#LiSE.engine.Engine.node_cls" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Place</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#LiSE.place.Place" title="LiSE.place.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.place.Place</span></code></a></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.place_cls">
 <code class="descname">place_cls</code><a class="headerlink" href="#LiSE.engine.Engine.place_cls" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Place</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#LiSE.place.Place" title="LiSE.place.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.place.Place</span></code></a></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.portal_cls">
 <code class="descname">portal_cls</code><a class="headerlink" href="#LiSE.engine.Engine.portal_cls" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.portal.Portal</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.engine.Engine.query_engine_cls">
+<code class="descname">query_engine_cls</code><a class="headerlink" href="#LiSE.engine.Engine.query_engine_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.query.QueryEngine" title="LiSE.query.QueryEngine"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.query.QueryEngine</span></code></a></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.thing_cls">
 <code class="descname">thing_cls</code><a class="headerlink" href="#LiSE.engine.Engine.thing_cls" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Thing</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#LiSE.thing.Thing" title="LiSE.thing.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.thing.Thing</span></code></a></p>
 </dd></dl>
 
 <dl class="method">
@@ -503,9 +500,9 @@ delta format.</p>
 <dt id="LiSE.engine.NextTurn">
 <em class="property">class </em><code class="descclassname">LiSE.engine.</code><code class="descname">NextTurn</code><span class="sig-paren">(</span><em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#NextTurn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.NextTurn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make time move forward in the simulation.</p>
-<p>Calls <code class="docutils literal"><span class="pre">advance</span></code> repeatedly, returning a list of the rules’ return values.</p>
-<p>I am also a <code class="docutils literal"><span class="pre">Signal</span></code>, so you can register functions to be
-called when the simulation runs. Pass them to my <code class="docutils literal"><span class="pre">connect</span></code>
+<p>Calls <code class="docutils literal notranslate"><span class="pre">advance</span></code> repeatedly, returning a list of the rules’ return values.</p>
+<p>I am also a <code class="docutils literal notranslate"><span class="pre">Signal</span></code>, so you can register functions to be
+called when the simulation runs. Pass them to my <code class="docutils literal notranslate"><span class="pre">connect</span></code>
 method.</p>
 </dd></dl>
 
@@ -519,7 +516,7 @@ conveniences.</p>
 to run on only some portion of it: just edges (called Portals), just
 nodes, or just nodes of the kind that have a location in another node
 (called Things and Places, respectively). Each Character has a
-<code class="docutils literal"><span class="pre">stat</span></code> property that acts very much like a dictionary, in which you
+<code class="docutils literal notranslate"><span class="pre">stat</span></code> property that acts very much like a dictionary, in which you
 can store game-relevant data for the rules to use.</p>
 <p>You can designate some nodes in one Character as avatars of another,
 and then assign a rule to run on all of a Character’s avatars. This is
@@ -534,10 +531,10 @@ and their node in the physical world is an avatar of it.</p>
 <dd><p>The Character API, with all requisite mappings and graph generators.</p>
 <p>Mappings resemble those of a NetworkX digraph:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">thing</span></code> and <code class="docutils literal"><span class="pre">place</span></code> are subsets of <code class="docutils literal"><span class="pre">node</span></code></li>
-<li><code class="docutils literal"><span class="pre">edge</span></code>, <code class="docutils literal"><span class="pre">adj</span></code>, and <code class="docutils literal"><span class="pre">succ</span></code> are aliases of <code class="docutils literal"><span class="pre">portal</span></code></li>
-<li><code class="docutils literal"><span class="pre">pred</span></code> is an alias to <code class="docutils literal"><span class="pre">preportal</span></code></li>
-<li><code class="docutils literal"><span class="pre">stat</span></code> is a dict-like mapping of data that changes over game-time,</li>
+<li><code class="docutils literal notranslate"><span class="pre">thing</span></code> and <code class="docutils literal notranslate"><span class="pre">place</span></code> are subsets of <code class="docutils literal notranslate"><span class="pre">node</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">edge</span></code>, <code class="docutils literal notranslate"><span class="pre">adj</span></code>, and <code class="docutils literal notranslate"><span class="pre">succ</span></code> are aliases of <code class="docutils literal notranslate"><span class="pre">portal</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">pred</span></code> is an alias to <code class="docutils literal notranslate"><span class="pre">preportal</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">stat</span></code> is a dict-like mapping of data that changes over game-time,</li>
 </ul>
 <p>to be used in place of graph attributes</p>
 <dl class="attribute">
@@ -569,24 +566,24 @@ provided.</p>
 <dl class="method">
 <dt id="LiSE.character.AbstractCharacter.cull_edges">
 <code class="descname">cull_edges</code><span class="sig-paren">(</span><em>stat</em>, <em>threshold=0.5</em>, <em>comparator=&lt;built-in function ge&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#AbstractCharacter.cull_edges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.AbstractCharacter.cull_edges" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete edges whose stat &gt;= <code class="docutils literal"><span class="pre">threshold</span></code> (default 0.5).</p>
-<p>Optional argument <code class="docutils literal"><span class="pre">comparator</span></code> will replace &gt;= as the test
+<dd><p>Delete edges whose stat &gt;= <code class="docutils literal notranslate"><span class="pre">threshold</span></code> (default 0.5).</p>
+<p>Optional argument <code class="docutils literal notranslate"><span class="pre">comparator</span></code> will replace &gt;= as the test
 for whether to cull. You can use the name of a stored function.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="LiSE.character.AbstractCharacter.cull_nodes">
 <code class="descname">cull_nodes</code><span class="sig-paren">(</span><em>stat</em>, <em>threshold=0.5</em>, <em>comparator=&lt;built-in function ge&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#AbstractCharacter.cull_nodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.AbstractCharacter.cull_nodes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete nodes whose stat &gt;= <code class="docutils literal"><span class="pre">threshold</span></code> (default 0.5).</p>
-<p>Optional argument <code class="docutils literal"><span class="pre">comparator</span></code> will replace &gt;= as the test
+<dd><p>Delete nodes whose stat &gt;= <code class="docutils literal notranslate"><span class="pre">threshold</span></code> (default 0.5).</p>
+<p>Optional argument <code class="docutils literal notranslate"><span class="pre">comparator</span></code> will replace &gt;= as the test
 for whether to cull. You can use the name of a stored function.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="LiSE.character.AbstractCharacter.cull_portals">
 <code class="descname">cull_portals</code><span class="sig-paren">(</span><em>stat</em>, <em>threshold=0.5</em>, <em>comparator=&lt;built-in function ge&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#AbstractCharacter.cull_portals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.AbstractCharacter.cull_portals" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete portals whose stat &gt;= <code class="docutils literal"><span class="pre">threshold</span></code> (default 0.5).</p>
-<p>Optional argument <code class="docutils literal"><span class="pre">comparator</span></code> will replace &gt;= as the test
+<dd><p>Delete portals whose stat &gt;= <code class="docutils literal notranslate"><span class="pre">threshold</span></code> (default 0.5).</p>
+<p>Optional argument <code class="docutils literal notranslate"><span class="pre">comparator</span></code> will replace &gt;= as the test
 for whether to cull. You can use the name of a stored function.</p>
 </dd></dl>
 
@@ -679,13 +676,13 @@ decorators, eg. to add an Action to the rule.</p>
 decorated function, and using the decorated function as the
 initial Action.</p>
 <p>Using this like a dictionary will let you create new rules,
-appending them onto the underlying <code class="xref py py-class docutils literal"><span class="pre">RuleBook</span></code>; replace one
+appending them onto the underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">RuleBook</span></code>; replace one
 rule with another, where the new one will have the same index in
-the <code class="xref py py-class docutils literal"><span class="pre">RuleBook</span></code> as the old one; and activate or deactivate
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">RuleBook</span></code> as the old one; and activate or deactivate
 rules. The name of a rule may be used in place of the actual rule,
 so long as the rule already exists.</p>
 <p>You can also set a rule active or inactive by setting it to
-<code class="docutils literal"><span class="pre">True</span></code> or <code class="docutils literal"><span class="pre">False</span></code>, respectively. Inactive rules are still in
+<code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>, respectively. Inactive rules are still in
 the rulebook, but won’t be followed.</p>
 </dd></dl>
 
@@ -706,7 +703,7 @@ any collection of nodes you want, perhaps in many different
 Characters. But you may want a Character to have exactly one
 avatar, representing their location in physical space – the
 Character named ‘physical’. So when a Character has only one
-avatar, you can treat the <code class="docutils literal"><span class="pre">avatar</span></code> property as an alias of the
+avatar, you can treat the <code class="docutils literal notranslate"><span class="pre">avatar</span></code> property as an alias of the
 avatar.</p>
 <dl class="class">
 <dt id="LiSE.character.Character.AvatarGraphMapping">
@@ -764,7 +761,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="class">
 <dt id="LiSE.character.Character.PlaceMapping">
 <em class="property">class </em><code class="descname">PlaceMapping</code><span class="sig-paren">(</span><em>character</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.PlaceMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.PlaceMapping" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="xref py py-class docutils literal"><span class="pre">Place</span></code> objects that are in a <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal"><span class="pre">Character</span></code></a></p>
+<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code> objects that are in a <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a></p>
 <dl class="attribute">
 <dt id="LiSE.character.Character.PlaceMapping.engine">
 <code class="descname">engine</code><a class="headerlink" href="#LiSE.character.Character.PlaceMapping.engine" title="Permalink to this definition">¶</a></dt>
@@ -827,7 +824,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="staticmethod">
 <dt id="LiSE.character.Character.PortalSuccessorsMapping.Successors.send">
 <em class="property">static </em><code class="descname">send</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.PortalSuccessorsMapping.Successors.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.PortalSuccessorsMapping.Successors.send" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call all listeners to <code class="docutils literal"><span class="pre">dest</span></code> and to my <code class="docutils literal"><span class="pre">orig</span></code>.</p>
+<dd><p>Call all listeners to <code class="docutils literal notranslate"><span class="pre">dest</span></code> and to my <code class="docutils literal notranslate"><span class="pre">orig</span></code>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -859,7 +856,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="class">
 <dt id="LiSE.character.Character.ThingMapping">
 <em class="property">class </em><code class="descname">ThingMapping</code><span class="sig-paren">(</span><em>character</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.ThingMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.ThingMapping" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="xref py py-class docutils literal"><span class="pre">Thing</span></code> objects that are in a <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal"><span class="pre">Character</span></code></a></p>
+<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code> objects that are in a <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a></p>
 <dl class="attribute">
 <dt id="LiSE.character.Character.ThingMapping.engine">
 <code class="descname">engine</code><a class="headerlink" href="#LiSE.character.Character.ThingMapping.engine" title="Permalink to this definition">¶</a></dt>
@@ -926,8 +923,74 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="method">
 <dt id="LiSE.character.Character.add_avatar">
 <code class="descname">add_avatar</code><span class="sig-paren">(</span><em>a</em>, <em>b=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_avatar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.add_avatar" title="Permalink to this definition">¶</a></dt>
-<dd><p>Start keeping track of a <code class="xref py py-class docutils literal"><span class="pre">Thing</span></code> or <code class="xref py py-class docutils literal"><span class="pre">Place</span></code> in a
-different <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal"><span class="pre">Character</span></code></a>.</p>
+<dd><p>Start keeping track of a <code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code> in a
+different <a class="reference internal" href="#LiSE.character.Character" title="LiSE.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.character.Character.add_node">
+<code class="descname">add_node</code><span class="sig-paren">(</span><em>n</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.add_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a single node <cite>node_for_adding</cite> and update node attributes.</p>
+<dl class="docutils">
+<dt>node_for_adding <span class="classifier-delimiter">:</span> <span class="classifier">node</span></dt>
+<dd>A node can be any hashable Python object except None.</dd>
+<dt>attr <span class="classifier-delimiter">:</span> <span class="classifier">keyword arguments, optional</span></dt>
+<dd>Set or change node attributes using key=value.</dd>
+</dl>
+<p>add_nodes_from</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>   <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">K3</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">K3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<p>Use keywords set/change node attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">UTM</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;13S&#39;</span><span class="p">,</span> <span class="mi">382871</span><span class="p">,</span> <span class="mi">3972649</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>A hashable object is one that can be used as a key in a Python
+dictionary. This includes strings, numbers, tuples of strings
+and numbers, etc.</p>
+<p>On many platforms hashable items also include mutables such as
+NetworkX Graphs, though one should be careful that the hash
+doesn’t change on mutables.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.character.Character.add_place">
+<code class="descname">add_place</code><span class="sig-paren">(</span><em>n</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.character.Character.add_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a single node <cite>node_for_adding</cite> and update node attributes.</p>
+<dl class="docutils">
+<dt>node_for_adding <span class="classifier-delimiter">:</span> <span class="classifier">node</span></dt>
+<dd>A node can be any hashable Python object except None.</dd>
+<dt>attr <span class="classifier-delimiter">:</span> <span class="classifier">keyword arguments, optional</span></dt>
+<dd>Set or change node attributes using key=value.</dd>
+</dl>
+<p>add_nodes_from</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>   <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">K3</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">K3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<p>Use keywords set/change node attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">UTM</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;13S&#39;</span><span class="p">,</span> <span class="mi">382871</span><span class="p">,</span> <span class="mi">3972649</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>A hashable object is one that can be used as a key in a Python
+dictionary. This includes strings, numbers, tuples of strings
+and numbers, etc.</p>
+<p>On many platforms hashable items also include mutables such as
+NetworkX Graphs, though one should be careful that the hash
+doesn’t change on mutables.</p>
 </dd></dl>
 
 <dl class="method">
@@ -939,25 +1002,25 @@ different <a class="reference internal" href="#LiSE.character.Character" title="
 <dl class="method">
 <dt id="LiSE.character.Character.add_portal">
 <code class="descname">add_portal</code><span class="sig-paren">(</span><em>origin</em>, <em>destination</em>, <em>symmetrical=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_portal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.add_portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Connect the origin to the destination with a <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>.</p>
-<p>Keyword arguments are the <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>’s
-attributes. Exception: if keyword <code class="docutils literal"><span class="pre">symmetrical</span></code> == <code class="docutils literal"><span class="pre">True</span></code>,
-a mirror-<code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> will be placed in the opposite
+<dd><p>Connect the origin to the destination with a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
+<p>Keyword arguments are the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>’s
+attributes. Exception: if keyword <code class="docutils literal notranslate"><span class="pre">symmetrical</span></code> == <code class="docutils literal notranslate"><span class="pre">True</span></code>,
+a mirror-<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> will be placed in the opposite
 direction between the same nodes. It will always appear to
-have the placed <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>’s stats, and any change to the
-mirror <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>’s stats will affect the placed
-<code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>.</p>
+have the placed <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>’s stats, and any change to the
+mirror <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>’s stats will affect the placed
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="LiSE.character.Character.add_portals_from">
 <code class="descname">add_portals_from</code><span class="sig-paren">(</span><em>seq</em>, <em>symmetrical=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Character.add_portals_from"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Character.add_portals_from" title="Permalink to this definition">¶</a></dt>
 <dd><p>Take a sequence of (origin, destination) pairs and make a
-<code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> for each.</p>
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> for each.</p>
 <p>Actually, triples are acceptable too, in which case the third
-item is a dictionary of stats for the new <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>.</p>
-<p>If optional argument <code class="docutils literal"><span class="pre">symmetrical</span></code> is set to <code class="docutils literal"><span class="pre">True</span></code>, all
-the <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> instances will have a mirror portal going
+item is a dictionary of stats for the new <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
+<p>If optional argument <code class="docutils literal notranslate"><span class="pre">symmetrical</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, all
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> instances will have a mirror portal going
 in the opposite direction, which will always have the same
 stats.</p>
 </dd></dl>
@@ -1057,11 +1120,88 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 </dd></dl>
 
 <dl class="class">
+<dt id="LiSE.character.Facade">
+<em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">Facade</code><span class="sig-paren">(</span><em>character</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Facade" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="LiSE.character.Facade.PlaceMapping">
+<em class="property">class </em><code class="descname">PlaceMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.PlaceMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Facade.PlaceMapping" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="LiSE.character.Facade.PlaceMapping.facadecls">
+<code class="descname">facadecls</code><a class="headerlink" href="#LiSE.character.Facade.PlaceMapping.facadecls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.FacadePlace" title="LiSE.character.FacadePlace"><code class="xref py py-class docutils literal notranslate"><span class="pre">FacadePlace</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.character.Facade.PlaceMapping.innercls">
+<code class="descname">innercls</code><a class="headerlink" href="#LiSE.character.Facade.PlaceMapping.innercls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.place.Place" title="LiSE.place.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.place.Place</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.Facade.PortalPredecessorsMapping">
+<em class="property">class </em><code class="descname">PortalPredecessorsMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.PortalPredecessorsMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Facade.PortalPredecessorsMapping" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="LiSE.character.Facade.PortalPredecessorsMapping.cls">
+<code class="descname">cls</code><a class="headerlink" href="#LiSE.character.Facade.PortalPredecessorsMapping.cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.FacadePortalPredecessors" title="LiSE.character.FacadePortalPredecessors"><code class="xref py py-class docutils literal notranslate"><span class="pre">FacadePortalPredecessors</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.Facade.PortalSuccessorsMapping">
+<em class="property">class </em><code class="descname">PortalSuccessorsMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.PortalSuccessorsMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Facade.PortalSuccessorsMapping" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="LiSE.character.Facade.PortalSuccessorsMapping.cls">
+<code class="descname">cls</code><a class="headerlink" href="#LiSE.character.Facade.PortalSuccessorsMapping.cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.FacadePortalSuccessors" title="LiSE.character.FacadePortalSuccessors"><code class="xref py py-class docutils literal notranslate"><span class="pre">FacadePortalSuccessors</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.Facade.StatMapping">
+<em class="property">class </em><code class="descname">StatMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.StatMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Facade.StatMapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.Facade.ThingMapping">
+<em class="property">class </em><code class="descname">ThingMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#Facade.ThingMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.Facade.ThingMapping" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="LiSE.character.Facade.ThingMapping.facadecls">
+<code class="descname">facadecls</code><a class="headerlink" href="#LiSE.character.Facade.ThingMapping.facadecls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.FacadeThing" title="LiSE.character.FacadeThing"><code class="xref py py-class docutils literal notranslate"><span class="pre">FacadeThing</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.character.Facade.ThingMapping.innercls">
+<code class="descname">innercls</code><a class="headerlink" href="#LiSE.character.Facade.ThingMapping.innercls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.thing.Thing" title="LiSE.thing.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.thing.Thing</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.character.Facade.engine">
+<code class="descname">engine</code><a class="headerlink" href="#LiSE.character.Facade.engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="LiSE.character.FacadeEntityMapping">
 <em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadeEntityMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadeEntityMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadeEntityMapping" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mapping that contains entities in a Facade.</p>
-<p>All the entities are of the same type, <code class="docutils literal"><span class="pre">facadecls</span></code>, possibly
-being distorted views of entities of the type <code class="docutils literal"><span class="pre">innercls</span></code>.</p>
+<p>All the entities are of the same type, <code class="docutils literal notranslate"><span class="pre">facadecls</span></code>, possibly
+being distorted views of entities of the type <code class="docutils literal notranslate"><span class="pre">innercls</span></code>.</p>
 <dl class="attribute">
 <dt id="LiSE.character.FacadeEntityMapping.engine">
 <code class="descname">engine</code><a class="headerlink" href="#LiSE.character.FacadeEntityMapping.engine" title="Permalink to this definition">¶</a></dt>
@@ -1086,6 +1226,50 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadePortal</code><span class="sig-paren">(</span><em>real_or_origin</em>, <em>destination=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadePortal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadePortal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lightweight analogue of Portal for Facade use.</p>
 </dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.FacadePortalMapping">
+<em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadePortalMapping</code><span class="sig-paren">(</span><em>facade</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadePortalMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadePortalMapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.FacadePortalPredecessors">
+<em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadePortalPredecessors</code><span class="sig-paren">(</span><em>facade</em>, <em>destname</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadePortalPredecessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadePortalPredecessors" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="LiSE.character.FacadePortalPredecessors.facadecls">
+<code class="descname">facadecls</code><a class="headerlink" href="#LiSE.character.FacadePortalPredecessors.facadecls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.FacadePortal" title="LiSE.character.FacadePortal"><code class="xref py py-class docutils literal notranslate"><span class="pre">FacadePortal</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.character.FacadePortalPredecessors.innercls">
+<code class="descname">innercls</code><a class="headerlink" href="#LiSE.character.FacadePortalPredecessors.innercls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.portal.Portal</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.FacadePortalSuccessors">
+<em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadePortalSuccessors</code><span class="sig-paren">(</span><em>facade</em>, <em>origname</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadePortalSuccessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadePortalSuccessors" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="LiSE.character.FacadePortalSuccessors.facadecls">
+<code class="descname">facadecls</code><a class="headerlink" href="#LiSE.character.FacadePortalSuccessors.facadecls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.character.FacadePortal" title="LiSE.character.FacadePortal"><code class="xref py py-class docutils literal notranslate"><span class="pre">FacadePortal</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.character.FacadePortalSuccessors.innercls">
+<code class="descname">innercls</code><a class="headerlink" href="#LiSE.character.FacadePortalSuccessors.innercls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#LiSE.portal.Portal" title="LiSE.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.portal.Portal</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="LiSE.character.FacadeThing">
+<em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadeThing</code><span class="sig-paren">(</span><em>facade</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadeThing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadeThing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="class">
 <dt id="LiSE.character.RuleFollower">
@@ -1143,6 +1327,23 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 </dd></dl>
 
 <dl class="method">
+<dt id="LiSE.node.Node.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete everything</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.node.Node.db">
+<code class="descname">db</code><a class="headerlink" href="#LiSE.node.Node.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="LiSE.node.Node.delete">
 <code class="descname">delete</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.delete" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get rid of this, starting now.</p>
@@ -1174,7 +1375,7 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dd><p>Return a reference to the values that a stat has had in the past.</p>
 <p>You can use the reference in comparisons to make a history
 query, and execute the query by calling it, or passing it to
-<code class="docutils literal"><span class="pre">self.engine.ticks_when</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1209,10 +1410,10 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 <dl class="method">
 <dt id="LiSE.node.Node.path_exists">
 <code class="descname">path_exists</code><span class="sig-paren">(</span><em>dest</em>, <em>weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.path_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.path_exists" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return whether there is a path leading from me to <code class="docutils literal"><span class="pre">dest</span></code>.</p>
-<p>With <code class="docutils literal"><span class="pre">weight</span></code>, only consider edges that have a stat by the
+<dd><p>Return whether there is a path leading from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">weight</span></code>, only consider edges that have a stat by the
 given name.</p>
-<p>Raise <code class="docutils literal"><span class="pre">ValueError</span></code> if <code class="docutils literal"><span class="pre">dest</span></code> is not a node in my character
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
 or the name of one.</p>
 </dd></dl>
 
@@ -1225,7 +1426,7 @@ or the name of one.</p>
 <dl class="method">
 <dt id="LiSE.node.Node.portals">
 <code class="descname">portals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.portals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.portals" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> objects that lead away from me</p>
+<dd><p>Iterate over <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> objects that lead away from me</p>
 </dd></dl>
 
 <dl class="method">
@@ -1237,22 +1438,22 @@ or the name of one.</p>
 <dl class="method">
 <dt id="LiSE.node.Node.preportals">
 <code class="descname">preportals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.preportals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.preportals" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> objects that lead to me</p>
+<dd><p>Iterate over <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> objects that lead to me</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="LiSE.node.Node.shortest_path">
 <code class="descname">shortest_path</code><span class="sig-paren">(</span><em>dest</em>, <em>weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.shortest_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.shortest_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of node names leading from me to <code class="docutils literal"><span class="pre">dest</span></code>.</p>
-<p>Raise <code class="docutils literal"><span class="pre">ValueError</span></code> if <code class="docutils literal"><span class="pre">dest</span></code> is not a node in my character
+<dd><p>Return a list of node names leading from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
 or the name of one.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="LiSE.node.Node.shortest_path_length">
 <code class="descname">shortest_path_length</code><span class="sig-paren">(</span><em>dest</em>, <em>weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.shortest_path_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.shortest_path_length" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the length of the path from me to <code class="docutils literal"><span class="pre">dest</span></code>.</p>
-<p>Raise <code class="docutils literal"><span class="pre">ValueError</span></code> if <code class="docutils literal"><span class="pre">dest</span></code> is not a node in my character
+<dd><p>Return the length of the path from me to <code class="docutils literal notranslate"><span class="pre">dest</span></code>.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">dest</span></code> is not a node in my character
 or the name of one.</p>
 </dd></dl>
 
@@ -1285,7 +1486,7 @@ or the name of one.</p>
 <dl class="class">
 <dt id="LiSE.node.RuleMapping">
 <em class="property">class </em><code class="descclassname">LiSE.node.</code><code class="descname">RuleMapping</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#RuleMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.RuleMapping" title="Permalink to this definition">¶</a></dt>
-<dd><p>Version of <a class="reference internal" href="#LiSE.rule.RuleMapping" title="LiSE.rule.RuleMapping"><code class="xref py py-class docutils literal"><span class="pre">LiSE.rule.RuleMapping</span></code></a> that works more easily
+<dd><p>Version of <a class="reference internal" href="#LiSE.rule.RuleMapping" title="LiSE.rule.RuleMapping"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.rule.RuleMapping</span></code></a> that works more easily
 with a node.</p>
 <dl class="attribute">
 <dt id="LiSE.node.RuleMapping.character">
@@ -1373,13 +1574,22 @@ it’s the Thing or Place I’m located in.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="LiSE.thing.Thing.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.thing.Thing.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rid of this, starting now.</p>
+<p>Apart from deleting the node, this also informs all its users
+that it doesn’t exist and therefore can’t be their avatar
+anymore.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="LiSE.thing.Thing.follow_path">
 <code class="descname">follow_path</code><span class="sig-paren">(</span><em>path</em>, <em>weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.follow_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.thing.Thing.follow_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Go to several <code class="xref py py-class docutils literal"><span class="pre">Place`s</span> <span class="pre">in</span> <span class="pre">succession,</span> <span class="pre">deciding</span> <span class="pre">how</span> <span class="pre">long</span> <span class="pre">to</span>
+<dd><p>Go to several <code class="xref py py-class docutils literal notranslate"><span class="pre">Place`s</span> <span class="pre">in</span> <span class="pre">succession,</span> <span class="pre">deciding</span> <span class="pre">how</span> <span class="pre">long</span> <span class="pre">to</span>
 <span class="pre">spend</span> <span class="pre">in</span> <span class="pre">each</span> <span class="pre">by</span> <span class="pre">consulting</span> <span class="pre">the</span> <span class="pre">``weight`</span></code> stat of the
-<code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> connecting the one <code class="xref py py-class docutils literal"><span class="pre">Place</span></code> to the next.</p>
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> connecting the one <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code> to the next.</p>
 <p>Return the total number of turns the travel will take. Raise
-<code class="xref py py-class docutils literal"><span class="pre">TravelException</span></code> if I can’t follow the whole path,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code> if I can’t follow the whole path,
 either because some of its nodes don’t exist, or because I’m
 scheduled to be somewhere else.</p>
 </dd></dl>
@@ -1387,10 +1597,10 @@ scheduled to be somewhere else.</p>
 <dl class="method">
 <dt id="LiSE.thing.Thing.go_to_place">
 <code class="descname">go_to_place</code><span class="sig-paren">(</span><em>place</em>, <em>weight=''</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.go_to_place"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.thing.Thing.go_to_place" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assuming I’m in a <code class="xref py py-class docutils literal"><span class="pre">Place</span></code> that has a <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code> direct
-to the given <code class="xref py py-class docutils literal"><span class="pre">Place</span></code>, schedule myself to travel to the
-given <code class="xref py py-class docutils literal"><span class="pre">Place</span></code>, taking an amount of time indicated by
-the <code class="docutils literal"><span class="pre">weight</span></code> stat on the <code class="xref py py-class docutils literal"><span class="pre">Portal</span></code>, if given; else 1
+<dd><p>Assuming I’m in a <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code> that has a <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> direct
+to the given <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code>, schedule myself to travel to the
+given <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code>, taking an amount of time indicated by
+the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat on the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>, if given; else 1
 turn.</p>
 <p>Return the number of turns the travel will take.</p>
 </dd></dl>
@@ -1412,20 +1622,20 @@ headed.</p>
 <dl class="method">
 <dt id="LiSE.thing.Thing.travel_to">
 <code class="descname">travel_to</code><span class="sig-paren">(</span><em>dest</em>, <em>weight=None</em>, <em>graph=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/thing.html#Thing.travel_to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.thing.Thing.travel_to" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the shortest path to the given <code class="xref py py-class docutils literal"><span class="pre">Place</span></code> from where I am
+<dd><p>Find the shortest path to the given <code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code> from where I am
 now, and follow it.</p>
-<p>If supplied, the <code class="docutils literal"><span class="pre">weight</span></code> stat of the :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>Portal`s along
+<p>If supplied, the <code class="docutils literal notranslate"><span class="pre">weight</span></code> stat of the :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>Portal`s along
 the path will be used in pathfinding, and for deciding how
 long to stay in each Place along the way.</p>
-<p>The <code class="docutils literal"><span class="pre">graph</span></code> argument may be any NetworkX-style graph. It
+<p>The <code class="docutils literal notranslate"><span class="pre">graph</span></code> argument may be any NetworkX-style graph. It
 will be used for pathfinding if supplied, otherwise I’ll use
-my <code class="xref py py-class docutils literal"><span class="pre">Character</span></code>. In either case, however, I will attempt
-to actually follow the path using my <code class="xref py py-class docutils literal"><span class="pre">Character</span></code>, which
-might not be possible if the supplied <code class="docutils literal"><span class="pre">graph</span></code> and my
-<code class="xref py py-class docutils literal"><span class="pre">Character</span></code> are too different. If it’s not possible,
-I’ll raise a <code class="xref py py-class docutils literal"><span class="pre">TravelException</span></code>, whose <code class="docutils literal"><span class="pre">subpath</span></code>
+my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>. In either case, however, I will attempt
+to actually follow the path using my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>, which
+might not be possible if the supplied <code class="docutils literal notranslate"><span class="pre">graph</span></code> and my
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code> are too different. If it’s not possible,
+I’ll raise a <code class="xref py py-class docutils literal notranslate"><span class="pre">TravelException</span></code>, whose <code class="docutils literal notranslate"><span class="pre">subpath</span></code>
 attribute holds the part of the path that I <em>can</em> follow. To
-make me follow it, pass it to my <code class="docutils literal"><span class="pre">follow_path</span></code> method.</p>
+make me follow it, pass it to my <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> method.</p>
 <p>Return value is the number of turns the travel will take.</p>
 </dd></dl>
 
@@ -1440,8 +1650,8 @@ make me follow it, pass it to my <code class="docutils literal"><span class="pre
 <em class="property">class </em><code class="descclassname">LiSE.portal.</code><code class="descname">Portal</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em>, <em>idx=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.portal.Portal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connection between two Places that Things may travel along.</p>
 <p>Portals are one-way, but you can make one appear two-way by
-setting the <code class="docutils literal"><span class="pre">symmetrical</span></code> key to <code class="docutils literal"><span class="pre">True</span></code>,
-eg. <code class="docutils literal"><span class="pre">character.add_portal(orig,</span> <span class="pre">dest,</span> <span class="pre">symmetrical=True)</span></code>.
+setting the <code class="docutils literal notranslate"><span class="pre">symmetrical</span></code> key to <code class="docutils literal notranslate"><span class="pre">True</span></code>,
+eg. <code class="docutils literal notranslate"><span class="pre">character.add_portal(orig,</span> <span class="pre">dest,</span> <span class="pre">symmetrical=True)</span></code>.
 The portal going the other way will appear to have all the
 stats of this one, and attempting to set a stat on it will
 set it here instead.</p>
@@ -1466,8 +1676,8 @@ me.</p>
 <dl class="method">
 <dt id="LiSE.portal.Portal.delete">
 <code class="descname">delete</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.portal.Portal.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove myself from my <code class="xref py py-class docutils literal"><span class="pre">Character</span></code>.</p>
-<p>For symmetry with <code class="xref py py-class docutils literal"><span class="pre">Thing</span></code> and :class`Place`.</p>
+<dd><p>Remove myself from my <code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code>.</p>
+<p>For symmetry with <code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code> and :class`Place`.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1579,6 +1789,11 @@ need to change that.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="LiSE.rule.AllRuleBooks">
+<em class="property">class </em><code class="descclassname">LiSE.rule.</code><code class="descname">AllRuleBooks</code><span class="sig-paren">(</span><em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#AllRuleBooks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.AllRuleBooks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
 <dt id="LiSE.rule.AllRules">
 <em class="property">class </em><code class="descclassname">LiSE.rule.</code><code class="descname">AllRules</code><span class="sig-paren">(</span><em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#AllRules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.AllRules" title="Permalink to this definition">¶</a></dt>
 <dd><p>A mapping of every rule in the game.</p>
@@ -1643,19 +1858,43 @@ name.</p>
 <em class="property">class </em><code class="descclassname">LiSE.rule.</code><code class="descname">RuleBook</code><span class="sig-paren">(</span><em>engine</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#RuleBook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleBook" title="Permalink to this definition">¶</a></dt>
 <dd><p>A list of rules to be followed for some Character, or a part of it
 anyway.</p>
+<dl class="method">
+<dt id="LiSE.rule.RuleBook.index">
+<code class="descname">index</code><span class="sig-paren">(</span><em>value</em><span class="optional">[</span>, <em>start</em><span class="optional">[</span>, <em>stop</em><span class="optional">]</span><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; integer -- return first index of value.<a class="reference internal" href="../_modules/LiSE/rule.html#RuleBook.index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleBook.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raises ValueError if the value is not present.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.rule.RuleBook.insert">
+<code class="descname">insert</code><span class="sig-paren">(</span><em>i</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#RuleBook.insert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleBook.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.insert(index, value) – insert value before index</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="LiSE.rule.RuleFollower">
 <em class="property">class </em><code class="descclassname">LiSE.rule.</code><code class="descname">RuleFollower</code><a class="reference internal" href="../_modules/LiSE/rule.html#RuleFollower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleFollower" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interface for that which has a rulebook associated, which you can
-get a <a class="reference internal" href="#LiSE.rule.RuleMapping" title="LiSE.rule.RuleMapping"><code class="xref py py-class docutils literal"><span class="pre">RuleMapping</span></code></a> into</p>
+get a <a class="reference internal" href="#LiSE.rule.RuleMapping" title="LiSE.rule.RuleMapping"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuleMapping</span></code></a> into</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="LiSE.rule.RuleFuncList">
 <em class="property">class </em><code class="descclassname">LiSE.rule.</code><code class="descname">RuleFuncList</code><span class="sig-paren">(</span><em>rule</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#RuleFuncList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleFuncList" title="Permalink to this definition">¶</a></dt>
 <dd><p>Abstract class for lists of functions like trigger, prereq, action</p>
+<dl class="method">
+<dt id="LiSE.rule.RuleFuncList.append">
+<code class="descname">append</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#RuleFuncList.append"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleFuncList.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.append(value) – append value to the end of the sequence</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.rule.RuleFuncList.insert">
+<code class="descname">insert</code><span class="sig-paren">(</span><em>i</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#RuleFuncList.insert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleFuncList.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.insert(index, value) – insert value before index</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -1667,7 +1906,7 @@ get a <a class="reference internal" href="#LiSE.rule.RuleMapping" title="LiSE.ru
 <dl class="class">
 <dt id="LiSE.rule.RuleMapping">
 <em class="property">class </em><code class="descclassname">LiSE.rule.</code><code class="descname">RuleMapping</code><span class="sig-paren">(</span><em>engine</em>, <em>rulebook</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/rule.html#RuleMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.rule.RuleMapping" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wraps a <a class="reference internal" href="#LiSE.rule.RuleBook" title="LiSE.rule.RuleBook"><code class="xref py py-class docutils literal"><span class="pre">RuleBook</span></code></a> so you can get its rules by name.</p>
+<dd><p>Wraps a <a class="reference internal" href="#LiSE.rule.RuleBook" title="LiSE.rule.RuleBook"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuleBook</span></code></a> so you can get its rules by name.</p>
 <p>You can access the rules in this either dictionary-style or as
 attributes. This is for convenience if you want to get at a rule’s
 decorators, eg. to add an Action to the rule.</p>
@@ -1675,9 +1914,9 @@ decorators, eg. to add an Action to the rule.</p>
 decorated function, and using the decorated function as the
 initial Action.</p>
 <p>Using this like a dictionary will let you create new rules,
-appending them onto the underlying <a class="reference internal" href="#LiSE.rule.RuleBook" title="LiSE.rule.RuleBook"><code class="xref py py-class docutils literal"><span class="pre">RuleBook</span></code></a>; replace one
+appending them onto the underlying <a class="reference internal" href="#LiSE.rule.RuleBook" title="LiSE.rule.RuleBook"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuleBook</span></code></a>; replace one
 rule with another, where the new one will have the same index in
-the <a class="reference internal" href="#LiSE.rule.RuleBook" title="LiSE.rule.RuleBook"><code class="xref py py-class docutils literal"><span class="pre">RuleBook</span></code></a> as the old one; and activate or deactivate
+the <a class="reference internal" href="#LiSE.rule.RuleBook" title="LiSE.rule.RuleBook"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuleBook</span></code></a> as the old one; and activate or deactivate
 rules. The name of a rule may be used in place of the actual rule,
 so long as the rule already exists.</p>
 </dd></dl>
@@ -1700,9 +1939,44 @@ so long as the rule already exists.</p>
 <p>The query engine provides Pythonic methods to access the database.</p>
 <p>This module also contains a notably unfinished implementation of a query
 language specific to LiSE. Access some stats using entities’ method
-<code class="docutils literal"><span class="pre">historical</span></code>, and do comparisons on those, and instead of a boolean
+<code class="docutils literal notranslate"><span class="pre">historical</span></code>, and do comparisons on those, and instead of a boolean
 result you’ll get a callable object that will return an iterator over
-turn numbers in which the comparison evaluated to <code class="docutils literal"><span class="pre">True</span></code>.</p>
+turn numbers in which the comparison evaluated to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<dl class="class">
+<dt id="LiSE.query.QueryEngine">
+<em class="property">class </em><code class="descclassname">LiSE.query.</code><code class="descname">QueryEngine</code><span class="sig-paren">(</span><em>dbstring</em>, <em>connect_args</em>, <em>alchemy</em>, <em>pack=None</em>, <em>unpack=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.QueryEngine" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="exception">
+<dt id="LiSE.query.QueryEngine.IntegrityError">
+<em class="property">exception </em><code class="descname">IntegrityError</code><a class="headerlink" href="#LiSE.query.QueryEngine.IntegrityError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="LiSE.query.QueryEngine.OperationalError">
+<em class="property">exception </em><code class="descname">OperationalError</code><a class="headerlink" href="#LiSE.query.QueryEngine.OperationalError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="LiSE.query.QueryEngine.exist_edge">
+<code class="descname">exist_edge</code><span class="sig-paren">(</span><em>character</em>, <em>orig</em>, <em>dest</em>, <em>idx</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>extant=None</em>, <em>*</em>, <em>keep_rulebook=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine.exist_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.QueryEngine.exist_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare whether or not this edge exists.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.query.QueryEngine.exist_node">
+<code class="descname">exist_node</code><span class="sig-paren">(</span><em>character</em>, <em>node</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>extant</em>, <em>keep_rulebook=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine.exist_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.QueryEngine.exist_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare that the node exists or doesn’t.</p>
+<p>Inserts a new record or updates an old one, as needed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.query.QueryEngine.initdb">
+<code class="descname">initdb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine.initdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.QueryEngine.initdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up the database schema, both for allegedb and the special
+extensions for LiSE</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="LiSE.query.slow_iter_turns_eval_cmp">
 <code class="descclassname">LiSE.query.</code><code class="descname">slow_iter_turns_eval_cmp</code><span class="sig-paren">(</span><em>qry</em>, <em>oper</em>, <em>start_branch=None</em>, <em>engine=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#slow_iter_turns_eval_cmp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.slow_iter_turns_eval_cmp" title="Permalink to this definition">¶</a></dt>
@@ -1779,12 +2053,14 @@ turn numbers in which the comparison evaluated to <code class="docutils literal"
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -1795,7 +2071,7 @@ turn numbers in which the comparison evaluated to <code class="docutils literal"
       &copy;2018, Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
