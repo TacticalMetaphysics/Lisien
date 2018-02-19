@@ -26,9 +26,9 @@ copyright = '2018, Zachary Spector'
 author = 'Zachary Spector'
 
 # The short X.Y version
-version = ''
+version = '0.9'
 # The full version, including alpha/beta/rc tags
-release = ''
+release = '0.9dev'
 
 
 # -- General configuration ---------------------------------------------------
