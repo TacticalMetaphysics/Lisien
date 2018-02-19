@@ -11,7 +11,8 @@ from functools import partial
 from types import FunctionType, MethodType
 import umsgpack
 from blinker import Signal
-from allegedb import ORM as gORM, update_window, update_backward_window
+from allegedb import ORM as gORM
+from allegedb.window import update_window, update_backward_window
 from .xcollections import (
     StringStore,
     FunctionStore,
