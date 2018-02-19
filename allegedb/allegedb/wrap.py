@@ -1,7 +1,7 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. zacharyspector@gmail.com
 from collections import MutableMapping, MutableSequence
-from copy import deepcopy
+from copy import deepcopy as deepcopy_base
 
 
 class CoreDictWrapper(MutableMapping):
@@ -193,15 +193,17 @@ class ListWrapper(MutableSequence, list):
         return repr(self._v)
 
 
-def json_deepcopy(obj):
-    """Copy all the data from a ``JSONWrapper`` into a dictionary."""
+def deepcopy(obj):
+    """Copy all the data from a ``DictWrapper`` into a dictionary."""
+    if not isinstance(obj, DictWrapper):
+        return deepcopy_base(obj)
     r = {}
     for (k, v) in obj.items():
         if (
             isinstance(v, DictWrapper) or
             isinstance(v, ListWrapper)
         ):
-            r[k] = deepcopy(v._v)
+            r[k] = deepcopy_base(v._v)
         else:
-            r[k] = deepcopy(v)
+            r[k] = deepcopy_base(v)
     return r
