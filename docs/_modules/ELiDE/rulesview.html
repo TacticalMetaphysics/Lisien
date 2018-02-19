@@ -1,0 +1,475 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.rulesview &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.rulesview</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">signature</span>
+
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="n">AliasProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">StringProperty</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="k">import</span> <span class="n">ToggleButton</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.recycleview</span> <span class="k">import</span> <span class="n">RecycleView</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.recycleview.views</span> <span class="k">import</span> <span class="n">RecycleDataViewBehavior</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="k">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.label</span> <span class="k">import</span> <span class="n">Label</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.tabbedpanel</span> <span class="k">import</span> <span class="n">TabbedPanel</span><span class="p">,</span> <span class="n">TabbedPanelItem</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">Screen</span>
+
+<span class="kn">from</span> <span class="nn">.card</span> <span class="k">import</span> <span class="n">Card</span><span class="p">,</span> <span class="n">DeckBuilderView</span><span class="p">,</span> <span class="n">DeckBuilderScrollBar</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">trigger</span>
+
+
+<span class="c1"># TODO:</span>
+<span class="c1"># 1. Make it more obvious whose rules you are editing</span>
+<span class="c1"># 2. Allow re-ordering of the rules</span>
+
+
+<span class="n">dbg</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span>
+
+
+<span class="c1"># How do these get instantiated?</span>
+<div class="viewcode-block" id="RuleButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RuleButton">[docs]</a><span class="k">class</span> <span class="nc">RuleButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">,</span> <span class="n">RecycleDataViewBehavior</span><span class="p">):</span>
+    <span class="n">rulesview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">ruleslist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">rule</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rulesview</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span>
+            <span class="k">for</span> <span class="n">button</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ruleslist</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">button</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">:</span></div>
+                    <span class="n">button</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span>
+
+
+<div class="viewcode-block" id="RulesList"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RulesList">[docs]</a><span class="k">class</span> <span class="nc">RulesList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
+    <span class="n">rulebook</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">rulesview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redata</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redata</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s1">&#39;rulesview&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulesview</span><span class="p">,</span> <span class="s1">&#39;rule&#39;</span><span class="p">:</span> <span class="n">rule</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;ruleslist&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rule</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="p">)</span>
+        <span class="p">]</span></div>
+    <span class="n">_trigger_redata</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">redata</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RulesView"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RulesView">[docs]</a><span class="k">class</span> <span class="nc">RulesView</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">rulebook</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">rule</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_listen_to_rule</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_listen_to_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
+            <span class="n">rule</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_listen_to_rule</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="s1">&#39;triggers&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pull_triggers</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;prereqs&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pull_prereqs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;actions&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pull_actions</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_headline_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># This shows the entity whose rules you&#39;re editing if you</span>
+        <span class="c1"># haven&#39;t assigned a different rulebook from usual. Otherwise</span>
+        <span class="c1"># it shows the name of the rulebook. I&#39;d like it to show</span>
+        <span class="c1"># *both*.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">rn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rn</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">rn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rn</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">=</span> <span class="n">rn</span>
+            <span class="n">character</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">char</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="p">{</span>
+                    <span class="s1">&#39;character&#39;</span><span class="p">,</span> <span class="s1">&#39;avatar&#39;</span><span class="p">,</span> <span class="s1">&#39;character_thing&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;character_place&#39;</span><span class="p">,</span> <span class="s1">&#39;character_node&#39;</span><span class="p">,</span> <span class="s1">&#39;character_portal&#39;</span>
+            <span class="p">}:</span>
+                <span class="k">return</span> <span class="s2">&quot;Character: </span><span class="si">{}</span><span class="s2">, rulebook: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Character: </span><span class="si">{}</span><span class="s2">, Thing: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">rn</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Character: </span><span class="si">{}</span><span class="s2">, Place: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">rn</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Node </span><span class="si">{}</span><span class="s2"> not present in character&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">rn</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Character: </span><span class="si">{}</span><span class="s2">, Portal: </span><span class="si">{}</span><span class="s2">-&gt;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">rn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">rn</span><span class="p">)</span>
+    <span class="n">headline_text</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
+        <span class="n">_get_headline_text</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;rulebook&#39;</span><span class="p">,)</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">deck_builder_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;pos_hint&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+            <span class="s1">&#39;starting_pos_hint&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span> <span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">},</span>
+            <span class="s1">&#39;card_size_hint&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">),</span>
+            <span class="s1">&#39;card_hint_step&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">),</span>
+            <span class="s1">&#39;deck_x_hint_step&#39;</span><span class="p">:</span> <span class="mf">0.4</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_headline</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span>
+            <span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+            <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="mf">0.5</span>
+            <span class="p">},</span>
+            <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headline_text</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">headline_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_headline</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_headline</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_box</span> <span class="o">=</span> <span class="n">BoxLayout</span><span class="p">(</span>
+            <span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+            <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_box</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_list</span> <span class="o">=</span> <span class="n">RulesList</span><span class="p">(</span>
+            <span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="p">,</span>
+            <span class="n">rulesview</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.33</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_list</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;rulebook&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_box</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tabs</span> <span class="o">=</span> <span class="n">TabbedPanel</span><span class="p">(</span>
+            <span class="n">do_default_tab</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_box</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tabs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">functyp</span> <span class="ow">in</span> <span class="s1">&#39;trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;prereq&#39;</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span>
+            <span class="n">tab</span> <span class="o">=</span> <span class="n">TabbedPanelItem</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">functyp</span><span class="o">.</span><span class="n">capitalize</span><span class="p">())</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_tab&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">),</span> <span class="n">tab</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tabs</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_tab&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">)))</span>
+            <span class="n">builder</span> <span class="o">=</span> <span class="n">DeckBuilderView</span><span class="p">(</span><span class="o">**</span><span class="n">deck_builder_kwargs</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_builder&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">),</span> <span class="n">builder</span><span class="p">)</span>
+            <span class="n">builder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">decks</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_trigger_push_</span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">)))</span>
+            <span class="n">scroll_left</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span>
+                <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+                <span class="n">deckbuilder</span><span class="o">=</span><span class="n">builder</span><span class="p">,</span>
+                <span class="n">deckidx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">scroll_min</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scroll_left_&#39;</span> <span class="o">+</span> <span class="n">functyp</span><span class="p">,</span> <span class="n">scroll_left</span><span class="p">)</span>
+            <span class="n">scroll_right</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span>
+                <span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;right&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+                <span class="n">deckbuilder</span><span class="o">=</span><span class="n">builder</span><span class="p">,</span>
+                <span class="n">deckidx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">scroll_min</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scroll_right_&#39;</span> <span class="o">+</span> <span class="n">functyp</span><span class="p">,</span> <span class="n">scroll_right</span><span class="p">)</span>
+            <span class="n">layout</span> <span class="o">=</span> <span class="n">FloatLayout</span><span class="p">()</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_layout&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">),</span> <span class="n">layout</span><span class="p">)</span>
+            <span class="n">tab</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span>
+            <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span>
+            <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">scroll_left</span><span class="p">)</span>
+            <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">scroll_right</span><span class="p">)</span>
+            <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span>
+                <span class="n">Label</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Used&#39;</span><span class="p">,</span>
+                    <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="mf">0.98</span><span class="p">},</span>
+                    <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span>
+                <span class="n">Label</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Unused&#39;</span><span class="p">,</span>
+                    <span class="n">pos_hint</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="mf">0.98</span><span class="p">},</span>
+                    <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">rule</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_trigger_pull_</span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_list</span><span class="o">.</span><span class="n">redata</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_pull_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
+        <span class="n">allfuncs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inspect_func</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+        <span class="n">rulefuncnames</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">)</span>
+        <span class="n">unused</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Card</span><span class="p">(</span>
+                <span class="n">ud</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">what</span><span class="p">,</span>
+                    <span class="s1">&#39;funcname&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;signature&#39;</span><span class="p">:</span> <span class="n">sig</span>
+                <span class="p">},</span>
+                <span class="n">headline_text</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">show_art</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">midline_text</span><span class="o">=</span><span class="n">what</span><span class="o">.</span><span class="n">capitalize</span><span class="p">(),</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">source</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span> <span class="ow">in</span> <span class="n">allfuncs</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rulefuncnames</span>
+        <span class="p">]</span>
+        <span class="n">used</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Card</span><span class="p">(</span>
+                <span class="n">ud</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">what</span><span class="p">,</span>
+                    <span class="s1">&#39;funcname&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="n">headline_text</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">show_art</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">midline_text</span><span class="o">=</span><span class="n">what</span><span class="o">.</span><span class="n">capitalize</span><span class="p">(),</span>
+                <span class="n">text</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">what</span><span class="p">),</span> <span class="n">name</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">rulefuncnames</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">used</span><span class="p">,</span> <span class="n">unused</span>
+
+    <span class="k">def</span> <span class="nf">pull_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;trigger&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_pull_triggers</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">pull_triggers</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">pull_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;prereq&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_pull_prereqs</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">pull_prereqs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">pull_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_pull_actions</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">pull_actions</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_inspect_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namesrc</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span> <span class="o">=</span> <span class="n">namesrc</span>
+        <span class="n">glbls</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">lcls</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">exec</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">glbls</span><span class="p">,</span> <span class="n">lcls</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">lcls</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="n">lcls</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_builders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">attrn</span> <span class="ow">in</span> <span class="s1">&#39;_trigger_builder&#39;</span><span class="p">,</span> <span class="s1">&#39;_prereq_builder&#39;</span><span class="p">,</span> <span class="s1">&#39;_action_builder&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrn</span><span class="p">):</span>
+                <span class="n">dbg</span><span class="p">(</span><span class="s1">&#39;RulesView: no </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attrn</span><span class="p">))</span>
+                <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_builders</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_builder</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbg</span><span class="p">(</span><span class="s1">&#39;RulesView: no rule&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_list&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_list</span><span class="o">.</span><span class="n">redata</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pull_triggers</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pull_prereqs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pull_actions</span><span class="p">()</span>
+    <span class="n">_trigger_update_builders</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">update_builders</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_upd_unused</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make sure to have exactly one copy of every valid function in the</span>
+<span class="sd">        &quot;unused&quot; pile on the right.</span>
+
+<span class="sd">        Doesn&#39;t read from the database.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">builder</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_builder&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">))</span>
+        <span class="n">updtrig</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_trigger_upd_unused_</span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">))</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">decks</span><span class="o">=</span><span class="n">updtrig</span><span class="p">)</span>
+        <span class="n">funcs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">cards</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">cards</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">card</span> <span class="ow">in</span> <span class="n">cards</span><span class="p">:</span>
+            <span class="n">funcs</span><span class="p">[</span><span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;funcname&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">card</span>
+        <span class="k">for</span> <span class="n">card</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;funcname&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">funcs</span><span class="p">:</span>
+                <span class="n">funcs</span><span class="p">[</span><span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;funcname&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">card</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">unused</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">funcs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="n">unused</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">unused</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">decks</span><span class="o">=</span><span class="n">updtrig</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">upd_unused_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_upd_unused</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_upd_unused_actions</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">upd_unused_actions</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">upd_unused_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_upd_unused</span><span class="p">(</span><span class="s1">&#39;trigger&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_upd_unused_triggers</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">upd_unused_triggers</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">upd_unused_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_upd_unused</span><span class="p">(</span><span class="s1">&#39;prereq&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_upd_unused_prereqs</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">upd_unused_prereqs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_push_funcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
+        <span class="n">funcs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;funcname&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">card</span> <span class="ow">in</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">_builder&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">))</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="n">funlist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">funlist</span> <span class="o">!=</span> <span class="n">funcs</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="n">funcs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">push_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_funcs</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_push_actions</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_actions</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">push_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_funcs</span><span class="p">(</span><span class="s1">&#39;prereq&#39;</span><span class="p">)</span>
+    <span class="n">_trigger_push_prereqs</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_prereqs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">push_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_push_funcs</span><span class="p">(</span><span class="s1">&#39;trigger&#39;</span><span class="p">)</span></div>
+    <span class="n">_trigger_push_triggers</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_triggers</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RulesScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.rulesview.RulesScreen">[docs]</a><span class="k">class</span> <span class="nc">RulesScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">rulebook</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">rulesview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">new_rule_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">new_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_rule_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
+            <span class="c1"># TODO: feedback to say you already have such a rule</span>
+            <span class="k">return</span>
+        <span class="n">new_rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_rule_name</span><span class="p">)</span>
+        <span class="k">assert</span><span class="p">(</span><span class="n">new_rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_rule</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rulesview</span><span class="o">.</span><span class="n">redata</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">rulesview</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="n">new_rule</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">rulename</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;RuleButton&gt;:</span>
+<span class="s2">    text: self.rule.name if self.rule else &#39;&#39;</span>
+<span class="s2">&lt;RulesList&gt;:</span>
+<span class="s2">    viewclass: &#39;RuleButton&#39;</span>
+<span class="s2">    SelectableRecycleBoxLayout:</span>
+<span class="s2">        default_size: None, dp(56)</span>
+<span class="s2">        default_size_hint: 1, None</span>
+<span class="s2">        height: self.minimum_height</span>
+<span class="s2">        size_hint_y: None</span>
+<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">&lt;RulesScreen&gt;:</span>
+<span class="s2">    name: &#39;rules&#39;</span>
+<span class="s2">    new_rule_name: rulename.text</span>
+<span class="s2">    rulesview: rulesview</span>
+<span class="s2">    BoxLayout:</span>
+<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">        RulesView:</span>
+<span class="s2">            id: rulesview</span>
+<span class="s2">            engine: root.engine</span>
+<span class="s2">            rulebook: root.rulebook</span>
+<span class="s2">        BoxLayout:</span>
+<span class="s2">            orientation: &#39;horizontal&#39;</span>
+<span class="s2">            size_hint_y: 0.05</span>
+<span class="s2">            TextInput:</span>
+<span class="s2">                id: rulename</span>
+<span class="s2">                hint_text: &#39;New rule name&#39;</span>
+<span class="s2">                write_tab: False</span>
+<span class="s2">            Button:</span>
+<span class="s2">                text: &#39;+&#39;</span>
+<span class="s2">                on_press: root.new_rule()</span>
+<span class="s2">            Button:</span>
+<span class="s2">                text: &#39;Close&#39;</span>
+<span class="s2">                on_press: root.toggle()</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,201 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.charsview &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.charsview</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">Screen</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.recycleview</span> <span class="k">import</span> <span class="n">RecycleView</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">StringProperty</span>
+
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">SelectableRecycleBoxLayout</span>
+
+
+<span class="c1"># TODO: Visual preview</span>
+<span class="c1"># TODO: Background image chooser</span>
+
+<div class="viewcode-block" id="CharactersRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">CharactersRecycleBoxLayout</span><span class="p">(</span><span class="n">SelectableRecycleBoxLayout</span><span class="p">):</span>
+    <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CharactersRecycleBoxLayout.apply_selection"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersRecycleBoxLayout.apply_selection">[docs]</a>    <span class="k">def</span> <span class="nf">apply_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">apply_selection</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">character_name</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">text</span>
+
+
+<div class="viewcode-block" id="CharactersView"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersView">[docs]</a><span class="k">class</span> <span class="nc">CharactersView</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
+    <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2name</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name2i</span> <span class="o">=</span> <span class="p">{}</span></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CharactersScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charsview.CharactersScreen">[docs]</a><span class="k">class</span> <span class="nc">CharactersScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">charsview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">character_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">wallpaper_path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">new_board</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">push_character_name</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">i2name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">name2i</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_board</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_trigger_new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_character</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_munge_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">i2name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">name2i</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">yield</span> <span class="p">{</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">on_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_names</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_munge_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">on_charsview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_charsview</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;character_name&#39;</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">push_character_name</span><span class="p">)</span>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">#: import resource_find kivy.resources.resource_find</span>
+<span class="s2">&lt;CharactersView&gt;:</span>
+<span class="s2">    viewclass: &#39;RecycleToggleButton&#39;</span>
+<span class="s2">    character_name: boxl.character_name</span>
+<span class="s2">    CharactersRecycleBoxLayout:</span>
+<span class="s2">        id: boxl</span>
+<span class="s2">        multiselect: False</span>
+<span class="s2">        default_size: None, dp(56)</span>
+<span class="s2">        default_size_hint: 1, None</span>
+<span class="s2">        size_hint_y: None</span>
+<span class="s2">        height: self.minimum_height</span>
+<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">&lt;CharactersScreen&gt;:</span>
+<span class="s2">    name: &#39;chars&#39;</span>
+<span class="s2">    charsview: charsview</span>
+<span class="s2">    BoxLayout:</span>
+<span class="s2">        id: chars</span>
+<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">        CharactersView:</span>
+<span class="s2">            id: charsview</span>
+<span class="s2">            size_hint_y: 0.8</span>
+<span class="s2">            character_name: root.character_name</span>
+<span class="s2">        TextInput:</span>
+<span class="s2">            id: newname</span>
+<span class="s2">            size_hint_y: 0.1</span>
+<span class="s2">            hint_text: &#39;New character name&#39;</span>
+<span class="s2">            write_tab: False</span>
+<span class="s2">            multiline: False</span>
+<span class="s2">        Button:</span>
+<span class="s2">            text: &#39;+&#39;</span>
+<span class="s2">            on_press: root._trigger_new_character(newname.text)</span>
+<span class="s2">            size_hint_y: 0.05</span>
+<span class="s2">        Button:</span>
+<span class="s2">            text: &#39;Close&#39;</span>
+<span class="s2">            on_press: root.toggle()</span>
+<span class="s2">            size_hint_y: 0.05</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

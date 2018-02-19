@@ -1,0 +1,1326 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>allegedb &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="LiSE" href="../LiSE/index.html" />
+    <link rel="prev" title="Welcome to LiSE’s documentation!" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="allegedb">
+<h1>allegedb<a class="headerlink" href="#allegedb" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>Object relational mapper for graphs with in-built revision control.</p>
+<p>allegedb serves its own special variants on the networkx graph classes:
+Graph, DiGraph, MultiGraph, and MultiDiGraph. Every change to them is
+stored in an SQL database.</p>
+<p>This means you can keep multiple versions of one set of graphs and
+switch between them without the need to save, load, or run git-checkout.
+Just point the ORM at the correct branch and revision, and all of the
+graphs in the program will change. All the different branches and
+revisions remain in the database to be brought back when needed.</p>
+<div class="section" id="usage">
+<h2>usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">allegedb</span> <span class="k">import</span> <span class="n">ORM</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span> <span class="o">=</span> <span class="n">ORM</span><span class="p">(</span><span class="s1">&#39;sqlite:///test.db&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">initdb</span><span class="p">()</span>  <span class="c1"># only necessary the first time you use a particular database</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_graph</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>  <span class="c1"># also new_digraph, new_multigraph, new_multidigraph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">([</span><span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="s1">&#39;ham&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">edge</span>  <span class="c1"># strings become unicode because that&#39;s the way sqlite3 rolls</span>
+<span class="go">{u&#39;eggs&#39;: {u&#39;ham&#39;: {}, u&#39;spam&#39;: {}}, u&#39;ham&#39;: {u&#39;eggs&#39;: {}}, u&#39;spam&#39;: {u&#39;eggs&#39;: {}}}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">g</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">orm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span> <span class="o">=</span> <span class="n">ORM</span><span class="p">(</span><span class="s1">&#39;sqlite:///test.db&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>  <span class="c1"># returns whatever graph type you stored by that name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">edge</span>
+<span class="go">{u&#39;eggs&#39;: {u&#39;ham&#39;: {}, u&#39;spam&#39;: {}}, u&#39;ham&#39;: {u&#39;eggs&#39;: {}}, u&#39;spam&#39;: {u&#39;eggs&#39;: {}}}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">random_lobster</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mf">0.9</span><span class="p">,</span><span class="mf">0.9</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_graph</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">red</span><span class="p">)</span>  <span class="c1"># initialize with data from the given graph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">=</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># undoing what I did when rev-1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="s1">&#39;test&#39;</span>    <span class="c1"># navigating to a branch for the first time creates that branch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="s1">&#39;trunk&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-allegedb">
+<span id="orm"></span><h2>ORM<a class="headerlink" href="#module-allegedb" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="allegedb.AdvancingContext">
+<em class="property">class </em><code class="descclassname">allegedb.</code><code class="descname">AdvancingContext</code><span class="sig-paren">(</span><em>orm</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#AdvancingContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.AdvancingContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for when time is moving forward one turn at a time.</p>
+<p>When used in LiSE, this means that the game is being simulated.
+It changes how the caching works, making it more efficient.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.ORM">
+<em class="property">class </em><code class="descclassname">allegedb.</code><code class="descname">ORM</code><span class="sig-paren">(</span><em>dbstring</em>, <em>alchemy=True</em>, <em>connect_args={}</em>, <em>validate=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate this with the same string argument you’d use for a
+SQLAlchemy <code class="docutils literal"><span class="pre">create_engine</span></code> call. This will be your interface to
+allegedb.</p>
+<dl class="attribute">
+<dt id="allegedb.ORM.advancing">
+<code class="descname">advancing</code><a class="headerlink" href="#allegedb.ORM.advancing" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for when time is moving forward one turn at a time.</p>
+<p>When used in LiSE, this means that the game is being simulated.
+It changes how the caching works, making it more efficient.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.btt">
+<code class="descname">btt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.btt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.btt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the branch, turn, and tick.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write changes to database and close the connection</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.commit">
+<code class="descname">commit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the state of all graphs to the database and commit the transaction.</p>
+<p>Also saves the current branch, turn, and tick.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.del_graph">
+<code class="descname">del_graph</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.del_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.del_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all traces of a graph’s existence from the database</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.ORM.edge_cls">
+<code class="descname">edge_cls</code><a class="headerlink" href="#allegedb.ORM.edge_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Edge</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.get_delta">
+<code class="descname">get_delta</code><span class="sig-paren">(</span><em>branch</em>, <em>turn_from</em>, <em>tick_from</em>, <em>turn_to</em>, <em>tick_to</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.get_delta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.get_delta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a dictionary describing changes to all graphs.</p>
+<p>The keys are graph names. Their values are dictionaries of the graphs’
+attributes’ new values, with <code class="docutils literal"><span class="pre">None</span></code> for deleted keys. Also in those graph
+dictionaries are special keys ‘node_val’ and ‘edge_val’ describing changes
+to node and edge attributes, and ‘nodes’ and ‘edges’ full of booleans
+indicating whether a node or edge exists.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.get_graph">
+<code class="descname">get_graph</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.get_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.get_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a graph previously created with <code class="docutils literal"><span class="pre">new_graph</span></code>,
+<code class="docutils literal"><span class="pre">new_digraph</span></code>, <code class="docutils literal"><span class="pre">new_multigraph</span></code>, or
+<code class="docutils literal"><span class="pre">new_multidigraph</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.get_turn_delta">
+<code class="descname">get_turn_delta</code><span class="sig-paren">(</span><em>branch=None</em>, <em>turn=None</em>, <em>tick_from=0</em>, <em>tick_to=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.get_turn_delta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.get_turn_delta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a dictionary describing changes made on a given turn.</p>
+<p>If <code class="docutils literal"><span class="pre">tick_to</span></code> is not supplied, report all changes after <code class="docutils literal"><span class="pre">tick_from</span></code>
+(default 0).</p>
+<p>The keys are graph names. Their values are dictionaries of the graphs’
+attributes’ new values, with <code class="docutils literal"><span class="pre">None</span></code> for deleted keys. Also in those graph
+dictionaries are special keys ‘node_val’ and ‘edge_val’ describing changes
+to node and edge attributes, and ‘nodes’ and ‘edges’ full of booleans
+indicating whether a node or edge exists.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.initdb">
+<code class="descname">initdb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.initdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.initdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias of <code class="docutils literal"><span class="pre">self.query.initdb</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.is_parent_of">
+<code class="descname">is_parent_of</code><span class="sig-paren">(</span><em>parent</em>, <em>child</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.is_parent_of"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.is_parent_of" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether <code class="docutils literal"><span class="pre">child</span></code> is a branch descended from <code class="docutils literal"><span class="pre">parent</span></code> at
+any remove.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.nbtt">
+<code class="descname">nbtt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.nbtt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.nbtt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Increment the tick and return branch, turn, tick</p>
+<p>Unless we’re viewing the past, in which case raise HistoryError.</p>
+<p>Idea is you use this when you want to advance time, which you
+can only do once per branch, turn, tick.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.new_digraph">
+<code class="descname">new_digraph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_digraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_digraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new instance of type DiGraph, initialized with the given
+data if provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.new_graph">
+<code class="descname">new_graph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new instance of type Graph, initialized with the given
+data if provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.new_multidigraph">
+<code class="descname">new_multidigraph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_multidigraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_multidigraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new instance of type MultiDiGraph, initialized with the given
+data if provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.new_multigraph">
+<code class="descname">new_multigraph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_multigraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_multigraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new instance of type MultiGraph, initialized with the given
+data if provided.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.ORM.node_cls">
+<code class="descname">node_cls</code><a class="headerlink" href="#allegedb.ORM.node_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Node</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.ORM.plan">
+<code class="descname">plan</code><a class="headerlink" href="#allegedb.ORM.plan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for ‘hypothetical’ edits.</p>
+<p>Start a block of code like:</p>
+<dl class="docutils">
+<dt>with orm.plan:</dt>
+<dd>…</dd>
+</dl>
+<p>and any changes you make to the world state within that block will be
+‘plans,’ meaning that they are used as defaults. The world will
+obey your plan unless you make changes to the same entities outside
+of the plan, in which case the world will obey those.</p>
+<p>New branches cannot be started within plans.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.ORM.query_engine_cls">
+<code class="descname">query_engine_cls</code><a class="headerlink" href="#allegedb.ORM.query_engine_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">QueryEngine</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.PlanningContext">
+<em class="property">class </em><code class="descclassname">allegedb.</code><code class="descname">PlanningContext</code><span class="sig-paren">(</span><em>orm</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#PlanningContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.PlanningContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager for ‘hypothetical’ edits.</p>
+<p>Start a block of code like:</p>
+<dl class="docutils">
+<dt>with orm.plan:</dt>
+<dd>…</dd>
+</dl>
+<p>and any changes you make to the world state within that block will be
+‘plans,’ meaning that they are used as defaults. The world will
+obey your plan unless you make changes to the same entities outside
+of the plan, in which case the world will obey those.</p>
+<p>New branches cannot be started within plans.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.TimeSignal">
+<em class="property">class </em><code class="descclassname">allegedb.</code><code class="descname">TimeSignal</code><span class="sig-paren">(</span><em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#TimeSignal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.TimeSignal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Acts like a tuple of the time in (branch, turn) for the most part.</p>
+<p>This is a Signal, so pass a function to the connect(…) method and
+it will be called whenever the time changes. Not when the tick
+changes, though. If you really need something done whenever the
+tick changes, override the _set_tick method of
+<a class="reference internal" href="#allegedb.ORM" title="allegedb.ORM"><code class="xref py py-class docutils literal"><span class="pre">allegedb.ORM</span></code></a>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.TimeSignalDescriptor">
+<em class="property">class </em><code class="descclassname">allegedb.</code><code class="descname">TimeSignalDescriptor</code><a class="reference internal" href="../_modules/allegedb.html#TimeSignalDescriptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.TimeSignalDescriptor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Acts like a tuple of the time in (branch, turn) for the most part.</p>
+<p>This is a Signal, so pass a function to the connect(…) method and
+it will be called whenever the time changes. Not when the tick
+changes, though. If you really need something done whenever the
+tick changes, override the _set_tick method of
+<a class="reference internal" href="#allegedb.ORM" title="allegedb.ORM"><code class="xref py py-class docutils literal"><span class="pre">allegedb.ORM</span></code></a>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-allegedb.cache">
+<span id="cache"></span><h2>cache<a class="headerlink" href="#module-allegedb.cache" title="Permalink to this headline">¶</a></h2>
+<p>Classes for in-memory storage and retrieval of historical graph data.</p>
+<p>The main one to use is <code class="docutils literal"><span class="pre">Cache</span></code>, mostly for its <code class="docutils literal"><span class="pre">store</span></code> and <code class="docutils literal"><span class="pre">retrieve</span></code>
+methods. But if you need to store historical data some other way,
+you might want to store it in a <code class="docutils literal"><span class="pre">WindowDict</span></code>.</p>
+<dl class="class">
+<dt id="allegedb.cache.Cache">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">Cache</code><span class="sig-paren">(</span><em>db</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache" title="Permalink to this definition">¶</a></dt>
+<dd><p>A data store that’s useful for tracking graph revisions.</p>
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.branches">
+<code class="descname">branches</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.branches" title="Permalink to this definition">¶</a></dt>
+<dd><p>A less structured alternative to <code class="docutils literal"><span class="pre">keys</span></code>.</p>
+<p>For when you already know the entity and the key within it,
+but still need to iterate through history to find the value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.contains_entity">
+<code class="descname">contains_entity</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.contains_entity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an entity has a key at the given time, if entity specified.</p>
+<p>Otherwise check if the entity exists.</p>
+<p>Needs at least three arguments, the key, the branch, and the revision.
+Any that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.contains_entity_key">
+<code class="descname">contains_entity_key</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.contains_entity_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an entity has a key at the given time, if entity specified.</p>
+<p>Otherwise check if the entity exists.</p>
+<p>Needs at least three arguments, the key, the branch, and the revision.
+Any that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.contains_entity_or_key">
+<code class="descname">contains_entity_or_key</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache.contains_entity_or_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache.contains_entity_or_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an entity has a key at the given time, if entity specified.</p>
+<p>Otherwise check if the entity exists.</p>
+<p>Needs at least three arguments, the key, the branch, and the revision.
+Any that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.contains_key">
+<code class="descname">contains_key</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.contains_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an entity has a key at the given time, if entity specified.</p>
+<p>Otherwise check if the entity exists.</p>
+<p>Needs at least three arguments, the key, the branch, and the revision.
+Any that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.count_entities">
+<code class="descname">count_entities</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.count_entities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of keys an entity has, if you specify an entity.</p>
+<p>Otherwise return the number of entities.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.count_entities_or_keys">
+<code class="descname">count_entities_or_keys</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache.count_entities_or_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache.count_entities_or_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of keys an entity has, if you specify an entity.</p>
+<p>Otherwise return the number of entities.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.count_entity_keys">
+<code class="descname">count_entity_keys</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.count_entity_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of keys an entity has, if you specify an entity.</p>
+<p>Otherwise return the number of entities.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.count_keys">
+<code class="descname">count_keys</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.count_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of keys an entity has, if you specify an entity.</p>
+<p>Otherwise return the number of entities.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.iter_entities">
+<code class="descname">iter_entities</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.iter_entities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over the keys an entity has, if you specify an entity.</p>
+<p>Otherwise iterate over the entities themselves, or at any rate the
+tuple specifying which entity.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.iter_entities_or_keys">
+<code class="descname">iter_entities_or_keys</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache.iter_entities_or_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache.iter_entities_or_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over the keys an entity has, if you specify an entity.</p>
+<p>Otherwise iterate over the entities themselves, or at any rate the
+tuple specifying which entity.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.iter_entity_keys">
+<code class="descname">iter_entity_keys</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.iter_entity_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over the keys an entity has, if you specify an entity.</p>
+<p>Otherwise iterate over the entities themselves, or at any rate the
+tuple specifying which entity.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.iter_keys">
+<code class="descname">iter_keys</code><span class="sig-paren">(</span><em>*args</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="headerlink" href="#allegedb.cache.Cache.iter_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over the keys an entity has, if you specify an entity.</p>
+<p>Otherwise iterate over the entities themselves, or at any rate the
+tuple specifying which entity.</p>
+<p>Needs at least two arguments, the branch and the revision. Any
+that come before that will be taken to identify the entity.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.keycache">
+<code class="descname">keycache</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.keycache" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keys an entity has at a given turn and tick.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.keys">
+<code class="descname">keys</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cache of entity data keyed by the entities themselves.</p>
+<p>That means the whole tuple identifying the entity is the
+top-level key in this cache here. The second-to-top level
+is the key within the entity.</p>
+<p>Deeper layers of this cache are keyed by branch, turn, and tick.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>data</em>, <em>validate=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a bunch of data. It doesn’t need to be in chronological order.</p>
+<p>With <code class="docutils literal"><span class="pre">validate=True</span></code>, raise ValueError if this results in an
+incoherent cache.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.parents">
+<code class="descname">parents</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.parents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Entity data keyed by the entities’ parents.</p>
+<p>An entity’s parent is what it’s contained in. When speaking of a node,
+this is its graph. When speaking of an edge, the parent is usually the
+graph and the origin in a pair, though for multigraphs the destination
+might be part of the parent as well.</p>
+<p>Deeper layers of this cache are keyed by branch and revision.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.presettings">
+<code class="descname">presettings</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.presettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>The values prior to <code class="docutils literal"><span class="pre">entity[key]</span> <span class="pre">=</span> <span class="pre">value</span></code> operations performed on some turn</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.retrieve">
+<code class="descname">retrieve</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache.retrieve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache.retrieve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a value previously .store(…)’d.</p>
+<p>Needs at least five arguments. The -1th is the tick
+within the turn you want,
+the -2th is that turn, the -3th is the branch,
+and the -4th is the key. All other arguments identify
+the entity that the key is in.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.settings">
+<code class="descname">settings</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>All the <code class="docutils literal"><span class="pre">entity[key]</span> <span class="pre">=</span> <span class="pre">value</span></code> operations that were performed on some turn</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.shallow">
+<code class="descname">shallow</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.shallow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Less structured alternative to <code class="docutils literal"><span class="pre">branches</span></code> .</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.shallower">
+<code class="descname">shallower</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.shallower" title="Permalink to this definition">¶</a></dt>
+<dd><p>Even less structured alternative to <code class="docutils literal"><span class="pre">shallow</span></code>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.cache.Cache.shallowest">
+<code class="descname">shallowest</code><em class="property"> = None</em><a class="headerlink" href="#allegedb.cache.Cache.shallowest" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary for plain, unstructured hinting.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.Cache.store">
+<code class="descname">store</code><span class="sig-paren">(</span><em>*args</em>, <em>validate=False</em>, <em>planning=None</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#Cache.store"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.Cache.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Put a value in various dictionaries for later .retrieve(…).</p>
+<p>Needs at least five arguments, of which the -1th is the value
+to store, the -2th is the tick to store it at, the -3th
+is the turn to store it in, the -4th is the branch the
+revision is in, the -5th is the key the value is for,
+and the remaining arguments identify the entity that has
+the key, eg. a graph, node, or edge.</p>
+<p>With <code class="docutils literal"><span class="pre">validate=True</span></code>, check the cache after storing,
+and raise <code class="docutils literal"><span class="pre">ValueError</span></code> if it’s not coherent.</p>
+<p>With <code class="docutils literal"><span class="pre">planning=True</span></code>, raise HistoryError instead of overwriting.
+Otherwise, any information about this key of this entity in the
+future will be deleted. Separate branches of history will be
+unaffected.</p>
+<p>With <code class="docutils literal"><span class="pre">forward=True</span></code>, enable an optimization that assumes time
+will never go backward.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.EdgesCache">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">EdgesCache</code><span class="sig-paren">(</span><em>db</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache" title="Permalink to this definition">¶</a></dt>
+<dd><p>A cache for remembering whether edges exist at a given time.</p>
+<dl class="method">
+<dt id="allegedb.cache.EdgesCache.count_predecessors">
+<code class="descname">count_predecessors</code><span class="sig-paren">(</span><em>graph</em>, <em>dest</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>*</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache.count_predecessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache.count_predecessors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of predecessors from a given destination node at a given time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.EdgesCache.count_successors">
+<code class="descname">count_successors</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>*</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache.count_successors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache.count_successors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of successors to a given origin node at a given time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.EdgesCache.has_predecessor">
+<code class="descname">has_predecessor</code><span class="sig-paren">(</span><em>graph</em>, <em>dest</em>, <em>orig</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache.has_predecessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache.has_predecessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether an edge connects the destination to the origin at the given time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.EdgesCache.has_successor">
+<code class="descname">has_successor</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>*</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache.has_successor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache.has_successor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether an edge connects the origin to the destination at the given time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.EdgesCache.iter_predecessors">
+<code class="descname">iter_predecessors</code><span class="sig-paren">(</span><em>graph</em>, <em>dest</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>*</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache.iter_predecessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache.iter_predecessors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over predecessors to a given destination node at a given time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.EdgesCache.iter_successors">
+<code class="descname">iter_successors</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>*</em>, <em>forward=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#EdgesCache.iter_successors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.EdgesCache.iter_successors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over successors of a given origin node at a given time.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.FuturistWindowDict">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">FuturistWindowDict</code><span class="sig-paren">(</span><em>data={}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#FuturistWindowDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.FuturistWindowDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>A WindowDict that does not let you rewrite the past.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="allegedb.cache.HistoryError">
+<em class="property">exception </em><code class="descclassname">allegedb.cache.</code><code class="descname">HistoryError</code><span class="sig-paren">(</span><em>*args</em>, <em>deleted=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#HistoryError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.HistoryError" title="Permalink to this definition">¶</a></dt>
+<dd><p>You tried to access the past in a bad way.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.NodesCache">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">NodesCache</code><span class="sig-paren">(</span><em>db</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#NodesCache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.NodesCache" title="Permalink to this definition">¶</a></dt>
+<dd><p>A cache for remembering whether nodes exist at a given time.</p>
+<dl class="method">
+<dt id="allegedb.cache.NodesCache.store">
+<code class="descname">store</code><span class="sig-paren">(</span><em>graph</em>, <em>node</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>ex</em>, <em>*</em>, <em>planning=None</em>, <em>forward=None</em>, <em>validate=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#NodesCache.store"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.NodesCache.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store whether a node exists, and create an object for it</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.PickyDefaultDict">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">PickyDefaultDict</code><span class="sig-paren">(</span><em>type=&lt;class 'object'&gt;</em>, <em>args_munger=&lt;function PickyDefaultDict.&lt;lambda&gt;&gt;</em>, <em>kwargs_munger=&lt;function PickyDefaultDict.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#PickyDefaultDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.PickyDefaultDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="docutils literal"><span class="pre">defaultdict</span></code> alternative that requires values of a specific type.</p>
+<p>Pass some type object (such as a class) to the constructor to
+specify what type to use by default, which is the only type I will
+accept.</p>
+<p>Default values are constructed with no arguments by default;
+supply <code class="docutils literal"><span class="pre">args_munger</span></code> and/or <code class="docutils literal"><span class="pre">kwargs_munger</span></code> to override this.
+They take arguments <code class="docutils literal"><span class="pre">self</span></code> and the unused key being looked up.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.StructuredDefaultDict">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">StructuredDefaultDict</code><span class="sig-paren">(</span><em>layers</em>, <em>type=&lt;class 'object'&gt;</em>, <em>args_munger=&lt;function StructuredDefaultDict.&lt;lambda&gt;&gt;</em>, <em>kwargs_munger=&lt;function StructuredDefaultDict.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#StructuredDefaultDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.StructuredDefaultDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="docutils literal"><span class="pre">defaultdict</span></code>-like class that expects values stored at a specific depth.</p>
+<p>Requires an integer to tell it how many layers deep to go.
+The innermost layer will be <code class="docutils literal"><span class="pre">PickyDefaultDict</span></code>, which will take the
+<code class="docutils literal"><span class="pre">type</span></code>, <code class="docutils literal"><span class="pre">args_munger</span></code>, and <code class="docutils literal"><span class="pre">kwargs_munger</span></code> arguments supplied
+to my constructor.</p>
+<p>This will never accept manual assignments at any layer but the deepest.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.WindowDict">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">WindowDict</code><span class="sig-paren">(</span><em>data={}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dict that keeps every value that a variable has had over time.</p>
+<p>Look up a revision number in this dict and it will give you the
+effective value as of that revision. Keys should always be
+revision numbers. Once a key is set, all greater keys are
+considered to be in this dict unless the value is <code class="docutils literal"><span class="pre">None</span></code>. Keys
+after that one aren’t “set” until one’s value is non-<code class="docutils literal"><span class="pre">None</span></code>
+again.</p>
+<p>Optimized for the cases where you look up the same revision
+repeatedly, or its neighbors.</p>
+<p>This supports slice notation to get all values in a given
+time-frame. If you do not supply a step, you’ll just get the
+values, with no indication of when they’re from exactly –
+so explicitly supply a step of 1 to get the value at each point in
+the slice.</p>
+<dl class="method">
+<dt id="allegedb.cache.WindowDict.future">
+<code class="descname">future</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict.future"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict.future" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a Mapping of future values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.WindowDict.past">
+<code class="descname">past</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict.past"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict.past" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a Mapping of past values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.WindowDict.rev_after">
+<code class="descname">rev_after</code><span class="sig-paren">(</span><em>rev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict.rev_after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict.rev_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the earliest future rev on which the value will change.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.WindowDict.rev_before">
+<code class="descname">rev_before</code><span class="sig-paren">(</span><em>rev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict.rev_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict.rev_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the latest past rev on which the value changed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.WindowDict.seek">
+<code class="descname">seek</code><span class="sig-paren">(</span><em>rev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict.seek"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict.seek" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arrange the caches to help look up the given revision.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.cache.WindowDict.truncate">
+<code class="descname">truncate</code><span class="sig-paren">(</span><em>rev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDict.truncate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDict.truncate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete everything after the given revision.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.WindowDictItemsView">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">WindowDictItemsView</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDictItemsView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDictItemsView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look through everything a WindowDict contains.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.WindowDictKeysView">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">WindowDictKeysView</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDictKeysView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDictKeysView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look through all the keys a WindowDict contains.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.cache.WindowDictValuesView">
+<em class="property">class </em><code class="descclassname">allegedb.cache.</code><code class="descname">WindowDictValuesView</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#WindowDictValuesView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.WindowDictValuesView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look through all the values that a WindowDict contains.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="allegedb.cache.within_history">
+<code class="descclassname">allegedb.cache.</code><code class="descname">within_history</code><span class="sig-paren">(</span><em>rev</em>, <em>windowdict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/cache.html#within_history"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.cache.within_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the windowdict has history at the revision.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-allegedb.graph">
+<span id="graph"></span><h2>graph<a class="headerlink" href="#module-allegedb.graph" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="allegedb.graph.AllegedGraph">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">AllegedGraph</code><span class="sig-paren">(</span><em>db</em>, <em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#AllegedGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.AllegedGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class giving the graphs those methods they share in
+common.</p>
+<dl class="method">
+<dt id="allegedb.graph.AllegedGraph.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#AllegedGraph.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.AllegedGraph.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all nodes and edges from the graph.</p>
+<p>Unlike the regular networkx implementation, this does <em>not</em>
+remove the graph’s name. But all the other graph, node, and
+edge attributes go away.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.DiGraph">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">DiGraph</code><span class="sig-paren">(</span><em>db</em>, <em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>A version of the networkx.DiGraph class that stores its state in a
+database.</p>
+<dl class="method">
+<dt id="allegedb.graph.DiGraph.add_edge">
+<code class="descname">add_edge</code><span class="sig-paren">(</span><em>u</em>, <em>v</em>, <em>attr_dict=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraph.add_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraph.add_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of add_edge that only writes to the database once</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.graph.DiGraph.add_edges_from">
+<code class="descname">add_edges_from</code><span class="sig-paren">(</span><em>ebunch</em>, <em>attr_dict=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraph.add_edges_from"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraph.add_edges_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of add_edges_from that only writes to the database once</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.graph.DiGraph.pred_cls">
+<code class="descname">pred_cls</code><a class="headerlink" href="#allegedb.graph.DiGraph.pred_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#allegedb.graph.DiGraphPredecessorsMapping" title="allegedb.graph.DiGraphPredecessorsMapping"><code class="xref py py-class docutils literal"><span class="pre">DiGraphPredecessorsMapping</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.graph.DiGraph.remove_edge">
+<code class="descname">remove_edge</code><span class="sig-paren">(</span><em>u</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraph.remove_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraph.remove_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of remove_edge that’s much like normal networkx but only
+deletes once, since the database doesn’t keep separate adj and
+succ mappings</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.graph.DiGraph.remove_edges_from">
+<code class="descname">remove_edges_from</code><span class="sig-paren">(</span><em>ebunch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraph.remove_edges_from"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraph.remove_edges_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of remove_edges_from that’s much like normal networkx but only
+deletes once, since the database doesn’t keep separate adj and
+succ mappings</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.DiGraphPredecessorsMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">DiGraphPredecessorsMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraphPredecessorsMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraphPredecessorsMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping for Predecessors instances, which map to Edges that end at
+the dest provided to this</p>
+<dl class="class">
+<dt id="allegedb.graph.DiGraphPredecessorsMapping.Predecessors">
+<em class="property">class </em><code class="descname">Predecessors</code><span class="sig-paren">(</span><em>container</em>, <em>dest</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#DiGraphPredecessorsMapping.Predecessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.DiGraphPredecessorsMapping.Predecessors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping of Edges that end at a particular node</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.Edge">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">Edge</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em>, <em>idx=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#Edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.Edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping for edge attributes</p>
+<dl class="attribute">
+<dt id="allegedb.graph.Edge.db">
+<code class="descname">db</code><a class="headerlink" href="#allegedb.graph.Edge.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="allegedb.graph.EntityCollisionError">
+<em class="property">exception </em><code class="descclassname">allegedb.graph.</code><code class="descname">EntityCollisionError</code><a class="reference internal" href="../_modules/allegedb/graph.html#EntityCollisionError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.EntityCollisionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>For when there’s a discrepancy between the kind of entity you’re creating and the one by the same name</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.Graph">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">Graph</code><span class="sig-paren">(</span><em>db</em>, <em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#Graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.Graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>A version of the networkx.Graph class that stores its state in a
+database.</p>
+<dl class="attribute">
+<dt id="allegedb.graph.Graph.adj_cls">
+<code class="descname">adj_cls</code><a class="headerlink" href="#allegedb.graph.Graph.adj_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#allegedb.graph.GraphSuccessorsMapping" title="allegedb.graph.GraphSuccessorsMapping"><code class="xref py py-class docutils literal"><span class="pre">GraphSuccessorsMapping</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.GraphEdgeMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">GraphEdgeMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#GraphEdgeMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.GraphEdgeMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides an adjacency mapping and possibly a predecessor mapping
+for a graph.</p>
+<dl class="attribute">
+<dt id="allegedb.graph.GraphEdgeMapping.db">
+<code class="descname">db</code><a class="headerlink" href="#allegedb.graph.GraphEdgeMapping.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.GraphMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">GraphMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#GraphMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.GraphMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping for graph attributes</p>
+<dl class="attribute">
+<dt id="allegedb.graph.GraphMapping.db">
+<code class="descname">db</code><a class="headerlink" href="#allegedb.graph.GraphMapping.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.GraphNodeMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">GraphNodeMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#GraphNodeMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.GraphNodeMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping for nodes in a graph</p>
+<dl class="attribute">
+<dt id="allegedb.graph.GraphNodeMapping.db">
+<code class="descname">db</code><a class="headerlink" href="#allegedb.graph.GraphNodeMapping.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.GraphSuccessorsMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">GraphSuccessorsMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#GraphSuccessorsMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.GraphSuccessorsMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping for Successors (itself a MutableMapping)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.MultiDiGraph">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">MultiDiGraph</code><span class="sig-paren">(</span><em>db</em>, <em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiDiGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiDiGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>A version of the networkx.MultiDiGraph class that stores its state in a
+database.</p>
+<dl class="method">
+<dt id="allegedb.graph.MultiDiGraph.add_edge">
+<code class="descname">add_edge</code><span class="sig-paren">(</span><em>u</em>, <em>v</em>, <em>key=None</em>, <em>attr_dict=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiDiGraph.add_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiDiGraph.add_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of add_edge that only writes to the database once.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.graph.MultiDiGraph.adj_cls">
+<code class="descname">adj_cls</code><a class="headerlink" href="#allegedb.graph.MultiDiGraph.adj_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#allegedb.graph.MultiGraphSuccessorsMapping" title="allegedb.graph.MultiGraphSuccessorsMapping"><code class="xref py py-class docutils literal"><span class="pre">MultiGraphSuccessorsMapping</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.graph.MultiDiGraph.pred_cls">
+<code class="descname">pred_cls</code><a class="headerlink" href="#allegedb.graph.MultiDiGraph.pred_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#allegedb.graph.MultiDiGraphPredecessorsMapping" title="allegedb.graph.MultiDiGraphPredecessorsMapping"><code class="xref py py-class docutils literal"><span class="pre">MultiDiGraphPredecessorsMapping</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.graph.MultiDiGraph.remove_edge">
+<code class="descname">remove_edge</code><span class="sig-paren">(</span><em>u</em>, <em>v</em>, <em>key=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiDiGraph.remove_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiDiGraph.remove_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of remove_edge that’s much like normal networkx but only
+deletes once, since the database doesn’t keep separate adj and
+succ mappings</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.graph.MultiDiGraph.remove_edges_from">
+<code class="descname">remove_edges_from</code><span class="sig-paren">(</span><em>ebunch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiDiGraph.remove_edges_from"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiDiGraph.remove_edges_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of remove_edges_from that’s much like normal networkx but only
+deletes once, since the database doesn’t keep separate adj and
+succ mappings</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.MultiDiGraphPredecessorsMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">MultiDiGraphPredecessorsMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiDiGraphPredecessorsMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiDiGraphPredecessorsMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of DiGraphPredecessorsMapping for multigraphs</p>
+<dl class="class">
+<dt id="allegedb.graph.MultiDiGraphPredecessorsMapping.Predecessors">
+<em class="property">class </em><code class="descname">Predecessors</code><span class="sig-paren">(</span><em>container</em>, <em>dest</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiDiGraphPredecessorsMapping.Predecessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiDiGraphPredecessorsMapping.Predecessors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predecessor edges from a given node</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.MultiEdges">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">MultiEdges</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiEdges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiEdges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping of Edges between two nodes</p>
+<dl class="method">
+<dt id="allegedb.graph.MultiEdges.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiEdges.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiEdges.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete all edges between these nodes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="allegedb.graph.MultiEdges.db">
+<code class="descname">db</code><a class="headerlink" href="#allegedb.graph.MultiEdges.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.MultiGraph">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">MultiGraph</code><span class="sig-paren">(</span><em>db</em>, <em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>A version of the networkx.MultiGraph class that stores its state in a
+database.</p>
+<dl class="attribute">
+<dt id="allegedb.graph.MultiGraph.adj_cls">
+<code class="descname">adj_cls</code><a class="headerlink" href="#allegedb.graph.MultiGraph.adj_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#allegedb.graph.MultiGraphSuccessorsMapping" title="allegedb.graph.MultiGraphSuccessorsMapping"><code class="xref py py-class docutils literal"><span class="pre">MultiGraphSuccessorsMapping</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.MultiGraphSuccessorsMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">MultiGraphSuccessorsMapping</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiGraphSuccessorsMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiGraphSuccessorsMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping of Successors that map to MultiEdges</p>
+<dl class="class">
+<dt id="allegedb.graph.MultiGraphSuccessorsMapping.Successors">
+<em class="property">class </em><code class="descname">Successors</code><span class="sig-paren">(</span><em>container</em>, <em>orig</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#MultiGraphSuccessorsMapping.Successors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.MultiGraphSuccessorsMapping.Successors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Edges succeeding a given node in a multigraph</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.NeatMapping">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">NeatMapping</code><a class="reference internal" href="../_modules/allegedb/graph.html#NeatMapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.NeatMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Common amenities for mappings</p>
+<dl class="method">
+<dt id="allegedb.graph.NeatMapping.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#NeatMapping.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.NeatMapping.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete everything</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.graph.NeatMapping.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#NeatMapping.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.NeatMapping.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of <code class="docutils literal"><span class="pre">update</span></code> that doesn’t clobber the database so much</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.graph.Node">
+<em class="property">class </em><code class="descclassname">allegedb.graph.</code><code class="descname">Node</code><span class="sig-paren">(</span><em>graph</em>, <em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#Node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping for node attributes</p>
+<dl class="attribute">
+<dt id="allegedb.graph.Node.db">
+<code class="descname">db</code><a class="headerlink" href="#allegedb.graph.Node.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="allegedb.graph.convert_to_networkx_graph">
+<code class="descclassname">allegedb.graph.</code><code class="descname">convert_to_networkx_graph</code><span class="sig-paren">(</span><em>data</em>, <em>create_using=None</em>, <em>multigraph_input=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#convert_to_networkx_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.convert_to_networkx_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert an AllegedGraph to the corresponding NetworkX graph type.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="allegedb.graph.getatt">
+<code class="descclassname">allegedb.graph.</code><code class="descname">getatt</code><span class="sig-paren">(</span><em>attribute_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/graph.html#getatt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.graph.getatt" title="Permalink to this definition">¶</a></dt>
+<dd><p>An easy way to make an alias</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-allegedb.query">
+<span id="query"></span><h2>query<a class="headerlink" href="#module-allegedb.query" title="Permalink to this headline">¶</a></h2>
+<p>Wrapper to run SQL queries in a lightly abstracted way, such that
+code that’s more to do with the queries than with the data per se
+doesn’t pollute the other files so much.</p>
+<dl class="class">
+<dt id="allegedb.query.GlobalKeyValueStore">
+<em class="property">class </em><code class="descclassname">allegedb.query.</code><code class="descname">GlobalKeyValueStore</code><span class="sig-paren">(</span><em>qe</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#GlobalKeyValueStore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.GlobalKeyValueStore" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dict-like object that keeps its contents in a table.</p>
+<p>Mostly this is for holding the current branch and revision.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.query.QueryEngine">
+<em class="property">class </em><code class="descclassname">allegedb.query.</code><code class="descname">QueryEngine</code><span class="sig-paren">(</span><em>dbstring</em>, <em>connect_args</em>, <em>alchemy</em>, <em>pack=None</em>, <em>unpack=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper around either a DBAPI2.0 connection or an
+Alchemist. Provides methods to run queries using either.</p>
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.all_branches">
+<code class="descname">all_branches</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.all_branches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.all_branches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all the branch data in tuples of (branch, parent,
+parent_turn).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit the transaction, then close the connection</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.commit">
+<code class="descname">commit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit the transaction</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.del_graph">
+<code class="descname">del_graph</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.del_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.del_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete all records to do with the graph</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.edge_val_del">
+<code class="descname">edge_val_del</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em>, <em>idx</em>, <em>key</em>, <em>branch</em>, <em>turn</em>, <em>tick</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.edge_val_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.edge_val_del" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare that the key no longer applies to this edge, as of this
+branch and revision.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.edge_val_dump">
+<code class="descname">edge_val_dump</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.edge_val_dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.edge_val_dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield the entire contents of the edge_val table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.edge_val_set">
+<code class="descname">edge_val_set</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em>, <em>idx</em>, <em>key</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.edge_val_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.edge_val_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set this key of this edge to this value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.edges_dump">
+<code class="descname">edges_dump</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.edges_dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.edges_dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the entire contents of the edges table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.exist_edge">
+<code class="descname">exist_edge</code><span class="sig-paren">(</span><em>graph</em>, <em>orig</em>, <em>dest</em>, <em>idx</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>extant</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.exist_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.exist_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare whether or not this edge exists.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.exist_node">
+<code class="descname">exist_node</code><span class="sig-paren">(</span><em>graph</em>, <em>node</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>extant</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.exist_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.exist_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare that the node exists or doesn’t.</p>
+<p>Inserts a new record or updates an old one, as needed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>Put all pending changes into the SQL transaction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.global_del">
+<code class="descname">global_del</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.global_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.global_del" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the global record for the key.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.global_get">
+<code class="descname">global_get</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.global_get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.global_get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the value for the given key in the <code class="docutils literal"><span class="pre">globals</span></code> table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.global_items">
+<code class="descname">global_items</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.global_items"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.global_items" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over (key, value) pairs in the <code class="docutils literal"><span class="pre">globals</span></code> table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.global_set">
+<code class="descname">global_set</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.global_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.global_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set <code class="docutils literal"><span class="pre">key</span></code> to <code class="docutils literal"><span class="pre">value</span></code> globally (not at any particular branch or
+revision)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.graph_type">
+<code class="descname">graph_type</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.graph_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.graph_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>What type of graph is this?</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.graph_val_del">
+<code class="descname">graph_val_del</code><span class="sig-paren">(</span><em>graph</em>, <em>key</em>, <em>branch</em>, <em>turn</em>, <em>tick</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.graph_val_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.graph_val_del" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicate that the key is unset.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.graph_val_dump">
+<code class="descname">graph_val_dump</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.graph_val_dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.graph_val_dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield the entire contents of the graph_val table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.have_branch">
+<code class="descname">have_branch</code><span class="sig-paren">(</span><em>branch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.have_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.have_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the branch thus named exists in the database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.have_graph">
+<code class="descname">have_graph</code><span class="sig-paren">(</span><em>graph</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.have_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.have_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether I have a graph by this name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.initdb">
+<code class="descname">initdb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.initdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.initdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create tables and indices as needed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.new_branch">
+<code class="descname">new_branch</code><span class="sig-paren">(</span><em>branch</em>, <em>parent</em>, <em>parent_turn</em>, <em>parent_tick</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.new_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.new_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare that the <code class="docutils literal"><span class="pre">branch</span></code> is descended from <code class="docutils literal"><span class="pre">parent</span></code> at
+<code class="docutils literal"><span class="pre">parent_turn</span></code>, <code class="docutils literal"><span class="pre">parent_tick</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.new_graph">
+<code class="descname">new_graph</code><span class="sig-paren">(</span><em>graph</em>, <em>typ</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.new_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.new_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare a new graph by this name of this type.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.node_val_del">
+<code class="descname">node_val_del</code><span class="sig-paren">(</span><em>graph</em>, <em>node</em>, <em>key</em>, <em>branch</em>, <em>turn</em>, <em>tick</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.node_val_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.node_val_del" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a key from a node at a specific branch and revision</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.node_val_dump">
+<code class="descname">node_val_dump</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.node_val_dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.node_val_dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield the entire contents of the node_val table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.node_val_set">
+<code class="descname">node_val_set</code><span class="sig-paren">(</span><em>graph</em>, <em>node</em>, <em>key</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.node_val_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.node_val_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a key-value pair on a node at a specific branch and revision</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.nodes_dump">
+<code class="descname">nodes_dump</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.nodes_dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.nodes_dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the entire contents of the nodes table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.sql">
+<code class="descname">sql</code><span class="sig-paren">(</span><em>stringname</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for the various prewritten or compiled SQL calls.</p>
+<p>First argument is the name of the query, either a key in
+<code class="docutils literal"><span class="pre">sqlite.json</span></code> or a method name in
+<code class="docutils literal"><span class="pre">allegedb.alchemy.Alchemist</span></code>. The rest of the arguments are
+parameters to the query.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.query.QueryEngine.sqlmany">
+<code class="descname">sqlmany</code><span class="sig-paren">(</span><em>stringname</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/query.html#QueryEngine.sqlmany"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.query.QueryEngine.sqlmany" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for executing many SQL calls on my connection.</p>
+<p>First arg is the name of a query, either a key in the
+precompiled JSON or a method name in
+<code class="docutils literal"><span class="pre">allegedb.alchemy.Alchemist</span></code>. Remaining arguments should be
+tuples of argument sequences to be passed to the query.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-allegedb.wrap">
+<span id="wrap"></span><h2>wrap<a class="headerlink" href="#module-allegedb.wrap" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="allegedb.wrap.CoreDictWrapper">
+<em class="property">class </em><code class="descclassname">allegedb.wrap.</code><code class="descname">CoreDictWrapper</code><span class="sig-paren">(</span><em>outer</em>, <em>outkey</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/wrap.html#CoreDictWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.wrap.CoreDictWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary-like object stored serialized.</p>
+<p>This isn’t meant to be used on its own; see <code class="docutils literal"><span class="pre">DictWrapper</span></code>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.wrap.CoreListWrapper">
+<em class="property">class </em><code class="descclassname">allegedb.wrap.</code><code class="descname">CoreListWrapper</code><span class="sig-paren">(</span><em>outer</em>, <em>outkey</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/wrap.html#CoreListWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.wrap.CoreListWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list synchronized with a serialized field.</p>
+<p>This isn’t meant to be used on its own; see <code class="docutils literal"><span class="pre">ListWrapper</span></code>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.wrap.DictWrapper">
+<em class="property">class </em><code class="descclassname">allegedb.wrap.</code><code class="descname">DictWrapper</code><span class="sig-paren">(</span><em>outer</em>, <em>key</em>, <em>initval</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/wrap.html#DictWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.wrap.DictWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary synchronized with a serialized field.</p>
+<p>This is meant to be used in allegedb entities (graph, node, or
+edge), for when the user stores a dictionary in them.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="allegedb.wrap.ListWrapper">
+<em class="property">class </em><code class="descclassname">allegedb.wrap.</code><code class="descname">ListWrapper</code><span class="sig-paren">(</span><em>outer</em>, <em>key</em>, <em>initval=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/wrap.html#ListWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.wrap.ListWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list synchronized with a serialized field.</p>
+<p>This is meant to be used in allegedb entities (graph, node, or
+edge), for when the user stores a list in them.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="allegedb.wrap.deepcopy">
+<code class="descclassname">allegedb.wrap.</code><code class="descname">deepcopy</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb/wrap.html#deepcopy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.wrap.deepcopy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy all the data from a <code class="docutils literal"><span class="pre">DictWrapper</span></code> into a dictionary.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">allegedb</a><ul>
+<li><a class="reference internal" href="#usage">usage</a></li>
+<li><a class="reference internal" href="#module-allegedb">ORM</a></li>
+<li><a class="reference internal" href="#module-allegedb.cache">cache</a></li>
+<li><a class="reference internal" href="#module-allegedb.graph">graph</a></li>
+<li><a class="reference internal" href="#module-allegedb.query">query</a></li>
+<li><a class="reference internal" href="#module-allegedb.wrap">wrap</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">Welcome to LiSE’s documentation!</a></li>
+      <li>Next: <a href="../LiSE/index.html" title="next chapter">LiSE</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/allegedb/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/allegedb/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

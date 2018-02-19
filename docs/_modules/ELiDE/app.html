@@ -1,0 +1,469 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.app &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.app</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;Object to configure, start, and stop ELiDE.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.app</span> <span class="k">import</span> <span class="n">App</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.resources</span> <span class="k">import</span> <span class="n">resource_add_path</span>
+
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">ScreenManager</span>
+
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">AliasProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">StringProperty</span>
+<span class="p">)</span>
+<span class="kn">import</span> <span class="nn">LiSE</span>
+<span class="kn">from</span> <span class="nn">LiSE.proxy</span> <span class="k">import</span> <span class="n">EngineProcessManager</span>
+<span class="kn">import</span> <span class="nn">ELiDE</span>
+<span class="kn">import</span> <span class="nn">ELiDE.screen</span>
+<span class="kn">import</span> <span class="nn">ELiDE.stores</span>
+<span class="kn">import</span> <span class="nn">ELiDE.statcfg</span>
+<span class="kn">import</span> <span class="nn">ELiDE.spritebuilder</span>
+<span class="kn">import</span> <span class="nn">ELiDE.rulesview</span>
+<span class="kn">import</span> <span class="nn">ELiDE.charsview</span>
+<span class="kn">from</span> <span class="nn">ELiDE.board.board</span> <span class="k">import</span> <span class="n">Board</span>
+<span class="kn">from</span> <span class="nn">ELiDE.board.arrow</span> <span class="k">import</span> <span class="n">ArrowWidget</span>
+<span class="kn">from</span> <span class="nn">ELiDE.board.spot</span> <span class="k">import</span> <span class="n">Spot</span>
+<span class="kn">from</span> <span class="nn">ELiDE.board.pawn</span> <span class="k">import</span> <span class="n">Pawn</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">trigger</span>
+
+<span class="n">resource_add_path</span><span class="p">(</span><span class="n">ELiDE</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/assets&quot;</span><span class="p">)</span>
+<span class="n">resource_add_path</span><span class="p">(</span><span class="n">ELiDE</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/assets/rltiles&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ELiDEApp"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp">[docs]</a><span class="k">class</span> <span class="nc">ELiDEApp</span><span class="p">(</span><span class="n">App</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extensible LiSE Development Environment.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;ELiDE&#39;</span>
+
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">branch</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;trunk&#39;</span><span class="p">)</span>
+    <span class="n">turn</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">tick</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">character</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">selection</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">selected_proxy</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;App: </span><span class="si">{}</span><span class="s2"> selected&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_get_character_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">_set_character_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="n">character_name</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
+        <span class="n">_get_character_name</span><span class="p">,</span>
+        <span class="n">_set_character_name</span><span class="p">,</span>
+        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;character&#39;</span><span class="p">,)</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pull_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_time</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="n">branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="n">turn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
+    <span class="n">pull_time</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">_pull_time</span><span class="p">)</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_push_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time_travel</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">!=</span> <span class="n">tick</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">chars</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">],</span>
+                <span class="n">cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">_update_from_time_travel</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="ELiDEApp.set_tick"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.set_tick">[docs]</a>    <span class="k">def</span> <span class="nf">set_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set my tick to the given value, cast to an integer.&quot;&quot;&quot;</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ELiDEApp.select_character"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.select_character">[docs]</a>    <span class="k">def</span> <span class="nf">select_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">char</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Change my ``character`` to the selected character object if they</span>
+<span class="sd">        aren&#39;t the same.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
+            <span class="k">return</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="n">char</span>
+
+<div class="viewcode-block" id="ELiDEApp.build_config"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.build_config">[docs]</a>    <span class="k">def</span> <span class="nf">build_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set config defaults&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">sec</span> <span class="ow">in</span> <span class="s1">&#39;LiSE&#39;</span><span class="p">,</span> <span class="s1">&#39;ELiDE&#39;</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">adddefaultsection</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">setdefaults</span><span class="p">(</span>
+            <span class="s1">&#39;LiSE&#39;</span><span class="p">,</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;world&#39;</span><span class="p">:</span> <span class="s1">&#39;sqlite:///LiSEworld.db&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;language&#39;</span><span class="p">:</span> <span class="s1">&#39;eng&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;logfile&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;loglevel&#39;</span><span class="p">:</span> <span class="s1">&#39;info&#39;</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">setdefaults</span><span class="p">(</span>
+            <span class="s1">&#39;ELiDE&#39;</span><span class="p">,</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;boardchar&#39;</span><span class="p">:</span> <span class="s1">&#39;physical&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;debugger&#39;</span><span class="p">:</span> <span class="s1">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;inspector&#39;</span><span class="p">:</span> <span class="s1">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;user_kv&#39;</span><span class="p">:</span> <span class="s1">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;play_speed&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;thing_graphics&#39;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s2">&quot;Marsh Davies&#39; Island&quot;</span><span class="p">,</span> <span class="s1">&#39;marsh_davies_island_fg.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Body&#39;</span><span class="p">,</span> <span class="s1">&#39;base.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Basic clothes&#39;</span><span class="p">,</span> <span class="s1">&#39;body.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Armwear&#39;</span><span class="p">,</span> <span class="s1">&#39;arm.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Legwear&#39;</span><span class="p">,</span> <span class="s1">&#39;leg.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Right hand&#39;</span><span class="p">,</span> <span class="s1">&#39;hand1.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Left hand&#39;</span><span class="p">,</span> <span class="s1">&#39;hand2.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Boots&#39;</span><span class="p">,</span> <span class="s1">&#39;boot.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Hair&#39;</span><span class="p">,</span> <span class="s1">&#39;hair.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Beard&#39;</span><span class="p">,</span> <span class="s1">&#39;beard.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Headwear&#39;</span><span class="p">,</span> <span class="s1">&#39;head.atlas&#39;</span><span class="p">)</span>
+                <span class="p">]),</span>
+                <span class="s1">&#39;place_graphics&#39;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span>
+                    <span class="p">(</span><span class="s2">&quot;Marsh Davies&#39; Island&quot;</span><span class="p">,</span> <span class="s1">&#39;marsh_davies_island_bg.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;Marsh Davies&#39; Crypt&quot;</span><span class="p">,</span> <span class="s1">&#39;marsh_davies_crypt.atlas&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;RLTiles: Dungeon&#39;</span><span class="p">,</span> <span class="s1">&#39;dungeon.atlas&#39;</span><span class="p">)</span>
+                <span class="p">])</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
+        <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ELiDEApp.build"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make sure I can use the database, create the tables as needed, and</span>
+<span class="sd">        return the root widget.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">icon</span> <span class="o">=</span> <span class="s1">&#39;icon_24px.png&#39;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
+        <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;ELiDEApp: starting with world </span><span class="si">{}</span><span class="s2">, path </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">config</span><span class="p">[</span><span class="s1">&#39;LiSE&#39;</span><span class="p">][</span><span class="s1">&#39;world&#39;</span><span class="p">],</span>
+                <span class="n">LiSE</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;debugger&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">pdb</span>
+            <span class="n">pdb</span><span class="o">.</span><span class="n">set_trace</span><span class="p">()</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">manager</span> <span class="o">=</span> <span class="n">ScreenManager</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;inspector&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">kivy.core.window</span> <span class="k">import</span> <span class="n">Window</span>
+            <span class="kn">from</span> <span class="nn">kivy.modules</span> <span class="k">import</span> <span class="n">inspector</span>
+            <span class="n">inspector</span><span class="o">.</span><span class="n">create_inspector</span><span class="p">(</span><span class="n">Window</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="p">)</span>
+        
+        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_subprocess</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_add_screens</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span>
+
+    <span class="k">def</span> <span class="nf">_pull_lang</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">language</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;language&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_pull_chars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pull_time_from_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+
+    <span class="k">def</span> <span class="nf">_start_subprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">procman</span> <span class="o">=</span> <span class="n">EngineProcessManager</span><span class="p">()</span>
+        <span class="n">enkw</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;logger&#39;</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span> <span class="s1">&#39;validate&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;LiSE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;logfile&#39;</span><span class="p">):</span>
+            <span class="n">enkw</span><span class="p">[</span><span class="s1">&#39;logfile&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;LiSE&#39;</span><span class="p">][</span><span class="s1">&#39;logfile&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;LiSE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;loglevel&#39;</span><span class="p">):</span>
+            <span class="n">enkw</span><span class="p">[</span><span class="s1">&#39;loglevel&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;LiSE&#39;</span><span class="p">][</span><span class="s1">&#39;loglevel&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">procman</span><span class="o">.</span><span class="n">start</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">[</span><span class="s1">&#39;LiSE&#39;</span><span class="p">][</span><span class="s1">&#39;world&#39;</span><span class="p">],</span>
+            <span class="o">**</span><span class="n">enkw</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pull_time</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_time_from_signal</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">language</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_lang</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_chars</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
+            <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
+            <span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_push_time</span>
+        <span class="p">)</span>
+
+        <span class="n">char</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;boardchar&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_screens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">toggler</span><span class="p">(</span><span class="n">screenname</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">tog</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="n">screenname</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="s1">&#39;main&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">screenname</span>
+            <span class="k">return</span> <span class="n">tog</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pawncfg</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">spritebuilder</span><span class="o">.</span><span class="n">PawnConfigScreen</span><span class="p">(</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;pawncfg&#39;</span><span class="p">),</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;thing_graphics&#39;</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">spotcfg</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">spritebuilder</span><span class="o">.</span><span class="n">SpotConfigScreen</span><span class="p">(</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;spotcfg&#39;</span><span class="p">),</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;place_graphics&#39;</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">rulesview</span><span class="o">.</span><span class="n">RulesScreen</span><span class="p">(</span>
+            <span class="n">engine</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;rules&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">chars</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">CharactersScreen</span><span class="p">(</span>
+            <span class="n">engine</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;chars&#39;</span><span class="p">),</span>
+            <span class="n">names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">),</span>
+            <span class="n">new_board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">new_board</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;character_name&#39;</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">chars_push_character_name</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;character_name&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">character_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">character_name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">character_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;character_name&#39;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">push_character_name</span> <span class="o">=</span> <span class="n">chars_push_character_name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">strings</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">StringsEdScreen</span><span class="p">(</span>
+            <span class="n">language</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">language</span><span class="p">,</span>
+            <span class="n">language_setter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_language</span><span class="p">,</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;strings&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">stores</span><span class="o">.</span><span class="n">FuncsEdScreen</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;funcs&#39;</span><span class="p">,</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;funcs&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">select_character</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span>
+                <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;boardchar&#39;</span><span class="p">]</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">statcfg</span><span class="o">.</span><span class="n">StatScreen</span><span class="p">(</span>
+            <span class="n">toggle</span><span class="o">=</span><span class="n">toggler</span><span class="p">(</span><span class="s1">&#39;statcfg&#39;</span><span class="p">),</span>
+            <span class="n">engine</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">selected_proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;proxy&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span> <span class="o">=</span> <span class="n">ELiDE</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">MainScreen</span><span class="p">(</span>
+            <span class="n">use_kv</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;user_kv&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">,</span>
+            <span class="n">play_speed</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;play_speed&#39;</span><span class="p">]),</span>
+            <span class="n">boards</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">name</span><span class="p">:</span> <span class="n">Board</span><span class="p">(</span>
+                    <span class="n">character</span><span class="o">=</span><span class="n">char</span>
+                <span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">char</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">statlist</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span><span class="o">.</span><span class="n">statlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">statlist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">statlist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;statlist&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">selection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">refresh_selected_proxy</span><span class="p">,</span>
+            <span class="n">character</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">refresh_selected_proxy</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected_proxy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_selected_proxy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pawncfg</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">spotcfg</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chars</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">language</span> <span class="o">=</span> <span class="n">lang</span>
+
+    <span class="k">def</span> <span class="nf">_get_selected_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">stat</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">,</span> <span class="s1">&#39;proxy&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">proxy</span>
+        <span class="k">elif</span> <span class="p">(</span>
+                <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">,</span> <span class="s1">&#39;portal&#39;</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">portal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">portal</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid selection: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">refresh_selected_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected_proxy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_selected_proxy</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_character_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;boardchar&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character_name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ELiDE&#39;</span><span class="p">][</span><span class="s1">&#39;boardchar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character_name</span>
+
+    <span class="k">def</span> <span class="nf">on_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;mainscreen&#39;</span><span class="p">):</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_character</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_oldchar&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_oldchar</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">selection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;selection&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;selection&#39;</span><span class="p">))</span>
+
+<div class="viewcode-block" id="ELiDEApp.on_pause"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.on_pause">[docs]</a>    <span class="k">def</span> <span class="nf">on_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sync the database with the current state of the game.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ELiDEApp.on_stop"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.on_stop">[docs]</a>    <span class="k">def</span> <span class="nf">on_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">largs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sync the database, wrap up the game, and halt.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">procman</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ELiDEApp.delete_selection"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.delete_selection">[docs]</a>    <span class="k">def</span> <span class="nf">delete_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete both the selected widget and whatever it represents.&quot;&quot;&quot;</span>
+        <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span>
+        <span class="k">if</span> <span class="n">selection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">ArrowWidget</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">rm_arrow</span><span class="p">(</span>
+                <span class="n">selection</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">selection</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+            <span class="n">selection</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">Spot</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">rm_spot</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">selection</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">Pawn</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">rm_pawn</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
+            <span class="n">selection</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ELiDEApp.new_board"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.app.ELiDEApp.new_board">[docs]</a>    <span class="k">def</span> <span class="nf">new_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make a board for a character name, and switch to it.&quot;&quot;&quot;</span>
+        <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">board</span> <span class="o">=</span> <span class="n">Board</span><span class="p">(</span><span class="n">character</span><span class="o">=</span><span class="n">char</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainscreen</span><span class="o">.</span><span class="n">boards</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">board</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="n">char</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,227 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.util &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.recycleview.layout</span> <span class="k">import</span> <span class="n">LayoutSelectionBehavior</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.recycleboxlayout</span> <span class="k">import</span> <span class="n">RecycleBoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.behaviors</span> <span class="k">import</span> <span class="n">FocusBehavior</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">atan</span><span class="p">,</span> <span class="n">pi</span>
+<span class="kn">from</span> <span class="nn">.collide</span> <span class="k">import</span> <span class="n">Collide2DPoly</span>
+
+<span class="n">ninety</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+<span class="sd">&quot;&quot;&quot;pi / 2&quot;&quot;&quot;</span>
+
+<span class="n">fortyfive</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="sd">&quot;&quot;&quot;pi / 4&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="SelectableRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span><span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span> <span class="n">RecycleBoxLayout</span><span class="p">):</span></div>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="trigger"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.trigger">[docs]</a><span class="k">class</span> <span class="nc">trigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make a trigger from a method.</span>
+
+<span class="sd">    Decorate a method with this and it will become a trigger. Supply a</span>
+<span class="sd">    numeric parameter to set a timeout.</span>
+
+<span class="sd">    Not suitable for methods that expect any arguments other than</span>
+<span class="sd">    ``dt``. However you should make your method accept ``*args`` for</span>
+<span class="sd">    compatibility.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_or_timeout</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">func_or_timeout</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func_or_timeout</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">func_or_timeout</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># EventDispatcher iterates over its attributes before it</span>
+            <span class="c1"># instantiates.  Don&#39;t try making any trigger in that</span>
+            <span class="c1"># case.</span>
+            <span class="k">return</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span>
+            <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">retval</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">retval</span>
+
+
+<div class="viewcode-block" id="try_load"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.try_load">[docs]</a><span class="k">def</span> <span class="nf">try_load</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the JSON interpretation the object if possible, or just the</span>
+<span class="sd">    object otherwise.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">loader</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span></div>
+        <span class="k">return</span> <span class="n">obj</span>
+
+
+<div class="viewcode-block" id="dummynum"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.dummynum">[docs]</a><span class="k">def</span> <span class="nf">dummynum</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Count how many nodes there already are in the character whose name</span>
+<span class="sd">    starts the same.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">nodename</span> <span class="ow">in</span> <span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+        <span class="n">nodename</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">nodename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">nodename</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">nodenum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nodename</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">nodenum</span><span class="p">,</span> <span class="n">num</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">num</span>
+
+
+<div class="viewcode-block" id="get_thin_rect_vertices"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.get_thin_rect_vertices">[docs]</a><span class="k">def</span> <span class="nf">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given the starting point, ending point, and width, return a list of</span>
+<span class="sd">    vertex coordinates at the corners of the line segment</span>
+<span class="sd">    (really a thin rectangle).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span><span class="p">:</span>
+        <span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
+        <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
+        <span class="n">xco</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">ox</span> <span class="o">&gt;</span> <span class="n">dx</span><span class="p">:</span>
+        <span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">xco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span>
+            <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span>
+            <span class="n">ox</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span>
+            <span class="n">ox</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span> <span class="n">dy</span>
+        <span class="p">]</span>
+    <span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span><span class="p">:</span>
+        <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span>
+        <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span>
+        <span class="n">yco</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">oy</span> <span class="o">&gt;</span> <span class="n">dy</span><span class="p">:</span>
+        <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">yco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span>
+            <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">-</span> <span class="n">r</span><span class="p">,</span>
+            <span class="n">dx</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span>
+            <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">r</span>
+        <span class="p">]</span>
+
+    <span class="n">rise</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span>
+    <span class="n">run</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">rise</span><span class="o">/</span><span class="n">run</span><span class="p">)</span>
+    <span class="n">theta_prime</span> <span class="o">=</span> <span class="n">ninety</span> <span class="o">-</span> <span class="n">theta</span>
+    <span class="n">xoff</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">theta_prime</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span>
+    <span class="n">yoff</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">theta_prime</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">+</span> <span class="n">xoff</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">-</span> <span class="n">yoff</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">+</span> <span class="n">xoff</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">yoff</span>
+    <span class="n">x3</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">xoff</span>
+    <span class="n">y3</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">+</span> <span class="n">yoff</span>
+    <span class="n">x4</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">-</span> <span class="n">xoff</span>
+    <span class="n">y4</span> <span class="o">=</span> <span class="n">boty</span> <span class="o">+</span> <span class="n">yoff</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+        <span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+        <span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
+        <span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span></div>
+    <span class="p">]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,396 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.statcfg &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.statcfg</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">DictProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">StringProperty</span><span class="p">,</span>
+    <span class="n">ReferenceListProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">OptionProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="k">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">Screen</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="k">import</span> <span class="n">Button</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.dropdown</span> <span class="k">import</span> <span class="n">DropDown</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.textinput</span> <span class="k">import</span> <span class="n">TextInput</span>
+<span class="kn">from</span> <span class="nn">.statlist</span> <span class="k">import</span> <span class="n">BaseStatListView</span>
+
+
+<span class="n">control_txt</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;readout&#39;</span><span class="p">:</span> <span class="s1">&#39;Readout&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;textinput&#39;</span><span class="p">:</span> <span class="s1">&#39;Text input&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;togglebutton&#39;</span><span class="p">:</span> <span class="s1">&#39;Toggle button&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;slider&#39;</span><span class="p">:</span> <span class="s1">&#39;Slider&#39;</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="FloatInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.FloatInput">[docs]</a><span class="k">class</span> <span class="nc">FloatInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+<div class="viewcode-block" id="FloatInput.insert_text"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.FloatInput.insert_text">[docs]</a>    <span class="k">def</span> <span class="nf">insert_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">from_undo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">insert_text</span><span class="p">(</span>
+            <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="s1">&#39;0123456789.&#39;</span><span class="p">),</span>
+            <span class="n">from_undo</span></div></div>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="ControlTypePicker"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.ControlTypePicker">[docs]</a><span class="k">class</span> <span class="nc">ControlTypePicker</span><span class="p">(</span><span class="n">Button</span><span class="p">):</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">mainbutton</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">dropdown</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">sett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sett</span>
+        <span class="p">):</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainbutton</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span> <span class="o">=</span> <span class="n">DropDown</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">on_select</span><span class="o">=</span><span class="k">lambda</span> <span class="n">instance</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sett</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">readoutbut</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Readout&#39;</span><span class="p">,</span>
+            <span class="n">size_hint_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span>
+        <span class="p">)</span>
+        <span class="n">readoutbut</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">on_press</span><span class="o">=</span><span class="k">lambda</span> <span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s1">&#39;readout&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">readoutbut</span><span class="p">)</span>
+        <span class="n">textinbut</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Text input&#39;</span><span class="p">,</span>
+            <span class="n">size_hint_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span>
+        <span class="p">)</span>
+        <span class="n">textinbut</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">on_press</span><span class="o">=</span><span class="k">lambda</span> <span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s1">&#39;textinput&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">textinbut</span><span class="p">)</span>
+        <span class="n">togbut</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Toggle button&#39;</span><span class="p">,</span>
+            <span class="n">size_hint_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span>
+        <span class="p">)</span>
+        <span class="n">togbut</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">on_press</span><span class="o">=</span><span class="k">lambda</span> <span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s1">&#39;togglebutton&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">togbut</span><span class="p">)</span>
+        <span class="n">sliderbut</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Slider&#39;</span><span class="p">,</span>
+            <span class="n">size_hint_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span>
+        <span class="p">)</span>
+        <span class="n">sliderbut</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">on_press</span><span class="o">=</span><span class="k">lambda</span> <span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s1">&#39;slider&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">sliderbut</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">on_press</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropdown</span><span class="o">.</span><span class="n">open</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConfigListItemCustomization"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.ConfigListItemCustomization">[docs]</a><span class="k">class</span> <span class="nc">ConfigListItemCustomization</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span></div>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="ConfigListItemToggleButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.ConfigListItemToggleButton">[docs]</a><span class="k">class</span> <span class="nc">ConfigListItemToggleButton</span><span class="p">(</span><span class="n">ConfigListItemCustomization</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">set_true_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;_true_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">truetext</span><span class="o">.</span><span class="n">text</span>
+
+    <span class="k">def</span> <span class="nf">set_false_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;_false_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">falsetext</span><span class="o">.</span><span class="n">text</span>
+
+
+<div class="viewcode-block" id="ConfigListItemSlider"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.ConfigListItemSlider">[docs]</a><span class="k">class</span> <span class="nc">ConfigListItemSlider</span><span class="p">(</span><span class="n">ConfigListItemCustomization</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">set_min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;_min&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">set_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+
+<div class="viewcode-block" id="ConfigListItemCustomizer"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.ConfigListItemCustomizer">[docs]</a><span class="k">class</span> <span class="nc">ConfigListItemCustomizer</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;togglebutton&#39;</span><span class="p">:</span>
+            <span class="n">wid</span> <span class="o">=</span> <span class="n">ConfigListItemToggleButton</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">control</span> <span class="o">==</span> <span class="s1">&#39;slider&#39;</span><span class="p">:</span>
+            <span class="n">wid</span> <span class="o">=</span> <span class="n">ConfigListItemSlider</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConfigListItem"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.ConfigListItem">[docs]</a><span class="k">class</span> <span class="nc">ConfigListItem</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">sett</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">deleter</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span>
+        <span class="s1">&#39;readout&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;readout&#39;</span><span class="p">,</span> <span class="s1">&#39;textinput&#39;</span><span class="p">,</span> <span class="s1">&#39;togglebutton&#39;</span><span class="p">,</span> <span class="s1">&#39;slider&#39;</span><span class="p">]</span></div>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="StatListViewConfigurator"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.StatListViewConfigurator">[docs]</a><span class="k">class</span> <span class="nc">StatListViewConfigurator</span><span class="p">(</span><span class="n">BaseStatListView</span><span class="p">):</span>
+    <span class="n">statlist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">_key_cfg_setters</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">_val_text_setters</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">_control_wids</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">set_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_configs</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span>
+
+    <span class="k">def</span> <span class="nf">inst_set_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_configs</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">control</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_control</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">control</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">set_control</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">control</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inst_set_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_control</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">del_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">mirror</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">del_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;on_control&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst_set_control</span>
+        <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;on_config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst_set_configs</span>
+        <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;deleter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">del_key</span>
+        <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;sett&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_control</span></div>
+        <span class="k">return</span> <span class="n">ret</span>
+
+
+<div class="viewcode-block" id="StatScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.StatScreen">[docs]</a><span class="k">class</span> <span class="nc">StatScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="n">statlist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">statcfg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">proxy</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+<div class="viewcode-block" id="StatScreen.new_stat"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.statcfg.StatScreen.new_stat">[docs]</a>    <span class="k">def</span> <span class="nf">new_stat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Look at the key and value that the user has entered into the stat</span>
+<span class="sd">        configurator, and set them on the currently selected</span>
+<span class="sd">        entity.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newstatkey</span><span class="o">.</span><span class="n">text</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newstatval</span><span class="o">.</span><span class="n">text</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">key</span> <span class="ow">and</span> <span class="n">value</span><span class="p">):</span>
+            <span class="c1"># TODO implement some feedback to the effect that</span>
+            <span class="c1"># you need to enter things</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">mirror</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span><span class="o">.</span><span class="n">mirror</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">mirror</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">statcfg</span><span class="o">.</span><span class="n">mirror</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newstatkey</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newstatval</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;ConfigListItemCustomization&gt;:</span>
+<span class="s2">    config: self.parent.config if self.parent else </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    pos_hint: {&#39;x&#39;: 0, &#39;y&#39;: 0}</span>
+<span class="s2">&lt;ConfigListItemToggleButton&gt;:</span>
+<span class="s2">    Label:</span>
+<span class="s2">        text: &#39;True text:&#39;</span>
+<span class="s2">    TextInput:</span>
+<span class="s2">        id: truetext</span>
+<span class="s2">        hint_text: root.config.get(&#39;_true_text&#39;, &#39;1&#39;)</span>
+<span class="s2">        on_text_validate: root.set_true_text()</span>
+<span class="s2">    Label:</span>
+<span class="s2">        text: &#39;False text:&#39;</span>
+<span class="s2">    TextInput:</span>
+<span class="s2">        id: falsetext</span>
+<span class="s2">        hint_text: root.config.get(&#39;_false_text&#39;, &#39;0&#39;)</span>
+<span class="s2">        on_text_validate: root.set_false_text()</span>
+<span class="s2">&lt;ConfigListItemSlider&gt;:</span>
+<span class="s2">    Label:</span>
+<span class="s2">        text: &#39;Minimum:&#39;</span>
+<span class="s2">    TextInput:</span>
+<span class="s2">        id: minimum</span>
+<span class="s2">        hint_text: str(root.config.get(&#39;_min&#39;, 0.0))</span>
+<span class="s2">        on_text_validate: root.set_min()</span>
+<span class="s2">    Label:</span>
+<span class="s2">        text: &#39;Maximum:&#39;</span>
+<span class="s2">    TextInput:</span>
+<span class="s2">        id: maximum</span>
+<span class="s2">        hint_text: str(root.config.get(&#39;_max&#39;, 1.0))</span>
+<span class="s2">        on_text_validate: root.set_max()</span>
+<span class="s2">&lt;ConfigListItem&gt;:</span>
+<span class="s2">    height: 30</span>
+<span class="s2">    Button:</span>
+<span class="s2">        text: &#39;del&#39;</span>
+<span class="s2">        on_press: root.deleter(root.key)</span>
+<span class="s2">    Label:</span>
+<span class="s2">        text: str(root.key)</span>
+<span class="s2">    ControlTypePicker:</span>
+<span class="s2">        key: root.key</span>
+<span class="s2">        sett: root.sett</span>
+<span class="s2">        control: root.control</span>
+<span class="s2">        text: &#39;Text input&#39; if self.control == &#39;textinput&#39; else &#39;Slider&#39; if self.control == &#39;slider&#39; else &#39;Toggle button&#39; if self.control == &#39;togglebutton&#39; else &#39;Readout&#39;</span>
+<span class="s2">    ConfigListItemCustomizer:</span>
+<span class="s2">        config: root.config</span>
+<span class="s2">        control: root.control</span>
+<span class="s2">&lt;StatScreen&gt;:</span>
+<span class="s2">    name: &#39;statcfg&#39;</span>
+<span class="s2">    statcfg: cfg</span>
+<span class="s2">    BoxLayout:</span>
+<span class="s2">        orientation: &#39;vertical&#39;</span>
+<span class="s2">        StatListViewConfigurator:</span>
+<span class="s2">            viewclass: &#39;ConfigListItem&#39;</span>
+<span class="s2">            id: cfg</span>
+<span class="s2">            app: app</span>
+<span class="s2">            engine: root.engine</span>
+<span class="s2">            proxy: root.proxy</span>
+<span class="s2">            statlist: root.statlist</span>
+<span class="s2">            size_hint_y: 0.95</span>
+<span class="s2">            RecycleBoxLayout:</span>
+<span class="s2">                default_size: None, dp(56)</span>
+<span class="s2">                default_size_hint: 1, None</span>
+<span class="s2">                size_hint_y: None</span>
+<span class="s2">                height: self.minimum_height</span>
+<span class="s2">                orientation: &#39;vertical&#39;</span>
+<span class="s2">        BoxLayout:</span>
+<span class="s2">            orientation: &#39;horizontal&#39;</span>
+<span class="s2">            size_hint_y: 0.05</span>
+<span class="s2">            TextInput:</span>
+<span class="s2">                id: newstatkey</span>
+<span class="s2">                multiline: False</span>
+<span class="s2">                write_tab: False</span>
+<span class="s2">                hint_text: &#39;New stat&#39;</span>
+<span class="s2">            TextInput:</span>
+<span class="s2">                id: newstatval</span>
+<span class="s2">                multiline: False</span>
+<span class="s2">                write_tab: False</span>
+<span class="s2">                hint_text: &#39;Value&#39;</span>
+<span class="s2">            Button:</span>
+<span class="s2">                id: newstatbut</span>
+<span class="s2">                text: &#39;+&#39;</span>
+<span class="s2">                on_press: root.new_stat()</span>
+<span class="s2">            Button:</span>
+<span class="s2">                id: closer</span>
+<span class="s2">                text: &#39;Close&#39;</span>
+<span class="s2">                on_press: root.toggle()</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

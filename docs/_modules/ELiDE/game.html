@@ -1,0 +1,342 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.game &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.game</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">AliasProperty</span><span class="p">,</span>
+    <span class="n">BooleanProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">StringProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.resources</span> <span class="k">import</span> <span class="n">resource_find</span>
+<span class="kn">from</span> <span class="nn">kivy.app</span> <span class="k">import</span> <span class="n">App</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="k">import</span> <span class="n">Widget</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">ScreenManager</span><span class="p">,</span> <span class="n">Screen</span>
+<span class="kn">import</span> <span class="nn">LiSE.proxy</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">trigger</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+
+
+<div class="viewcode-block" id="GameScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen">[docs]</a><span class="k">class</span> <span class="nc">GameScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A version of :class:`kivy.uix.screenmanager.Screen` that is easier to set up and use with ELiDE</span>
+
+<span class="sd">    Should be a child of the :class:`ELiDE.game.Screens` widget, which will never itself be displayed.</span>
+<span class="sd">    ``GameScreen`` instances in it will be added to the screen manager, so that you can switch</span>
+<span class="sd">    to them with the ``switch_screen`` method.</span>
+
+<span class="sd">    Every ``GameScreen`` needs a ``name``, just like regular ``Screen``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">switch_screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`&quot;&quot;&quot;</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;The running ``GameApp`` object&quot;&quot;&quot;</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;An instance of ``EngineProxy``&quot;&quot;&quot;</span>
+    <span class="n">shutdown</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;Call this to quit the game&quot;&quot;&quot;</span>
+    <span class="n">disabled</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;If you bind your widgets&#39; ``disabled`` to this, they will be disabled when a game command is in mid-execution&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GameScreen.disable_input"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.disable_input">[docs]</a>    <span class="k">def</span> <span class="nf">disable_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set ``self.disabled`` to ``True``, then call ``cb`` if provided</span>
+
+<span class="sd">        :param cb: callback function for after disabling</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">cb</span><span class="p">:</span></div>
+            <span class="n">cb</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GameScreen.enable_input"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.enable_input">[docs]</a>    <span class="k">def</span> <span class="nf">enable_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call ``cb`` if provided, then set ``self.disabled`` to ``False``</span>
+
+<span class="sd">        :param cb: callback function for before enabling</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">cb</span><span class="p">:</span>
+            <span class="n">cb</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="GameScreen.wait_travel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_travel">[docs]</a>    <span class="k">def</span> <span class="nf">wait_travel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace, then wait for it to finish.</span>
+
+<span class="sd">        :param character: name of the character</span>
+<span class="sd">        :param thing: name of the thing that will travel</span>
+<span class="sd">        :param dest: name of the place it will travel to</span>
+<span class="sd">        :param cb: callback function for when it&#39;s done, optional</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">cb</span><span class="p">))</span>
+
+<div class="viewcode-block" id="GameScreen.wait_turns"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_turns">[docs]</a>    <span class="k">def</span> <span class="nf">wait_turns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between</span>
+
+<span class="sd">        Disables input for the duration.</span>
+
+<span class="sd">        :param turns: number of turns to wait</span>
+<span class="sd">        :param cb: function to call when done waiting, optional</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">cb</span><span class="p">))</span>
+
+<div class="viewcode-block" id="GameScreen.wait_command"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_command">[docs]</a>    <span class="k">def</span> <span class="nf">wait_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call ``start_func``, wait ``turns``, and then call ``end_func`` if provided</span>
+
+<span class="sd">        Disables input for the duration.</span>
+
+<span class="sd">        :param start_func: function to call just after disabling input</span>
+<span class="sd">        :param turns: number of turns to wait</span>
+<span class="sd">        :param end_func: function to call just before re-enabling input</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span>
+        <span class="n">start_func</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">end_func</span><span class="p">))</span>
+
+<div class="viewcode-block" id="GameScreen.wait_travel_command"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameScreen.wait_travel_command">[docs]</a>    <span class="k">def</span> <span class="nf">wait_travel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace and do something, then wait for it to finish.</span>
+
+<span class="sd">        Input will be disabled for the duration.</span>
+
+<span class="sd">        :param character: name of the character</span>
+<span class="sd">        :param thing: name of the thing</span>
+<span class="sd">        :param dest: name of the destination (a place)</span>
+<span class="sd">        :param start_func: function to call when the thing gets to dest</span>
+<span class="sd">        :param turns: number of turns to wait after start_func before re-enabling input</span>
+<span class="sd">        :param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disable_input</span><span class="p">()</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">wait_travel_command</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_input</span><span class="p">,</span> <span class="n">end_func</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="Screens"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.Screens">[docs]</a><span class="k">class</span> <span class="nc">Screens</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Children of this widget will be added to the ``GameApp``&#39;s :class:`kivy.uix.screenmanager.ScreenManager`&quot;&quot;&quot;</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Screens.add_widget"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.Screens.add_widget">[docs]</a>    <span class="k">def</span> <span class="nf">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wid</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">wid</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span>
+        <span class="n">wid</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span>
+        <span class="n">wid</span><span class="o">.</span><span class="n">switch_screen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">screen_manager</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;screen&#39;</span><span class="p">)</span>
+        <span class="n">wid</span><span class="o">.</span><span class="n">shutdown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">stop</span></div></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">canvas</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="GameApp"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp">[docs]</a><span class="k">class</span> <span class="nc">GameApp</span><span class="p">(</span><span class="n">App</span><span class="p">):</span>
+    <span class="n">modules</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">world_file</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">branch</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;trunk&#39;</span><span class="p">)</span>
+    <span class="n">turn</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">tick</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">turn_length</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GameApp.wait_turns"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_turns">[docs]</a>    <span class="k">def</span> <span class="nf">wait_turns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call ``self.engine.next_turn()`` ``n`` times, waiting ``self.turn_length`` in between</span>
+
+<span class="sd">        If provided, call ``cb`` when done.</span>
+
+<span class="sd">        :param turns: number of turns to wait</span>
+<span class="sd">        :param dt: unused, just satisfies the clock</span>
+<span class="sd">        :param cb: callback function to call when done, optional</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">next_turn</span><span class="p">()</span>
+        <span class="n">turns</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">turns</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cb</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span></div>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn_length</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GameApp.wait_travel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_travel">[docs]</a>    <span class="k">def</span> <span class="nf">wait_travel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided</span>
+
+<span class="sd">        :param character: name of the character</span>
+<span class="sd">        :param thing: name of the thing</span>
+<span class="sd">        :param dest: name of the destination (a place)</span>
+<span class="sd">        :param cb: function to be called when I&#39;m done</span>
+<span class="sd">        :return: ``None``</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">character</span><span class="p">]</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span><span class="o">.</span><span class="n">travel_to</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GameApp.wait_command"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_command">[docs]</a>    <span class="k">def</span> <span class="nf">wait_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)</span>
+
+<span class="sd">        :param start_func: function to call before waiting</span>
+<span class="sd">        :param turns: number of turns to wait</span>
+<span class="sd">        :param end_func: function to call after waiting</span>
+<span class="sd">        :return: ``None``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_func</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wait_turns</span><span class="p">(</span><span class="n">turns</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">end_func</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GameApp.wait_travel_command"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.wait_travel_command">[docs]</a>    <span class="k">def</span> <span class="nf">wait_travel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Schedule a thing to travel someplace and do something, then wait for it to finish.</span>
+
+<span class="sd">        :param character: name of the character</span>
+<span class="sd">        :param thing: name of the thing</span>
+<span class="sd">        :param dest: name of the destination (a place)</span>
+<span class="sd">        :param start_func: function to call when the thing gets to dest</span>
+<span class="sd">        :param turns: number of turns to wait after start_func before re-enabling input</span>
+<span class="sd">        :param end_func: optional. Function to call after waiting ``turns`` after start_func</span>
+<span class="sd">        :return: ``None``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wait_travel</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wait_command</span><span class="p">,</span> <span class="n">start_func</span><span class="p">,</span> <span class="n">turns</span><span class="p">,</span> <span class="n">end_func</span><span class="p">)</span></div>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_time</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pull_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+
+    <span class="k">def</span> <span class="nf">_get_worlddb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">filen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_file</span> <span class="ow">or</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;World.db&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> \
+                <span class="k">else</span> <span class="s1">&#39;LiSEWorld.db&#39;</span>
+        <span class="k">return</span> <span class="n">resource_find</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span> <span class="ow">or</span> <span class="n">filen</span>
+    <span class="n">worlddb</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
+        <span class="n">_get_worlddb</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="kc">None</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="GameApp.build"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">have_world</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">worlddb</span><span class="p">)</span>
+            <span class="n">have_world</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">procman</span> <span class="o">=</span> <span class="n">LiSE</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">EngineProcessManager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">procman</span><span class="o">.</span><span class="n">start</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">worlddb</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">Logger</span><span class="p">,</span> <span class="n">loglevel</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;loglevel&#39;</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">),</span>
+            <span class="n">do_game_start</span><span class="o">=</span><span class="ow">not</span> <span class="n">have_world</span><span class="p">,</span>
+            <span class="n">install_modules</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span> <span class="o">=</span> <span class="n">ScreenManager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screens</span> <span class="o">=</span> <span class="n">Screens</span><span class="p">(</span><span class="n">app</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screens</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">children</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_screens</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pull_screens</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;inspector&#39;</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">kivy.core.window</span> <span class="k">import</span> <span class="n">Window</span>
+            <span class="kn">from</span> <span class="nn">kivy.modules</span> <span class="k">import</span> <span class="n">inspector</span>
+            <span class="n">inspector</span><span class="o">.</span><span class="n">create_inspector</span><span class="p">(</span><span class="n">Window</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_screens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">screen</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screens</span><span class="o">.</span><span class="n">children</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pulling screen &#39;</span> <span class="o">+</span> <span class="n">screen</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">screens</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">screen</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">screen_manager</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">screen</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GameApp.on_pause"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.on_pause">[docs]</a>    <span class="k">def</span> <span class="nf">on_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sync the database with the current state of the game.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GameApp.on_stop"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.game.GameApp.on_stop">[docs]</a>    <span class="k">def</span> <span class="nf">on_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">largs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sync the database, wrap up the game, and halt.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">procman</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

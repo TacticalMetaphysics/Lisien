@@ -1,0 +1,439 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>LiSE.thing &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for LiSE.thing</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;The sort of node that is ultimately located in a Place.</span>
+
+<span class="sd">Things may be located in other Things as well, but eventually must be</span>
+<span class="sd">recursively located in a Place.</span>
+
+<span class="sd">There&#39;s a subtle distinction between &quot;location&quot; and &quot;containment&quot;: a</span>
+<span class="sd">Thing may be contained by a Portal, but cannot be located there --</span>
+<span class="sd">only in one of the Portal&#39;s endpoints. Things are both located in and</span>
+<span class="sd">contained by Places, or possibly other Things.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">from</span> <span class="nn">.node</span> <span class="k">import</span> <span class="n">Node</span>
+<span class="kn">from</span> <span class="nn">.exc</span> <span class="k">import</span> <span class="n">TravelException</span>
+<span class="kn">from</span> <span class="nn">allegedb.cache</span> <span class="k">import</span> <span class="n">HistoryError</span>
+
+
+<span class="k">def</span> <span class="nf">roerror</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Read-only&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Thing"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing">[docs]</a><span class="k">class</span> <span class="nc">Thing</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;The sort of item that has a particular location at any given time.</span>
+
+<span class="sd">    If a Thing is in a Place, it is standing still. If it is in a</span>
+<span class="sd">    Portal, it is moving through that Portal however fast it must in</span>
+<span class="sd">    order to arrive at the other end when it is scheduled to. If it is</span>
+<span class="sd">    in another Thing, then it is wherever that is, and moving the</span>
+<span class="sd">    same.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">extrakeys</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;character&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;location&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;next_location&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;arrival_time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;next_arrival_time&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">_getcharname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">_getloc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_locations</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_setloc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_loc_and_next</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_getnxtloc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_locations</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_setnxtloc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_loc_and_next</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_setlocs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_loc_and_next</span><span class="p">(</span><span class="o">*</span><span class="n">v</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_arrival_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">thingcache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span>
+        <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tck</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_iter_parent_btt</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">thingcache</span><span class="o">.</span><span class="n">turn_before</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">trn</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">thingcache</span><span class="o">.</span><span class="n">turn_after</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">trn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">v</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find arrival time&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_next_arrival_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">turn_after</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_get_locations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="n">_getitem_dispatch</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">_getname</span><span class="p">,</span>
+        <span class="s1">&#39;character&#39;</span><span class="p">:</span> <span class="n">_getcharname</span><span class="p">,</span>
+        <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="n">_getloc</span><span class="p">,</span>
+        <span class="s1">&#39;next_location&#39;</span><span class="p">:</span> <span class="n">_getnxtloc</span><span class="p">,</span>
+        <span class="s1">&#39;locations&#39;</span><span class="p">:</span> <span class="n">_get_locations</span><span class="p">,</span>
+        <span class="s1">&#39;arrival_time&#39;</span><span class="p">:</span> <span class="n">_get_arrival_time</span><span class="p">,</span>
+        <span class="s1">&#39;next_arrival_time&#39;</span><span class="p">:</span> <span class="n">_get_next_arrival_time</span>
+    <span class="p">}</span>
+
+    <span class="n">_setitem_dispatch</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">roerror</span><span class="p">,</span>
+        <span class="s1">&#39;character&#39;</span><span class="p">:</span> <span class="n">roerror</span><span class="p">,</span>
+        <span class="s1">&#39;arrival_time&#39;</span><span class="p">:</span> <span class="n">roerror</span><span class="p">,</span>
+        <span class="s1">&#39;next_arrival_time&#39;</span><span class="p">:</span> <span class="n">roerror</span><span class="p">,</span>
+        <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="n">_setloc</span><span class="p">,</span>
+        <span class="s1">&#39;next_location&#39;</span><span class="p">:</span> <span class="n">_setnxtloc</span><span class="p">,</span>
+        <span class="s1">&#39;locations&#39;</span><span class="p">:</span> <span class="n">_setlocs</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extrakeys</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__contains__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return one of my stats stored in the database, or a few</span>
+<span class="sd">        special cases:</span>
+
+<span class="sd">        ``name``: return the name that uniquely identifies me within</span>
+<span class="sd">        my Character</span>
+
+<span class="sd">        ``character``: return the name of my character</span>
+
+<span class="sd">        ``location``: return the name of my location</span>
+
+<span class="sd">        ``arrival_time``: return the turn when I arrived in the</span>
+<span class="sd">        present location</span>
+
+<span class="sd">        ``next_location``: if I&#39;m in transit, return where to, else return None</span>
+
+<span class="sd">        ``next_arrival_time``: return the turn when I&#39;m going to</span>
+<span class="sd">        arrive at ``next_location``</span>
+
+<span class="sd">        ``locations``: return a pair of ``(location, next_location)``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getitem_dispatch</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set ``key``=``value`` for the present game-time.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_setitem_dispatch</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">HistoryError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ex</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;As of now, this key isn&#39;t mine.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extrakeys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t delete </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.character[&#39;</span><span class="si">{}</span><span class="s2">&#39;].thing[&#39;</span><span class="si">{}</span><span class="s2">&#39;]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Thing.delete"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_loc_and_next</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Thing.clear"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unset everything.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extrakeys</span><span class="p">:</span></div>
+                <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">container</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If I am in transit, this is the Portal I&#39;m moving through. Otherwise</span>
+<span class="sd">        it&#39;s the Thing or Place I&#39;m located in.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;locations&#39;</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_portal_objs</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">a</span><span class="p">)]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The Thing or Place I&#39;m in. If I&#39;m in transit, it&#39;s where I</span>
+<span class="sd">        started.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">nxtloc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_locations</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">loc</span><span class="p">))</span>
+
+    <span class="nd">@location</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">next_location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If I&#39;m not in transit, this is None. If I am, it&#39;s where I&#39;m</span>
+<span class="sd">        headed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">nxtloc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_locations</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">nxtloc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">nxtloc</span><span class="p">)]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Nonexistent next location: &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nxtloc</span><span class="p">))</span>
+
+    <span class="nd">@next_location</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">next_location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;next_location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">def</span> <span class="nf">_set_loc_and_next</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">nextloc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Private method to simultaneously set ``location`` and</span>
+<span class="sd">        ``next_location``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_set_thing_loc_and_next</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">loc</span><span class="p">,</span>
+            <span class="n">nextloc</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;locations&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">nextloc</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">locations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">nxtloc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_locations</span><span class="p">()</span>
+        <span class="n">nobjs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span>
+        <span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="n">nobjs</span><span class="p">[</span><span class="n">charn</span><span class="p">,</span> <span class="n">loc</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">nxtloc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nxtloc</span> <span class="o">=</span> <span class="n">nobjs</span><span class="p">[</span><span class="n">charn</span><span class="p">,</span> <span class="n">nxtloc</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">loc</span><span class="p">,</span> <span class="n">nxtloc</span>
+
+    <span class="nd">@locations</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">locations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">nxtloc</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">loc</span> <span class="o">=</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">nxtloc</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">nxtloc</span> <span class="o">=</span> <span class="n">nxtloc</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_loc_and_next</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">nxtloc</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Thing.go_to_place"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.go_to_place">[docs]</a>    <span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Assuming I&#39;m in a :class:`Place` that has a :class:`Portal` direct</span>
+<span class="sd">        to the given :class:`Place`, schedule myself to travel to the</span>
+<span class="sd">        given :class:`Place`, taking an amount of time indicated by</span>
+<span class="sd">        the ``weight`` stat on the :class:`Portal`, if given; else 1</span>
+<span class="sd">        turn.</span>
+
+<span class="sd">        Return the number of turns the travel will take.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">place</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">placen</span> <span class="o">=</span> <span class="n">place</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">placen</span> <span class="o">=</span> <span class="n">place</span>
+        <span class="n">curloc</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
+        <span class="n">orm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
+        <span class="n">turns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_portal_objs</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">curloc</span><span class="p">,</span> <span class="n">place</span><span class="p">)]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;next_location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">placen</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">:</span>
+            <span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="n">turns</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;locations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">placen</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">turns</span>
+
+<div class="viewcode-block" id="Thing.follow_path"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.follow_path">[docs]</a>    <span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Go to several :class:`Place`s in succession, deciding how long to</span>
+<span class="sd">        spend in each by consulting the ``weight`` stat of the</span>
+<span class="sd">        :class:`Portal` connecting the one :class:`Place` to the next.</span>
+
+<span class="sd">        Return the total number of turns the travel will take. Raise</span>
+<span class="sd">        :class:`TravelException` if I can&#39;t follow the whole path,</span>
+<span class="sd">        either because some of its nodes don&#39;t exist, or because I&#39;m</span>
+<span class="sd">        scheduled to be somewhere else.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Paths need at least 2 nodes&quot;</span><span class="p">)</span>
+        <span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
+        <span class="k">with</span> <span class="n">eng</span><span class="o">.</span><span class="n">plan</span><span class="p">:</span>
+            <span class="n">prevplace</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prevplace</span> <span class="o">!=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Path does not start at my present location&quot;</span><span class="p">)</span>
+            <span class="n">subpath</span> <span class="o">=</span> <span class="p">[</span><span class="n">prevplace</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">prevplace</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span> <span class="ow">or</span>
+                        <span class="n">place</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">prevplace</span><span class="p">]</span>
+                <span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">TravelException</span><span class="p">(</span>
+                        <span class="s2">&quot;Couldn&#39;t follow portal from </span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">prevplace</span><span class="p">,</span>
+                            <span class="n">place</span>
+                        <span class="p">),</span>
+                        <span class="n">path</span><span class="o">=</span><span class="n">subpath</span><span class="p">,</span>
+                        <span class="n">traveller</span><span class="o">=</span><span class="bp">self</span>
+                    <span class="p">)</span>
+                <span class="n">subpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
+                <span class="n">prevplace</span> <span class="o">=</span> <span class="n">place</span>
+            <span class="n">turns_total</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">prevsubplace</span> <span class="o">=</span> <span class="n">subpath</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">subsubpath</span> <span class="o">=</span> <span class="p">[</span><span class="n">prevsubplace</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">subplace</span> <span class="ow">in</span> <span class="n">subpath</span><span class="p">:</span>
+                <span class="n">portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">prevsubplace</span><span class="p">][</span><span class="n">subplace</span><span class="p">]</span>
+                <span class="n">turn_inc</span> <span class="o">=</span> <span class="n">portal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">locations</span> <span class="o">=</span> <span class="n">prevsubplace</span><span class="p">,</span> <span class="n">subplace</span>
+                <span class="n">eng</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="n">turn_inc</span>
+                <span class="n">turns_total</span> <span class="o">+=</span> <span class="n">turn_inc</span>
+                <span class="n">subsubpath</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subplace</span><span class="p">)</span>
+                <span class="n">prevsubplace</span> <span class="o">=</span> <span class="n">subplace</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">locations</span> <span class="o">=</span> <span class="n">subplace</span><span class="p">,</span> <span class="kc">None</span></div>
+            <span class="k">return</span> <span class="n">turns_total</span>
+
+<div class="viewcode-block" id="Thing.travel_to"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Thing.travel_to">[docs]</a>    <span class="k">def</span> <span class="nf">travel_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the shortest path to the given :class:`Place` from where I am</span>
+<span class="sd">        now, and follow it.</span>
+
+<span class="sd">        If supplied, the ``weight`` stat of the :class:`Portal`s along</span>
+<span class="sd">        the path will be used in pathfinding, and for deciding how</span>
+<span class="sd">        long to stay in each Place along the way.</span>
+
+<span class="sd">        The ``graph`` argument may be any NetworkX-style graph. It</span>
+<span class="sd">        will be used for pathfinding if supplied, otherwise I&#39;ll use</span>
+<span class="sd">        my :class:`Character`. In either case, however, I will attempt</span>
+<span class="sd">        to actually follow the path using my :class:`Character`, which</span>
+<span class="sd">        might not be possible if the supplied ``graph`` and my</span>
+<span class="sd">        :class:`Character` are too different. If it&#39;s not possible,</span>
+<span class="sd">        I&#39;ll raise a :class:`TravelException`, whose ``subpath``</span>
+<span class="sd">        attribute holds the part of the path that I *can* follow. To</span>
+<span class="sd">        make me follow it, pass it to my ``follow_path`` method.</span>
+
+<span class="sd">        Return value is the number of turns the travel will take.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">destn</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">dest</span>
+        <span class="k">if</span> <span class="n">destn</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;I&#39;m already at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">destn</span><span class="p">))</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="k">if</span> <span class="n">graph</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">graph</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">shortest_path</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">],</span> <span class="n">destn</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">follow_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

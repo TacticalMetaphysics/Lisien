@@ -1,0 +1,298 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.spritebuilder &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.spritebuilder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span class="kn">from</span> <span class="nn">.pallet</span> <span class="k">import</span> <span class="n">Pallet</span><span class="p">,</span> <span class="n">PalletBox</span>
+<span class="kn">from</span> <span class="nn">.kivygarden.texturestack</span> <span class="k">import</span> <span class="n">ImageStack</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">ListProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">StringProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.label</span> <span class="k">import</span> <span class="n">Label</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.scrollview</span> <span class="k">import</span> <span class="n">ScrollView</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">Screen</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">trigger</span>
+<span class="c1"># TODO: let the user import their own sprite art</span>
+
+
+<div class="viewcode-block" id="SpriteSelector"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpriteSelector">[docs]</a><span class="k">class</span> <span class="nc">SpriteSelector</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">pallets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
+    <span class="n">default_imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">preview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;textbox&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_prefix</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">textbox</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+
+    <span class="k">def</span> <span class="nf">on_imgpaths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">preview</span><span class="p">:</span>
+            <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;SpriteSelector: no preview&quot;</span>
+            <span class="p">)</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_imgpaths</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_imgstack&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_imgstack</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_imgstack</span> <span class="o">=</span> <span class="n">ImageStack</span><span class="p">(</span>
+            <span class="n">paths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">center_x</span> <span class="o">-</span> <span class="mi">16</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">center_y</span> <span class="o">-</span> <span class="mi">16</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_imgstack</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_pallets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">pallet</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pallets</span><span class="p">:</span>
+            <span class="n">pallet</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_imgpaths</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_upd_imgpaths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">imgpaths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pallet</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pallets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pallet</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">selected</span> <span class="ow">in</span> <span class="n">pallet</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+                    <span class="n">imgpaths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="s1">&#39;atlas://</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">pallet</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
+                            <span class="n">selected</span><span class="o">.</span><span class="n">name</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span> <span class="o">=</span> <span class="n">imgpaths</span> <span class="k">if</span> <span class="n">imgpaths</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_imgpaths</span>
+
+
+<div class="viewcode-block" id="SpriteBuilder"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpriteBuilder">[docs]</a><span class="k">class</span> <span class="nc">SpriteBuilder</span><span class="p">(</span><span class="n">ScrollView</span><span class="p">):</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">default_imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">pallets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_update</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_palbox&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span> <span class="o">=</span> <span class="n">PalletBox</span><span class="p">(</span>
+                <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span>
+                <span class="n">size_hint_y</span><span class="o">=</span><span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pallets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="n">halign</span><span class="o">=</span><span class="s1">&#39;center&#39;</span>
+            <span class="p">)</span>
+            <span class="n">label</span><span class="o">.</span><span class="n">texture_update</span><span class="p">()</span>
+            <span class="n">label</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">texture</span><span class="o">.</span><span class="n">height</span>
+            <span class="n">label</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">width</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">label</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">))</span>
+            <span class="n">pallet</span> <span class="o">=</span> <span class="n">Pallet</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">pallet</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">width</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">pallet</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">))</span>
+            <span class="n">pallet</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">pallet</span><span class="o">.</span><span class="n">minimum_height</span>
+            <span class="n">pallet</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                <span class="n">minimum_height</span><span class="o">=</span><span class="n">pallet</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">),</span>
+                <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_reheight</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pallets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pallet</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+        <span class="k">assert</span><span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pallets</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pallets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">_trigger_update</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reheight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">wid</span><span class="o">.</span><span class="n">height</span> <span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pallets</span>
+        <span class="p">)</span></div>
+    <span class="n">_trigger_reheight</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">reheight</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SpriteDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpriteDialog">[docs]</a><span class="k">class</span> <span class="nc">SpriteDialog</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">default_imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">pallet_box_height</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">pressed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">selector</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">selector</span><span class="o">.</span><span class="n">imgpaths</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="PawnConfigDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.PawnConfigDialog">[docs]</a><span class="k">class</span> <span class="nc">PawnConfigDialog</span><span class="p">(</span><span class="n">SpriteDialog</span><span class="p">):</span></div>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="SpotConfigDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpotConfigDialog">[docs]</a><span class="k">class</span> <span class="nc">SpotConfigDialog</span><span class="p">(</span><span class="n">SpriteDialog</span><span class="p">):</span></div>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="PawnConfigScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.PawnConfigScreen">[docs]</a><span class="k">class</span> <span class="nc">PawnConfigScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="SpotConfigScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpotConfigScreen">[docs]</a><span class="k">class</span> <span class="nc">SpotConfigScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;SpriteDialog&gt;:</span>
+<span class="s2">    orientation: &#39;vertical&#39;</span>
+<span class="s2">    SpriteBuilder:</span>
+<span class="s2">        id: builder</span>
+<span class="s2">        prefix: root.prefix</span>
+<span class="s2">        default_imgpaths: root.default_imgpaths</span>
+<span class="s2">        imgpaths: root.imgpaths</span>
+<span class="s2">        data: root.data</span>
+<span class="s2">    SpriteSelector:</span>
+<span class="s2">        id: selector</span>
+<span class="s2">        textbox: textbox</span>
+<span class="s2">        size_hint_y: 0.1</span>
+<span class="s2">        prefix: root.prefix</span>
+<span class="s2">        default_imgpaths: root.default_imgpaths</span>
+<span class="s2">        imgpaths: root.imgpaths</span>
+<span class="s2">        pallets: builder.pallets</span>
+<span class="s2">        preview: preview</span>
+<span class="s2">        TextInput:</span>
+<span class="s2">            id: textbox</span>
+<span class="s2">            multiline: False</span>
+<span class="s2">            write_tab: False</span>
+<span class="s2">            hint_text: &#39;Enter name prefix&#39;</span>
+<span class="s2">        Widget:</span>
+<span class="s2">            id: preview</span>
+<span class="s2">        Button:</span>
+<span class="s2">            text: &#39;OK&#39;</span>
+<span class="s2">            on_press: root.pressed()</span>
+<span class="s2">&lt;PawnConfigScreen&gt;:</span>
+<span class="s2">    name: &#39;pawncfg&#39;</span>
+<span class="s2">    imgpaths: dialog.imgpaths</span>
+<span class="s2">    PawnConfigDialog:</span>
+<span class="s2">        id: dialog</span>
+<span class="s2">        toggle: root.toggle</span>
+<span class="s2">        default_imgpaths: [&#39;atlas://base.atlas/unseen&#39;]</span>
+<span class="s2">        data: root.data</span>
+<span class="s2">&lt;SpotConfigScreen&gt;:</span>
+<span class="s2">    name: &#39;spotcfg&#39;</span>
+<span class="s2">    imgpaths: dialog.imgpaths</span>
+<span class="s2">    SpotConfigDialog:</span>
+<span class="s2">        id: dialog</span>
+<span class="s2">        toggle: root.toggle</span>
+<span class="s2">        default_imgpaths: [&#39;orb.png&#39;]</span>
+<span class="s2">        data: root.data</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

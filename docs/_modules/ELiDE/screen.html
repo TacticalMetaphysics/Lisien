@@ -1,0 +1,486 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.screen &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.screen</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+
+<span class="sd">&quot;&quot;&quot;The big layout that you view all of ELiDE through.</span>
+
+<span class="sd">Handles touch, selection, and time control. Contains a board, a stat</span>
+<span class="sd">grid, the time control panel, and the menu.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="k">import</span> <span class="n">import_module</span>
+<span class="kn">from</span> <span class="nn">kivy.factory</span> <span class="k">import</span> <span class="n">Factory</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="k">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="k">import</span> <span class="n">Screen</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">BooleanProperty</span><span class="p">,</span>
+    <span class="n">BoundedNumericProperty</span><span class="p">,</span>
+    <span class="n">DictProperty</span><span class="p">,</span>
+    <span class="n">ListProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">ReferenceListProperty</span><span class="p">,</span>
+    <span class="n">StringProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.charmenu</span> <span class="k">import</span> <span class="n">CharMenu</span>
+<span class="kn">from</span> <span class="nn">.dialog</span> <span class="k">import</span> <span class="n">Dialog</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">dummynum</span><span class="p">,</span> <span class="n">trigger</span>
+
+<span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;CharMenu&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">CharMenu</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="KvLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.KvLayout">[docs]</a><span class="k">class</span> <span class="nc">KvLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span></div>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="StatListPanel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.StatListPanel">[docs]</a><span class="k">class</span> <span class="nc">StatListPanel</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A panel that displays a simple two-column grid showing the stats of</span>
+<span class="sd">    the selected entity, defaulting to those of the character being</span>
+<span class="sd">    viewed.</span>
+
+<span class="sd">    Has a &#39;cfg&#39; button on the bottom to open the StatWindow in which</span>
+<span class="sd">    to add and delete stats, or to change the way they are displayed</span>
+<span class="sd">    in the StatListPanel.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">selection_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">button_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;cfg&#39;</span><span class="p">)</span>
+    <span class="n">cfgstatbut</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">statlist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">proxy</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">toggle_stat_cfg</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">selection_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">vv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="n">vv</span> <span class="o">=</span> <span class="n">v</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">vv</span>
+
+
+<div class="viewcode-block" id="TimePanel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.TimePanel">[docs]</a><span class="k">class</span> <span class="nc">TimePanel</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A panel that lets you to start and stop the game, or browse through</span>
+<span class="sd">    its history.</span>
+
+<span class="sd">    There&#39;s a &quot;play&quot; button, which is toggleable. When toggled on, the</span>
+<span class="sd">    simulation will continue to run until it&#39;s toggled off</span>
+<span class="sd">    again. Below this is a &quot;Next turn&quot; button, which will simulate</span>
+<span class="sd">    exactly one turn and stop. And there are two text fields in which</span>
+<span class="sd">    you can manually enter a Branch and Tick to go to. Moving through</span>
+<span class="sd">    time this way doesn&#39;t simulate anything--you&#39;ll only see what</span>
+<span class="sd">    happened as a result of &quot;play,&quot; &quot;next turn,&quot; or some other input</span>
+<span class="sd">    that&#39;s been made to call the ``advance`` method of the LiSE core.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">set_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">branch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="n">branch</span>
+
+    <span class="k">def</span> <span class="nf">set_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">turn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="n">turn</span>
+
+    <span class="k">def</span> <span class="nf">set_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">tick</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
+
+    <span class="k">def</span> <span class="nf">_upd_branch_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span>
+
+    <span class="k">def</span> <span class="nf">_upd_turn_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_upd_tick_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;branchfield&#39;</span><span class="p">,</span> <span class="s1">&#39;turnfield&#39;</span><span class="p">,</span> <span class="s1">&#39;tickfield&#39;</span><span class="p">)):</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_screen</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">branchfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">turnfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">turn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">tickfield</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_branch_hint</span><span class="p">,</span>
+            <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_turn_hint</span><span class="p">,</span>
+            <span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_tick_hint</span></div>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="MainScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen">[docs]</a><span class="k">class</span> <span class="nc">MainScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A master layout that contains one board and some menus.</span>
+
+<span class="sd">    This contains three elements: a scrollview (containing the board),</span>
+<span class="sd">    a menu, and the time control panel. This class has some support methods</span>
+<span class="sd">    for handling interactions with the menu and the character sheet,</span>
+<span class="sd">    but if neither of those happen, the scrollview handles touches on its</span>
+<span class="sd">    own.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">manager</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">boards</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">()</span>
+    <span class="n">boardview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">charmenu</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">statlist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">statpanel</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">timepanel</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">kv</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">use_kv</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">()</span>
+    <span class="n">play_speed</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">()</span>
+    <span class="n">playbut</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">portaladdbut</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">portaldirbut</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">dummyplace</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">dummything</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">dummies</span> <span class="o">=</span> <span class="n">ReferenceListProperty</span><span class="p">(</span><span class="n">dummyplace</span><span class="p">,</span> <span class="n">dummything</span><span class="p">)</span>
+    <span class="n">dialoglayout</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">visible</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">()</span>
+    <span class="n">_touch</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rules_per_frame</span> <span class="o">=</span> <span class="n">BoundedNumericProperty</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_statpanel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_statpanel</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selected_proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;proxy&#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">pull_visibility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s1">&#39;main&#39;</span>
+
+    <span class="k">def</span> <span class="nf">on_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pull_visibility</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">current</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pull_visibility</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MainScreen.on_play_speed"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_play_speed">[docs]</a>    <span class="k">def</span> <span class="nf">on_play_speed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Change the interval at which ``self.play`` is called to match my</span>
+<span class="sd">        current ``play_speed``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">)</span></div>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">play</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">play_speed</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MainScreen.remake_display"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.remake_display">[docs]</a>    <span class="k">def</span> <span class="nf">remake_display</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remake any affected widgets after a change in my ``kv``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kv</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_kv_layout&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span><span class="p">)</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span> <span class="o">=</span> <span class="n">KvLayout</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kv_layout</span><span class="p">)</span>
+    <span class="n">_trigger_remake_display</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">remake_display</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MainScreen.on_touch_down"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_touch_down">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
+            <span class="n">touch</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">interceptor</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">interceptor</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
+                <span class="n">interceptor</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">keep_selection</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_down&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MainScreen.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">timepanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">charmenu</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s1">&#39;on_touch_up&#39;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MainScreen.on_dummies"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.on_dummies">[docs]</a>    <span class="k">def</span> <span class="nf">on_dummies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Give the dummies numbers such that, when appended to their names,</span>
+<span class="sd">        they give a unique name for the resulting new</span>
+<span class="sd">        :class:`board.Pawn` or :class:`board.Spot`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">renum_dummy</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">dummynum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummy</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">for</span> <span class="n">dummy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummies</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dummy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span> <span class="s1">&#39;_numbered&#39;</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">dummy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">imgpaths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_thing_paths</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dummy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">imgpaths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_place_paths</span><span class="p">)</span>
+            <span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">dummynum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummy</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;MainScreen: dummy #</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dummy</span><span class="o">.</span><span class="n">num</span><span class="p">))</span>
+            <span class="n">dummy</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">renum_dummy</span><span class="p">,</span> <span class="n">dummy</span><span class="p">))</span></div>
+            <span class="n">dummy</span><span class="o">.</span><span class="n">_numbered</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_propagate_thing_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># horrible hack</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">imgpaths</span>
+
+    <span class="k">def</span> <span class="nf">_propagate_place_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># horrible hack</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span>
+
+    <span class="k">def</span> <span class="nf">_update_from_time_travel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">received</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_from_delta</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">received</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_update_from_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">chardelta</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">for</span> <span class="n">unwanted</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s1">&#39;character_rulebook&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;avatar_rulebook&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;character_thing_rulebook&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;character_place_rulebook&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;character_portal_rulebook&#39;</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">unwanted</span> <span class="ow">in</span> <span class="n">chardelta</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">chardelta</span><span class="p">[</span><span class="n">unwanted</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">trigger_update_from_delta</span><span class="p">(</span><span class="n">chardelta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statpanel</span><span class="o">.</span><span class="n">statlist</span><span class="o">.</span><span class="n">mirror</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MainScreen.play"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.play">[docs]</a>    <span class="k">def</span> <span class="nf">play</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If the &#39;play&#39; button is pressed, advance a turn.</span>
+
+<span class="sd">        If you want to disable this, set ``engine.universal[&#39;block&#39;] = True``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">playbut</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+            <span class="k">return</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_turn</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_update_from_next_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">ret</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">todo</span><span class="p">,</span> <span class="n">deltas</span> <span class="o">=</span> <span class="n">ret</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_from_delta</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">deltas</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">advance_dialog</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MainScreen.next_turn"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.next_turn">[docs]</a>    <span class="k">def</span> <span class="nf">next_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Advance time by one turn, if it&#39;s not blocked.</span>
+
+<span class="sd">        Block time by setting ``engine.universal[&#39;block&#39;] = True``&quot;&quot;&quot;</span>
+        <span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span>
+        <span class="n">dial</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span>
+        <span class="k">if</span> <span class="n">eng</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">):</span>
+            <span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;MainScreen: next_turn blocked, delete universal[&#39;block&#39;] to unblock&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">dial</span><span class="o">.</span><span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dial</span><span class="o">.</span><span class="n">todo</span><span class="p">):</span>
+            <span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;MainScreen: not advancing time while there&#39;s a dialog&quot;</span><span class="p">)</span>
+            <span class="k">return</span></div></div>
+        <span class="n">eng</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_from_next_turn</span><span class="p">)</span>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">#: import resource_find kivy.resources.resource_find</span>
+<span class="sd">&lt;StatListPanel&gt;:</span>
+<span class="sd">    orientation: &#39;vertical&#39;</span>
+<span class="sd">    cfgstatbut: cfgstatbut</span>
+<span class="sd">    statlist: statlist</span>
+<span class="sd">    id: statpanel</span>
+<span class="sd">    Label:</span>
+<span class="sd">        size_hint_y: 0.05</span>
+<span class="sd">        text: root.selection_name</span>
+<span class="sd">    StatListView:</span>
+<span class="sd">        id: statlist</span>
+<span class="sd">        size_hint_y: 0.95</span>
+<span class="sd">        engine: root.engine</span>
+<span class="sd">        proxy: root.proxy</span>
+<span class="sd">    Button:</span>
+<span class="sd">        id: cfgstatbut</span>
+<span class="sd">        size_hint_y: 0.05</span>
+<span class="sd">        text: root.button_text</span>
+<span class="sd">        on_press: root.toggle_stat_cfg()</span>
+<span class="sd">&lt;TimePanel&gt;:</span>
+<span class="sd">    playbut: playbut</span>
+<span class="sd">    BoxLayout:</span>
+<span class="sd">        orientation: &#39;vertical&#39;</span>
+<span class="sd">        ToggleButton:</span>
+<span class="sd">            id: playbut</span>
+<span class="sd">            font_size: 40</span>
+<span class="sd">            text: &#39;&gt;&#39;</span>
+<span class="sd">        Button:</span>
+<span class="sd">            text: &#39;Next turn&#39;</span>
+<span class="sd">            size_hint_y: 0.3</span>
+<span class="sd">            on_press: root.screen.next_turn()</span>
+<span class="sd">    BoxLayout:</span>
+<span class="sd">        orientation: &#39;vertical&#39;</span>
+<span class="sd">        Label:</span>
+<span class="sd">            text: &#39;Branch&#39;</span>
+<span class="sd">        MenuTextInput:</span>
+<span class="sd">            id: branchfield</span>
+<span class="sd">            setter: root.set_branch</span>
+<span class="sd">            hint_text: root.screen.app.branch if root.screen else &#39;&#39;</span>
+<span class="sd">    BoxLayout:</span>
+<span class="sd">        orientation: &#39;vertical&#39;</span>
+<span class="sd">        Label:</span>
+<span class="sd">            text: &#39;Turn&#39;</span>
+<span class="sd">        MenuIntInput:</span>
+<span class="sd">            id: turnfield</span>
+<span class="sd">            setter: root.set_turn</span>
+<span class="sd">            hint_text: str(root.screen.app.turn) if root.screen else &#39;&#39;</span>
+<span class="sd">    BoxLayout:</span>
+<span class="sd">        orientation: &#39;vertical&#39;</span>
+<span class="sd">        Label:</span>
+<span class="sd">            text: &#39;Tick&#39;</span>
+<span class="sd">        MenuIntInput:</span>
+<span class="sd">            id: tickfield</span>
+<span class="sd">            setter: root.set_tick</span>
+<span class="sd">            hint_text: str(root.screen.app.tick) if root.screen else &#39;&#39;</span>
+<span class="sd">&lt;MainScreen&gt;:</span>
+<span class="sd">    name: &#39;main&#39;</span>
+<span class="sd">    app: app</span>
+<span class="sd">    dummyplace: charmenu.dummyplace</span>
+<span class="sd">    dummything: charmenu.dummything</span>
+<span class="sd">    boardview: boardview</span>
+<span class="sd">    playbut: timepanel.playbut</span>
+<span class="sd">    portaladdbut: charmenu.portaladdbut</span>
+<span class="sd">    charmenu: charmenu</span>
+<span class="sd">    statlist: statpanel.statlist</span>
+<span class="sd">    statpanel: statpanel</span>
+<span class="sd">    timepanel: timepanel</span>
+<span class="sd">    dialoglayout: dialoglayout</span>
+<span class="sd">    BoardView:</span>
+<span class="sd">        id: boardview</span>
+<span class="sd">        scale_min: 0.2</span>
+<span class="sd">        scale_max: 4.0</span>
+<span class="sd">        x: statpanel.right</span>
+<span class="sd">        y: timepanel.top</span>
+<span class="sd">        size_hint: (None, None)</span>
+<span class="sd">        width: charmenu.x - statpanel.right</span>
+<span class="sd">        height: root.height - timepanel.height</span>
+<span class="sd">        board: root.boards[app.character.name]</span>
+<span class="sd">        adding_portal: charmenu.portaladdbut.state == &#39;down&#39;</span>
+<span class="sd">    StatListPanel:</span>
+<span class="sd">        id: statpanel</span>
+<span class="sd">        engine: app.engine</span>
+<span class="sd">        toggle_stat_cfg: app.statcfg.toggle</span>
+<span class="sd">        pos_hint: {&#39;left&#39;: 0, &#39;top&#39;: 1}</span>
+<span class="sd">        size_hint: (0.2, 0.9)</span>
+<span class="sd">    TimePanel:</span>
+<span class="sd">        id: timepanel</span>
+<span class="sd">        screen: root</span>
+<span class="sd">        pos_hint: {&#39;bot&#39;: 0}</span>
+<span class="sd">        size_hint: (0.85, 0.1)</span>
+<span class="sd">    CharMenu:</span>
+<span class="sd">        id: charmenu</span>
+<span class="sd">        screen: root</span>
+<span class="sd">        pos_hint: {&#39;right&#39;: 1, &#39;top&#39;: 1}</span>
+<span class="sd">        size_hint: (0.1, 0.9)</span>
+<span class="sd">    DialogLayout:</span>
+<span class="sd">        id: dialoglayout</span>
+<span class="sd">        engine: app.engine</span>
+<span class="sd">        size_hint: None, None</span>
+<span class="sd">        x: statpanel.right</span>
+<span class="sd">        y: timepanel.top</span>
+<span class="sd">        width: charmenu.x - statpanel.right</span>
+<span class="sd">        height: root.height - timepanel.top</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

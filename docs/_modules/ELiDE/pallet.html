@@ -1,0 +1,216 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.pallet &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.pallet</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;Widget to display the contents of a :class:`kivy.atlas.Atlas` in</span>
+<span class="sd">one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a</span>
+<span class="sd">:class:`kivy.uix.stacklayout.StackLayout`. The user selects graphics</span>
+<span class="sd">from the :class:`Pallet`, and the :class:`Pallet` updates its</span>
+<span class="sd">``selection`` list to show what the user selected.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">DictProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">OptionProperty</span><span class="p">,</span>
+    <span class="n">ListProperty</span><span class="p">,</span>
+    <span class="n">ReferenceListProperty</span><span class="p">,</span>
+    <span class="n">StringProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.resources</span> <span class="k">import</span> <span class="n">resource_find</span>
+<span class="kn">from</span> <span class="nn">kivy.atlas</span> <span class="k">import</span> <span class="n">Atlas</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="k">import</span> <span class="n">ToggleButton</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.stacklayout</span> <span class="k">import</span> <span class="n">StackLayout</span>
+
+
+<div class="viewcode-block" id="SwatchButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.SwatchButton">[docs]</a><span class="k">class</span> <span class="nc">SwatchButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Toggle button containing a texture and its name, which, when</span>
+<span class="sd">    toggled, will report the fact to the :class:`Pallet` it&#39;s in.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">tex</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;down&#39;</span><span class="p">:</span>
+            <span class="k">assert</span><span class="p">(</span><span class="bp">self</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection_mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">wid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+                        <span class="n">wid</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<span class="n">kv</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;SwatchButton&gt;:</span>
+<span class="s2">    Image:</span>
+<span class="s2">        id: theimg</span>
+<span class="s2">        center: root.center</span>
+<span class="s2">        texture: root.tex</span>
+<span class="s2">        size: self.texture_size if root.tex else (1, 1)</span>
+<span class="s2">        size_hint: (None, None)</span>
+<span class="s2">        pos_hint: {&#39;x&#39;: None, &#39;y&#39;: None}</span>
+<span class="s2">    Label:</span>
+<span class="s2">        text: root.name</span>
+<span class="s2">        size: self.texture_size</span>
+<span class="s2">        pos_hint: {&#39;x&#39;: None, &#39;y&#39;: None}</span>
+<span class="s2">        x: root.x + 5</span>
+<span class="s2">        y: theimg.y - self.height</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="n">kv</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Pallet"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.Pallet">[docs]</a><span class="k">class</span> <span class="nc">Pallet</span><span class="p">(</span><span class="n">StackLayout</span><span class="p">):</span>
+    <span class="n">atlas</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">swatches</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
+    <span class="n">swatch_width</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">swatch_height</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">75</span><span class="p">)</span>
+    <span class="n">swatch_size</span> <span class="o">=</span> <span class="n">ReferenceListProperty</span><span class="p">(</span><span class="n">swatch_width</span><span class="p">,</span> <span class="n">swatch_height</span><span class="p">)</span>
+    <span class="n">selection</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
+    <span class="n">selection_mode</span> <span class="o">=</span> <span class="n">OptionProperty</span><span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;multiple&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s1">&#39;Pallet: </span><span class="si">{}</span><span class="s1"> got selection </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">resource</span> <span class="o">=</span> <span class="n">resource_find</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">resource</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find atlas: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span> <span class="o">=</span> <span class="n">Atlas</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_atlas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">textures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">upd_textures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upd_textures</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">textures</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">tex</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atlas</span><span class="o">.</span><span class="n">textures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">tex</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">SwatchButton</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">tex</span><span class="o">=</span><span class="n">tex</span><span class="p">,</span>
+                    <span class="n">size_hint</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">swatch_size</span>
+                <span class="p">)</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swatches</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+
+
+<span class="n">kv</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;Pallet&gt;:</span>
+<span class="s2">    orientation: &#39;lr-tb&#39;</span>
+<span class="s2">    padding_y: 100</span>
+<span class="s2">    size_hint: (None, None)</span>
+<span class="s2">    height: self.minimum_height</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="n">kv</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PalletBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.pallet.PalletBox">[docs]</a><span class="k">class</span> <span class="nc">PalletBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span></div>
+    <span class="n">pallets</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

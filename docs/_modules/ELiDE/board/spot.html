@@ -1,0 +1,292 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.board.spot &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.board.spot</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;Widget to represent :class:`Place`s. :class:`Pawn` moves around on</span>
+<span class="sd">top of these.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">AliasProperty</span><span class="p">,</span>
+    <span class="n">ListProperty</span><span class="p">,</span>
+    <span class="n">ObjectProperty</span><span class="p">,</span>
+    <span class="n">NumericProperty</span><span class="p">,</span>
+    <span class="n">BooleanProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.pawnspot</span> <span class="k">import</span> <span class="n">PawnSpot</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="k">import</span> <span class="n">trigger</span>
+
+
+<div class="viewcode-block" id="Spot"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot">[docs]</a><span class="k">class</span> <span class="nc">Spot</span><span class="p">(</span><span class="n">PawnSpot</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The icon that represents a :class:`Place`.</span>
+
+<span class="sd">    Each :class:`Spot` is located on the Board that represents the</span>
+<span class="sd">    :class:`Character` that the underlying :class:`Place` is in. Its</span>
+<span class="sd">    coordinates are relative to its :class:`Board`, not necessarily</span>
+<span class="sd">    the window the :class:`Board` is in.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">collider</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">collided</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">place</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;proxy&#39;</span><span class="p">)(</span><span class="n">v</span><span class="p">),</span>
+        <span class="n">bind</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;proxy&#39;</span><span class="p">,)</span>
+    <span class="p">)</span>
+    <span class="n">default_image_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;orb.png&#39;</span><span class="p">]</span>
+    <span class="n">default_pos</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">_touchpos</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Deal with triggers and bindings, and arrange to take care of</span>
+<span class="sd">        changes in game-time.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_partials</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_triggers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;size_hint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;place&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;proxy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;place&#39;</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;place&#39;</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_upd_pawns_here</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_pos</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_pospawn_partial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pawn</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pawn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_partials</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_partials</span><span class="p">[</span><span class="n">pawn</span><span class="p">]</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pospawn</span><span class="p">,</span> <span class="n">pawn</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_partials</span><span class="p">[</span><span class="n">pawn</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_pospawn_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pawn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pawn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_triggers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_triggers</span><span class="p">[</span><span class="n">pawn</span><span class="p">]</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_pospawn_partial</span><span class="p">(</span><span class="n">pawn</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pospawn_triggers</span><span class="p">[</span><span class="n">pawn</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">bind_trigger_pospawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pawn</span><span class="p">):</span>
+        <span class="n">trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pospawn_trigger</span><span class="p">(</span><span class="n">pawn</span><span class="p">)</span>
+        <span class="n">pawn</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">pos</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">trigger</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">pos</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">trigger</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unbind_trigger_pospawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pawn</span><span class="p">):</span>
+        <span class="n">trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pospawn_trigger</span><span class="p">(</span><span class="n">pawn</span><span class="p">)</span>
+        <span class="n">pawn</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span>
+            <span class="n">pos</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">trigger</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span>
+            <span class="n">pos</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">trigger</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_upd_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_upd_pos</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">width</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_y&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_pos</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Spot.finalize"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">initial</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_upd_pos</span><span class="p">()</span></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">initial</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Spot.push_pos"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.push_pos">[docs]</a>    <span class="k">def</span> <span class="nf">push_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set my current position, expressed as proportions of the board&#39;s</span>
+<span class="sd">        width and height, into the ``_x`` and ``_y`` keys of the</span>
+<span class="sd">        entity in my ``proxy`` property, such that it will be</span>
+<span class="sd">        recorded in the database.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">width</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">[</span><span class="s1">&#39;_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">height</span>
+    <span class="n">_trigger_push_pos</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_pos</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Spot.add_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.add_widget">[docs]</a>    <span class="k">def</span> <span class="nf">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wid</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Put the widget&#39;s canvas in my ``board``&#39;s ``pawnlayout`` rather</span>
+<span class="sd">        than my own canvas.</span>
+
+<span class="sd">        The idea is that all my child widgets are to be instances of</span>
+<span class="sd">        :class:`Pawn`, and should therefore be drawn after every</span>
+<span class="sd">        non-:class:`Pawn` widget, so that pawns are on top of spots</span>
+<span class="sd">        and arrows.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">canvas</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind_trigger_pospawn</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">wid</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">wid</span><span class="o">.</span><span class="n">_no_use_canvas</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">mycanvas</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;after&#39;</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">before</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;before&#39;</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span>
+        <span class="p">)</span>
+        <span class="n">pawncanvas</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pawnlayout</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;after&#39;</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pawnlayout</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">before</span> <span class="k">if</span> <span class="n">canvas</span> <span class="o">==</span> <span class="s1">&#39;before&#39;</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">pawnlayout</span><span class="o">.</span><span class="n">canvas</span>
+        <span class="p">)</span>
+        <span class="n">mycanvas</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">wid</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">group</span> <span class="ow">in</span> <span class="n">pawncanvas</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+                    <span class="n">pawncanvas</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+                <span class="n">pawncanvas</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pawncanvas</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pospawn</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Spot.remove_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.remove_widget">[docs]</a>    <span class="k">def</span> <span class="nf">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wid</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unbind_trigger_pospawn</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Spot.pospawn"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.pospawn">[docs]</a>    <span class="k">def</span> <span class="nf">pospawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pawn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Given some :class:`Pawn` instance that&#39;s to be on top of me, set</span>
+<span class="sd">        its ``pos`` so that it looks like it&#39;s on top of me but</span>
+<span class="sd">        doesn&#39;t cover me so much that you can&#39;t select me.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">child</span> <span class="ow">is</span> <span class="n">pawn</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">off</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+        <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span></div>
+        <span class="n">pawn</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="n">off</span><span class="p">,</span> <span class="n">y</span><span class="o">+</span><span class="n">off</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_upd_pawns_here</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Move any :class:`Pawn` atop me so it still *is* on top of me,</span>
+<span class="sd">        presumably after I&#39;ve moved.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">pawn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pospawn</span><span class="p">(</span><span class="n">pawn</span><span class="p">)</span>
+    <span class="n">_trigger_upd_pawns_here</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">_upd_pawns_here</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Spot.on_touch_move"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.on_touch_move">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If I&#39;m being dragged, move to follow the touch.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_touchpos</span> <span class="o">=</span> <span class="n">touch</span><span class="o">.</span><span class="n">pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_touchpos</span></div>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Spot.on_touch_up"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.spot.Spot.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unset ``touchpos``&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_touchpos</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_touchpos</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_touchpos</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_pos</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collided</span> <span class="o">=</span> <span class="kc">False</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hit</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Give my name and position.&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">@(</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

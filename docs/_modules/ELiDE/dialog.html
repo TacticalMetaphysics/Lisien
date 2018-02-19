@@ -1,0 +1,373 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>ELiDE.dialog &#8212; LiSE 0.9dev documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ELiDE.dialog</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Generic dialog boxes and menus, for in front of a Board</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="k">import</span> <span class="n">import_module</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">DictProperty</span><span class="p">,</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">StringProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">VariableListProperty</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.core.text</span> <span class="k">import</span> <span class="n">DEFAULT_FONT</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="k">import</span> <span class="n">Button</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="k">import</span> <span class="n">Widget</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="k">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.scrollview</span> <span class="k">import</span> <span class="n">ScrollView</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="k">import</span> <span class="n">Logger</span>
+
+
+<div class="viewcode-block" id="Box"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.Box">[docs]</a><span class="k">class</span> <span class="nc">Box</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="n">VariableListProperty</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+    <span class="n">border</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="n">font_size</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;15sp&#39;</span><span class="p">)</span>
+    <span class="n">font_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="n">DEFAULT_FONT</span><span class="p">)</span>
+    <span class="n">background</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+    <span class="n">background_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
+    <span class="n">foreground_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="ScrollableLabel"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.ScrollableLabel">[docs]</a><span class="k">class</span> <span class="nc">ScrollableLabel</span><span class="p">(</span><span class="n">ScrollView</span><span class="p">):</span>
+    <span class="n">font_size</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;15sp&#39;</span><span class="p">)</span>
+    <span class="n">font_name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="n">DEFAULT_FONT</span><span class="p">)</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">line_spacing</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="MessageBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.MessageBox">[docs]</a><span class="k">class</span> <span class="nc">MessageBox</span><span class="p">(</span><span class="n">Box</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Looks like a TextInput but doesn&#39;t accept any input.</span>
+
+<span class="sd">    Does support styled text with BBcode.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">line_spacing</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="DialogMenu"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.DialogMenu">[docs]</a><span class="k">class</span> <span class="nc">DialogMenu</span><span class="p">(</span><span class="n">Box</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Some buttons that make the game do things.</span>
+
+<span class="sd">    Set ``options`` to a list of pairs of ``(text, function)`` and the</span>
+<span class="sd">    menu will be populated with buttons that say ``text`` that call</span>
+<span class="sd">    ``function`` when pressed.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;List of pairs of (button_text, callable)&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_set_sv_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_set_sv_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">on_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_sv&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span> <span class="o">=</span> <span class="n">ScrollView</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_sv_size</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_sv_pos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">(</span><span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">))</span>
+        <span class="n">layout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">txt</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">part</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Menu options must be callable&quot;</span><span class="p">)</span>
+            <span class="n">layout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">Button</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">txt</span><span class="p">,</span> <span class="n">on_press</span><span class="o">=</span><span class="n">part</span><span class="p">,</span> <span class="n">font_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_name</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Dialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.Dialog">[docs]</a><span class="k">class</span> <span class="nc">Dialog</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;MessageBox with a DialogMenu beneath it.</span>
+
+<span class="sd">    Set the properties ``message_kwargs`` and ``menu_kwargs``,</span>
+<span class="sd">    respectively, to control them -- but you probably want</span>
+<span class="sd">    to do that by returning a pair of dicts from an action</span>
+<span class="sd">    in LiSE.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">message_kwargs</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
+    <span class="n">menu_kwargs</span> <span class="o">=</span> <span class="n">DictProperty</span><span class="p">({})</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">message_kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_msg_kwargs</span><span class="p">,</span>
+            <span class="n">menu_kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_menu_kwargs</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_propagate_msg_kwargs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_propagate_menu_kwargs</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_propagate_msg_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;msg&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_msg_kwargs</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message_kwargs</span><span class="p">)</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;background&#39;</span><span class="p">,</span> <span class="s1">&#39;atlas://data/images/defaulttheme/textinput&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kw</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">msg</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_propagate_menu_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;menu&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_propagate_menu_kwargs</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">menu_kwargs</span><span class="p">)</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;background&#39;</span><span class="p">,</span> <span class="s1">&#39;atlas://data/images/defaulttheme/vkeyboard_background&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kw</span><span class="o">.</span><span class="n">items</span><span class="p">():</span></div>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">menu</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DialogLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.DialogLayout">[docs]</a><span class="k">class</span> <span class="nc">DialogLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A layout, normally empty, that can generate dialogs</span>
+
+<span class="sd">    To make dialogs, set my ``todo`` property to a list. It may contain:</span>
+
+<span class="sd">    * Strings, which will be displayed with an &quot;OK&quot; button to dismiss them</span>
+<span class="sd">    * Lists of pairs of strings and callables, which generate buttons with the string</span>
+<span class="sd">    on them that, when clicked, call the callable</span>
+<span class="sd">    * Lists of pairs of dictionaries, which are interpreted as keyword arguments</span>
+<span class="sd">    to :class:`MessageBox` and :class:`DialogMenu`</span>
+
+<span class="sd">    In place of a callable you can use the name of a function in my ``usermod``,</span>
+<span class="sd">    a Python module given by name. I&#39;ll import it when I need it.</span>
+
+<span class="sd">    Needs to be instantiated with a LiSE ``engine`` -- probably an</span>
+<span class="sd">    :class:`EngineProxy`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dialog</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">()</span>
+    <span class="n">usermod</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">)</span>
+    <span class="n">userpkg</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span> <span class="o">=</span> <span class="n">Dialog</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;last_result&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;last_result_idx&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">todo</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">advance_dialog</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_pull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;last_result&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">todo</span> <span class="o">=</span> <span class="n">value</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;last_result_idx&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">on_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">universal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;last_result_idx&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">universal</span><span class="p">[</span><span class="s1">&#39;last_result_idx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span>
+
+    <span class="k">def</span> <span class="nf">advance_dialog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_dialog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">todo</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_update_dialog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">diargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;DialogLayout: null dialog&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">dia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span>
+        <span class="c1"># Simple text dialogs just tell the player something and let them click OK</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diargs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">dia</span><span class="o">.</span><span class="n">message_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">diargs</span><span class="p">}</span>
+            <span class="n">dia</span><span class="o">.</span><span class="n">menu_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;OK&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_ok</span><span class="p">)]}</span>
+        <span class="c1"># List dialogs are for when you need the player to make a choice and don&#39;t care much</span>
+        <span class="c1"># about presentation</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diargs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">dia</span><span class="o">.</span><span class="n">message_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">&#39;Select from the following:&#39;</span><span class="p">}</span>
+            <span class="n">dia</span><span class="o">.</span><span class="n">menu_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_munge_menu_option</span><span class="p">,</span> <span class="n">diargs</span><span class="p">))}</span>
+        <span class="c1"># For real control of the dialog, you need a pair of dicts --</span>
+        <span class="c1"># the 0th describes the message shown to the player, the 1th</span>
+        <span class="c1"># describes the menu below</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diargs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diargs</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="c1"># TODO more informative error</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Need a tuple of length 2&#39;</span><span class="p">)</span>
+            <span class="n">msgkwargs</span><span class="p">,</span> <span class="n">mnukwargs</span> <span class="o">=</span> <span class="n">diargs</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msgkwargs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">dia</span><span class="o">.</span><span class="n">message_kwargs</span> <span class="o">=</span> <span class="n">msgkwargs</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msgkwargs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">dia</span><span class="o">.</span><span class="n">message_kwargs</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">msgkwargs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Message must be dict or str&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mnukwargs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">mnukwargs</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_munge_menu_option</span><span class="p">,</span> <span class="n">mnukwargs</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]))</span>
+                <span class="n">dia</span><span class="o">.</span><span class="n">menu_kwargs</span> <span class="o">=</span> <span class="n">mnukwargs</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mnukwargs</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mnukwargs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">dia</span><span class="o">.</span><span class="n">menu_kwargs</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_munge_menu_option</span><span class="p">,</span> <span class="n">mnukwargs</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Menu must be dict or list&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Don&#39;t know how to turn </span><span class="si">{}</span><span class="s2"> into a dialog&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">diargs</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">dia</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DialogLayout.ok"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.dialog.DialogLayout.ok">[docs]</a>    <span class="k">def</span> <span class="nf">ok</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">cb</span><span class="p">:</span>
+            <span class="n">cb</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">advance_dialog</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_trigger_ok</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ok</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_lookup_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">funcname</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_usermod&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_usermod</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usermod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">userpkg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usermod</span><span class="p">,</span> <span class="n">funcname</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_munge_menu_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">func</span> <span class="o">=</span> <span class="n">option</span>
+        <span class="k">if</span> <span class="n">func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_ok</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_ok</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">fun</span> <span class="o">=</span> <span class="n">func</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">fun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_func</span><span class="p">(</span><span class="n">fun</span><span class="p">)</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">func</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="n">func</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_func</span><span class="p">(</span><span class="n">func</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_ok</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">func</span><span class="p">)</span>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;Box&gt;:</span>
+<span class="s2">    canvas.before:</span>
+<span class="s2">        Color:</span>
+<span class="s2">            rgba: self.background_color</span>
+<span class="s2">        BorderImage:</span>
+<span class="s2">            border: self.border</span>
+<span class="s2">            pos: self.pos</span>
+<span class="s2">            size: self.size</span>
+<span class="s2">            source: self.background</span>
+<span class="s2">        Color:</span>
+<span class="s2">            rgba: 1, 1, 1, 1</span>
+<span class="s2">&lt;ScrollableLabel&gt;:</span>
+<span class="s2">    Label:</span>
+<span class="s2">        size_hint_y: None</span>
+<span class="s2">        height: self.texture_size[1]</span>
+<span class="s2">        text_size: self.width, None</span>
+<span class="s2">        text: root.text</span>
+<span class="s2">        color: root.color</span>
+<span class="s2">&lt;MessageBox&gt;:</span>
+<span class="s2">    ScrollableLabel:</span>
+<span class="s2">        x: root.x + root.padding[0]</span>
+<span class="s2">        y: root.y + root.padding[3]</span>
+<span class="s2">        width: root.width - root.padding[2]</span>
+<span class="s2">        height: root.height - root.padding[1]</span>
+<span class="s2">        text: root.text</span>
+<span class="s2">        color: root.foreground_color</span>
+<span class="s2">&lt;Dialog&gt;:</span>
+<span class="s2">    orientation: &#39;vertical&#39;</span>
+<span class="s2">    pos_hint: {&#39;x&#39;: 0, &#39;y&#39;: 0}</span>
+<span class="s2">    size_hint: 1, 0.3</span>
+<span class="s2">    MessageBox:</span>
+<span class="s2">        id: msg</span>
+<span class="s2">    DialogMenu:</span>
+<span class="s2">        id: menu</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Zachary Spector.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
