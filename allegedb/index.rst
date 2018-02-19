@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to allegedb's documentation!
-====================================
+allegedb
+========
 
 .. toctree::
    :maxdepth: 2
@@ -63,8 +63,8 @@ usage
     >>> red.edge == blue.edge
     False
 
-allegedb
----------
+ORM
+---
 .. automodule:: allegedb
    :members:
 
@@ -88,10 +88,3 @@ wrap
 .. automodule:: allegedb.wrap
    :members:
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
