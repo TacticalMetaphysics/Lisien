@@ -6,7 +6,7 @@ chardet==3.0.4
 decorator==4.2.1
 docutils==0.14
 idna==2.6
-Cython==0.27.3
+Cython==0.25.2
 networkx==2.1
 numpy==1.14.0
 pluggy==0.6.0
