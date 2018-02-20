@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.abspath('./ELiDE'))
 sys.path.insert(0, os.path.abspath('./LiSE'))
 sys.path.insert(0, os.path.abspath('./allegedb'))
+os.environ['KIVY_DOC'] = '1'
 
 
 # -- Project information -----------------------------------------------------
