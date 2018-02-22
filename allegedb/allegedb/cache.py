@@ -792,9 +792,9 @@ class Cache(object):
 
         """
         if planning is None:
-            planning = self.db.planning
+            planning = self.db._planning
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         self._store(*args, planning=planning)
         self._update_keycache(*args, validate=validate, forward=forward)
 
@@ -975,7 +975,7 @@ class Cache(object):
 
         """
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         entity = args[:-3]
         branch, turn, tick = args[-3:]
         yield from self._get_keycache(entity, branch, turn, tick, forward=forward)
@@ -991,7 +991,7 @@ class Cache(object):
 
         """
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         entity = args[:-3]
         branch, turn, tick = args[-3:]
         return len(self._get_keycache(entity, branch, turn, tick, forward=forward))
@@ -1011,7 +1011,7 @@ class Cache(object):
         except KeyError:
             pass
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
         return key in self._get_keycache(entity, branch, turn, tick, forward=forward)
@@ -1114,31 +1114,31 @@ class EdgesCache(Cache):
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Iterate over successors of a given origin node at a given time."""
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         yield from self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
 
     def iter_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
         """Iterate over predecessors to a given destination node at a given time."""
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         yield from self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
     def count_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Return the number of successors to a given origin node at a given time."""
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         return len(self._get_destcache(graph, orig, branch, turn, tick, forward=forward))
 
     def count_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
         """Return the number of predecessors from a given destination node at a given time."""
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))
 
     def has_successor(self, graph, orig, dest, branch, turn, tick, *, forward=None):
         """Return whether an edge connects the origin to the destination at the given time."""
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         return dest in self._get_keycachelike(
             self.destcache, self.successors, self._slow_iter_successors, (graph, orig),
             branch, turn, tick, forward=forward
@@ -1147,7 +1147,7 @@ class EdgesCache(Cache):
     def has_predecessor(self, graph, dest, orig, branch, turn, tick, forward=None):
         """Return whether an edge connects the destination to the origin at the given time."""
         if forward is None:
-            forward = self.db.forward
+            forward = self.db._forward
         return orig in self._get_keycachelike(
             self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
             branch, turn, tick, forward=forward

@@ -2,7 +2,7 @@ def test_fast_delta():
     from LiSE.examples.kobold import inittest
     from LiSE.handle import EngineHandle
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
-    with hand._real.advancing:
+    with hand._real.advancing():
         inittest(hand._real, shrubberies=20, kobold_sprint_chance=.9)
     # just set a baseline for the diff
     hand.get_slow_delta()
@@ -25,7 +25,7 @@ def test_assignment():
     from LiSE.handle import EngineHandle
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     eng = hand._real
-    with eng.advancing:
+    with eng.advancing():
         install(eng)
     physical_inital_copy = {'edge_val': {
         'classroom': {'common0': {'is_mirror': True}, 'common1': {'is_mirror': True}, 'common2': {'is_mirror': True}},

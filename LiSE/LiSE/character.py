@@ -1219,8 +1219,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             rulebook_or_name = attr.get(rulebook, (name, rulebook))
             rulebook_name = getattr(rulebook_or_name, 'name', rulebook_or_name)
             engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, rulebook_name)
-            cache.store((name, rulebook), branch, turn, tick, rulebook_name,
-                        planning=engine.planning, forward=engine.forward)
+            cache.store((name, rulebook), branch, turn, tick, rulebook_name)
 
     class ThingMapping(MutableMapping, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""
@@ -1248,11 +1247,11 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         def __contains__(self, thing):
             args = self.character.name, thing, *self.engine.btt()
             cache = self.engine._things_cache
-            return cache.contains_key(*args, forward=self.engine.forward) and cache.retrieve(*args)[0] is not None
+            return cache.contains_key(*args) and cache.retrieve(*args)[0] is not None
 
         def __len__(self):
             return self.engine._things_cache.count_keys(
-                self.character.name, *self.engine.btt(), forward=self.engine.forward
+                self.character.name, *self.engine.btt()
             )
 
         def __getitem__(self, thing):
@@ -1330,9 +1329,9 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             # nodes in general
             return (
                 self.engine._nodes_cache.contains_entity(
-                    self.character.name, place, *self.engine.btt(), forward=self.engine.forward
+                    self.character.name, place, *self.engine.btt()
                 ) and not self.engine._things_cache.contains_entity(
-                    self.character.name, place, *self.engine.btt(), forward=self.engine.forward
+                    self.character.name, place, *self.engine.btt()
                 )
             )
 
@@ -1677,8 +1676,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             except KeyError:
                 pass
             branch, turn, tick = self.engine.nbtt()
-            self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n),
-                                                     forward=self.engine.forward, planning=self.engine.planning)
+            self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
 
         def init_store_rulebook():
             try:
@@ -1687,8 +1685,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             except KeyError:
                 pass
             branch, turn, tick = self.engine.nbtt()
-            self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [],
-                                               forward=self.engine.forward, planning=self.engine.planning)
+            self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])
 
         init_store_node_rulebook()
         init_store_rulebook()

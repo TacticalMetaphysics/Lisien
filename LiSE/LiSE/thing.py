@@ -273,7 +273,7 @@ class Thing(Node):
         turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
         self['next_location'] = placen
-        with self.engine.plan:
+        with self.engine.plan():
             orm.turn += turns
             self['locations'] = (placen, None)
         return turns
@@ -292,7 +292,7 @@ class Thing(Node):
         if len(path) < 2:
             raise ValueError("Paths need at least 2 nodes")
         eng = self.character.engine
-        with eng.plan:
+        with eng.plan():
             prevplace = path.pop(0)
             if prevplace != self['location']:
                 raise ValueError("Path does not start at my present location")

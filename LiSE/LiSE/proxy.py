@@ -2011,7 +2011,7 @@ class EngineProxy(AbstractEngine):
         self._rulebook_obj_cache = {}
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
-        with self.loading:
+        with self.loading():
             deltas = self.handle('get_char_deltas', chars='all')
             for char in deltas:
                 self._char_cache[char] = character = CharacterProxy(self, char)

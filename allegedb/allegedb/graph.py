@@ -128,17 +128,17 @@ class GraphMapping(AbstractEntityMapping):
 
     def __iter__(self):
         return self.db._graph_val_cache.iter_entity_keys(
-            self.graph.name, *self.db.btt(), forward=self.db.forward
+            self.graph.name, *self.db.btt()
         )
 
     def _cache_contains(self, key, branch, turn, tick):
         return self.db._graph_val_cache.contains_key(
-            self.graph.name, key, branch, turn, tick, forward=self.db.forward
+            self.graph.name, key, branch, turn, tick
         )
 
     def __len__(self):
         return self.db._graph_val_cache.count_entities(
-            self.graph.name, *self.db.btt(), forward=self.db.forward
+            self.graph.name, *self.db.btt()
         )
 
     def _get_cache(self, key, branch, turn, tick):
@@ -159,8 +159,7 @@ class GraphMapping(AbstractEntityMapping):
 
     def _set_cache(self, key, branch, turn, tick, value):
         self.db._graph_val_cache.store(
-            self.graph.name, key, branch, turn, tick, value,
-            planning=self.db.planning, forward=self.db.forward
+            self.graph.name, key, branch, turn, tick, value
         )
 
     def _del_db(self, key, branch, turn, tick):
@@ -192,20 +191,17 @@ class Node(AbstractEntityMapping):
 
     def __iter__(self):
         return self.db._node_val_cache.iter_entity_keys(
-            self.graph.name, self.node, *self.db.btt(),
-            forward=self.db.forward
+            self.graph.name, self.node, *self.db.btt()
         )
 
     def _cache_contains(self, key, branch, turn, tick):
         return self.db._node_val_cache.contains_key(
-            self.graph.name, self.node, key, branch, turn, tick,
-            forward=self.db.forward
+            self.graph.name, self.node, key, branch, turn, tick
         )
 
     def __len__(self):
         return self.db._node_val_cache.count_entity_keys(
-            self.graph.name, self.node, *self.db.btt(),
-            forward=self.db.forward
+            self.graph.name, self.node, *self.db.btt()
         )
 
     def _get_cache(self, key, branch, turn, tick):
@@ -228,8 +224,7 @@ class Node(AbstractEntityMapping):
             self.node,
             key,
             branch, turn, tick,
-            value,
-            forward=self.db.forward
+            value
         )
 
 
@@ -267,14 +262,12 @@ class Edge(AbstractEntityMapping):
             self.orig,
             self.dest,
             self.idx,
-            *self.db.btt(),
-            forward=self.db.forward
+            *self.db.btt()
         )
 
     def _cache_contains(self, key, branch, turn, tick):
         return self.db._edge_val_cache.contains_key(
-            self.graph.name, self.orig, self.dest, self.idx, key, branch, turn, tick,
-            forward=self.db.forward
+            self.graph.name, self.orig, self.dest, self.idx, key, branch, turn, tick
         )
 
     def __len__(self):
@@ -283,8 +276,7 @@ class Edge(AbstractEntityMapping):
             self.orig,
             self.dest,
             self.idx,
-            *self.db.btt(),
-            forward=self.db.forward
+            *self.db.btt()
         )
 
     def _get_cache(self, key, branch, turn, tick):
@@ -316,8 +308,7 @@ class Edge(AbstractEntityMapping):
             self.idx,
             key,
             branch, turn, tick,
-            value,
-            forward=self.db.forward
+            value
         )
 
 
@@ -338,13 +329,13 @@ class GraphNodeMapping(NeatMapping, Signal):
     def __contains__(self, node):
         """Return whether the node exists presently"""
         return self.db._nodes_cache.contains_entity(
-            self.graph.name, node, *self.db.btt(), forward=self.db.forward
+            self.graph.name, node, *self.db.btt()
         )
 
     def __len__(self):
         """How many nodes exist right now?"""
         return self.db._nodes_cache.count_entities(
-            self.graph.name, *self.db.btt(), forward=self.db.forward
+            self.graph.name, *self.db.btt()
         )
 
     def __getitem__(self, node):
@@ -360,14 +351,12 @@ class GraphNodeMapping(NeatMapping, Signal):
 
         """
         branch, turn, tick = self.db.nbtt()
-        planning = self.db.planning
         created = node not in self
         self.db._nodes_cache.store(
             self.graph.name,
             node,
             branch, turn, tick,
-            True,
-            planning=planning, forward=self.db.forward
+            True
         )
         if (self.graph.name, node) in self.db._node_objs:
             n = self.db._node_objs[(self.graph.name, node)]
@@ -401,8 +390,7 @@ class GraphNodeMapping(NeatMapping, Signal):
             self.graph.name,
             node,
             branch, turn, tick,
-            False,
-            planning=self.db.planning, forward=self.db.forward
+            False
         )
         self.send(self, node_name=node, exists=False)
 
@@ -486,8 +474,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         return self.db._edges_cache.iter_successors(
             self.graph.name,
             self.orig,
-            *self.db.btt(),
-            forward=self.db.forward
+            *self.db.btt()
         )
 
     def __contains__(self, dest):
@@ -496,8 +483,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             self.graph.name,
             self.orig,
             dest,
-            *self.db.btt(),
-            forward=self.db.forward
+            *self.db.btt()
         )
 
     def __len__(self):
@@ -505,8 +491,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         return self.db._edges_cache.count_successors(
             self.graph.name,
             self.orig,
-            *self.db.btt(),
-            forward=self.db.forward
+            *self.db.btt()
         )
 
     def _make_edge(self, dest):
@@ -527,7 +512,6 @@ class AbstractSuccessors(GraphEdgeMapping):
         """
         branch, turn, tick = self.db.btt()
         created = dest not in self
-        planning=self.db.planning
         self.db.query.exist_edge(
             self.graph.name,
             self.orig,
@@ -542,9 +526,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            True,
-            planning=planning,
-            forward=self.db.forward
+            True
         )
         e = self[dest]
         e.clear()
@@ -569,9 +551,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            None,
-            planning=self.db.planning,
-            forward=self.db.forward
+            None
         )
         self.send(self, orig=self.orig, dest=dest, idx=0, exists=False)
 
@@ -698,8 +678,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             return self.db._edges_cache.iter_predecessors(
                 self.graph.name,
                 self.dest,
-                *self.db.btt(),
-                forward=self.db.forward
+                *self.db.btt()
             )
 
         def __contains__(self, orig):
@@ -708,8 +687,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.graph.name,
                 self.dest,
                 orig,
-                *self.db.btt(),
-                forward=self.db.forward
+                *self.db.btt()
             )
 
         def __len__(self):
@@ -717,8 +695,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             return self.db._edges_cache.count_predecessors(
                 self.graph.name,
                 self.dest,
-                *self.db.btt(),
-                forward=self.db.forward
+                *self.db.btt()
             )
 
         def _make_edge(self, orig):
@@ -734,7 +711,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
             """
             branch, turn, tick = self.db.nbtt()
-            planning=self.db.planning
             try:
                 e = self[orig]
                 e.clear()
@@ -749,7 +725,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     True
                 )
                 e = self._make_edge(orig)
-                created = True
             e.update(value)
             self.db._edges_cache.store(
                 self.graph.name,
@@ -757,16 +732,13 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                True,
-                planning=planning,
-                forward=self.db.forward
+                True
             )
             self.send(self, key=orig, val=value)
 
         def __delitem__(self, orig):
             """Unset the existence of the edge from the given node to mine"""
             branch, turn, tick = self.db.nbtt()
-            planning = self.db.planning
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[orig]:
                     self.db.query.exist_edge(
@@ -783,11 +755,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                         self.dest,
                         idx,
                         branch, turn, tick,
-                        False,
-                        planning=planning,
-                        forward=self.db.forward
+                        False
                     )
-                    self.deleted.send(self, key=orig)
+                    self.send(self, key=orig, val=None)
                     return
             self.db.query.exist_edge(
                 self.graph.name,
@@ -803,11 +773,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.dest,
                 0,
                 branch, turn, tick,
-                None,
-                planning=planning,
-                forward=self.db.forward
+                None
             )
-            self.send(self, key=orig, value=None)
+            self.send(self, key=orig, val=None)
 
 
 class MultiEdges(GraphEdgeMapping, Signal):
@@ -835,7 +803,7 @@ class MultiEdges(GraphEdgeMapping, Signal):
     def __contains__(self, i):
         return self.db._edges_cache.contains_key(
             self.graph.name, self.orig, self.dest, i,
-            *self.db.btt(), forward=self.db.forward
+            *self.db.btt()
         )
 
     def _getedge(self, idx):
@@ -858,7 +826,6 @@ class MultiEdges(GraphEdgeMapping, Signal):
 
         """
         branch, turn, tick = self.db.nbtt()
-        planning = self.db.planning
         created = idx not in self
         self.db.query.exist_edge(
             self.graph.name,
@@ -873,8 +840,7 @@ class MultiEdges(GraphEdgeMapping, Signal):
         e.update(val)
         self.db._edges_cache.store(
             self.graph.name, self.orig, self.dest, idx,
-            branch, turn, tick, True,
-            planning=planning, forward=self.db.forward
+            branch, turn, tick, True
         )
         if created:
             self.send(self, orig=self.orig, dest=self.dest, idx=idx, exists=True)
@@ -890,7 +856,7 @@ class MultiEdges(GraphEdgeMapping, Signal):
         del self._cache[idx]
         self.db._edges_cache.store(
             self.graph.name, self.orig, self.dest, idx,
-            branch, turn, tick, None, forward=self.db.forward
+            branch, turn, tick, None
         )
         self.db.tick = tick
         self.send(self, orig=self.orig, dest=self.dest, idx=idx, exists=False)

@@ -2,6 +2,8 @@
 # Copyright (C) Zachary Spector.
 from collections import defaultdict
 from functools import partial
+from contextlib import ContextDecorator, contextmanager
+
 from blinker import Signal
 
 from allegedb.window import update_window, update_backward_window
@@ -21,7 +23,7 @@ class GraphNameError(KeyError):
     pass
 
 
-class PlanningContext(object):
+class PlanningContext(ContextDecorator):
     """A context manager for 'hypothetical' edits.
 
     Start a block of code like:
@@ -43,32 +45,15 @@ class PlanningContext(object):
         self.orm = orm
 
     def __enter__(self):
-        self.orm.planning = True
+        if self.orm._planning:
+            raise ValueError("Already planning")
+        self.orm._planning = True
         self.time = self.orm.btt()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.orm._obranch, self.orm._oturn, self.orm._otick = self.time
-        self.orm.planning = False
-
-
-class AdvancingContext(object):
-    """A context manager for when time is moving forward one turn at a time.
-
-    When used in LiSE, this means that the game is being simulated.
-    It changes how the caching works, making it more efficient.
-
-    """
-    __slots__ = ['orm']
-
-    def __init__(self, orm):
-        self.orm = orm
-
-    def __enter__(self):
-        self.orm.forward = True
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm.forward = False
+        self.orm._planning = False
 
 
 class TimeSignal(Signal):
@@ -151,7 +136,7 @@ class TimeSignalDescriptor:
             return
         e = real.engine
         # enforce the arrow of time, if it's in effect
-        if e.forward:
+        if e._forward:
             if branch_now != branch_then:
                 raise ValueError("Can't change branches in a forward context")
             if turn_now < turn_then:
@@ -170,7 +155,7 @@ class TimeSignalDescriptor:
                     "occurs before the start of "
                     "the branch {}".format(turn_now, branch_now)
                 )
-            if not e.planning and (turn_now > turn_end or tick_now > tick_end):
+            if not e._planning and (turn_now > turn_end or tick_now > tick_end):
                 branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
         else:
             branches[branch_now] = (
@@ -179,7 +164,7 @@ class TimeSignalDescriptor:
             e.query.new_branch(branch_now, branch_then, turn_now, tick_now)
         e._obranch, e._oturn = val
 
-        if not e.planning:
+        if not e._planning:
             if tick_now > e._turn_end[val]:
                 e._turn_end[val] = tick_now
         e._otick = tick_now
@@ -256,15 +241,23 @@ class ORM(object):
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
     time = TimeSignalDescriptor()
 
-    @property
     def plan(self):
         return PlanningContext(self)
     plan.__doc__ = PlanningContext.__doc__
 
-    @property
+    @contextmanager
     def advancing(self):
-        return AdvancingContext(self)
-    advancing.__doc__ = AdvancingContext.__doc__
+        """A context manager for when time is moving forward one turn at a time.
+
+        When used in LiSE, this means that the game is being simulated.
+        It changes how the caching works, making it more efficient.
+
+        """
+        if self._forward:
+            raise ValueError("Already advancing")
+        self._forward = True
+        yield
+        self._forward = False
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to all graphs.
@@ -447,8 +440,8 @@ class ORM(object):
         either case, begin a transaction.
 
         """
-        self.planning = False
-        self.forward = False
+        self._planning = False
+        self._forward = False
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
@@ -531,11 +524,11 @@ class ORM(object):
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
-            if not self.planning:
+            if not self._planning:
                 self._branches[v] = curbranch, curturn, curtick, curturn, curtick
         # make sure I'll end up within the revision range of the
         # destination branch
-        if v != 'trunk' and not self.planning:
+        if v != 'trunk' and not self._planning:
             if v in self._branches:
                 parturn = self._branches[v][1]
                 if curturn < parturn:
@@ -562,7 +555,7 @@ class ORM(object):
         if not isinstance(v, int):
             raise TypeError("turn must be an integer")
         # enforce the arrow of time, if it's in effect
-        if self.forward and v < self._oturn:
+        if self._forward and v < self._oturn:
             raise ValueError("Can't time travel backward in a forward context")
         # first make sure the cursor is not before the start of this branch
         branch = self.branch
@@ -575,7 +568,7 @@ class ORM(object):
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
-        if not self.planning and v > turn_end:
+        if not self._planning and v > turn_end:
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
@@ -589,11 +582,11 @@ class ORM(object):
             raise TypeError("tick must be an integer")
         time = branch, turn = self._obranch, self._oturn
         # enforce the arrow of time, if it's in effect
-        if self.forward and v < self._otick:
+        if self._forward and v < self._otick:
             raise ValueError("Can't time travel backward in a forward context")
         if v > self._turn_end_plan[time]:
             self._turn_end_plan[time] = v
-        if not self.planning:
+        if not self._planning:
             if v > self._turn_end[time]:
                 self._turn_end[time] = v
             parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
@@ -635,7 +628,7 @@ class ORM(object):
             raise HistoryError(
                 "You're in the past. Go to turn {} to change things".format(turn_end)
             )
-        if not self.planning:
+        if not self._planning:
             if turn_end != turn:
                 raise HistoryError(
                     "When advancing time outside of a plan, you can't skip turns. Go to turn {}".format(turn_end)

@@ -9,6 +9,8 @@ from random import Random
 from operator import gt, lt, ge, le, eq, ne
 from functools import partial
 from types import FunctionType, MethodType
+from contextlib import contextmanager
+
 import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM
@@ -60,7 +62,7 @@ class NextTurn(Signal):
     def __call__(self):
         engine = self.engine
         start_branch, start_turn, start_tick = engine.btt()
-        with engine.advancing:
+        with engine.advancing():
             for res in iter(engine.advance, final_rule):
                 if res:
                     branch, turn, tick = engine.btt()
@@ -140,19 +142,6 @@ MSGPACK_PREREQ = 0x77
 MSGPACK_ACTION = 0x76
 
 
-class LoadingContext:
-    __slots__ = ['engine']
-
-    def __init__(self, engine):
-        self.engine = engine
-
-    def __enter__(self):
-        self.engine._initialized = False
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.engine._initialized = True
-
-
 class AbstractEngine(object):
     """Parent class to the real Engine as well as EngineProxy.
 
@@ -163,9 +152,14 @@ class AbstractEngine(object):
     in which deserialized entities will be created as needed.
 
     """
-    @property
+    @contextmanager
     def loading(self):
-        return LoadingContext(self)
+        """Context manager for when you need to instantiate entities upon unpacking"""
+        if getattr(self, '_initialized', False):
+            raise ValueError("Already loading")
+        self._initialized = False
+        yield
+        self._initialized = True
 
     def __getattr__(self, item):
         meth = super().__getattribute__('method').__getattr__(item)
@@ -757,9 +751,7 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
-            is_avatar,
-            forward=self.forward,
-            planning=self.planning
+            is_avatar
         )
         self.query.avatar_set(
             character,
@@ -1263,13 +1255,13 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        return self._things_cache.contains_entity(character, node, *self.btt(), forward=self.forward)
+        return self._things_cache.contains_entity(character, node, *self.btt())
 
     def _set_thing_loc_and_next(
             self, character, node, loc, nextloc=None
     ):
         branch, turn, tick = self.nbtt()
-        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc), forward=self.forward, planning=self.planning)
+        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
         self.query.thing_loc_and_next_set(
             character,
             node,
@@ -1281,7 +1273,7 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self.btt(), forward=self.forward)
+        return self._nodes_cache.contains_entity(character, node, *self.btt())
 
     def _exist_node(self, character, node):
         if self._node_exists(character, node):
@@ -1295,12 +1287,12 @@ class Engine(AbstractEngine, gORM):
             tick,
             True
         )
-        self._nodes_cache.store(character, node, branch, turn, tick, True, forward=self.forward, planning=self.planning, validate=True)
-        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node), forward=self.forward, planning=self.planning, validate=True)
+        self._nodes_cache.store(character, node, branch, turn, tick, True)
+        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node))
 
     def _edge_exists(self, character, orig, dest):
         return self._edges_cache.contains_entity(
-            character, orig, dest, 0, *self.btt(), forward=self.forward
+            character, orig, dest, 0, *self.btt()
         )
 
     def _exist_edge(
@@ -1320,10 +1312,9 @@ class Engine(AbstractEngine, gORM):
             exist
         )
         self._edges_cache.store(
-            character, orig, dest, 0, branch, turn, tick, exist, planning=self.planning, forward=self.forward
+            character, orig, dest, 0, branch, turn, tick, exist
         )
-        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, (character, orig, dest),
-                                            planning=self.planning, forward=self.forward)
+        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, (character, orig, dest))
 
     def alias(self, v, stat='dummy'):
         r = DummyEntity(self)

@@ -241,9 +241,7 @@ class Portal(Edge, RuleFollower):
             branch,
             turn,
             tick,
-            None,
-            planning=self.engine.planning,
-            forward=self.engine.forward
+            None
         )
         self.engine.query.exist_edge(
             self.character.name,
