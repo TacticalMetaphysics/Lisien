@@ -26,7 +26,6 @@ class PawnSpot(ImageStack):
     board = ObjectProperty()
     proxy = ObjectProperty()
     engine = ObjectProperty()
-    _finalized = BooleanProperty()
     selected = BooleanProperty(False)
     hit = BooleanProperty(False)
     linecolor = ListProperty()
@@ -35,7 +34,7 @@ class PawnSpot(ImageStack):
 
     def finalize(self, initial=True):
         """Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
-        if not self._finalized:
+        if getattr(self, '_finalized', False):
             return
         if (
                 self.proxy is None or
@@ -68,7 +67,7 @@ class PawnSpot(ImageStack):
         self._finalized = False
 
     def pull_from_proxy(self, *args):
-        initial = self._finalized is None
+        initial = not hasattr(self, '_finalized')
         self.unfinalize()
         for key, att in [
                 ('_image_paths', 'paths'),
