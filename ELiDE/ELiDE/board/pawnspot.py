@@ -51,13 +51,11 @@ class PawnSpot(ImageStack):
             zeroes = [0] * len(self.paths)
             self.offxs = self.proxy.setdefault('_offxs', zeroes)
             self.offys = self.proxy.setdefault('_offys', zeroes)
-            self.stackhs = self.proxy.setdefault('_stackhs', zeroes)
             self.proxy.connect(self._trigger_pull_from_proxy)
         self.bind(
             paths=self._trigger_push_image_paths,
             offxs=self._trigger_push_offxs,
-            offys=self._trigger_push_offys,
-            stackhs=self._trigger_push_stackhs
+            offys=self._trigger_push_offys
         )
         self._finalized = True
 
@@ -65,8 +63,7 @@ class PawnSpot(ImageStack):
         self.unbind(
             paths=self._trigger_push_image_paths,
             offxs=self._trigger_push_offxs,
-            offys=self._trigger_push_offys,
-            stackhs=self._trigger_push_stackhs
+            offys=self._trigger_push_offys
         )
         self._finalized = False
 
@@ -76,8 +73,7 @@ class PawnSpot(ImageStack):
         for key, att in [
                 ('_image_paths', 'paths'),
                 ('_offxs', 'offxs'),
-                ('_offys', 'offys'),
-                ('_stackhs', 'stackhs')
+                ('_offys', 'offys')
         ]:
             if key in self.proxy and self.proxy[key] != getattr(self, att):
                 setattr(self, att, self.proxy[key])

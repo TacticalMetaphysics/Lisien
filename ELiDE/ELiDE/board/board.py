@@ -595,8 +595,6 @@ class Board(RelativeLayout):
                     patch['_offxs'] = zeroes
                 if '_offys' not in place:
                     patch['_offys'] = zeroes
-                if '_stackhs' not in place:
-                    patch['_stackhs'] = zeroes
                 if patch:
                     nodes_patch[place_name] = patch
         if nodes_patch:
