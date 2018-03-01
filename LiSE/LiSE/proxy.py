@@ -2380,7 +2380,7 @@ class EngineProxy(AbstractEngine):
                 turn=turn,
                 tick=tick,
                 chars=[],
-                silent=not block
+                block=block
             )
             self._branch, self._turn, self._tick = branch, turn, tick
 
