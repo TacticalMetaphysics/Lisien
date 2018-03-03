@@ -152,13 +152,13 @@ class GameApp(App):
 
         """
         print(dt)
-        self.engine.next_turn()
-        turns -= 1
         if turns == 0:
             if cb:
                 cb()
-        else:
-            Clock.schedule_once(partial(self.wait_turns, turns, cb=cb), self.turn_length)
+            return
+        self.engine.next_turn()
+        turns -= 1
+        Clock.schedule_once(partial(self.wait_turns, turns, cb=cb), self.turn_length)
 
     def wait_travel(self, character, thing, dest, cb=None):
         """Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
