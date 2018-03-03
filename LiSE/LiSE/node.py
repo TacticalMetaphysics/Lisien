@@ -16,6 +16,7 @@ from allegedb.cache import HistoryError
 from .util import getatt
 from .query import StatusAlias
 from . import rule
+from .exc import AmbiguousUserError
 
 
 class RuleMapping(rule.RuleMapping):
@@ -242,9 +243,13 @@ class UserDescriptor:
 
     def __get__(self, instance, owner):
         mapping = self.usermapping(instance)
-        if len(mapping) == 1:
-            return mapping[next(iter(mapping))]
-        return mapping
+        it = iter(mapping)
+        k = next(it)
+        try:
+            next(it)
+            raise AmbiguousUserError("{} users. Use the ``users`` property".format(len(mapping)))
+        except StopIteration:
+            return mapping[k]
 
 
 class Node(allegedb.graph.Node, rule.RuleFollower):

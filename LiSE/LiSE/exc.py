@@ -17,12 +17,16 @@ except ImportError:
     from sqlite3 import IntegrityError
 
 
-class AvatarError(ValueError):
-    pass
+class NonUniqueError(Exception):
+    """For when you tried to look up the only one of something but there wasn't just one"""
 
 
-class AmbiguousAvatarError(AvatarError):
+class AmbiguousAvatarError(NonUniqueError, KeyError):
     """An AvatarMapping can't decide what you want."""
+
+
+class AmbiguousUserError(NonUniqueError, AttributeError):
+    """A user descriptor can't decide what you want."""
 
 
 class RuleError(ValueError):
