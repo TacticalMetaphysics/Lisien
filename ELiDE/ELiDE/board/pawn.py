@@ -40,6 +40,7 @@ class Pawn(PawnSpot):
         bind=('proxy',)
     )
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
+    priority = NumericProperty()
 
     def __init__(self, **kwargs):
         if 'thing' in kwargs:
@@ -83,6 +84,7 @@ class Pawn(PawnSpot):
         if initial:
             self.loc_name = self.proxy['location']
             self.next_loc_name = self.proxy.get('next_location', None)
+            self.priority = self.proxy.get('_priority', 0.0)
         self.bind(
             loc_name=self._trigger_push_location
         )
@@ -103,8 +105,15 @@ class Pawn(PawnSpot):
         if self.next_loc_name != self.proxy['next_location']:
             self.next_loc_name = self.proxy['next_location']
             relocate = True
+        if self.priority != self.proxy['_priority']:
+            self.priority = self.proxy['_priority']
         if relocate:
             self.relocate()
+
+    def on_priority(self, *args):
+        if self.proxy['_priority'] != self.priority:
+            self.proxy['_priority'] = self.priority
+        self.parent.restack()
 
     def push_location(self, *args):
         if self.proxy['location'] != self.loc_name:

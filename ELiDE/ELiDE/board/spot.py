@@ -54,6 +54,13 @@ class Spot(PawnSpot):
         super().__init__(**kwargs)
         self.bind(pos=self._trigger_upd_pawns_here)
 
+    @trigger
+    def restack(self, *args):
+        childs = sorted(list(self.children), key=lambda child: child.priority, reverse=True)
+        self.clear_widgets()
+        for child in childs:
+            self.add_widget(child)
+
     def on_board(self, *args):
         self.board.bind(size=self._upd_pos)
 
@@ -118,7 +125,7 @@ class Spot(PawnSpot):
         self.proxy['_y'] = self.y / self.board.height
     _trigger_push_pos = trigger(push_pos)
 
-    def add_widget(self, wid, i=0, canvas=None):
+    def add_widget(self, wid, i=None, canvas=None):
         """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
         than my own canvas.
 
@@ -128,6 +135,11 @@ class Spot(PawnSpot):
         and arrows.
 
         """
+        if i is None:
+            for i, child in enumerate(self.children, start=1):
+                if wid.priority < child.priority:
+                    i = len(self.children) - i
+                    break
         super().add_widget(wid, i, canvas)
         self.bind_trigger_pospawn(wid)
         if not hasattr(wid, 'group'):
