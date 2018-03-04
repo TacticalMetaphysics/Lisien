@@ -151,7 +151,6 @@ class GameApp(App):
         :return: ``None``
 
         """
-        print(dt)
         if turns == 0:
             if cb:
                 cb()
