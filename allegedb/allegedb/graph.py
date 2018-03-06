@@ -40,11 +40,6 @@ class NeatMapping(MutableMapping):
         for k in list(self.keys()):
             del self[k]
 
-    def __repr__(self):
-        return "{}(graph={}, data={})".format(
-            self.__class__.__name__, self.graph.name, repr(dict(self))
-        )
-
     def update(self, other):
         """Version of ``update`` that doesn't clobber the database so much"""
         if hasattr(other, 'items'):
@@ -189,6 +184,12 @@ class Node(AbstractEntityMapping):
         self.graph = graph
         self.node = node
 
+    def __repr__(self):
+        return "{}(graph={}, node={})".format(self.__class__.__name__, self.graph, self.node)
+
+    def __str__(self):
+        return "{}(graph={}, node={}, data={})".format(self.__class__.__name__, self.graph, self.node, repr(dict(self)))
+
     def __iter__(self):
         return self.db._node_val_cache.iter_entity_keys(
             self.graph.name, self.node, *self.db.btt()
@@ -255,6 +256,25 @@ class Edge(AbstractEntityMapping):
         self.orig = orig
         self.dest = dest
         self.idx = idx
+
+    def __repr__(self):
+        if self.idx == 0:
+            return "{}(graph={}, orig={}, dest={})".format(
+                self.__class__.__name__, self.graph, self.orig, self.dest
+            )
+        return "{}(graph={}, orig={}, dest={}, idx={})".format(
+            self.__class__.__name__, self.graph, self.orig, self.dest, self.idx
+        )
+
+    def __str__(self):
+        if self.idx == 0:
+            return "{}(graph={}, orig={}, dest={}, data={})".format(
+                self.__class__.__name__, self.graph, self.orig, self.dest, dict(self)
+            )
+        else:
+            return "{}(graph={}, orig={}, dest={}, idx={}, data={})".format(
+            self.__class__.__name__, self.graph, self.orig, self.dest, self.idx, dict(self)
+        )
 
     def __iter__(self):
         return self.db._edge_val_cache.iter_entity_keys(
