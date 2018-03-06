@@ -250,6 +250,10 @@ class UserDescriptor:
             raise AmbiguousUserError("{} users. Use the ``users`` property".format(len(mapping)))
         except StopIteration:
             return mapping[k]
+        except AmbiguousUserError:
+            if instance.name in mapping:
+                return mapping[instance.name]
+            raise
 
 
 class Node(allegedb.graph.Node, rule.RuleFollower):
