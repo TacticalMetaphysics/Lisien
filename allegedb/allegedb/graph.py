@@ -907,19 +907,17 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
         proper Successors object for storage
 
         """
-        created = orig in self
         r = self._getsucc(orig)
         r.clear()
         r.update(val)
-        if created:
-            self.created.send(self, key=orig, val=val)
+        self.send(self, key=orig, val=val)
 
     def __delitem__(self, orig):
         """Disconnect this node from everything"""
         succs = self._getsucc(orig)
         succs.clear()
         del self._cache[orig]
-        self.deleted.send(self, key=orig)
+        self.send(self, key=orig, val=None)
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""
@@ -952,16 +950,14 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
             between my ``orig`` and the given ``dest``
 
             """
-            created = dest not in self
             self[dest].update(val)
-            if created:
-                self.created.send(self, key=dest, val=val)
+            self.send(self, key=dest, val=val)
 
         def __delitem__(self, dest):
             """Delete all edges between my ``orig`` and the given ``dest``"""
             self[dest].clear()
             del self._multedge[dest]
-            self.deleted.send(self, key=dest)
+            self.send(self, key=dest, val=None)
 
 
 class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
@@ -973,14 +969,12 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
             return MultiEdges(self.graph, orig, self.dest)
 
         def __setitem__(self, orig, val):
-            created = orig not in self
             self[orig].update(val)
-            if created:
-                self.created.send(self, key=orig, val=val)
+            self.send(self, key=orig, val=val)
 
         def __delitem__(self, orig):
             self[orig].clear()
-            self.deleted.send(self, key=orig)
+            self.send(self, key=orig, val=None)
 
 
 class AllegedGraph(object):
