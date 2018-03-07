@@ -6,6 +6,7 @@ from blinker import Signal
 from collections import MutableMapping, defaultdict
 from operator import attrgetter
 from itertools import chain
+from abc import ABC
 from .wrap import DictWrapper, ListWrapper
 
 
@@ -34,7 +35,7 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     )
 
 
-class AllegedMapping(MutableMapping, Signal):
+class AllegedMapping(MutableMapping, Signal, ABC):
     """Common amenities for mappings"""
     def clear(self):
         """Delete everything"""

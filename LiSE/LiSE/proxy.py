@@ -31,6 +31,9 @@ from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
 from LiSE.node import NodeContent, UserMapping, UserDescriptor
+from LiSE.place import Place
+from LiSE.thing import Thing
+from LiSE.portal import Portal
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -253,6 +256,9 @@ class PlaceProxy(NodeProxy):
         )
 
 
+Place.register(PlaceProxy)
+
+
 class ThingProxy(NodeProxy):
     @property
     def location(self):
@@ -410,6 +416,9 @@ class ThingProxy(NodeProxy):
         )
 
 
+Thing.register(ThingProxy)
+
+
 class PortalProxy(CachingEntityProxy):
     rulebook = RulebookProxyDescriptor()
 
@@ -514,6 +523,9 @@ class PortalProxy(CachingEntityProxy):
 
     def delete(self):
         self.engine.del_portal(self._charname, self._origin, self._destination)
+
+
+Portal.register(PortalProxy)
 
 
 class NodeMapProxy(MutableMapping, Signal):
