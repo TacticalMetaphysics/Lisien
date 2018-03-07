@@ -2,6 +2,7 @@
 # Copyright (C) Zachary Spector. zacharyspector@gmail.com
 from collections import MutableMapping, MutableSequence
 from copy import deepcopy as deepcopy_base
+from functools import partial
 
 
 class CoreDictWrapper(MutableMapping):
@@ -96,50 +97,65 @@ class DictWrapper(MutableMapping, dict):
     edge), for when the user stores a dictionary in them.
 
     """
-    __slots__ = ['_outer', '_key', '_inner', '_v']
+    __slots__ = ['_getter', '_setter', '_outer', '_key', '_inner', '_v']
 
-    def __init__(self, outer, key, initval):
+    def __init__(self, getter, setter, outer, key, initval=None):
+        if initval:
+            if not isinstance(initval, dict):
+                raise TypeError("DictWrapper only wraps dicts")
+            setter(initval)
+        else:
+            setter({})
+        self._getter = getter
+        self._setter = setter
         self._outer = outer
         self._key = key
         self._inner = CoreDictWrapper(outer, key)
-        self._v = initval
-        if not isinstance(self._v, dict):
-            raise TypeError(
-                "DictWrapper only wraps dicts"
-            )
 
     def _get(self, k=None):
         if k is None:
-            return self._v
-        return self._v[k]
+            return self._getter()
+        return self._getter()[k]
 
     def __iter__(self):
-        return iter(self._v)
+        return iter(self._getter())
 
     def __len__(self):
-        return len(self._v)
+        return len(self._getter())
 
     def __eq__(self, other):
-        return self._v == other
+        return self._getter() == other
+
+    def _subget(self, k, subk):
+        return self._getter()[k][subk]
+
+    def _subset(self, k, subk, v):
+        new = dict(self._getter())
+        new[k][subk] = v
+        self._setter(new)
 
     def __getitem__(self, k):
-        r = self._v[k]
+        r = self._getter()[k]
         if isinstance(r, dict):
-            return DictWrapper(self, k, r)
+            return DictWrapper(partial(self._subget, k), partial(self._subset, k), self, k, r)
         if isinstance(r, list):
-            return ListWrapper(self, k, r)
+            return ListWrapper(partial(self._subget, k), partial(self._subset, k), self, k, r)
         return r
 
     def __setitem__(self, k, v):
-        self._v[k] = v
-        self._outer[self._key] = self._v
+        new = dict(self._getter())
+        new[k] = v
+        self._setter(new)
+        self._inner[k] = v
 
     def __delitem__(self, k):
         del self._inner[k]
-        del self._v[k]
+        new = self._getter()
+        del new[k]
+        self._setter(new)
 
     def __repr__(self):
-        return repr(self._v)
+        return repr(self._getter())
 
 
 class ListWrapper(MutableSequence, list):
@@ -150,47 +166,64 @@ class ListWrapper(MutableSequence, list):
 
     """
 
-    __slots__ = ['_inner', '_v']
+    __slots__ = ['_getter', '_setter', '_inner']
 
-    def __init__(self, outer, key, initval=None):
+    def __init__(self, getter, setter, outer, key, initval=None):
+        if initval:
+            if not isinstance(initval, list):
+                raise TypeError("ListWrapper only wraps lists")
+            setter(initval)
+        else:
+            setter([])
         self._inner = CoreListWrapper(outer, key)
-        self._v = initval
-        if not isinstance(self._v, list):
-            raise TypeError(
-                "ListWrapper only wraps lists"
-            )
+        self._getter = getter
+        self._setter = setter
 
     def __iter__(self):
-        return iter(self._v)
+        return iter(self._getter())
 
     def __len__(self):
-        return len(self._v)
+        return len(self._getter())
 
     def __eq__(self, other):
-        return self._v == other
+        return self._getter() == other
+
+    def _subget(self, i, j):
+        return self._getter()[i][j]
+
+    def _subset(self, i, j, v):
+        new = list(self._getter())
+        new[i][j] = v
+        self._setter(new)
 
     def __getitem__(self, i):
-        r = self._v[i]
+        r = self._getter()[i]
         if isinstance(r, dict):
-            return DictWrapper(self, i, r)
+            return DictWrapper(partial(self._subget, i), partial(self._subset, i), self, i, r)
         if isinstance(r, list):
-            return ListWrapper(self, i, r)
+            return ListWrapper(partial(self._subget, i), partial(self._subset, i), self, i, r)
         return r
 
     def __setitem__(self, i, v):
         self._inner[i] = v
-        self._v[i] = v
+        new = list(self._getter())
+        new[i] = v
+        self._setter(new)
 
     def __delitem__(self, i, v):
         del self._inner[i]
-        del self._v[i]
+        new = list(self._getter())
+        del new[i]
+        self._setter(new)
 
     def insert(self, i, v):
         self._inner.insert(i, v)
-        self._v.insert(i, v)
+        new = list(self._getter())
+        new.insert(i, v)
+        self._setter(new)
 
     def __repr__(self):
-        return repr(self._v)
+        return repr(self._getter())
 
 
 def deepcopy(obj):
@@ -203,7 +236,7 @@ def deepcopy(obj):
             isinstance(v, DictWrapper) or
             isinstance(v, ListWrapper)
         ):
-            r[k] = deepcopy_base(v._v)
+            r[k] = deepcopy_base(v._getter())
         else:
             r[k] = deepcopy_base(v)
     return r

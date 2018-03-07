@@ -157,6 +157,32 @@ class StorageTest(AllegedTest):
             self.engine.del_graph('testgraph')
 
 
+class DictStorageTest(AllegedTest):
+    """Make sure the dict wrapper works"""
+    def runTest(self):
+        for i, graphmaker in enumerate(self.graphmakers):
+            self.engine.turn = i
+            g = graphmaker('testgraph')
+            g.add_node(0)
+            g.add_node(1)
+            g.add_edge(0, 1)
+            n = g.node[0]
+            e = g.edge[0][1]
+            if isinstance(e, allegedb.graph.MultiEdges):
+                e = e[0]
+            for entity in g.graph, n, e:
+                entity[0] = {'spam': 'eggs'}
+            self.engine.turn = i + 1
+            for entity in g.graph, n, e:
+                self.assertEqual(entity[0]['spam'], 'eggs')
+                entity[0]['spam'] = 'ham'
+                self.assertEqual(entity[0]['spam'], 'ham')
+            self.engine.turn = i
+            for entity in g.graph, n, e:
+                self.assertEqual(entity[0]['spam'], 'eggs')
+            self.engine.del_graph('testgraph')
+
+
 class CompiledQueriesTest(AllegedTest):
     def runTest(self):
         """Make sure that the queries generated in SQLAlchemy are the same as

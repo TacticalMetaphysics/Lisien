@@ -8,6 +8,7 @@ from operator import attrgetter
 from itertools import chain
 from abc import ABC
 from .wrap import DictWrapper, ListWrapper
+from functools import partial
 
 
 class EntityCollisionError(ValueError):
@@ -58,6 +59,9 @@ class AbstractEntityMapping(AllegedMapping):
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
 
+    def _get_cache_now(self, key):
+        return self._get_cache(key, *self.db.btt())
+
     def _cache_contains(self, key, branch, turn, tick):
         raise NotImplementedError
 
@@ -67,6 +71,10 @@ class AbstractEntityMapping(AllegedMapping):
 
     def _set_cache(self, key, branch, turn, tick, value):
         raise NotImplementedError
+
+    def _set_cache_now(self, key, value):
+        branch, turn, tick = self.db.btt()
+        self._set_cache(key, branch, turn, tick, value)
 
     def _del_db(self, key, branch, turn, tick):
         """Delete a key from the database (not the cache)."""
@@ -82,13 +90,13 @@ class AbstractEntityMapping(AllegedMapping):
         """
         def wrapval(v):
             if isinstance(v, list):
-                return ListWrapper(self, key, v)
+                return ListWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key, v)
             elif isinstance(v, dict):
-                return DictWrapper(self, key, v)
+                return DictWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key, v)
             else:
                 return v
 
-        return wrapval(self._get_cache(key, *self.db.btt()))
+        return wrapval(self._get_cache_now(key))
 
     def __contains__(self, item):
         return self._cache_contains(item, *self.db.btt())

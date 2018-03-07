@@ -93,9 +93,9 @@ class CachingProxy(MutableMapping, Signal):
 class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
         if isinstance(v, dict):
-            return DictWrapper(self, k, v)
+            return DictWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k, v)
         elif isinstance(v, list):
-            return ListWrapper(self, k, v)
+            return ListWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k, v)
         return v
 
     def __repr__(self):
