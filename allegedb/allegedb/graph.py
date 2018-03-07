@@ -33,7 +33,7 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     )
 
 
-class NeatMapping(MutableMapping):
+class AllegedMapping(MutableMapping, Signal):
     """Common amenities for mappings"""
     def clear(self):
         """Delete everything"""
@@ -52,7 +52,7 @@ class NeatMapping(MutableMapping):
                 self[k] = v
 
 
-class AbstractEntityMapping(NeatMapping, Signal):
+class AbstractEntityMapping(AllegedMapping):
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
 
@@ -332,7 +332,7 @@ class Edge(AbstractEntityMapping):
         )
 
 
-class GraphNodeMapping(NeatMapping, Signal):
+class GraphNodeMapping(AllegedMapping):
     """Mapping for nodes in a graph"""
     db = getatt('graph.db')
 
@@ -435,7 +435,7 @@ class GraphNodeMapping(NeatMapping, Signal):
         return True
 
 
-class GraphEdgeMapping(NeatMapping, Signal):
+class GraphEdgeMapping(AllegedMapping):
     """Provides an adjacency mapping and possibly a predecessor mapping
     for a graph.
 
