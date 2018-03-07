@@ -923,13 +923,16 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""
+
+        def __init__(self, container, orig):
+            super().__init__(container, orig)
+            self._multedge = {}
+
         def _order_nodes(self, dest):
             if dest < self.orig:
                 return(dest, self.orig)
             else:
                 return (self.orig, dest)
-
-        _multedge = {}
 
         def _get_multedge(self, dest):
             if dest not in self._multedge:
