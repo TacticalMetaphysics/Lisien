@@ -171,17 +171,103 @@ class DictStorageTest(AllegedTest):
             if isinstance(e, allegedb.graph.MultiEdges):
                 e = e[0]
             for entity in g.graph, n, e:
-                entity[0] = {'spam': 'eggs'}
+                entity[0] = {'spam': 'eggs', 'ham': {'baked beans': 'delicious'}, 'qux': ['quux', 'quuux'],
+                             'clothes': {'hats', 'shirts', 'pants'}}
             self.engine.turn = i + 1
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0]['spam'], 'eggs')
                 entity[0]['spam'] = 'ham'
                 self.assertEqual(entity[0]['spam'], 'ham')
+                self.assertEqual(entity[0]['ham'], {'baked beans': 'delicious'})
+                entity[0]['ham']['baked beans'] = 'disgusting'
+                self.assertEqual(entity[0]['ham'], {'baked beans': 'disgusting'})
+                self.assertEqual(entity[0]['qux'], ['quux', 'quuux'])
+                entity[0]['qux'] = ['quuux', 'quux']
+                self.assertEqual(entity[0]['qux'], ['quuux', 'quux'])
+                self.assertEqual(entity[0]['clothes'], {'hats', 'shirts', 'pants'})
+                entity[0]['clothes'].remove('hats')
+                self.assertEqual(entity[0]['clothes'], {'shirts', 'pants'})
             self.engine.turn = i
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0]['spam'], 'eggs')
+                self.assertEqual(entity[0]['ham'], {'baked beans': 'delicious'})
+                self.assertEqual(entity[0]['qux'], ['quux', 'quuux'])
+                self.assertEqual(entity[0]['clothes'], {'hats', 'shirts', 'pants'})
             self.engine.del_graph('testgraph')
 
+
+class ListStorageTest(AllegedTest):
+    """Make sure the list wrapper works"""
+
+    def runTest(self):
+        for i, graphmaker in enumerate(self.graphmakers):
+            self.engine.turn = i
+            g = graphmaker('testgraph')
+            g.add_node(0)
+            g.add_node(1)
+            g.add_edge(0, 1)
+            n = g.node[0]
+            e = g.edge[0][1]
+            if isinstance(e, allegedb.graph.MultiEdges):
+                e = e[0]
+            for entity in g.graph, n, e:
+                entity[0] = ['spam', ('eggs', 'ham'), {'baked beans': 'delicious'}, ['qux', 'quux', 'quuux'],
+                             {'hats', 'shirts', 'pants'}]
+            self.engine.turn = i + 1
+            for entity in g.graph, n, e:
+                self.assertEqual(entity[0][0], 'spam')
+                entity[0][0] = 'eggplant'
+                self.assertEqual(entity[0][0], 'eggplant')
+                self.assertEqual(entity[0][1], ('eggs', 'ham'))
+                entity[0][1] = ('ham', 'eggs')
+                self.assertEqual(entity[0][1], ('ham', 'eggs'))
+                self.assertEqual(entity[0][2], {'baked beans': 'delicious'})
+                entity[0][2]['refried beans'] = 'deliciouser'
+                self.assertEqual(entity[0][2], {'baked beans': 'delicious', 'refried beans': 'deliciouser'})
+                self.assertEqual(entity[0][3], ['qux', 'quux', 'quuux'])
+                entity[0][3].pop()
+                self.assertEqual(entity[0][3], ['qux', 'quux'])
+                self.assertEqual(entity[0][4], {'hats', 'shirts', 'pants'})
+                entity[0][4].discard('shame')
+                entity[0][4].remove('pants')
+                entity[0][4].add('sun')
+                self.assertEqual(entity[0][4], {'hats', 'shirts', 'sun'})
+            self.engine.turn = i
+            for entity in g.graph, n, e:
+                self.assertEqual(entity[0][0], 'spam')
+                self.assertEqual(entity[0][1], ('eggs', 'ham'))
+                self.assertEqual(entity[0][2], {'baked beans': 'delicious'})
+                self.assertEqual(entity[0][3], ['qux', 'quux', 'quuux'])
+                self.assertEqual(entity[0][4], {'hats', 'shirts', 'pants'})
+            self.engine.del_graph('testgraph')
+
+
+class SetStorageTest(AllegedTest):
+    """Make sure the set wrapper works"""
+
+    def runTest(self):
+        for i, graphmaker in enumerate(self.graphmakers):
+            self.engine.turn = i
+            g = graphmaker('testgraph')
+            g.add_node(0)
+            g.add_node(1)
+            g.add_edge(0, 1)
+            n = g.node[0]
+            e = g.edge[0][1]
+            if isinstance(e, allegedb.graph.MultiEdges):
+                e = e[0]
+            for entity in g.graph, n, e:
+                entity[0] = set(range(10))
+            self.engine.turn = i + 1
+            for entity in g.graph, n, e:
+                self.assertEqual(entity[0], set(range(10)))
+                for j in range(0, 12, 2):
+                    entity[0].discard(j)
+                self.assertEqual(entity[0], {1, 3, 5, 7, 9})
+            self.engine.turn = i
+            for entity in g.graph, n, e:
+                self.assertEqual(entity[0], set(range(10)))
+            self.engine.del_graph('testgraph')
 
 class CompiledQueriesTest(AllegedTest):
     def runTest(self):

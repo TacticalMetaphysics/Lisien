@@ -7,7 +7,7 @@ from collections import MutableMapping, defaultdict
 from operator import attrgetter
 from itertools import chain
 from abc import ABC
-from .wrap import DictWrapper, ListWrapper
+from .wrap import DictWrapper, ListWrapper, SetWrapper
 from functools import partial
 
 
@@ -73,7 +73,7 @@ class AbstractEntityMapping(AllegedMapping):
         raise NotImplementedError
 
     def _set_cache_now(self, key, value):
-        branch, turn, tick = self.db.btt()
+        branch, turn, tick = self.db.nbtt()
         self._set_cache(key, branch, turn, tick, value)
 
     def _del_db(self, key, branch, turn, tick):
@@ -90,9 +90,11 @@ class AbstractEntityMapping(AllegedMapping):
         """
         def wrapval(v):
             if isinstance(v, list):
-                return ListWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key, v)
+                return ListWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
             elif isinstance(v, dict):
-                return DictWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key, v)
+                return DictWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
+            elif isinstance(v, set):
+                return SetWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
             else:
                 return v
 
