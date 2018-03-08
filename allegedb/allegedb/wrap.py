@@ -210,7 +210,7 @@ class ListWrapper(MutableSequence, list):
         new[i] = v
         self._setter(new)
 
-    def __delitem__(self, i, v):
+    def __delitem__(self, i):
         del self._inner[i]
         new = list(self._getter())
         del new[i]
