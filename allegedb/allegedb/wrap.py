@@ -19,6 +19,14 @@ class MutableWrapper:
     def __eq__(self, other):
         return self._getter() == other
 
+    def __repr__(self):
+        return "<{} instance at {}, wrapping {}>".format(
+            self.__class__.__name__, id(self), self._getter()
+        )
+
+    def __str__(self):
+        return str(self._getter())
+
 
 Iterable.register(MutableWrapper)
 Sized.register(MutableWrapper)
