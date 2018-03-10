@@ -995,6 +995,8 @@ class AllegedGraph(object):
     """
     _succs = {}
     _statmaps = {}
+    graph_map_cls = GraphMapping
+    node_map_cls = GraphNodeMapping
 
     def __new__(cls, db, name, data=None, **attr):
         if name in db._graph_objs:
@@ -1017,8 +1019,8 @@ class AllegedGraph(object):
 
     @property
     def graph(self):
-        if self._name not in self._statmaps:
-            self._statmaps[id(self)] = GraphMapping(self)
+        if id(self) not in self._statmaps:
+            self._statmaps[id(self)] = self.graph_map_cls(self)
         return self._statmaps[id(self)]
 
     @graph.setter
@@ -1030,8 +1032,8 @@ class AllegedGraph(object):
 
     @property
     def node(self):
-        if self._name not in self._nodemaps:
-            self._nodemaps[id(self)] = GraphNodeMapping(self)
+        if id(self) not in self._nodemaps:
+            self._nodemaps[id(self)] = self.node_map_cls(self)
         return self._nodemaps[id(self)]
 
     @node.setter
