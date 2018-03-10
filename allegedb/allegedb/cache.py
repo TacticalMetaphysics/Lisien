@@ -552,9 +552,12 @@ class PickyDefaultDict(dict):
             raise KeyError
         return ret
 
+    def _create(self, v):
+        return self.type(v)
+
     def __setitem__(self, k, v):
         if not isinstance(v, self.type):
-            v = self.type(v)
+            v = self._create(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
 

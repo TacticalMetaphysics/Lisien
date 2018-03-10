@@ -10,6 +10,7 @@ entity in the LiSE core.
 import sys
 import logging
 from os import getpid
+from abc import abstractmethod
 from random import Random
 from collections import (
     Mapping,
@@ -24,7 +25,7 @@ from blinker import Signal
 
 from allegedb.cache import HistoryError
 from .engine import AbstractEngine
-from .character import Facade
+from .character import Facade, AbstractCharacter
 from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper
 from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
@@ -56,11 +57,11 @@ class CachingProxy(MutableMapping, Signal):
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
-        return self._cache[k]
+        return self._cache_get_munge(k, self._cache[k])
 
     def __setitem__(self, k, v):
         self._set_item(k, v)
-        self._cache[k] = self._cache_munge(k, v)
+        self._cache[k] = self._cache_set_munge(k, v)
         self.send(self, key=k, value=v)
 
     def __delitem__(self, k):
@@ -80,24 +81,29 @@ class CachingProxy(MutableMapping, Signal):
                 self._cache[k] = v
                 self.send(self, key=k, value=v)
 
-    def _cache_munge(self, k, v):
-        raise NotImplementedError("Abstract method")
+    def _cache_get_munge(self, k, v):
+        return v
 
+    def _cache_set_munge(self, k, v):
+        return v
+
+    @abstractmethod
     def _set_item(self, k, v):
         raise NotImplementedError("Abstract method")
 
+    @abstractmethod
     def _del_item(self, k):
         raise NotImplementedError("Abstract method")
 
 
 class CachingEntityProxy(CachingProxy):
-    def _cache_munge(self, k, v):
+    def _cache_get_munge(self, k, v):
         if isinstance(v, dict):
-            return DictWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k)
+            return DictWrapper(lambda: self._cache[k], partial(self._set_item, k), self, k)
         elif isinstance(v, list):
-            return ListWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k)
+            return ListWrapper(lambda: self._cache[k], partial(self._set_item, k), self, k)
         elif isinstance(v, set):
-            return SetWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k)
+            return SetWrapper(lambda: self._cache[k], partial(self._set_item, k), self, k)
         return v
 
     def __repr__(self):
@@ -638,7 +644,7 @@ class ThingMapProxy(CachingProxy):
     def __eq__(self, other):
         return self is other
 
-    def _cache_munge(self, k, v):
+    def _cache_set_munge(self, k, v):
         return ThingProxy(
             self, *self.engine.handle(
                 'get_thing_special_stats', char=self.name, thing=k
@@ -708,10 +714,8 @@ class PlaceMapProxy(CachingProxy):
     def __eq__(self, other):
         return self is other
 
-    def _cache_munge(self, k, v):
-        return PlaceProxy(
-            self.engine, self.name, k
-        )
+    def _cache_set_munge(self, k, v):
+        return PlaceProxy(self, k)
 
     def _set_item(self, k, v):
         self.engine.handle(
@@ -770,17 +774,12 @@ class SuccessorsProxy(CachingProxy):
             "Apply the delta on CharSuccessorsMappingProxy"
         )
 
-    def _cache_munge(self, k, v):
+    def _cache_set_munge(self, k, v):
         if isinstance(v, PortalProxy):
             assert v._origin == self._orig
             assert v._destination == k
             return v
-        return PortalProxy(
-            self.engine,
-            self._charname,
-            self._orig,
-            k
-        )
+        return PortalProxy(self, self._orig, k)
 
     def _set_item(self, dest, value):
         self.engine.handle(
@@ -835,9 +834,9 @@ class CharSuccessorsMappingProxy(CachingProxy):
             other.name == self.name
         )
 
-    def _cache_munge(self, k, v):
+    def _cache_set_munge(self, k, v):
         return {
-            vk: PortalProxy(self.engine, self.name, vk, vv)
+            vk: PortalProxy(self, vk, vv)
             for (vk, vv) in v.items()
         }
 
@@ -1248,7 +1247,7 @@ class AvatarMapProxy(Mapping):
                 return getattr(next(iter(vals)), attr)
 
 
-class CharacterProxy(MutableMapping):
+class CharacterProxy(AbstractCharacter):
     rulebook = RulebookProxyDescriptor()
 
     def _get_default_rulebook_name(self):
@@ -1270,19 +1269,30 @@ class CharacterProxy(MutableMapping):
     def avatar(self):
         return AvatarMapProxy(self)
 
+    @staticmethod
+    def PortalSuccessorsMapping(self):
+        return CharSuccessorsMappingProxy(self.engine, self.name)
+
+    @staticmethod
+    def PortalPredecessorsMapping(self):
+        return CharPredecessorsMappingProxy(self.engine, self.name)
+
+    @staticmethod
+    def ThingMapping(self):
+        return ThingMapProxy(self.engine, self.name)
+
+    @staticmethod
+    def PlaceMapping(self):
+        return PlaceMapProxy(self.engine, self.name)
+
+    @staticmethod
+    def ThingPlaceMapping(self):
+        return NodeMapProxy(self.engine, self.name)
+
     def __init__(self, engine_proxy, charname):
-        self.engine = engine_proxy
+        self.db = engine_proxy
         self.name = charname
-        self.adj = self.succ = self.portal = CharSuccessorsMappingProxy(
-            self.engine, self.name
-        )
-        self.pred = self.preportal = CharPredecessorsMappingProxy(
-            self.engine, self.name
-        )
-        self.thing = ThingMapProxy(self.engine, self.name)
-        self.place = PlaceMapProxy(self.engine, self.name)
-        self.node = NodeMapProxy(self.engine, self.name)
-        self.stat = CharStatProxy(self.engine, self.name)
+        self.graph = CharStatProxy(self.engine, self.name)
 
     def __bool__(self):
         return True
@@ -1297,34 +1307,6 @@ class CharacterProxy(MutableMapping):
             hasattr(other, 'name') and
             self.name == other.name
         )
-
-    def __iter__(self):
-        yield from self.engine.handle(
-            command='character_nodes',
-            char=self.name
-        )
-
-    def __len__(self):
-        return self.engine.handle(
-            command='character_nodes_len',
-            char=self.name
-        )
-
-    def __contains__(self, k):
-        if k == 'name':
-            return True
-        return k in self.node
-
-    def __getitem__(self, k):
-        if k == 'name':
-            return self.name
-        return self.node[k]
-
-    def __setitem__(self, k, v):
-        self.node[k] = v
-
-    def __delitem__(self, k):
-        del self.node[k]
 
     def _apply_delta(self, delta):
         delta = delta.copy()
@@ -1472,12 +1454,7 @@ class CharacterProxy(MutableMapping):
             self.name,
             origin,
             destination,
-            PortalProxy(
-                self.engine,
-                self.name,
-                origin,
-                destination
-            )
+            PortalProxy(self, origin, destination)
         )
 
     def add_portals_from(self, seq, symmetrical=False):
@@ -1847,6 +1824,16 @@ class PortalObjCache(object):
     def delete(self, char, u, v):
         del self.successors[char][u][v]
         del self.predecessors[char][v][u]
+
+    def delete_char(self, char):
+        charsucs = self.successors[char]
+        charpreds = self.predecessors[char]
+        us = list(charsucs)
+        vs = list(charpreds)
+        for u in us:
+            del charsucs[u]
+        for v in vs:
+            del charpreds[v]
 
 
 class TimeSignal(Signal):
@@ -2234,7 +2221,7 @@ class EngineProxy(AbstractEngine):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         r = self.unpack(result)
-        if branch != self._branch:
+        if (branch, turn, tick) != (self._branch, self._turn, self._tick):
             self._branch = branch
             self._turn = turn
             self._tick = tick
@@ -2366,7 +2353,7 @@ class EngineProxy(AbstractEngine):
             raise TypeError("Callbacks require chars")
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
-        if chars and cb:
+        if chars:
             args = [self._set_time, self._upd_caches]
             if cb:
                 args.append(cb)
@@ -2402,14 +2389,14 @@ class EngineProxy(AbstractEngine):
         if char in self._char_cache:
             raise KeyError("Character already exists")
         assert char not in self._char_stat_cache
-        self._char_cache[char] = CharacterProxy(self, char)
+        self._char_cache[char] = character = CharacterProxy(self, char)
         self._char_stat_cache[char] = attr
         placedata = data.get('place', data.get('node', {}))
         for place, stats in placedata.items():
             assert place not in self._character_places_cache[char]
             assert place not in self._node_stat_cache[char]
             self._character_places_cache[char][place] \
-                = PlaceProxy(self.engine,  char,  place)
+                = PlaceProxy(character,  place)
             self._node_stat_cache[char][place] = stats
         thingdata = data.get('thing',  {})
         for thing, stats in thingdata.items():
@@ -2452,7 +2439,7 @@ class EngineProxy(AbstractEngine):
         del self._char_stat_cache[char]
         del self._character_places_cache[char]
         del self._things_cache[char]
-        del self._character_portals_cache[char]
+        self._character_portals_cache.delete_char(char)
         self.handle(command='del_character', char=char, block=False, branching=True)
     del_graph = del_character
 
@@ -2525,7 +2512,7 @@ def subprocess(
         instruction = engine_handle.unpack(inst)
         silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
-        log('command', (cmd, instruction))
+        #log('command', (cmd, instruction))
 
         branching = instruction.pop('branching', False)
         if branching:
@@ -2538,7 +2525,7 @@ def subprocess(
             r = getattr(engine_handle, cmd)(**instruction)
         if silent:
             continue
-        log('result', r)
+        #log('result', r)
         handle_in_pipe.send((
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
             engine_handle.pack(r)

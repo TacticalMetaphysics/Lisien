@@ -24,6 +24,7 @@ and their node in the physical world is an avatar of it.
 
 """
 
+from abc import abstractmethod
 from collections import (
     Mapping,
     MutableMapping,
@@ -54,7 +55,7 @@ from .query import StatusAlias
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 
 
-class AbstractCharacter(object):
+class AbstractCharacter(MutableMapping):
 
     """The Character API, with all requisite mappings and graph generators.
 
@@ -69,11 +70,44 @@ class AbstractCharacter(object):
     """
     engine = getatt('db')
 
+    @abstractmethod
+    def add_place(self, name, **kwargs): pass
+
+    def add_node(self, name, **kwargs):
+        self.add_place(name, **kwargs)
+
+    @abstractmethod
+    def add_thing(self, name, **kwargs): pass
+
+    @abstractmethod
+    def add_portal(self, orig, dest, symmetrical=False, **kwargs): pass
+
+    def add_edge(self, orig, dest, **kwargs):
+        self.add_portal(orig, dest, **kwargs)
+
+    @abstractmethod
+    def add_avatar(self, a, b=None): pass
+
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
 
-    def __hash__(self):
-        return hash(self.name)
+    def __iter__(self):
+        return iter(self.node)
+
+    def __len__(self):
+        return len(self.node)
+
+    def __contains__(self, k):
+        return k in self.node
+
+    def __getitem__(self, k):
+        return self.node[k]
+
+    def __setitem__(self, k, v):
+        self.node[k] = v
+
+    def __delitem__(self, k):
+        del self.node[k]
 
     @reify
     def thing(self):
@@ -1167,7 +1201,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
             self.send(self, key=k, val=None)
 
 
-class Character(AbstractCharacter, DiGraph, RuleFollower):
+class Character(DiGraph, AbstractCharacter, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
@@ -1404,6 +1438,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
                 del self.character.thing[k]
             else:
                 del self.character.place[k]
+    node_map_cls = ThingPlaceMapping
 
     class PortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
         """Mapping of nodes that have at least one outgoing edge.
@@ -1480,6 +1515,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
             def __delitem__(self, dest):
                 self[dest].delete()
+    adj_cls = PortalSuccessorsMapping
 
     class PortalPredecessorsMapping(
             DiGraphPredecessorsMapping,
@@ -1497,16 +1533,17 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             """Mapping of possible origins from some destination."""
             def __setitem__(self, orig, value):
                 key = (self.graph.name, orig, self.dest)
-                if key not in self.engine._portal_objs:
-                    self.engine._portal_objs[key] = Portal(
+                if key not in self.db._portal_objs:
+                    self.db._portal_objs[key] = Portal(
                         self.graph,
                         orig,
                         self.dest
                     )
-                p = self.engine._portal_objs[key]
+                p = self.db._portal_objs[key]
                 p.clear()
                 p.update(value)
                 p.engine._exist_edge(self.graph.name, self.dest, orig)
+    pred_cls = PortalPredecessorsMapping
 
     class AvatarGraphMapping(Mapping, RuleFollower):
         """A mapping of other characters in which one has an avatar.
@@ -1666,7 +1703,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
     def facade(self):
         return Facade(self)
 
-    def add_node(self, n, **kwargs):
+    def add_place(self, n, **kwargs):
         super().add_node(n, **kwargs)
 
         def init_store_node_rulebook():
@@ -1689,7 +1726,6 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
 
         init_store_node_rulebook()
         init_store_rulebook()
-    add_place = add_node
 
     def add_places_from(self, seq):
         """Take a series of place names and add the lot."""
@@ -1783,7 +1819,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
             origin = origin.name
         if isinstance(destination, Node):
             destination = destination.name
-        super(Character, self).add_edge(origin, destination, **kwargs)
+        super().add_edge(origin, destination, **kwargs)
         if symmetrical:
             self.add_portal(destination, origin, is_mirror=True)
 
@@ -1793,7 +1829,7 @@ class Character(AbstractCharacter, DiGraph, RuleFollower):
         if isinstance(destination, Node):
             destination = destination.name
         self.add_portal(origin, destination, symmetrical, **kwargs)
-        return self.engine._portal_objs[(self.name, origin, destination)]
+        return self.engine._edge_objs[self.name, origin, destination, 0]
 
     def add_portals_from(self, seq, symmetrical=False):
         """Take a sequence of (origin, destination) pairs and make a
