@@ -2443,6 +2443,7 @@ class EngineProxy(AbstractEngine):
     def new_character(self, char, **attr):
         self.add_character(char, **attr)
         return self._char_cache[char]
+    new_graph = new_character
 
     def del_character(self, char):
         if char not in self._char_cache:
@@ -2453,6 +2454,7 @@ class EngineProxy(AbstractEngine):
         del self._things_cache[char]
         del self._character_portals_cache[char]
         self.handle(command='del_character', char=char, block=False, branching=True)
+    del_graph = del_character
 
     def del_node(self, char, node):
         if char not in self._char_cache:
