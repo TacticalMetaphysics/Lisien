@@ -350,7 +350,7 @@ class CharacterMapping(MutableMapping, Signal):
         """Delete the named character from both the cache and the database."""
         if name in self.engine._graph_objs:
             del self.engine._graph_objs[name]
-        self.engine.query.del_character(name)
+        self.engine.query.del_graph(name)
         self.send(self, key=name, val=None)
 
 
