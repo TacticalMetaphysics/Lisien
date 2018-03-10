@@ -187,6 +187,12 @@ class GraphMapping(AbstractEntityMapping):
             branch, turn, tick
         )
 
+    def clear(self):
+        keys = list(self.keys())
+        keys.remove('name')
+        for k in keys:
+            del self[k]
+
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
