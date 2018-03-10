@@ -533,9 +533,10 @@ class AbstractSuccessors(GraphEdgeMapping):
         """Get the edge between my orig and the given node"""
         if dest not in self:
             raise KeyError("No edge {}->{}".format(self.orig, dest))
-        if dest not in self._cache:
-            self._cache[dest] = self._make_edge(dest)
-        return self._cache[dest]
+        key = self.graph.name, self.orig, dest, 0
+        if key not in self.db._edge_objs:
+            self.db._edge_objs[key] = self._make_edge(dest)
+        return self.db._edge_objs[key]
 
     def __setitem__(self, dest, value):
         """Set the edge between my orig and the given dest to the given
