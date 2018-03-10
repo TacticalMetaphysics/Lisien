@@ -134,7 +134,8 @@ class GraphMapping(AbstractEntityMapping):
         self.graph = graph
 
     def __iter__(self):
-        return self.db._graph_val_cache.iter_entity_keys(
+        yield 'name'
+        yield from self.db._graph_val_cache.iter_entity_keys(
             self.graph.name, *self.db.btt()
         )
 
@@ -144,9 +145,19 @@ class GraphMapping(AbstractEntityMapping):
         )
 
     def __len__(self):
-        return self.db._graph_val_cache.count_entities(
+        return 1 + self.db._graph_val_cache.count_entities(
             self.graph.name, *self.db.btt()
         )
+
+    def __getitem__(self, item):
+        if item == 'name':
+            return self.graph.name
+        return super().__getitem__(item)
+
+    def __setitem__(self, key, value):
+        if key == 'name':
+            raise KeyError("name cannot be changed after creation")
+        super().__setitem__(key, value)
 
     def _get_cache(self, key, branch, turn, tick):
         return self.db._graph_val_cache.retrieve(
