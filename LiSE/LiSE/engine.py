@@ -130,6 +130,7 @@ final_rule = FinalRule()
 
 MSGPACK_TUPLE = 0x00
 MSGPACK_FROZENSET = 0x01
+MSGPACK_SET = 0x02
 MSGPACK_CHARACTER = 0x7f
 MSGPACK_PLACE = 0x7e
 MSGPACK_THING = 0x7d
@@ -188,6 +189,9 @@ class AbstractEngine(object):
 
     def _pack_frozenset(self, frozs):
         return umsgpack.Ext(MSGPACK_FROZENSET, umsgpack.packb(list(frozs), ext_handlers=self._pack_handlers))
+
+    def _pack_set(self, s):
+        return umsgpack.Ext(MSGPACK_SET, umsgpack.packb(list(s), ext_handlers = self._pack_handlers))
 
     def _pack_func(self, func):
         return umsgpack.Ext({
@@ -276,6 +280,9 @@ class AbstractEngine(object):
     def _unpack_frozenset(self, ext):
         return frozenset(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
 
+    def _unpack_set(self, ext):
+        return set(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
+
     @reify
     def _unpack_handlers(self):
         return {
@@ -286,6 +293,7 @@ class AbstractEngine(object):
             MSGPACK_FINAL_RULE: lambda obj: final_rule,
             MSGPACK_TUPLE: self._unpack_tuple,
             MSGPACK_FROZENSET: self._unpack_frozenset,
+            MSGPACK_SET: self._unpack_set,
             MSGPACK_TRIGGER: self._unpack_trigger,
             MSGPACK_PREREQ: self._unpack_prereq,
             MSGPACK_ACTION: self._unpack_action,
@@ -302,6 +310,7 @@ class AbstractEngine(object):
             self.portal_cls: self._pack_portal,
             tuple: self._pack_tuple,
             frozenset: self._pack_frozenset,
+            set: self._pack_set,
             FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b""),
             FunctionType: self._pack_func,
             MethodType: self._pack_meth

@@ -25,7 +25,7 @@ from blinker import Signal
 from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade
-from allegedb.wrap import DictWrapper, ListWrapper
+from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper
 from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
@@ -93,9 +93,11 @@ class CachingProxy(MutableMapping, Signal):
 class CachingEntityProxy(CachingProxy):
     def _cache_munge(self, k, v):
         if isinstance(v, dict):
-            return DictWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k, v)
+            return DictWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k)
         elif isinstance(v, list):
-            return ListWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k, v)
+            return ListWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k)
+        elif isinstance(v, set):
+            return SetWrapper(partial(self.__getitem__, k), partial(self.__setitem__, k), self, k)
         return v
 
     def __repr__(self):
