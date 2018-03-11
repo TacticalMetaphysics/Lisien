@@ -2192,6 +2192,8 @@ class EngineProxy(AbstractEngine):
                 self._turn = turn
                 self._tick = tick
                 self.time.send(self, branch=branch, turn=turn, tick=tick)
+            if isinstance(r, Exception):
+                raise r
             if cb:
                 cb(command, branch, turn, tick, **r)
             return r
@@ -2515,14 +2517,22 @@ def subprocess(
         log('command', (cmd, instruction))
 
         branching = instruction.pop('branching', False)
-        if branching:
-            try:
+        try:
+            if branching:
+                try:
+                    r = getattr(engine_handle, cmd)(**instruction)
+                except HistoryError:
+                    engine_handle.increment_branch()
+                    r = getattr(engine_handle, cmd)(**instruction)
+            else:
                 r = getattr(engine_handle, cmd)(**instruction)
-            except HistoryError:
-                engine_handle.increment_branch()
-                r = getattr(engine_handle, cmd)(**instruction)
-        else:
-            r = getattr(engine_handle, cmd)(**instruction)
+        except Exception as e:
+            log('exception', repr(e))
+            handle_in_pipe.send((
+                cmd, engine_handle.branch, engine_handle.turn,engine_handle.tick,
+                engine_handle.pack(e)
+            ))
+            continue
         if silent:
             continue
         log('result', r)

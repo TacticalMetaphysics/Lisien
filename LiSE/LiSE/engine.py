@@ -43,6 +43,7 @@ from .cache import (
     CharacterRulesHandledCache,
     ThingsCache
 )
+import exc
 
 
 class NextTurn(Signal):
@@ -131,6 +132,7 @@ final_rule = FinalRule()
 MSGPACK_TUPLE = 0x00
 MSGPACK_FROZENSET = 0x01
 MSGPACK_SET = 0x02
+MSGPACK_EXCEPTION = 0x03
 MSGPACK_CHARACTER = 0x7f
 MSGPACK_PLACE = 0x7e
 MSGPACK_THING = 0x7d
@@ -192,6 +194,11 @@ class AbstractEngine(object):
 
     def _pack_set(self, s):
         return umsgpack.Ext(MSGPACK_SET, umsgpack.packb(list(s), ext_handlers = self._pack_handlers))
+
+    def _pack_exception(self, exc):
+        return umsgpack.Ext(MSGPACK_EXCEPTION, umsgpack.packb(
+            [exc.__class__.__name__] + list(exc.args), ext_handlers=self._pack_handlers
+        ))
 
     def _pack_func(self, func):
         return umsgpack.Ext({
@@ -283,6 +290,56 @@ class AbstractEngine(object):
     def _unpack_set(self, ext):
         return set(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
 
+    def _unpack_exception(self, ext):
+        excs = {
+            # builtin exceptions
+            'AssertionError': AssertionError,
+            'AttributeError': AttributeError,
+            'EOFError': EOFError,
+            'FloatingPointError': FloatingPointError,
+            'GeneratorExit': GeneratorExit,
+            'ImportError': ImportError,
+            'IndexError': IndexError,
+            'KeyError': KeyError,
+            'KeyboardInterrupt': KeyboardInterrupt,
+            'MemoryError': MemoryError,
+            'NameError': NameError,
+            'NotImplementedError': NotImplementedError,
+            'OSError': OSError,
+            'OverflowError': OverflowError,
+            'RecursionError': RecursionError,
+            'ReferenceError': ReferenceError,
+            'RuntimeError': RuntimeError,
+            'StopIteration': StopIteration,
+            'IndentationError': IndentationError,
+            'TabError': TabError,
+            'SystemError': SystemError,
+            'SystemExit': SystemExit,
+            'TypeError': TypeError,
+            'UnboundLocalError': UnboundLocalError,
+            'UnicodeError': UnicodeError,
+            'UnicodeEncodeError': UnicodeEncodeError,
+            'UnicodeDecodeError': UnicodeDecodeError,
+            'UnicodeTranslateError': UnicodeTranslateError,
+            'ValueError': ValueError,
+            'ZeroDivisionError': ZeroDivisionError,
+            # LiSE exceptions
+            'NonUniqueError': exc.NonUniqueError,
+            'AmbiguousAvatarError': exc.AmbiguousAvatarError,
+            'AmbiguousUserError': exc.AmbiguousUserError,
+            'RuleError': exc.RuleError,
+            'RedundantRuleError': exc.RedundantRuleError,
+            'UserFunctionError': exc.UserFunctionError,
+            'WorldIntegrityError': exc.WorldIntegrityError,
+            'CacheError': exc.CacheError,
+            'TravelException': exc.TravelException
+        }
+        data = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        if data[0] not in excs:
+            return Exception(*data)
+        return excs[data[0]](*data[1:])
+
+
     @reify
     def _unpack_handlers(self):
         return {
@@ -298,7 +355,8 @@ class AbstractEngine(object):
             MSGPACK_PREREQ: self._unpack_prereq,
             MSGPACK_ACTION: self._unpack_action,
             MSGPACK_FUNCTION: self._unpack_function,
-            MSGPACK_METHOD: self._unpack_method
+            MSGPACK_METHOD: self._unpack_method,
+            MSGPACK_EXCEPTION: self._unpack_exception
         }
 
     @reify
@@ -313,7 +371,8 @@ class AbstractEngine(object):
             set: self._pack_set,
             FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b""),
             FunctionType: self._pack_func,
-            MethodType: self._pack_meth
+            MethodType: self._pack_meth,
+            Exception: self._pack_exception
         }
 
     def pack(self, obj):
