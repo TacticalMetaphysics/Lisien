@@ -2512,7 +2512,7 @@ def subprocess(
         instruction = engine_handle.unpack(inst)
         silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
-        #log('command', (cmd, instruction))
+        log('command', (cmd, instruction))
 
         branching = instruction.pop('branching', False)
         if branching:
@@ -2525,7 +2525,7 @@ def subprocess(
             r = getattr(engine_handle, cmd)(**instruction)
         if silent:
             continue
-        #log('result', r)
+        log('result', r)
         handle_in_pipe.send((
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
             engine_handle.pack(r)
