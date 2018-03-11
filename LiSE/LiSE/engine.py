@@ -43,7 +43,7 @@ from .cache import (
     CharacterRulesHandledCache,
     ThingsCache
 )
-import exc
+from . import exc
 
 
 class NextTurn(Signal):
