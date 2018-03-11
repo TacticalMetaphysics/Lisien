@@ -2287,6 +2287,9 @@ class EngineProxy(AbstractEngine):
         self._tick = tick
         self.time.send(self, branch=branch, turn=turn, tick=tick)
 
+    def is_parent_of(self, parent, child):
+        return self.handle('is_parent_of', parent=parent, child=child)
+
     def _pull_async(self, chars, cb):
         if not callable(cb):
             raise TypeError("Uncallable callback")

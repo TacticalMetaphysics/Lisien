@@ -1106,3 +1106,6 @@ class EngineHandle(object):
 
     def do_game_start(self):
         self._real.game_start()
+
+    def is_parent_of(self, parent, child):
+        return self._real.is_parent_of(parent, child)
