@@ -1120,6 +1120,28 @@ class FacadePortalMapping(FacadeEntityMapping):
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
 
+    def add_place(self, name, **kwargs):
+        self.place[name] = kwargs
+
+    def add_node(self, name, **kwargs):
+        self.place[name] = kwargs
+
+    def add_thing(self, name, **kwargs):
+        self.thing[name] = kwargs
+
+    def add_portal(self, orig, dest, symmetrical=False, **kwargs):
+        self.portal[orig][dest] = kwargs
+        if symmetrical:
+            mirror = dict(kwargs)
+            mirror['is_mirror'] = True
+            self.portal[dst][orig] = mirror
+
+    def add_edge(self, orig, dest, **kwargs):
+        self.add_portal(orig, dest, **kwargs)
+
+    def add_avatar(self, a, b=None):
+        raise NotImplementedError("")
+
     def __init__(self, character):
         """Store the character."""
         self.character = character

@@ -105,7 +105,7 @@ class Pawn(PawnSpot):
         if self.next_loc_name != self.proxy['next_location']:
             self.next_loc_name = self.proxy['next_location']
             relocate = True
-        if self.priority != self.proxy['_priority']:
+        if '_priority' in self.proxy and self.priority != self.proxy['_priority']:
             self.priority = self.proxy['_priority']
         if relocate:
             self.relocate()
