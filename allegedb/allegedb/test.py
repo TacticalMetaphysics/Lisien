@@ -20,7 +20,7 @@ class AllegedTest(unittest.TestCase):
         self.graphmakers = (self.engine.new_graph, self.engine.new_digraph, self.engine.new_multigraph, self.engine.new_multidigraph)
 
 
-class GraphTest(AllegedTest):
+class AbstractGraphTest:
     def setUp(self):
         super().setUp()
         g = self.engine.new_graph('test')
@@ -65,7 +65,7 @@ class GraphTest(AllegedTest):
         self.engine.turn = 0
 
 
-class BranchLineageTest(GraphTest):
+class AbstractBranchLineageTest(AbstractGraphTest):
     def runTest(self):
         """Create some branches of history and check that allegedb remembers where
         each came from and what happened in each.
@@ -121,6 +121,10 @@ class BranchLineageTest(GraphTest):
         self.assertIn(1, g.node)
         self.assertIn(0, g.edge)
         self.assertIn(1, g.edge[0])
+
+
+class BranchLineageTest(AbstractGraphTest, AllegedTest):
+    pass
 
 
 class StorageTest(AllegedTest):

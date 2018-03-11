@@ -1,9 +1,8 @@
-from .proxy import EngineProcessManager
-import unittest
+from LiSE.proxy import EngineProcessManager
 import allegedb.test
 
 
-class ProxyTest(unittest.TestCase):
+class ProxyTest(allegedb.test.AllegedTest):
     def setUp(self):
         self.manager = EngineProcessManager()
         self.engine = self.manager.start('sqlite:///:memory:')
@@ -13,7 +12,11 @@ class ProxyTest(unittest.TestCase):
         self.manager.shutdown()
 
 
-class BranchLineageTest(ProxyTest, allegedb.test.BranchLineageTest):
+class ProxyGraphTest(allegedb.test.AbstractGraphTest, ProxyTest):
+    pass
+
+
+class BranchLineageTest(ProxyGraphTest, allegedb.test.AbstractBranchLineageTest):
     pass
 
 
