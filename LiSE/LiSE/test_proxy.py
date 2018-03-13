@@ -16,10 +16,6 @@ class ProxyGraphTest(allegedb.test.AbstractGraphTest, ProxyTest):
     pass
 
 
-class BranchLineageTest(ProxyGraphTest, allegedb.test.AbstractBranchLineageTest):
-    pass
-
-
 class DictStorageTest(ProxyTest, allegedb.test.DictStorageTest):
     pass
 
