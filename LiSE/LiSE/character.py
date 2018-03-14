@@ -875,7 +875,11 @@ class FacadeEntity(MutableMapping, Signal):
             raise KeyError("{} has been masked.".format(k))
         if k in self._patch:
             return self._patch[k]
-        return self._real[k]
+        ret = self._real[k]
+        if hasattr(ret, '_copy'):  # a wrapped mutable object from the allegedb.wrap module
+            ret = ret._copy()
+            self._patch[k] = ret  # changes will be reflected in the facade but not the original
+        return ret
 
     def __setitem__(self, k, v):
         if k == 'name':
