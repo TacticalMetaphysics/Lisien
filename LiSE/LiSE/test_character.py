@@ -47,21 +47,21 @@ def set_in_mapping(mapp, stat, v):
 
 
 def update_char(char, *, stat=(), place=(), portal=(), thing=()):
-    end_stats = {}
+    end_stats = {'name': char.name}
     for stat, v in stat:
         set_in_mapping(char.stat, stat, v)
         if v is None and stat in end_stats:
             del end_stats[stat]
         else:
             end_stats[stat] = v
-    end_nodes = {}
+    end_places = {}
     for node, v in place:
         if v is None:
             del char.node[node]
-            if node in end_nodes:
-                del end_nodes[node]
+            if node in end_places:
+                del end_places[node]
         else:
-            end_nodes[node] = v
+            end_places[node] = v
             me = char.new_node(node)
             for k, vv in v.items():
                 set_in_mapping(me, k, vv)
@@ -86,7 +86,7 @@ def update_char(char, *, stat=(), place=(), portal=(), thing=()):
                 set_in_mapping(e, k, vv)
     return {
         'stat': end_stats,
-        'place': end_nodes,
+        'place': end_places,
         'thing': end_things,
         'portal': end_edges
     }
@@ -111,11 +111,16 @@ def test_facade(character_updates):
         for d in character.edge[o]:
             start_edge.setdefault(o, {})[d] = dict(character.edge[o][d])
     facade = character.facade()
-    assert (facade.stat, facade.node, facade.edge) == update_char(
+    updated = update_char(
         facade, stat=statup, place=placeup, thing=thingup, portal=edgeup)
+    assert facade.stat == updated['stat']
+    assert facade.place == updated['place']
+    assert facade.thing == updated['thing']
+    assert facade.portal == updated['portal']
     # changes to a facade should not impact the underlying character
     assert start_stat == dict(character.stat)
     assert start_place == dict(character.place)
+    assert start_thing == dict(character.place)
     end_edge = {}
     for o in character.edge:
         for d in character.edge[o]:
