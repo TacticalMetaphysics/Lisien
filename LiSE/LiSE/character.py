@@ -1036,7 +1036,7 @@ class FacadeEntityMapping(MutableMapping, Signal):
             raise KeyError
         if k in self._patch:
             return self._patch[k]
-        return self.facadecls(self, self._get_inner_map()[k])
+        return self.facadecls(self, k, **self._get_inner_map()[k])
 
     def __setitem__(self, k, v):
         if not isinstance(v, self.facadecls):
