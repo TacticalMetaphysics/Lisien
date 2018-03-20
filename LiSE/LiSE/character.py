@@ -55,6 +55,26 @@ from .query import StatusAlias
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 
 
+class SpecialMappingDescriptor:
+    def __init__(self, mapclsname):
+        self.mapps = {}
+        self.mapclsname = mapclsname
+
+    def __get__(self, instance, owner):
+        if id(instance) in self.mapps:
+            return self.mapps[id(instance)]
+        mappcls = getattr(instance, self.mapclsname)
+        ret = self.mapps[id(instance)] = mappcls(instance)
+        return ret
+
+    def __set__(self, instance, value):
+        if id(instance) not in self.mapps:
+            self.mapps[id(instance)] = getattr(instance, self.mapclsname)(instance)
+        it = self.mapps[id(instance)]
+        it.clear()
+        it.update(value)
+
+
 class AbstractCharacter(MutableMapping):
 
     """The Character API, with all requisite mappings and graph generators.
@@ -109,36 +129,13 @@ class AbstractCharacter(MutableMapping):
     def __delitem__(self, k):
         del self.node[k]
 
-    @reify
-    def thing(self):
-        return self.ThingMapping(self)
-
-    @reify
-    def place(self):
-        return self.PlaceMapping(self)
-
-    @reify
-    def node(self):
-        return self.ThingPlaceMapping(self)
-
-    _node = getatt('node')
-
-    @reify
-    def portal(self):
-        return self.PortalSuccessorsMapping(self)
-
-    @reify
-    def preportal(self):
-        return self.PortalPredecessorsMapping(self)
-
-    @reify
-    def avatar(self):
-        return self.AvatarGraphMapping(self)
-
+    thing = SpecialMappingDescriptor('ThingMapping')
+    place = SpecialMappingDescriptor('PlaceMapping')
+    node = _node = SpecialMappingDescriptor('ThingPlaceMapping')
+    portal = adj = succ = edge = _adj = _succ = SpecialMappingDescriptor('PortalSuccessorsMapping')
+    preportal = pred = _pred = SpecialMappingDescriptor('PortalPredecessorsMapping')
+    avatar = SpecialMappingDescriptor('AvatarGraphMapping')
     stat = getatt('graph')
-
-    pred = _pred = getatt('preportal')
-    adj = succ = edge = _adj = _succ = getatt('portal')
 
     def historical(self, stat):
         return StatusAlias(
