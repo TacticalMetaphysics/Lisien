@@ -5,6 +5,7 @@ code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
 
 """
+import os
 from collections import MutableMapping
 from sqlite3 import IntegrityError as sqliteIntegError
 try:
@@ -13,7 +14,6 @@ try:
 except ImportError:
     # python 3
     from allegedb import wrap
-import os
 wrappath = os.path.dirname(wrap.__file__)
 alchemyIntegError = None
 try:
@@ -25,6 +25,10 @@ except ImportError:
 IntegrityError = (
     alchemyIntegError, sqliteIntegError
 ) if alchemyIntegError is not None else sqliteIntegError
+
+
+class TimeError(ValueError):
+    """Exception class for problems with the time model"""
 
 
 class GlobalKeyValueStore(MutableMapping):
@@ -129,6 +133,7 @@ class QueryEngine(object):
         self._graphvals2set = []
         self._nodes2set = []
         self._edges2set = []
+        self._btts = set()
         if unpack is None:
             from ast import literal_eval as unpack
         self.pack = pack or repr
@@ -163,7 +168,10 @@ class QueryEngine(object):
         if hasattr(self, 'alchemist'):
             return getattr(self.alchemist.many, stringname)(*args)
         s = self.strings[stringname]
-        return self.connection.cursor().executemany(s, args)
+        try:
+            return self.connection.cursor().executemany(s, args)
+        except IntegrityError:
+            raise
 
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
@@ -296,6 +304,9 @@ class QueryEngine(object):
         self._graphvals2set = []
 
     def graph_val_set(self, graph, key, branch, turn, tick, value):
+        if (branch, turn, tick) in self._btts:
+            raise TimeError
+        self._btts.add((branch, turn, tick))
         graph, key, value = map(self.pack, (graph, key, value))
         self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
@@ -329,6 +340,9 @@ class QueryEngine(object):
         Inserts a new record or updates an old one, as needed.
 
         """
+        if (branch, turn, tick) in self._btts:
+            raise TimeError
+        self._btts.add((branch, turn, tick))
         self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, extant))
 
     def nodes_dump(self):
@@ -384,6 +398,9 @@ class QueryEngine(object):
 
     def node_val_set(self, graph, node, key, branch, turn, tick, value):
         """Set a key-value pair on a node at a specific branch and revision"""
+        if (branch, turn, tick) in self._btts:
+            raise TimeError
+        self._btts.add((branch, turn, tick))
         graph, node, key, value = map(self.pack, (graph, node, key, value))
         self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
@@ -433,6 +450,9 @@ class QueryEngine(object):
 
     def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
+        if (branch, turn, tick) in self._btts:
+            raise TimeError
+        self._btts.add((branch, turn, tick))
         graph, orig, dest = map(self.pack, (graph, orig, dest))
         self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
 
@@ -477,6 +497,9 @@ class QueryEngine(object):
 
     def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
         """Set this key of this edge to this value."""
+        if (branch, turn, tick) in self._btts:
+            raise TimeError
+        self._btts.add((branch, turn, tick))
         graph, orig, dest, key, value = map(self.pack, (graph, orig, dest, key, value))
         self._edgevals2set.append(
             (graph, orig, dest, idx, key, branch, turn, tick, value)
