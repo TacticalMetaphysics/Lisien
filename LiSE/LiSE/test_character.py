@@ -27,6 +27,9 @@ class CharacterSetStorageTest(CharacterTest, allegedb.test.SetStorageTest):
 def set_in_mapping(mapp, stat, v):
     # Mutate the stuff in-place instead of simply replacing it,
     # because this could trigger side effects
+    if stat not in mapp:
+        mapp[stat] = v
+        return
     if isinstance(v, dict) or isinstance(v, set):
         mapp[stat].update(v)
         for item in list(mapp[stat]):
@@ -46,7 +49,7 @@ def set_in_mapping(mapp, stat, v):
         mapp[stat] = v
 
 
-def update_char(char, *, stat=(), place=(), portal=(), thing=()):
+def update_char(char, *, stat=(), node=(), portal=()):
     end_stats = {'name': char.name}
     for stat, v in stat:
         set_in_mapping(char.stat, stat, v)
@@ -55,25 +58,42 @@ def update_char(char, *, stat=(), place=(), portal=(), thing=()):
         else:
             end_stats[stat] = v
     end_places = {}
-    for node, v in place:
+    end_things = {}
+    for node, v in node:
         if v is None:
             del char.node[node]
             if node in end_places:
                 del end_places[node]
+            if node in end_things:
+                del end_things[node]
+        elif node in char.place:
+            me = end_places[node] = dict(char.place[node])
+            if 'location' in v:
+                del char.place[node]
+                del end_places[node]
+                char.thing[node] = me
+                continue
+            me.update(v)
+            for k, vv in v.items():
+                set_in_mapping(char.place[node], k, vv)
+        elif node in char.thing:
+            me = end_things[node] = dict(char.thing[node])
+            if 'location' in v and v['location'] is None:
+                del char.thing[node]
+                del end_things[node]
+                char.place[node] = me
+                continue
+            me.update(v)
+            for k, vv in v.items():
+                set_in_mapping(char.thing[node], k, vv)
+        elif 'location' in v:
+            end_things[node] = v
+            me = char.new_thing(node, v.pop('location'))
+            for k, vv in v.items():
+                set_in_mapping(me, k, vv)
         else:
             end_places[node] = v
             me = char.new_node(node)
-            for k, vv in v.items():
-                set_in_mapping(me, k, vv)
-    end_things = {}
-    for thing, v in thing:
-        if v is None:
-            del char.thing[thing]
-        else:
-            end_things[thing] = dict(v)
-            loc = v.pop('location')
-            nxtloc = v.pop('next_location', None)
-            me = char.new_thing(thing, loc, nxtloc)
             for k, vv in v.items():
                 set_in_mapping(me, k, vv)
     end_edges = {}
@@ -93,16 +113,29 @@ def update_char(char, *, stat=(), place=(), portal=(), thing=()):
 
 
 # TODO parametrize bunch of characters
-@pytest.fixture(params=[('empty', {}, [], [], [], [])])
+@pytest.fixture(params=[
+    ('empty', {}, {}, [], [], [], []),
+    ('small',
+     {0: [1], 1: [0], 'kobold': []},
+     {'spam': 'eggs', 'ham': {'baked beans': 'delicious'}, 'qux': ['quux', 'quuux'],
+                             'clothes': {'hats', 'shirts', 'pants'}},
+     [('kobold', {'evil': True}), (0, {'evil': False}), (1, {'evil': False})],
+     [('spam', None), ('qux', ['quux']), ('clothes', 'no')],
+     [(2, {'evil': False}), ('kobold', {'evil': False})],
+     [(0, 1, None), (0, 2, {'hi': 'hello'})]
+     )
+])
 def character_updates(request):
-    name, data, statup, placeup, thingup, edgeup = request.param
+    name, data, stat, nodestat, statup, nodeup, edgeup = request.param
     engine = Engine("sqlite:///:memory:")
-    yield engine.new_character(name, **data), statup, placeup, thingup, edgeup
+    char = engine.new_character(name, data, **stat)
+    update_char(char, node=nodestat)
+    yield char, statup, nodeup, edgeup
     engine.close()
 
 
 def test_facade(character_updates):
-    character, statup, placeup, thingup, edgeup = character_updates
+    character, statup, nodeup, edgeup = character_updates
     start_stat = dict(character.stat)
     start_place = dict(character.place)
     start_thing = dict(character.thing)
@@ -112,7 +145,7 @@ def test_facade(character_updates):
             start_edge.setdefault(o, {})[d] = dict(character.edge[o][d])
     facade = character.facade()
     updated = update_char(
-        facade, stat=statup, place=placeup, thing=thingup, portal=edgeup)
+        facade, stat=statup, node=nodeup, portal=edgeup)
     assert facade.stat == updated['stat']
     assert facade.place == updated['place']
     assert facade.thing == updated['thing']
