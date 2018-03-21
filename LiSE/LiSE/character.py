@@ -1050,6 +1050,8 @@ class FacadeEntityMapping(MutableMapping, Signal):
     being distorted views of entities of the type ``innercls``.
 
     """
+    def _make(self, k, v):
+        return self.facadecls(self, v)
 
     engine = getatt('facade.engine')
 
@@ -1093,7 +1095,7 @@ class FacadeEntityMapping(MutableMapping, Signal):
 
     def __setitem__(self, k, v):
         if not isinstance(v, self.facadecls):
-            v = self.facadecls(self, v)
+            v = self._make(k, v)
         self._masked.discard(k)
         self._patch[k] = v
         self.send(self, key=k, val=v)
@@ -1111,6 +1113,9 @@ class FacadePortalSuccessors(FacadeEntityMapping):
         super().__init__(facade)
         self.orig = origname
 
+    def _make(self, k, v):
+        return self.facadecls(self, k, **v)
+
     def _get_inner_map(self):
         return self.facade.character.portal[self.orig]
 
@@ -1122,6 +1127,9 @@ class FacadePortalPredecessors(FacadeEntityMapping):
     def __init__(self, facade, destname):
         super().__init__(facade)
         self.dest = destname
+
+    def _make(self, k, v):
+        return self.facadecls(self.facade.portal[k], self.dest, v)
 
     def _get_inner_map(self):
         return self.facade.character.preportal[self._destname]
@@ -1150,6 +1158,29 @@ class FacadePortalMapping(FacadeEntityMapping):
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
 
+    def add_places_from(self, seq, **attrs):
+        for place in seq:
+            self.add_place(place, **attrs)
+
+    def add_things_from(self, seq, **attrs):
+        for thing in seq:
+            self.add_thing(thing, **attrs)
+
+    def thing2place(self, name):
+        self.place[name] = self.thing.pop(name)
+
+    def place2thing(self, name, location):
+        it = self.place.pop(name)
+        it['location'] = location
+        self.thing[name] = it
+
+    def add_portals_from(self, seq, **attrs):
+        for it in seq:
+            self.add_portal(*it, **attrs)
+
+    def del_avatar(self, a, b=None):
+        raise NotImplementedError("Facades don't have avatars")
+
     def add_place(self, name, **kwargs):
         self.place[name] = kwargs
 
@@ -1170,7 +1201,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
         self.add_portal(orig, dest, **kwargs)
 
     def add_avatar(self, a, b=None):
-        raise NotImplementedError("")
+        raise NotImplementedError("Facades don't have avatars")
 
     def __init__(self, character):
         """Store the character."""
