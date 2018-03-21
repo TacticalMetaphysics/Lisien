@@ -1,20 +1,14 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Exception classes for use in LiSE."""
+from allegedb.query import IntegrityError, TimeError
+
 try:
     from sqlalchemy.exc import OperationalError as alchemyOpError
     from sqlite3 import OperationalError as liteOpError
     OperationalError = (alchemyOpError, liteOpError)
 except ImportError:
     from sqlite3 import OperationalError
-
-
-try:
-    from sqlalchemy.exc import IntegrityError as alchemyIntegError
-    from sqlite3 import IntegrityError as liteIntegError
-    IntegrityError = (alchemyIntegError, liteIntegError)
-except ImportError:
-    from sqlite3 import IntegrityError
 
 
 class NonUniqueError(Exception):
