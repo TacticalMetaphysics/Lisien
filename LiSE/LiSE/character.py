@@ -97,7 +97,47 @@ class AbstractCharacter(MutableMapping):
         self.add_place(name, **kwargs)
 
     @abstractmethod
-    def add_thing(self, name, **kwargs): pass
+    def add_places_from(self, seq, **attrs): pass
+
+    def add_nodes_from(self, seq, **attrs):
+        self.add_places_from(seq, **attrs)
+
+    def new_place(self, name, **kwargs):
+        if name not in self.node:
+            self.add_place(name, **kwargs)
+            return self.place[name]
+        n = 0
+        while name + str(n) in self.node:
+            n += 1
+        self.add_place(name + str(n), **kwargs)
+        return self.place[name]
+
+    def new_node(self, name, **kwargs):
+        return self.new_place(name, **kwargs)
+
+    @abstractmethod
+    def add_thing(self, name, location, **kwargs): pass
+
+    @abstractmethod
+    def add_things_from(self, seq, **attrs): pass
+
+    def new_thing(
+            self, name, location, **kwargs
+    ):
+        if name not in self.node:
+            self.add_thing(name, location, **kwargs)
+            return self.thing[name]
+        n = 0
+        while name + str(n) in self.node:
+            n += 1
+        self.add_thing(name + str(n), location, **kwargs)
+        return self.thing[name]
+
+    @abstractmethod
+    def thing2place(self, name): pass
+
+    @abstractmethod
+    def place2thing(self, name, location): pass
 
     @abstractmethod
     def add_portal(self, orig, dest, symmetrical=False, **kwargs): pass
@@ -105,8 +145,21 @@ class AbstractCharacter(MutableMapping):
     def add_edge(self, orig, dest, **kwargs):
         self.add_portal(orig, dest, **kwargs)
 
+    def new_portal(self, orig, dest, symmetrical=False, **kwargs):
+        self.add_portal(orig, dest, symmetrical, **kwargs)
+        return self.portal[orig][dest]
+
+    @abstractmethod
+    def add_portals_from(self, seq, **attrs): pass
+
+    def add_edges_from(self, seq, **attrs):
+        self.add_portals_from(seq, **attrs)
+
     @abstractmethod
     def add_avatar(self, a, b=None): pass
+
+    @abstractmethod
+    def del_avatar(self, a, b=None): pass
 
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
@@ -1733,23 +1786,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         init_store_node_rulebook()
         init_store_rulebook()
 
-    def add_places_from(self, seq):
+    def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""
-        super().add_nodes_from(seq)
-
-    def new_place(self, name, statdict={}, **kwargs):
-        kwargs.update(statdict)
-        if name not in self.node:
-            self.add_place(name, **kwargs)
-            return self.place[name]
-        n = 0
-        while name + str(n) in self.node:
-            n += 1
-        self.add_place(name + str(n), **kwargs)
-        return self.place[name]
-
-    def new_node(self, name, **kwargs):
-        return self.new_place(name, **kwargs)
+        super().add_nodes_from(seq, **attrs)
 
     def add_thing(self, name, location, **kwargs):
         """Create a Thing, set its location and next_location (if provided),
@@ -1766,26 +1805,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             location = location.name
         self.place2thing(name, location)
 
-    def add_things_from(self, seq):
+    def add_things_from(self, seq, **attrs):
         for tup in seq:
             name = tup[0]
             location = tup[1]
             next_loc = tup[2] if len(tup) > 2 else None
-            kwargs = tup[3] if len(tup) > 3 else {}
-            self.add_thing(name, location, next_loc, **kwargs)
-
-    def new_thing(
-            self, name, location, statdict={}, **kwargs
-    ):
-        kwargs.update(statdict)
-        if name not in self.node:
+            kwargs = tup[3] if len(tup) > 3 else attrs
+            if next_loc:
+                kwargs['next_location'] = next_loc
             self.add_thing(name, location, **kwargs)
-            return self.thing[name]
-        n = 0
-        while name + str(n) in self.node:
-            n += 1
-        self.add_thing(name + str(n), location, **kwargs)
-        return self.thing[name]
 
     def place2thing(self, name, location):
         """Turn a Place into a Thing with the given.
