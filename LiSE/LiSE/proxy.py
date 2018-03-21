@@ -1250,6 +1250,10 @@ class AvatarMapProxy(Mapping):
 class CharacterProxy(AbstractCharacter):
     rulebook = RulebookProxyDescriptor()
 
+    def thing2place(self, name):
+        # TODO
+        raise NotImplementedError("TODO")
+
     def _get_default_rulebook_name(self):
         return self.name, 'character'
 
