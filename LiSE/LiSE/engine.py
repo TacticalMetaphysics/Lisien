@@ -1292,9 +1292,9 @@ class Engine(AbstractEngine, gORM):
             self._rules_iter = self._follow_rules()
             return final_rule
 
-    def new_character(self, name, **kwargs):
+    def new_character(self, name, data=None, **kwargs):
         """Create and return a new :class:`Character`."""
-        self.add_character(name, **kwargs)
+        self.add_character(name, data, **kwargs)
         return self.character[name]
 
     def add_character(self, name, data=None, **kwargs):
