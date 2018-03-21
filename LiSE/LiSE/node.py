@@ -461,10 +461,10 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         """Connect these nodes with a two-way portal and return it."""
         return self.two_way_portal(other, **stats)
 
-    def new_thing(self, name, statdict={}, **stats):
+    def new_thing(self, name, **stats):
         """Create a new thing, located here, and return it."""
         return self.character.new_thing(
-            name, self.name, statdict, **stats
+            name, self.name, **stats
         )
 
     def historical(self, stat):
