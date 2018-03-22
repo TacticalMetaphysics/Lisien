@@ -1051,7 +1051,7 @@ class FacadeEntityMapping(MutableMapping, Signal):
 
     """
     def _make(self, k, v):
-        return self.facadecls(self, v)
+        return self.facadecls(self, k, **v)
 
     engine = getatt('facade.engine')
 
@@ -1089,9 +1089,9 @@ class FacadeEntityMapping(MutableMapping, Signal):
     def __getitem__(self, k):
         if k not in self:
             raise KeyError
-        if k in self._patch:
-            return self._patch[k]
-        return self.facadecls(self, k, **self._get_inner_map()[k])
+        if k not in self._patch:
+            self._patch[k] = self.facadecls(self, k, **self._get_inner_map()[k])
+        return self._patch[k]
 
     def __setitem__(self, k, v):
         if not isinstance(v, self.facadecls):
