@@ -125,11 +125,14 @@ def update_char(char, *, stat=(), node=(), portal=()):
             me = char.new_node(node)
             for k, vv in v.items():
                 set_in_mapping(me, k, vv)
-    end_edges = {}
+    end_edges = char.portal.unwrap()
     for o, d, v in portal:
         if v is None:
             del char.edge[o][d]
+            del end_edges[o][d]
         else:
+            me = end_edges.setdefault(o, {}).setdefault(d, {})
+            update(me, v)
             e = char.new_portal(o, d)
             for k, vv in v.items():
                 set_in_mapping(e, k, vv)
