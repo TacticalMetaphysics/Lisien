@@ -105,4 +105,4 @@ collide.py is ported from Kivy's garden.collider module and carries the MIT lice
 The rest of the LiSE source files are licensed under the terms of the GNU General Public License
 version 3.
 
-In case of Zachary Spector's death, all of these source files are to be relicensed under [CC0](https://creativecommons.org/choose/zero/).
+In case of my death, I, Zachary Spector, wish for every programming source code file I own to be relicensed under [CC0](https://creativecommons.org/choose/zero/).
