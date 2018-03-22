@@ -1283,9 +1283,12 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def __getitem__(self, k):
             if k in self._masked:
                 raise KeyError("masked")
-            if k in self._patch:
-                return self._patch[k]
-            return self.facade.character.graph[k]
+            if k not in self._patch:
+                ret = self.facade.character.graph[k]
+                if not hasattr(ret, 'unwrap'):
+                    return ret
+                self._patch[k] = ret.unwrap()
+            return self._patch[k]
 
         def __setitem__(self, k, v):
             self._masked.discard(k)
