@@ -932,8 +932,8 @@ class FacadeEntity(MutableMappingWrapper, Signal):
         if k in self._patch:
             return self._patch[k]
         ret = self._real[k]
-        if hasattr(ret, '_copy'):  # a wrapped mutable object from the allegedb.wrap module
-            ret = ret._copy()
+        if hasattr(ret, 'unwrap'):  # a wrapped mutable object from the allegedb.wrap module
+            ret = ret.unwrap()
             self._patch[k] = ret  # changes will be reflected in the facade but not the original
         return ret
 
