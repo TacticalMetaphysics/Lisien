@@ -259,3 +259,6 @@ class Portal(Edge, RuleFollower):
             self.character.portal[self.origin.name],
             key='dest', val=None
         )
+
+    def unwrap(self):
+        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}

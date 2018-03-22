@@ -27,7 +27,6 @@ and their node in the physical world is an avatar of it.
 from abc import abstractmethod
 from collections import (
     Mapping,
-    MutableMapping,
     Callable
 )
 from operator import ge, gt, le, lt, eq
@@ -42,6 +41,7 @@ from allegedb.graph import (
     DiGraphPredecessorsMapping
 )
 from allegedb.cache import FuturistWindowDict, PickyDefaultDict
+from allegedb.wrap import MutableMappingWrapper
 
 from .xcollections import CompositeDict
 from .rule import RuleBook, RuleMapping
@@ -75,7 +75,7 @@ class SpecialMappingDescriptor:
         it.update(value)
 
 
-class AbstractCharacter(MutableMapping):
+class AbstractCharacter(MutableMappingWrapper):
 
     """The Character API, with all requisite mappings and graph generators.
 
@@ -809,7 +809,7 @@ class CharacterSense(object):
         return r
 
 
-class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
+class CharacterSenseMapping(MutableMappingWrapper, RuleFollower, Signal):
 
     """Used to view other Characters as seen by one, via a particular sense."""
 
@@ -894,12 +894,18 @@ class CharacterSenseMapping(MutableMapping, RuleFollower, Signal):
         self[name] = fun
 
 
-class FacadeEntity(MutableMapping, Signal):
+class FacadeEntity(MutableMappingWrapper, Signal):
     def __init__(self, mapping, **kwargs):
         super().__init__()
         self.facade = mapping.facade
+        self._real = mapping
         self._patch = kwargs
         self._masked = set()
+
+    def __contains__(self, item):
+        if item in self._masked:
+            return False
+        return item in self._patch or item in self._real
 
     def __iter__(self):
         seen = set()
@@ -1042,7 +1048,7 @@ class FacadePortal(FacadeEntity):
         return self.facade.node[self.dest]
 
 
-class FacadeEntityMapping(MutableMapping, Signal):
+class FacadeEntityMapping(MutableMappingWrapper, Signal):
 
     """Mapping that contains entities in a Facade.
 
@@ -1243,7 +1249,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def _get_inner_map(self):
             return self.facade.character.preportal
 
-    class StatMapping(MutableMapping, Signal):
+    class StatMapping(MutableMappingWrapper, Signal):
         def __init__(self, facade):
             super().__init__()
             self.facade = facade
@@ -1345,7 +1351,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, rulebook_name)
             cache.store((name, rulebook), branch, turn, tick, rulebook_name)
 
-    class ThingMapping(MutableMapping, RuleFollower, Signal):
+    class ThingMapping(MutableMappingWrapper, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""
         _book = "character_thing"
 
@@ -1420,7 +1426,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __repr__(self):
             return repr(dict(self))
 
-    class PlaceMapping(MutableMapping, RuleFollower, Signal):
+    class PlaceMapping(MutableMappingWrapper, RuleFollower, Signal):
         """:class:`Place` objects that are in a :class:`Character`"""
         _book = "character_place"
 

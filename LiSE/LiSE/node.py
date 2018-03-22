@@ -482,3 +482,6 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     def __bool__(self):
         return self.name in self.character.node
+
+    def unwrap(self):
+        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}

@@ -3,11 +3,10 @@
 import networkx
 from networkx.exception import NetworkXError
 from blinker import Signal
-from collections import MutableMapping, defaultdict
+from collections import Mapping, defaultdict
 from operator import attrgetter
 from itertools import chain
-from abc import ABC
-from .wrap import DictWrapper, ListWrapper, SetWrapper
+from .wrap import DictWrapper, ListWrapper, SetWrapper, MutableMappingWrapper
 from functools import partial
 
 
@@ -36,7 +35,7 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     )
 
 
-class AllegedMapping(MutableMapping, Signal, ABC):
+class AllegedMapping(MutableMappingWrapper, Signal):
     """Common amenities for mappings"""
     def clear(self):
         """Delete everything"""
@@ -192,6 +191,9 @@ class GraphMapping(AbstractEntityMapping):
         keys.remove('name')
         for k in keys:
             del self[k]
+
+    def unwrap(self):
+        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
 
 
 class Node(AbstractEntityMapping):
@@ -374,6 +376,23 @@ class GraphNodeMapping(AllegedMapping):
         return self.db._nodes_cache.iter_entities(
             self.graph.name, *self.db.btt()
         )
+
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        if self.keys() != other.keys():
+            return False
+        for k in self.keys():
+            me = self[k]
+            you = other[k]
+            if hasattr(me, 'unwrap'):
+                me = me.unwrap()
+            if hasattr(you, 'unwrap'):
+                you = you.unwrap()
+            if me != you:
+                return False
+        else:
+            return True
 
     def __contains__(self, node):
         """Return whether the node exists presently"""

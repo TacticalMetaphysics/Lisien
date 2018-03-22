@@ -1,7 +1,8 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. zacharyspector@gmail.com
 from functools import partial
-from collections.abc import MutableSet, MutableMapping, MutableSequence, Iterable, Sized, Container
+from itertools import zip_longest
+from collections.abc import MutableSet, MutableMapping, MutableSequence, Mapping, Sequence, Iterable, Sized, Container
 
 
 class MutableWrapper:
@@ -15,9 +16,6 @@ class MutableWrapper:
 
     def __contains__(self, item):
         return item in self._getter()
-
-    def __eq__(self, other):
-        return self._getter() == other
 
     def __repr__(self):
         return "<{} instance at {}, wrapping {}>".format(
@@ -62,7 +60,32 @@ class MutableWrapperDictList(MutableWrapper):
         self._set(me)
 
 
-class SubDictWrapper(MutableWrapperDictList, MutableMapping, dict):
+class MutableMappingWrapper(MutableWrapper, MutableMapping):
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        if self.keys() != other.keys():
+            return False
+        for k in self.keys():
+            me = self[k]
+            you = other[k]
+            if hasattr(me, 'unwrap'):
+                me = me.unwrap()
+            if hasattr(you, 'unwrap'):
+                you = you.unwrap()
+            if me != you:
+                return False
+        else:
+            return True
+
+    def unwrap(self):
+        return {
+            k: v.unwrap() if hasattr(v, 'unwrap') else v
+            for (k, v) in self.items()
+        }
+
+
+class SubDictWrapper(MutableWrapperDictList, MutableMappingWrapper, dict):
     __slots__ = ('_getter', '_set')
 
     def __init__(self, getter, setter):
@@ -78,7 +101,28 @@ class SubDictWrapper(MutableWrapperDictList, MutableMapping, dict):
         self._set(new)
 
 
-class SubListWrapper(MutableWrapperDictList, MutableSequence, list):
+class MutableSequenceWrapper(MutableSequence):
+    def __eq__(self, other):
+        if not isinstance(other, Sequence):
+            return NotImplemented
+        for me, you in zip_longest(self, other):
+            if hasattr(me, 'unwrap'):
+                me = me.unwrap()
+            if hasattr(you, 'unwrap'):
+                you = you.unwrap()
+            if me != you:
+                return False
+        else:
+            return True
+
+    def unwrap(self):
+        return [
+            v.unwrap() if hasattr(v, 'unwrap') else v
+            for v in self
+        ]
+
+
+class SubListWrapper(MutableWrapperDictList, MutableSequenceWrapper, list):
     __slots__ = ('_getter', '_set')
 
     def __init__(self, getter, setter):
@@ -126,6 +170,9 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
         me.add(element)
         self._set(me)
 
+    def unwrap(self):
+        return {v.unwrap() if hasattr(v, 'unwrap') else v for v in self}
+
 
 class SubSetWrapper(MutableWrapperSet, set):
     __slots__ = ('_getter', '_set')
@@ -153,12 +200,32 @@ class DictWrapper(MutableWrapperDictList, MutableMapping, dict):
         self._outer = outer
         self._key = key
 
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        if self.keys() != other.keys():
+            return False
+        for k in self.keys():
+            me = self[k]
+            you = other[k]
+            if hasattr(me, 'unwrap'):
+                me = me.unwrap()
+            if hasattr(you, 'unwrap'):
+                you = you.unwrap()
+            if me != you:
+                return False
+        else:
+            return True
+
     def _copy(self):
         return dict(self._getter())
 
     def _set(self, v):
         self._setter(v)
         self._outer[self._key] = v
+
+    def unwrap(self):
+        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
 
 
 class ListWrapper(MutableWrapperDictList, MutableSequence, list):
@@ -177,6 +244,19 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         self._getter = getter
         self._setter = setter
 
+    def __eq__(self, other):
+        if not isinstance(other, Sequence):
+            return NotImplemented
+        for me, you in zip_longest(self, other):
+            if hasattr(me, 'unwrap'):
+                me = me.unwrap()
+            if hasattr(you, 'unwrap'):
+                you = you.unwrap()
+            if me != you:
+                return False
+        else:
+            return True
+
     def _copy(self):
         return list(self._getter())
 
@@ -193,6 +273,9 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         new = self._copy()
         new.append(v)
         self._set(new)
+
+    def unwrap(self):
+        return [v.unwrap() if hasattr(v, 'unwrap') else v for v in self]
 
 
 class SetWrapper(MutableWrapperSet, set):
