@@ -168,10 +168,7 @@ class QueryEngine(object):
         if hasattr(self, 'alchemist'):
             return getattr(self.alchemist.many, stringname)(*args)
         s = self.strings[stringname]
-        try:
-            return self.connection.cursor().executemany(s, args)
-        except IntegrityError:
-            raise
+        return self.connection.cursor().executemany(s, args)
 
     def have_graph(self, graph):
         """Return whether I have a graph by this name."""
