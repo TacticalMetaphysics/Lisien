@@ -1,5 +1,5 @@
 # This file is part of allegedb, a database abstraction for versioned graphs
-# Copyright (c) Zachary Spector. ZacharySpector@gmail.com
+# Copyright (c) Zachary Spector. public@zacharyspector.com
 """Classes for in-memory storage and retrieval of historical graph data.
 
 The main one to use is ``Cache``, mostly for its ``store`` and ``retrieve``

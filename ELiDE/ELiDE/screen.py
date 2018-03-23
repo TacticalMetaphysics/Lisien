@@ -1,5 +1,5 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (C) Zachary Spector, ZacharySpector@gmail.com
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 
 """The big layout that you view all of ELiDE through.
 

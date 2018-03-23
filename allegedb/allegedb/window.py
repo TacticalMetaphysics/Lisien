@@ -1,4 +1,6 @@
-
+# This file is part of allegedb, an object-relational mapper for versioned graphs.
+# Copyright (C) Zachary Spector. public@zacharyspector.com
+#
 # TODO: cancel changes that would put something back to where it was at the start
 # This will complicate the update_window functions though, and I don't think it'll
 # improve much apart from a bit of efficiency in that the deltas are smaller

@@ -1,3 +1,5 @@
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 from kivy.lang import Builder
 from kivy.uix.modalview import ModalView
 from kivy.properties import ListProperty

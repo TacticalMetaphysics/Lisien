@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """The query engine provides Pythonic methods to access the database.
 
 This module also contains a notably unfinished implementation of a query

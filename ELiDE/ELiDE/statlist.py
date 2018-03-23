@@ -1,5 +1,5 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (C) Zachary Spector, ZacharySpector@gmail.com
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """Grid of current values for some entity. Can be changed by the
 user. Autoupdates when there's a change for any reason.
 

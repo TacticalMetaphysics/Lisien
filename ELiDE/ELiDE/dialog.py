@@ -1,3 +1,5 @@
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """Generic dialog boxes and menus, for in front of a Board
 
 """

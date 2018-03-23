@@ -1,5 +1,5 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (C) Zachary Spector, ZacharySpector@gmail.com
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """Widget that looks like a trading card, and a layout within which it
 can be dragged and dropped to some particular position within stacks
 of other cards.

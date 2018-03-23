@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 def test_fast_delta():
     from LiSE.examples.kobold import inittest
     from LiSE.handle import EngineHandle

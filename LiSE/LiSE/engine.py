@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """The "engine" of LiSE is an object relational mapper with special
 stores for game data and entities, as well as properties for manipulating the
 flow of time.

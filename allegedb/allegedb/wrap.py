@@ -1,5 +1,5 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
-# Copyright (C) Zachary Spector. zacharyspector@gmail.com
+# Copyright (C) Zachary Spector. public@zacharyspector.com
 from functools import partial
 from itertools import zip_longest
 from collections.abc import MutableSet, MutableMapping, MutableSequence, Mapping, Sequence, Iterable, Sized, Container

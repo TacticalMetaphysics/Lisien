@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """ The fundamental unit of game logic, the Rule, and structures to
 store and organize them in.
 

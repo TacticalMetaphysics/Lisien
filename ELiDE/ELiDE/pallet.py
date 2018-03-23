@@ -1,5 +1,5 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (C) Zachary Spector, ZacharySpector@gmail.com
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """Widget to display the contents of a :class:`kivy.atlas.Atlas` in
 one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 :class:`kivy.uix.stacklayout.StackLayout`. The user selects graphics

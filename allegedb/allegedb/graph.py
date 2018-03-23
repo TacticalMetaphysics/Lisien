@@ -1,5 +1,5 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
-# Copyright (C) Zachary Spector.
+# Copyright (C) Zachary Spector. public@zacharyspector.com
 import networkx
 from networkx.exception import NetworkXError
 from blinker import Signal

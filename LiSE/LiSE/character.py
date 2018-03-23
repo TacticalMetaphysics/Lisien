@@ -1,7 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
-
-
+# Copyright (c) Zachary Spector,  public@zacharyspector.com
 """The top level of the LiSE world model, the Character.
 
 Based on NetworkX DiGraph objects with various additions and

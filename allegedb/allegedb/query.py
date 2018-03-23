@@ -1,5 +1,5 @@
 # This file is part of allegedb, an object relational mapper for graphs.
-# Copyright (c) Zachary Spector
+# Copyright (c) Zachary Spector. public@zacharyspector.com
 """Wrapper to run SQL queries in a lightly abstracted way, such that
 code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
