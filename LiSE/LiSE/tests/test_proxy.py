@@ -1,10 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  public@zacharyspector.com
 from LiSE.proxy import EngineProcessManager
-import allegedb.test
+import allegedb.tests.test_all
 
 
-class ProxyTest(allegedb.test.AllegedTest):
+class ProxyTest(allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.manager = EngineProcessManager()
         self.engine = self.manager.start('sqlite:///:memory:')
@@ -14,17 +14,17 @@ class ProxyTest(allegedb.test.AllegedTest):
         self.manager.shutdown()
 
 
-class ProxyGraphTest(allegedb.test.AbstractGraphTest, ProxyTest):
+class ProxyGraphTest(allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
     pass
 
 
-class DictStorageTest(ProxyTest, allegedb.test.DictStorageTest):
+class DictStorageTest(ProxyTest, allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class ListStorageTest(ProxyTest, allegedb.test.ListStorageTest):
+class ListStorageTest(ProxyTest, allegedb.tests.test_all.ListStorageTest):
     pass
 
 
-class SetStorageTest(ProxyTest, allegedb.test.SetStorageTest):
+class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
     pass

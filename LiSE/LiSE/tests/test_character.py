@@ -1,11 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  public@zacharyspector.com
 import pytest
-import allegedb.test
-from .engine import Engine
+import allegedb.tests.test_all
+from LiSE.engine import Engine
 
 
-class CharacterTest(allegedb.test.AllegedTest):
+class CharacterTest(allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.engine = Engine("sqlite:///:memory:")
         self.graphmakers = (self.engine.new_character,)
@@ -14,15 +14,15 @@ class CharacterTest(allegedb.test.AllegedTest):
         self.engine.close()
 
 
-class CharacterDictStorageTest(CharacterTest, allegedb.test.DictStorageTest):
+class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class CharacterListStorageTest(CharacterTest, allegedb.test.ListStorageTest):
+class CharacterListStorageTest(CharacterTest, allegedb.tests.test_all.ListStorageTest):
     pass
 
 
-class CharacterSetStorageTest(CharacterTest, allegedb.test.SetStorageTest):
+class CharacterSetStorageTest(CharacterTest, allegedb.tests.test_all.SetStorageTest):
     pass
 
 
