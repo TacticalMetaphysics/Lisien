@@ -389,8 +389,12 @@ class WindowDict(MutableMapping):
     def __bool__(self):
         return bool(self._past) or bool(self._future)
 
-    def __init__(self, data={}):
-        self._past = deque(sorted(data.items()))
+    def __init__(self, data=()):
+        if hasattr(data, 'items'):
+            self._past = deque(sorted(data.items()))
+        else:
+            # assume it's an orderable sequence of pairs
+            self._past = deque(sorted(data))
         self._future = deque()
 
     def __iter__(self):
