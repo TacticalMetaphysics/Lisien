@@ -447,7 +447,7 @@ class GraphNodeMapping(AllegedMapping):
         """Indicate that the given node no longer exists"""
         if node not in self:
             raise KeyError("No such node")
-        branch, turn, tick = self.db.btt()
+        branch, turn, tick = self.db.nbtt()
         self.db.query.exist_node(
             self.graph.name,
             node,
@@ -605,7 +605,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __delitem__(self, dest):
         """Remove the edge between my orig and the given dest"""
-        branch, turn, tick = self.db.btt()
+        branch, turn, tick = self.db.nbtt()
         self.db.query.exist_edge(
             self.graph.name,
             self.orig,
