@@ -2,7 +2,7 @@ from LiSE import Engine
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def something():
     with Engine("sqlite:///:memory:") as eng:
         yield eng.new_character('physical').new_place('somewhere').new_thing('something')

@@ -147,7 +147,7 @@ def update_char(char, *, stat=(), node=(), portal=()):
 
 
 # TODO parametrize bunch of characters
-@pytest.fixture(params=[
+@pytest.fixture(scope="function", params=[
     ('empty', {}, {}, [], [], [], []),
     ('small',
      {0: [1], 1: [0], 'kobold': []},
