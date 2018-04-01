@@ -125,7 +125,7 @@ class AbstractBranchLineageTest(AbstractGraphTest):
         self.assertIn(1, g.edge[0])
 
 
-class BranchLineageTest(AbstractGraphTest, AllegedTest):
+class BranchLineageTest(AbstractBranchLineageTest, AllegedTest):
     pass
 
 
