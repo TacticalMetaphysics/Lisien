@@ -14,15 +14,14 @@ from LiSE import Engine
 from os import remove
 
 
-def sickle_cell_test(
+def install(
         engine,
         n_creatures=5,
         n_sickles=3,
         malaria_chance=.05,
         mate_chance=.05,
         mapsize=(1, 1),
-        startpos=(0, 0),
-        turns=100
+        startpos=(0, 0)
 ):
     """Natural Selection on Sickle Cell Anemia
 
@@ -58,13 +57,12 @@ def sickle_cell_test(
         species.add_avatar("physical", name)
         assert hasattr(species.avatar['physical'][name], 'location')
 
-
-# putting dieoff earlier in the code than mate means that dieoff will
-# be followed before mate is
+    # putting dieoff earlier in the code than mate means that dieoff will
+    # be followed before mate is
     @species.avatar.rule
     def dieoff(critter):
         critter.delete()
-        assert(critter.name not in critter.character.node)
+        assert (critter.name not in critter.character.node)
         if critter['from_malaria']:
             return 'malaria'
         else:
@@ -77,7 +75,7 @@ def sickle_cell_test(
             oc for oc in critter.location.contents()
             if oc['male'] != critter['male']
         )
-        assert(len(suitors) > 0)
+        assert (len(suitors) > 0)
         other_critter = critter.engine.choice(suitors)
         sickles = [
             critter['sickle_a'],
@@ -97,7 +95,7 @@ def sickle_cell_test(
             last_mate_turn=engine.turn
         )
         species.add_avatar("physical", name)
-        critter['last_mate_turn'] = other_critter['last_mate_turn'] =\
+        critter['last_mate_turn'] = other_critter['last_mate_turn'] = \
             engine.turn
         return 'mated'
 
@@ -126,8 +124,8 @@ def sickle_cell_test(
     @dieoff.trigger
     def malaria(critter):
         r = (
-            critter.engine.random() < critter.user.stat['malaria_chance'] and not
-            (critter['sickle_a'] or critter['sickle_b'])
+                critter.engine.random() < critter.user.stat['malaria_chance'] and not
+        (critter['sickle_a'] or critter['sickle_b'])
         )
         if r:
             critter['from_malaria'] = True
@@ -144,6 +142,20 @@ def sickle_cell_test(
     def not_travelling(critter):
         return critter['next_location'] is None
 
+
+
+def sickle_cell_test(
+        engine,
+        n_creatures=5,
+        n_sickles=3,
+        malaria_chance=.05,
+        mate_chance=.05,
+        mapsize=(1, 1),
+        startpos=(0, 0),
+        turns=100
+):
+    install(engine, n_creatures, n_sickles, malaria_chance, mate_chance, mapsize, startpos)
+    species = engine.character['species']
     print(
         "Starting with {} creatures, of which {} have "
         "at least one sickle betaglobin.".format(

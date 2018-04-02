@@ -2,6 +2,10 @@
 # Copyright (c) Zachary Spector,  public@zacharyspector.com
 from LiSE.proxy import EngineProcessManager
 import allegedb.tests.test_all
+import pytest
+import LiSE.examples.kobold as kobold
+import LiSE.examples.college as college
+import LiSE.examples.sickle as sickle
 
 
 class ProxyTest(allegedb.tests.test_all.AllegedTest):
@@ -30,12 +34,20 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
     pass
 
 
-def test_fast_delta():
-    from LiSE.examples.kobold import inittest
+@pytest.fixture(scope='function', params=[
+    lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
+    college.install,
+    sickle.install
+])
+def hand(request):
     from LiSE.handle import EngineHandle
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     with hand._real.advancing():
-        inittest(hand._real, shrubberies=20, kobold_sprint_chance=.9)
+        request.param(hand._real)
+    yield hand
+    hand.close()
+
+def test_fast_delta(hand):
     # just set a baseline for the diff
     hand.get_slow_delta()
     ret, diff = hand.next_turn()
@@ -53,12 +65,11 @@ def test_fast_delta():
 
 
 def test_assignment():
-    from LiSE.examples.college import install
     from LiSE.handle import EngineHandle
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     eng = hand._real
     with eng.advancing():
-        install(eng)
+        college.install(eng)
     physical_inital_copy = {'node_val': {'common0': {'rulebook': ('physical', 'common0')},
                                          'dorm1room3': {'rulebook': ('physical', 'dorm1room3')},
                                          'dorm1room4student1': {'next_location': None,
