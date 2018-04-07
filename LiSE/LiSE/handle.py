@@ -99,16 +99,16 @@ class EngineHandle(object):
         self._real.advance()
 
     def get_char_deltas(self, chars, *, store=True):
+        ret = {}
         if chars == 'all':
-            return {
-                char: self.character_delta(char, store=store)
-                for char in self._real.character.keys()
-            }
+            it = iter(self._real.character.keys())
         else:
-            return {
-                char: self.character_delta(char, store=store)
-                for char in chars
-            }
+            it = iter(chars)
+        for char in it:
+            delt = self.character_delta(char, store=store)
+            if delt:
+                ret[char] = delt
+        return ret
 
     def _upd_local_caches(self, delta=None):
         if delta is None:
@@ -412,9 +412,27 @@ class EngineHandle(object):
         }
 
     def character_avatars_delta(self, char, *, store=True):
-        return self._character_something_delta(
-            char, self._char_av_cache, self.character_avatars_copy, store=store
-        )
+        old = self._char_av_cache.get(char, {})
+        new = self.character_avatars_copy(char)
+        ret = {}
+        for graph in set(old.keys()).union(new.keys()):
+            if graph in old and graph not in new:
+                ret[graph] = {node: None for node in old[graph]}
+            elif graph in new and graph not in old:
+                ret[graph] = {node: True for node in new[graph]}
+            else:
+                graph_nodes = {}
+                for node in old[graph]:
+                    if node not in new[graph]:
+                        graph_nodes[node] = None
+                for node in new[graph]:
+                    if node not in old[graph]:
+                        graph_nodes[node] = True
+                if graph_nodes:
+                    ret[graph] = graph_nodes
+        if store:
+            self._char_av_cache[char] = new
+        return ret
 
     def character_rulebooks_copy(self, char):
         chara = self._real.character[char]
@@ -868,21 +886,23 @@ class EngineHandle(object):
         return r
 
     def character_portals_delta(self, char, *, store=True):
-        try:
-            old = self._char_portals_cache.get(char, {})
-            new = self.character_portals(char)
-            if store:
-                self._char_portals_cache[char] = new
-            ret = {}
-            for orig, dest in old:
-                if (orig, dest) not in new:
-                    ret.setdefault(orig, {})[dest] = False
-            for orig, dest in new:
-                if (orig, dest) not in old:
-                    ret.setdefault(orig, {})[dest] = True
-            return ret
-        except KeyError:
-            return None
+        old = self._char_portals_cache.get(char, {})
+        new = self.character_portals(char)
+        if store:
+            self._char_portals_cache[char] = new
+        ret = {}
+        for orig, dest in old:
+            if (orig, dest) not in new:
+                ret.setdefault(orig, {})[dest] = False
+                if store:
+                    try:
+                        del self._portal_stat_cache[char][orig][dest]
+                    except KeyError:
+                        pass
+        for orig, dest in new:
+            if (orig, dest) not in old:
+                ret.setdefault(orig, {})[dest] = True
+        return ret
 
     def add_portal(self, char, orig, dest, symmetrical, statdict):
         self._real.character[char].add_portal(
