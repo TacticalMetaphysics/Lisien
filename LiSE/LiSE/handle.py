@@ -415,21 +415,20 @@ class EngineHandle(object):
         old = self._char_av_cache.get(char, {})
         new = self.character_avatars_copy(char)
         ret = {}
-        for graph in set(old.keys()).union(new.keys()):
-            if graph in old and graph not in new:
-                ret[graph] = {node: False for node in old[graph]}
-            elif graph in new and graph not in old:
-                ret[graph] = {node: True for node in new[graph]}
-            else:
-                graph_nodes = {}
-                for node in old[graph]:
-                    if node not in new[graph]:
-                        graph_nodes[node] = False
-                for node in new[graph]:
-                    if node not in old[graph]:
-                        graph_nodes[node] = True
-                if graph_nodes:
-                    ret[graph] = graph_nodes
+        oldkeys = set(old.keys())
+        newkeys = set(new.keys())
+        for graph in oldkeys.difference(newkeys):
+            ret[graph] = {node: False for node in old[graph]}
+        for graph in newkeys.difference(oldkeys):
+            ret[graph] = {node: True for node in new[graph]}
+        for graph in oldkeys.intersection(newkeys):
+            graph_nodes = {}
+            for node in old[graph].difference(new[graph]):
+                graph_nodes[node] = False
+            for node in new[graph].difference(old[graph]):
+                graph_nodes[node] = True
+            if graph_nodes:
+                ret[graph] = graph_nodes
         if store:
             self._char_av_cache[char] = new
         return ret
