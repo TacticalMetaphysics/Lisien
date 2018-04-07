@@ -51,34 +51,23 @@ def dict_delta(old, new):
 
     """
     r = {}
-    for k in set(old.keys()).union(new.keys()):
-        if k in old:
-            if k not in new:
-                r[k] = None
-            elif old[k] != new[k]:
-                r[k] = new[k]
-        else:  # k in new
+    oldkeys = set(old.keys())
+    newkeys = set(new.keys())
+    r.update((k, new[k]) for k in newkeys.difference(oldkeys))
+    r.update((k, None) for k in oldkeys.difference(newkeys))
+    for k in oldkeys.intersection(newkeys):
+        if old[k] != new[k]:
             r[k] = new[k]
     return r
 
 
 def set_delta(old, new):
-    try:
-        old = frozenset(old)
-        new = frozenset(new)
-        if (old, new) in set_delta.memo:
-            return set_delta.memo[(old, new)]
-        r = set_delta.memo[(old, new)] = {}
-    except TypeError:
-        r = {}
-    for item in old:
-        if item not in new:
-            r[item] = False
-    for item in new:
-        if item not in old:
-            r[item] = True
+    old = set(old)
+    new = set(new)
+    r = {}
+    r.update((item, False) for item in old.difference(new))
+    r.update((item, True) for item in new.difference(old))
     return r
-set_delta.memo = {}
 
 
 def keycache_iter(keycache, branch, tick, get_iterator):
