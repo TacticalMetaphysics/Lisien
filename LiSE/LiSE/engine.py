@@ -594,7 +594,7 @@ class Engine(AbstractEngine, gORM):
             updater(upduniv, univbranches[branch])
 
         def updav(char, graph, node, av):
-            delta.setdefault(char, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = av
+            delta.setdefault(char, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = bool(av)
         if branch in avbranches:
             updater(updav, avbranches[branch])
 

@@ -417,14 +417,14 @@ class EngineHandle(object):
         ret = {}
         for graph in set(old.keys()).union(new.keys()):
             if graph in old and graph not in new:
-                ret[graph] = {node: None for node in old[graph]}
+                ret[graph] = {node: False for node in old[graph]}
             elif graph in new and graph not in old:
                 ret[graph] = {node: True for node in new[graph]}
             else:
                 graph_nodes = {}
                 for node in old[graph]:
                     if node not in new[graph]:
-                        graph_nodes[node] = None
+                        graph_nodes[node] = False
                 for node in new[graph]:
                     if node not in old[graph]:
                         graph_nodes[node] = True
