@@ -131,9 +131,6 @@ class EntityStatAccessor(object):
             res = munger(res)
         return res
 
-    def __hash__(self):
-        return hash(self())
-
     def __ne__(self, other):
         return self() != other
 
