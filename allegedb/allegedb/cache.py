@@ -918,7 +918,9 @@ class Cache(object):
         if turn in settings_turns or turn in settings_turns.future():
             assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
+            assert tick not in setticks
             presetticks = presettings_turns[turn]
+            assert tick not in presetticks
             presetticks[tick] = parent + (entity, key, prev)
             setticks[tick] = parent + (entity, key, value)
         else:
