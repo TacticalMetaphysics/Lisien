@@ -1963,7 +1963,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         # it's redundant but harmless.
         self.engine._exist_node(g, n)
         # Declare that the node is my avatar
-        self.engine._remember_avatarness(self.name, g, n)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine._remember_avatarness(self.name, g, n, branch=branch, turn=turn, tick=tick)
 
     def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own."""
