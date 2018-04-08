@@ -49,7 +49,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, reify, singleton_get
+from .util import getatt, singleton_get
 from .query import StatusAlias
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 
