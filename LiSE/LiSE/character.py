@@ -25,6 +25,7 @@ and their node in the physical world is an avatar of it.
 from abc import abstractmethod
 from collections import (
     Mapping,
+    MutableMapping,
     Callable
 )
 from operator import ge, gt, le, lt, eq
@@ -73,7 +74,7 @@ class SpecialMappingDescriptor:
         it.update(value)
 
 
-class AbstractCharacter(MutableMappingWrapper):
+class AbstractCharacter(MutableMapping):
 
     """The Character API, with all requisite mappings and graph generators.
 
