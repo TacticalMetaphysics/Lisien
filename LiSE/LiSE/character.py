@@ -348,13 +348,13 @@ class AbstractCharacter(MutableMapping):
                     n += 1
             renamed[ok] = k
             self.place[k] = v
-        for u in g.edge:
-            for v in g.edge[u]:
+        for u in g.adj:
+            for v in g.adj[u]:
                 if isinstance(g, nx.MultiGraph) or\
                    isinstance(g, nx.MultiDiGraph):
-                    self.edge[renamed[u]][renamed[v]] = g.edge[u][v][0]
+                    self.edge[renamed[u]][renamed[v]] = g.adj[u][v][0]
                 else:
-                    self.edge[renamed[u]][renamed[v]] = g.edge[u][v]
+                    self.edge[renamed[u]][renamed[v]] = g.adj[u][v]
         return self
 
     def become(self, g):
