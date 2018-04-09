@@ -900,7 +900,7 @@ class CharacterSenseMapping(MutableMappingWrapper, RuleFollower, Signal):
         self[name] = fun
 
 
-class FacadeEntity(MutableMappingWrapper, Signal):
+class FacadeEntity(MutableMapping, Signal):
     def __init__(self, mapping, **kwargs):
         super().__init__()
         self.facade = mapping.facade
