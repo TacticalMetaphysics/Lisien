@@ -43,7 +43,7 @@ from allegedb.cache import FuturistWindowDict, PickyDefaultDict
 from allegedb.wrap import MutableMappingWrapper
 
 from .xcollections import CompositeDict
-from .rule import RuleBook, RuleMapping
+from .rule import RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
 from .node import Node
 from .thing import Thing
