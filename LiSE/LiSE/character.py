@@ -1236,7 +1236,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
     def add_avatar(self, a, b=None):
         raise NotImplementedError("Facades don't have avatars")
 
-    def __init__(self, character):
+    def __init__(self, character=None):
         """Store the character."""
         self.character = character
         self.graph = self.StatMapping(self)
