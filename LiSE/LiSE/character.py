@@ -154,6 +154,13 @@ class AbstractCharacter(MutableMapping):
     def add_edges_from(self, seq, **attrs):
         self.add_portals_from(seq, **attrs)
 
+    def remove_portals_from(self, seq):
+        for orig, dest in seq:
+            del self.portal[orig][dest]
+
+    def remove_edges_from(self, seq):
+        self.remove_portals_from(seq)
+
     @abstractmethod
     def add_avatar(self, a, b=None): pass
 
