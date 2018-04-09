@@ -1037,7 +1037,7 @@ class FacadePortal(FacadeEntity):
             self.orig = other
         try:
             self._real = self.facade.character.portal[self.orig][self.dest]
-        except KeyError:
+        except (KeyError, AttributeError):
             self._real = {}
 
     def __setitem__(self, k, v):
@@ -1129,7 +1129,10 @@ class FacadePortalSuccessors(FacadeEntityMapping):
         return self.facadecls(self, k, **v)
 
     def _get_inner_map(self):
-        return self.facade.character.portal[self.orig]
+        try:
+            return self.facade.character.portal[self.orig]
+        except AttributeError:
+            return {}
 
 
 class FacadePortalPredecessors(FacadeEntityMapping):
@@ -1144,7 +1147,10 @@ class FacadePortalPredecessors(FacadeEntityMapping):
         return self.facadecls(self.facade.portal[k], self.dest, v)
 
     def _get_inner_map(self):
-        return self.facade.character.preportal[self._destname]
+        try:
+            return self.facade.character.preportal[self._destname]
+        except AttributeError:
+            return {}
 
 
 class FacadePortalMapping(FacadeEntityMapping):
@@ -1169,6 +1175,21 @@ class FacadePortalMapping(FacadeEntityMapping):
 
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
+
+    def __getstate__(self):
+        ports = {}
+        for o in self.portal:
+            if o not in ports:
+                ports[o] = {}
+            for d in self.portal[o]:
+                ports[o][d] = dict(self.portal[o][d])
+        things = {k: dict(v) for (k, v) in self.thing.items()}
+        places = {k: dict(v) for (k, v) in self.place.items()}
+        return things, places, ports
+
+    def __setstate__(self, state):
+        self.character = None
+        self.thing, self.place, self.portal = state
 
     def add_places_from(self, seq, **attrs):
         for place in seq:
@@ -1225,14 +1246,20 @@ class Facade(AbstractCharacter, nx.DiGraph):
         innercls = Thing
 
         def _get_inner_map(self):
-            return self.facade.character.thing
+            try:
+                return self.facade.character.thing
+            except AttributeError:
+                return {}
 
     class PlaceMapping(FacadeEntityMapping):
         facadecls = FacadePlace
         innercls = Place
 
         def _get_inner_map(self):
-            return self.facade.character.place
+            try:
+                return self.facade.character.place
+            except AttributeError:
+                return {}
 
     def ThingPlaceMapping(self, *args):
         return CompositeDict(self.thing, self.place)
@@ -1244,7 +1271,10 @@ class Facade(AbstractCharacter, nx.DiGraph):
             return item in self.facade.node
 
         def _get_inner_map(self):
-            return self.facade.character.portal
+            try:
+                return self.facade.character.portal
+            except AttributeError:
+                return {}
 
     class PortalPredecessorsMapping(FacadePortalMapping):
         cls = FacadePortalPredecessors
@@ -1253,7 +1283,10 @@ class Facade(AbstractCharacter, nx.DiGraph):
             return item in self.facade.node
 
         def _get_inner_map(self):
-            return self.facade.character.preportal
+            try:
+                return self.facade.character.preportal
+            except AttributeError:
+                return {}
 
     class StatMapping(MutableMappingWrapper, Signal):
         def __init__(self, facade):
@@ -1264,10 +1297,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
         def __iter__(self):
             seen = set()
-            for k in self.facade.character.graph:
-                if k not in self._masked:
-                    yield k
-                seen.add(k)
+            if hasattr(self.facade.character, 'graph'):
+                for k in self.facade.character.graph:
+                    if k not in self._masked:
+                        yield k
+                    seen.add(k)
             for k in self._patch:
                 if k not in seen:
                     yield k
@@ -1281,15 +1315,14 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def __contains__(self, k):
             if k in self._masked:
                 return False
-            return (
-                k in self._patch or
-                k in self.facade.character.graph
-            )
+            if hasattr(self.facade.character, 'graph') and k in self.facade.character.graph:
+                return True
+            return k in self._patch
 
         def __getitem__(self, k):
             if k in self._masked:
                 raise KeyError("masked")
-            if k not in self._patch:
+            if k not in self._patch and hasattr(self.facade.character, 'graph'):
                 ret = self.facade.character.graph[k]
                 if not hasattr(ret, 'unwrap'):
                     return ret
