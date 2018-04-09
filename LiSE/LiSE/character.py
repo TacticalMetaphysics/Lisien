@@ -8,7 +8,7 @@ conveniences.
 A Character is a graph that follows rules. Its rules may be assigned
 to run on only some portion of it: just edges (called Portals), just
 nodes, or just nodes of the kind that have a location in another node
-(called Things and Places, respectively). Each Character has a
+(called Places and Things, respectively). Each Character has a
 ``stat`` property that acts very much like a dictionary, in which you
 can store game-relevant data for the rules to use.
 
