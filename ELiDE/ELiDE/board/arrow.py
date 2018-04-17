@@ -135,21 +135,10 @@ class ArrowWidget(Widget):
     margin = NumericProperty(10)
     """When deciding whether a touch collides with me, how far away can
     the touch get before I should consider it a miss?"""
-    w = NumericProperty(2)
+    width = NumericProperty(2)
     """The width of the inner, brighter portion of the :class:`Arrow`. The
     whole :class:`Arrow` will end up thicker."""
     pawns_here = ListProperty([])
-    trunk_points = ListProperty([])
-    head_points = ListProperty([])
-    points = ReferenceListProperty(trunk_points, head_points)
-    trunk_quad_vertices_bg = ListProperty([0] * 8)
-    trunk_quad_vertices_fg = ListProperty([0] * 8)
-    left_head_quad_vertices_bg = ListProperty([0] * 8)
-    right_head_quad_vertices_bg = ListProperty([0] * 8)
-    left_head_quad_vertices_fg = ListProperty([0] * 8)
-    right_head_quad_vertices_fg = ListProperty([0] * 8)
-    slope = NumericProperty(0.0, allownone=True)
-    y_intercept = NumericProperty(0)
     origin = ObjectProperty()
     destination = ObjectProperty()
     repointed = BooleanProperty(True)
@@ -157,20 +146,17 @@ class ArrowWidget(Widget):
     bg_scale_selected = NumericProperty(5)
     selected = BooleanProperty(False)
     hit = BooleanProperty(False)
-    bg_color_unselected = ListProperty()
-    bg_color_selected = ListProperty()
-    fg_color_unselected = ListProperty()
-    fg_color_selected = ListProperty()
+    bg_color_unselected = ListProperty([0.5, 0.5, 0.5, 0.5])
+    bg_color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
+    fg_color_unselected = ListProperty([1., 1., 1., 1.])
+    fg_color_selected = ListProperty([1., 1., 1., 1.])
+    points = ListProperty()
     arrowhead_size = NumericProperty(10)
     collide_radius = NumericProperty(3)
     collider = ObjectProperty()
     portal = ObjectProperty()
 
     def on_portal(self, *args):
-        """Set my ``name`` and instantiate my ``mirrormap`` as soon as I have
-        the properties I need to do so.
-
-        """
         if not (
                 self.board and
                 self.origin and
@@ -328,12 +314,16 @@ class ArrowWidget(Widget):
         orig = self.origin
         dest = self.destination
         (ox, oy) = orig.center
-        ow = orig.width if hasattr(orig, 'width') else 0
+        ow = getattr(orig, 'width', 0)
+        oh = getattr(orig, 'height', 0)
         taillen = float(self.arrowhead_size)
-        ory = ow / 2
+        ory = (ow + oh) / 4
         (dx, dy) = dest.center
-        (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
-        dry = dh / 2
+        (dw, dh) = getattr(dest, 'size', (0, 0))
+        dry = (dw + dh) / 4
+        if '_points' in self.portal:
+            (startx, starty, endx, endy), head = get_points(ox, oy, ory, dx, dy, dry, taillen)
+            return [startx, starty] + self._portal['_points'] + [endx, endy], head
         return get_points(
             ox, oy, ory, dx, dy, dry, taillen
         )
@@ -377,8 +367,7 @@ class ArrowWidget(Widget):
         if None in (self.origin, self.destination):
             Clock.schedule_once(self._repoint, 0)
             return
-        (self.trunk_points, self.head_points) = self._get_points()
-        (ox, oy, dx, dy) = self.trunk_points
+        (ox, oy, dx, dy, self.head_points) = self._get_points()
         r = self.w / 2
         bgr = r * self.bg_scale_selected if self.selected \
             else self.bg_scale_unselected
@@ -448,23 +437,6 @@ Builder.load_string(
     bg_color_selected: [0.0, 1.0, 1.0, 1.0]
     fg_color_unselected: [1.0, 1.0, 1.0, 1.0]
     fg_color_selected: [1.0, 1.0, 1.0, 1.0]
-    canvas:
-        Color:
-            rgba: root.bg_color_selected if root.selected else root.bg_color_unselected
-        Quad:
-            points: root.trunk_quad_vertices_bg
-        Quad:
-            points: root.left_head_quad_vertices_bg
-        Quad:
-            points: root.right_head_quad_vertices_bg
-        Color:
-            rgba: root.fg_color_selected if root.selected else root.fg_color_unselected
-        Quad:
-            points: root.trunk_quad_vertices_fg
-        Quad:
-            points: root.left_head_quad_vertices_fg
-        Quad:
-            points: root.right_head_quad_vertices_fg
 <Arrow>:
     origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
     destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
