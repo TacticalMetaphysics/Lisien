@@ -615,8 +615,7 @@ class ORM(object):
                 self._turn_end_plan[branch, turn] = tick
             else:
                 tick = self._turn_end_plan[branch, turn] + 1
-        else:
-            self._turn_end_plan[branch, turn] = tick
+        self._turn_end_plan[branch, turn] = tick
         if self._turn_end[branch, turn] > tick:
             raise HistoryError(
                 "You're not at the end of turn {}. Go to tick {} to change things".format(
