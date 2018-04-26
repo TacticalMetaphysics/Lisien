@@ -50,7 +50,6 @@ class Spot(PawnSpot):
             kwargs['proxy'] = kwargs['place']
             del kwargs['place']
         super().__init__(**kwargs)
-        self.bind(pos=self._trigger_upd_pawns_here)
 
     def on_board(self, *args):
         self.board.bind(size=self._upd_pos)

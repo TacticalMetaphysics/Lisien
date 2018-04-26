@@ -141,19 +141,12 @@ class Pawn(PawnSpot):
         """Move with the touch if I'm grabbed."""
         if touch.grab_current != self:
             return False
-        if hasattr(self.parent, 'place') and \
-           not hasattr(self, '_pospawn_unbound'):
-            self.parent.unbind_trigger_pospawn(self)
-            self._pospawn_unbound = True
         self.center = touch.pos
         return True
 
     def on_touch_up(self, touch):
         if touch.grab_current != self:
             return False
-        if hasattr(self.parent, 'place') and hasattr(self, '_pospawn_unbound'):
-            self.parent.bind_trigger_pospawn(self)
-            del self._pospawn_unbound
         for spot in self.board.spot.values():
             if self.collide_widget(spot) and spot.name != self.loc_name:
                 new_spot = spot

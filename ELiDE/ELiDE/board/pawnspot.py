@@ -2,6 +2,7 @@
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Code that draws the box around a Pawn or Spot when it's selected"""
 from functools import partial
+from collections import defaultdict
 
 from kivy.properties import (
     ObjectProperty,
@@ -13,6 +14,7 @@ from kivy.graphics import (
     Color,
     Line
 )
+from kivy.uix.layout import Layout
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.lang import Builder
@@ -20,7 +22,7 @@ from ELiDE.kivygarden.texturestack import ImageStack
 from ..util import trigger
 
 
-class PawnSpot(ImageStack):
+class PawnSpot(ImageStack, Layout):
     """The kind of ImageStack that represents a :class:`Thing` or
     :class:`Place`.
 
@@ -155,7 +157,6 @@ class PawnSpot(ImageStack):
                     i = len(self.children) - i
                     break
         super().add_widget(wid, i, canvas)
-        self.bind_trigger_pospawn(wid)
         if not hasattr(wid, 'group'):
             return
         wid._no_use_canvas = True
@@ -177,74 +178,17 @@ class PawnSpot(ImageStack):
                 pawncanvas.add(child.group)
             else:
                 pawncanvas.add(child.canvas)
-        self.pospawn(wid)
 
-    def remove_widget(self, wid):
-        try:
-            self.unbind_trigger_pospawn(wid)
-        except KeyError:
-            pass
-        return super().remove_widget(wid)
-
-    def pospawn(self, pawn, *args):
-        """Given some :class:`Pawn` instance that's to be on top of me, set
-        its ``pos`` so that it looks like it's on top of me but
-        doesn't cover me so much that you can't select me.
-
-        """
-        i = 0
+    def do_layout(self, *args):
+        groups = defaultdict(list)
         for child in self.children:
-            if child is pawn:
-                break
-            i += 1
-        off = i * self.offset
-        (x, y) = self.center
-        pawn.pos = (x+off, y+off)
+            group = child.proxy.get('_group', child.name)
+            groups[group].append(child)
+        for group in groups.values():
+            group.sort()
+        # Pack pawns until I've packed a whole group, then draw a
+        # rectangle around that and keep packing.
 
-    def _upd_pawns_here(self, *args):
-        """Move any :class:`Pawn` atop me so it still *is* on top of me,
-        presumably after I've moved.
-
-        """
-        for pawn in self.children:
-            self.pospawn(pawn)
-    _trigger_upd_pawns_here = trigger(_upd_pawns_here)
-
-    def _get_pospawn_partial(self, pawn):
-        if pawn not in self._pospawn_partials:
-            self._pospawn_partials[pawn] = partial(
-                self.pospawn, pawn
-            )
-        return self._pospawn_partials[pawn]
-
-    def _get_pospawn_trigger(self, pawn, *args):
-        if pawn not in self._pospawn_triggers:
-            self._pospawn_triggers[pawn] = Clock.create_trigger(
-                self._get_pospawn_partial(pawn)
-            )
-        return self._pospawn_triggers[pawn]
-
-    def bind_trigger_pospawn(self, pawn):
-        trigger = self._get_pospawn_trigger(pawn)
-        pawn.bind(
-            pos=trigger,
-            size=trigger
-        )
-        self.bind(
-            pos=trigger,
-            size=trigger
-        )
-
-    def unbind_trigger_pospawn(self, pawn):
-        trigger = self._get_pospawn_trigger(pawn)
-        pawn.unbind(
-            pos=trigger,
-            size=trigger
-        )
-        self.unbind(
-            pos=trigger,
-            size=trigger
-        )
 
 
 kv = """
