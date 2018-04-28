@@ -265,9 +265,10 @@ class Board(RelativeLayout):
             ret = self.portal_touch_up(touch)
             touch.pop()
             return ret
-        self.selection.unbind(pos=report_pos)
-        if hasattr(self.selection, 'on_touch_up'):
-            self.selection.dispatch('on_touch_up', touch)
+        if self.selection:
+            self.selection.unbind(pos=report_pos)
+            if hasattr(self.selection, 'on_touch_up'):
+                self.selection.dispatch('on_touch_up', touch)
         while self.selection_candidates:
             candidate = self.selection_candidates.pop(0)
             if candidate.collide_point(*touch.pos):

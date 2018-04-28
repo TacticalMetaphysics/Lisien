@@ -12,6 +12,9 @@ from kivy.properties import (
 )
 from kivy.graphics import (
     InstructionGroup,
+    Translate,
+    PopMatrix,
+    PushMatrix,
     Color,
     Line
 )
@@ -37,6 +40,7 @@ class PawnSpot(ImageStack, Layout):
     use_boardspace = True
     positions = DictProperty()
     _childs = DictProperty()
+    _no_use_canvas = True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -46,7 +50,6 @@ class PawnSpot(ImageStack, Layout):
         """If I'm being dragged, move to follow the touch."""
         if touch.grab_current is not self:
             return False
-        Logger.debug("PawnSpot: {} getting dragged to {}".format(self.name, touch.pos))
         self.center = touch.pos
         return True
 
@@ -126,27 +129,35 @@ class PawnSpot(ImageStack, Layout):
             self.color.rgba = self.linecolor
             return
 
-        def upd_box_points(*args):
-            self.box.points = [
-                self.x, self.y,
-                self.right, self.y,
-                self.right, self.top,
-                self.x, self.top,
-                self.x, self.y
-            ]
-        boxgrp = InstructionGroup()
-        self.color = Color(*self.linecolor)
+        def upd_box_translate(*args):
+            self.box_translate.xy = self.pos
 
+        def upd_box_points(*args):
+            self.box.points = [0, 0, self.width, 0, self.width, self.height, 0, self.height, 0, 0]
+
+        self.boxgrp = boxgrp = InstructionGroup()
+        self.color = Color(*self.linecolor)
+        self.box_translate = Translate(*self.pos)
+        boxgrp.add(PushMatrix())
+        boxgrp.add(self.box_translate)
         boxgrp.add(self.color)
         self.box = Line()
         upd_box_points()
         self.bind(
-            pos=upd_box_points,
-            size=upd_box_points
+            size=upd_box_points,
+            pos=upd_box_translate
         )
         boxgrp.add(self.box)
         boxgrp.add(Color(1., 1., 1.))
-        self.group.add(boxgrp)
+        boxgrp.add(PopMatrix())
+
+    def on_board(self, *args):
+        if not (hasattr(self, 'group') and hasattr(self, 'boxgrp')):
+            Clock.schedule_once(self.on_board, 0)
+            return
+        canvas = self.get_layout_canvas()
+        canvas.add(self.group)
+        canvas.add(self.boxgrp)
 
     @trigger
     def restack(self, *args):
@@ -171,29 +182,8 @@ class PawnSpot(ImageStack, Layout):
                 if wid.priority < child.priority:
                     index = len(self.children) - index
                     break
-        super().add_widget(wid, index=index, canvas=canvas)
+        super().add_widget(wid, index=index)
         self._childs[wid.uid] = wid
-        if not hasattr(wid, 'group'):
-            return
-        wid._no_use_canvas = True
-        mycanvas = (
-            self.canvas.after if canvas == 'after' else
-            self.canvas.before if canvas == 'before' else
-            self.canvas
-        )
-        pawncanvas = (
-            self.board.pawnlayout.canvas.after if canvas == 'after' else
-            self.board.pawnlayout.canvas.before if canvas == 'before' else
-            self.board.pawnlayout.canvas
-        )
-        mycanvas.remove(wid.canvas)
-        for child in self.children:
-            if hasattr(child, 'group'):
-                if child.group in pawncanvas.children:
-                    pawncanvas.remove(child.group)
-                pawncanvas.add(child.group)
-            else:
-                pawncanvas.add(child.canvas)
         self._trigger_layout()
 
     def remove_widget(self, widget):

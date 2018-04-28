@@ -51,24 +51,13 @@ class Pawn(PawnSpot):
 
     def on_parent(self, *args):
         if self.parent:
-            self._board = self.parent.board
+            self.board = self.parent.board
             self.bind(
                 loc_name=self._trigger_relocate,
                 next_loc_name=self._trigger_relocate
             )
             if self.proxy:
                 self._trigger_relocate()
-        else:
-            if not hasattr(self, '_board'):
-                return
-            for canvas in (
-                    self._board.pawnlayout.canvas.before,
-                    self._board.pawnlayout.canvas.after,
-                    self._board.pawnlayout.canvas
-            ):
-                if self.group in canvas.children:
-                    canvas.remove(self.group)
-            del self._board
 
     def relocate(self, *args):
         if not self.proxy.exists:
@@ -160,6 +149,9 @@ class Pawn(PawnSpot):
             spot.add_widget(self)
         else:
             self.pos = parent.positions[self.uid]
+
+    def get_layout_canvas(self):
+        return self.board.pawnlayout.canvas
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""

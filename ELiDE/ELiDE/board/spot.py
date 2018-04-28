@@ -50,6 +50,7 @@ class Spot(PawnSpot):
         super().__init__(**kwargs)
 
     def on_board(self, *args):
+        super().on_board(*args)
         self.board.bind(size=self._upd_pos)
 
     def _upd_pos(self, *args):
@@ -84,6 +85,9 @@ class Spot(PawnSpot):
         self._trigger_push_pos()
         touch.ungrab(self)
         return True
+
+    def get_layout_canvas(self):
+        return self.board.spotlayout.canvas
 
     def __repr__(self):
         """Give my name and position."""
