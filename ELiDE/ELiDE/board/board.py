@@ -28,6 +28,9 @@ from ..util import trigger
 import numpy as np
 
 
+def report_pos(inst, *args):
+    Logger.debug("{}: {} positioned to {}".format(inst.__class__.__name__, inst.name, inst.pos))
+
 def normalize_layout(l):
     """Make sure all the spots in a layout are where you can click.
 
@@ -132,8 +135,7 @@ class Board(RelativeLayout):
         touch.push()
         touch.apply_transform_2d(self.to_local)
         if self.selection:
-            self.selection.hit = self.selection.collide_point(*touch.pos)
-            if self.selection.hit:
+            if self.selection.collide_point(*touch.pos):
                 Logger.debug("Board: hit selection")
                 touch.grab(self.selection)
         pawns = list(self.pawns_at(*touch.pos))
@@ -185,28 +187,26 @@ class Board(RelativeLayout):
             return
         if self.selection in self.selection_candidates:
             self.selection_candidates.remove(self.selection)
-        touch.push()
-        touch.apply_transform_2d(self.to_local)
         if self.selection:
+            self.selection.bind(pos=report_pos)
             if not self.selection_candidates:
                 self.keep_selection = True
-            ret = self.selection.dispatch('on_touch_move', touch)
-            touch.pop()
+            ret = super().on_touch_move(touch)
+            Logger.debug('Board: dispatched touch to selection {}'.format(self.selection))
             return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
                     if hasattr(self.selection, 'selected'):
                         self.selection.selected = False
-                    if hasattr(self.selection, 'hit'):
-                        self.selection.hit = False
                     self.selection = cand
-                    cand.hit = cand.selected = True
+                    cand.selected = True
                     touch.grab(cand)
-                    ret = cand.dispatch('on_touch_move', touch)
-                    touch.pop()
+                    ret = super().on_touch_move(touch)
+                    Logger.debug('Board: dispatched touch to candidate {}'.format(cand))
                     return ret
-        touch.pop()
+        else:
+            Logger.debug('Board: dispatched touch to nobody')
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
@@ -265,6 +265,7 @@ class Board(RelativeLayout):
             ret = self.portal_touch_up(touch)
             touch.pop()
             return ret
+        self.selection.unbind(pos=report_pos)
         if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         while self.selection_candidates:

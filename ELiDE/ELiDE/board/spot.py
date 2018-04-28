@@ -28,7 +28,6 @@ class Spot(PawnSpot):
     """
     offset = NumericProperty(3)
     collider = ObjectProperty()
-    collided = BooleanProperty(False)
     place = AliasProperty(
         lambda self: self.proxy,
         lambda self, v: self.setter('proxy')(v),
@@ -36,7 +35,6 @@ class Spot(PawnSpot):
     )
     default_image_paths = ['orb.png']
     default_pos = (0.5, 0.5)
-    _touchpos = ListProperty([])
 
     def __init__(self, **kwargs):
         """Deal with triggers and bindings, and arrange to take care of
@@ -79,24 +77,13 @@ class Spot(PawnSpot):
         self.proxy['_y'] = self.y / self.board.height
     _trigger_push_pos = trigger(push_pos)
 
-    def on_touch_move(self, touch):
-        """If I'm being dragged, move to follow the touch."""
-        if not self.hit:
-            return False
-        self._touchpos = touch.pos
-        self.center = self._touchpos
-        return True
-
     def on_touch_up(self, touch):
-        """Unset ``touchpos``"""
-        if not self.hit:
+        if touch.grab_current is not self:
             return False
-        if self._touchpos:
-            self.center = self._touchpos
-            self._touchpos = []
-            self._trigger_push_pos()
-        self.collided = False
-        self.hit = False
+        self.center = touch.pos
+        self._trigger_push_pos()
+        touch.ungrab(self)
+        return True
 
     def __repr__(self):
         """Give my name and position."""

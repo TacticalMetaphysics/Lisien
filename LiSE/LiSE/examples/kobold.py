@@ -41,7 +41,8 @@ def inittest(
             "shrub" + str(n),
             loc,
             cover=1,
-            _image_paths=['atlas://rltiles/dc-mon.atlas/fungus']
+            _image_paths=['atlas://rltiles/dc-mon.atlas/fungus'],
+            _group='shrub'
         )
         shrub_places.append(loc)
         n += 1

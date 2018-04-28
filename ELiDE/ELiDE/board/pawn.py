@@ -137,15 +137,8 @@ class Pawn(PawnSpot):
         self.unbind(center=pawn.setter('pos'))
         super().remove_widget(pawn)
 
-    def on_touch_move(self, touch):
-        """Move with the touch if I'm grabbed."""
-        if touch.grab_current != self:
-            return False
-        self.center = touch.pos
-        return True
-
     def on_touch_up(self, touch):
-        if touch.grab_current != self:
+        if touch.grab_current is not self:
             return False
         for spot in self.board.spot.values():
             if self.collide_widget(spot) and spot.name != self.loc_name:
@@ -156,6 +149,7 @@ class Pawn(PawnSpot):
             return True
 
         self.dispatch('on_drop', new_spot)
+        touch.ungrab(self)
         return True
 
     def on_drop(self, spot):
@@ -165,8 +159,7 @@ class Pawn(PawnSpot):
             parent.remove_widget(self)
             spot.add_widget(self)
         else:
-            parent.remove_widget(self)
-            parent.add_widget(self)
+            self.pos = parent.positions[self.uid]
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""

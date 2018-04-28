@@ -8,6 +8,7 @@ from kivy.properties import (
     ObjectProperty,
     BooleanProperty,
     ListProperty,
+    DictProperty
 )
 from kivy.graphics import (
     InstructionGroup,
@@ -31,10 +32,23 @@ class PawnSpot(ImageStack, Layout):
     proxy = ObjectProperty()
     engine = ObjectProperty()
     selected = BooleanProperty(False)
-    hit = BooleanProperty(False)
     linecolor = ListProperty()
     name = ObjectProperty()
     use_boardspace = True
+    positions = DictProperty()
+    _childs = DictProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(pos=self._position, positions=self._position)
+
+    def on_touch_move(self, touch):
+        """If I'm being dragged, move to follow the touch."""
+        if touch.grab_current is not self:
+            return False
+        Logger.debug("PawnSpot: {} getting dragged to {}".format(self.name, touch.pos))
+        self.center = touch.pos
+        return True
 
     def finalize(self, initial=True):
         """Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
@@ -140,8 +154,9 @@ class PawnSpot(ImageStack, Layout):
         self.clear_widgets()
         for child in childs:
             self.add_widget(child)
+        self.do_layout()
 
-    def add_widget(self, wid, i=None, canvas=None):
+    def add_widget(self, wid, index=None, canvas=None):
         """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
         than my own canvas.
 
@@ -151,12 +166,13 @@ class PawnSpot(ImageStack, Layout):
         and arrows.
 
         """
-        if i is None:
-            for i, child in enumerate(self.children, start=1):
+        if index is None:
+            for index, child in enumerate(self.children, start=1):
                 if wid.priority < child.priority:
-                    i = len(self.children) - i
+                    index = len(self.children) - index
                     break
-        super().add_widget(wid, i, canvas)
+        super().add_widget(wid, index=index, canvas=canvas)
+        self._childs[wid.uid] = wid
         if not hasattr(wid, 'group'):
             return
         wid._no_use_canvas = True
@@ -178,17 +194,79 @@ class PawnSpot(ImageStack, Layout):
                 pawncanvas.add(child.group)
             else:
                 pawncanvas.add(child.canvas)
+        self._trigger_layout()
+
+    def remove_widget(self, widget):
+        del self._childs[widget.uid]
+        super().remove_widget(widget)
+        self._trigger_layout()
 
     def do_layout(self, *args):
+        Logger.debug("PawnSpot: {} is laying-out".format(self.name))
+        xpad = self.proxy.get('_xpad', 32)
+        ypad = self.proxy.get('_ypad', 32)
+        self.gutter = gutter = self.proxy.get('_gutter', xpad/2)
+        height = self.height - ypad
+        content_height = 0
+        too_tall = False
+        width = self.width - xpad
+        content_width = 0
         groups = defaultdict(list)
         for child in self.children:
-            group = child.proxy.get('_group', child.name)
+            group = child.proxy.get('_group', '')
             groups[group].append(child)
-        for group in groups.values():
-            group.sort()
-        # Pack pawns until I've packed a whole group, then draw a
-        # rectangle around that and keep packing.
+            if child.height > height:
+                height = child.height
+                too_tall = True
+        piles = {}
+        # Arrange the groups into piles that will fit in me vertically
+        for group, members in groups.items():
+            members.sort(key=lambda x: x.width * x.height, reverse=True)
+            high = 0
+            subgroups = []
+            subgroup = []
+            for member in members:
+                high += member.height
+                if high > height:
+                    subgroups.append(subgroup)
+                    subgroup = [member]
+                    high = member.height
+                else:
+                    subgroup.append(member)
+            subgroups.append(subgroup)
+            content_height = max((content_height, sum(wid.height for wid in subgroups[0])))
+            content_width += sum(max(wid.width for wid in subgrp) for subgrp in subgroups)
+            piles[group] = subgroups
+        self.content_width = content_width + gutter * (len(piles) - 1)
+        too_wide = content_width > width
+        # If I'm big enough to fit all this stuff, calculate an offset that will ensure
+        # it's all centered. Otherwise just offset by my padding so the user can still
+        # reach me underneath all the pawns.
+        if too_wide:
+            offx = xpad
+        else:
+            offx = self.width / 2 - content_width / 2
+        if too_tall:
+            offy = ypad
+        else:
+            offy = self.height / 2 - content_height / 2
+        positions = {}
+        for pile, subgroups in sorted(piles.items()):
+            for subgroup in subgroups:
+                subw = subh = 0
+                for member in subgroup:
+                    subw = max((subw, member.width))
+                    positions[member.uid] = (offx, offy + subh)
+                    subh += member.height
+                offx += subw
+            offx += gutter
+        self.positions = positions
 
+    def _position(self, *args):
+        Logger.debug("PawnSpot: {} repositioning children".format(self.name))
+        x, y = self.pos
+        for (member_id, (offx, offy)) in self.positions.items():
+            self._childs[member_id].pos = self.to_local(x + offx, y + offy)
 
 
 kv = """

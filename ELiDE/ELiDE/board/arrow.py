@@ -156,7 +156,6 @@ class ArrowWidget(Widget):
     bg_scale_unselected = NumericProperty(4)
     bg_scale_selected = NumericProperty(5)
     selected = BooleanProperty(False)
-    hit = BooleanProperty(False)
     bg_color_unselected = ListProperty()
     bg_color_selected = ListProperty()
     fg_color_unselected = ListProperty()
