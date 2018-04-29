@@ -52,7 +52,10 @@ class PawnSpot(ImageStack, Layout):
         x, y = self.to_local(x, y, relative=True)
         for path in reversed(self.paths):
             img = self.pathimgs[path]
-            r, g, b, a = img.read_pixel(x, y)
+            try:
+                r, g, b, a = img.read_pixel(x, y)
+            except IndexError:
+                return False
             if a:
                 return True
         return False
