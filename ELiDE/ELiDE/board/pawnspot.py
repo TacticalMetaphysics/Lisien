@@ -46,6 +46,17 @@ class PawnSpot(ImageStack, Layout):
         super().__init__(**kwargs)
         self.bind(pos=self._position, positions=self._position)
 
+    def collide_point(self, x, y):
+        if not super().collide_point(x, y):
+            return False
+        x, y = self.to_local(x, y, relative=True)
+        for path in reversed(self.paths):
+            img = self.pathimgs[path]
+            r, g, b, a = img.read_pixel(x, y)
+            if a:
+                return True
+        return False
+
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
         if touch.grab_current is not self:
