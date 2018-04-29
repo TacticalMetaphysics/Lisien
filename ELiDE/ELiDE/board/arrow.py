@@ -134,21 +134,63 @@ def get_points(orig, dest, taillen):
     # start from the earliest point that intersects the bounding box.
     # work toward the center to find a non-transparent pixel
     # y - boty = ((topy-boty)/(rightx-leftx))*(x - leftx)
-    for rightx in range(
-            int(rightx - dw / 2),
-            int(rightx)+1
-    ):
-        topy = slope * (rightx - leftx) + boty
-        if dest.collide_point(rightx * xco, topy * yco):
-            break
-    for leftx in range(
-            int(leftx + ow / 2),
-            int(leftx)-1,
+    if slope <= 1:
+        for rightx in range(
+                int(rightx - dw / 2),
+                int(rightx)+1
+        ):
+            topy = slope * (rightx - leftx) + boty
+            if dest.collide_point(rightx * xco, topy * yco):
+                rightx = float(rightx - 1)
+                for pip in range(10):
+                    rightx += 0.1 * pip
+                    topy = slope * (rightx - leftx) + boty
+                    if dest.collide_point(rightx * xco, topy * yco):
+                        break
+                break
+        for leftx in range(
+                int(leftx + ow / 2),
+                int(leftx)-1,
+                -1
+        ):
+            boty = slope * (leftx - rightx) + topy
+            if orig.collide_point(leftx * xco, boty * yco):
+                leftx = float(leftx + 1)
+                for pip in range(10):
+                    leftx -= 0.1 * pip
+                    boty = slope * (leftx - rightx) + topy
+                    if orig.collide_point(leftx * xco, boty * yco):
+                        break
+                break
+    else:
+        # x = leftx + ((rightx-leftx)(y - boty))/(topy-boty)
+        for topy in range(
+            int(topy - dh / 2),
+            int(topy) + 1
+        ):
+            rightx = leftx + (topy - boty) / slope
+            if dest.collide_point(rightx * xco, topy * yco):
+                topy = float(topy - 1)
+                for pip in range(10):
+                    topy += 0.1 * pip
+                    rightx = leftx + (topy - boty) / slope
+                    if dest.collide_point(rightx * xco, topy * yco):
+                        break
+                break
+        for boty in range(
+            int(boty + oh / 2),
+            int(boty) - 1,
             -1
-    ):
-        boty = slope * (leftx - rightx) + topy
-        if orig.collide_point(leftx * xco, boty * yco):
-            break
+        ):
+            leftx = (boty - topy) / slope + rightx
+            if orig.collide_point(leftx * xco, boty * yco):
+                boty = float(boty + 1)
+                for pip in range(10):
+                    boty -= 0.1 * pip
+                    leftx = (boty - topy) / slope + rightx
+                    if orig.collide_point(leftx * xco, boty * yco):
+                        break
+                break
 
     rise = topy - boty
     run = rightx - leftx
