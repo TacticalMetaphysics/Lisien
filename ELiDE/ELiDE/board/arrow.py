@@ -39,7 +39,7 @@ def up_and_down(orig, dest, taillen):
     for dy in range(dy, int(dest.center_y)+1):
         if dest.collide_point(x, dy):
             break
-    oy = int(orig.right)
+    oy = int(orig.top)
     for oy in range(oy, int(orig.center_y)-1, -1):
         if orig.collide_point(x, oy):
             break
