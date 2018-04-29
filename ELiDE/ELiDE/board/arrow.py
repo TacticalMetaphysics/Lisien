@@ -28,7 +28,72 @@ except (KeyError, ImportError):
 from ..util import get_thin_rect_vertices, fortyfive
 
 
-def get_points(ox, oy, ro, dx, dy, rd, taillen):
+def up_and_down(orig, dest, taillen):
+    if orig.center_y == dest.center_y:
+        raise ValueError("Can't draw an arrow at a point")
+    flipped = orig.center_y > dest.center_y
+    if flipped:
+        orig, dest = dest, orig
+    x = int(orig.center_x)
+    dy = int(dest.y)
+    for dy in range(dy, int(dest.center_y)+1):
+        if dest.collide_point(x, dy):
+            break
+    oy = int(orig.right)
+    for oy in range(oy, int(orig.center_y)-1, -1):
+        if orig.collide_point(x, oy):
+            break
+    if flipped:
+        oy, dy = dy, oy
+    off1 = cos(fortyfive) * taillen
+    off2 = sin(fortyfive) * taillen
+    x0 = x
+    y0 = oy
+    endx = x
+    endy = dy
+    x1 = endx - off1
+    x2 = endx + off1
+    y1 = y2 = endy - off2 if oy < dy else endy + off2
+    return (
+        [x0, y0, endx, endy],
+        [x1, y1, endx, endy, x2, y2]
+    )
+
+
+def left_and_right(orig, dest, taillen):
+    if orig.center_x == dest.center_x:
+        raise ValueError("Can't draw an arrow at a point")
+    flipped = orig.center_x > dest.center_x
+    if flipped:
+        orig, dest = dest, orig
+    y = int(orig.center_y)
+    dx = int(dest.x)
+    for dx in range(dx, int(dest.center_x)+1):
+        for dxp in range(10):
+            if dest.collide_point(dx, y):
+                break
+    ox = int(orig.right)
+    for ox in range(ox, int(orig.center_x)-1, -1):
+        if orig.collide_point(ox, y):
+            break
+    if flipped:
+        ox, dx = dx, ox
+    off1 = cos(fortyfive) * taillen
+    off2 = sin(fortyfive) * taillen
+    x0 = ox
+    y0 = y
+    endx = dx
+    endy = y
+    y1 = endy - off1
+    y2 = endy + off1
+    x1 = x2 = endx - off2 if ox < dx else endx + off2
+    return (
+        [x0, y0, endx, endy],
+        [x1, y1, endx, endy, x2, y2]
+    )
+
+
+def get_points(orig, dest, taillen):
     """Return a pair of lists of points for use making an arrow.
 
     The first list is the beginning and end point of the trunk of the arrow.
@@ -36,9 +101,13 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
     The second list is the arrowhead.
 
     """
-    # handle special cases;
-    # flip the arrow, if needed, to make it point up and right;
-    # store coefficients to flip it back again
+    # Adjust the start and end points so they're on the first non-transparent pixel.
+    # y = slope(x-ox) + oy
+    # x = (y - oy) / slope + ox
+    ox, oy = orig.center
+    ow, oh = orig.size
+    dx, dy = dest.center
+    dw, dh = dest.size
     if ox < dx:
         leftx = ox
         rightx = dx
@@ -48,19 +117,8 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
         rightx = dx * -1
         xco = -1
     else:
-        off1 = cos(fortyfive) * taillen
-        off2 = sin(fortyfive) * taillen
-        x0 = ox
-        y0 = oy + ro if oy < dy else oy - ro
-        endx = dx
-        endy = dy - rd if oy < dy else dy + rd
-        x1 = endx - off1
-        x2 = endx + off1
-        y1 = y2 = endy - off2 if oy < dy else endy + off2
-        return (
-            [x0, y0, endx, endy],
-            [x1, y1, endx, endy, x2, y2]
-        )
+        # straight up and down arrow
+        return up_and_down(orig, dest, taillen)
     if oy < dy:
         boty = oy
         topy = dy
@@ -70,33 +128,39 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
         topy = dy * -1
         yco = -1
     else:
-        off1 = cos(fortyfive) * taillen
-        off2 = sin(fortyfive) * taillen
-        x0 = ox + ro if ox < dx else ox - ro
-        y0 = oy
-        endx = dx - rd if ox < dx else dx + rd
-        endy = dy
-        y1 = endy - off1
-        y2 = endy + off1
-        x1 = x2 = endx - off2 if ox < dx else endx + off2
-        return (
-            [x0, y0, endx, endy],
-            [x1, y1, endx, endy, x2, y2]
-        )
+        # straight left and right arrow
+        return left_and_right(orig, dest, taillen)
+    slope = (topy - boty) / (rightx - leftx)
+    # start from the earliest point that intersects the bounding box.
+    # work toward the center to find a non-transparent pixel
+    # y - boty = ((topy-boty)/(rightx-leftx))*(x - leftx)
+    for rightx in range(
+            int(rightx - dw / 2),
+            int(rightx)+1
+    ):
+        topy = slope * (rightx - leftx) + boty
+        if dest.collide_point(rightx * xco, topy * yco):
+            break
+    for leftx in range(
+            int(leftx + ow / 2),
+            int(leftx)-1,
+            -1
+    ):
+        boty = slope * (leftx - rightx) + topy
+        if orig.collide_point(leftx * xco, boty * yco):
+            break
 
     rise = topy - boty
     run = rightx - leftx
 
-    # truncate the end so it just touches the destination circle.
-    start_theta = atan(rise/run)
-    end_theta = atan(run/rise)
-    length = hypot(run, rise) - rd
-    rightx = leftx + cos(start_theta) * length
-    topy = boty + sin(start_theta) * length
-    # truncate the start so it's at the very edge of the origin circle.
-    length -= ro
-    leftx = rightx - sin(end_theta) * length
-    boty = topy - cos(end_theta) * length
+    try:
+        start_theta = atan(rise/run)
+    except ZeroDivisionError:
+        return up_and_down(orig, dest, taillen)
+    try:
+        end_theta = atan(run/rise)
+    except ZeroDivisionError:
+        return left_and_right(orig, dest, taillen)
 
     # make the little wedge at the end so you can tell which way the
     # arrow's pointing, and flip it all back around to the way it was
@@ -324,18 +388,7 @@ class ArrowWidget(Widget):
 
     def _get_points(self):
         """Return the coordinates of the points that describe my shape."""
-        orig = self.origin
-        dest = self.destination
-        (ox, oy) = orig.center
-        ow = orig.width if hasattr(orig, 'width') else 0
-        taillen = float(self.arrowhead_size)
-        ory = ow / 2
-        (dx, dy) = dest.center
-        (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
-        dry = dh / 2
-        return get_points(
-            ox, oy, ory, dx, dy, dry, taillen
-        )
+        return get_points(self.origin, self.destination, self.arrowhead_size)
 
     def _get_slope(self):
         """Return a float of the increase in y divided by the increase in x,
@@ -376,7 +429,11 @@ class ArrowWidget(Widget):
         if None in (self.origin, self.destination):
             Clock.schedule_once(self._repoint, 0)
             return
-        (self.trunk_points, self.head_points) = self._get_points()
+        try:
+            (self.trunk_points, self.head_points) = self._get_points()
+        except ValueError:
+            self.trunk_points = self.head_points = []
+            return
         (ox, oy, dx, dy) = self.trunk_points
         r = self.w / 2
         bgr = r * self.bg_scale_selected if self.selected \
