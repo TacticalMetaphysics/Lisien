@@ -69,9 +69,8 @@ def left_and_right(orig, dest, taillen):
     y = int(orig.center_y)
     dx = int(dest.x)
     for dx in range(dx, int(dest.center_x)+1):
-        for dxp in range(10):
-            if dest.collide_point(dx, y):
-                break
+        if dest.collide_point(dx, y):
+            break
     ox = int(orig.right)
     for ox in range(ox, int(orig.center_x)-1, -1):
         if orig.collide_point(ox, y):
