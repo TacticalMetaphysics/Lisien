@@ -52,6 +52,14 @@ class PawnSpot(ImageStack, Layout):
         x, y = self.to_local(x, y, relative=True)
         for path in reversed(self.paths):
             img = self.pathimgs[path]
+            if not img._image:
+                from kivy.core.image import Image, ImageData
+                img._image = _image = Image(img._texture)
+                _image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
+            if not img._image._data:
+                # it's in an atlas
+                from kivy.core.image import ImageData
+                img._image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
             try:
                 r, g, b, a = img.read_pixel(x, y)
             except IndexError:
