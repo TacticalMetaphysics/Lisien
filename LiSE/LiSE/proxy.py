@@ -847,19 +847,19 @@ class CharSuccessorsMappingProxy(CachingProxy):
         )
 
     def _apply_delta(self, delta):
-        for ((o, d), ex) in delta.items():
-            if ex:
-                if d not in self._cache[o]:
-                    self._cache[o][d] = PortalProxy(
-                        self.engine,
-                        self.name,
-                        o, d
-                    )
-            else:
-                if o in self._cache and d in self._cache[o]:
-                    del self._cache[o][d]
-                    if len(self._cache[o]) == 0:
-                        del self._cache[o]
+        for o, ds in delta.items():
+            for d, ex in ds.items():
+                if ex:
+                    if d not in self._cache[o]:
+                        self._cache[o][d] = PortalProxy(
+                            self.character[o][d],
+                            o, d
+                        )
+                else:
+                    if o in self._cache and d in self._cache[o]:
+                        del self._cache[o][d]
+                        if len(self._cache[o]) == 0:
+                            del self._cache[o]
 
     def _set_item(self, orig, val):
         self.engine.handle(
