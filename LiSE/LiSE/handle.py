@@ -138,7 +138,7 @@ class EngineHandle(object):
 
         def updd(d0, d1):
             for k, v in d1.items():
-                if k not in ('location', 'next_location') and v is None:
+                if v is None:
                     if k in d0:
                         del d0[k]
                 else:
@@ -150,11 +150,22 @@ class EngineHandle(object):
         for rule, d in delta.pop('rules', {}).items():
             updd(self._rulebook_cache.setdefault(rule, {}), d)
         for char, d in delta.items():
-            updd(self._char_nodes_cache.setdefault(char, {}), d.pop('nodes', {}))
+            nodeset = set(self._char_nodes_cache.setdefault(char, ()))
+            for n, ex in d.pop('nodes', {}).items():
+                if ex:
+                    nodeset.add(n)
+                else:
+                    nodeset.remove(n)
             nodevd = self._node_stat_cache.setdefault(char, {})
             for node, val in d.pop('node_val', {}).items():
-                updd(nodevd.setdefault(node, {}), val)
-            edges = self._char_portals_cache.setdefault(char, set())
+                nodenvd = nodevd.setdefault(node, {})
+                for k, v in val.items():
+                    if k not in ('location', 'next_location') and v is None:
+                        if k in nodenvd:
+                            del nodenvd[k]
+                    else:
+                        nodenvd[k] = v
+            edges = set(self._char_portals_cache.setdefault(char, ()))
             for orig, dests in d.pop('edges', {}).items():
                 for dest, exists in dests.items():
                     if exists:
