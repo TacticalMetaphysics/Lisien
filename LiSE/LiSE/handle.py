@@ -13,6 +13,16 @@ from .engine import Engine
 from .util import dict_delta, set_delta
 
 
+def timely(fun):
+    def run_timely(self, *args, **kwargs):
+        ret = fun(self, *args, **kwargs)
+        self.branch, self.turn, self.tick = self._real.btt()
+        return ret
+
+    run_timely.timely = True
+    return run_timely
+
+
 class EngineHandle(object):
     """A wrapper for a :class:`LiSE.Engine` object that runs in the same
     process, but with an API built to be used in a command-processing
@@ -95,6 +105,7 @@ class EngineHandle(object):
     def time_locked(self):
         return hasattr(self._real, 'locktime')
 
+    @timely
     def advance(self):
         self._real.advance()
 
@@ -177,10 +188,10 @@ class EngineHandle(object):
                 for dest, val in dests.items():
                     updd(edgevd.setdefault(orig, {}).setdefault(dest, {}), val)
 
+    @timely
     def next_turn(self):
         self.debug('calling next_turn at {}, {}, {}'.format(*self._real.btt()))
         ret, delta = self._real.next_turn()
-        self.branch, self.turn, self.tick = self._real.btt()
         self._after_ret = partial(self._upd_local_caches, delta)
         return ret, delta
 
@@ -202,6 +213,7 @@ class EngineHandle(object):
             delta['rulebooks'] = rbd
         return delta
 
+    @timely
     def time_travel(self, branch, turn, tick=None, chars='all'):
         branch_from, turn_from, tick_from = self._real.btt()
         slow_delta = branch != branch_from
@@ -219,6 +231,7 @@ class EngineHandle(object):
             self._after_ret = partial(self._upd_local_caches, delta)
         return None, delta
 
+    @timely
     def increment_branch(self, chars=[]):
         branch = self._real.branch
         m = match('(.*)([0-9]+)', branch)
@@ -242,6 +255,7 @@ class EngineHandle(object):
             ret.update(self.get_char_deltas(chars))
         return ret
 
+    @timely
     def add_character(self, char, data, attr):
         character = self._real.new_character(char, **attr)
         placedata = data.get('place', data.get('node', {}))
@@ -360,10 +374,12 @@ class EngineHandle(object):
         ret = self._universal_cache[k] = self._real.universal[k]
         return ret
 
+    @timely
     def set_universal(self, k, v):
         self._real.universal[k] = v
         self._universal_cache[k] = v
 
+    @timely
     def del_universal(self, k):
         del self._real.universal[k]
         del self._universal_cache[k]
@@ -378,12 +394,14 @@ class EngineHandle(object):
             self._universal_cache = new
         return dict_delta(old, new)
 
+    @timely
     def init_character(self, char, statdict={}):
         if char in self._real.character:
             raise KeyError("Already have character {}".format(char))
         self._real.character[char] = {}
         self._real.character[char].stat.update(statdict)
 
+    @timely
     def del_character(self, char):
         del self._real.character[char]
         for cache in (
@@ -590,18 +608,22 @@ class EngineHandle(object):
             ret['edge_val'] = ev
         return ret
 
+    @timely
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
         self._char_stat_cache.setdefault(char, {})[k] = v
 
+    @timely
     def del_character_stat(self, char, k):
         del self._real.character[char].stat[k]
         del self._char_stat_cache[char][k]
 
+    @timely
     def update_character_stats(self, char, patch):
         self._real.character[char].stat.update(patch)
         self._char_stat_cache.setdefault(char, {}).update(patch)
 
+    @timely
     def update_character(self, char, patch):
         self.update_character_stats(char, patch['character'])
         self.update_nodes(char, patch['node'])
@@ -610,13 +632,16 @@ class EngineHandle(object):
     def characters(self):
         return list(self._real.character.keys())
 
+    @timely
     def set_character(self, char, v):
         self._real.character[char] = v
 
+    @timely
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
         self._node_stat_cache.setdefault(char, {})[node][k] = v
 
+    @timely
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
         del self._node_stat_cache[char][node][k]
@@ -675,6 +700,7 @@ class EngineHandle(object):
     def character_nodes_stat_copy(self, char):
         return {node: self.node_stat_copy(char, node) for node in self._real.character[char].node}
 
+    @timely
     def update_node(self, char, node, patch):
         """Change a node's stats according to a dictionary.
 
@@ -692,6 +718,7 @@ class EngineHandle(object):
         else:
             character.node[node].update(patch)
 
+    @timely
     def update_nodes(self, char, patch, backdate=False):
         """Change the stats of nodes in a character according to a
         dictionary.
@@ -708,6 +735,7 @@ class EngineHandle(object):
         if backdate:
             self._real.tick = tick_now
 
+    @timely
     def del_node(self, char, node):
         """Remove a node from a character."""
         del self._real.character[char].node[node]
@@ -782,6 +810,7 @@ class EngineHandle(object):
     def nodes_connected(self, char, orig, dest):
         return dest in self._real.character[char].portal[orig]
 
+    @timely
     def init_thing(self, char, thing, statdict={}):
         if thing in self._real.character[char].thing:
             raise KeyError(
@@ -791,6 +820,7 @@ class EngineHandle(object):
             )
         return self.set_thing(char, thing, statdict)
 
+    @timely
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
@@ -800,6 +830,7 @@ class EngineHandle(object):
         nxtarrt = statdict.pop('next_arrival_time', None)
         self._char_things_cache.setdefault(char, {})[thing] = (loc, nxtloc, arrt, nxtarrt)
 
+    @timely
     def add_thing(self, char, thing, loc, next_loc, statdict):
         self._real.character[char].add_thing(
             thing, loc, next_loc, **statdict
@@ -807,12 +838,15 @@ class EngineHandle(object):
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
         self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
 
+    @timely
     def place2thing(self, char, node, loc):
         self._real.character[char].place2thing(node, loc)
 
+    @timely
     def thing2place(self, char, node):
         self._real.character[char].thing2place(node)
 
+    @timely
     def add_things_from(self, char, seq):
         self._real.character[char].add_things_from(seq)
 
@@ -822,6 +856,7 @@ class EngineHandle(object):
         except KeyError:
             return None
 
+    @timely
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
         self._node_stat_cache.setdefault(char, {}).setdefault(thing, {})['location'] = loc
@@ -838,12 +873,15 @@ class EngineHandle(object):
             thing['next_arrival_time']
         )
 
+    @timely
     def thing_follow_path(self, char, thing, path, weight):
         return self._real.character[char].thing[thing].follow_path(path, weight)
 
+    @timely
     def thing_go_to_place(self, char, thing, place, weight):
         return self._real.character[char].thing[thing].go_to_place(place, weight)
 
+    @timely
     def thing_travel_to(self, char, thing, dest, weight=None, graph=None):
         """Make something find a path to ``dest`` and follow it.
 
@@ -855,6 +893,7 @@ class EngineHandle(object):
         """
         return self._real.character[char].thing[thing].travel_to(dest, weight, graph)
 
+    @timely
     def init_place(self, char, place, statdict={}):
         if place in self._real.character[char].place:
             raise KeyError(
@@ -864,13 +903,16 @@ class EngineHandle(object):
             )
         return self.set_place(char, place, statdict)
 
+    @timely
     def set_place(self, char, place, statdict):
         self._real.character[char].place[place] = statdict
         self._node_stat_cache.setdefault(char, {})[place] = statdict
 
+    @timely
     def add_places_from(self, char, seq):
         self._real.character[char].add_places_from(seq)
 
+    @timely
     def init_portal(self, char, orig, dest, statdict={}):
         if (
                 orig in self._real.character[char].portal and
@@ -883,6 +925,7 @@ class EngineHandle(object):
             )
         return self.set_portal(char, orig, dest, statdict)
 
+    @timely
     def set_portal(self, char, orig, dest, statdict):
         self._real.character[char].portal[orig][dest] = statdict
         self._portal_stat_cache.setdefault(char, {})[orig][dest] = statdict
@@ -914,11 +957,13 @@ class EngineHandle(object):
                 ret.setdefault(orig, {})[dest] = True
         return ret
 
+    @timely
     def add_portal(self, char, orig, dest, symmetrical, statdict):
         self._real.character[char].add_portal(
             orig, dest, symmetrical, **statdict
         )
 
+    @timely
     def add_portals_from(self, char, seq, symmetrical):
         self._real.character[char].add_portals_from(seq, symmetrical)
 
@@ -971,6 +1016,7 @@ class EngineHandle(object):
                     r[orig][dest] = delta
         return r
 
+    @timely
     def update_portal(self, char, orig, dest, patch):
         character = self._real.character[char]
         if patch is None:
@@ -981,23 +1027,28 @@ class EngineHandle(object):
         else:
             character.portal[orig][dest].update(patch)
 
+    @timely
     def update_portals(self, char, patch):
         branch = self.branch
         for ((orig, dest), ppatch) in patch.items():
             branch = self.update_portal(char, orig, dest, ppatch)
         return branch
 
+    @timely
     def add_avatar(self, char, graph, node):
         self._real.character[char].add_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].add(node)
 
+    @timely
     def del_avatar(self, char, graph, node):
         self._real.character[char].del_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)
 
+    @timely
     def new_empty_rule(self, rule):
         self._real.rule.new_empty(rule)
 
+    @timely
     def new_empty_rulebook(self, rulebook):
         self._real.rulebook[rulebook]
 
@@ -1021,46 +1072,60 @@ class EngineHandle(object):
                 ret[rulebook] = delta
         return ret
 
+    @timely
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
 
+    @timely
     def ins_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook].insert(i, rule)
 
+    @timely
     def del_rulebook_rule(self, rulebook, i):
         del self._real.rulebook[rulebook][i]
         del self._rulebook_cache[rulebook][i]
 
+    @timely
     def set_rule_triggers(self, rule, triggers):
         self._real.rule[rule].triggers = triggers
 
+    @timely
     def set_rule_prereqs(self, rule, prereqs):
         self._real.rule[rule].prereqs = prereqs
 
+    @timely
     def set_rule_actions(self, rule, actions):
         self._real.rule[rule].actions = actions
 
+    @timely
     def set_character_rulebook(self, char, rulebook):
         self._real.character[char].rulebook = rulebook
 
+    @timely
     def set_avatar_rulebook(self, char, rulebook):
         self._real.character[char].avatar.rulebook = rulebook
 
+    @timely
     def set_character_thing_rulebook(self, char, rulebook):
         self._real.character[char].thing.rulebook = rulebook
 
+    @timely
     def set_character_place_rulebook(self, char, rulebook):
         self._real.character[char].place.rulebook = rulebook
 
+    @timely
     def set_character_node_rulebook(self, char, rulebook):
         self._real.character[char].node.rulebook = rulebook
 
+    @timely
     def set_character_portal_rulebook(self, char, rulebook):
         self._real.character[char].portal.rulebook = rulebook
 
+    @timely
     def set_node_rulebook(self, char, node, rulebook):
         self._real.character[char].node[node].rulebook = rulebook
 
+    @timely
     def set_portal_rulebook(self, char, orig, dest, rulebook):
         self._real.character[char].portal[orig][dest].rulebook = rulebook
 
@@ -1116,6 +1181,7 @@ class EngineHandle(object):
         except KeyError:
             pass
 
+    @timely
     def call_stored_function(self, store, func, args, kwargs):
         if store == 'method':
             args = (self._real,) + tuple(args)
@@ -1128,12 +1194,15 @@ class EngineHandle(object):
         except Exception as ex:
             raise
 
+    @timely
     def call_randomizer(self, method, *args, **kwargs):
         return getattr(self._real.rando, method)(*args, **kwargs)
 
+    @timely
     def install_module(self, module):
         import_module(module).install(self._real)
 
+    @timely
     def do_game_start(self):
         self._real.game_start()
 
