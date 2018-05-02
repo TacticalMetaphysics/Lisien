@@ -65,7 +65,6 @@ class Spot(PawnSpot):
     def finalize(self, initial=True):
         if initial:
             self._upd_pos()
-        self.bind(pos=self._trigger_push_pos)
         super().finalize(initial)
 
     def push_pos(self, *args):
@@ -85,6 +84,7 @@ class Spot(PawnSpot):
         self.center = touch.pos
         self._trigger_push_pos()
         touch.ungrab(self)
+        self._trigger_push_pos()
         return True
 
     def get_layout_canvas(self):
