@@ -65,6 +65,7 @@ class Spot(PawnSpot):
     def finalize(self, initial=True):
         if initial:
             self._upd_pos()
+        self.bind(pos=self._trigger_push_pos)
         super().finalize(initial)
 
     def push_pos(self, *args):
