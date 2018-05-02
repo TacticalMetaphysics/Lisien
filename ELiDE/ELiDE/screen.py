@@ -249,6 +249,9 @@ class MainScreen(Screen):
         self._update_from_delta(cmd, branch, turn, tick, received[-1])
 
     def _update_from_delta(self, cmd, branch, turn, tick, delta, **kwargs):
+        self.app.branch = branch
+        self.app.turn = turn
+        self.app.tick = tick
         chardelta = delta.get(self.boardview.board.character.name, {})
         for unwanted in (
             'character_rulebook',
