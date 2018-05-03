@@ -96,7 +96,10 @@ class WindowDictItemsView(ItemsView):
 
 class WindowDictPastFutureKeysView(KeysView):
     def __contains__(self, item):
-        for rev in map(itemgetter(0), self._mapping.deq):
+        deq = self._mapping.deq
+        if not deq or item < deq[0][0] or item > deq[-1][0]:
+            return False
+        for rev in map(itemgetter(0), deq):
             if rev == item:
                 return True
         return False
@@ -114,8 +117,11 @@ class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
 
 class WindowDictPastFutureItemsView(ItemsView):
     def __contains__(self, item):
+        deq = self._mapping.deq
+        if not deq or item[0] < deq[0][0] or item[0] > deq[-1][0]:
+            return False
         rev, v = item
-        for mrev, mv in self._mapping.deq:
+        for mrev, mv in deq:
             if mrev == rev:
                 return mv == v
         return False
