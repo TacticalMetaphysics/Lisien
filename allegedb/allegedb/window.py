@@ -167,14 +167,11 @@ class WindowDictValuesView(ValuesView):
             yield v
 
 
-class WindowDictPastView(Mapping):
-    __slots__ = ['deq']
+class WindowDictPastFutureView(Mapping):
+    __slots__ = ('deq',)
 
-    def __init__(self, past):
-        self.deq = past
-
-    def __iter__(self):
-        yield from map(itemgetter(0), reversed(self.deq))
+    def __init__(self, deq):
+        self.deq = deq
 
     def __len__(self):
         return len(self.deq)
@@ -187,6 +184,11 @@ class WindowDictPastView(Mapping):
                 return value
         raise KeyError
 
+
+class WindowDictPastView(WindowDictPastFutureView):
+    def __iter__(self):
+        yield from map(itemgetter(0), reversed(self.deq))
+
     def keys(self):
         return WindowDictPastKeysView(self)
 
@@ -197,17 +199,9 @@ class WindowDictPastView(Mapping):
         return WindowDictPastValuesView(self)
 
 
-class WindowDictFutureView(Mapping):
-    __slots__ = ['deq']
-
-    def __init__(self, future):
-        self.deq = future
-
+class WindowDictFutureView(WindowDictPastFutureView):
     def __iter__(self):
         yield from map(itemgetter(0), self.deq)
-
-    def __len__(self):
-        return len(self.deq)
 
     def __getitem__(self, key):
         if not self.deq or key < self.deq[0][0] or key > self.deq[-1][0]:
