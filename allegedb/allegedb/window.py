@@ -180,15 +180,11 @@ class WindowDictPastView(Mapping):
         return len(self.deq)
 
     def __getitem__(self, key):
-        future = deque()
-        past = self.deq
-        while past:
-            rev, value = past.pop()
-            future.appendleft((rev, value))
+        if not self.deq or key < self.deq[0][0] or key > self.deq[-1][0]:
+            raise KeyError
+        for rev, value in self.deq:
             if rev == key:
-                self.deq += future
                 return value
-        self.deq = future
         raise KeyError
 
     def keys(self):
@@ -214,15 +210,11 @@ class WindowDictFutureView(Mapping):
         return len(self.deq)
 
     def __getitem__(self, key):
-        future = self.deq
-        past = deque()
-        while future:
-            rev, value = future.popleft()
-            past.append((rev, value))
+        if not self.deq or key < self.deq[0][0] or key > self.deq[-1][0]:
+            raise KeyError
+        for rev, value in self.deq:
             if rev == key:
-                self.deq = past + future
                 return value
-        self.deq = past
         raise KeyError
 
     def keys(self):
