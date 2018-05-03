@@ -35,12 +35,20 @@ class WindowDictKeysView(KeysView):
     def __contains__(self, rev):
         if not within_history(rev, self._mapping):
             return False
-        for mrev, mv in self._mapping._past:
-            if mrev == rev:
-                return True
-        for mrev, mv in self._mapping._future:
-            if mrev == rev:
-                return True
+        if self._mapping._past:
+            now = self._mapping._past[-1][0]
+        else:
+            now = self._mapping._future[0][0]
+        if rev == now:
+            return True
+        if rev < now:
+            for mrev, mv in self._mapping._past:
+                if mrev == rev:
+                    return True
+        if rev > now:
+            for mrev, mv in self._mapping._future:
+                if mrev == rev:
+                    return True
         return False
 
     def __iter__(self):
@@ -54,15 +62,7 @@ class WindowDictItemsView(ItemsView):
     """Look through everything a WindowDict contains."""
     def __contains__(self, item):
         (rev, v) = item
-        if not within_history(rev, self._mapping):
-            return False
-        for mrev, mv in self._mapping._past:
-            if mrev == rev:
-                return mv == v
-        for mrev, mv in self._mapping._future:
-            if mrev == rev:
-                return mv == v
-        return False
+        return rev in self._mapping and self._mapping[rev] == v
 
     def __iter__(self):
         yield from self._mapping._past
@@ -71,7 +71,10 @@ class WindowDictItemsView(ItemsView):
 
 class WindowDictPastFutureKeysView(KeysView):
     def __contains__(self, item):
-        for rev in map(itemgetter(0), self._mapping.deq):
+        deq = self._mapping.deq
+        if not deq or item < deq[0][0] or item > deq[-1][0]:
+            return False
+        for rev in map(itemgetter(0), deq):
             if rev == item:
                 return True
         return False
@@ -80,6 +83,12 @@ class WindowDictPastFutureKeysView(KeysView):
 class WindowDictPastKeysView(WindowDictPastFutureKeysView):
     def __iter__(self):
         yield from map(itemgetter(0), reversed(self._mapping.deq))
+
+    def __contains__(self, item):
+        past = self._mapping.deq
+        if not past or item > past[0][0]:
+            return False
+        return item in iter(self)
 
 
 class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
@@ -90,7 +99,10 @@ class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
 class WindowDictPastFutureItemsView(ItemsView):
     def __contains__(self, item):
         rev, v = item
-        for mrev, mv in self._mapping.deq:
+        deq = self._mapping.deq
+        if not deq or rev < deq[0][0] or rev > deq[-1][0]:
+            return False
+        for mrev, mv in deq:
             if mrev == rev:
                 return mv == v
         return False
@@ -155,15 +167,12 @@ class WindowDictPastView(Mapping):
         return len(self.deq)
 
     def __getitem__(self, key):
-        future = deque()
-        past = self.deq
-        while past:
-            rev, value = past.pop()
-            future.appendleft((rev, value))
+        deq = self.deq
+        if not deq or key < deq[0][0] or key > deq[-1][0]:
+            raise KeyError
+        for rev, value in deq:
             if rev == key:
-                self.deq += future
                 return value
-        self.deq = future
         raise KeyError
 
     def keys(self):
@@ -189,15 +198,12 @@ class WindowDictFutureView(Mapping):
         return len(self.deq)
 
     def __getitem__(self, key):
-        future = self.deq
-        past = deque()
-        while future:
-            rev, value = future.popleft()
-            past.append((rev, value))
+        deq = self.deq
+        if not deq or key < deq[0][0] or key > deq[-1][0]:
+            raise KeyError
+        for (rev, value) in deq:
             if rev == key:
-                self.deq = past + future
                 return value
-        self.deq = past
         raise KeyError
 
     def keys(self):
@@ -213,13 +219,13 @@ class WindowDictFutureView(Mapping):
 class WindowDictSlice:
     __slots__ = ['dict', 'slice']
 
-    def __init__(self, dict, slice):
-        self.dict = dict
-        self.slice = slice
+    def __init__(self, dic, slic):
+        self.dict = dic
+        self.slice = slic
 
     def __reversed__(self):
-        # makes the iteration start over; I don't care enough to fix
-        return WindowDictReverseSlice(self.dict, self.slice)
+        slic = self.slice
+        yield from WindowDictReverseSlice(self.dict, slice(slic.stop, slic.start, slic.step))
 
     def __iter__(self):
         dic = self.dict
@@ -228,40 +234,41 @@ class WindowDictSlice:
             for i in range(slic.start or dic.beginning, slic.stop or dic.end, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            yield from map(itemgetter(1), dic._past + dic._future)
+            yield from map(itemgetter(1), dic._past)
+            yield from map(itemgetter(1), dic._future)
         elif None not in (slic.start, slic.stop):
             if slic.stop == slic.start:
                 yield dic[slic.stop]
                 return
-            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
-            dic.seek(right)
-            past = dic._past.copy()
-            while past and past[0][0] < left:
-                past.popleft()
-            yield from map(itemgetter(1), past)
+            dic.seek(slic.start)
+            if slic.start in dic:
+                yield dic[slic.start]
+            for rev, val in dic._future:
+                if rev < slic.stop:
+                    yield val
+                else:
+                    break
         elif slic.start is None:
-            stac = dic._past + dic._future
-            while stac and stac[-1][0] > slic.stop:
-                stac.pop()
-            yield from map(itemgetter(1), stac)
-            return
+            dic.seek(slic.stop)
+            yield from map(itemgetter(0), dic._past)
         else:  # slic.stop is None
-            stac = dic._past + dic._future
-            while stac and stac[0][0] < slic.start:
-                stac.popleft()
-            yield from map(itemgetter(1), stac)
+            dic.seek(slic.start)
+            if slic.start in dic:
+                yield dic[slic.start]
+            yield from map(itemgetter(1), dic._future)
 
 
 class WindowDictReverseSlice:
     __slots__ = ['dict', 'slice']
 
-    def __init__(self, dict, slice):
-        self.dict = dict
-        self.slice = slice
+    def __init__(self, dic, slic):
+        self.dict = dic
+        self.slice = slic
 
     def __reversed__(self):
-        # makes the iteration start over; I don't care enough to fix
-        return WindowDictSlice(self.dict, self.slice)
+        slic = self.slice
+        # iteration doesn't include stop, but does include start
+        yield from WindowDictSlice(self.dict, slice(slic.stop+1, slic.start+1, slic.step))
 
     def __iter__(self):
         dic = self.dict
@@ -270,16 +277,18 @@ class WindowDictReverseSlice:
             for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            yield from map(itemgetter(1), reversed(dic._past + dic._future))
+            yield from map(itemgetter(1), reversed(dic._future))
+            yield from map(itemgetter(1), reversed(dic._past))
         elif None not in (slic.start, slic.stop):
             if slic.start == slic.stop:
                 yield dic[slic.stop]
                 return
-            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
-            dic.seek(right)
-            future = dic._past.copy()
-            while future[-1][0] > left:
-                yield future.pop()[1]
+            dic.seek(slic.start)
+            for rev, val in reversed(dic._past):
+                if rev > slic.stop:
+                    yield val
+                else:
+                    break
         elif slic.start is None:
             dic.seek(slic.stop)
             yield from map(itemgetter(1), reversed(dic._past))
@@ -302,10 +311,18 @@ class WindowDict(MutableMapping):
     repeatedly, or its neighbors.
 
     This supports slice notation to get all values in a given
-    time-frame. If you do not supply a step, you'll just get the
-    values, with no indication of when they're from exactly --
-    so explicitly supply a step of 1 to get the value at each point in
-    the slice.
+    time-frame. You'll get results without a step even if
+    the start is greater than the stop. Such a slice will go through history
+    in reverse order.
+
+    If you do not supply a step, you'll just get the
+    values, with no indication of when they're from exactly.
+    Use the ``.past()`` or ``.future()`` method to get a read-only
+    mapping of history if you need to know the revision number.
+    These mappings are ordered chronologically -- reverse chronologically
+    in the case of ``.past()``. Control which revision is "the present"
+    by passing it to ``.seek(rev)`` or looking it up.
+    That revision will also be the initial key in ``.past()``.
 
     """
     def future(self):
@@ -384,13 +401,27 @@ class WindowDict(MutableMapping):
     def __bool__(self):
         return bool(self._past) or bool(self._future)
 
-    def __init__(self, data=()):
+    def __init__(self, data=(), reverse=False):
         if hasattr(data, 'items'):
-            self._past = deque(sorted(data.items()))
+            self._past = deque(sorted(data.items(), reverse=reverse))
         else:
             # assume it's an orderable sequence of pairs
-            self._past = deque(sorted(data))
+            self._past = deque(sorted(data, reverse=reverse))
         self._future = deque()
+
+    def __reversed__(self):
+        yield from reversed(self._future)
+        yield from reversed(self._past)
+
+    def copy(self):
+        ret = WindowDict()
+        ret._past, ret._future = self._past.copy(), self._future.copy()
+        return ret
+
+    def reverse(self):
+        self._past, self._future = self._future, self._past
+        self._past.reverse()
+        self._future.reverse()
 
     def __iter__(self):
         for (rev, v) in self._past:
