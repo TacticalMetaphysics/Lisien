@@ -235,8 +235,7 @@ class WindowDictSlice:
         self.slice = slice
 
     def __reversed__(self):
-        # makes the iteration start over; I don't care enough to fix
-        return WindowDictReverseSlice(self.dict, self.slice)
+        return iter(WindowDictReverseSlice(self.dict, self.slice))
 
     def __iter__(self):
         dic = self.dict
@@ -277,8 +276,7 @@ class WindowDictReverseSlice:
         self.slice = slice
 
     def __reversed__(self):
-        # makes the iteration start over; I don't care enough to fix
-        return WindowDictSlice(self.dict, self.slice)
+        return iter(WindowDictSlice(self.dict, self.slice))
 
     def __iter__(self):
         dic = self.dict
