@@ -190,15 +190,6 @@ class PawnSpot(ImageStack, Layout):
         self.do_layout()
 
     def add_widget(self, wid, index=None, canvas=None):
-        """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
-        than my own canvas.
-
-        The idea is that all my child widgets are to be instances of
-        :class:`Pawn`, and should therefore be drawn after every
-        non-:class:`Pawn` widget, so that pawns are on top of spots
-        and arrows.
-
-        """
         if index is None:
             for index, child in enumerate(self.children, start=1):
                 if wid.priority < child.priority:
