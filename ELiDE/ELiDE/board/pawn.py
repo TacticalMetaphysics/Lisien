@@ -135,6 +135,7 @@ class Pawn(PawnSpot):
                 break
         else:
             self.dispatch('on_drop', None)
+            touch.ungrab(self)
             return True
 
         self.dispatch('on_drop', new_spot)
