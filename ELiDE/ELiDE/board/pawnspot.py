@@ -277,8 +277,8 @@ class PawnSpot(ImageStack, Layout):
     def _position(self, *args):
         Logger.debug("PawnSpot: {} repositioning children".format(self.name))
         x, y = self.pos
-        for (member_id, (offx, offy)) in self.positions.items():
-            self._childs[member_id].pos = self.to_local(x + offx, y + offy)
+        for member_id, (offx, offy) in self.positions.items():
+            self._childs[member_id].pos = x + offx, y + offy
 
 
 kv = """

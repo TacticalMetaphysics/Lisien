@@ -28,10 +28,6 @@ class Pawn(PawnSpot):
     through.
 
     """
-    _touch_ox_diff = NumericProperty()
-    _touch_oy_diff = NumericProperty()
-    _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
-    _touch = ObjectProperty(None, allownone=True)
     loc_name = ObjectProperty()
     next_loc_name = ObjectProperty(None, allownone=True)
     thing = AliasProperty(
@@ -94,7 +90,7 @@ class Pawn(PawnSpot):
         if self.next_loc_name != self.proxy['next_location']:
             self.next_loc_name = self.proxy['next_location']
             relocate = True
-        if '_priority' in self.proxy and self.priority != self.proxy['_priority']:
+        if '_priority' in self.proxy:
             self.priority = self.proxy['_priority']
         if relocate:
             self.relocate()
