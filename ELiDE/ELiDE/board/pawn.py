@@ -117,12 +117,12 @@ class Pawn(PawnSpot):
                 new_spot = spot
                 break
         else:
-            self.dispatch('on_drop', None)
-            touch.ungrab(self)
-            return True
+            new_spot = None
 
         self.dispatch('on_drop', new_spot)
         touch.ungrab(self)
+        if hasattr(self, '_start'):
+            del self._start
         return True
 
     def on_drop(self, spot):
