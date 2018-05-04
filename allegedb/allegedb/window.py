@@ -324,7 +324,8 @@ class WindowDict(MutableMapping):
     time-frame. If you do not supply a step, you'll just get the
     values, with no indication of when they're from exactly --
     so explicitly supply a step of 1 to get the value at each point in
-    the slice.
+    the slice, or use the ``future`` and ``past`` methods to get read-only
+    mappings of data relative to when you last got an item from this.
 
     """
     def future(self):
