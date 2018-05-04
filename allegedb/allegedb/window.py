@@ -473,7 +473,6 @@ class WindowDict(MutableMapping):
         name = '_past' if self._past and rev <= self._past[-1][0] else '_future'
         stack = getattr(self, name)
         waste = deque()
-        setattr(self, name, waste)
         deleted = False
         while stack:
             (r, v) = stack.popleft()
@@ -482,6 +481,7 @@ class WindowDict(MutableMapping):
             else:
                 assert not deleted
                 deleted = True
+        setattr(self, name, waste)
         if not deleted:
             raise HistoryError("Rev not present: {}".format(rev))
 
