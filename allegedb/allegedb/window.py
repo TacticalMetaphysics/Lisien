@@ -327,6 +327,10 @@ class WindowDict(MutableMapping):
     the slice, or use the ``future`` and ``past`` methods to get read-only
     mappings of data relative to when you last got an item from this.
 
+    Unlike slices of eg. lists, you can slice with a start greater than the stop
+    even if you don't supply a step. That will get you values in reverse order,
+    still without retaining the revision they're from.
+
     """
     def future(self):
         """Return a Mapping of future values."""
