@@ -56,7 +56,7 @@ class PawnSpot(ImageStack, Layout):
                 from kivy.core.image import Image, ImageData
                 img._image = _image = Image(img._texture)
                 _image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
-            if not img._image._data:
+            if not hasattr(img._image, '_data') or not img._image._data:
                 # it's in an atlas
                 from kivy.core.image import ImageData
                 img._image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
