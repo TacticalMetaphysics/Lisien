@@ -109,23 +109,6 @@ class Pawn(PawnSpot):
             self.proxy['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)
 
-    def add_widget(self, pawn, index=0, canvas='after'):
-        """Apart from the normal behavior, bind my ``center`` so that the
-        child's lower left corner will always be there, so long as
-        it's my child.
-
-        """
-        super().add_widget(pawn, index, canvas)
-        pawn.pos = self.center
-        self.bind(center=pawn.setter('pos'))
-
-    def remove_widget(self, pawn):
-        """Unbind my ``center`` from the child before removing it."""
-        if pawn not in self.children:
-            raise ValueError("Not my child")
-        self.unbind(center=pawn.setter('pos'))
-        super().remove_widget(pawn)
-
     def on_touch_up(self, touch):
         if touch.grab_current is not self:
             return False
