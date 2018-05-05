@@ -225,6 +225,9 @@ def get_points(orig, dest, taillen):
     )
 
 
+eight0s = tuple([0] * 8)
+
+
 class ArrowWidget(Widget):
     """A widget that points from one :class:`~LiSE.gui.board.Spot` to
     another.
@@ -243,16 +246,16 @@ class ArrowWidget(Widget):
     w = NumericProperty(2)
     """The width of the inner, brighter portion of the :class:`Arrow`. The
     whole :class:`Arrow` will end up thicker."""
-    pawns_here = ListProperty([])
-    trunk_points = ListProperty([])
-    head_points = ListProperty([])
+    pawns_here = ListProperty()
+    trunk_points = ListProperty()
+    head_points = ListProperty()
     points = ReferenceListProperty(trunk_points, head_points)
-    trunk_quad_vertices_bg = ListProperty([0] * 8)
-    trunk_quad_vertices_fg = ListProperty([0] * 8)
-    left_head_quad_vertices_bg = ListProperty([0] * 8)
-    right_head_quad_vertices_bg = ListProperty([0] * 8)
-    left_head_quad_vertices_fg = ListProperty([0] * 8)
-    right_head_quad_vertices_fg = ListProperty([0] * 8)
+    trunk_quad_vertices_bg = ListProperty(eight0s)
+    trunk_quad_vertices_fg = ListProperty(eight0s)
+    left_head_quad_vertices_bg = ListProperty(eight0s)
+    right_head_quad_vertices_bg = ListProperty(eight0s)
+    left_head_quad_vertices_fg = ListProperty(eight0s)
+    right_head_quad_vertices_fg = ListProperty(eight0s)
     slope = NumericProperty(0.0, allownone=True)
     y_intercept = NumericProperty(0)
     origin = ObjectProperty()
