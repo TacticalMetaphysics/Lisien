@@ -813,7 +813,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
 
     @property
     def character(self):
-        return self.engine.character[self.character.name]
+        return self.engine.character[self.name]
 
     @property
     def _cache(self):
@@ -2237,6 +2237,8 @@ class EngineProxy(AbstractEngine):
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
         received = self.unpack(res)
+        if isinstance(received, Exception):
+            raise received
         for cb in cbs:
             cb(cmd, branch, turn, tick, received, **kwargs)
         return received
