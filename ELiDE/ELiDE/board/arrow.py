@@ -268,6 +268,10 @@ class ArrowWidget(Widget):
     bg_color_selected = ListProperty()
     fg_color_unselected = ListProperty()
     fg_color_selected = ListProperty()
+    bg_color_unselected_head = ListProperty()
+    bg_color_selected_head = ListProperty()
+    fg_color_unselected_head = ListProperty()
+    fg_color_selected_head = ListProperty()
     arrowhead_size = NumericProperty(10)
     collide_radius = NumericProperty(3)
     collider = ObjectProperty()
@@ -553,6 +557,8 @@ Builder.load_string(
             rgba: root.bg_color_selected if root.selected else root.bg_color_unselected
         Quad:
             points: root.trunk_quad_vertices_bg
+        Color:
+            rgba: (root.bg_color_selected_head or root.bg_color_selected) if root.selected else (root.bg_color_unselected_head or root.bg_color_unselected) 
         Quad:
             points: root.left_head_quad_vertices_bg
         Quad:
@@ -561,6 +567,8 @@ Builder.load_string(
             rgba: root.fg_color_selected if root.selected else root.fg_color_unselected
         Quad:
             points: root.trunk_quad_vertices_fg
+        Color:
+            rgba: (root.fg_color_selected_head or root.fg_color_selected) if root.selected else (root.fg_color_unselected_head or root.fg_color_unselected)
         Quad:
             points: root.left_head_quad_vertices_fg
         Quad:
