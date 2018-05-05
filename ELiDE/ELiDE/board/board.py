@@ -269,8 +269,9 @@ class Board(RelativeLayout):
             self.selection.unbind(pos=report_pos)
             if hasattr(self.selection, 'on_touch_up'):
                 self.selection.dispatch('on_touch_up', touch)
-        while self.selection_candidates:
-            candidate = self.selection_candidates.pop(0)
+        for candidate in self.selection_candidates:
+            if candidate == self.selection:
+                continue
             if candidate.collide_point(*touch.pos):
                 Logger.debug("Board: selecting " + repr(candidate))
                 if hasattr(candidate, 'selected'):
@@ -279,6 +280,7 @@ class Board(RelativeLayout):
                     self.selection.selected = False
                 self.selection = candidate
                 self.keep_selection = True
+                break
         if not self.keep_selection:
             Logger.debug("Board: deselecting " + repr(self.selection))
             if hasattr(self.selection, 'selected'):
