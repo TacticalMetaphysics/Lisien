@@ -1,0 +1,37 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+ELiDE uses third-party graphics sets:
+
+    The RLTiles, available under CC0, being in the public domain where it exists.
+    "Crypt" and "Island" from the PROCJAM 2015 Art Pack, by Marsh Davies, available under the terms of Creative Commons BY-NC
+    The default wallpaper, wallpape.jpg, is copyright Fantastic Maps, freely available under the terms of Creative Commons BY-NC-SA.
+    The ELiDE icon is by Robin Hill, used with permission.
+
+The icons are Symbola, by George Douros, in the public domain.
+
+networkx, which forms the basis of LiSE's data model, is available under BSD. My versions of the networkx graph classes are in the allegedb directory, and use the same license.
+
+reify.py is derived from the Pyramid project and carries its BSD-like license.
+
+collide.py is ported from Kivy's garden.collider module and carries the MIT license.
+
+The rest of the LiSE source files are licensed under the terms of the GNU General Public License version 3. In case of my death, I, Zachary Spector, wish for every allegedb, LiSE, texturestack, and ELiDE source file to be relicensed under CC0.
+-----BEGIN PGP SIGNATURE-----
+Version: Keybase OpenPGP v2.0.76
+Comment: https://keybase.io/crypto
+
+wsFcBAABCgAGBQJa7ZIiAAoJEEmSOrZ5ydeVlcUP/Rd9j5vi1Moi9gfAqBF5OF6h
+0jW9oJlUyyzLPBHwD1HTkH7Ng0e46r8Wuj617DO/+XdlSus3rXqoeJ0FJh9lz4na
+p3fCg1WjeAc6KxhHPg8JfjO1gtdhhTMXmtV7RQ76Xt6UbgBzEuUfEYGzFg2YS7wb
+U7kn53DuOXBrVi/JpR19sq9Xdwrw2NKyiHaxm0mQ3SXV+YRwerNv3Y0+eAqVakPx
++3d2lwmHBs7PwJAY9Spi9jtsGufKuSPhTqgsO98Y2x4KNM5UcNdKRvr+u34RUlVF
+GIoiHZPkigXWAVR3IKyr3OZc0ZFEnbhPIUQaD2WEgyo0Za5cFZidA4pUmlgE4R+e
+d7rC2sbffrK1KQG81CTAz359+Qbn2/miFro719A8jSFa6DcOyEYFnYFaS9z+Iwri
+ZUb7Tbj4zNp1a5yiwYUQYk2qkhNcs+qzDZ2Ve+1MefrMDPbgL+B1vt8Im0hJQbBQ
+3Lmt6kLdz9krgBr5AzeH+KXOcQ4Ud7/A0dInc8aN3UBwvXqiGKVb1IURqgaBrVC/
+nYPNIsUxrmPF4VPyU37HU2jTGXlRGD+FlBqGXddLsginsy0BPMQRoSOqCJCF4ppt
+FNmbC/oIlVeYH4YkK+jPi3JofdQZnE3MecOb3fNe4CrgmubCZa0PGyy0oOrqfvdw
+4C1lwwMYEyvTqA6sBHAc
+=Ofb/
+-----END PGP SIGNATURE-----
