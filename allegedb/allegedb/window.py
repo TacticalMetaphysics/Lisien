@@ -292,9 +292,10 @@ class WindowDictReverseSlice:
                 return
             left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
             dic.seek(right)
-            future = dic._past.copy()
-            while future[-1][0] > left:
-                yield future.pop()[1]
+            for frev, fv in reversed(dic._past):
+                if frev <= left:
+                    return
+                yield fv
         elif slic.start is None:
             stac = dic._past + dic._future
             while stac and stac[-1][0] > slic.stop:
