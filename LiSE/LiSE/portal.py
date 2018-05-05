@@ -232,7 +232,7 @@ class Portal(Edge, RuleFollower):
         For symmetry with :class:`Thing` and :class`Place`.
 
         """
-        branch, turn, tick = self.engine.btt()
+        branch, turn, tick = self.engine.nbtt()
         self.engine._edges_cache.store(
             self.character.name,
             self.origin.name,
