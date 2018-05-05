@@ -201,6 +201,7 @@ class PawnSpot(ImageStack, Layout):
 
     def remove_widget(self, widget):
         del self._childs[widget.uid]
+        del self.positions[widget.uid]
         super().remove_widget(widget)
         self._trigger_layout()
 
