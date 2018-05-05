@@ -748,10 +748,8 @@ class EngineHandle(object):
                 del cache[char][node]
             except KeyError:
                 pass
-        if char in self._char_things_cache and node in self._char_things_cache[char]:
-            del self._char_things_cache[char][node]
-        if char in self._char_places_cache and node in self._char_places_cache[char]:
-            self._char_places_cache[char].remove(node)
+        if char in self._char_nodes_cache and node in self._char_nodes_cache[char]:
+            self._char_nodes_cache[char] = self._char_nodes_cache[char] - frozenset([node])
         if char in self._portal_stat_cache:
             portal_stat_cache_char = self._portal_stat_cache[char]
             if node in portal_stat_cache_char:
