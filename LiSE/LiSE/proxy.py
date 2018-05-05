@@ -850,9 +850,11 @@ class CharSuccessorsMappingProxy(CachingProxy):
         for o, ds in delta.items():
             for d, ex in ds.items():
                 if ex:
+                    if o not in self._cache:
+                        self._cache[o] = {}
                     if d not in self._cache[o]:
                         self._cache[o][d] = PortalProxy(
-                            self.character[o][d],
+                            self.character,
                             o, d
                         )
                 else:
