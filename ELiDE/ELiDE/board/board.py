@@ -28,9 +28,6 @@ from ..util import trigger
 import numpy as np
 
 
-def report_pos(inst, *args):
-    Logger.debug("{}: {} positioned to {}".format(inst.__class__.__name__, inst.name, inst.pos))
-
 def normalize_layout(l):
     """Make sure all the spots in a layout are where you can click.
 
@@ -188,7 +185,6 @@ class Board(RelativeLayout):
         if self.selection in self.selection_candidates:
             self.selection_candidates.remove(self.selection)
         if self.selection:
-            self.selection.bind(pos=report_pos)
             if not self.selection_candidates:
                 self.keep_selection = True
             ret = super().on_touch_move(touch)
@@ -197,8 +193,6 @@ class Board(RelativeLayout):
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
-                    if hasattr(self.selection, 'selected'):
-                        self.selection.selected = False
                     self.selection = cand
                     cand.selected = True
                     touch.grab(cand)
@@ -265,10 +259,8 @@ class Board(RelativeLayout):
             ret = self.portal_touch_up(touch)
             touch.pop()
             return ret
-        if self.selection:
-            self.selection.unbind(pos=report_pos)
-            if hasattr(self.selection, 'on_touch_up'):
-                self.selection.dispatch('on_touch_up', touch)
+        if self.selection and hasattr(self.selection, 'on_touch_up'):
+            self.selection.dispatch('on_touch_up', touch)
         for candidate in self.selection_candidates:
             if candidate == self.selection:
                 continue
