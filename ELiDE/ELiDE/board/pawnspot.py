@@ -189,13 +189,13 @@ class PawnSpot(ImageStack, Layout):
             self.add_widget(child)
         self.do_layout()
 
-    def add_widget(self, wid, index=None, canvas=None):
+    def add_widget(self, wid, index=None):
         if index is None:
             for index, child in enumerate(self.children, start=1):
                 if wid.priority < child.priority:
                     index = len(self.children) - index
                     break
-        super().add_widget(wid, index=index, canvas=canvas)
+        super().add_widget(wid, index=index)
         self._childs[wid.uid] = wid
         self._trigger_layout()
 
