@@ -7,7 +7,7 @@ from allegedb.cache import (
     TurnDict,
     HistoryError
 )
-from .util import singleton_get
+from .util import singleton_get, sort_set
 
 
 class InitializedCache(Cache):
@@ -303,7 +303,7 @@ class CharacterRulesHandledCache(RulesHandledCache):
             return character, 'character'
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character in self.engine.character:
+        for character in sort_set(self.engine.character.keys()):
             rb = self.get_rulebook(character, branch, turn, tick)
             for rule in self.unhandled_rulebook_rules(
                 character, rb, branch, turn, tick
@@ -319,10 +319,12 @@ class AvatarRulesHandledCache(RulesHandledCache):
             return character, 'avatar'
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character, char in self.engine.character.items():
+        charm = self.engine.character
+        for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            for graph, avs in char.avatar.items():
-                for avatar in avs:
+            charavm = charm[character].avatar
+            for graph in sort_set(charavm.keys()):
+                for avatar in sort_set(charavm[graph].keys()):
                     try:
                         rules = self.unhandled_rulebook_rules((graph, avatar), rulebook, branch, turn, tick)
                     except KeyError:
@@ -339,9 +341,10 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
             return character, 'character_thing'
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character, char in self.engine.character.items():
+        charm = self.engine.character
+        for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            for thing in char.thing:
+            for thing in sort_set(charm[character].thing.keys()):
                 try:
                     rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
                 except KeyError:
@@ -358,9 +361,10 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
             return character, 'character_place'
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character, char in self.engine.character.items():
+        charm = self.engine.character
+        for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            for place in char.place:
+            for place in sort_set(charm[character].place.keys()):
                 try:
                     rules = self.unhandled_rulebook_rules((character, place), rulebook, branch, turn, tick)
                 except KeyError:
@@ -377,13 +381,15 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
             return character, 'character_portal'
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character, char in self.engine.character.items():
+        charm = self.engine.character
+        for character in sort_set(charm.keys()):
             try:
                 rulebook = self.get_rulebook(character, branch, turn, tick)
             except KeyError:
                 continue
-            for orig in char.portal:
-                for dest in char.portal[orig]:
+            charp = charm[character].portal
+            for orig in sort_set(charp.keys()):
+                for dest in sort_set(charp[orig].keys()):
                     try:
                         rules = self.unhandled_rulebook_rules((character, orig, dest), rulebook, branch, turn, tick)
                     except KeyError:
@@ -400,8 +406,9 @@ class NodeRulesHandledCache(RulesHandledCache):
             return character, node
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character, char in self.engine.character.items():
-            for node in char.node:
+        charm = self.engine.character
+        for character in sort_set(charm.keys()):
+            for node in sort_set(charm[character].node.keys()):
                 try:
                     rulebook = self.get_rulebook(character, node, branch, turn, tick)
                     rules = self.unhandled_rulebook_rules((character, node), rulebook, branch, turn, tick)
@@ -419,9 +426,12 @@ class PortalRulesHandledCache(RulesHandledCache):
             return character, orig, dest
 
     def iter_unhandled_rules(self, branch, turn, tick):
-        for character, char in self.engine.character.items():
-            for orig, dests in char.portal.items():
-                for dest in dests:
+        charm = self.engine.character
+        for character in sort_set(charm.keys()):
+            charp = charm[character].portal
+            for orig in sort_set(charp.keys()):
+                dests = charp[orig]
+                for dest in sort_set(dests.keys()):
                     try:
                         rulebook = self.get_rulebook(character, orig, dest, branch, turn, tick)
                         rules = self.unhandled_rulebook_rules((character, orig, dest), rulebook, branch, turn, tick)

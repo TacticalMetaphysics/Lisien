@@ -3,6 +3,7 @@
 """Common utility functions and data structures.
 
 """
+from collections.abc import Set
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
 from textwrap import dedent
@@ -194,3 +195,34 @@ def dedent_source(source):
         source = source[nlidx+1:]
         nlidx = source.index('\n')
     return dedent(source)
+
+
+def _sort_set_key(v):
+    if isinstance(v, tuple):
+        return (2,) + tuple(map(repr, v))
+    if isinstance(v, str):
+        return 1, repr(v)
+    return 0, repr(v)
+
+
+_sort_set_memo = {}
+
+
+def sort_set(s):
+    """Return a sorted list of the contents of a set
+
+    This is intended to be used to iterate over world state, where you just need keys
+    to be in some deterministic order, but the sort order should be obvious from the key.
+
+    Non-strings come before strings and then tuples. Tuples compare element-wise as normal.
+    But ultimately all comparisons are between values' ``repr``.
+
+    This is memoized.
+
+    """
+    if not isinstance(s, Set):
+        raise TypeError("sets only")
+    s = frozenset(s)
+    if s not in _sort_set_memo:
+        _sort_set_memo[s] = sorted(s, key=_sort_set_key)
+    return _sort_set_memo[s]
