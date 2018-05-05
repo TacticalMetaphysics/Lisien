@@ -87,9 +87,6 @@ class Spot(PawnSpot):
         self._trigger_push_pos()
         return True
 
-    def get_layout_canvas(self):
-        return self.board.spotlayout.canvas
-
     def __repr__(self):
         """Give my name and position."""
         return "{}@({},{})".format(self.name, self.x, self.y)

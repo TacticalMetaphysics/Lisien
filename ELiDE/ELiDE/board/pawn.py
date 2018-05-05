@@ -128,9 +128,6 @@ class Pawn(PawnSpot):
         else:
             self.pos = parent.positions[self.uid]
 
-    def get_layout_canvas(self):
-        return self.board.pawnlayout.canvas
-
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
         return '{}-in-{}'.format(

@@ -177,9 +177,8 @@ class PawnSpot(ImageStack, Layout):
         if not (hasattr(self, 'group') and hasattr(self, 'boxgrp')):
             Clock.schedule_once(self.on_board, 0)
             return
-        canvas = self.get_layout_canvas()
-        canvas.add(self.group)
-        canvas.add(self.boxgrp)
+        self.canvas.add(self.group)
+        self.canvas.add(self.boxgrp)
 
     @trigger
     def restack(self, *args):
