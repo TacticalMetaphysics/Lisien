@@ -195,7 +195,7 @@ class PawnSpot(ImageStack, Layout):
                 if wid.priority < child.priority:
                     index = len(self.children) - index
                     break
-        super().add_widget(wid, index=index)
+        super().add_widget(wid, index=index, canvas=canvas)
         self._childs[wid.uid] = wid
         self._trigger_layout()
 
