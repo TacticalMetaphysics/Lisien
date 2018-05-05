@@ -429,7 +429,9 @@ class Board(RelativeLayout):
         # Currently there's no way to connect Pawns with Arrows but I
         # think there will be, so, insurance
         self.rm_arrows_to_and_from(name)
-        pwn = self.pawn[name]
+        pwn = self.pawn.pop(name)
+        if pwn in self.selection_candidates:
+            self.selection_candidates.remove(pwn)
         pwn.parent.remove_widget(pwn)
         for canvas in (
                 self.pawnlayout.canvas.after,
@@ -438,8 +440,6 @@ class Board(RelativeLayout):
         ):
             if pwn.group in canvas.children:
                 canvas.remove(pwn.group)
-        pwn.canvas.clear()
-        del self.pawn[name]
 
     def _trigger_rm_pawn(self, name):
         Clock.schedule_once(partial(self.rm_pawn, name), 0)
@@ -448,12 +448,13 @@ class Board(RelativeLayout):
         """Remove the :class:`Spot` by the given name."""
         if name not in self.spot:
             raise KeyError("No Spot named {}".format(name))
-        spot = self.spot[name]
+        spot = self.spot.pop(name)
+        if spot in self.selection_candidates:
+            self.selection_candidates.remove(spot)
         pawns_here = list(spot.children)
         self.rm_arrows_to_and_from(name)
         self.spotlayout.remove_widget(spot)
         spot.canvas.clear()
-        del self.spot[name]
         for pawn in pawns_here:
             self.rm_pawn(pawn.name)
 
@@ -469,8 +470,10 @@ class Board(RelativeLayout):
                 dest not in self.arrow[orig]
         ):
             raise KeyError("No Arrow from {} to {}".format(orig, dest))
-        self.arrowlayout.remove_widget(self.arrow[orig][dest])
-        del self.arrow[orig][dest]
+        arr = self.arrow[orig].pop(dest)
+        if arr in self.selection_candidates:
+            self.selection_candidates.remove(arr)
+        self.arrowlayout.remove_widget(arr)
 
     def _trigger_rm_arrow(self, orig, dest):
         part = partial(self.rm_arrow, orig, dest)
