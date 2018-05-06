@@ -361,21 +361,19 @@ class ELiDEApp(App):
         if selection is None:
             return
         if isinstance(selection, ArrowWidget):
-            self.selection = None
             self.mainscreen.boardview.board.rm_arrow(
                 selection.origin.name,
                 selection.destination.name
             )
             selection.portal.delete()
         elif isinstance(selection, Spot):
-            self.selection = None
             self.mainscreen.boardview.board.rm_spot(selection.name)
             selection.proxy.delete()
         else:
             assert isinstance(selection, Pawn)
-            self.selection = None
             self.mainscreen.boardview.board.rm_pawn(selection.name)
             selection.proxy.delete()
+        self.selection = None
 
     def new_board(self, name):
         """Make a board for a character name, and switch to it."""
