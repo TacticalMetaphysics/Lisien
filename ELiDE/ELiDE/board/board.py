@@ -81,6 +81,7 @@ class Board(RelativeLayout):
     board.
 
     """
+    app = ObjectProperty()
     character = ObjectProperty()
     wallpaper_path = StringProperty()
     spot = DictProperty({})
@@ -131,16 +132,16 @@ class Board(RelativeLayout):
             return
         touch.push()
         touch.apply_transform_2d(self.to_local)
-        if self.selection:
-            if self.selection.collide_point(*touch.pos):
+        if self.app.selection:
+            if self.app.selection.collide_point(*touch.pos):
                 Logger.debug("Board: hit selection")
-                touch.grab(self.selection)
+                touch.grab(self.app.selection)
         pawns = list(self.pawns_at(*touch.pos))
         if pawns:
             Logger.debug("Board: hit {} pawns".format(len(pawns)))
             self.selection_candidates = pawns
-            if self.selection in self.selection_candidates:
-                self.selection_candidates.remove(self.selection)
+            if self.app.selection in self.selection_candidates:
+                self.selection_candidates.remove(self.app.selection)
             touch.pop()
             return True
         spots = list(self.spots_at(*touch.pos))
@@ -182,18 +183,18 @@ class Board(RelativeLayout):
         """If an entity is selected, drag it."""
         if hasattr(self, '_lasttouch') and self._lasttouch == touch:
             return
-        if self.selection in self.selection_candidates:
-            self.selection_candidates.remove(self.selection)
-        if self.selection:
+        if self.app.selection in self.selection_candidates:
+            self.selection_candidates.remove(self.app.selection)
+        if self.app.selection:
             if not self.selection_candidates:
                 self.keep_selection = True
             ret = super().on_touch_move(touch)
-            Logger.debug('Board: dispatched touch to selection {}'.format(self.selection))
+            Logger.debug('Board: dispatched touch to selection {}'.format(self.app.selection))
             return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
                 if cand.collide_point(*touch.pos):
-                    self.selection = cand
+                    self.app.selection = cand
                     cand.selected = True
                     touch.grab(cand)
                     ret = super().on_touch_move(touch)
@@ -259,25 +260,25 @@ class Board(RelativeLayout):
             ret = self.portal_touch_up(touch)
             touch.pop()
             return ret
-        if self.selection and hasattr(self.selection, 'on_touch_up'):
-            self.selection.dispatch('on_touch_up', touch)
+        if self.app.selection and hasattr(self.app.selection, 'on_touch_up'):
+            self.app.selection.dispatch('on_touch_up', touch)
         for candidate in self.selection_candidates:
-            if candidate == self.selection:
+            if candidate == self.app.selection:
                 continue
             if candidate.collide_point(*touch.pos):
                 Logger.debug("Board: selecting " + repr(candidate))
                 if hasattr(candidate, 'selected'):
                     candidate.selected = True
-                if hasattr(self.selection, 'selected'):
-                    self.selection.selected = False
-                self.selection = candidate
+                if hasattr(self.app.selection, 'selected'):
+                    self.app.selection.selected = False
+                self.app.selection = candidate
                 self.keep_selection = True
                 break
         if not self.keep_selection:
-            Logger.debug("Board: deselecting " + repr(self.selection))
-            if hasattr(self.selection, 'selected'):
-                self.selection.selected = False
-            self.selection = None
+            Logger.debug("Board: deselecting " + repr(self.app.selection))
+            if hasattr(self.app.selection, 'selected'):
+                self.app.selection.selected = False
+            self.app.selection = None
         self.keep_selection = False
         touch.ungrab(self)
         touch.pop()
@@ -1031,6 +1032,7 @@ class BoardView(StencilView):
 
 Builder.load_string("""
 <Board>:
+    app: app
     size_hint: None, None
 <BoardView>:
     plane: boardplane
