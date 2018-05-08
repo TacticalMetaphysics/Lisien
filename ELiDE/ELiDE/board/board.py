@@ -271,6 +271,9 @@ class Board(RelativeLayout):
                     self.app.selection.selected = False
                 self.app.selection = candidate
                 self.keep_selection = True
+                parent = candidate.parent
+                parent.remove_widget(candidate)
+                parent.add_widget(candidate)
                 break
         if not self.keep_selection:
             Logger.debug("Board: deselecting " + repr(self.app.selection))
