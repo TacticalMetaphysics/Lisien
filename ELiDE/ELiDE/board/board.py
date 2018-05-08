@@ -91,14 +91,12 @@ class Board(RelativeLayout):
     kvlayoutback = ObjectProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
-    pawnlayout = ObjectProperty()
     kvlayoutfront = ObjectProperty()
     wids = ReferenceListProperty(
         wallpaper,
         kvlayoutback,
         arrowlayout,
         spotlayout,
-        pawnlayout,
         kvlayoutfront
     )
     spots_unposd = ListProperty([])
@@ -306,7 +304,6 @@ class Board(RelativeLayout):
         self.kvlayoutback = KvLayoutBack(**self.widkwargs)
         self.arrowlayout = FloatLayout(**self.widkwargs)
         self.spotlayout = FloatLayout(**self.widkwargs)
-        self.pawnlayout = FloatLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
             self.add_widget(wid)
@@ -434,13 +431,6 @@ class Board(RelativeLayout):
         if pwn in self.selection_candidates:
             self.selection_candidates.remove(pwn)
         pwn.parent.remove_widget(pwn)
-        for canvas in (
-                self.pawnlayout.canvas.after,
-                self.pawnlayout.canvas.before,
-                self.pawnlayout.canvas
-        ):
-            if pwn.group in canvas.children:
-                canvas.remove(pwn.group)
 
     def _trigger_rm_pawn(self, name):
         Clock.schedule_once(partial(self.rm_pawn, name), 0)
