@@ -30,7 +30,9 @@ class SwatchButton(ToggleButton):
 
     """
     name = StringProperty()
+    """A name, either from a filename or a key into an atlas"""
     tex = ObjectProperty()
+    """Texture to display here"""
 
     def on_state(self, *args):
         if self.state == 'down':
@@ -67,14 +69,23 @@ Builder.load_string(kv)
 
 
 class Pallet(StackLayout):
+    """Many :class:`SwatchButton`, gathered from an :class:`kivy.atlas.Atlas`."""
     atlas = ObjectProperty()
+    """:class:`kivy.atlas.Atlas` object I'll make :class:`SwatchButton` from."""
     filename = StringProperty()
+    """Path to an atlas; will construct :class:`kivy.atlas.Atlas` when set"""
     swatches = DictProperty({})
+    """:class:`SwatchButton` widgets here, keyed by name of their graphic"""
     swatch_width = NumericProperty(100)
+    """Width of each and every :class:`SwatchButton` here"""
     swatch_height = NumericProperty(75)
+    """Height of each and every :class:`SwatchButton` here"""
     swatch_size = ReferenceListProperty(swatch_width, swatch_height)
+    """Size of each and every :class:`SwatchButton` here"""
     selection = ListProperty([])
+    """List of :class:`SwatchButton`s that are selected"""
     selection_mode = OptionProperty('single', options=['single', 'multiple'])
+    """Whether to allow only a 'single' selected :class:`SwatchButton` (default), or 'multiple'"""
 
     def on_selection(self, *args):
         Logger.debug(
@@ -98,6 +109,7 @@ class Pallet(StackLayout):
         self.atlas.bind(textures=self.upd_textures)
 
     def upd_textures(self, *args):
+        """Create one :class:`SwatchButton` for each texture"""
         if self.canvas is None:
             Clock.schedule_once(self.upd_textures, 0)
             return
