@@ -568,7 +568,7 @@ class Board(RelativeLayout):
             )
         )
         places2add = []
-        spots_added = []
+        spots_unposd = []
         nodes_patch = {}
         for place_name in self.character.place:
             if place_name not in self.spot:
@@ -591,8 +591,9 @@ class Board(RelativeLayout):
         for place in places2add:
             spot = self.make_spot(place)
             self.spotlayout.add_widget(spot)
-            spots_added.append(spot)
-        self.spots_unposd = spots_added
+            if '_x' not in place or '_y' not in place:
+                spots_unposd.append(spot)
+        self.spots_unposd = spots_unposd
 
     def add_arrow(self, orign, destn, *args):
         if not (
@@ -716,10 +717,6 @@ class Board(RelativeLayout):
         self.add_new_spots()
         self.add_new_arrows()
         self.add_new_pawns()
-        self.spots_unposd = [
-            spot for spot in self.spot.values()
-            if not ('_x' in spot.proxy and '_y' in spot.proxy)
-        ]
 
     def update_from_delta(self, delta, *args):
         """Apply the changes described in the dict ``delta``."""
@@ -800,8 +797,8 @@ class Board(RelativeLayout):
                 '_y': y
             }
             spot.pos = (
-                int(x * self.width),
-                int(y * self.height)
+                x * self.width,
+                y * self.height
             )
         if node_upd:
             self.character.engine.handle(
