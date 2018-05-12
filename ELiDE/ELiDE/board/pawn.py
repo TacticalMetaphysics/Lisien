@@ -42,6 +42,9 @@ class Pawn(PawnSpot):
         if 'thing' in kwargs:
             kwargs['proxy'] = kwargs['thing']
             del kwargs['thing']
+        if 'proxy' in kwargs:
+            kwargs['loc_name'] = kwargs['proxy']['location']
+            kwargs['next_loc_name'] = kwargs['proxy']['next_location']
         super().__init__(**kwargs)
         self.register_event_type('on_drop')
 

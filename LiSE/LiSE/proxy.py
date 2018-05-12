@@ -1406,8 +1406,7 @@ class CharacterProxy(AbstractCharacter):
             branching=True
         )
         self.thing._cache[name] = ThingProxy(
-            self.engine, self.name, name, location, next_location,
-            self.engine.tick, None
+            self, name, location, next_location, self.engine.turn, None
         )
 
     def add_things_from(self, seq):
