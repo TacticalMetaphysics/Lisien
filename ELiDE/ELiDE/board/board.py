@@ -76,6 +76,16 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
+class FinalLayout(FloatLayout):
+    def finalize_all(self, *args):
+        for child in self.children:
+            child.finalize()
+
+    def on_children(self, *args):
+        Clock.unschedule(self.finalize_all)
+        Clock.schedule_once(self.finalize_all, -1)
+
+
 class Board(RelativeLayout):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     board.
@@ -306,7 +316,7 @@ class Board(RelativeLayout):
             self._pull_size()
         self.kvlayoutback = KvLayoutBack(**self.widkwargs)
         self.arrowlayout = FloatLayout(**self.widkwargs)
-        self.spotlayout = FloatLayout(**self.widkwargs)
+        self.spotlayout = FinalLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
             self.add_widget(wid)
@@ -582,8 +592,6 @@ class Board(RelativeLayout):
             spot = self.make_spot(place)
             self.spotlayout.add_widget(spot)
             spots_added.append(spot)
-        for spot in spots_added:
-            spot.finalize()
         self.spots_unposd = spots_added
 
     def add_arrow(self, orign, destn, *args):
