@@ -43,8 +43,10 @@ class PawnSpot(ImageStack, Layout):
     _no_use_canvas = True
 
     def __init__(self, **kwargs):
+        if 'proxy' in kwargs:
+            kwargs['name'] = kwargs['proxy'].name
         super().__init__(**kwargs)
-        self.bind(pos=self._position, positions=self._position)
+        self.bind(pos=self._position, positions=self._position, children=self._trigger_finalize_all)
 
     def collide_point(self, x, y):
         if not super().collide_point(x, y):
@@ -187,6 +189,14 @@ class PawnSpot(ImageStack, Layout):
         for child in childs:
             self.add_widget(child)
         self.do_layout()
+
+    def finalize_all(self, *args):
+        for child in self.children:
+            child.finalize()
+
+    def _trigger_finalize_all(self, *args):
+        Clock.unschedule(self.finalize_all)
+        Clock.schedule_once(self.finalize_all, -1)
 
     def add_widget(self, wid, index=None, canvas=None):
         if index is None:

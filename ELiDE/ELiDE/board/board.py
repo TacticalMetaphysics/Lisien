@@ -696,8 +696,6 @@ class Board(RelativeLayout):
             except KeyError:
                 whereat = self.spot[thing['location']]
             whereat.add_widget(pwn)
-        for pwn in pawns_added:
-            pwn.finalize()
 
     @trigger
     def trigger_update(self, *args):
