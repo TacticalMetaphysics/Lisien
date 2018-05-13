@@ -56,7 +56,7 @@ def normalize_layout(l):
         ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
     except ZeroDivisionError:
         ynorm = np.array([0.5] * len(ys))
-    return dict(zip(ks, zip(xnorm, ynorm)))
+    return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
 
 
 class KvLayoutBack(FloatLayout):
