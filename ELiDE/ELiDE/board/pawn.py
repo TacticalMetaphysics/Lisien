@@ -125,7 +125,7 @@ class Pawn(PawnSpot):
     def on_drop(self, spot):
         parent = self.parent
         if spot:
-            self.loc_name = spot.name
+            self.loc_name = self.proxy['location'] = spot.name
             parent.remove_widget(self)
             spot.add_widget(self)
         else:
