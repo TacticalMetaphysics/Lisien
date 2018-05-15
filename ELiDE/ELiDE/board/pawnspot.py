@@ -40,7 +40,6 @@ class PawnSpot(ImageStack, Layout):
     use_boardspace = True
     positions = DictProperty()
     _childs = DictProperty()
-    _no_use_canvas = True
 
     def __init__(self, **kwargs):
         if 'proxy' in kwargs:
@@ -276,7 +275,6 @@ class PawnSpot(ImageStack, Layout):
         self.positions = positions
 
     def _position(self, *args):
-        Logger.debug("PawnSpot: {} repositioning children".format(self.name))
         x, y = self.pos
         for member_id, (offx, offy) in self.positions.items():
             self._childs[member_id].pos = x + offx, y + offy
