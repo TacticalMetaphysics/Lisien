@@ -180,14 +180,17 @@ class TimeSignalDescriptor:
 
 
 def setgraphval(delta, graph, key, val):
+    """Change a delta to say that a graph stat was set to a certain value"""
     delta.setdefault(graph, {})[key] = val
 
 
 def setnode(delta, graph, node, exists):
+    """Change a delta to say that a node was created or deleted"""
     delta.setdefault(graph, {}).setdefault('nodes', {})[node] = bool(exists)
 
 
 def setnodeval(delta, graph, node, key, value):
+    """Change a delta to say that a node stat was set to a certain value"""
     if (
         graph in delta and 'nodes' in delta[graph] and
         node in delta[graph]['nodes'] and not delta[graph]['nodes'][node]
@@ -197,6 +200,7 @@ def setnodeval(delta, graph, node, key, value):
 
 
 def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
+    """Change a delta to say that an edge was created or deleted"""
     if is_multigraph(graph):
         delta.setdefault(graph, {}).setdefault('edges', {})\
             .setdefault(orig, {}).setdefault(dest, {})[idx] = bool(exists)
@@ -206,6 +210,7 @@ def setedge(delta, is_multigraph, graph, orig, dest, idx, exists):
 
 
 def setedgeval(delta, is_multigraph, graph, orig, dest, idx, key, value):
+    """Change a delta to say that an edge stat was set to a certain value"""
     if is_multigraph(graph):
         if (
             graph in delta and 'edges' in delta[graph] and
