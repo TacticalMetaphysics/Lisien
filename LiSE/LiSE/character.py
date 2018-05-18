@@ -1368,7 +1368,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         return self
 
     def __repr__(self):
-        return "{}.character['{}']".format(self.engine, self.name)
+        return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
     def __init__(self, engine, name, data=None, *, init_rulebooks=True, **attr):
         """Store engine and name, and set up mappings for Thing, Place, and
@@ -1466,7 +1466,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.send(self, thing_name=thing, exists=False)
 
         def __repr__(self):
-            return repr(dict(self))
+            return "{}.character[{}].thing".format(repr(self.engine), repr(self.name))
 
     class PlaceMapping(MutableMappingWrapper, RuleFollower, Signal):
         """:class:`Place` objects that are in a :class:`Character`"""
@@ -1535,7 +1535,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self[place].delete()
 
         def __repr__(self):
-            return repr(dict(self))
+            return "{}.character[{}].place".format(repr(self.engine), repr(self.name))
 
     class ThingPlaceMapping(GraphNodeMapping, RuleFollower, Signal):
         """GraphNodeMapping but for Place and Thing"""
@@ -1832,11 +1832,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self.engine._node_objs[(self.graph, mykey)][k] = v
 
             def __repr__(self):
-                """Represent myself like a dictionary."""
-                d = {}
-                for k in self:
-                    d[k] = dict(self[k])
-                return repr(d)
+                return "{}.character[{}].avatar".format(repr(self.engine), repr(self.name))
 
     def facade(self):
         return Facade(self)

@@ -25,10 +25,10 @@ class Place(Node):
             return {'name': self.name, 'character': self.character.name}[key]
 
     def __repr__(self):
-        return "{}.character['{}'].place['{}']".format(
-            self.engine,
-            self['character'],
-            self['name']
+        return "{}.character[{}].place[{}]".format(
+            repr(self.engine),
+            repr(self['character']),
+            repr(self['name'])
         )
 
     def delete(self):

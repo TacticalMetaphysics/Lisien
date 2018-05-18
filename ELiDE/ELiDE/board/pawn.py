@@ -133,7 +133,8 @@ class Pawn(PawnSpot):
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
-        return '{}-in-{}'.format(
+        return '<{}-in-{} at {}>'.format(
             self.name,
-            self.loc_name
+            self.loc_name,
+            id(self)
         )

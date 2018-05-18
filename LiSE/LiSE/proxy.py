@@ -107,8 +107,8 @@ class CachingEntityProxy(CachingProxy):
         return v
 
     def __repr__(self):
-        return "{}({}) {}".format(
-            self.__class__.__name__, self._cache, self.name
+        return "<{}({}) {} at {}>".format(
+            self.__class__.__name__, self._cache, self.name, id(self)
         )
 
 
@@ -255,9 +255,10 @@ class NodeProxy(CachingEntityProxy):
 
 class PlaceProxy(NodeProxy):
     def __repr__(self):
-        return "proxy to {}.place[{}]".format(
+        return "<proxy to {}.place[{}] at {}>".format(
             self._charname,
-            self.name
+            repr(self.name),
+            id(self)
         )
 
 
@@ -356,16 +357,18 @@ class ThingProxy(NodeProxy):
 
     def __repr__(self):
         if self._next_location is not None:
-            return "proxy to {}.thing[{}]@{}->{}".format(
+            return "<proxy to {}.thing[{}]@{}->{} at {}>".format(
                 self._charname,
                 self.name,
                 self._location,
-                self._next_location
+                self._next_location,
+                id(self)
             )
-        return "proxy to {}.thing[{}]@{}".format(
+        return "<proxy to {}.thing[{}]@{} at {}>".format(
             self._charname,
             self.name,
-            self._location
+            self._location,
+            id(self)
         )
 
     def follow_path(self, path, weight=None):
@@ -511,10 +514,11 @@ class PortalProxy(CachingEntityProxy):
         )
 
     def __repr__(self):
-        return "proxy to {}.portal[{}][{}]".format(
+        return "<proxy to {}.portal[{}][{}] at {}>".format(
             self._charname,
-            self._origin,
-            self._destination
+            repr(self._origin),
+            repr(self._destination),
+            id(self)
         )
 
     def __getitem__(self, k):

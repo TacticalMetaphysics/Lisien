@@ -89,4 +89,4 @@ class Spot(PawnSpot):
 
     def __repr__(self):
         """Give my name and position."""
-        return "{}@({},{})".format(self.name, self.x, self.y)
+        return "<{}@({},{}) at {}>".format(self.name, self.x, self.y, id(self))
