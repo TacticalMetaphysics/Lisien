@@ -11,7 +11,7 @@ from kivy.properties import (
     StringProperty
 )
 from kivy.resources import resource_find
-from kivy.app import App
+from .app import ELiDEApp
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
 import LiSE.proxy
@@ -133,7 +133,7 @@ class Screens(Widget):
         super().add_widget(wid, index, canvas)
 
 
-class GameApp(App):
+class GameApp(ELiDEApp):
     modules = []
     engine = ObjectProperty()
     world_file = None
