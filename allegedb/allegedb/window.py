@@ -493,19 +493,10 @@ class WindowDict(MutableMapping):
         # But handle degenerate case.
         if not within_history(rev, self):
             raise HistoryError("Rev outside of history: {}".format(rev))
-        name = '_past' if self._past and rev <= self._past[-1][0] else '_future'
-        stack = getattr(self, name)
-        waste = deque()
-        deleted = False
-        for (r, v) in stack:
-            if r != rev:
-                waste.append((r, v))
-            else:
-                assert not deleted
-                deleted = True
-        setattr(self, name, waste)
-        if not deleted:
+        self.seek(rev)
+        if self._past[-1][0] != rev:
             raise HistoryError("Rev not present: {}".format(rev))
+        del self._past[-1]
 
     def __repr__(self):
         return "{}({})".format(self.__class__.__name__, dict(self._past).update(self._future))
