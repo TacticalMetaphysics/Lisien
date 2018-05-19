@@ -1,5 +1,6 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+"""Wrapper classes to let you store mutable data types in the allegedb ORM"""
 from functools import partial
 from itertools import zip_longest
 from collections.abc import MutableSet, MutableMapping, MutableSequence, Mapping, Sequence, Iterable, Sized, Container

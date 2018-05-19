@@ -1,11 +1,6 @@
 # This file is part of allegedb, a database abstraction for versioned graphs
 # Copyright (c) Zachary Spector. public@zacharyspector.com
 """Classes for in-memory storage and retrieval of historical graph data.
-
-The main one to use is ``Cache``, mostly for its ``store`` and ``retrieve``
-methods. But if you need to store historical data some other way,
-you might want to store it in a ``WindowDict``.
-
 """
 from collections import defaultdict, deque
 from .window import WindowDict, HistoryError

@@ -1,5 +1,14 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+"""SQLAlchemy code to generate the SQL used by the allegedb ORM
+
+If SQLAlchemy is installed at runtime, this will use it to generate SQL on the fly;
+if it is not, allegedb can use a pregenerated file "sqlite.json" to store graphs in
+a SQLite database. Generate sqlite.json by running this on the command line:
+
+python3 alchemy.py >sqlite.json
+
+"""
 from functools import partial
 from sqlalchemy import (
     Table,

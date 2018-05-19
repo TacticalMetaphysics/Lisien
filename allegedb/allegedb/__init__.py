@@ -1,5 +1,6 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+"""The main interface to the allegedb ORM, and some supporting functions and classes"""
 from collections import defaultdict
 from functools import partial
 from contextlib import ContextDecorator, contextmanager

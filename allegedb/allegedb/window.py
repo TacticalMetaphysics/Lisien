@@ -1,5 +1,13 @@
 # This file is part of allegedb, an object-relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+"""WindowDict, the core data structure used by allegedb's caching system.
+
+It resembles a dictionary, more specifically a defaultdict-like where retrieving
+a key that isn't set will get you the highest set value that is lower than the key
+you asked for (and thus, keys must be orderable). It is optimized for retrieval
+of the same key and neighboring ones repeatedly and in sequence.
+
+"""
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter
 
