@@ -103,6 +103,7 @@ class WindowDictItemsView(ItemsView):
 
 
 class WindowDictPastFutureKeysView(KeysView):
+    """Abstract class for views on the past or future keys of a WindowDict"""
     def __contains__(self, item):
         deq = self._mapping.deq
         if not deq or item < deq[0][0] or item > deq[-1][0]:
@@ -114,16 +115,19 @@ class WindowDictPastFutureKeysView(KeysView):
 
 
 class WindowDictPastKeysView(WindowDictPastFutureKeysView):
+    """View on a WindowDict's past keys relative to last lookup"""
     def __iter__(self):
         yield from map(itemgetter(0), reversed(self._mapping.deq))
 
 
 class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
+    """View on a WindowDict's future keys relative to last lookup"""
     def __iter__(self):
         yield from map(itemgetter(0), self._mapping.deq)
 
 
 class WindowDictPastFutureItemsView(ItemsView):
+    """Abstract class for views on the past or future items of a WindowDict"""
     def __contains__(self, item):
         deq = self._mapping.deq
         if not deq or item[0] < deq[0][0] or item[0] > deq[-1][0]:
@@ -136,16 +140,19 @@ class WindowDictPastFutureItemsView(ItemsView):
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+    """View on a WindowDict's past items relative to last lookup"""
     def __iter__(self):
         yield from reversed(self._mapping.deq)
 
 
 class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
+    """View on a WindowDict's future items relative to last lookup"""
     def __iter__(self):
         yield from self._mapping.deq
 
 
 class WindowDictPastFutureValuesView(ValuesView):
+    """Abstract class for views on the past or future values of a WindowDict"""
     def __contains__(self, item):
         for v in map(itemgetter(1), self._mapping.deq):
             if v == item:
@@ -154,11 +161,13 @@ class WindowDictPastFutureValuesView(ValuesView):
 
 
 class WindowDictPastValuesView(WindowDictPastFutureValuesView):
+    """View on a WindowDict's past values relative to last lookup"""
     def __iter__(self):
         yield from map(itemgetter(1), reversed(self._mapping.deq))
 
 
 class WindowDictFutureValuesView(WindowDictPastFutureValuesView):
+    """View on a WindowDict's future values relative to last lookup"""
     def __iter__(self):
         yield from map(itemgetter(1), self._mapping.deq)
 
@@ -182,6 +191,7 @@ class WindowDictValuesView(ValuesView):
 
 
 class WindowDictPastFutureView(Mapping):
+    """Abstract class for historical views on WindowDict"""
     __slots__ = ('deq',)
 
     def __init__(self, deq):
@@ -200,6 +210,7 @@ class WindowDictPastFutureView(Mapping):
 
 
 class WindowDictPastView(WindowDictPastFutureView):
+    """Read-only mapping of just the past of a WindowDict"""
     def __iter__(self):
         yield from map(itemgetter(0), reversed(self.deq))
 
@@ -214,6 +225,7 @@ class WindowDictPastView(WindowDictPastFutureView):
 
 
 class WindowDictFutureView(WindowDictPastFutureView):
+    """Read-only mapping of just the future of a WindowDict"""
     def __iter__(self):
         yield from map(itemgetter(0), self.deq)
 
@@ -236,6 +248,7 @@ class WindowDictFutureView(WindowDictPastFutureView):
 
 
 class WindowDictSlice:
+    """A slice of history in which the start is earlier than the stop"""
     __slots__ = ['dict', 'slice']
 
     def __init__(self, dict, slice):
@@ -277,6 +290,7 @@ class WindowDictSlice:
 
 
 class WindowDictReverseSlice:
+    """A slice of history in which the start is later than the stop"""
     __slots__ = ['dict', 'slice']
 
     def __init__(self, dict, slice):
