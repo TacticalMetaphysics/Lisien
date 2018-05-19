@@ -483,8 +483,7 @@ class WindowDict(MutableMapping):
         stack = getattr(self, name)
         waste = deque()
         deleted = False
-        while stack:
-            (r, v) = stack.popleft()
+        for (r, v) in stack:
             if r != rev:
                 waste.append((r, v))
             else:
