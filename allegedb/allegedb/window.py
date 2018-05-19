@@ -508,10 +508,4 @@ class WindowDict(MutableMapping):
             raise HistoryError("Rev not present: {}".format(rev))
 
     def __repr__(self):
-        ret = {
-            rev: v for (rev, v) in self._past
-        }
-        ret.update({
-            rev: v for (rev, v) in self._future
-        })
-        return "{}({})".format(self.__class__.__name__, ret)
+        return "{}({})".format(self.__class__.__name__, dict(self._past).update(self._future))
