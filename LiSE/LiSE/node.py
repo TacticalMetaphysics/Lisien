@@ -24,14 +24,10 @@ class RuleMapping(rule.RuleMapping):
     with a node.
 
     """
-    __slots__ = ['node']
-
     def __init__(self, node):
         """Initialize with node's engine, character, and rulebook."""
         super().__init__(node.engine, node.rulebook)
         self.node = node
-
-    character = getatt('node.character')
 
 
 class UserMapping(Mapping):
