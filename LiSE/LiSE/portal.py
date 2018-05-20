@@ -155,10 +155,11 @@ class Portal(Edge, RuleFollower):
 
     def __repr__(self):
         """Describe character, origin, and destination"""
-        return "{}.portal[{}][{}]".format(
-            self['character'],
-            self['origin'],
-            self['destination']
+        return "{}.character[{}].portal[{}][{}]".format(
+            repr(self.engine),
+            repr(self['character']),
+            repr(self['origin']),
+            repr(self['destination'])
         )
 
     def __bool__(self):
