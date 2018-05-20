@@ -25,35 +25,6 @@ def singleton_get(s):
     return it
 
 
-def dict_delta(old, new):
-    """Return a dictionary containing the items of ``new`` that are either
-    absent from ``old`` or whose values are different; as well as the
-    value ``None`` for those keys that are present in ``old``, but
-    absent from ``new``.
-
-    Useful for describing changes between two versions of a dict.
-
-    """
-    r = {}
-    oldkeys = set(old.keys())
-    newkeys = set(new.keys())
-    r.update((k, new[k]) for k in newkeys.difference(oldkeys))
-    r.update((k, None) for k in oldkeys.difference(newkeys))
-    for k in oldkeys.intersection(newkeys):
-        if old[k] != new[k]:
-            r[k] = new[k]
-    return r
-
-
-def set_delta(old, new):
-    old = set(old)
-    new = set(new)
-    r = {}
-    r.update((item, False) for item in old.difference(new))
-    r.update((item, True) for item in new.difference(old))
-    return r
-
-
 class EntityStatAccessor(object):
     __slots__ = [
         'engine', 'entity', 'branch', 'turn', 'tick', 'stat', 'current', 'mungers'
