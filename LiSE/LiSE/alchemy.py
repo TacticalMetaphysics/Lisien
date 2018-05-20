@@ -13,9 +13,8 @@ where LiSE will look for it, as in:
 """
 from collections import OrderedDict
 from functools import partial
-from sqlalchemy import *
+from sqlalchemy import Table, Column, ForeignKeyConstraint, select, bindparam, func, and_, or_, INT, TEXT, BOOLEAN
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
-from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
 
 
 BaseColumn = Column
@@ -24,7 +23,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-import allegedb.alchemy
+from allegedb.alchemy import tables_for_meta, queries_for_table_dict
 
 
 def tables_for_meta(meta):
@@ -32,7 +31,7 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    allegedb.alchemy.tables_for_meta(meta)
+    tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -309,7 +308,7 @@ def tables_for_meta(meta):
         ),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('is_avatar', Boolean),
+        Column('is_avatar', BOOLEAN),
         ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
         ForeignKeyConstraint(
             ['avatar_graph', 'avatar_node'],
@@ -512,7 +511,7 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = allegedb.alchemy.queries_for_table_dict(table)
+    r = queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
@@ -566,6 +565,8 @@ def queries(table):
 
 
 if __name__ == '__main__':
+    from sqlalchemy import MetaData
+    from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
     meta = MetaData()
     r = {}
     table = tables_for_meta(meta)

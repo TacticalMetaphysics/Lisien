@@ -31,12 +31,8 @@ Column = partial(BaseColumn, nullable=False)
 
 
 from sqlalchemy.sql import bindparam, and_, or_
-from sqlalchemy.sql.ddl import CreateTable, CreateIndex
-from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
 from json import dumps
 from functools import partial
-
-length = 50
 
 
 def tables_for_meta(meta):
@@ -285,6 +281,7 @@ def queries_for_table_dict(table):
 
 
 def compile_sql(dialect, meta):
+    from sqlalchemy.sql.ddl import CreateTable, CreateIndex
     r = {}
     table = tables_for_meta(meta)
     index = indices_for_table_dict(table)
@@ -328,6 +325,7 @@ class Alchemist(object):
 
 
 if __name__ == '__main__':
+    from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
     out = dict(
         (k, str(v)) for (k, v) in
         compile_sql(SQLiteDialect_pysqlite(), MetaData()).items()
