@@ -5,7 +5,6 @@
 from allegedb.graph import Edge
 from allegedb.cache import HistoryError
 
-from .exc import CacheError
 from .util import getatt
 from .query import StatusAlias
 from .rule import RuleFollower
@@ -14,16 +13,11 @@ from .rule import RuleMapping as BaseRuleMapping
 
 class RuleMapping(BaseRuleMapping):
     """Mapping to get rules followed by a portal."""
-    __slots__ = 'portal',
 
     def __init__(self, portal):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
         self.portal = portal
-
-    character = getatt('portal.character')
-    orign = getatt('portal._orign')
-    destn = getatt('portal._destn')
 
 
 class Portal(Edge, RuleFollower):
