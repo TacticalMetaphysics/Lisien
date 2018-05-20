@@ -32,7 +32,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from sqlalchemy.sql import bindparam, and_, or_
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
-from sqlalchemy import create_engine
+from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
 from json import dumps
 from functools import partial
 
@@ -328,10 +328,9 @@ class Alchemist(object):
 
 
 if __name__ == '__main__':
-    e = create_engine('sqlite:///:memory:')
     out = dict(
         (k, str(v)) for (k, v) in
-        compile_sql(e.dialect, MetaData()).items()
+        compile_sql(SQLiteDialect_pysqlite(), MetaData()).items()
     )
 
     print(dumps(out, indent=4, sort_keys=True))

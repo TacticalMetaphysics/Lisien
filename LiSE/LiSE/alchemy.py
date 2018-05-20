@@ -15,6 +15,7 @@ from collections import OrderedDict
 from functools import partial
 from sqlalchemy import *
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
+from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
 
 
 BaseColumn = Column
@@ -565,26 +566,20 @@ def queries(table):
 
 
 if __name__ == '__main__':
-    e = create_engine('sqlite:///:memory:')
     meta = MetaData()
     r = {}
     table = tables_for_meta(meta)
+    dia = SQLiteDialect_pysqlite()
     for (n, t) in table.items():
         r["create_" + n] = str(
-            CreateTable(t).compile(
-                dialect=e.dialect
-            )
+            CreateTable(t).compile(dialect=dia)
         )
-        t.create(e)
     index = indices_for_table_dict(table)
     for (n, x) in index.items():
         r["index_" + n] = str(
-            CreateIndex(x).compile(
-                dialect=e.dialect
-            )
+            CreateIndex(x).compile(dialect=dia)
         )
-        x.create(e)
     query = queries(table)
     for (n, q) in query.items():
-        r[n] = str(q.compile(dialect=e.dialect))
+        r[n] = str(q.compile(dialect=dia))
     print(dumps(r, sort_keys=True, indent=4))
