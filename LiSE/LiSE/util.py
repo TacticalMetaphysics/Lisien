@@ -25,23 +25,6 @@ def singleton_get(s):
     return it
 
 
-def path_len(graph, path, weight=None):
-    """Return the number of ticks it will take to follow ``path``,
-    assuming the portals' ``weight`` attribute is how long it will
-    take to go through that portal--if unspecified, 1 tick.
-
-    """
-    n = 0
-    path = list(path)  # local copy
-    prevnode = path.pop(0)
-    while path:
-        nextnode = path.pop(0)
-        edge = graph.edge[prevnode][nextnode]
-        n += edge[weight] if weight and hasattr(edge, weight) else 1
-        prevnode = nextnode
-    return n
-
-
 def dict_delta(old, new):
     """Return a dictionary containing the items of ``new`` that are either
     absent from ``old`` or whose values are different; as well as the
@@ -69,14 +52,6 @@ def set_delta(old, new):
     r.update((item, False) for item in old.difference(new))
     r.update((item, True) for item in new.difference(old))
     return r
-
-
-def keycache_iter(keycache, branch, tick, get_iterator):
-    if branch not in keycache:
-        keycache[branch] = {}
-    if tick not in keycache[branch]:
-        keycache[branch][tick] = set(get_iterator())
-    yield from keycache[branch][tick]
 
 
 class EntityStatAccessor(object):
