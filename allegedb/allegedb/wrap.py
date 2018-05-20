@@ -280,6 +280,12 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 
 
 class SetWrapper(MutableWrapperSet, set):
+    """A set synchronized with a serialized field.
+
+    This is meant to be used in allegedb entities (graph, node, or
+    edge), for when the user stores a set in them.
+
+    """
     __slots__ = ('_getter', '_setter', '_outer', '_key')
 
     def __init__(self, getter, setter, outer, key):
