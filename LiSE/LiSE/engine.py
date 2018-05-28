@@ -10,6 +10,7 @@ from operator import gt, lt, ge, le, eq, ne
 from functools import partial
 from types import FunctionType, MethodType
 from contextlib import contextmanager
+from collections import defaultdict
 
 import umsgpack
 from blinker import Signal
@@ -27,7 +28,7 @@ from .place import Place
 from .portal import Portal
 from .rule import AllRuleBooks, AllRules, Rule
 from .query import Query, QueryEngine
-from .util import getatt, reify, EntityStatAccessor
+from .util import getatt, reify, sort_set, EntityStatAccessor
 from .cache import (
     Cache,
     InitializedCache,
@@ -1169,120 +1170,126 @@ class Engine(AbstractEngine, gORM):
         return actres
 
     def _follow_rules(self):
-        # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
         # TODO: apply changes to a facade first, and commit it when you're done. Then report changes to the facade
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule
+        todo = defaultdict(list)
 
+        def do_rule(tup):
+            return {
+                'character': lambda charactername, rulebook, rulename: self._follow_rule(
+                    rulemap[rulename],
+                    partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick),
+                    branch, turn,
+                    charmap[charactername]
+                ),
+                'avatar': lambda charn, rulebook, graphn, avn, rulen: self._follow_rule(
+                    rulemap[rulen],
+                    partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
+                    branch, turn,
+                    charmap[graphn].node[avn]
+                ),
+                'character_thing': lambda charn, rulebook, rulen, thingn: self._follow_rule(
+                    rulemap[rulen],
+                    partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick),
+                    branch, turn,
+                    charmap[charn].thing[thingn]
+                ),
+                'character_place': lambda charn, rulebook, rulen, placen: self._follow_rule(
+                    rulemap[rulen],
+                    partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick),
+                    branch, turn,
+                    charmap[charn].place[placen]
+                ),
+                'character_portal': lambda charn, rulebook, rulen, orign, destn: self._follow_rule(
+                    rulemap[rulen],
+                    partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
+                    branch, turn,
+                    charmap[charn].portal[orign][destn]
+                ),
+                'node': lambda charn, noden, rulebook, rulen: self._follow_rule(
+                    rulemap[rulen],
+                    partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick),
+                    branch, turn,
+                    charmap[charn].node[noden]
+                ),
+                'portal': lambda charn, orign, destn, rulebook, rulen: self._follow_rule(
+                    rulemap[rulen],
+                    partial(self._handled_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
+                    branch, turn,
+                    charmap[charn].portal[orign][destn]
+                )
+            }[tup[0]](*tup[1:])
         # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         for (
             charactername, rulebook, rulename
-        ) in list(
-            self._character_rules_handled_cache.iter_unhandled_rules(
+        ) in self._character_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
-            )
         ):
             if charactername not in charmap:
                 continue
-            yield self._follow_rule(
-                rulemap[rulename],
-                partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick),
-                branch, turn,
-                charmap[charactername]
-            )
+            todo[rulebook].append(('character', charactername, rulebook, rulename))
         for (
             charn, rulebook, graphn, avn, rulen
-        ) in list(
-            self._avatar_rules_handled_cache.iter_unhandled_rules(
+        ) in self._avatar_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
-            )
         ):
             if charn not in charmap:
                 continue
             char = charmap[charn]
             if graphn not in char.avatar or avn not in char.avatar[graphn]:
                 continue
-            yield self._follow_rule(
-                rulemap[rulen],
-                partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
-                branch, turn,
-                charmap[graphn].node[avn]
-            )
+            todo[rulebook].append(('avatar', charn, rulebook, graphn, avn, rulen))
         for (
             charn, rulebook, rulen, thingn
-        ) in list(
-            self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick)
-        ):
+        ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             if charn not in charmap or thingn not in charmap[charn].thing:
                 continue
-            yield self._follow_rule(
-                rulemap[rulen],
-                partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick),
-                branch, turn,
-                charmap[charn].thing[thingn]
-            )
+            todo[rulebook].append(('character_thing', charn, rulebook, rulen, thingn))
         for (
             charn, rulebook, rulen, placen
-        ) in list(
-            self._character_place_rules_handled_cache.iter_unhandled_rules(
-                branch, turn, tick
-            )
+        ) in self._character_place_rules_handled_cache.iter_unhandled_rules(
+            branch, turn, tick
         ):
             if charn not in charmap or placen not in charmap[charn].place:
                 continue
-            yield self._follow_rule(
-                rulemap[rulen],
-                partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick),
-                branch, turn,
-                charmap[charn].place[placen]
-            )
+            todo[rulebook].append(('character_place', charn, rulebook, rulen, placen))
         for (
             charn, rulebook, rulen, orign, destn
-        ) in list(
-            self._character_portal_rules_handled_cache.iter_unhandled_rules(
-                branch, turn, tick
-            )
-        ):
-            yield self._follow_rule(
-                rulemap[rulen],
-                partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
-                branch, turn,
-                charmap[charn].portal[orign][destn]
-            )
-        for (
-                charn, noden, rulebook, rulen
-        ) in list(
-            self._node_rules_handled_cache.iter_unhandled_rules(
-                branch, turn, tick
-            )
-        ):
-            if charn not in charmap or noden not in charmap[charn]:
-                continue
-            yield self._follow_rule(
-                rulemap[rulen],
-                partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick),
-                branch, turn,
-                charmap[charn].node[noden]
-            )
-        for (
-                charn, orign, destn, rulebook, rulen
-        ) in list(
-            self._portal_rules_handled_cache.iter_unhandled_rules(
-                branch, turn, tick
-            )
+        ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
+            branch, turn, tick
         ):
             if charn not in charmap:
                 continue
             char = charmap[charn]
             if orign not in char.portal or destn not in char.portal[orign]:
                 continue
-            yield self._follow_rule(
-                rulemap[rulen],
-                partial(self._handled_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
-                branch, turn,
-                charmap[charn].portal[orign][destn]
-            )
+            todo[rulebook].append(('character_portal', charn, rulebook, rulen, orign, destn))
+        for (
+                charn, noden, rulebook, rulen
+        ) in self._node_rules_handled_cache.iter_unhandled_rules(
+            branch, turn, tick
+        ):
+            if charn not in charmap or noden not in charmap[charn]:
+                continue
+            todo[rulebook].append(('node', charn, noden, rulebook, rulen))
+        for (
+                charn, orign, destn, rulebook, rulen
+        ) in self._portal_rules_handled_cache.iter_unhandled_rules(
+                branch, turn, tick
+        ):
+            if charn not in charmap:
+                continue
+            char = charmap[charn]
+            if orign not in char.portal or destn not in char.portal[orign]:
+                continue
+            todo[rulebook].append(('portal', charn, orign, destn, rulebook, rulen))
+
+        # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
+        for rulebook in sort_set(todo.keys()):
+            for rule in todo[rulebook]:
+                yield do_rule(rule)
 
     def advance(self):
         """Follow the next rule if available, or advance to the next turn."""
