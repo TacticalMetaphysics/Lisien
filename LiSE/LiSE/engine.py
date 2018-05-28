@@ -6,7 +6,6 @@ flow of time.
 
 """
 from random import Random
-from operator import gt, lt, ge, le, eq, ne
 from functools import partial
 from types import FunctionType, MethodType
 from contextlib import contextmanager
@@ -15,35 +14,8 @@ from collections import defaultdict
 import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM
-from allegedb.window import update_window, update_backward_window
-from .xcollections import (
-    StringStore,
-    FunctionStore,
-    CharacterMapping,
-    UniversalMapping
-)
-from .character import Character
-from .thing import Thing
-from .place import Place
-from .portal import Portal
-from .rule import AllRuleBooks, AllRules, Rule
-from .query import Query, QueryEngine
-from .util import getatt, reify, sort_set, EntityStatAccessor
-from .cache import (
-    Cache,
-    InitializedCache,
-    EntitylessCache,
-    InitializedEntitylessCache,
-    AvatarnessCache,
-    AvatarRulesHandledCache,
-    CharacterThingRulesHandledCache,
-    CharacterPlaceRulesHandledCache,
-    CharacterPortalRulesHandledCache,
-    NodeRulesHandledCache,
-    PortalRulesHandledCache,
-    CharacterRulesHandledCache,
-    ThingsCache
-)
+from .util import getatt, reify, sort_set
+
 from . import exc
 
 
@@ -400,7 +372,7 @@ class AbstractEngine(object):
         for i in range(0, n):
             yield self.roll_die(d)
 
-    def dice_check(self, n, d, target, comparator=le):
+    def dice_check(self, n, d, target, comparator='<='):
         """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
         are <= ``target``.
 
@@ -408,6 +380,8 @@ class AbstractEngine(object):
         use a string like '<' or '>='.
 
         """
+        from operator import gt, lt, ge, le, eq, ne
+
         comps = {
             '>': gt,
             '<': lt,
@@ -509,6 +483,11 @@ class Engine(AbstractEngine, gORM):
     - ``rando``: The randomizer used by all of the rules.
 
     """
+    from .character import Character
+    from .thing import Thing
+    from .place import Place
+    from .portal import Portal
+    from .query import QueryEngine
     char_cls = Character
     thing_cls = Thing
     place_cls = node_cls = Place
@@ -553,6 +532,7 @@ class Engine(AbstractEngine, gORM):
         of the lists 'triggers', 'prereqs', and 'actions'
 
         """
+        from allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(branch, turn_to, tick_to, start_tick=tick_from)
         delta = super().get_delta(branch, turn_from, tick_from, turn_to, tick_to)
@@ -833,6 +813,28 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _init_caches(self):
+        from .xcollections import (
+            StringStore,
+            FunctionStore,
+            CharacterMapping,
+            UniversalMapping
+        )
+        from .cache import (
+            InitializedCache,
+            EntitylessCache,
+            InitializedEntitylessCache,
+            AvatarnessCache,
+            AvatarRulesHandledCache,
+            CharacterThingRulesHandledCache,
+            CharacterPlaceRulesHandledCache,
+            CharacterPortalRulesHandledCache,
+            NodeRulesHandledCache,
+            PortalRulesHandledCache,
+            CharacterRulesHandledCache,
+            ThingsCache
+        )
+        from .rule import AllRuleBooks, AllRules
+
         super()._init_caches()
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
@@ -883,7 +885,7 @@ class Engine(AbstractEngine, gORM):
 
     def _load_graphs(self):
         for charn in self.query.characters():
-            self._graph_objs[charn] = Character(self, charn, init_rulebooks=False)
+            self._graph_objs[charn] = self.char_cls(self, charn, init_rulebooks=False)
 
     def __init__(
             self,
@@ -958,6 +960,7 @@ class Engine(AbstractEngine, gORM):
             self.method.init(self)
 
     def _init_load(self, validate=False):
+        from .rule import Rule
         q = self.query
         self._things_cache.load((
             (character, thing, branch, turn, tick, (location, next_location))
@@ -1317,7 +1320,7 @@ class Engine(AbstractEngine, gORM):
 
         """
         self._init_graph(name, 'DiGraph')
-        self._graph_objs[name] = Character(self, name, data, **kwargs)
+        self._graph_objs[name] = self.char_cls(self, name, data, **kwargs)
 
     def del_character(self, name):
         """Remove the Character from the database entirely.
@@ -1392,15 +1395,18 @@ class Engine(AbstractEngine, gORM):
         self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, (character, orig, dest))
 
     def alias(self, v, stat='dummy'):
+        from .util import EntityStatAccessor
         r = DummyEntity(self)
         r[stat] = v
         return EntityStatAccessor(r, stat, engine=self)
 
     def entityfy(self, v, stat='dummy'):
+        from .query import Query
+        from .util import EntityStatAccessor
         if (
-                isinstance(v, Thing) or
-                isinstance(v, Place) or
-                isinstance(v, Portal) or
+                isinstance(v, self.thing_cls) or
+                isinstance(v, self.place_cls) or
+                isinstance(v, self.portal_cls) or
                 isinstance(v, Query) or
                 isinstance(v, EntityStatAccessor)
         ):
