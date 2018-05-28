@@ -38,6 +38,7 @@ from LiSE.portal import Portal
 
 
 class CachingProxy(MutableMapping, Signal):
+    """Abstract class for proxy objects representing LiSE entities or mappings thereof"""
     def __init__(self):
         super().__init__()
         self.exists = True
@@ -97,6 +98,7 @@ class CachingProxy(MutableMapping, Signal):
 
 
 class CachingEntityProxy(CachingProxy):
+    """Abstract class for proxy objects representing LiSE entities"""
     def _cache_get_munge(self, k, v):
         if isinstance(v, dict):
             return DictWrapper(lambda: self._cache[k], partial(self._set_item, k), self, k)
@@ -113,6 +115,7 @@ class CachingEntityProxy(CachingProxy):
 
 
 class RulebookProxyDescriptor(object):
+    """Descriptor that makes the corresponding RuleBookProxy if needed"""
     def __get__(self, inst, cls):
         if inst is None:
             return self
@@ -139,6 +142,7 @@ class RulebookProxyDescriptor(object):
 
 
 class ProxyUserMapping(UserMapping):
+    """A mapping to the ``CharacterProxy`` objects that have this node as an avatar"""
     def _user_names(self):
         for user, avatars in self.node.engine._avatar_characters_cache[self.node._charname].items():
             if self.node.name in avatars:
