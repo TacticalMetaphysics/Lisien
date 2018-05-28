@@ -1257,6 +1257,28 @@ class AvatarMapProxy(Mapping):
 class CharacterProxy(AbstractCharacter):
     rulebook = RulebookProxyDescriptor()
 
+    def update_nodes(self, patch):
+        """Apply a patch to my node stats
+
+        :param patch: a dictionary. Keys are node names, values are other dicts
+        describing updates to the nodes, where a value of None means delete the stat.
+        Other values overwrite.
+
+        """
+        self.engine.handle(
+            'update_nodes',
+            char=self.name,
+            patch=patch,
+            block=False
+        )
+        for node, stats in patch.items():
+            nodeproxycache = self.node[node]._cache
+            for k, v in stats.items():
+                if v is None:
+                    del nodeproxycache[k]
+                else:
+                    nodeproxycache[k] = v
+
     def thing2place(self, name):
         # TODO
         raise NotImplementedError("TODO")

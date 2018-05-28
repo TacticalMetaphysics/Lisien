@@ -801,12 +801,7 @@ class Board(RelativeLayout):
                 y * self.height
             )
         if node_upd:
-            self.character.engine.handle(
-                'update_nodes',
-                char=self.character.name,
-                patch=node_upd,
-                block=False
-            )
+            self.character.update_nodes(node_upd)
         self.spots_unposd = []
 
     def grid_layout(self, *args):
