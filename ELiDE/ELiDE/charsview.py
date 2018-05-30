@@ -19,7 +19,8 @@ class CharactersRecycleBoxLayout(SelectableRecycleBoxLayout):
 
     def apply_selection(self, index, view, is_selected):
         super().apply_selection(index, view, is_selected)
-        self.character_name = view.text
+        if is_selected:
+            self.character_name = view.text
 
 
 class CharactersView(RecycleView):
