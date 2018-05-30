@@ -602,14 +602,24 @@ class NodeMapProxy(MutableMapping, Signal):
         The patch is sent to the LiSE core all at once, so this is faster than
         using ``update``, too.
 
+        :param patch: a dictionary. Keys are node names, values are other dicts
+        describing updates to the nodes, where a value of None means delete the stat.
+        Other values overwrite.
+
         """
         self.engine.handle(
             'update_nodes',
             char=self.character.name,
-            patch=patch
+            patch=patch,
+            block=False
         )
-        for node, pat in patch.items():
-            self[node]._cache.update(pat)
+        for node, stats in patch.items():
+            nodeproxycache = self[node]._cache
+            for k, v in stats.items():
+                if v is None:
+                    del nodeproxycache[k]
+                else:
+                    nodeproxycache[k] = v
 
 
 class ThingMapProxy(CachingProxy):
@@ -1256,28 +1266,6 @@ class AvatarMapProxy(Mapping):
 
 class CharacterProxy(AbstractCharacter):
     rulebook = RulebookProxyDescriptor()
-
-    def update_nodes(self, patch):
-        """Apply a patch to my node stats
-
-        :param patch: a dictionary. Keys are node names, values are other dicts
-        describing updates to the nodes, where a value of None means delete the stat.
-        Other values overwrite.
-
-        """
-        self.engine.handle(
-            'update_nodes',
-            char=self.name,
-            patch=patch,
-            block=False
-        )
-        for node, stats in patch.items():
-            nodeproxycache = self.node[node]._cache
-            for k, v in stats.items():
-                if v is None:
-                    del nodeproxycache[k]
-                else:
-                    nodeproxycache[k] = v
 
     def thing2place(self, name):
         # TODO
