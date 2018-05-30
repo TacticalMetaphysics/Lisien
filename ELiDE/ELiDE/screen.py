@@ -375,7 +375,7 @@ Builder.load_string(
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
         height: root.height - timepanel.height
-        board: root.boards[app.character.name]
+        board: root.boards[app.character_name]
         adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
