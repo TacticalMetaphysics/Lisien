@@ -341,6 +341,7 @@ class Board(RelativeLayout):
             control['wallpaper'] = 'textinput'
             self.character.stat['_control'] = control
         self.character.stat.connect(self._trigger_pull_wallpaper)
+        self.trigger_update()
 
     def pull_wallpaper(self, *args):
         self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
