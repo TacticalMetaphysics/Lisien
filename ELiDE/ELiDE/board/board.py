@@ -581,12 +581,9 @@ class Board(RelativeLayout):
                 else:
                     patch['_image_paths'] = Spot.default_image_paths
                     zeroes = [0]
-                if '_offxs' not in place:
-                    patch['_offxs'] = zeroes
-                if '_offys' not in place:
-                    patch['_offys'] = zeroes
-                if patch:
-                    nodes_patch[place_name] = patch
+                patch['_offxs'] = place.get('_offxs', zeroes)
+                patch['_offys'] = place.get('_offys', zeroes)
+                nodes_patch[place_name] = patch
         if nodes_patch:
             self.character.node.patch(nodes_patch)
         for place in places2add:
