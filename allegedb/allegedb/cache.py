@@ -10,6 +10,8 @@ class FuturistWindowDict(WindowDict):
     """A WindowDict that does not let you rewrite the past."""
 
     def __setitem__(self, rev, v):
+        if hasattr(v, 'unwrap'):
+            v = v.unwrap()
         if not self._past and not self._future:
             self._past.append((rev, v))
             return

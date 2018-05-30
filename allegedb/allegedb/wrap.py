@@ -3,10 +3,11 @@
 """Wrapper classes to let you store mutable data types in the allegedb ORM"""
 from functools import partial
 from itertools import zip_longest
+from abc import ABC, abstractmethod
 from collections.abc import MutableSet, MutableMapping, MutableSequence, Mapping, Sequence, Iterable, Sized, Container
 
 
-class MutableWrapper:
+class MutableWrapper(ABC):
     __slots__ = ()
 
     def __iter__(self):
@@ -25,6 +26,22 @@ class MutableWrapper:
 
     def __str__(self):
         return str(self._getter())
+
+    @abstractmethod
+    def _getter(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _copy(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _set(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def unwrap(self):
+        raise NotImplementedError
 
 
 Iterable.register(MutableWrapper)
@@ -61,7 +78,7 @@ class MutableWrapperDictList(MutableWrapper):
         self._set(me)
 
 
-class MutableMappingWrapper(MutableWrapper, MutableMapping):
+class MutableMappingUnwrapper(MutableMapping):
     def __eq__(self, other):
         if not isinstance(other, Mapping):
             return NotImplemented
@@ -84,6 +101,10 @@ class MutableMappingWrapper(MutableWrapper, MutableMapping):
             k: v.unwrap() if hasattr(v, 'unwrap') else v
             for (k, v) in self.items()
         }
+
+
+class MutableMappingWrapper(MutableWrapper, MutableMappingUnwrapper):
+    pass
 
 
 class SubDictWrapper(MutableWrapperDictList, MutableMappingWrapper, dict):
@@ -297,3 +318,11 @@ class SetWrapper(MutableWrapperSet, set):
     def _set(self, v):
         self._setter(v)
         self._outer[self._key] = v
+
+
+class UnwrappingDict(dict):
+    """Dict that stores the data from the wrapper classes but won't store those objects themselves."""
+    def __setitem__(self, key, value):
+        if isinstance(value, MutableWrapper):
+            value = value.unwrap()
+        super(UnwrappingDict, self).__setitem__(key, value)

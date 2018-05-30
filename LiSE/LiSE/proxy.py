@@ -26,7 +26,7 @@ from blinker import Signal
 from allegedb.cache import HistoryError
 from .engine import AbstractEngine
 from .character import Facade, AbstractCharacter
-from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper
+from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .util import reify, getatt
 from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
@@ -1999,9 +1999,9 @@ class EngineProxy(AbstractEngine):
             # not silenced; mustn't do anything before the game has started
             self.handle('do_game_start')
 
-        self._node_stat_cache = StructuredDefaultDict(1, dict)
-        self._portal_stat_cache = StructuredDefaultDict(2, dict)
-        self._char_stat_cache = PickyDefaultDict(dict)
+        self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
+        self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
+        self._char_stat_cache = PickyDefaultDict(UnwrappingDict)
         self._things_cache = StructuredDefaultDict(1, ThingProxy)
         self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
         self._character_rulebooks_cache = StructuredDefaultDict(

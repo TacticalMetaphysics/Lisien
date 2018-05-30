@@ -40,7 +40,7 @@ from allegedb.graph import (
     DiGraphPredecessorsMapping
 )
 from allegedb.cache import FuturistWindowDict, PickyDefaultDict
-from allegedb.wrap import MutableMappingWrapper
+from allegedb.wrap import MutableMappingUnwrapper
 
 from .xcollections import CompositeDict
 from .rule import RuleMapping
@@ -815,7 +815,7 @@ class CharacterSense(object):
         return r
 
 
-class CharacterSenseMapping(MutableMappingWrapper, RuleFollower, Signal):
+class CharacterSenseMapping(MutableMappingUnwrapper, RuleFollower, Signal):
 
     """Used to view other Characters as seen by one, via a particular sense."""
 
@@ -1054,7 +1054,7 @@ class FacadePortal(FacadeEntity):
         return self.facade.node[self.dest]
 
 
-class FacadeEntityMapping(MutableMappingWrapper, Signal):
+class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
 
     """Mapping that contains entities in a Facade.
 
@@ -1288,7 +1288,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
             except AttributeError:
                 return {}
 
-    class StatMapping(MutableMappingWrapper, Signal):
+    class StatMapping(MutableMappingUnwrapper, Signal):
         def __init__(self, facade):
             super().__init__()
             self.facade = facade
@@ -1393,7 +1393,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, rulebook_name)
             cache.store((name, rulebook), branch, turn, tick, rulebook_name)
 
-    class ThingMapping(MutableMappingWrapper, RuleFollower, Signal):
+    class ThingMapping(MutableMappingUnwrapper, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""
         _book = "character_thing"
 
@@ -1468,7 +1468,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __repr__(self):
             return "{}.character[{}].thing".format(repr(self.engine), repr(self.name))
 
-    class PlaceMapping(MutableMappingWrapper, RuleFollower, Signal):
+    class PlaceMapping(MutableMappingUnwrapper, RuleFollower, Signal):
         """:class:`Place` objects that are in a :class:`Character`"""
         _book = "character_place"
 
