@@ -178,13 +178,14 @@ class Board(RelativeLayout):
                     self.add_widget(self.protoportal2)
             touch.pop()
             return True
-        if not self.selection_candidates:
-            arrows = list(self.arrows_at(*touch.pos))
-            if arrows:
-                Logger.debug("Board: hit {} arrows".format(len(arrows)))
-                self.selection_candidates = arrows
-                touch.pop()
-                return True
+        arrows = list(self.arrows_at(*touch.pos))
+        if arrows:
+            Logger.debug("Board: hit {} arrows".format(len(arrows)))
+            self.selection_candidates = arrows
+            if self.app.selection in self.selection_candidates:
+                self.selection_candidates.remove(self.app.selection)
+            touch.pop()
+            return True
         touch.pop()
 
     def on_touch_move(self, touch):
