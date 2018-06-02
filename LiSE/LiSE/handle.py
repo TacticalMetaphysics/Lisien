@@ -497,8 +497,7 @@ class EngineHandle(object):
             'avatar': chara.avatar.rulebook.name,
             'thing': chara.thing.rulebook.name,
             'place': chara.place.rulebook.name,
-            'portal': chara.portal.rulebook.name,
-            'node': chara.node.rulebook.name
+            'portal': chara.portal.rulebook.name
         }
 
     def character_rulebooks_delta(self, char, *, store=True):
