@@ -2412,7 +2412,7 @@ class EngineProxy(AbstractEngine):
             )
             self._branch, self._turn, self._tick = branch, turn, tick
 
-    def add_character(self, char, data={}, **attr):
+    def add_character(self, char, data={}, block=False, **attr):
         if char in self._char_cache:
             raise KeyError("Character already exists")
         assert char not in self._char_stat_cache
@@ -2451,11 +2451,11 @@ class EngineProxy(AbstractEngine):
                 self._portal_stat_cache[char][orig][dest] = stats
         self.handle(
             command='add_character', char=char, data=data, attr=attr,
-            block=False, branching=True
+            block=block, branching=True
         )
 
     def new_character(self, char, **attr):
-        self.add_character(char, **attr)
+        self.add_character(char, block=True, **attr)
         return self._char_cache[char]
     new_graph = new_character
 
