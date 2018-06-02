@@ -212,7 +212,7 @@ def install(eng):
                     student.rule(rule)
                 # Apply these previously written rules to each brain cell
                 for rule in (learn, sober_up, catch_up):
-                    student.node.rule(rule)
+                    student.place.rule(rule)
 
 
 if __name__ == "__main__":
