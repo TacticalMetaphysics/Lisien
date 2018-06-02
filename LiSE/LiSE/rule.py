@@ -83,7 +83,7 @@ class RuleFuncList(MutableSequence, Signal):
         return len(self._get())
 
     def __getitem__(self, i):
-        return self._get()[i]
+        return getattr(self._funcstore, self._get()[i])
 
     def __setitem__(self, i, v):
         v = self._nominate(v)
