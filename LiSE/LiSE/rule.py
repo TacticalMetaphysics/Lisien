@@ -555,7 +555,7 @@ class RuleFollower(object):
         raise NotImplementedError
 
 
-class AllRuleBooks(Mapping, Signal):
+class AllRuleBooks(MutableMapping, Signal):
     __slots__ = ['engine', '_cache']
 
     def __init__(self, engine):
@@ -576,6 +576,17 @@ class AllRuleBooks(Mapping, Signal):
         if k not in self._cache:
             self._cache[k] = RuleBook(self.engine, k)
         return self._cache[k]
+
+    def __setitem__(self, key, value):
+        if key not in self._cache:
+            self._cache[key] = RuleBook(self.engine, key)
+        rb = self._cache[key]
+        while len(rb) > 0:
+            del rb[0]
+        rb.extend(value)
+
+    def __delitem__(self, key):
+        raise NotImplementedError
 
 
 class AllRules(MutableMapping, Signal):
