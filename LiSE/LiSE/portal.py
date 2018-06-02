@@ -62,21 +62,9 @@ class Portal(Edge, RuleFollower):
         ))
 
     def _get_rulebook_name(self):
-        cache = self.engine._portals_rulebooks_cache
-        if self.character.name not in cache or \
-            self.orig not in cache[self.character.name] or \
-            self.dest not in cache[
-                self.character.name][self.orig]:
-            return
-        cache = cache[self.character.name][self.orig][self.dest]
-        for (branch, turn, tick) in self.engine._iter_parent_btt():
-            if branch in cache:
-                try:
-                    return cache[branch][turn][tick]
-                except HistoryError as ex:
-                    if ex.deleted:
-                        break
-        return self.character.name, self.orig, self.dest
+        return self.engine._portals_rulebooks_cache.retrieve(
+            self.character.name, self.orig, self.dest, *self.engine.btt()
+        )
 
     def _set_rulebook_name(self, n):
         self.engine._set_portal_rulebook(self.character.name, self.orig, self.dest, n)

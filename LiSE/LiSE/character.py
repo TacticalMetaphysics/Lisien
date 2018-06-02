@@ -1720,6 +1720,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         engine = getatt('character.engine')
         name = getatt('character.name')
 
+        def _get_rulebook_cache(self):
+            return self.engine._avatars_rulebooks_cache
+
         def __init__(self, char):
             """Remember my character."""
             self.character = char
