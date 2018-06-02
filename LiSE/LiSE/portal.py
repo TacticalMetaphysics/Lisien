@@ -78,6 +78,9 @@ class Portal(Edge, RuleFollower):
                         break
         return self.character.name, self.orig, self.dest
 
+    def _set_rulebook_name(self, n):
+        self.engine._set_portal_rulebook(self.character.name, self.orig, self.dest, n)
+
     def _get_rule_mapping(self):
         return RuleMapping(self)
 

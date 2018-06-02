@@ -22,6 +22,7 @@ from collections import (
     MutableSequence,
     Hashable
 )
+from abc import ABC, abstractmethod
 from functools import partial
 from inspect import getsource
 from ast import parse
@@ -484,7 +485,7 @@ rule_mappings = {}
 rulebooks = {}
 
 
-class RuleFollower(object):
+class RuleFollower(ABC):
     """Interface for that which has a rulebook associated, which you can
     get a :class:`RuleMapping` into
 
@@ -539,14 +540,17 @@ class RuleFollower(object):
             raise AttributeError("Need an engine before I can get rules")
         return self._rule_mapping.values()
 
+    @abstractmethod
     def _get_rule_mapping(self):
         """Get the :class:`RuleMapping` for my rulebook."""
         raise NotImplementedError
 
+    @abstractmethod
     def _get_rulebook_name(self):
         """Get the name of my rulebook."""
         raise NotImplementedError
 
+    @abstractmethod
     def _set_rulebook_name(self, n):
         """Tell the database that this is the name of the rulebook to use for
         me.

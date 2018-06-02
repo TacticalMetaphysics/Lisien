@@ -725,16 +725,22 @@ class RuleFollower(BaseRuleFollower):
             self._book
         )
 
+    @abstractmethod
+    def _get_rulebook_cache(self):
+        pass
+
     def _get_rulebook_name(self):
         try:
-            return self.engine._characters_rulebooks_cache.retrieve(
+            return self._get_rulebook_cache().retrieve(
                 self.character.name, *self.engine.btt()
             )
         except KeyError:
             return self.character.name, self._book
 
     def _set_rulebook_name(self, n):
-        self.engine._set_character_rulebook(self.character.name, self._book, n)
+        branch, turn, tick = self.engine.nbtt()
+        self.engine.query._set_rulebook_on_character(self._book, self.character.name, branch, turn, tick, n)
+        self._get_rulebook_cache().store(self.character.name, branch, turn, tick, n)
 
     def __contains__(self, k):
         return self.engine._active_rules_cache.contains_key(
@@ -815,7 +821,7 @@ class CharacterSense(object):
         return r
 
 
-class CharacterSenseMapping(MutableMappingUnwrapper, RuleFollower, Signal):
+class CharacterSenseMapping(MutableMappingUnwrapper, Signal):
 
     """Used to view other Characters as seen by one, via a particular sense."""
 
@@ -1367,6 +1373,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def character(self):
         return self
 
+    def _get_rulebook_cache(self):
+        return self.engine._characters_rulebooks_cache
+
     def __repr__(self):
         return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
@@ -1399,6 +1408,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         engine = getatt('character.engine')
         name = getatt('character.name')
+
+        def _get_rulebook_cache(self):
+            return self.engine._characters_things_rulebooks_cache
 
         def __init__(self, character):
             """Store the character and initialize cache."""
@@ -1475,6 +1487,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         engine = getatt('character.engine')
         name = getatt('character.name')
 
+        def _get_rulebook_cache(self):
+            return self.engine._characters_places_rulebooks_cache
+
         def __init__(self, character):
             """Store the character."""
             super().__init__()
@@ -1537,7 +1552,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __repr__(self):
             return "{}.character[{}].place".format(repr(self.engine), repr(self.name))
 
-    class ThingPlaceMapping(GraphNodeMapping, RuleFollower, Signal):
+    class ThingPlaceMapping(GraphNodeMapping, Signal):
         """GraphNodeMapping but for Place and Thing"""
         _book = "character_node"
 
@@ -1589,6 +1604,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         character = getatt('graph')
         engine = getatt('graph.engine')
+
+        def _get_rulebook_cache(self):
+            return self.engine._characters_portals_rulebooks_cache
 
         def __getitem__(self, orig):
             if self.engine._node_exists(
@@ -1666,6 +1684,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         """
         _book = "character_portal"
+
+        def _get_rulebook_cache(self):
+            return self.engine._characters_portals_rulebooks_cache
 
         class Predecessors(DiGraphPredecessorsMapping.Predecessors):
             """Mapping of possible origins from some destination."""
