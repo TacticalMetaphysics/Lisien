@@ -329,7 +329,7 @@ class RuleBook(MutableSequence, Signal):
             return 0
 
     def __getitem__(self, i):
-        return self.engine.rule[self._cache[i]]
+        return self.engine.rule[self._get_cache(*self.engine.btt())[i]]
 
     def _coerce_rule(self, v):
         if isinstance(v, Rule):

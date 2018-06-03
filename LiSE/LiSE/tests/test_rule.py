@@ -77,30 +77,37 @@ def test_engine_dot_rule(engy):
 def test_character_dot_rule(engy):
     character = engy.new_character('physical')
     something_dot_rule_test(character, engy)
+    assert character.rulebook[0] == engy.rule['somerule']
 
 
 def test_character_dot_thing_dot_rule(engy):
     character = engy.new_character('physical')
     something_dot_rule_test(character.thing, engy)
+    assert character.thing.rulebook[0] == engy.rule['somerule']
 
 
 def test_character_dot_place_dot_rule(engy):
     character = engy.new_character('physical')
     something_dot_rule_test(character.place, engy)
+    assert character.place.rulebook[0] == engy.rule['somerule']
 
 
 def test_character_dot_portal_dot_rule(engy):
     character = engy.new_character('physical')
     something_dot_rule_test(character.portal, engy)
+    assert character.portal.rulebook[0] == engy.rule['somerule']
 
 
 def test_node_dot_rule(engy):
-    character = engy.new_character('physical')
-    something_dot_rule_test(character.new_place(1), engy)
+    here = engy.new_character('physical').new_place(1)
+    something_dot_rule_test(here, engy)
+    assert here.rulebook[0] == engy.rule['somerule']
 
 
 def test_portal_dot_rule(engy):
     character = engy.new_character('physical')
     character.new_place(0)
     character.new_place(1)
-    something_dot_rule_test(character.new_portal(0, 1), engy)
+    port = character.new_portal(0, 1)
+    something_dot_rule_test(port, engy)
+    assert port.rulebook[0] == engy.rule['somerule']
