@@ -39,10 +39,10 @@ class NextTurn(Signal):
         with engine.advancing():
             for res in iter(engine.advance, final_rule):
                 if res:
-                    branch, turn, tick = engine.btt()
                     engine.universal['last_result'] = res
                     engine.universal['last_result_idx'] = 0
                     engine.universal['rando_state'] = engine.rando.getstate()
+                    branch, turn, tick = engine.btt()
                     self.send(
                         engine,
                         branch=branch,
@@ -52,9 +52,9 @@ class NextTurn(Signal):
                     return res, engine.get_delta(
                         branch=start_branch,
                         turn_from=start_turn,
-                        turn_to=engine.turn,
+                        turn_to=turn,
                         tick_from=start_tick,
-                        tick_to=engine.tick
+                        tick_to=tick
                     )
 
         branch, turn = engine.time
