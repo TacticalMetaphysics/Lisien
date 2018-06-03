@@ -246,6 +246,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     engine = getatt('db')
     character = getatt('graph')
     name = getatt('node')
+    no_unwrap = True
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -459,6 +460,3 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
     def __bool__(self):
         return self.name in self.character.node
-
-    def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}

@@ -33,6 +33,7 @@ class Portal(Edge, RuleFollower):
     """
     character = getatt('graph')
     engine = getatt('db')
+    no_unwrap = True
 
     @property
     def _cache(self):

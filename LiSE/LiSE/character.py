@@ -88,6 +88,7 @@ class AbstractCharacter(MutableMapping):
 
     """
     engine = getatt('db')
+    no_unwrap = True
 
     @abstractmethod
     def add_place(self, name, **kwargs): pass

@@ -192,6 +192,7 @@ def install(eng):
             student1.add_avatar(body1)
             student_body.add_avatar(body1)
             student0.stat['room'] = student1.stat['room'] = room
+            assert student0.stat['room'] == student1.stat['room'] == room
             student0.stat['roommate'] = student1
             student1.stat['roommate'] = student0
             for student in (student0, student1):

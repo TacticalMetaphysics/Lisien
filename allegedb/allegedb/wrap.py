@@ -98,7 +98,7 @@ class MutableMappingUnwrapper(MutableMapping):
 
     def unwrap(self):
         return {
-            k: v.unwrap() if hasattr(v, 'unwrap') else v
+            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
             for (k, v) in self.items()
         }
 
