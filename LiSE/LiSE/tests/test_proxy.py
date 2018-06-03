@@ -219,7 +219,6 @@ def test_assignment():
                         'dorm1room5': {'is_mirror': True}, 'dorm1room0': {'is_mirror': True},
                         'dorm1room2': {'is_mirror': True}, 'dorm1room4': {'is_mirror': True}},
             'dorm1room4': {'common1': {}}}, 'rulebooks': {'character': ('physical', 'character'),
-                                                          'node': ('physical', 'character_node'),
                                                           'thing': ('physical', 'character_thing'),
                                                           'avatar': ('physical', 'avatar'),
                                                           'place': ('physical', 'character_place'),
@@ -227,7 +226,7 @@ def test_assignment():
     physical_copy = hand.character_copy('physical')
     assert physical_copy == physical_inital_copy
     dorm_initial_copy = {'rulebooks': {'thing': ('dorm0', 'character_thing'), 'character': ('dorm0', 'character'),
-                                       'avatar': ('dorm0', 'avatar'), 'node': ('dorm0', 'character_node'),
+                                       'avatar': ('dorm0', 'avatar'),
                                        'portal': ('dorm0', 'character_portal'), 'place': ('dorm0', 'character_place')},
                          'name': 'dorm0', 'avatars': {'physical': frozenset(
             {'dorm0room1', 'dorm0room2', 'dorm0room4', 'dorm0room5', 'dorm0room3', 'common0', 'dorm0room0'})}}
@@ -239,7 +238,6 @@ def test_assignment():
                             'name': 'dorm0room0student0', 'rulebooks': {
             'place': ('dorm0room0student0', 'character_place'), 'avatar': ('dorm0room0student0', 'avatar'),
             'portal': ('dorm0room0student0', 'character_portal'), 'thing': ('dorm0room0student0', 'character_thing'),
-            'node': ('dorm0room0student0', 'character_node'),
             'character': ('dorm0room0student0', 'character')}, 'node_val': {
             'cell26': {'rulebook': ('dorm0room0student0', 'cell26'), 'drunk': 0, 'slow': 0},
             'cell13': {'rulebook': ('dorm0room0student0', 'cell13'), 'drunk': 0, 'slow': 0},
