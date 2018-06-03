@@ -1301,6 +1301,9 @@ class Engine(AbstractEngine, gORM):
         except StopIteration:
             self._rules_iter = self._follow_rules()
             return final_rule
+        except Exception as ex:
+            self._rules_iter = self._follow_rules()
+            return ex
 
     def new_character(self, name, data=None, **kwargs):
         """Create and return a new :class:`Character`."""
