@@ -2215,7 +2215,7 @@ class EngineProxy(AbstractEngine):
             if isinstance(r, Exception):
                 raise r
             if cb:
-                cb(command, branch, turn, tick, **r)
+                cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
             return r
         else:
             kwargs['silent'] = not (branching or cb)
@@ -2237,7 +2237,18 @@ class EngineProxy(AbstractEngine):
     def _callback(self, cb):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
-        cb(command, branch, turn, tick, self.unpack(result))
+        res = self.unpack(result)
+        ex = None
+        if isinstance(res, Exception):
+            ex = res
+        try:
+            if isinstance(res[0], Exception):
+                ex = res[0]
+        except TypeError:
+            pass
+        if ex:
+            self.warning("{} raised by command {}, trying to run callback {} with it".format(repr(ex), command, cb))
+        cb(command=command, branch=branch, turn=turn, tick=tick, result=res)
 
     def _branching(self, cb=None):
         command, branch, turn, tick, result = self.recv()
@@ -2249,9 +2260,9 @@ class EngineProxy(AbstractEngine):
             self._tick = tick
             self.time.send(self, branch=branch, turn=turn, tick=tick)
             if hasattr(self, 'branching_cb'):
-                self.branching_cb(command, branch, turn, tick, **r)
+                self.branching_cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
         if cb:
-            cb(command, branch, turn, tick, **r)
+            cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
 
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
@@ -2259,12 +2270,12 @@ class EngineProxy(AbstractEngine):
         if isinstance(received, Exception):
             raise received
         for cb in cbs:
-            cb(cmd, branch, turn, tick, received, **kwargs)
+            cb(command=cmd, branch=branch, turn=turn, tick=tick, result=received, **kwargs)
         return received
 
-    def _upd_caches(self, *args, **kwargs):
+    def _upd_caches(self, command, branch, turn, tick, result, no_del=False):
         deleted = set(self.character.keys())
-        result, deltas = args[-1]
+        result, deltas = result
         self.eternal._update_cache(deltas.pop('eternal', {}))
         self.universal._update_cache(deltas.pop('universal', {}))
         # I think if you travel back to before a rule was created it'll show up empty
@@ -2295,7 +2306,7 @@ class EngineProxy(AbstractEngine):
             chara = self.character[char]
             chara._apply_delta(chardelta)
             deleted.discard(char)
-        if kwargs.get('no_del'):
+        if no_del:
             return
         for char in deleted:
             del self._char_cache[char]
@@ -2303,7 +2314,7 @@ class EngineProxy(AbstractEngine):
     def btt(self):
         return self._branch, self._turn, self._tick
 
-    def _set_time(self, cmd, branch, turn, tick, res, **kwargs):
+    def _set_time(self, command, branch, turn, tick, result, **kwargs):
         self._branch = branch
         self._turn = turn
         self._tick = tick
