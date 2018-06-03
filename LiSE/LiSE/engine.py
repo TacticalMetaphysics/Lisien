@@ -19,6 +19,10 @@ from .util import getatt, reify, sort_set
 from . import exc
 
 
+class InnerStopIteration(StopIteration):
+    pass
+
+
 class NextTurn(Signal):
     """Make time move forward in the simulation.
 
@@ -1292,12 +1296,18 @@ class Engine(AbstractEngine, gORM):
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
         for rulebook in sort_set(todo.keys()):
             for rule in todo[rulebook]:
-                yield do_rule(rule)
+                try:
+                    yield do_rule(rule)
+                except StopIteration:
+                    raise InnerStopIteration
 
     def advance(self):
         """Follow the next rule if available, or advance to the next turn."""
         try:
             return next(self._rules_iter)
+        except InnerStopIteration:
+            self._rules_iter = self._follow_rules()
+            return StopIteration()
         except StopIteration:
             self._rules_iter = self._follow_rules()
             return final_rule
