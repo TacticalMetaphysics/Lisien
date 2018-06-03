@@ -162,7 +162,7 @@ class DialogLayout(FloatLayout):
 
     def _pull(self, *args, key, value):
         if key == 'last_result':
-            self.todo = value or []
+            self.todo = value if value and isinstance(value, list) else []
         elif key == 'last_result_idx':
             self.idx = value
 
