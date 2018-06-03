@@ -390,6 +390,22 @@ class AbstractCharacter(MutableMapping):
     def grid_2d_graph(self, m, n, periodic=False):
         return self.copy_from(nx.grid_2d_graph(m, n, periodic))
 
+    def grid_2d_8graph(self, m, n):
+        """Make a 2d graph that's connected 8 ways, enabling diagonal movement"""
+        place = self.place
+        new_place = self.new_place
+        for i in range(m):
+            for j in range(n):
+                new = new_place((i, j))
+                if i > 0:
+                    new.two_way(place[i - 1, j])
+                    if j > 0:
+                        new.two_way(place[i - 1, j - 1])
+                if j > 0:
+                    new.two_way(place[i, j - 1])
+                if (i - 1, j + 1) in place:
+                    new.two_way(place[i - 1, j + 1])
+
     def grid_graph(self, dim, periodic=False):
         return self.copy_from(nx.grid_graph(dim, periodic))
 
