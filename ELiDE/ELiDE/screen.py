@@ -245,8 +245,8 @@ class MainScreen(Screen):
         # horrible hack
         self.dummyplace.paths = self.app.spotcfg.imgpaths
 
-    def _update_from_time_travel(self, cmd, branch, turn, tick, received, **kwargs):
-        self._update_from_delta(cmd, branch, turn, tick, received[-1])
+    def _update_from_time_travel(self, command, branch, turn, tick, result, **kwargs):
+        self._update_from_delta(command, branch, turn, tick, result[-1])
 
     def _update_from_delta(self, cmd, branch, turn, tick, delta, **kwargs):
         self.app.branch = branch
@@ -275,10 +275,12 @@ class MainScreen(Screen):
             return
         self.next_turn()
 
-    def _update_from_next_turn(self, cmd, branch, turn, tick, ret):
-        self.dialoglayout.todo, deltas = ret
-        self.dialoglayout.idx = 0
-        self._update_from_delta(cmd, branch, turn, tick, deltas)
+    def _update_from_next_turn(self, command, branch, turn, tick, result):
+        todo, deltas = result
+        if isinstance(todo, list):
+            self.dialoglayout.todo = todo
+            self.dialoglayout.idx = 0
+        self._update_from_delta(command, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
 
     def next_turn(self, *args):

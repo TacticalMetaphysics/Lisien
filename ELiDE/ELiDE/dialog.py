@@ -150,7 +150,11 @@ class DialogLayout(FloatLayout):
         self.dialog = Dialog()
 
     def on_engine(self, *args):
-        self.todo = self.engine.universal.get('last_result', [])
+        todo = self.engine.universal.get('last_result')
+        if isinstance(todo, list):
+            self.todo = todo
+        else:
+            self.todo = []
         self.idx = self.engine.universal.get('last_result_idx', 0)
         self.engine.universal.connect(self._pull)
         if self.todo:
