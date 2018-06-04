@@ -590,7 +590,7 @@ class AllRuleBooks(MutableMapping, Signal):
         rb.extend(value)
 
     def __delitem__(self, key):
-        raise NotImplementedError
+        self.engine._del_rulebook(key)
 
 
 class AllRules(MutableMapping, Signal):
