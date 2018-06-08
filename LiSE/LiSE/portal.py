@@ -67,8 +67,19 @@ class Portal(Edge, RuleFollower):
             self.character.name, self.orig, self.dest, *self.engine.btt()
         )
 
-    def _set_rulebook_name(self, n):
-        self.engine._set_portal_rulebook(self.character.name, self.orig, self.dest, n)
+    def _set_rulebook_name(self, rulebook):
+        character = self.character
+        orig = self.orig
+        dest = self.dest
+        cache = self.engine._portals_rulebooks_cache
+        try:
+            if rulebook == cache.retrieve(character, orig, dest, *self.engine.btt()):
+                return
+        except KeyError:
+            pass
+        branch, turn, tick = self.engine.nbtt()
+        cache.store(character, orig, dest, branch, turn, tick, rulebook)
+        self.engine.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
 
     def _get_rule_mapping(self):
         return RuleMapping(self)

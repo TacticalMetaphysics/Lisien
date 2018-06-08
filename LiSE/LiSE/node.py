@@ -265,12 +265,18 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             self._get_rulebook_name()
         )
 
-    def _set_rulebook_name(self, v):
-        self.engine._set_node_rulebook(
-            self.character.name,
-            self.name,
-            v
-        )
+    def _set_rulebook_name(self, rulebook):
+        character = self.character.name
+        node = self.name
+        cache = self.engine._nodes_rulebooks_cache
+        try:
+            if rulebook == cache.retrieve(character, node, *self.engine.btt()):
+                return
+        except KeyError:
+            pass
+        branch, turn, tick = self.engine.nbtt()
+        cache.store(character, node, branch, turn, tick, rulebook)
+        self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
 
     @property
     def portal(self):

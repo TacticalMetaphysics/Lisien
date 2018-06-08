@@ -759,26 +759,6 @@ class Engine(AbstractEngine, gORM):
         self.rule.query.rulebook_del_all(rulebook)
         del self._rulebooks_cache._data[rulebook]
 
-    def _set_node_rulebook(self, character, node, rulebook):
-        try:
-            if rulebook == self._nodes_rulebooks_cache.retrieve(character, node, *self.engine.btt()):
-                return
-        except KeyError:
-            pass
-        branch, turn, tick = self.engine.nbtt()
-        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, rulebook)
-        self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
-
-    def _set_portal_rulebook(self, character, orig, dest, rulebook):
-        try:
-            if rulebook == self._portals_rulebooks_cache.retrieve(character, orig, dest, *self.engine.btt()):
-                return
-        except KeyError:
-            pass
-        branch, turn, tick = self.engine.nbtt()
-        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, rulebook)
-        self.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
-
     def _remember_avatarness(
             self, character, graph, node,
             is_avatar=True, branch=None, turn=None,
