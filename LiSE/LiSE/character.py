@@ -127,9 +127,12 @@ class AbstractCharacter(MutableMapping):
         if name not in self.node:
             self.add_thing(name, location, **kwargs)
             return self.thing[name]
-        n = 0
-        while name + str(n) in self.node:
-            n += 1
+        if isinstance(name, str):
+            n = 0
+            while name + str(n) in self.node:
+                n += 1
+        elif name in self.node:
+            raise KeyError("Already have a thing named {}".format(name))
         self.add_thing(name + str(n), location, **kwargs)
         return self.thing[name]
 
