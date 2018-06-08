@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  public@zacharyspector.com
 """Directed edges, as used by LiSE."""
+from collections import Mapping, ValuesView
 
 from allegedb.graph import Edge
 from allegedb.cache import HistoryError
@@ -18,6 +19,50 @@ class RuleMapping(BaseRuleMapping):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
         self.portal = portal
+
+
+class PortalContentValues(ValuesView):
+    def __iter__(self):
+        portal = self._mapping.portal
+        for thing in portal.character.thing.values():
+            if thing.location == portal.origin and thing.next_location == portal.destination:
+                yield thing
+
+    def __contains__(self, item):
+        portal = self._mapping.portal
+        return hasattr(item, 'location') and hasattr(item, 'next_location') and \
+            item.location == portal.origin and item.next_location == portal.destination
+
+
+class PortalContent(Mapping):
+    def __init__(self, portal):
+        self.portal = portal
+
+    def __iter__(self):
+        for name, thing in self.portal.character.thing.items():
+            if thing.location == self.portal.origin and thing.next_location == self.portal.destination:
+                yield name
+
+    def __len__(self):
+        i = 0
+        for name in iter(self):
+            i += 1
+        return i
+
+    def __contains__(self, item):
+        try:
+            thing = self.portal.character.thing[item]
+            return thing.location == self.portal.origin and thing.next_location == self.portal.destination
+        except KeyError:
+            return False
+
+    def __getitem__(self, item):
+        if item not in self:
+            raise KeyError
+        return self.portal.character.thing[item]
+
+    def values(self):
+        return PortalContentValues(self)
 
 
 class Portal(Edge, RuleFollower):
@@ -198,14 +243,12 @@ class Portal(Edge, RuleFollower):
             stat=stat
         )
 
-    def contents(self):
-        """Iterate over Thing instances that are presently travelling through
-        me.
+    @property
+    def content(self):
+        return PortalContent(self)
 
-        """
-        for thing in self.character.thing.values():
-            if thing['locations'] == (self.orig, self.dest):
-                yield thing
+    def contents(self):
+        return self.content.values()
 
     def new_thing(self, name, statdict={}, **kwargs):
         """Create and return a thing located in my origin and travelling to my
