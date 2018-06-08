@@ -1922,7 +1922,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         self.add_node(name, **kwargs)
         if isinstance(location, Node):
             location = location.name
-        self.place2thing(name, location)
+        self.place2thing(name, location, kwargs.get('next_location'))
 
     def add_things_from(self, seq, **attrs):
         for tup in seq:
@@ -1934,14 +1934,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 kwargs['next_location'] = next_loc
             self.add_thing(name, location, **kwargs)
 
-    def place2thing(self, name, location):
+    def place2thing(self, name, location, next_location=None):
         """Turn a Place into a Thing with the given.
         
         It will keep all its attached Portals.
 
         """
         self.engine._set_thing_loc_and_next(
-            self.name, name, location, None
+            self.name, name, location, next_location
         )
         if (self.name, name) in self.engine._node_objs:
             del self.engine._node_objs[self.name, name]
