@@ -39,15 +39,20 @@ class PortalContent(Mapping):
         self.portal = portal
 
     def __iter__(self):
-        for name, thing in self.portal.character.thing.items():
-            if thing.location == self.portal.origin and thing.next_location == self.portal.destination:
-                yield name
+        try:
+            yield from self.portal.engine._portal_contents_cache.retrieve(
+                self.portal.orig, self.portal.dest, *self.portal.engine.btt()
+            )
+        except KeyError:
+            return
 
     def __len__(self):
-        i = 0
-        for name in iter(self):
-            i += 1
-        return i
+        try:
+            return len(self.portal.engine._portal_contents_cache.retrieve(
+                self.portal.orig, self.portal.dest, *self.portal.engine.btt())
+            )
+        except KeyError:
+            return 0
 
     def __contains__(self, item):
         try:

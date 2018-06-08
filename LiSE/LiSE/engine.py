@@ -822,6 +822,8 @@ class Engine(AbstractEngine, gORM):
         super()._init_caches()
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
+        self._node_contents_cache = InitializedCache(self)
+        self._portal_contents_cache = InitializedCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = InitializedEntitylessCache(self)
@@ -1333,6 +1335,23 @@ class Engine(AbstractEngine, gORM):
     ):
         branch, turn, tick = self.nbtt()
         self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
+        try:
+            node_contents = self._node_contents_cache.retrieve(
+                character, loc, branch, turn, tick
+            ) | frozenset([node])
+        except KeyError:
+            node_contents = frozenset([node])
+        self._node_contents_cache.store(character, loc, branch, turn, tick, node_contents)
+        if nextloc is not None:
+            try:
+                portal_contents = self._portal_contents_cache.retrieve(
+                    character, loc, nextloc, branch, turn, tick
+                ) | frozenset([node])
+            except KeyError:
+                portal_contents = frozenset([node])
+            self._portal_contents_cache.store(
+                character, loc, nextloc, branch, turn, tick, portal_contents
+            )
         self.query.thing_loc_and_next_set(
             character,
             node,

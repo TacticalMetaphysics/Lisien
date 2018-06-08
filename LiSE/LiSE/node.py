@@ -104,9 +104,14 @@ class UserMapping(Mapping):
 class NodeContentValues(ValuesView):
     def __iter__(self):
         node = self._mapping.node
-        for thing in node.character.thing.values():
-            if thing.location == node:
-                yield thing
+        nodem = node.character.node
+        try:
+            for name in node.engine._node_contents_cache.retrieve(
+                    node.character.name, node.name, *node.engine.btt()
+            ):
+                yield nodem[name]
+        except KeyError:
+            return
 
     def __contains__(self, item):
         return item.location == self._mapping.node
@@ -119,16 +124,20 @@ class NodeContent(Mapping):
         self.node = node
 
     def __iter__(self):
-        # TODO: cache this
-        for name, thing in self.node.character.thing.items():
-            if thing.location == self.node:
-                yield name
+        try:
+            yield from self.node.engine._node_contents_cache.retrieve(
+                self.node.character.name, self.node.name, *self.node.engine.btt()
+            )
+        except KeyError:
+            return
 
     def __len__(self):
-        n = 0
-        for thing in self:
-            n += 1
-        return n
+        try:
+            return len(self.node.engine._node_contents_cache.retrieve(
+                self.node.character.name, self.node.name, *self.node.engine.btt()
+            ))
+        except KeyError:
+            return 0
 
     def __contains__(self, item):
         try:
