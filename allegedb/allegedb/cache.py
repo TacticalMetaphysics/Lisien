@@ -243,7 +243,8 @@ class Cache(object):
                     if ex.deleted:
                         return
 
-    def _get_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
+    @staticmethod
+    def _get_keycachelike(keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)
         if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
             return keycache[keycache_key][turn][tick]
