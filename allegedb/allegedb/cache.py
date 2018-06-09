@@ -178,7 +178,7 @@ class Cache(object):
         but still need to iterate through history to find the value.
 
         """
-        self.shallow = PickyDefaultDict(TurnDict)
+        self.shallow = PickyDefaultDict(SettingsTurnDict)
         """Less structured alternative to ``branches`` ."""
         self.shallower = PickyDefaultDict(WindowDict)
         """Even less structured alternative to ``shallow``."""
@@ -426,14 +426,18 @@ class Cache(object):
             assert turn in keys
             assert turn in shallow
             branchesturn = branches[turn]
-            assert branchesturn is keys[turn] is shallow[turn]
+            assert branchesturn is keys[turn]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
+            shallowturn = shallow[turn]
+            shallowturn.truncate(tick)
+            shallowturn[tick] = value
         else:
             if new is None:
                 new = FuturistWindowDict()
                 new[tick] = value
-            branches[turn] = keys[turn] = shallow[turn] = new
+            branches[turn] = keys[turn] = new
+            shallow[turn] = {tick: value}
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
@@ -501,6 +505,8 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
+                    self.shallow[entity+(key, branch)][turn][tick] = ret
+                    self.shallower[entity+(key, branch, turn)][tick] = ret
                     self.shallowest[args] = ret
                 return ret
         else:
