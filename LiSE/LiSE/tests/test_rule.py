@@ -65,6 +65,25 @@ def something_dot_rule_test(something, eng):
     somerule.triggers.append('otherthing')
     somerule.prereqs.append('anotherthing')
     somerule.actions.append('somerule')
+    assert len(somerule.triggers) == 2
+    assert len(somerule.prereqs) == 2
+    assert len(somerule.actions) == 2
+    assert somerule.triggers[1] == eng.trigger.otherthing
+    assert somerule.prereqs[1] == eng.prereq.anotherthing
+    assert somerule.actions[1] == eng.action.somerule
+
+    eng.turn = 1
+    somerule.triggers.remove('otherthing')
+    del somerule.prereqs[1]
+    somerule.actions[somerule.actions.index('somerule')] = 'fifththing'
+    assert len(somerule.triggers) == 1
+    assert len(somerule.prereqs) == 1
+    assert somerule.actions[1] == eng.action.fifththing
+
+    eng.turn = 0
+
+    assert len(somerule.triggers) == 2
+    assert len(somerule.prereqs) == 2
     assert somerule.triggers[1] == eng.trigger.otherthing
     assert somerule.prereqs[1] == eng.prereq.anotherthing
     assert somerule.actions[1] == eng.action.somerule

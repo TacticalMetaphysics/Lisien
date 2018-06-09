@@ -69,7 +69,7 @@ class RuleFuncList(MutableSequence, Signal):
         return v
 
     def _get(self):
-        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
+        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt()).copy()
 
     def _set(self, v):
         branch, turn, tick = self.rule.engine.nbtt()
@@ -110,6 +110,11 @@ class RuleFuncList(MutableSequence, Signal):
         l.append(self._nominate(v))
         self._set(l)
         self.send(self)
+
+    def index(self, x, start=0, end=None):
+        if not callable(x):
+            x = getattr(self._funcstore, x)
+        return super().index(x, start, end)
 
 
 class TriggerList(RuleFuncList):
