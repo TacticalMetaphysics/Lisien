@@ -501,6 +501,7 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
+                    self.shallowest[args] = ret
                 return ret
         else:
             raise KeyError
