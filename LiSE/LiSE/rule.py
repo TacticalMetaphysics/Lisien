@@ -69,7 +69,7 @@ class RuleFuncList(MutableSequence, Signal):
         return v
 
     def _get(self):
-        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt()).copy()
+        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
 
     def _set(self, v):
         branch, turn, tick = self.rule.engine.nbtt()
@@ -88,27 +88,25 @@ class RuleFuncList(MutableSequence, Signal):
 
     def __setitem__(self, i, v):
         v = self._nominate(v)
-        l = self._get()
+        l = list(self._get())
         l[i] = v
-        self._set(l)
+        self._set(tuple(l))
         self.send(self)
 
     def __delitem__(self, i):
-        l = self._get()
+        l = list(self._get())
         del l[i]
-        self._set(l)
+        self._set(tuple(l))
         self.send(self)
 
     def insert(self, i, v):
-        l = self._get()
+        l = list(self._get())
         l.insert(i, self._nominate(v))
-        self._set(l)
+        self._set(tuple(l))
         self.send(self)
 
     def append(self, v):
-        l = self._get()
-        l.append(self._nominate(v))
-        self._set(l)
+        self._set(self._get() + (self._nominate(v),))
         self.send(self)
 
     def index(self, x, start=0, end=None):
@@ -182,7 +180,7 @@ class RuleFuncListDescriptor(object):
         if not hasattr(obj, self.flid):
             setattr(obj, self.flid, self.cls(obj))
         flist = getattr(obj, self.flid)
-        namey_value = [flist._nominate(v) for v in value]
+        namey_value = tuple(flist._nominate(v) for v in value)
         flist._set(namey_value)
         branch, turn, tick = obj.engine.nbtt()
         flist._cache.store(obj.name, branch, turn, tick, namey_value)
@@ -224,9 +222,9 @@ class Rule(object):
         if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             tick += 1
             self.engine.tick = tick
-            triggers = list(self._fun_names_iter('trigger', triggers or []))
-            prereqs = list(self._fun_names_iter('prereq', prereqs or []))
-            actions = list(self._fun_names_iter('action', actions or []))
+            triggers = tuple(self._fun_names_iter('trigger', triggers or []))
+            prereqs = tuple(self._fun_names_iter('prereq', prereqs or []))
+            actions = tuple(self._fun_names_iter('action', actions or []))
             self.engine.query.set_rule(
                 name, branch, turn, tick, triggers, prereqs, actions
             )
