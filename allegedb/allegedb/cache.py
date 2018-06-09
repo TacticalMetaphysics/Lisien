@@ -260,22 +260,21 @@ class Cache(object):
                     if kc.rev_gettable(turn):
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
-                        keys = old_turn_kc[old_turn_kc.end]
-                        new_turn_kc[0] = keys.copy()
+                        new_turn_kc[0] = old_turn_kc[old_turn_kc.end]
                         kc[turn] = new_turn_kc
                     else:
-                        kc[turn][tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+                        kc[turn][tick] = frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))
                 kcturn = kc[turn]
                 if tick not in kcturn:
                     if kcturn.rev_gettable(tick):
-                        kcturn[tick] = kcturn[tick].copy()
+                        kcturn[tick] = kcturn[tick]
                     else:
-                        kcturn[tick] = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+                        kcturn[tick] = frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))
                 return kcturn[tick]
             except HistoryError:
                 pass
         kc = keycache[keycache_key] = TurnDict()
-        kc[turn][tick] = ret = set(slow_iter_keys(keys[parentity], branch, turn, tick))
+        kc[turn][tick] = ret = frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
@@ -346,9 +345,10 @@ class Cache(object):
         parent = args[:-6]
         kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
         if value is None:
-            kc.discard(key)
+            kc = kc.difference({key})
         else:
-            kc.add(key)
+            kc = kc.union({key})
+        self.keycache[parent+(entity, branch)][turn][tick] = kc
         if validate:
             if parent:
                 correct = set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick))
@@ -638,9 +638,10 @@ class EdgesCache(Cache):
     def _update_destcache(self, graph, orig, branch, turn, tick, dest, value, *, forward):
         kc = self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
         if value is None:
-            kc.discard(dest)
+            kc = kc.difference({dest})
         else:
-            kc.add(dest)
+            kc = kc.union({dest})
+        self.destcache[graph, orig, branch][turn][tick] = kc
         return kc
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
@@ -652,9 +653,10 @@ class EdgesCache(Cache):
     def _update_origcache(self, graph, dest, branch, turn, tick, orig, value, *, forward):
         kc = self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
         if value is None:
-            kc.discard(orig)
+            kc = kc.difference({orig})
         else:
-            kc.add(orig)
+            kc = kc.union({orig})
+        self.origcache[graph, dest, branch][turn][tick] = kc
         return kc
 
     def _update_keycache(self, *args, validate, forward):
