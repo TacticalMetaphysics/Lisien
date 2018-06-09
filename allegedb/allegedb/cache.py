@@ -178,7 +178,7 @@ class Cache(object):
         but still need to iterate through history to find the value.
 
         """
-        self.shallow = PickyDefaultDict(TurnDict)
+        self.shallow = PickyDefaultDict(SettingsTurnDict)
         """Less structured alternative to ``branches`` ."""
         self.shallower = PickyDefaultDict(WindowDict)
         """Even less structured alternative to ``shallow``."""
@@ -243,17 +243,21 @@ class Cache(object):
                     if ex.deleted:
                         return
 
-    def _get_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
+    @staticmethod
+    def _get_keycachelike(keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)
         if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
             return keycache[keycache_key][turn][tick]
         if forward and keycache_key in keycache:
             # Take valid values from the past of a keycache and copy them forward, into the present.
+            # Assumes that time is only moving forward, never backward, never skipping any turns or ticks,
+            # and any changes to the world state are happening through allegedb proper, meaning they'll all get cached.
+            # In LiSE this means every change to the world state should happen inside of a call to
+            # ``Engine.next_turn`` in a rule.
             kc = keycache[keycache_key]
             try:
                 if turn not in kc:
-                    if tick == 0 and kc.rev_before(turn) == turn - 1:
-                        # We had valid keys a turn ago. Reuse those.
+                    if kc.rev_gettable(turn):
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
                         keys = old_turn_kc[old_turn_kc.end]
@@ -426,14 +430,18 @@ class Cache(object):
             assert turn in keys
             assert turn in shallow
             branchesturn = branches[turn]
-            assert branchesturn is keys[turn] is shallow[turn]
+            assert branchesturn is keys[turn]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
+            shallowturn = shallow[turn]
+            shallowturn.truncate(tick)
+            shallowturn[tick] = value
         else:
             if new is None:
                 new = FuturistWindowDict()
                 new[tick] = value
-            branches[turn] = keys[turn] = shallow[turn] = new
+            branches[turn] = keys[turn] = new
+            shallow[turn] = {tick: value}
         self.shallower[parent+(entity, key, branch, turn)][tick] = value
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
@@ -501,6 +509,9 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
+                    self.shallow[entity+(key, branch)][turn][tick] = ret
+                    self.shallower[entity+(key, branch, turn)][tick] = ret
+                    self.shallowest[args] = ret
                 return ret
         else:
             raise KeyError

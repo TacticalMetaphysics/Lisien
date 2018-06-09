@@ -19,6 +19,10 @@ from .util import getatt, reify, sort_set
 from . import exc
 
 
+class InnerStopIteration(StopIteration):
+    pass
+
+
 class NextTurn(Signal):
     """Make time move forward in the simulation.
 
@@ -755,26 +759,6 @@ class Engine(AbstractEngine, gORM):
         self.rule.query.rulebook_del_all(rulebook)
         del self._rulebooks_cache._data[rulebook]
 
-    def _set_node_rulebook(self, character, node, rulebook):
-        try:
-            if rulebook == self._nodes_rulebooks_cache.retrieve(character, node, *self.engine.btt()):
-                return
-        except KeyError:
-            pass
-        branch, turn, tick = self.engine.nbtt()
-        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, rulebook)
-        self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
-
-    def _set_portal_rulebook(self, character, orig, dest, rulebook):
-        try:
-            if rulebook == self._portals_rulebooks_cache.retrieve(character, orig, dest, *self.engine.btt()):
-                return
-        except KeyError:
-            pass
-        branch, turn, tick = self.engine.nbtt()
-        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, rulebook)
-        self.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
-
     def _remember_avatarness(
             self, character, graph, node,
             is_avatar=True, branch=None, turn=None,
@@ -838,6 +822,8 @@ class Engine(AbstractEngine, gORM):
         super()._init_caches()
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
+        self._node_contents_cache = InitializedCache(self)
+        self._portal_contents_cache = InitializedCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = InitializedEntitylessCache(self)
@@ -1292,12 +1278,18 @@ class Engine(AbstractEngine, gORM):
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
         for rulebook in sort_set(todo.keys()):
             for rule in todo[rulebook]:
-                yield do_rule(rule)
+                try:
+                    yield do_rule(rule)
+                except StopIteration:
+                    raise InnerStopIteration
 
     def advance(self):
         """Follow the next rule if available, or advance to the next turn."""
         try:
             return next(self._rules_iter)
+        except InnerStopIteration:
+            self._rules_iter = self._follow_rules()
+            return StopIteration()
         except StopIteration:
             self._rules_iter = self._follow_rules()
             return final_rule
@@ -1343,6 +1335,23 @@ class Engine(AbstractEngine, gORM):
     ):
         branch, turn, tick = self.nbtt()
         self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
+        try:
+            node_contents = self._node_contents_cache.retrieve(
+                character, loc, branch, turn, tick
+            ) | frozenset([node])
+        except KeyError:
+            node_contents = frozenset([node])
+        self._node_contents_cache.store(character, loc, branch, turn, tick, node_contents)
+        if nextloc is not None:
+            try:
+                portal_contents = self._portal_contents_cache.retrieve(
+                    character, loc, nextloc, branch, turn, tick
+                ) | frozenset([node])
+            except KeyError:
+                portal_contents = frozenset([node])
+            self._portal_contents_cache.store(
+                character, loc, nextloc, branch, turn, tick, portal_contents
+            )
         self.query.thing_loc_and_next_set(
             character,
             node,

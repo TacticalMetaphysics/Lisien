@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  public@zacharyspector.com
 """Directed edges, as used by LiSE."""
+from collections import Mapping, ValuesView
 
 from allegedb.graph import Edge
 from allegedb.cache import HistoryError
@@ -18,6 +19,55 @@ class RuleMapping(BaseRuleMapping):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
         self.portal = portal
+
+
+class PortalContentValues(ValuesView):
+    def __iter__(self):
+        portal = self._mapping.portal
+        for thing in portal.character.thing.values():
+            if thing.location == portal.origin and thing.next_location == portal.destination:
+                yield thing
+
+    def __contains__(self, item):
+        portal = self._mapping.portal
+        return hasattr(item, 'location') and hasattr(item, 'next_location') and \
+            item.location == portal.origin and item.next_location == portal.destination
+
+
+class PortalContent(Mapping):
+    def __init__(self, portal):
+        self.portal = portal
+
+    def __iter__(self):
+        try:
+            yield from self.portal.engine._portal_contents_cache.retrieve(
+                self.portal.orig, self.portal.dest, *self.portal.engine.btt()
+            )
+        except KeyError:
+            return
+
+    def __len__(self):
+        try:
+            return len(self.portal.engine._portal_contents_cache.retrieve(
+                self.portal.orig, self.portal.dest, *self.portal.engine.btt())
+            )
+        except KeyError:
+            return 0
+
+    def __contains__(self, item):
+        try:
+            thing = self.portal.character.thing[item]
+            return thing.location == self.portal.origin and thing.next_location == self.portal.destination
+        except KeyError:
+            return False
+
+    def __getitem__(self, item):
+        if item not in self:
+            raise KeyError
+        return self.portal.character.thing[item]
+
+    def values(self):
+        return PortalContentValues(self)
 
 
 class Portal(Edge, RuleFollower):
@@ -67,8 +117,19 @@ class Portal(Edge, RuleFollower):
             self.character.name, self.orig, self.dest, *self.engine.btt()
         )
 
-    def _set_rulebook_name(self, n):
-        self.engine._set_portal_rulebook(self.character.name, self.orig, self.dest, n)
+    def _set_rulebook_name(self, rulebook):
+        character = self.character
+        orig = self.orig
+        dest = self.dest
+        cache = self.engine._portals_rulebooks_cache
+        try:
+            if rulebook == cache.retrieve(character, orig, dest, *self.engine.btt()):
+                return
+        except KeyError:
+            pass
+        branch, turn, tick = self.engine.nbtt()
+        cache.store(character, orig, dest, branch, turn, tick, rulebook)
+        self.engine.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -187,14 +248,12 @@ class Portal(Edge, RuleFollower):
             stat=stat
         )
 
-    def contents(self):
-        """Iterate over Thing instances that are presently travelling through
-        me.
+    @property
+    def content(self):
+        return PortalContent(self)
 
-        """
-        for thing in self.character.thing.values():
-            if thing['locations'] == (self.orig, self.dest):
-                yield thing
+    def contents(self):
+        return self.content.values()
 
     def new_thing(self, name, statdict={}, **kwargs):
         """Create and return a thing located in my origin and travelling to my
