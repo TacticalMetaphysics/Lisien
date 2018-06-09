@@ -131,10 +131,9 @@ class AbstractCharacter(MutableMapping):
             n = 0
             while name + str(n) in self.node:
                 n += 1
-        elif name in self.node:
-            raise KeyError("Already have a thing named {}".format(name))
-        self.add_thing(name + str(n), location, **kwargs)
-        return self.thing[name]
+            self.add_thing(name + str(n), location, **kwargs)
+            return self.thing[name]
+        raise KeyError("Already have a thing named {}".format(name))
 
     @abstractmethod
     def thing2place(self, name): pass
