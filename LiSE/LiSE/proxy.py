@@ -1360,7 +1360,7 @@ class CharacterProxy(AbstractCharacter):
                 self.node.send(self.node, key=node, value=None)
         self.portal._apply_delta(delta.pop('edges', {}))
         for (node, nodedelta) in delta.pop('node_val', {}).items():
-            if node not in self.engine._node_stat_cache[self.name]:
+            if node not in self.node or node not in self.engine._node_stat_cache[self.name]:
                 self.engine._node_stat_cache[self.name][node] = nodedelta
             else:
                 self.node[node]._apply_delta(nodedelta)
