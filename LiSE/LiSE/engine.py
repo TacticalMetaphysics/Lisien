@@ -804,6 +804,7 @@ class Engine(AbstractEngine, gORM):
             UniversalMapping
         )
         from .cache import (
+            Cache,
             InitializedCache,
             EntitylessCache,
             InitializedEntitylessCache,
@@ -822,8 +823,8 @@ class Engine(AbstractEngine, gORM):
         super()._init_caches()
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
-        self._node_contents_cache = InitializedCache(self)
-        self._portal_contents_cache = InitializedCache(self)
+        self._node_contents_cache = Cache(self)
+        self._portal_contents_cache = Cache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = InitializedEntitylessCache(self)
