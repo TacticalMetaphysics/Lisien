@@ -1709,6 +1709,8 @@ class GlobalVarProxy(MutableMapping, Signal):
     def _update_cache(self, data):
         for k, v in data.items():
             if v is None:
+                if k not in self._cache:
+                    continue
                 del self._cache[k]
                 self.send(self, key=k, value=None)
             else:
