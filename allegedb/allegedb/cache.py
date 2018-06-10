@@ -189,11 +189,14 @@ class Cache(object):
         self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
 
-    def load(self, data, validate=False):
+    def load(self, data, validate=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
 
         With ``validate=True``, raise ValueError if this results in an
         incoherent cache.
+
+        If a callable ``cb`` is provided, it will be called with each row.
+        It will also be passed my ``validate`` argument.
 
         """
         dd3 = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -221,6 +224,8 @@ class Cache(object):
                     for row in dd3[branch][turn][tick]:
                         store(*row)
                         update_keycache(*row, validate=validate, forward=True)
+                        if callable(cb):
+                            cb(row, validate=validate)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
