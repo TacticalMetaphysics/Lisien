@@ -365,9 +365,9 @@ class ArrowWidget(Widget):
         )
         mycanvas.remove(wid.canvas)
         pawncanvas = (
-            self.board.pawnlayout.canvas.before if canvas == 'before' else
-            self.board.pawnlayout.canvas.after if canvas == 'after' else
-            self.board.pawnlayout.canvas
+            self.board.spotlayout.canvas.before if canvas == 'before' else
+            self.board.spotlayout.canvas.after if canvas == 'after' else
+            self.board.spotlayout.canvas
         )
         for child in self.children:
             if hasattr(child, 'group') and child.group in pawncanvas.children:
