@@ -459,3 +459,12 @@ class ThingsCache(Cache):
         except KeyError:
             pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
+
+    def load(self, data, validate=False):
+        super().load(data, validate=validate, cb=self._update_contents)
+
+    def _update_contents(self, row, validate):
+        (character, thing, branch, turn, tick, (location, next_location)) = row
+        self.db._set_contents(
+            character, thing, location, next_location, branch, turn, tick, forward=True, validate=validate
+        )
