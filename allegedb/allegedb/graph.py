@@ -1051,6 +1051,11 @@ class AllegedGraph(object):
         if name not in self.db._graph_objs:
             self.db._graph_objs[name] = self
         if data is not None:
+            data = data.copy()
+            if isinstance(data, dict) and 'name' in data:
+                del data['name']
+            if hasattr(data, 'graph') and 'name' in data.graph:
+                del data.graph['name']
             convert_to_networkx_graph(data, create_using=self)
         self.graph.update(attr)
 
