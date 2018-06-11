@@ -575,13 +575,13 @@ class QueryEngine(object):
     def commit(self):
         """Commit the transaction"""
         self.flush()
-        if hasattr(self, 'transaction'):
+        if hasattr(self, 'transaction') and self.transaction.is_active:
             self.transaction.commit()
-        else:
+        elif hasattr(self, 'connection'):
             self.connection.commit()
 
     def close(self):
         """Commit the transaction, then close the connection"""
         self.commit()
-        if hasattr(self, 'connection'):
+        if hasattr(self, 'connection') and not self.connection.closed:
             self.connection.close()
