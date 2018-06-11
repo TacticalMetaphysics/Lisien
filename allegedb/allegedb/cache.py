@@ -199,14 +199,10 @@ class Cache(object):
         It will also be passed my ``validate`` argument.
 
         """
-        dd3 = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-        branch_end = defaultdict(lambda: 0)
-        turn_end = defaultdict(lambda: 0)
+        dd2 = defaultdict(lambda: defaultdict(list))
         for row in data:
             entity, key, branch, turn, tick, value = row[-6:]
-            branch_end[branch] = max((turn, branch_end[branch]))
-            turn_end[branch, turn] = max((tick, turn_end[branch, turn]))
-            dd3[branch][turn][tick].append(row)
+            dd2[branch][turn, tick].append(row)
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
         childbranch = self.db._childbranch
@@ -217,15 +213,14 @@ class Cache(object):
             self._store(*args, planning=False)
         while branch2do:
             branch = branch2do.popleft()
-            turns = branch_end[branch] + 1
-            for turn in range(turns):
-                ticks = turn_end[branch, turn] + 1
-                for tick in range(ticks):
-                    for row in dd3[branch][turn][tick]:
-                        store(*row)
-                        update_keycache(*row, validate=validate, forward=True)
-                        if callable(cb):
-                            cb(row, validate=validate)
+            dd2b = dd2[branch]
+            for turn, tick in sorted(dd2b.keys()):
+                rows = dd2b[turn, tick]
+                for row in rows:
+                    store(*row)
+                    update_keycache(*row, validate=validate, forward=True)
+                    if cb:
+                        cb(row, validate=validate)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
