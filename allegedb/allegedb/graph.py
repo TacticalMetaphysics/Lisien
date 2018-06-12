@@ -1328,3 +1328,4 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
             datadict.update(attr_dict)
             keydict = {key: datadict}
             self.succ[u][v] = keydict
+        return key
