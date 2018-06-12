@@ -583,5 +583,5 @@ class QueryEngine(object):
     def close(self):
         """Commit the transaction, then close the connection"""
         self.commit()
-        if hasattr(self, 'connection') and not self.connection.closed:
+        if hasattr(self, 'connection'):
             self.connection.close()
