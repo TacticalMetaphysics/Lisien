@@ -32,6 +32,10 @@ def db():
                 nx.MultiGraph: orm.new_multigraph,
                 nx.MultiDiGraph: orm.new_multidigraph
             }[type(graph)](graph.name, graph)
+            assert set(graph.node.keys()) == set(orm.graph[graph.name].node.keys()), \
+                "{}'s nodes changed during instantiation".format(graph.name)
+            assert set(graph.edges) == set(orm.graph[graph.name].edges), \
+                "{}'s edges changed during instatiation".format(graph.name)
     with ORM('sqlite:///' + name) as orm:
         yield orm
     os.remove(name)
