@@ -943,7 +943,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
         """If the node exists, return its Successors"""
         if orig not in self.graph.node:
             raise KeyError("No such node")
-        return self.Successors(self, orig)
+        return self._getsucc(orig)
 
     def _getsucc(self, orig):
         if orig not in self._cache:
