@@ -469,6 +469,8 @@ class ORM(object):
         self._init_load(validate=validate)
 
     def _init_load(self, validate=False):
+        if not hasattr(self, 'graph'):
+            self.graph = self._graph_objs
         noderows = [
             (graph, node, branch, turn, tick, ex if ex else None)
             for (graph, node, branch, turn, tick, ex)
@@ -481,8 +483,6 @@ class ORM(object):
             in self.query.edges_dump()
         ]
         self._edges_cache.load(edgerows, validate=validate)
-        if not hasattr(self, 'graph'):
-            self.graph = self._graph_objs
         for graph, node, branch, turn, tick, ex in noderows:
             self._node_objs[(graph, node)] = self._make_node(self.graph[graph], node)
         for graph, orig, dest, idx, branch, turn, tick, ex in edgerows:
