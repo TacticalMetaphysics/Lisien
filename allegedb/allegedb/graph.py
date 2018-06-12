@@ -975,6 +975,8 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
             self._multedge = {}
 
         def _order_nodes(self, dest):
+            if isinstance(self.graph, MultiDiGraph):
+                return (self.orig, dest)
             if dest < self.orig:
                 return(dest, self.orig)
             else:
