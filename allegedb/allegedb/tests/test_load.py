@@ -35,7 +35,7 @@ def db():
             assert set(graph.node.keys()) == set(orm.graph[graph.name].node.keys()), \
                 "{}'s nodes changed during instantiation".format(graph.name)
             assert set(graph.edges) == set(orm.graph[graph.name].edges), \
-                "{}'s edges changed during instatiation".format(graph.name)
+                "{}'s edges changed during instantiation".format(graph.name)
     with ORM('sqlite:///' + name) as orm:
         yield orm
     os.remove(name)
