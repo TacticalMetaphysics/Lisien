@@ -178,7 +178,9 @@ class DictStorageTest(AllegedTest):
                 e = e[0]
             for entity in g.graph, n, e:
                 entity[0] = {'spam': 'eggs', 'ham': {'baked beans': 'delicious'}, 'qux': ['quux', 'quuux'],
-                             'clothes': {'hats', 'shirts', 'pants'}}
+                             'clothes': {'hats', 'shirts', 'pants'},
+                             'dicts': {'foo': {'bar': 'bas'}, 'qux': {'quux': 'quuux'}}
+                             }
             self.engine.turn = i + 1
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0]['spam'], 'eggs')
@@ -193,12 +195,17 @@ class DictStorageTest(AllegedTest):
                 self.assertEqual(entity[0]['clothes'], {'hats', 'shirts', 'pants'})
                 entity[0]['clothes'].remove('hats')
                 self.assertEqual(entity[0]['clothes'], {'shirts', 'pants'})
+                self.assertEqual(entity[0]['dicts'], {'foo': {'bar': 'bas'}, 'qux': {'quux': 'quuux'}})
+                del entity[0]['dicts']['foo']
+                entity[0]['dicts']['qux']['foo'] = {'bar': 'bas'}
+                self.assertEqual(entity[0]['dicts'], {'qux': {'foo': {'bar': 'bas'}, 'quux': 'quuux'}})
             self.engine.turn = i
             for entity in g.graph, n, e:
                 self.assertEqual(entity[0]['spam'], 'eggs')
                 self.assertEqual(entity[0]['ham'], {'baked beans': 'delicious'})
                 self.assertEqual(entity[0]['qux'], ['quux', 'quuux'])
                 self.assertEqual(entity[0]['clothes'], {'hats', 'shirts', 'pants'})
+                self.assertEqual(entity[0]['dicts'], {'foo': {'bar': 'bas'}, 'qux': {'quux': 'quuux'}})
             self.engine.del_graph('testgraph')
 
 

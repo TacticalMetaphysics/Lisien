@@ -105,24 +105,10 @@ class MutableMappingUnwrapper(MutableMapping):
 
 class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
     def __eq__(self, other):
-        if not isinstance(other, Mapping):
-            return NotImplemented
-        if self.keys() != other.keys():
-            return False
-        for k in self.keys():
-            me = self[k]
-            you = other[k]
-            if hasattr(me, 'unwrap'):
-                me = me.unwrap()
-            if hasattr(you, 'unwrap'):
-                you = you.unwrap()
-            if me != you:
-                return False
-        else:
-            return True
+        return MutableMappingUnwrapper.__eq__(self, other)
 
     def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
+        return MutableMappingUnwrapper.unwrap(self)
 
 
 class SubDictWrapper(MutableMappingWrapper, dict):
@@ -141,7 +127,7 @@ class SubDictWrapper(MutableMappingWrapper, dict):
         self._set(new)
 
 
-class MutableSequenceWrapper(MutableSequence):
+class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
     def __eq__(self, other):
         if not isinstance(other, Sequence):
             return NotImplemented
