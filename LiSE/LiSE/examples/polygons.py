@@ -50,8 +50,21 @@ def install(eng):
 
 
     physical = eng.new_character('physical')
-    square = eng.new_character('square', min_neighborhood_sameness=.1, max_neighborhood_sameness=.9)
-    triangle = eng.new_character('triangle', min_neighborhood_sameness=.2, max_neighborhood_sameness=.8)
+    square = eng.new_character(
+        'square', min_neighborhood_sameness=.1, max_neighborhood_sameness=.9,
+        _control={'min_neighborhood_sameness': 'slider', 'max_neighborhood_sameness': 'slider'},
+        _config={
+            'min_neighborhood_sameness': {'min': 0.0, 'max': 1.0},
+            'max_neighborhood_sameness': {'min': 0.0, 'max': 1.0}
+        }
+    )
+    triangle = eng.new_character(
+        'triangle', min_neighborhood_sameness=.2, max_neighborhood_sameness=.8,
+        _config={
+            'min_neighborhood_sameness': {'min': 0.0, 'max': 1.0},
+            'max_neighborhood_sameness': {'min': 0.0, 'max': 1.0}
+        }
+    )
     square.avatar.rulebook = triangle.avatar.rulebook = 'parable'
 
 
