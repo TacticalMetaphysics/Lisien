@@ -103,11 +103,29 @@ class MutableMappingUnwrapper(MutableMapping):
         }
 
 
-class MutableMappingWrapper(MutableWrapper, MutableMappingUnwrapper):
-    pass
+class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        if self.keys() != other.keys():
+            return False
+        for k in self.keys():
+            me = self[k]
+            you = other[k]
+            if hasattr(me, 'unwrap'):
+                me = me.unwrap()
+            if hasattr(you, 'unwrap'):
+                you = you.unwrap()
+            if me != you:
+                return False
+        else:
+            return True
+
+    def unwrap(self):
+        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
 
 
-class SubDictWrapper(MutableWrapperDictList, MutableMappingWrapper, dict):
+class SubDictWrapper(MutableMappingWrapper, dict):
     __slots__ = ('_getter', '_set')
 
     def __init__(self, getter, setter):
@@ -144,7 +162,7 @@ class MutableSequenceWrapper(MutableSequence):
         ]
 
 
-class SubListWrapper(MutableWrapperDictList, MutableSequenceWrapper, list):
+class SubListWrapper(MutableSequenceWrapper, list):
     __slots__ = ('_getter', '_set')
 
     def __init__(self, getter, setter):
@@ -207,7 +225,7 @@ class SubSetWrapper(MutableWrapperSet, set):
         return set(self._getter())
 
 
-class DictWrapper(MutableWrapperDictList, MutableMapping, dict):
+class DictWrapper(MutableMappingWrapper, dict):
     """A dictionary synchronized with a serialized field.
 
     This is meant to be used in allegedb entities (graph, node, or
@@ -222,32 +240,12 @@ class DictWrapper(MutableWrapperDictList, MutableMapping, dict):
         self._outer = outer
         self._key = key
 
-    def __eq__(self, other):
-        if not isinstance(other, Mapping):
-            return NotImplemented
-        if self.keys() != other.keys():
-            return False
-        for k in self.keys():
-            me = self[k]
-            you = other[k]
-            if hasattr(me, 'unwrap'):
-                me = me.unwrap()
-            if hasattr(you, 'unwrap'):
-                you = you.unwrap()
-            if me != you:
-                return False
-        else:
-            return True
-
     def _copy(self):
         return dict(self._getter())
 
     def _set(self, v):
         self._setter(v)
         self._outer[self._key] = v
-
-    def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
 
 
 class ListWrapper(MutableWrapperDictList, MutableSequence, list):
