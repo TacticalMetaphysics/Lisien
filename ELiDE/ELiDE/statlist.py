@@ -117,6 +117,9 @@ class StatRowSlider(StatRowListItem, Slider):
     def __init__(self, **kwargs):
         if 'text' in kwargs:
             del kwargs['text']
+        kwargs['config'].setdefault('min', 0.0)
+        kwargs['config'].setdefault('max', 1.0)
+        kwargs['value'] = float(kwargs['gett'](kwargs['key']))
         super().__init__(**kwargs)
 
     def on_listen(self, *args):
@@ -204,8 +207,6 @@ default_cfg = {
 
 
 class BaseStatListView(RecycleView):
-    control = DictProperty({})
-    config = DictProperty({})
     mirror = DictProperty({})
     proxy = ObjectProperty()
     engine = ObjectProperty()
@@ -231,12 +232,16 @@ class BaseStatListView(RecycleView):
             raise KeyError
         del self.proxy[k]
         del self.mirror[k]
-        if k in self.control:
+        if '_control' in self.proxy and k in self.proxy['_control']:
             del self.proxy['_control'][k]
-            del self.control[k]
-        if k in self.config:
+            del self.mirror['_control'][k]
+        else:
+            assert '_control' not in self.mirror or k not in self.mirror['_control']
+        if '_config' in self.proxy and k in self.proxy['_config']:
             del self.proxy['_config'][k]
-            del self.config[k]
+            del self.mirror['_config'][k]
+        else:
+            assert '_config' not in self.mirror or k not in self.mirror['_config']
 
     def set_value(self, k, v):
         if self.engine is None or self.proxy is None:
@@ -258,14 +263,14 @@ class BaseStatListView(RecycleView):
         Clock.schedule_once(todo, 0)
 
     def init_control_config(self, key):
-        if key not in self.control:
+        if key not in self.mirror['_control']:
             self.set_control(key, 'readout')
-        if key not in self.config:
-            cfgd = dict(self.config)
+        if key not in self.mirror['_config']:
+            cfgd = dict(self.mirror['_config'])
             cfgd[key] = default_cfg
             self.proxy['_config'] = cfgd
         else:
-            cfgd = dict(self.config)
+            cfgd = dict(self.mirror['_config'])
             for option in default_cfg:
                 if option not in cfgd[key]:
                     cfgd[key][option] = default_cfg[option]
@@ -275,33 +280,28 @@ class BaseStatListView(RecycleView):
         if '_control' not in self.mirror:
             ctrld = {key: control}
         else:
-            ctrld = dict(self.control)
+            ctrld = dict(self.mirror['_control'])
             ctrld[key] = control
         self.proxy['_control'] \
             = self.mirror['_control'] \
-            = self.control \
             = ctrld
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
-            self.proxy['_config'] \
-                = self.config \
-                = {key: {option: value}}
-        elif key in self.config:
-            newcfg = dict(self.config)
-            newcfg[key][option] = value
-            self.proxy['_config'] = self.config = newcfg
-        else:
             newcfg = dict(default_cfg)
+            newcfg[key] = {option: value}
+            self.proxy['_config'] \
+                = newcfg
+        else:
+            newcfg = dict(self.mirror['_config'])
             newcfg[option] = value
-            self.proxy['_config'][key] = self.config = newcfg
+            self.proxy['_config'][key] = newcfg
 
     def set_configs(self, key, d):
         if '_config' in self.mirror:
             self.mirror['_config'][key] = self.proxy['_config'][key] = d
         else:
             self.mirror['_config'] = self.proxy['_config'] = {key: d}
-        self.config[key] = d
 
     def iter_data(self):
         for (k, v) in self.mirror.items():
@@ -325,10 +325,6 @@ class BaseStatListView(RecycleView):
         if self.proxy is None:
             return
         new = dict(self.proxy)
-        if '_control' in new and new['_control'] != self.control:
-            self.control = new['_control']
-        if '_config' in new and new['_config'] != self.config:
-            self.config = new['_config']
         if self.mirror != new:
             self.mirror = new
 
@@ -341,8 +337,8 @@ class BaseStatListView(RecycleView):
             'sett': self.set_value,
             'listen': self.proxy.connect,
             'unlisten': self.proxy.disconnect,
-            'control': self.control.get(k, 'readout'),
-            'config': self.config.get(k, default_cfg)
+            'control': self.mirror.get('_control', {}).get(k, 'readout'),
+            'config': self.mirror.get('_config', {}).get(k, default_cfg)
         }
 
     def upd_data(self, *args):
