@@ -975,8 +975,6 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
             self._multedge = {}
 
         def _order_nodes(self, dest):
-            if isinstance(self.graph, MultiDiGraph):
-                return (self.orig, dest)
             if dest < self.orig:
                 return(dest, self.orig)
             else:
@@ -1025,6 +1023,12 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
         def __delitem__(self, orig):
             self[orig].clear()
             self.send(self, key=orig, val=None)
+
+
+class MultiDiGraphSuccessorsMapping(MultiGraphSuccessorsMapping):
+    class Successors(MultiGraphSuccessorsMapping.Successors):
+        def _order_nodes(self, dest):
+            return self.orig, dest
 
 
 class AllegedGraph(object):
@@ -1260,7 +1264,7 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
     database.
 
     """
-    adj_cls = MultiGraphSuccessorsMapping
+    adj_cls = MultiDiGraphSuccessorsMapping
     pred_cls = MultiDiGraphPredecessorsMapping
 
     def remove_edge(self, u, v, key=None):
