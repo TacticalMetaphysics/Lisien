@@ -158,6 +158,7 @@ class StatRowListItemContainer(BoxLayout):
         self.sett(self.key, self.value)
 
     def __init__(self, **kwargs):
+        kwargs.setdefault('orientation', 'vertical')
         super().__init__(**kwargs)
         self.bind(
             key=self.remake,
