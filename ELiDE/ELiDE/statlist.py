@@ -117,8 +117,6 @@ class StatRowSlider(StatRowListItem, Slider):
     def __init__(self, **kwargs):
         if 'text' in kwargs:
             del kwargs['text']
-        kwargs['config'].setdefault('min', 0.0)
-        kwargs['config'].setdefault('max', 1.0)
         kwargs['value'] = float(kwargs['gett'](kwargs['key']))
         super().__init__(**kwargs)
 
@@ -144,9 +142,6 @@ class StatRowListItemContainer(BoxLayout):
     listen = ObjectProperty()
     unlisten = ObjectProperty()
     config = DictProperty()
-    control = OptionProperty(
-        'readout', options=['readout', 'textinput', 'togglebutton', 'slider']
-    )
     licls = {
         'readout': StatRowLabel,
         'textinput': StatRowTextInput,
@@ -162,13 +157,14 @@ class StatRowListItemContainer(BoxLayout):
         super().__init__(**kwargs)
         self.bind(
             key=self.remake,
-            control=self.remake,
             config=self.remake,
             parent=self.remake
         )
 
     @trigger
     def remake(self, *args):
+        if not self.config:
+            return
         if not hasattr(self, 'label'):
             self.label = Label(text=str(self.key))
 
@@ -179,7 +175,7 @@ class StatRowListItemContainer(BoxLayout):
         if hasattr(self, 'wid'):
             self.remove_widget(self.wid)
             del self.wid
-        cls = self.licls[self.control]
+        cls = self.licls[self.config['control']]
         self.wid = cls(
             key=self.key,
             gett=self.gett,
@@ -200,6 +196,7 @@ class StatRowListItemContainer(BoxLayout):
 
 
 default_cfg = {
+    'control': 'readout',
     'true_text': '1',
     'false_text': '0',
     'min': 0.0,
@@ -233,11 +230,6 @@ class BaseStatListView(RecycleView):
             raise KeyError
         del self.proxy[k]
         del self.mirror[k]
-        if '_control' in self.proxy and k in self.proxy['_control']:
-            del self.proxy['_control'][k]
-            del self.mirror['_control'][k]
-        else:
-            assert '_control' not in self.mirror or k not in self.mirror['_control']
         if '_config' in self.proxy and k in self.proxy['_config']:
             del self.proxy['_config'][k]
             del self.mirror['_config'][k]
@@ -263,9 +255,7 @@ class BaseStatListView(RecycleView):
         Clock.unschedule(todo)
         Clock.schedule_once(todo, 0)
 
-    def init_control_config(self, key):
-        if key not in self.mirror['_control']:
-            self.set_control(key, 'readout')
+    def init_config(self, key):
         if key not in self.mirror['_config']:
             cfgd = dict(self.mirror['_config'])
             cfgd[key] = default_cfg
@@ -276,16 +266,6 @@ class BaseStatListView(RecycleView):
                 if option not in cfgd[key]:
                     cfgd[key][option] = default_cfg[option]
             self.proxy['_config'] = cfgd
-
-    def set_control(self, key, control):
-        if '_control' not in self.mirror:
-            ctrld = {key: control}
-        else:
-            ctrld = dict(self.mirror['_control'])
-            ctrld[key] = control
-        self.proxy['_control'] \
-            = self.mirror['_control'] \
-            = ctrld
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
@@ -338,8 +318,7 @@ class BaseStatListView(RecycleView):
             'sett': self.set_value,
             'listen': self.proxy.connect,
             'unlisten': self.proxy.disconnect,
-            'control': self.mirror.get('_control', {}).get(k, 'readout'),
-            'config': self.mirror.get('_config', {}).get(k, default_cfg)
+            'config': dict(self.mirror.get('_config', {}).get(k, default_cfg).items())
         }
 
     def upd_data(self, *args):

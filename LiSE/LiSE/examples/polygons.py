@@ -37,13 +37,13 @@ def install(eng):
     def similar_neighbors(poly):
         """Trigger when my neighborhood fails to be enough like me"""
         from operator import ge
-        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_neighborhood_sameness')
+        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
 
     @relocate.trigger
     def dissimilar_neighbors(poly):
         """Trigger when my neighborhood gets too much like me"""
         from operator import lt
-        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_neighborhood_sameness')
+        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
 
 
     eng.rulebook['parable'] = [relocate]
@@ -51,18 +51,17 @@ def install(eng):
 
     physical = eng.new_character('physical')
     square = eng.new_character(
-        'square', min_neighborhood_sameness=.1, max_neighborhood_sameness=.9,
-        _control={'min_neighborhood_sameness': 'slider', 'max_neighborhood_sameness': 'slider'},
+        'square', min_sameness=.1, max_sameness=.9,
         _config={
-            'min_neighborhood_sameness': {'min': 0.0, 'max': 1.0},
-            'max_neighborhood_sameness': {'min': 0.0, 'max': 1.0}
+            'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
+            'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
         }
     )
     triangle = eng.new_character(
-        'triangle', min_neighborhood_sameness=.2, max_neighborhood_sameness=.8,
+        'triangle', min_sameness=.2, max_sameness=.8,
         _config={
-            'min_neighborhood_sameness': {'min': 0.0, 'max': 1.0},
-            'max_neighborhood_sameness': {'min': 0.0, 'max': 1.0}
+            'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
+            'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
         }
     )
     square.avatar.rulebook = triangle.avatar.rulebook = 'parable'

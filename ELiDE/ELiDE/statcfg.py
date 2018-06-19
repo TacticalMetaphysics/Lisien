@@ -110,22 +110,22 @@ class ConfigListItemCustomization(BoxLayout):
 
 class ConfigListItemToggleButton(ConfigListItemCustomization):
     def set_true_text(self, *args):
-        self.config['_true_text'] = self.ids.truetext.text
+        self.config['true_text'] = self.ids.truetext.text
 
     def set_false_text(self, *args):
-        self.config['_false_text'] = self.ids.falsetext.text
+        self.config['false_text'] = self.ids.falsetext.text
 
 
 class ConfigListItemSlider(ConfigListItemCustomization):
     def set_min(self, *args):
         try:
-            self.config['_min'] = float(self.ids.minimum.text)
+            self.config['min'] = float(self.ids.minimum.text)
         except ValueError:
             self.ids.minimum.text = ''
 
     def set_max(self, *args):
         try:
-            self.config['_max'] = float(self.ids.maximum.text)
+            self.config['max'] = float(self.ids.maximum.text)
         except ValueError:
             self.ids.maximum.text = ''
 
@@ -149,9 +149,6 @@ class ConfigListItem(BoxLayout):
     config = DictProperty()
     sett = ObjectProperty()
     deleter = ObjectProperty()
-    control = OptionProperty(
-        'readout', options=['readout', 'textinput', 'togglebutton', 'slider']
-    )
 
 
 class StatListViewConfigurator(BaseStatListView):
@@ -171,12 +168,8 @@ class StatListViewConfigurator(BaseStatListView):
     def inst_set_configs(self, inst, val):
         self.set_configs(inst.key, val)
 
-    def set_control(self, key, control):
-        super().set_control(key, control)
-        self.statlist.set_control(key, control)
-
-    def inst_set_control(self, inst, val):
-        self.set_control(inst.key, val)
+    def set_control(self, key, value):
+        self.set_config(key, 'controol', value)
 
     def del_key(self, key):
         del self.mirror[key]
@@ -184,7 +177,6 @@ class StatListViewConfigurator(BaseStatListView):
 
     def munge(self, k, v):
         ret = super().munge(k, v)
-        ret['on_control'] = self.inst_set_control
         ret['on_config'] = self.inst_set_configs
         ret['deleter'] = self.del_key
         ret['sett'] = self.set_control
@@ -233,26 +225,26 @@ Builder.load_string("""
         text: 'True text:'
     TextInput:
         id: truetext
-        hint_text: root.config.get('_true_text', '1')
+        hint_text: root.config.get('true_text', '1')
         on_text_validate: root.set_true_text()
     Label:
         text: 'False text:'
     TextInput:
         id: falsetext
-        hint_text: root.config.get('_false_text', '0')
+        hint_text: root.config.get('false_text', '0')
         on_text_validate: root.set_false_text()
 <ConfigListItemSlider>:
     Label:
         text: 'Minimum:'
     TextInput:
         id: minimum
-        hint_text: str(root.config.get('_min', 0.0))
+        hint_text: str(root.config.get('min', 0.0))
         on_text_validate: root.set_min()
     Label:
         text: 'Maximum:'
     TextInput:
         id: maximum
-        hint_text: str(root.config.get('_max', 1.0))
+        hint_text: str(root.config.get('max', 1.0))
         on_text_validate: root.set_max()
 <ConfigListItem>:
     height: 30
@@ -264,11 +256,10 @@ Builder.load_string("""
     ControlTypePicker:
         key: root.key
         sett: root.sett
-        control: root.control
-        text: 'Text input' if self.control == 'textinput' else 'Slider' if self.control == 'slider' else 'Toggle button' if self.control == 'togglebutton' else 'Readout'
+        control: root.config.get('control', 'readout')
+        text: root.config.get('control', 'readout')
     ConfigListItemCustomizer:
         config: root.config
-        control: root.control
 <StatScreen>:
     name: 'statcfg'
     statcfg: cfg
