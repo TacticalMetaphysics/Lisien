@@ -19,14 +19,6 @@ from kivy.uix.textinput import TextInput
 from .statlist import BaseStatListView
 
 
-control_txt = {
-    'readout': 'Readout',
-    'textinput': 'Text input',
-    'togglebutton': 'Toggle button',
-    'slider': 'Slider'
-}
-
-
 class FloatInput(TextInput):
     def insert_text(self, s, from_undo=False):
         return super().insert_text(
@@ -66,36 +58,40 @@ class ControlTypePicker(Button):
             on_select=lambda instance, x: self.sett(self.key, x)
         )
         readoutbut = Button(
-            text='Readout',
+            text='readout',
             size_hint_y=None,
-            height=self.height
+            height=self.height,
+            background_color=(0.7, 0.7, 0.7, 1)
         )
         readoutbut.bind(
             on_press=lambda instance: self.dropdown.select('readout')
         )
         self.dropdown.add_widget(readoutbut)
         textinbut = Button(
-            text='Text input',
+            text='textinput',
             size_hint_y=None,
-            height=self.height
+            height=self.height,
+            background_color=(0.7, 0.7, 0.7, 1)
         )
         textinbut.bind(
             on_press=lambda instance: self.dropdown.select('textinput')
         )
         self.dropdown.add_widget(textinbut)
         togbut = Button(
-            text='Toggle button',
+            text='togglebutton',
             size_hint_y=None,
-            height=self.height
+            height=self.height,
+            background_color=(0.7, 0.7, 0.7, 1)
         )
         togbut.bind(
             on_press=lambda instance: self.dropdown.select('togglebutton')
         )
         self.dropdown.add_widget(togbut)
         sliderbut = Button(
-            text='Slider',
+            text='slider',
             size_hint_y=None,
-            height=self.height
+            height=self.height,
+            background_color=(0.7, 0.7, 0.7, 1)
         )
         sliderbut.bind(
             on_press=lambda instance: self.dropdown.select('slider')

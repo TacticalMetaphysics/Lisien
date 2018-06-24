@@ -268,15 +268,18 @@ class BaseStatListView(RecycleView):
             self.proxy['_config'] = cfgd
 
     def set_config(self, key, option, value):
-        if '_config' not in self.mirror:
-            newcfg = dict(default_cfg)
-            newcfg[key] = {option: value}
-            self.proxy['_config'] \
-                = newcfg
+        if '_config' not in self.proxy:
+            newopt = dict(default_cfg)
+            newopt[option] = value
+            self.proxy['_config'] = {key: newopt}
         else:
-            newcfg = dict(self.mirror['_config'])
-            newcfg[option] = value
-            self.proxy['_config'][key] = newcfg
+            if key in self.proxy['_config']:
+                self.proxy['_config'][key][option] = value
+            else:
+                newopt = dict(default_cfg)
+                newopt[option] = value
+                self.proxy['_config'][key] = newopt
+        self.mirror['_config'] = self.proxy['_config']
 
     def set_configs(self, key, d):
         if '_config' in self.mirror:
