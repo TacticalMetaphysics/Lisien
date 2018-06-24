@@ -256,8 +256,8 @@ Builder.load_string("""
     ControlTypePicker:
         key: root.key
         sett: root.sett
-        control: root.config.get('control', 'readout')
-        text: root.config.get('control', 'readout')
+        control: 'readout' if 'control' not in root.config else root.config['control']
+        text: 'readout' if 'control' not in root.config else root.config['control']
     ConfigListItemCustomizer:
         config: root.config
 <StatScreen>:
