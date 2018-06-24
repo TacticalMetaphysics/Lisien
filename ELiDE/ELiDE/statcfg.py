@@ -225,26 +225,26 @@ Builder.load_string("""
         text: 'True text:'
     TextInput:
         id: truetext
-        hint_text: root.config.get('true_text', '1')
+        hint_text: '1' if 'true_text' not in root.config else root.config['true_text']
         on_text_validate: root.set_true_text()
     Label:
         text: 'False text:'
     TextInput:
         id: falsetext
-        hint_text: root.config.get('false_text', '0')
+        hint_text: '0' if 'false_text' not in root.config else root.config['false_text']
         on_text_validate: root.set_false_text()
 <ConfigListItemSlider>:
     Label:
         text: 'Minimum:'
     TextInput:
         id: minimum
-        hint_text: str(root.config.get('min', 0.0))
+        hint_text: str(0.0 if 'min' not in root.config else root.config['min'])
         on_text_validate: root.set_min()
     Label:
         text: 'Maximum:'
     TextInput:
         id: maximum
-        hint_text: str(root.config.get('max', 1.0))
+        hint_text: str(1.0 if 'max' not in root.config else root.config['max'])
         on_text_validate: root.set_max()
 <ConfigListItem>:
     height: 30
