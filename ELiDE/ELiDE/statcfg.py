@@ -169,7 +169,7 @@ class StatListViewConfigurator(BaseStatListView):
         self.set_configs(inst.key, val)
 
     def set_control(self, key, value):
-        self.set_config(key, 'controol', value)
+        self.set_config(key, 'control', value)
 
     def del_key(self, key):
         del self.mirror[key]
