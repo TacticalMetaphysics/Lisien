@@ -68,6 +68,11 @@ class StatRowListItem(Widget):
             self.value = self.gett(self.key)
         except KeyError:
             Logger.info('StatRowListItem: {} deleted'.format(self.key))
+        except TypeError:
+            value = self.gett(self.key)
+            Logger.warning("StatRowListItem: couldn't set value {} because it is type {}".format(
+                value, type(value)
+            ))
         self.bind(value=self._push)
 
     def _pull(self, *args, **kwargs):
@@ -102,6 +107,9 @@ class StatRowTextInput(StatRowListItem, TextInput):
 
 
 class StatRowToggleButton(StatRowListItem, ToggleButton):
+    true_text = StringProperty('1')
+    false_text = StringProperty('0')
+
     def on_touch_up(self, *args):
         if self.parent is None:
             return
@@ -115,9 +123,9 @@ class StatRowSlider(StatRowListItem, Slider):
     need_set = BooleanProperty(False)
 
     def __init__(self, **kwargs):
-        if 'text' in kwargs:
-            del kwargs['text']
-        kwargs['value'] = float(kwargs['gett'](kwargs['key']))
+        self.value = kwargs['value']
+        self.min = kwargs['min']
+        self.max = kwargs['max']
         super().__init__(**kwargs)
 
     def on_listen(self, *args):
@@ -142,12 +150,6 @@ class StatRowListItemContainer(BoxLayout):
     listen = ObjectProperty()
     unlisten = ObjectProperty()
     config = DictProperty()
-    licls = {
-        'readout': StatRowLabel,
-        'textinput': StatRowTextInput,
-        'togglebutton': StatRowToggleButton,
-        'slider': StatRowSlider
-    }
 
     def set_value(self, *args):
         self.sett(self.key, self.value)
@@ -155,15 +157,22 @@ class StatRowListItemContainer(BoxLayout):
     def __init__(self, **kwargs):
         kwargs.setdefault('orientation', 'vertical')
         super().__init__(**kwargs)
-        self.bind(
-            key=self.remake,
-            config=self.remake,
-            parent=self.remake
-        )
+        self.remake()
 
-    @trigger
+    def on_key(self, *args):
+        self.remake()
+
+    def on_config(self, *args):
+        self.remake()
+
+    def on_parent(self, *args):
+        self.remake()
+
     def remake(self, *args):
         if not self.config:
+            return
+        if not all((self.key, self.gett, self.sett, self.listen, self.unlisten)):
+            Clock.schedule_once(self.remake, 0)
             return
         if not hasattr(self, 'label'):
             self.label = Label(text=str(self.key))
@@ -175,24 +184,61 @@ class StatRowListItemContainer(BoxLayout):
         if hasattr(self, 'wid'):
             self.remove_widget(self.wid)
             del self.wid
-        cls = self.licls[self.config['control']]
-        self.wid = cls(
-            key=self.key,
-            gett=self.gett,
-            sett=self.sett,
-            config=self.config,
-            listen=self.listen,
-            unlisten=self.unlisten
-        )
+        control = self.config['control']
+        widkwargs = {
+            'key': self.key,
+            'gett': self.gett,
+            'sett': self.sett,
+            'listen': self.listen,
+            'unlisten': self.unlisten
+        }
+        if control == 'slider':
+            cls = StatRowSlider
+            try:
+               widkwargs['value'] = float(self.gett(self.key))
+               widkwargs['min'] = float(self.config['min'])
+               widkwargs['max'] = float(self.config['max'])
+            except (KeyError, ValueError):
+                return
+        elif control == 'togglebutton':
+            cls = StatRowToggleButton
+            try:
+                widkwargs['true_text'] = self.config['true_text']
+                widkwargs['false_text'] = self.config['false_text']
+            except KeyError:
+                return
+        elif control == 'textinput':
+            cls = StatRowTextInput
+        else:
+            cls = StatRowLabel
+        self.wid = cls(**widkwargs)
         self.bind(
             key=self.wid.setter('key'),
             gett=self.wid.setter('gett'),
             sett=self.wid.setter('sett'),
-            config=self.wid.setter('config'),
             listen=self.wid.setter('listen'),
             unlisten=self.wid.setter('unlisten')
         )
+        if control == 'slider':
+            self.unbind(config=self._toggle_update_config)
+            self.bind(config=self._slider_update_config)
+        elif control == 'togglebutton':
+            self.unbind(config=self._slider_update_config)
+            self.bind(config=self._toggle_update_config)
+        else:
+            self.unbind(config=self._slider_update_config)
+            self.unbind(config=self._toggle_update_config)
         self.add_widget(self.wid)
+
+    @trigger
+    def _slider_update_config(self, *args):
+        self.wid.min = self.config['min']
+        self.wid.max = self.config['max']
+
+    @trigger
+    def _toggle_update_config(self, *args):
+        self.wid.true_text = self.config['true_text']
+        self.wid.false_text = self.config['false_text']
 
 
 default_cfg = {
@@ -205,36 +251,25 @@ default_cfg = {
 
 
 class BaseStatListView(RecycleView):
-    mirror = DictProperty({})
+    """Base class for widgets showing lists of stats and their values"""
     proxy = ObjectProperty()
     engine = ObjectProperty()
     app = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._listeners = {}
-        self.bind(
-            proxy=self.refresh_mirror,
-            mirror=self._trigger_upd_data
-        )
         super().__init__(**kwargs)
 
-    def on_app(self, *args):
-        self.app.bind(
-            branch=self.refresh_mirror,
-            turn=self.refresh_mirror,
-            tick=self.refresh_mirror
-        )
+    def on_proxy(self, *args):
+        self.proxy.connect(self._trigger_upd_data, weak=False)
+        self._trigger_upd_data()
 
     def del_key(self, k):
         if k not in self.mirror:
             raise KeyError
         del self.proxy[k]
-        del self.mirror[k]
         if '_config' in self.proxy and k in self.proxy['_config']:
             del self.proxy['_config'][k]
-            del self.mirror['_config'][k]
-        else:
-            assert '_config' not in self.mirror or k not in self.mirror['_config']
 
     def set_value(self, k, v):
         if self.engine is None or self.proxy is None:
@@ -242,13 +277,12 @@ class BaseStatListView(RecycleView):
             return
         if v is None:
             del self.proxy[k]
-            del self.mirror[k]
         else:
             try:
                 vv = self.engine.unpack(v)
             except (TypeError, ValueError):
                 vv = v
-            self.proxy[k] = self.mirror[k] = vv
+            self.proxy[k] = vv
 
     def _trigger_set_value(self, k, v, *args):
         todo = partial(self.set_value, k, v)
@@ -256,16 +290,7 @@ class BaseStatListView(RecycleView):
         Clock.schedule_once(todo, 0)
 
     def init_config(self, key):
-        if key not in self.mirror['_config']:
-            cfgd = dict(self.mirror['_config'])
-            cfgd[key] = default_cfg
-            self.proxy['_config'] = cfgd
-        else:
-            cfgd = dict(self.mirror['_config'])
-            for option in default_cfg:
-                if option not in cfgd[key]:
-                    cfgd[key][option] = default_cfg[option]
-            self.proxy['_config'] = cfgd
+        self.proxy['_config'].setdefault(key, default_cfg)
 
     def set_config(self, key, option, value):
         if '_config' not in self.proxy:
@@ -279,16 +304,15 @@ class BaseStatListView(RecycleView):
                 newopt = dict(default_cfg)
                 newopt[option] = value
                 self.proxy['_config'][key] = newopt
-        self.mirror['_config'] = self.proxy['_config']
 
     def set_configs(self, key, d):
-        if '_config' in self.mirror:
-            self.mirror['_config'][key] = self.proxy['_config'][key] = d
+        if '_config' in self.proxy:
+            self.proxy['_config'][key] = d
         else:
-            self.mirror['_config'] = self.proxy['_config'] = {key: d}
+            self.proxy['_config'] = {key: d}
 
     def iter_data(self):
-        for (k, v) in self.mirror.items():
+        for (k, v) in self.proxy.items():
             if (
                 not (isinstance(k, str) and k[0] == '_') and
                 k not in (
@@ -303,16 +327,11 @@ class BaseStatListView(RecycleView):
             ):
                 yield k, v
 
-    @trigger
-    def refresh_mirror(self, *args):
-        Logger.debug('{}: refreshing mirror'.format(type(self)))
-        if self.proxy is None:
-            return
-        new = dict(self.proxy)
-        if self.mirror != new:
-            self.mirror = new
-
     def munge(self, k, v):
+        if '_config' in self.proxy and k in self.proxy['_config']:
+            config = self.proxy['_config'][k].unwrap()
+        else:
+            config = default_cfg
         return {
             'key': k,
             'reg': self._reg_widget,
@@ -321,29 +340,33 @@ class BaseStatListView(RecycleView):
             'sett': self.set_value,
             'listen': self.proxy.connect,
             'unlisten': self.proxy.disconnect,
-            'config': dict(self.mirror.get('_config', {}).get(k, default_cfg).items())
+            'config': config
         }
 
     def upd_data(self, *args):
-        self.data = [self.munge(k, v) for k, v in self.iter_data()]
-    _trigger_upd_data = trigger(upd_data)
+        data = [self.munge(k, v) for k, v in self.iter_data()]
+        self.data = sorted(data, key=lambda d: d['key'])
+
+    def _trigger_upd_data(self, *args, **kwargs):
+        Clock.unschedule(self.upd_data)
+        Clock.schedule_once(self.upd_data, 0)
 
     def _reg_widget(self, w, *args):
-        if not self.mirror:
+        if not self.proxy:
             Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
 
         def listen(*args):
-            if w.key not in self.mirror:
+            if w.key not in self.proxy:
                 return
-            if w.value != self.mirror[w.key]:
-                w.value = self.mirror[w.key]
+            if w.value != self.proxy[w.key]:
+                w.value = self.proxy[w.key]
         self._listeners[w.key] = listen
-        self.bind(mirror=listen)
+        self.proxy.connect(listen)
 
     def _unreg_widget(self, w):
         if w.key in self._listeners:
-            self.unbind(mirror=self._listeners[w.key])
+            self.proxy.disconnect(self._listeners[w.key])
 
 
 class StatListView(BaseStatListView):
@@ -360,11 +383,8 @@ Builder.load_string(
     hint_text: str(self.value)
     multiline: False
 <StatRowToggleButton>:
-    text: self.config['true_text'] if self.value else self.config['false_text']
+    text: self.true_text if self.value else self.false_text
     state: 'down' if self.value else 'normal'
-<StatRowSlider>:
-    min: self.config['min']
-    max: self.config['max']
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
     app: app

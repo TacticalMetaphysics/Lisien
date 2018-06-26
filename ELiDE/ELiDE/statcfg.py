@@ -32,7 +32,7 @@ class ControlTypePicker(Button):
     key = ObjectProperty()
     mainbutton = ObjectProperty()
     dropdown = ObjectProperty()
-    sett = ObjectProperty()
+    set_control = ObjectProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -47,7 +47,7 @@ class ControlTypePicker(Button):
     def build(self, *args):
         if None in (
                 self.key,
-                self.sett
+                self.set_control
         ):
             Clock.schedule_once(self.build, 0)
             return
@@ -55,7 +55,7 @@ class ControlTypePicker(Button):
         self.dropdown = None
         self.dropdown = DropDown()
         self.dropdown.bind(
-            on_select=lambda instance, x: self.sett(self.key, x)
+            on_select=lambda instance, x: self.set_control(self.key, x)
         )
         readoutbut = Button(
             text='readout',
@@ -100,50 +100,66 @@ class ControlTypePicker(Button):
         self.bind(on_press=self.dropdown.open)
 
 
-class ConfigListItemCustomization(BoxLayout):
-    config = ObjectProperty()
+class ConfigListItemToggleButton(BoxLayout):
+    true_text = StringProperty('0')
+    false_text = StringProperty('1')
 
-
-class ConfigListItemToggleButton(ConfigListItemCustomization):
     def set_true_text(self, *args):
-        self.config['true_text'] = self.ids.truetext.text
+        self.parent.set_config(self.parent.key, 'true_text', self.ids.truetext.text)
+        self.true_text = self.ids.truetext.text
 
     def set_false_text(self, *args):
-        self.config['false_text'] = self.ids.falsetext.text
+        self.parent.set_config(self.parent.key, 'false_text', self.ids.falsetext.text)
 
 
-class ConfigListItemSlider(ConfigListItemCustomization):
+class ConfigListItemSlider(BoxLayout):
+    min = NumericProperty(0.)
+    max = NumericProperty(1.)
+
     def set_min(self, *args):
+        minn = float(self.ids.minimum.text)
         try:
-            self.config['min'] = float(self.ids.minimum.text)
+            self.parent.set_config(self.parent.key, 'min', minn)
+            self.min = minn
         except ValueError:
             self.ids.minimum.text = ''
 
     def set_max(self, *args):
+        maxx = float(self.ids.minimum.text)
         try:
-            self.config['max'] = float(self.ids.maximum.text)
+            self.parent.set_config(self.parent.key, 'max', maxx)
+            self.max = maxx
         except ValueError:
             self.ids.maximum.text = ''
 
 
-class ConfigListItemCustomizer(FloatLayout):
-    control = ObjectProperty()
-    config = ObjectProperty()
+class ConfigListItemCustomizer(BoxLayout):
+    key = ObjectProperty()
+    control = StringProperty()
+    config = DictProperty()
+    set_config = ObjectProperty()
 
     def on_control(self, *args):
         self.clear_widgets()
         if self.control == 'togglebutton':
-            wid = ConfigListItemToggleButton(config=self.config)
+            if 'true_text' not in self.config or 'false_text' not in self.config:
+                Clock.schedule_once(self.on_control, 0)
+                return
+            wid = ConfigListItemToggleButton(true_text=self.config['true_text'], false_text=self.config['false_text'])
             self.add_widget(wid)
         elif self.control == 'slider':
-            wid = ConfigListItemSlider(config=self.config)
+            if 'min' not in self.config or 'max' not in self.config:
+                Clock.schedule_once(self.on_control, 0)
+                return
+            wid = ConfigListItemSlider(min=self.config['min'], max=self.config['max'])
             self.add_widget(wid)
 
 
 class ConfigListItem(BoxLayout):
     key = ObjectProperty()
     config = DictProperty()
-    sett = ObjectProperty()
+    set_control = ObjectProperty()
+    set_config = ObjectProperty()
     deleter = ObjectProperty()
 
 
@@ -153,29 +169,25 @@ class StatListViewConfigurator(BaseStatListView):
     _val_text_setters = DictProperty()
     _control_wids = DictProperty()
 
-    def set_config(self, key, option, value):
-        super().set_config(key, option, value)
-        self.statlist.set_config(key, option, value)
-
-    def set_configs(self, key, d):
-        super().set_configs(key, d)
-        self.statlist.config[key] = d
-
-    def inst_set_configs(self, inst, val):
-        self.set_configs(inst.key, val)
-
     def set_control(self, key, value):
+        if value == 'slider':
+            if 'min' not in self.proxy['_config']:
+                self.set_config(key, 'min', 0.0)
+            if 'max' not in self.proxy['_config']:
+                self.set_config(key, 'max', 1.0)
+        elif value == 'togglebutton':
+            if 'true_text' not in self.proxy['_config']:
+                self.set_config(key, 'true_text', '1')
+            if 'false_text' not in self.proxy['_config']:
+                self.set_config(key, 'false_text', '0')
         self.set_config(key, 'control', value)
 
-    def del_key(self, key):
-        del self.mirror[key]
-        self.statlist.del_key(key)
-
     def munge(self, k, v):
+        # makes ConfigListItem
         ret = super().munge(k, v)
-        ret['on_config'] = self.inst_set_configs
         ret['deleter'] = self.del_key
-        ret['sett'] = self.set_control
+        ret['set_control'] = self.set_control
+        ret['set_config'] = self.set_config
         return ret
 
 
@@ -199,63 +211,62 @@ class StatScreen(Screen):
             # you need to enter things
             return
         try:
-            self.proxy[key] \
-                = self.statlist.mirror[key] \
-                = self.statcfg.mirror[key] \
-                = self.engine.unpack(value)
+            self.proxy[key] = self.engine.unpack(value)
         except (TypeError, ValueError):
-            self.proxy[key] \
-                = self.statlist.mirror[key] \
-                = self.statcfg.mirror[key] \
-                = value
+            self.proxy[key] = value
         self.ids.newstatkey.text = ''
         self.ids.newstatval.text = ''
 
 
 Builder.load_string("""
 <ConfigListItemCustomization>:
-    config: self.parent.config if self.parent else {}
     pos_hint: {'x': 0, 'y': 0}
 <ConfigListItemToggleButton>:
     Label:
         text: 'True text:'
     TextInput:
         id: truetext
-        hint_text: '1' if 'true_text' not in root.config else root.config['true_text']
+        hint_text: root.true_text
         on_text_validate: root.set_true_text()
     Label:
         text: 'False text:'
     TextInput:
         id: falsetext
-        hint_text: '0' if 'false_text' not in root.config else root.config['false_text']
+        hint_text: root.false_text
         on_text_validate: root.set_false_text()
 <ConfigListItemSlider>:
     Label:
         text: 'Minimum:'
     TextInput:
         id: minimum
-        hint_text: str(0.0 if 'min' not in root.config else root.config['min'])
+        hint_text: str(root.min)
         on_text_validate: root.set_min()
     Label:
         text: 'Maximum:'
     TextInput:
         id: maximum
-        hint_text: str(1.0 if 'max' not in root.config else root.config['max'])
+        hint_text: str(root.max)
         on_text_validate: root.set_max()
 <ConfigListItem>:
     height: 30
     Button:
+        size_hint_x: 0.13
         text: 'del'
         on_press: root.deleter(root.key)
     Label:
+        size_hint_x: 0.13
         text: str(root.key)
     ControlTypePicker:
+        size_hint_x: 0.13
         key: root.key
-        sett: root.sett
-        control: 'readout' if 'control' not in root.config else root.config['control']
-        text: 'readout' if 'control' not in root.config else root.config['control']
+        set_control: root.set_control
+        text: root.config['control'] if 'control' in root.config else 'readout'
     ConfigListItemCustomizer:
+        size_hint_x: 0.6
+        control: root.config['control'] if 'control' in root.config else 'readout'
         config: root.config
+        key: root.key
+        set_config: root.set_config
 <StatScreen>:
     name: 'statcfg'
     statcfg: cfg
