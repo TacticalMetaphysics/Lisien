@@ -250,14 +250,14 @@ Builder.load_string("""
 <ConfigListItem>:
     height: 30
     Button:
-        size_hint_x: 0.13
+        size_hint_x: 0.4 / 3
         text: 'del'
         on_press: root.deleter(root.key)
     Label:
-        size_hint_x: 0.13
+        size_hint_x: 0.4 / 3
         text: str(root.key)
     ControlTypePicker:
-        size_hint_x: 0.13
+        size_hint_x: 0.4 / 3
         key: root.key
         set_control: root.set_control
         text: root.config['control'] if 'control' in root.config else 'readout'
