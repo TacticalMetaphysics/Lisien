@@ -134,6 +134,20 @@ class StatRowSlider(StatRowListItem, Slider):
         self.max = kwargs['max']
         super().__init__(**kwargs)
 
+    def _bind_value(self, *args):
+        pass
+
+    def _really_pull(self, *args):
+        try:
+            self.value = self.gett(self.key)
+        except KeyError:
+            Logger.info('StatRowListItem: {} deleted'.format(self.key))
+        except TypeError:
+            value = self.gett(self.key)
+            Logger.warning("StatRowListItem: couldn't set value {} because it is type {}".format(
+                value, type(value)
+            ))
+
     def on_listen(self, *args):
         self.listen(self._pull)
         self._pull()
