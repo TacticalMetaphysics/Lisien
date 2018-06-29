@@ -85,6 +85,7 @@ class StatRowLabel(StatRowListItem, Label):
 
 
 class StatRowTextInput(StatRowListItem, TextInput):
+    """Display the current value of a stat and accept text input to change it."""
     def __init__(self, **kwargs):
         kwargs['multiline'] = False
         super().__init__(**kwargs)
@@ -107,8 +108,11 @@ class StatRowTextInput(StatRowListItem, TextInput):
 
 
 class StatRowToggleButton(StatRowListItem, ToggleButton):
+    """Display the current value of a stat, 0 or 1, and let the user press a button to flip it."""
     true_text = StringProperty('1')
+    """String to display when the stat is true."""
     false_text = StringProperty('0')
+    """String to display when the stat is false."""
 
     def on_touch_up(self, *args):
         if self.parent is None:
@@ -120,7 +124,9 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
 
 
 class StatRowSlider(StatRowListItem, Slider):
+    """Display the current value of a numeric stat and let the user slide it."""
     need_set = BooleanProperty(False)
+    """Internal. Usually False, becomes True briefly when the value has changed."""
 
     def __init__(self, **kwargs):
         self.value = kwargs['value']
@@ -142,16 +148,49 @@ class StatRowSlider(StatRowListItem, Slider):
 
 
 class StatRowListItemContainer(BoxLayout):
+    """The name of a stat followed by a widget representing its value.
+
+    The widget can be
+
+    * :class:`StatRowLabel`
+    * :class:`StatRowTextInput`
+    * :class:`StatRowToggleButton`
+    * :class:`StatRowSlider`
+
+    """
     key = ObjectProperty()
+    """The name of the stat"""
     reg = ObjectProperty()
     unreg = ObjectProperty()
     gett = ObjectProperty()
+    """Function to get the current value of stats, taking the stat name as its argument"""
     sett = ObjectProperty()
+    """Function to set the current value of stats, taking args (key, value)"""
     listen = ObjectProperty()
+    """Function to register a listener to a LiSE entity"""
     unlisten = ObjectProperty()
+    """Function to unregister a listener from a LiSE entity"""
     config = DictProperty()
+    """Dictionary describing the configuration of this stat's widget.
+    
+    The key 'control' has the widget type as its value, which may be
+    
+    * 'readout'
+    * 'textinput'
+    * 'togglebutton'
+    * 'slider'
+    
+    Other keys are specific to one widget type or another.
+    
+    """
 
     def set_value(self, *args):
+        """Use my ``sett`` function to set my stat (``key``) to my new ``value``.
+
+        This doesn't need arguments, but accepts any positional arguments provided,
+        so that you can use this in kvlang
+
+        """
         self.sett(self.key, self.value)
 
     def __init__(self, **kwargs):
@@ -169,6 +208,12 @@ class StatRowListItemContainer(BoxLayout):
         self.remake()
 
     def remake(self, *args):
+        """Replace any existing child widget with the one described by my ``config``.
+
+        This doesn't need arguments, but accepts any positional arguments provided,
+        so that you can use this in kvlang
+
+        """
         if not self.config:
             return
         if not all((self.key, self.gett, self.sett, self.listen, self.unlisten)):
@@ -253,8 +298,11 @@ default_cfg = {
 class BaseStatListView(RecycleView):
     """Base class for widgets showing lists of stats and their values"""
     proxy = ObjectProperty()
+    """A proxy object representing a LiSE entity"""
     engine = ObjectProperty()
+    """A :class:`LiSE.proxy.EngineProxy` object"""
     app = ObjectProperty()
+    """The Kivy app object"""
 
     def __init__(self, **kwargs):
         self._listeners = {}
@@ -265,6 +313,7 @@ class BaseStatListView(RecycleView):
         self._trigger_upd_data()
 
     def del_key(self, k):
+        """Delete the key and any configuration for it"""
         if k not in self.mirror:
             raise KeyError
         del self.proxy[k]
@@ -272,6 +321,7 @@ class BaseStatListView(RecycleView):
             del self.proxy['_config'][k]
 
     def set_value(self, k, v):
+        """Set a value on the proxy, parsing it to a useful datatype if possible"""
         if self.engine is None or self.proxy is None:
             self._trigger_set_value(k, v)
             return
@@ -290,9 +340,11 @@ class BaseStatListView(RecycleView):
         Clock.schedule_once(todo, 0)
 
     def init_config(self, key):
+        """Set the default configuration for the key"""
         self.proxy['_config'].setdefault(key, default_cfg)
 
     def set_config(self, key, option, value):
+        """Set a configuration option for a key"""
         if '_config' not in self.proxy:
             newopt = dict(default_cfg)
             newopt[option] = value
@@ -306,12 +358,14 @@ class BaseStatListView(RecycleView):
                 self.proxy['_config'][key] = newopt
 
     def set_configs(self, key, d):
+        """Set the whole configuration for a key"""
         if '_config' in self.proxy:
             self.proxy['_config'][key] = d
         else:
             self.proxy['_config'] = {key: d}
 
     def iter_data(self):
+        """Iterate over key-value pairs that are really meant to be displayed"""
         for (k, v) in self.proxy.items():
             if (
                 not (isinstance(k, str) and k[0] == '_') and
@@ -328,6 +382,7 @@ class BaseStatListView(RecycleView):
                 yield k, v
 
     def munge(self, k, v):
+        """Turn a key and value into a dictionary describing a widget to show"""
         if '_config' in self.proxy and k in self.proxy['_config']:
             config = self.proxy['_config'][k].unwrap()
         else:
@@ -344,6 +399,7 @@ class BaseStatListView(RecycleView):
         }
 
     def upd_data(self, *args):
+        """Update to match new entity data"""
         data = [self.munge(k, v) for k, v in self.iter_data()]
         self.data = sorted(data, key=lambda d: d['key'])
 
@@ -370,7 +426,7 @@ class BaseStatListView(RecycleView):
 
 
 class StatListView(BaseStatListView):
-    pass
+    """The type of StatListView that shows only stats and their values"""
 
 
 Builder.load_string(
