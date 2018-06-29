@@ -322,6 +322,7 @@ class BaseStatListView(RecycleView):
 
     def set_value(self, k, v):
         """Set a value on the proxy, parsing it to a useful datatype if possible"""
+        from ast import literal_eval
         if self.engine is None or self.proxy is None:
             self._trigger_set_value(k, v)
             return
@@ -329,7 +330,7 @@ class BaseStatListView(RecycleView):
             del self.proxy[k]
         else:
             try:
-                vv = self.engine.unpack(v)
+                vv = literal_eval(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv
