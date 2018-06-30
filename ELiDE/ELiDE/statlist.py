@@ -355,7 +355,7 @@ class BaseStatListView(RecycleView):
         Clock.schedule_once(todo, 0)
 
     def init_config(self, key):
-        """Set the default configuration for the key"""
+        """Set the configuration for the key to something that will always work"""
         self.proxy['_config'].setdefault(key, default_cfg)
 
     def set_config(self, key, option, value):
