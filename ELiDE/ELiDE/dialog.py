@@ -164,10 +164,11 @@ class DialogLayout(FloatLayout):
         if key == 'last_result':
             self.todo = value if value and isinstance(value, list) else []
         elif key == 'last_result_idx':
-            self.idx = value
+            self.idx = value if value and isinstance(value, int) else 0
 
     def on_idx(self, *args):
-        if self.engine.universal.get('last_result_idx') != self.idx:
+        lidx = self.engine.universal.get('last_result_idx')
+        if lidx is not None and lidx != self.idx:
             self.engine.universal['last_result_idx'] = self.idx
 
     def advance_dialog(self, *args):
