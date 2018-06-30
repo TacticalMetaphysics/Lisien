@@ -172,6 +172,7 @@ class DialogLayout(FloatLayout):
             self.engine.universal['last_result_idx'] = self.idx
 
     def advance_dialog(self, *args):
+        """Try to display the next dialog described in my ``todo``."""
         self.clear_widgets()
         try:
             self._update_dialog(self.todo[self.idx])
