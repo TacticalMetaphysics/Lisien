@@ -719,19 +719,22 @@ class Board(RelativeLayout):
 
     def update_from_delta(self, delta, *args):
         """Apply the changes described in the dict ``delta``."""
-        for (place, extant) in delta.get('places', {}).items():
-            if extant and place not in self.spot:
-                self.add_spot(place)
-                spot = self.spot[place]
-                if '_x' not in spot.place or '_y' not in spot.place:
-                    self.spots_unposd.append(spot)
-            elif not extant and place in self.spot:
-                self.rm_spot(place)
-        for (thing, extant) in delta.get('things', {}).items():
-            if extant and thing not in self.pawn:
-                self.add_pawn(thing)
-            elif not extant and thing in self.pawn:
-                self.rm_pawn(thing)
+        for (node, extant) in delta.get('nodes', {}).items():
+            if extant:
+                if node in delta.get('node_val', {}) \
+                        and 'location' in delta['node_val'][node]\
+                        and node not in self.pawn:
+                    self.add_pawn(node)
+                elif node not in self.spot:
+                    self.add_spot(node)
+                    spot = self.spot[node]
+                    if '_x' not in spot.place or '_y' not in spot.place:
+                        self.spots_unposd.append(spot)
+            else:
+                if node in self.pawn:
+                    self.rm_pawn(node)
+                if node in self.spot:
+                    self.rm_spot(node)
         for (node, stats) in delta.get('node_val', {}).items():
             if node in self.spot:
                 spot = self.spot[node]
