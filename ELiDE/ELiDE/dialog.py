@@ -4,7 +4,6 @@
 
 """
 from functools import partial
-from importlib import import_module
 from kivy.properties import (
     DictProperty, ListProperty, ObjectProperty, StringProperty, NumericProperty, VariableListProperty
 )
@@ -232,6 +231,7 @@ class DialogLayout(FloatLayout):
         Clock.schedule_once(part)
 
     def _lookup_func(self, funcname):
+        from importlib import import_module
         if not hasattr(self, '_usermod'):
             self._usermod = import_module(self.usermod, self.userpkg)
         return getattr(self.usermod, funcname)

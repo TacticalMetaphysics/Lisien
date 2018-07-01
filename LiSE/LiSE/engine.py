@@ -5,11 +5,8 @@ stores for game data and entities, as well as properties for manipulating the
 flow of time.
 
 """
-from random import Random
 from functools import partial
 from types import FunctionType, MethodType
-from contextlib import contextmanager
-from collections import defaultdict
 
 import umsgpack
 from blinker import Signal
@@ -132,6 +129,8 @@ class AbstractEngine(object):
     in which deserialized entities will be created as needed.
 
     """
+    from contextlib import contextmanager
+
     @contextmanager
     def loading(self):
         """Context manager for when you need to instantiate entities upon unpacking"""
@@ -937,6 +936,7 @@ class Engine(AbstractEngine, gORM):
         self.random_seed = random_seed
         self._rules_iter = self._follow_rules()
         # set up the randomizer
+        from random import Random
         self.rando = Random()
         if 'rando_state' in self.universal:
             self.rando.setstate(self.universal['rando_state'])
@@ -1161,6 +1161,7 @@ class Engine(AbstractEngine, gORM):
 
     def _follow_rules(self):
         # TODO: apply changes to a facade first, and commit it when you're done. Then report changes to the facade
+        from collections import defaultdict
         branch, turn, tick = self.btt()
         charmap = self.character
         rulemap = self.rule

@@ -3,10 +3,8 @@
 """Widget representing things that move about from place to place."""
 from kivy.properties import (
     AliasProperty,
-    BooleanProperty,
     ObjectProperty,
-    NumericProperty,
-    ReferenceListProperty
+    NumericProperty
 )
 from .pawnspot import PawnSpot
 from ..util import trigger

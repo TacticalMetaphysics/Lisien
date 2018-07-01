@@ -7,7 +7,7 @@ points from the origin to the destination, regardless of where on the
 screen they are at the moment.
 
 """
-from math import cos, sin, hypot, atan, pi
+from math import cos, sin, atan, pi
 from kivy.uix.widget import Widget
 from kivy.properties import (
     ReferenceListProperty,
@@ -24,7 +24,7 @@ from kivy.clock import Clock
 try:
     from kivy.garden.collider import Collide2DPoly
 except (KeyError, ImportError):
-    from ..util import Collide2DPoly
+    from ..collide import Collide2DPoly
 from ..util import get_thin_rect_vertices, fortyfive
 
 

@@ -8,10 +8,7 @@ from functools import partial
 from kivy.properties import (
     BooleanProperty,
     DictProperty,
-    NumericProperty,
     ObjectProperty,
-    OptionProperty,
-    ReferenceListProperty,
     StringProperty,
 )
 from kivy.logger import Logger

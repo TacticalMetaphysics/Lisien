@@ -5,12 +5,9 @@ from kivy.properties import (
     DictProperty,
     NumericProperty,
     StringProperty,
-    ReferenceListProperty,
-    ObjectProperty,
-    OptionProperty
+    ObjectProperty
 )
 from kivy.lang import Builder
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button

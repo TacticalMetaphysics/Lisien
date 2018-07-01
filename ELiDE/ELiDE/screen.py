@@ -8,7 +8,6 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
-from importlib import import_module
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -20,14 +19,12 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
-    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
     StringProperty
 )
 from .charmenu import CharMenu
-from .dialog import Dialog
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)

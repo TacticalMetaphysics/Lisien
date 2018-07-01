@@ -29,7 +29,6 @@ from collections import (
     Callable
 )
 from operator import ge, gt, le, lt, eq
-from math import floor
 from blinker import Signal
 
 import networkx as nx
@@ -39,7 +38,6 @@ from allegedb.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from allegedb.cache import FuturistWindowDict, PickyDefaultDict
 from allegedb.wrap import MutableMappingUnwrapper
 
 from .xcollections import CompositeDict
@@ -50,7 +48,6 @@ from .thing import Thing
 from .place import Place
 from .portal import Portal
 from .util import getatt, singleton_get
-from .query import StatusAlias
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 
 
@@ -202,6 +199,7 @@ class AbstractCharacter(MutableMapping):
     stat = getatt('graph')
 
     def historical(self, stat):
+        from .query import StatusAlias
         return StatusAlias(
             entity=self.stat,
             stat=stat
@@ -233,6 +231,7 @@ class AbstractCharacter(MutableMapping):
         Supply the name of another stat to use it instead.
 
         """
+        from math import floor
         p = self.engine.shuffle([
             151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7,
             225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190,
@@ -1405,6 +1404,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         Portal
 
         """
+        from allegedb.cache import FuturistWindowDict, PickyDefaultDict
         super().__init__(engine, name, data, **attr)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
         if not init_rulebooks:

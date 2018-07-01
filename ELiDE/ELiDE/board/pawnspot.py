@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  zacharyspector@gmail.com
 """Code that draws the box around a Pawn or Spot when it's selected"""
-from functools import partial
 from collections import defaultdict
 
 from kivy.properties import (

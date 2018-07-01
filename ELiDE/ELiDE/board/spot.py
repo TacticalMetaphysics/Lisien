@@ -8,10 +8,8 @@ from kivy.clock import Clock
 
 from kivy.properties import (
     AliasProperty,
-    ListProperty,
     ObjectProperty,
-    NumericProperty,
-    BooleanProperty
+    NumericProperty
 )
 from .pawnspot import PawnSpot
 from ..util import trigger

@@ -35,7 +35,6 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty,
-    OptionProperty,
     StringProperty
 )
 from .util import trigger

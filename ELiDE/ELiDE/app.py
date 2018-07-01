@@ -7,7 +7,6 @@ import json
 from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.lang import Builder
 from kivy.resources import resource_add_path
 
 from kivy.uix.screenmanager import ScreenManager
@@ -21,6 +20,7 @@ from kivy.properties import (
 import LiSE
 from LiSE.proxy import EngineProcessManager
 import ELiDE
+import ELiDE.dialog
 import ELiDE.screen
 import ELiDE.stores
 import ELiDE.statcfg

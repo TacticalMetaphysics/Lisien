@@ -2,7 +2,6 @@
 # Copyright (c) Zachary Spector. public@zacharyspector.com
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from collections import defaultdict, deque
 from .window import WindowDict, HistoryError
 
 
@@ -199,6 +198,7 @@ class Cache(object):
         It will also be passed my ``validate`` argument.
 
         """
+        from collections import defaultdict, deque
         dd2 = defaultdict(lambda: defaultdict(list))
         for row in data:
             entity, key, branch, turn, tick, value = row[-6:]

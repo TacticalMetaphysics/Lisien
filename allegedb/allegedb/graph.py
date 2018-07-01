@@ -4,11 +4,8 @@
 import networkx
 from networkx.exception import NetworkXError
 from blinker import Signal
-from collections import Mapping, defaultdict
-from operator import attrgetter
-from itertools import chain
-from .wrap import DictWrapper, ListWrapper, SetWrapper, MutableMappingUnwrapper
-from functools import partial
+from collections import defaultdict
+from .wrap import MutableMappingUnwrapper
 
 
 class EntityCollisionError(ValueError):
@@ -17,6 +14,7 @@ class EntityCollisionError(ValueError):
 
 def getatt(attribute_name):
     """An easy way to make an alias"""
+    from operator import attrgetter
     return property(attrgetter(attribute_name))
 
 
@@ -45,6 +43,7 @@ class AllegedMapping(MutableMappingUnwrapper, Signal):
 
     def update(self, other, **kwargs):
         """Version of ``update`` that doesn't clobber the database so much"""
+        from itertools import chain
         if hasattr(other, 'items'):
             other = other.items()
         for (k, v) in chain(other, kwargs.items()):
@@ -89,6 +88,8 @@ class AbstractEntityMapping(AllegedMapping):
 
         """
         def wrapval(v):
+            from functools import partial
+            from .wrap import DictWrapper, ListWrapper, SetWrapper
             if isinstance(v, list):
                 return ListWrapper(partial(self._get_cache_now, key), partial(self._set_cache_now, key), self, key)
             elif isinstance(v, dict):
@@ -379,6 +380,7 @@ class GraphNodeMapping(AllegedMapping):
         )
 
     def __eq__(self, other):
+        from collections import Mapping
         if not isinstance(other, Mapping):
             return NotImplemented
         if self.keys() != other.keys():

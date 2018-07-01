@@ -9,7 +9,6 @@ entity in the LiSE core.
 """
 import sys
 import logging
-from os import getpid
 from abc import abstractmethod
 from random import Random
 from collections import (
@@ -21,20 +20,20 @@ from functools import partial
 from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
 from queue import Empty
+
 from blinker import Signal
 
-from allegedb.cache import HistoryError
+from allegedb.cache import HistoryError, PickyDefaultDict, StructuredDefaultDict
+from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .engine import AbstractEngine
 from .character import Facade, AbstractCharacter
-from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .util import reify, getatt
-from allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
-from LiSE.node import NodeContent, UserMapping, UserDescriptor
-from LiSE.place import Place
-from LiSE.thing import Thing
-from LiSE.portal import Portal
+from .node import NodeContent, UserMapping, UserDescriptor
+from .place import Place
+from .thing import Thing
+from .portal import Portal
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -2526,6 +2525,7 @@ def subprocess(
     args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel
 ):
     def log(typ, data):
+        from os import getpid
         if typ == 'command':
             (cmd, kvs) = data
             logs = "LiSE proc {}: calling {}({})".format(

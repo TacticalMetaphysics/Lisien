@@ -6,7 +6,6 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
 from functools import partial
 from math import sin, cos, atan, pi
-from .collide import Collide2DPoly
 
 ninety = pi / 2
 """pi / 2"""

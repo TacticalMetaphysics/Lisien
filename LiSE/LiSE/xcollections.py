@@ -3,11 +3,12 @@
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from types import MethodType
+from inspect import getsource
+from ast import parse, Expr, Module
+import json
+
 from blinker import Signal
 from astunparse import Unparser
-from ast import parse, Expr, Module
-from inspect import getsource
-import json
 
 from .util import dedent_source
 

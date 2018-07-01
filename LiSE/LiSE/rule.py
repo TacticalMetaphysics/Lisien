@@ -17,7 +17,6 @@ need to change that.
 
 """
 from collections import (
-    Mapping,
     MutableMapping,
     MutableSequence,
     Hashable
@@ -26,11 +25,13 @@ from abc import ABC, abstractmethod
 from functools import partial
 from inspect import getsource
 from ast import parse
+
 from astunparse import unparse
 from blinker import Signal
 
 from .reify import reify
 from .util import dedent_source
+
 
 def roundtrip_dedent(source):
     """Reformat some lines of code into what unparse makes."""

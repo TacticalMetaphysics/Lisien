@@ -1,9 +1,7 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
-from collections import defaultdict
-from functools import partial
-from contextlib import ContextDecorator, contextmanager
+from contextlib import ContextDecorator
 
 from blinker import Signal
 
@@ -17,7 +15,6 @@ from .graph import (
     Edge
 )
 from .query import QueryEngine
-from .cache import Cache, NodesCache, EdgesCache, HistoryError
 
 
 class GraphNameError(KeyError):
@@ -251,6 +248,8 @@ class ORM(object):
         return PlanningContext(self)
     plan.__doc__ = PlanningContext.__doc__
 
+    from contextlib import contextmanager
+
     @contextmanager
     def advancing(self):
         """A context manager for when time is moving forward one turn at a time.
@@ -275,6 +274,7 @@ class ORM(object):
         indicating whether a node or edge exists.
 
         """
+        from functools import partial
         if turn_from == turn_to:
             return self.get_turn_delta(branch, turn_from, tick_from, tick_to)
         delta = {}
@@ -403,6 +403,8 @@ class ORM(object):
         return delta
 
     def _init_caches(self):
+        from collections import defaultdict
+        from .cache import Cache, NodesCache, EdgesCache
         self._global_cache = self.query._global_cache = {}
         self._node_objs = {}
         self._edge_objs = {}
@@ -614,6 +616,7 @@ class ORM(object):
         can only do once per branch, turn, tick.
 
         """
+        from .cache import HistoryError
         branch, turn, tick = self.btt()
         tick += 1
         if (branch, turn) in self._turn_end_plan:
