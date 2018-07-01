@@ -25,7 +25,7 @@ def install(eng):
                 continue
             if neighbor.user is poly.user:
                 similar += 1
-        return cmp(poly.user.stat[stat], similar / n)
+        return cmp(poly.character.stat[stat], similar / n)
 
     @eng.rule
     def relocate(poly):
@@ -49,21 +49,15 @@ def install(eng):
     eng.rulebook['parable'] = [relocate]
 
 
-    physical = eng.new_character('physical')
-    square = eng.new_character(
-        'square', min_sameness=.1, max_sameness=.9,
+    physical = eng.new_character(
+        'physical', min_sameness=.1, max_sameness=.9,
         _config={
             'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
             'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
         }
     )
-    triangle = eng.new_character(
-        'triangle', min_sameness=.2, max_sameness=.8,
-        _config={
-            'min_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0},
-            'max_sameness': {'control': 'slider', 'min': 0.0, 'max': 1.0}
-        }
-    )
+    square = eng.new_character('square')
+    triangle = eng.new_character('triangle')
     square.avatar.rulebook = triangle.avatar.rulebook = 'parable'
 
 
