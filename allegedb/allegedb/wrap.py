@@ -197,7 +197,7 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
         self._set(me)
 
     def unwrap(self):
-        return {v.unwrap() if hasattr(v, 'unwrap') else v for v in self}
+        return {v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for v in self}
 
 
 class SubSetWrapper(MutableWrapperSet, set):
@@ -281,7 +281,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         self._set(new)
 
     def unwrap(self):
-        return [v.unwrap() if hasattr(v, 'unwrap') else v for v in self]
+        return [v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for v in self]
 
 
 class SetWrapper(MutableWrapperSet, set):
