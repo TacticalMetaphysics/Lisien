@@ -3,6 +3,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
+from collections import defaultdict
 
 
 class FuturistWindowDict(WindowDict):
@@ -68,9 +69,15 @@ class PickyDefaultDict(dict):
 
     def __init__(
             self, type=object,
-            args_munger=lambda self, k: tuple(),
-            kwargs_munger=lambda self, k: dict()
+            args_munger=None,
+            kwargs_munger=None
     ):
+        if args_munger is None:
+            def args_munger(self, k):
+                return tuple()
+        if kwargs_munger is None:
+            def kwargs_munger(self, k):
+                return dict()
         self.type = type
         self.args_munger = args_munger
         self.kwargs_munger = kwargs_munger
@@ -111,8 +118,8 @@ class StructuredDefaultDict(dict):
 
     def __init__(
             self, layers, type=object,
-            args_munger=lambda self, k: tuple(),
-            kwargs_munger=lambda self, k: dict()
+            args_munger=None,
+            kwargs_munger=None
     ):
         if layers < 1:
             raise ValueError("Not enough layers")
@@ -125,16 +132,19 @@ class StructuredDefaultDict(dict):
         if k in self:
             return super(StructuredDefaultDict, self).__getitem__(k)
         if self.layer < 2:
-            ret = PickyDefaultDict(
-                self.type, self.args_munger, self.kwargs_munger
-            )
+            if self.args_munger or self.kwargs_munger:
+                ret = PickyDefaultDict(
+                    self.type, self.args_munger, self.kwargs_munger
+                )
+            else:
+                ret = defaultdict(self.type)
         else:
             ret = StructuredDefaultDict(
                 self.layer-1, self.type,
                 self.args_munger, self.kwargs_munger
             )
-        ret.parent = self
-        ret.key = k
+            ret.parent = self
+            ret.key = k
         super(StructuredDefaultDict, self).__setitem__(k, ret)
         return ret
 
@@ -168,7 +178,7 @@ class Cache(object):
         Deeper layers of this cache are keyed by branch, turn, and tick.
 
         """
-        self.keycache = PickyDefaultDict(TurnDict)
+        self.keycache = defaultdict(TurnDict)
         """Keys an entity has at a given turn and tick."""
         self.branches = StructuredDefaultDict(1, TurnDict)
         """A less structured alternative to ``keys``.
@@ -177,15 +187,11 @@ class Cache(object):
         but still need to iterate through history to find the value.
 
         """
-        self.shallow = PickyDefaultDict(SettingsTurnDict)
-        """Less structured alternative to ``branches`` ."""
-        self.shallower = PickyDefaultDict(WindowDict)
-        """Even less structured alternative to ``shallow``."""
         self.shallowest = {}
         """A dictionary for plain, unstructured hinting."""
-        self.settings = PickyDefaultDict(SettingsTurnDict)
+        self.settings = defaultdict(SettingsTurnDict)
         """All the ``entity[key] = value`` operations that were performed on some turn"""
-        self.presettings = PickyDefaultDict(SettingsTurnDict)
+        self.presettings = defaultdict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
 
     def load(self, data, validate=False, cb=None):
@@ -364,15 +370,7 @@ class Cache(object):
         settings_turns = self.settings[branch]
         branches = self.branches[parent+(entity, key)][branch]
         keys = self.keys[parent+(entity,)][key][branch]
-        shallow = self.shallow[parent+(entity, key, branch)]
         if planning:
-            if shallow:
-                if turn in shallow and tick < shallow[turn].end:
-                    raise HistoryError(
-                        "Already have some ticks after {} in turn {} of branch {}".format(
-                            tick, turn, branch
-                        )
-                    )
             if keys:
                 if turn in keys and tick <= keys[turn].end:
                     raise HistoryError(
@@ -425,25 +423,17 @@ class Cache(object):
                     del settings_turn[tic]
             branches.truncate(turn)
             keys.truncate(turn)
-            shallow.truncate(turn)
         if turn in branches:
             assert turn in keys
-            assert turn in shallow
             branchesturn = branches[turn]
             assert branchesturn is keys[turn]
             branchesturn.truncate(tick)
             branchesturn[tick] = value
-            shallowturn = shallow[turn]
-            shallowturn.truncate(tick)
-            shallowturn[tick] = value
         else:
             if new is None:
                 new = FuturistWindowDict()
                 new[tick] = value
             branches[turn] = keys[turn] = new
-            shallow[turn] = {tick: value}
-        self.shallower[parent+(entity, key, branch, turn)][tick] = value
-        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
@@ -486,18 +476,6 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key, branch, turn) in self.shallower and \
-                tick in self.shallower[entity+(key, branch, turn)]:
-            ret = self.shallowest[args] \
-                = self.shallower[entity+(key, branch, turn)][tick]
-            return ret
-        if entity+(key, branch) in self.shallow and \
-                turn in self.shallow[entity+(key, branch)] and \
-                self.shallow[entity+(key, branch)][turn].rev_gettable(tick):
-            ret = self.shallowest[args] \
-                = self.shallower[entity+(key, branch, turn)][tick] \
-                = self.shallow[entity + (key, branch)][turn].get(tick)
-            return ret
         for (b, r, t) in self.db._iter_parent_btt(branch):
             if (
                     b in self.branches[entity+(key,)]
