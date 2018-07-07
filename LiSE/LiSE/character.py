@@ -1690,6 +1690,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self.send(self, key=dest, val=p)
 
             def __delitem__(self, dest):
+                if dest not in self:
+                    raise KeyError("No portal to {}".format(dest))
                 self[dest].delete()
     adj_cls = PortalSuccessorsMapping
 

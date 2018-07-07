@@ -831,6 +831,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                     )
                     self.send(self, key=orig, val=None)
                     return
+                else:
+                    raise KeyError("No edges from {}".format(orig))
             self.db.query.exist_edge(
                 self.graph.name,
                 orig,
