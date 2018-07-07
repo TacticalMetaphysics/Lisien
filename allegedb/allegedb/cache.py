@@ -447,8 +447,8 @@ class Cache(object):
                 for trn, tics in deletable.items():
                     for tic in tics:
                         del settings_turns[trn][tic]
-        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         self._store_journal(*args)
+        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
