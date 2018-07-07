@@ -447,7 +447,10 @@ class EngineHandle(object):
                 del cache[char]
 
     def character_stat_copy(self, char):
-        return dict(self._real.character[char].stat.items())
+        return {
+            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for (k, v) in self._real.character[char].stat.items()
+        }
 
     @staticmethod
     def _character_something_delta(char, cache, copier, *args, store=True):
@@ -680,8 +683,8 @@ class EngineHandle(object):
         else:
             node = self._real.character[node_or_char].node[node]
         return {
-            k: v for (k, v) in node.items()
-            if k not in {
+            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for (k, v) in node.items() if k not in {
                 'character',
                 'name',
                 'arrival_time',
@@ -1008,7 +1011,10 @@ class EngineHandle(object):
         del self._portal_stat_cache[char][orig][dest][k]
 
     def portal_stat_copy(self, char, orig, dest):
-        return dict(self._real.character[char].portal[orig][dest].items())
+        return {
+            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
+            for (k, v) in self._real.character[char].portal[orig][dest].items()
+        }
 
     def portal_stat_delta(self, char, orig, dest, *, store=True):
         try:
