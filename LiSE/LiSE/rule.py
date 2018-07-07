@@ -389,8 +389,8 @@ class RuleBook(MutableSequence, Signal):
         except KeyError:
             raise IndexError
         del cache[i]
-        self.engine.query.set_rulebook(self.name, branch, tick, cache)
-        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
+        self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         self.engine.rulebook.send(self, i=i, v=None)
         self.send(self, i=i, v=None)
 
