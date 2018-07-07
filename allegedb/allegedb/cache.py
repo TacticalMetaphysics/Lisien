@@ -20,16 +20,19 @@ class SetMutation(Set):
         if self._real is None:
             real = set()
             inner = self._inner
+            inners = [inner]
             while hasattr(inner, '_inner'):
                 if hasattr(inner, '_real') and inner._real is not None:
-                    inner = inner._real
+                    inners.append(inner._real)
                     break
-                elif hasattr(inner, '_addition'):
+                inner = inner._inner
+                inners.append(inner)
+            real.update(inners.pop())
+            for inner in reversed(inners):
+                if hasattr(inner, '_addition'):
                     real.add(inner._addition)
                 elif hasattr(inner, '_subtraction'):
                     real.discard(inner._subtraction)
-                inner = inner._inner
-            real.update(inner)
             if hasattr(self, '_addition'):
                 real.add(self._addition)
             elif hasattr(self, '_subtraction'):
