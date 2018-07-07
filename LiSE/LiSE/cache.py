@@ -20,6 +20,8 @@ class InitializedCache(Cache):
             prev = self.retrieve(*args[:-1])
         except KeyError:
             return  # because you can't rewind past this
+        if prev == value:
+            return  # not much point reporting on a non-change in a diff
         if turn in settings_turns or turn in settings_turns.future():
             assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
