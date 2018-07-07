@@ -3,7 +3,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
-from collections import defaultdict, Set
+from collections import Set
 
 
 class SetMutation(Set):
@@ -148,7 +148,7 @@ class PickyDefaultDict(dict):
         return self.type(v)
 
     def __setitem__(self, k, v):
-        if not isinstance(v, self.type):
+        if type(v) is not self.type:
             v = self._create(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
@@ -182,19 +182,16 @@ class StructuredDefaultDict(dict):
         if k in self:
             return super(StructuredDefaultDict, self).__getitem__(k)
         if self.layer < 2:
-            if self.args_munger or self.kwargs_munger:
-                ret = PickyDefaultDict(
-                    self.type, self.args_munger, self.kwargs_munger
-                )
-            else:
-                ret = defaultdict(self.type)
+            ret = PickyDefaultDict(
+                self.type, self.args_munger, self.kwargs_munger
+            )
         else:
             ret = StructuredDefaultDict(
                 self.layer-1, self.type,
                 self.args_munger, self.kwargs_munger
             )
-            ret.parent = self
-            ret.key = k
+        ret.parent = self
+        ret.key = k
         super(StructuredDefaultDict, self).__setitem__(k, ret)
         return ret
 
@@ -228,7 +225,7 @@ class Cache(object):
         Deeper layers of this cache are keyed by branch, turn, and tick.
 
         """
-        self.keycache = defaultdict(TurnDict)
+        self.keycache = PickyDefaultDict(TurnDict)
         """Keys an entity has at a given turn and tick."""
         self.branches = StructuredDefaultDict(1, TurnDict)
         """A less structured alternative to ``keys``.
@@ -239,9 +236,9 @@ class Cache(object):
         """
         self.shallowest = {}
         """A dictionary for plain, unstructured hinting."""
-        self.settings = defaultdict(SettingsTurnDict)
+        self.settings = PickyDefaultDict(SettingsTurnDict)
         """All the ``entity[key] = value`` operations that were performed on some turn"""
-        self.presettings = defaultdict(SettingsTurnDict)
+        self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
 
     def load(self, data, validate=False, cb=None):
