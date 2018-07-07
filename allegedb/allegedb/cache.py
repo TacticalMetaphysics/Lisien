@@ -450,6 +450,7 @@ class Cache(object):
                 for trn, tics in deletable.items():
                     for tic in tics:
                         del settings_turns[trn][tic]
+        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         self._store_journal(*args)
         new = None
         if parent:
@@ -522,10 +523,24 @@ class Cache(object):
             if ret is None:
                 raise HistoryError("Set, then deleted", deleted=True)
             return ret
+        except HistoryError:
+            raise
         except KeyError:
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
+        if (
+            branch in self.branches[entity+(key,)]
+            and self.branches[entity+(key,)][branch].rev_gettable(turn)
+        ):
+            brancs = self.branches[entity+(key,)][branch]
+            if turn in brancs and tick in brancs[turn]:
+                ret = brancs[turn][tick]
+            else:
+                ret = brancs[turn]
+                ret = ret[ret.end]
+            self.shallowest[args] = ret
+            return ret
         for (b, r, t) in self.db._iter_parent_btt(branch):
             if (
                     b in self.branches[entity+(key,)]
@@ -537,7 +552,7 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
-                    self.shallowest[args] = ret
+                self.shallowest[args] = ret
                 return ret
         else:
             raise KeyError
