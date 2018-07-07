@@ -407,8 +407,6 @@ class WindowDict(MutableMapping):
             return self._past[0][0]
         elif self._future:
             return self._future[0][0]
-        else:
-            raise HistoryError("No history yet")
 
     @property
     def end(self):
@@ -416,8 +414,6 @@ class WindowDict(MutableMapping):
             return self._future[-1][0]
         elif self._past:
             return self._past[-1][0]
-        else:
-            raise HistoryError("No history yet")
 
     def keys(self):
         return WindowDictKeysView(self)

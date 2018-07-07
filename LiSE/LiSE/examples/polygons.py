@@ -62,7 +62,7 @@ def install(eng):
 
 
     # make an 8-way-connected grid
-    physical.grid_2d_8graph(10, 10)
+    physical.grid_2d_8graph(100, 100)
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
@@ -74,19 +74,24 @@ def install(eng):
 
 if __name__ == '__main__':
     import os
+    import cProfile
     from LiSE import Engine
-    for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
-        if os.path.exists(stale):
-            os.remove(stale)
-    with Engine('LiSEworld.db') as eng:
-        install(eng)
+    # for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
+    #     if os.path.exists(stale):
+    #         os.remove(stale)
+    # def inst():
+    #     with Engine('LiSEworld.db') as eng:
+    #         with eng.advancing():
+    #             install(eng)
+    # cProfile.run('inst()', 'polygons_init.prof')
+    # print('initialized')
     import sys
     if '--profile' in sys.argv:
-        import cProfile
 
         def test():
             with Engine('LiSEworld.db') as eng:
                 for n in range(10):
+                    print(n)
                     eng.next_turn()
-
-        cProfile.run('test()', 'polygons.prof')
+        test()
+        #cProfile.run('test()', 'polygons.prof')
