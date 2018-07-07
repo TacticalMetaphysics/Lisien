@@ -695,9 +695,9 @@ class EdgesCache(Cache):
     def _update_origcache(self, graph, dest, branch, turn, tick, orig, value, *, forward):
         kc = self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
         if value is None:
-            kc = SetSubtraction(kc, dest)
+            kc = SetSubtraction(kc, orig)
         else:
-            kc = SetAddition(kc, dest)
+            kc = SetAddition(kc, orig)
         self.origcache[graph, dest, branch][turn][tick] = kc
         return kc
 
