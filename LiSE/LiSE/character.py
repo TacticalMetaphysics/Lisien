@@ -1561,7 +1561,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 cache[(self.name, place)] = Place(self.character, place)
             if not self.engine._node_exists(self.character.name, place):
                 self.engine._exist_node(self.character.name, place)
-                assert self.engine._node_exists(self.character.name, place)
             pl = cache[(self.name, place)]
             pl.clear()
             pl.update(v)

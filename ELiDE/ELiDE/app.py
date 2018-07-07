@@ -189,7 +189,7 @@ class ELiDEApp(App):
     def _start_subprocess(self, *args):
         config = self.config
         self.procman = EngineProcessManager()
-        enkw = {'logger': Logger, 'validate': True}
+        enkw = {'logger': Logger}
         if config['LiSE'].get('logfile'):
             enkw['logfile'] = config['LiSE']['logfile']
         if config['LiSE'].get('loglevel'):

@@ -3,7 +3,57 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
-from collections import defaultdict
+from collections import defaultdict, Set
+
+
+class SetMutation(Set):
+    def __iter__(self):
+        return iter(self._reify())
+
+    def __len__(self):
+        return len(self._reify())
+
+    def __contains__(self, item):
+        return item in self._reify()
+
+    def _reify(self):
+        if self._real is None:
+            real = set()
+            inner = self._inner
+            while hasattr(inner, '_inner'):
+                if hasattr(inner, '_real') and inner._real is not None:
+                    inner = inner._real
+                    break
+                elif hasattr(inner, '_addition'):
+                    real.add(inner._addition)
+                elif hasattr(inner, '_subtraction'):
+                    real.discard(inner._subtraction)
+                inner = inner._inner
+            real.update(inner)
+            if hasattr(self, '_addition'):
+                real.add(self._addition)
+            elif hasattr(self, '_subtraction'):
+                real.discard(self._subtraction)
+            self._real = real
+        return self._real
+
+
+class SetAddition(SetMutation):
+    __slots__ = ('_inner', '_real', '_addition')
+
+    def __init__(self, inner, addition):
+        self._inner = inner
+        self._addition = addition
+        self._real = None
+
+
+class SetSubtraction(SetMutation):
+    __slots__ = ('_inner', '_real', '_subtraction')
+
+    def __init__(self, inner, subtraction):
+        self._inner = inner
+        self._subtraction = subtraction
+        self._real = None
 
 
 class FuturistWindowDict(WindowDict):
@@ -351,9 +401,9 @@ class Cache(object):
         parent = args[:-6]
         kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
         if value is None:
-            kc = kc.difference({key})
+            kc = SetSubtraction(kc, key)
         else:
-            kc = kc.union({key})
+            kc = SetAddition(kc, key)
         self.keycache[parent+(entity, branch)][turn][tick] = kc
         if validate:
             if parent:
@@ -487,8 +537,6 @@ class Cache(object):
                 else:
                     ret = brancs[r]
                     ret = ret[ret.end]
-                    self.shallow[entity+(key, branch)][turn][tick] = ret
-                    self.shallower[entity+(key, branch, turn)][tick] = ret
                     self.shallowest[args] = ret
                 return ret
         else:
@@ -544,7 +592,8 @@ class Cache(object):
             forward = self.db._forward
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        return key in self._get_keycache(entity, branch, turn, tick, forward=forward)
+        kc = self._get_keycache(entity, branch, turn, tick, forward=forward)
+        return key in kc
     contains_entity = contains_key = contains_entity_key \
                     = contains_entity_or_key
 

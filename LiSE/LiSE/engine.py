@@ -1373,8 +1373,6 @@ class Engine(AbstractEngine, gORM):
         return self._nodes_cache.contains_entity(character, node, *self.btt())
 
     def _exist_node(self, character, node):
-        if self._node_exists(character, node):
-            return
         branch, turn, tick = self.nbtt()
         self.query.exist_node(
             character,
@@ -1395,8 +1393,6 @@ class Engine(AbstractEngine, gORM):
     def _exist_edge(
             self, character, orig, dest, exist=True
     ):
-        if exist is self._edge_exists(character, orig, dest):
-            return
         branch, turn, tick = self.nbtt()
         self.query.exist_edge(
             character,
