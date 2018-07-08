@@ -551,6 +551,7 @@ class ORM(object):
             else:
                 self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
         self._obranch = v
+        self._otick = self._turn_end_plan[v, curturn]
     branch = property(_get_branch, _set_branch)  # easier to override this way
 
     def _get_turn(self):
