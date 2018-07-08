@@ -207,17 +207,6 @@ class Cache(object):
 
     def __init__(self, db):
         self.db = db
-        self.parents = StructuredDefaultDict(3, TurnDict)
-        """Entity data keyed by the entities' parents.
-
-        An entity's parent is what it's contained in. When speaking of a node,
-        this is its graph. When speaking of an edge, the parent is usually the
-        graph and the origin in a pair, though for multigraphs the destination
-        might be part of the parent as well.
-
-        Deeper layers of this cache are keyed by branch and revision.
-
-        """
         self.keys = StructuredDefaultDict(2, TurnDict)
         """Cache of entity data keyed by the entities themselves.
 
@@ -397,20 +386,16 @@ class Cache(object):
         self._update_keycache(*args, validate=validate, forward=forward)
 
     def _update_keycache(self, *args, validate, forward):
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
-        kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
+        key, branch, turn, tick, value = args[-5:]
+        entity = args[:-5]
+        kc = self._get_keycache(entity, branch, turn, tick, forward=forward)
         if value is None:
             kc = SetSubtraction(kc, key)
         else:
             kc = SetAddition(kc, key)
-        self.keycache[parent+(entity, branch)][turn][tick] = kc
+        self.keycache[entity+(branch,)][turn][tick] = kc
         if validate:
-            if parent:
-                correct = set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick))
-                if kc != correct:
-                    raise ValueError("Invalid parents cache")
-            correct = set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick))
+            correct = set(self._slow_iter_keys(self.keys[entity], branch, turn, tick))
             if kc != correct:
                 raise ValueError("Invalid keys cache")
 
@@ -453,16 +438,6 @@ class Cache(object):
         self._store_journal(*args)
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         new = None
-        if parent:
-            parents = self.parents[parent][entity][key][branch]
-            if turn in parents:
-                parentsturn = parents[turn]
-                parentsturn.truncate(tick)
-                parentsturn[tick] = value
-            else:
-                new = FuturistWindowDict()
-                new[tick] = value
-                parents[turn] = new
         if branches and turn < branches.end:
             # deal with the paradox by erasing history after this tick and turn
             if turn in branches:
@@ -649,130 +624,39 @@ class NodesCache(Cache):
 
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
-    @property
-    def successors(self):
-        return self.parents
-
     def __init__(self, db):
         Cache.__init__(self, db)
-        self.destcache = PickyDefaultDict(TurnDict)
-        self.origcache = PickyDefaultDict(TurnDict)
-        self.predecessors = StructuredDefaultDict(3, TurnDict)
+        self._successors = StructuredDefaultDict(3, SettingsTurnDict)
+        self._predecessors = StructuredDefaultDict(3, SettingsTurnDict)
 
-    def _slow_iter_successors(self, cache, branch, turn, tick):
-        for dest, dests in cache.items():
-            for idx in self._slow_iter_keys(dests, branch, turn, tick):
-                yield dest
-                break
-
-    def _slow_iter_predecessors(self, cache, branch, turn, tick):
-        for orig, origs in cache.items():
-            for idx in self._slow_iter_keys(origs, branch, turn, tick):
-                yield orig
-                break
-
-    def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
-        return self._get_keycachelike(
-            self.destcache, self.successors, self._slow_iter_successors, (graph, orig),
-            branch, turn, tick, forward=forward
-        )
-
-    def _update_destcache(self, graph, orig, branch, turn, tick, dest, value, *, forward):
-        kc = self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
-        if value is None:
-            kc = SetSubtraction(kc, dest)
-        else:
-            kc = SetAddition(kc, dest)
-        self.destcache[graph, orig, branch][turn][tick] = kc
-        return kc
-
-    def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
-        return self._get_keycachelike(
-            self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
-            branch, turn, tick, forward=forward
-        )
-
-    def _update_origcache(self, graph, dest, branch, turn, tick, orig, value, *, forward):
-        kc = self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
-        if value is None:
-            kc = SetSubtraction(kc, orig)
-        else:
-            kc = SetAddition(kc, orig)
-        self.origcache[graph, dest, branch][turn][tick] = kc
-        return kc
-
-    def _update_keycache(self, *args, validate, forward):
-        super()._update_keycache(*args, validate=validate, forward=forward)
-        graph, orig, dest, idx, branch, turn, tick, value = args
-        self._update_origcache(graph, dest, branch, turn, tick, orig, value, forward=forward)
-        self._update_destcache(graph, orig, branch, turn, tick, dest, value, forward=forward)
-
-    def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
+    def iter_successors(self, graph, orig, branch, turn, tick):
         """Iterate over successors of a given origin node at a given time."""
-        if forward is None:
-            forward = self.db._forward
-        yield from self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
+        raise NotImplementedError
 
-    def iter_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
+    def iter_predecessors(self, graph, dest, branch, turn, tick):
         """Iterate over predecessors to a given destination node at a given time."""
-        if forward is None:
-            forward = self.db._forward
-        yield from self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
+        raise NotImplementedError
 
-    def count_successors(self, graph, orig, branch, turn, tick, *, forward=None):
+    def count_successors(self, graph, orig, branch, turn, tick):
         """Return the number of successors to a given origin node at a given time."""
-        if forward is None:
-            forward = self.db._forward
-        return len(self._get_destcache(graph, orig, branch, turn, tick, forward=forward))
+        raise NotImplementedError
 
-    def count_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
+    def count_predecessors(self, graph, dest, branch, turn, tick):
         """Return the number of predecessors from a given destination node at a given time."""
-        if forward is None:
-            forward = self.db._forward
-        return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))
+        raise NotImplementedError
 
-    def has_successor(self, graph, orig, dest, branch, turn, tick, *, forward=None):
+    def has_successor(self, graph, orig, dest, branch, turn, tick):
         """Return whether an edge connects the origin to the destination at the given time."""
-        if forward is None:
-            forward = self.db._forward
-        return dest in self._get_keycachelike(
-            self.destcache, self.successors, self._slow_iter_successors, (graph, orig),
-            branch, turn, tick, forward=forward
-        )
+        raise NotImplementedError
     
-    def has_predecessor(self, graph, dest, orig, branch, turn, tick, forward=None):
+    def has_predecessor(self, graph, dest, orig, branch, turn, tick):
         """Return whether an edge connects the destination to the origin at the given time."""
-        if forward is None:
-            forward = self.db._forward
-        return orig in self._get_keycachelike(
-            self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
-            branch, turn, tick, forward=forward
-        )
+        raise NotImplementedError
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
         if not ex:
             ex = None
-        if planning is None:
-            planning = self.db.planning
         Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning)
-        if (graph, orig, dest, idx) not in self.db._edge_objs:
+        if ex and (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
-        preds = self.predecessors[(graph, dest)][orig][idx][branch]
-        if turn in preds:
-            preds[turn][tick] = ex
-        else:
-            newp = FuturistWindowDict()
-            newp[tick] = ex
-            preds[turn] = newp
-
-    def _forward_valcaches(self, graph, orig, dest, key, branch, turn, tick, ex, *, validate=False):
-        if not ex:
-            ex = None
-        oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
-        dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
-        if validate:
-            if oc != set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, turn, tick)):
-                raise ValueError("Invalid origcache")
-            if dc != set(self._slow_iter_successors(self.successors[(graph, orig)], branch, turn, tick)):
-                raise ValueError("Invalid destcache")
