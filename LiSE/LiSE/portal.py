@@ -307,4 +307,7 @@ class Portal(Edge, RuleFollower):
         )
 
     def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
+        return {
+            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap')
+            else v for (k, v) in self.items()
+        }
