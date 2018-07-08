@@ -2,7 +2,8 @@
 # Copyright (c) Zachary Spector. public@zacharyspector.com
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from .window import WindowDict, HistoryError
+from .window import WindowDict, HistoryError, update_window
+from functools import partial, partialmethod
 from collections import Set
 
 
@@ -622,6 +623,24 @@ class NodesCache(Cache):
         return super()._update_keycache(graph, node, branch, turn, tick, ex, validate=validate, forward=forward)
 
 
+def _maybe_process_successor(graph, orig, r, grap, ori, dest, idx, extant):
+    if grap != graph or ori != orig:
+        return
+    if extant:
+        r.add(dest)
+    else:
+        r.discard(dest)
+
+
+def _maybe_process_predecessor(graph, dest, r, grap, orig, des, idx, extant):
+    if grap != graph or des != dest:
+        return
+    if extant:
+        r.add(orig)
+    else:
+        r.discard(orig)
+
+
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
     def __init__(self, db):
@@ -629,29 +648,45 @@ class EdgesCache(Cache):
         self._successors = StructuredDefaultDict(3, SettingsTurnDict)
         self._predecessors = StructuredDefaultDict(3, SettingsTurnDict)
 
+    def _slow_get_sucpred(self, processor, graph, node, branch, turn, tick):
+        r = set()
+        proc = partial(processor, graph, node, r)
+
+        lineage = list(self.db._iter_parent_btt(branch, turn, tick))
+        brnch, trn, tck = lineage.pop()
+        while lineage:
+            nbrnch, ntrn, ntck = lineage.pop()
+            # minus one from the old tick in order to include it in the results
+            update_window(trn, tck-1, ntrn, ntck, proc, self.settings[nbrnch])
+            (brnch, trn, tck) = (nbrnch, ntrn, ntck)
+        return r
+
+    _slow_get_successors = partialmethod(_slow_get_sucpred, _maybe_process_successor)
+    _slow_get_predecessors = partialmethod(_slow_get_sucpred, _maybe_process_predecessor)
+
     def iter_successors(self, graph, orig, branch, turn, tick):
         """Iterate over successors of a given origin node at a given time."""
-        raise NotImplementedError
+        yield from self._slow_get_successors(graph, orig, branch, turn, tick)
 
     def iter_predecessors(self, graph, dest, branch, turn, tick):
         """Iterate over predecessors to a given destination node at a given time."""
-        raise NotImplementedError
+        yield from self._slow_get_predecessors(graph, dest, branch, turn, tick)
 
     def count_successors(self, graph, orig, branch, turn, tick):
         """Return the number of successors to a given origin node at a given time."""
-        raise NotImplementedError
+        return len(self._slow_get_successors(graph, orig, branch, turn, tick))
 
     def count_predecessors(self, graph, dest, branch, turn, tick):
         """Return the number of predecessors from a given destination node at a given time."""
-        raise NotImplementedError
+        return len(self._slow_get_predecessors(graph, dest, branch, turn, tick))
 
     def has_successor(self, graph, orig, dest, branch, turn, tick):
         """Return whether an edge connects the origin to the destination at the given time."""
-        raise NotImplementedError
+        return dest in self._slow_get_successors(graph, orig, branch, turn, tick)
     
     def has_predecessor(self, graph, dest, orig, branch, turn, tick):
         """Return whether an edge connects the destination to the origin at the given time."""
-        raise NotImplementedError
+        return orig in self._slow_get_predecessors(graph, dest, branch, turn, tick)
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
         if not ex:
