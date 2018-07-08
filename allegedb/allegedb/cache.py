@@ -685,46 +685,33 @@ class EdgesCache(Cache):
                 self.db._edge_objs[(graph, orig, dest, idx)] \
                     = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
 
-            if (graph, orig) in self.successors and \
-                    branch in self.successors[graph, orig] and \
-                    turn in self.successors[graph, orig][branch] and \
-                    self.successors[graph, orig][branch][turn].rev_gettable(tick):
-                assert (graph, dest) in self.predecessors
-                assert branch in self.predecessors[graph, dest]
-                assert turn in self.predecessors[graph, dest][branch]
-                assert self.predecessors[graph, dest][branch][turn].rev_gettable(tick)
-                sucbt = self.successors[graph, orig][branch][turn]
+            sucs = self.successors
+            if (graph, orig) in sucs and \
+                    branch in sucs[graph, orig] and \
+                    turn in sucs[graph, orig][branch] and \
+                    sucs[graph, orig][branch][turn].rev_gettable(tick):
+                sucbt = sucs[graph, orig][branch][turn]
                 sucbt[tick] = SetAddition(sucbt[tick], dest)
-                predbt = self.predecessors[graph, dest][branch][turn]
-                predbt[tick] = SetAddition(predbt[tick], orig)
-            elif self.successors[graph, orig][branch].rev_gettable(turn) \
-                    and self.successors[graph, orig][branch][turn]:
-                assert self.predecessors[graph, dest][branch].rev_gettable(turn)
-                assert self.predecessors[graph, dest][branch][turn]
-                sucb = self.successors[graph, orig][branch]
+            elif sucs[graph, orig][branch].rev_gettable(turn):
+                assert sucs[graph, orig][branch][turn]
+                sucb = sucs[graph, orig][branch]
                 sucb[turn][tick] = SetAddition(sucb[turn][sucb[turn].end], dest)
-                predb = self.predecessors[graph, dest][branch]
-                predb[turn][tick] = SetAddition(predb[turn][predb[turn].end], orig)
             else:
-                suc = self.successors[graph, orig]
-                pred = self.predecessors[graph, dest]
+                suc = sucs[graph, orig]
                 for (b, r, t) in self.db._iter_parent_btt(branch):
                     if b in suc and suc[b].rev_gettable(r) and suc[b][r]:
-                        assert b in pred
-                        assert pred[b].rev_gettable(r)
-                        assert pred[b][r]
                         sucbr = suc[b][r]
                         suc[branch][turn][tick] = SetAddition(sucbr[sucbr.end], dest)
-                        predbr = pred[b][r]
-                        pred[branch][turn][tick] = SetAddition(predbr[predbr.end], orig)
                         break
                 else:
                     suc[branch][turn][tick] = frozenset([dest])
                     assert suc[branch][turn].rev_gettable(tick+1)
                     assert dest in suc[branch][turn][tick]
-                    pred[branch][turn][tick] = frozenset([orig])
-                    assert pred[branch][turn].rev_gettable(tick+1)
-                    assert orig in pred[branch][turn][tick]
+
+            preds = self.predecessors
+            if (graph, dest) in preds and \
+                branch in preds[graph, dest] and \
+                  
         else:
             if turn in self.successors[graph, orig][branch] and \
                     self.successors[graph, orig][branch][turn].rev_gettable(tick):

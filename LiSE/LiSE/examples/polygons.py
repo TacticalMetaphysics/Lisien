@@ -76,15 +76,15 @@ if __name__ == '__main__':
     import os
     import cProfile
     from LiSE import Engine
-    # for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
-    #     if os.path.exists(stale):
-    #         os.remove(stale)
-    # def inst():
-    #     with Engine('LiSEworld.db') as eng:
-    #         with eng.advancing():
-    #             install(eng)
-    # cProfile.run('inst()', 'polygons_init.prof')
-    # print('initialized')
+    for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
+        if os.path.exists(stale):
+            os.remove(stale)
+    def inst():
+        with Engine('LiSEworld.db') as eng:
+            with eng.advancing():
+                install(eng)
+    cProfile.run('inst()', 'polygons_init.prof')
+    print('initialized')
     import sys
     if '--profile' in sys.argv:
 
