@@ -94,4 +94,4 @@ if __name__ == '__main__':
                     print(n)
                     eng.next_turn()
         test()
-        #cProfile.run('test()', 'polygons.prof')
+        cProfile.run('test()', 'polygons.prof')

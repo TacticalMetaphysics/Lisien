@@ -622,59 +622,119 @@ class NodesCache(Cache):
         return super()._update_keycache(graph, node, branch, turn, tick, ex, validate=validate, forward=forward)
 
 
+def _sucpred_get(cache, whatfrom, branch, turn, tick):
+    if not (
+        whatfrom in cache
+        and branch in cache[whatfrom]
+        and cache[whatfrom][branch].rev_gettable(turn)
+    ):
+        return
+    b = cache[whatfrom][branch]
+    if turn in b:
+        if b[turn].rev_gettable(tick):
+            return b[turn][tick]
+        elif b.rev_gettable(turn-1):
+            return b[turn-1][b[turn-1].end]
+        else:
+            return
+    else:
+        assert b[turn], "Null edge cache: {}".format(
+            (cache.__name__, whatfrom, branch, turn, tick)
+        )
+        return b[turn][b[turn].end]
+
+
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
 
     def __init__(self, db):
         Cache.__init__(self, db)
-        self.destcache = PickyDefaultDict(TurnDict)
-        self.origcache = PickyDefaultDict(TurnDict)
         self.successors = StructuredDefaultDict(1, TurnDict)
         self.predecessors = StructuredDefaultDict(1, TurnDict)
 
     def iter_successors(self, graph, orig, branch, turn, tick):
         """Iterate over successors of a given origin node at a given time."""
-        try:
-            yield from self.successors[graph, orig][branch][turn][tick]
-        except HistoryError:
-            return
+        sucs = _sucpred_get(self.successors, (graph, orig), branch, turn, tick)
+        if sucs:
+            yield from sucs
 
     def iter_predecessors(self, graph, dest, branch, turn, tick):
         """Iterate over predecessors to a given destination node at a given time."""
-        try:
-            yield from self.predecessors[graph, dest][branch][turn][tick]
-        except HistoryError:
-            return
+        preds = _sucpred_get(self.predecessors, (graph, dest), branch, turn, tick)
+        if preds:
+            yield from preds
 
     def count_successors(self, graph, orig, branch, turn, tick):
         """Return the number of successors to a given origin node at a given time."""
-        try:
-            return len(self.successors[graph, orig][branch][turn][tick])
-        except HistoryError:
-            return 0
+        sucs = _sucpred_get(self.successors, (graph, orig), branch, turn, tick)
+        if sucs:
+            return len(sucs)
+        return 0
 
     def count_predecessors(self, graph, dest, branch, turn, tick):
         """Return the number of predecessors from a given destination node at a given time."""
-        try:
-            return len(self.predecessors[graph, dest][branch][turn][tick])
-        except HistoryError:
-            return 0
+        preds = _sucpred_get(self.predecessors, (graph, dest), branch, turn, tick)
+        if preds:
+            return len(preds)
+        return 0
 
     def has_successor(self, graph, orig, dest, branch, turn, tick):
         """Return whether an edge connects the origin to the destination at the given time."""
-        try:
-            return dest in self.successors[graph, orig][branch][turn][tick]
-        except HistoryError:
-            return False
+        sucs = _sucpred_get(self.successors, (graph, orig), branch, turn, tick)
+        if sucs:
+            return dest in sucs
+        return False
     
     def has_predecessor(self, graph, dest, orig, branch, turn, tick):
         """Return whether an edge connects the destination to the origin at the given time."""
-        try:
-            return orig in self.predecessors[graph, dest][branch][turn][tick]
-        except HistoryError:
-            return False
+        preds = _sucpred_get(self.predecessors, (graph, dest), branch, turn, tick)
+        if preds:
+            return orig in preds
+        return False
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
+        # Problem: This approach requires not to ever revise the past
+        # Doesn't that mean we can never cache without enabling db.forward?
+        # Why even have that switch, then?
+        def store_sucpred(op, cache, whatfrom, whatto):
+            # store either a SetAddition or a SetSubtraction in the successors or predecessors cache
+            done = False
+            if (graph, whatfrom) in cache and \
+                    branch in cache[graph, whatfrom]:
+                b = cache[graph, whatfrom][branch]
+                if turn in b and b[turn].rev_gettable(tick):
+                    bt = b[turn]
+                    assert bt
+                    bt[tick] = op(bt[tick], whatto)
+                    done = True
+                elif b.rev_gettable(turn):
+                    assert b[turn]
+                    v = op(b[turn][b[turn].end], whatto)
+                    if turn in b:
+                        b[turn][tick] = v
+                    else:
+                        b[turn] = {tick: v}
+                    done = True
+            if not done:
+                a = cache[graph, whatfrom]
+                for (brnch, trn, tck) in self.db._iter_parent_btt(branch):
+                    if brnch in a and a[brnch].rev_gettable[trn]:
+                        assert a[brnch][trn]
+                        bt = a[brnch][trn]
+                        v = setop(bt[tck], whatto)
+                        if branch in a and turn in a[branch]:
+                            a[branch][turn][tick] = v
+                        else:
+                            a[branch][turn] = {tick: v}
+                        break
+                else:
+                    assert op is SetAddition, "Tried to subtract {} from a null set".format(whatto)
+                    v = frozenset([whatto])
+                    if branch in a and turn in a[branch]:
+                        a[branch][turn][tick] = v
+                    else:
+                        a[branch][turn] = {tick: v}
+
         if not ex:
             ex = None
         if planning is None:
@@ -684,59 +744,9 @@ class EdgesCache(Cache):
             if (graph, orig, dest, idx) not in self.db._edge_objs:
                 self.db._edge_objs[(graph, orig, dest, idx)] \
                     = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
-
-            sucs = self.successors
-            if (graph, orig) in sucs and \
-                    branch in sucs[graph, orig] and \
-                    turn in sucs[graph, orig][branch] and \
-                    sucs[graph, orig][branch][turn].rev_gettable(tick):
-                sucbt = sucs[graph, orig][branch][turn]
-                sucbt[tick] = SetAddition(sucbt[tick], dest)
-            elif sucs[graph, orig][branch].rev_gettable(turn):
-                assert sucs[graph, orig][branch][turn]
-                sucb = sucs[graph, orig][branch]
-                sucb[turn][tick] = SetAddition(sucb[turn][sucb[turn].end], dest)
-            else:
-                suc = sucs[graph, orig]
-                for (b, r, t) in self.db._iter_parent_btt(branch):
-                    if b in suc and suc[b].rev_gettable(r) and suc[b][r]:
-                        sucbr = suc[b][r]
-                        suc[branch][turn][tick] = SetAddition(sucbr[sucbr.end], dest)
-                        break
-                else:
-                    suc[branch][turn][tick] = frozenset([dest])
-                    assert suc[branch][turn].rev_gettable(tick+1)
-                    assert dest in suc[branch][turn][tick]
-
-            preds = self.predecessors
-            if (graph, dest) in preds and \
-                branch in preds[graph, dest] and \
-                  
+            setop = SetAddition
         else:
-            if turn in self.successors[graph, orig][branch] and \
-                    self.successors[graph, orig][branch][turn].rev_gettable(tick):
-                assert turn in self.predecessors[graph, dest][branch] and \
-                    self.predecessors[graph, dest][branch][turn].rev_gettable(tick)
-                sucbt = self.successors[graph, orig][branch][turn]
-                sucbt[tick] = SetSubtraction(sucbt[tick], dest)
-                predbt = self.predecessors[graph, dest][branch][turn]
-                predbt[tick] = SetSubtraction(predbt[tick], orig)
-            elif self.successors[graph, orig][branch].rev_gettable(turn):
-                assert self.predecessors[graph, dest][branch].rev_gettable(turn)
-                sucb = self.successors[graph, orig][branch]
-                sucb[turn][tick] = SetSubtraction(sucb[turn][sucb[turn].end], dest)
-                predb = self.predecessors[graph, dest][branch]
-                predb[turn][tick] = SetSubtraction(predb[turn][predb[turn].end], orig)
-            else:
-                suc = self.successors[graph, orig]
-                pred = self.predecessors[graph, dest]
-                for (b, r, t) in self.db._iter_parent_btt(branch):
-                    if b in suc and suc[b].rev_gettable(r):
-                        assert b in pred and pred[b].rev_gettable(r)
-                        sucbr = suc[b][r]
-                        suc[branch][turn][tick] = SetSubtraction(sucbr[sucbr.end], dest)
-                        predbr = pred[b][r]
-                        pred[branch][turn][tick] = SetSubtraction(predbr[predbr.end], orig)
-                        break
-                else:
-                    raise KeyError("Tried subtracting destination from a null set")
+            setop = SetSubtraction
+
+        store_sucpred(setop, self.successors, orig, dest)
+        store_sucpred(setop, self.predecessors, dest, orig)
