@@ -93,7 +93,7 @@ class AbstractTurnDict(WindowDict):
             return ret
 
     def __setitem__(self, turn, value):
-        if not isinstance(value, self.cls):
+        if type(value) is not self.cls:
             value = self.cls(value)
         super().__setitem__(turn, value)
 
