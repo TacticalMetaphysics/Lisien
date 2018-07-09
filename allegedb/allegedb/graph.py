@@ -582,8 +582,8 @@ class AbstractSuccessors(GraphEdgeMapping):
         value, a mapping.
 
         """
-        branch, turn, tick = self.db.nbtt()
         created = dest not in self
+        branch, turn, tick = self.db.nbtt()
         self.db.query.exist_edge(
             self.graph.name,
             self.orig,

@@ -52,7 +52,7 @@ def install(
         )
         assert name in phys.thing
         assert name not in phys.place
-        assert name in phys.node
+        assert name in phys.node, "couldn't add node {} to phys.node".format(name)
         assert hasattr(phys.node[name], 'location')
         species.add_avatar("physical", name)
         assert hasattr(species.avatar['physical'][name], 'location')
@@ -176,6 +176,8 @@ def sickle_cell_test(
             if not r:
                 continue
             r = r[0]
+            if isinstance(r, Exception):
+                raise r
             if 'malaria' in r:
                 malaria_dead += 1
             if 'anemia' in r:

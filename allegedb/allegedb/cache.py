@@ -243,7 +243,7 @@ class Cache(object):
                     if ex.deleted:
                         return
 
-    def _get_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
+    def _get_keycachelike(self, keycache, keys, get_adds_dels, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)
         if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
             return keycache[keycache_key][turn][tick]
@@ -253,32 +253,47 @@ class Cache(object):
             # and any changes to the world state are happening through allegedb proper, meaning they'll all get cached.
             # In LiSE this means every change to the world state should happen inside of a call to
             # ``Engine.next_turn`` in a rule.
-            if keycache_key in keycache:
+            if keycache_key in keycache and keycache[keycache_key].rev_gettable(turn):
                 kc = keycache[keycache_key]
                 if turn not in kc:
-                    if kc.rev_gettable(turn):
-                        old_turn_kc = kc[turn]
-                        new_turn_kc = FuturistWindowDict()
-                        ret = new_turn_kc[0] = old_turn_kc[old_turn_kc.end]
-                        kc[turn] = new_turn_kc
-                        return ret
-                    else:
-                        raise HistoryError
+                    old_turn = kc.rev_before(turn)
+                    old_turn_kc = kc[turn]
+                    added, deleted = get_adds_dels(
+                        keys[parentity], branch, turn, tick, stoptime=(
+                            branch, old_turn, old_turn_kc.end
+                        )
+                    )
+                    ret = old_turn_kc[old_turn_kc.end].union(added).difference(deleted)
+                    assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                    new_turn_kc = FuturistWindowDict()
+                    new_turn_kc[0] = ret
+                    kc[turn] = new_turn_kc
+                    return ret
                 kcturn = kc[turn]
                 if tick not in kcturn:
                     if kcturn.rev_gettable(tick):
-                        ret = kcturn[tick] = kcturn[tick]
+                        added, deleted = get_adds_dels(
+                            keys[parentity], branch, turn, tick, stoptime=(
+                                branch, turn, kcturn.rev_before(tick)
+                            )
+                        )
+                        ret = kcturn[tick].union(added).difference(deleted)
+                        assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                        kcturn[tick] = ret
                         return ret
                     else:
                         turn_before = kc.rev_before(turn)
                         tick_before = kc[turn_before].end
                         keys_before = kc[turn_before][tick_before]
-                        ret = kcturn[tick] = keys_before | frozenset(
-                            slow_iter_keys(keys[parentity], branch, turn, tick,
-                                           stoptime=(branch, turn_before, tick_before))
+                        added, deleted = get_adds_dels(
+                            keys[parentity], branch, turn, tick, stoptime=(
+                                branch, turn_before, tick_before
+                            )
                         )
-                        assert ret == frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))  # slow
+                        ret = kcturn[tick] = keys_before.union(added).difference(deleted)
+                        assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                         return ret
+                assert kcturn[tick] == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return kcturn[tick]
             else:
                 for (parbranch, parturn, partick) in self.db._iter_parent_btt(branch, turn, tick):
@@ -290,24 +305,27 @@ class Cache(object):
                 else:
                     parkeys = frozenset()
                 kc = keycache[keycache_key] = TurnDict()
-                ret = kc[turn][tick] = parkeys | frozenset(
-                    slow_iter_keys(keys[parentity], branch, turn, tick, stoptime=(parbranch, parturn, partick))
+                added, deleted = get_adds_dels(
+                    keys[parentity], branch, turn, tick, stoptime=(
+                        parbranch, parturn, partick
+                    )
                 )
-                assert ret == frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))  # slow
+                ret = kc[turn][tick] = parkeys.union(added).difference(deleted)
+                assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return ret
         kc = keycache[keycache_key] = TurnDict()
-        ret = kc[turn][tick] = frozenset(
-            slow_iter_keys(keys[parentity], branch, turn, tick)
-        )
+        ret = kc[turn][tick] = frozenset(get_adds_dels(keys[parentity], branch, turn, tick)[0])
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
         return self._get_keycachelike(
-            self.keycache, self.keys, self._slow_iter_keys,
+            self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
         )
 
-    def _slow_iter_keys(self, cache, branch, turn, tick, *, stoptime=None):
+    def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
+        added = set()
+        deleted = set()
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick, stoptime=stoptime):
                 if branc not in branches or not branches[branc].rev_gettable(trn):
@@ -317,23 +335,26 @@ class Cache(object):
                     if turnd[trn].rev_gettable(tck):
                         try:
                             if turnd[trn][tck] is not None:
-                                yield key
+                                added.add(key)
                                 break
                         except HistoryError as ex:
                             if ex.deleted:
+                                deleted.add(key)
                                 break
                     else:
                         trn -= 1
-                        if trn not in turnd:
-                            break
+                if not turnd.rev_gettable(trn):
+                    break
                 tickd = turnd[trn]
                 try:
                     if tickd[tickd.end] is not None:
-                        yield key
+                        added.add(key)
                         break
                 except HistoryError as ex:
                     if ex.deleted:
+                        deleted.add(key)
                         break
+        return added, deleted
 
     def store(self, *args, planning=None):
         """Put a value in various dictionaries for later .retrieve(...).
@@ -576,27 +597,28 @@ class EdgesCache(Cache):
         self.origcache = PickyDefaultDict(TurnDict)
         self.predecessors = StructuredDefaultDict(3, TurnDict)
 
-    def _slow_iter_successors(self, cache, branch, turn, tick):
-        for dest, dests in cache.items():
-            for idx in self._slow_iter_keys(dests, branch, turn, tick):
-                yield dest
-                break
-
-    def _slow_iter_predecessors(self, cache, branch, turn, tick):
-        for orig, origs in cache.items():
-            for idx in self._slow_iter_keys(origs, branch, turn, tick):
-                yield orig
-                break
+    def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
+        added = set()
+        deleted = set()
+        for node, nodes in cache.items():
+            addidx, delidx = self._get_adds_dels(nodes, branch, turn, tick, stoptime=stoptime)
+            if addidx:
+                assert not delidx
+                added.add(node)
+            elif delidx:
+                assert delidx and not addidx
+                deleted.add(node)
+        return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
         return self._get_keycachelike(
-            self.destcache, self.successors, self._slow_iter_successors, (graph, orig),
+            self.destcache, self.successors, self._adds_dels_sucpred, (graph, orig),
             branch, turn, tick, forward=forward
         )
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
         return self._get_keycachelike(
-            self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
+            self.origcache, self.predecessors, self._adds_dels_sucpred, (graph, dest),
             branch, turn, tick, forward=forward
         )
 
@@ -628,19 +650,13 @@ class EdgesCache(Cache):
         """Return whether an edge connects the origin to the destination at the given time."""
         if forward is None:
             forward = self.db._forward
-        return dest in self._get_keycachelike(
-            self.destcache, self.successors, self._slow_iter_successors, (graph, orig),
-            branch, turn, tick, forward=forward
-        )
+        return dest in self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
     
     def has_predecessor(self, graph, dest, orig, branch, turn, tick, forward=None):
         """Return whether an edge connects the destination to the origin at the given time."""
         if forward is None:
             forward = self.db._forward
-        return orig in self._get_keycachelike(
-            self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
-            branch, turn, tick, forward=forward
-        )
+        return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
         if not ex:
@@ -658,3 +674,6 @@ class EdgesCache(Cache):
             newp = FuturistWindowDict()
             newp[tick] = ex
             preds[turn] = newp
+        if ex:
+            assert self.has_successor(graph, orig, dest, branch, turn, tick)
+            assert self.has_predecessor(graph, dest, orig, branch, turn, tick)

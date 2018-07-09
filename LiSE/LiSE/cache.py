@@ -346,7 +346,9 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
         charm = self.engine.character
         for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            for thing in sort_set(charm[character].thing.keys()):
+            things = sort_set(charm[character].thing.keys())
+            pass
+            for thing in things:
                 try:
                     rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
                 except KeyError:
