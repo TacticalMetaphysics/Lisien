@@ -1332,7 +1332,7 @@ class Engine(AbstractEngine, gORM):
     def _is_thing(self, character, node):
         return self._things_cache.contains_entity(character, node, *self.btt())
 
-    def _set_contents(self, character, node, loc, nextloc, branch, turn, tick, forward=None, validate=False):
+    def _set_contents(self, character, node, loc, nextloc, branch, turn, tick):
         try:
             node_contents = self._node_contents_cache.retrieve(
                 character, loc, branch, turn, tick
@@ -1340,7 +1340,7 @@ class Engine(AbstractEngine, gORM):
         except KeyError:
             node_contents = frozenset([node])
         self._node_contents_cache.store(
-            character, loc, branch, turn, tick, node_contents, forward=forward, validate=validate
+            character, loc, branch, turn, tick, node_contents
         )
         if nextloc is not None:
             try:
@@ -1350,7 +1350,7 @@ class Engine(AbstractEngine, gORM):
             except KeyError:
                 portal_contents = frozenset([node])
             self._portal_contents_cache.store(
-                character, loc, nextloc, branch, turn, tick, portal_contents, forward=forward, validate=validate
+                character, loc, nextloc, branch, turn, tick, portal_contents
             )
 
     def _set_thing_loc_and_next(

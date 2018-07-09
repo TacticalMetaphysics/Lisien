@@ -752,19 +752,40 @@ class ORM(object):
         if name in self._graph_objs:
             del self._graph_objs[name]
 
-    def _iter_parent_btt(self, branch=None, turn=None, tick=None):
+    def _iter_parent_btt(self, branch=None, turn=None, tick=None, *, stoptime=None):
         """Private use. Iterate over (branch, turn, tick), where the branch is
         a descendant of the previous (starting with whatever branch is
         presently active and ending at 'trunk'), and the turn is the
         latest revision in the branch that matters.
+
+        Keyword ``stoptime`` may be a branch, in which case iteration will stop
+        instead of proceeding into that branch's parent; or it may be a triple,
+        ``(branch, turn, tick)``, in which case iteration will stop instead of
+        yielding any time before that. The tick may be ``None``, in which case
+        iteration will stop instead of yielding the turn.
 
         """
         b = branch or self.branch
         trn = self.turn if turn is None else turn
         tck = self.tick if tick is None else tick
         yield b, trn, tck
+        stopbranches = set()
+        if stoptime:
+            if type(stoptime) is tuple:
+                stopbranch = stoptime[0]
+            else:
+                stopbranch = stoptime
+            while stopbranch in self._branches:
+                (stopbranch, _, _, _, _) = self._branches[b]
+                stopbranches.add(stopbranch)
         while b in self._branches:
             (b, trn, tck, _, _) = self._branches[b]
+            if b in stopbranches:
+                if (
+                    type(stoptime) is not tuple
+                        or (trn < stoptime[1] or (trn == stoptime[1] and (stoptime[2] is None or tck <= stoptime[2])))
+                ):
+                    return
             yield b, trn, self._turn_end[b, trn]
 
     def _branch_descendants(self, branch=None):

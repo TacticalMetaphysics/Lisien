@@ -34,8 +34,8 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=None, forward=None):
-        super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward)
+    def store(self, key, branch, turn, tick, value, *, planning=None):
+        super().store(None, key, branch, turn, tick, value, planning=planning)
 
     def load(self, data, validate=False):
         return super().load(((None,) + row for row in data), validate)

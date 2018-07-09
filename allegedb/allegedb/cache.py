@@ -3,60 +3,6 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
-from collections import Set
-
-
-class SetMutation(Set):
-    def __iter__(self):
-        return iter(self._reify())
-
-    def __len__(self):
-        return len(self._reify())
-
-    def __contains__(self, item):
-        return item in self._reify()
-
-    def _reify(self):
-        if self._real is None:
-            real = set()
-            inner = self._inner
-            inners = [inner]
-            while hasattr(inner, '_inner'):
-                if hasattr(inner, '_real') and inner._real is not None:
-                    inners.append(inner._real)
-                    break
-                inner = inner._inner
-                inners.append(inner)
-            real.update(inners.pop())
-            for inner in reversed(inners):
-                if hasattr(inner, '_addition'):
-                    real.add(inner._addition)
-                elif hasattr(inner, '_subtraction'):
-                    real.discard(inner._subtraction)
-            if hasattr(self, '_addition'):
-                real.add(self._addition)
-            elif hasattr(self, '_subtraction'):
-                real.discard(self._subtraction)
-            self._real = real
-        return self._real
-
-
-class SetAddition(SetMutation):
-    __slots__ = ('_inner', '_real', '_addition')
-
-    def __init__(self, inner, addition):
-        self._inner = inner
-        self._addition = addition
-        self._real = None
-
-
-class SetSubtraction(SetMutation):
-    __slots__ = ('_inner', '_real', '_subtraction')
-
-    def __init__(self, inner, subtraction):
-        self._inner = inner
-        self._subtraction = subtraction
-        self._real = None
 
 
 class FuturistWindowDict(WindowDict):
@@ -263,7 +209,6 @@ class Cache(object):
         # to make forwarding work.
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
-        update_keycache = self._update_keycache
 
         def store(*args):
             self._store(*args, planning=False)
@@ -274,7 +219,6 @@ class Cache(object):
                 rows = dd2b[turn, tick]
                 for row in rows:
                     store(*row)
-                    update_keycache(*row, validate=validate, forward=True)
                     if cb:
                         cb(row, validate=validate)
             if branch in childbranch:
@@ -299,38 +243,62 @@ class Cache(object):
                     if ex.deleted:
                         return
 
-    @staticmethod
-    def _get_keycachelike(keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
+    def _get_keycachelike(self, keycache, keys, slow_iter_keys, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)
         if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
             return keycache[keycache_key][turn][tick]
-        if forward and keycache_key in keycache:
+        if forward:
             # Take valid values from the past of a keycache and copy them forward, into the present.
             # Assumes that time is only moving forward, never backward, never skipping any turns or ticks,
             # and any changes to the world state are happening through allegedb proper, meaning they'll all get cached.
             # In LiSE this means every change to the world state should happen inside of a call to
             # ``Engine.next_turn`` in a rule.
-            kc = keycache[keycache_key]
-            try:
+            if keycache_key in keycache:
+                kc = keycache[keycache_key]
                 if turn not in kc:
                     if kc.rev_gettable(turn):
                         old_turn_kc = kc[turn]
                         new_turn_kc = FuturistWindowDict()
-                        new_turn_kc[0] = old_turn_kc[old_turn_kc.end]
+                        ret = new_turn_kc[0] = old_turn_kc[old_turn_kc.end]
                         kc[turn] = new_turn_kc
+                        return ret
                     else:
-                        kc[turn][tick] = frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))
+                        raise HistoryError
                 kcturn = kc[turn]
                 if tick not in kcturn:
                     if kcturn.rev_gettable(tick):
-                        kcturn[tick] = kcturn[tick]
+                        ret = kcturn[tick] = kcturn[tick]
+                        return ret
                     else:
-                        kcturn[tick] = frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))
+                        turn_before = kc.rev_before(turn)
+                        tick_before = kc[turn_before].end
+                        keys_before = kc[turn_before][tick_before]
+                        ret = kcturn[tick] = keys_before | frozenset(
+                            slow_iter_keys(keys[parentity], branch, turn, tick,
+                                           stoptime=(branch, turn_before, tick_before))
+                        )
+                        assert ret == frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))  # slow
+                        return ret
                 return kcturn[tick]
-            except HistoryError:
-                pass
+            else:
+                for (parbranch, parturn, partick) in self.db._iter_parent_btt(branch, turn, tick):
+                    par_kc_key = parentity + (parbranch,)
+                    if par_kc_key in keycache and keycache[par_kc_key].rev_gettable(parturn) \
+                            and keycache[par_kc_key][parturn].rev_gettable(partick):
+                        parkeys = keycache[par_kc_key][parturn][partick]
+                        break
+                else:
+                    parkeys = frozenset()
+                kc = keycache[keycache_key] = TurnDict()
+                ret = kc[turn][tick] = parkeys | frozenset(
+                    slow_iter_keys(keys[parentity], branch, turn, tick, stoptime=(parbranch, parturn, partick))
+                )
+                assert ret == frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))  # slow
+                return ret
         kc = keycache[keycache_key] = TurnDict()
-        kc[turn][tick] = ret = frozenset(slow_iter_keys(keys[parentity], branch, turn, tick))
+        ret = kc[turn][tick] = frozenset(
+            slow_iter_keys(keys[parentity], branch, turn, tick)
+        )
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
@@ -339,9 +307,9 @@ class Cache(object):
             parentity, branch, turn, tick, forward=forward
         )
 
-    def _slow_iter_keys(self, cache, branch, turn, tick):
+    def _slow_iter_keys(self, cache, branch, turn, tick, *, stoptime=None):
         for key, branches in cache.items():
-            for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick):
+            for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick, stoptime=stoptime):
                 if branc not in branches or not branches[branc].rev_gettable(trn):
                     continue
                 turnd = branches[branc]
@@ -367,7 +335,7 @@ class Cache(object):
                     if ex.deleted:
                         break
 
-    def store(self, *args, validate=False, planning=None, forward=None):
+    def store(self, *args, planning=None):
         """Put a value in various dictionaries for later .retrieve(...).
 
         Needs at least five arguments, of which the -1th is the value
@@ -377,42 +345,15 @@ class Cache(object):
         and the remaining arguments identify the entity that has
         the key, eg. a graph, node, or edge.
 
-        With ``validate=True``, check the cache after storing,
-        and raise ``ValueError`` if it's not coherent.
-
         With ``planning=True``, raise HistoryError instead of overwriting.
         Otherwise, any information about this key of this entity in the
         future will be deleted. Separate branches of history will be
         unaffected.
 
-        With ``forward=True``, enable an optimization that assumes time
-        will never go backward.
-
         """
         if planning is None:
             planning = self.db._planning
-        if forward is None:
-            forward = self.db._forward
         self._store(*args, planning=planning)
-        self._update_keycache(*args, validate=validate, forward=forward)
-
-    def _update_keycache(self, *args, validate, forward):
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
-        kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
-        if value is None:
-            kc = SetSubtraction(kc, key)
-        else:
-            kc = SetAddition(kc, key)
-        self.keycache[parent+(entity, branch)][turn][tick] = kc
-        if validate:
-            if parent:
-                correct = set(self._slow_iter_keys(self.parents[parent][entity], branch, turn, tick))
-                if kc != correct:
-                    raise ValueError("Invalid parents cache")
-            correct = set(self._slow_iter_keys(self.keys[parent+(entity,)], branch, turn, tick))
-            if kc != correct:
-                raise ValueError("Invalid keys cache")
 
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
@@ -563,9 +504,6 @@ class Cache(object):
         Otherwise iterate over the entities themselves, or at any rate the
         tuple specifying which entity.
 
-        Needs at least two arguments, the branch and the revision. Any
-        that come before that will be taken to identify the entity.
-
         """
         if forward is None:
             forward = self.db._forward
@@ -579,9 +517,6 @@ class Cache(object):
 
         Otherwise return the number of entities.
 
-        Needs at least two arguments, the branch and the revision. Any
-        that come before that will be taken to identify the entity.
-
         """
         if forward is None:
             forward = self.db._forward
@@ -594,9 +529,6 @@ class Cache(object):
         """Check if an entity has a key at the given time, if entity specified.
 
         Otherwise check if the entity exists.
-
-        Needs at least three arguments, the key, the branch, and the revision.
-        Any that come before that will be taken to identify the entity.
 
         """
         try:
@@ -619,32 +551,17 @@ class NodesCache(Cache):
         super().__init__(db)
         self._make_node = db._make_node
 
-    def store(self, graph, node, branch, turn, tick, ex, *, planning=None, forward=None, validate=False):
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=None):
         """Store whether a node exists, and create an object for it"""
         if ex and (graph, node) not in self.db._node_objs:
             self.db._node_objs[(graph, node)] \
                 = self._make_node(self.db.graph[graph], node)
-        Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning, forward=forward, validate=validate)
-        if validate:
-            kc = self._get_keycache((graph,), branch, turn, tick, forward=forward)
-            correct_kc = set(self._slow_iter_keys(self.keys[(graph,)], branch, turn, tick))
-            if (
-                    node not in kc or
-                    not self.contains_entity_or_key(graph, node, branch, turn, tick) or
-                    node not in set(self.iter_entities(graph, branch, turn, tick, forward=forward)) or
-                    kc != correct_kc
-            ):
-                raise ValueError("Invalid keycache")
+        Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning)
 
     def _store(self, graph, node, branch, turn, tick, ex, *, planning):
         if not ex:
             ex = None
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
-
-    def _update_keycache(self, graph, node, branch, turn, tick, ex, *, validate, forward):
-        if not ex:
-            ex = None
-        return super()._update_keycache(graph, node, branch, turn, tick, ex, validate=validate, forward=forward)
 
 
 class EdgesCache(Cache):
@@ -677,35 +594,11 @@ class EdgesCache(Cache):
             branch, turn, tick, forward=forward
         )
 
-    def _update_destcache(self, graph, orig, branch, turn, tick, dest, value, *, forward):
-        kc = self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
-        if value is None:
-            kc = SetSubtraction(kc, dest)
-        else:
-            kc = SetAddition(kc, dest)
-        self.destcache[graph, orig, branch][turn][tick] = kc
-        return kc
-
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
         return self._get_keycachelike(
             self.origcache, self.predecessors, self._slow_iter_predecessors, (graph, dest),
             branch, turn, tick, forward=forward
         )
-
-    def _update_origcache(self, graph, dest, branch, turn, tick, orig, value, *, forward):
-        kc = self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
-        if value is None:
-            kc = SetSubtraction(kc, orig)
-        else:
-            kc = SetAddition(kc, orig)
-        self.origcache[graph, dest, branch][turn][tick] = kc
-        return kc
-
-    def _update_keycache(self, *args, validate, forward):
-        super()._update_keycache(*args, validate=validate, forward=forward)
-        graph, orig, dest, idx, branch, turn, tick, value = args
-        self._update_origcache(graph, dest, branch, turn, tick, orig, value, forward=forward)
-        self._update_destcache(graph, orig, branch, turn, tick, dest, value, forward=forward)
 
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Iterate over successors of a given origin node at a given time."""
@@ -765,14 +658,3 @@ class EdgesCache(Cache):
             newp = FuturistWindowDict()
             newp[tick] = ex
             preds[turn] = newp
-
-    def _forward_valcaches(self, graph, orig, dest, key, branch, turn, tick, ex, *, validate=False):
-        if not ex:
-            ex = None
-        oc = self._update_origcache(graph, dest, branch, turn, tick, orig, ex)
-        dc = self._update_destcache(graph, orig, branch, turn, tick, dest, ex)
-        if validate:
-            if oc != set(self._slow_iter_predecessors(self.predecessors[(graph, dest)], branch, turn, tick)):
-                raise ValueError("Invalid origcache")
-            if dc != set(self._slow_iter_successors(self.successors[(graph, orig)], branch, turn, tick)):
-                raise ValueError("Invalid destcache")
