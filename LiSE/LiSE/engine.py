@@ -1334,33 +1334,11 @@ class Engine(AbstractEngine, gORM):
     def _is_thing(self, character, node):
         return self._things_cache.contains_entity(character, node, *self.btt())
 
-    def _set_contents(self, character, node, loc, nextloc, branch, turn, tick):
-        try:
-            node_contents = self._node_contents_cache.retrieve(
-                character, loc, branch, turn, tick
-            ) | frozenset([node])
-        except KeyError:
-            node_contents = frozenset([node])
-        self._node_contents_cache.store(
-            character, loc, branch, turn, tick, node_contents
-        )
-        if nextloc is not None:
-            try:
-                portal_contents = self._portal_contents_cache.retrieve(
-                    character, loc, nextloc, branch, turn, tick
-                ) | frozenset([node])
-            except KeyError:
-                portal_contents = frozenset([node])
-            self._portal_contents_cache.store(
-                character, loc, nextloc, branch, turn, tick, portal_contents
-            )
-
     def _set_thing_loc_and_next(
             self, character, node, loc, nextloc=None
     ):
         branch, turn, tick = self.nbtt()
         self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
-        self._set_contents(character, node, loc, nextloc, branch, turn, tick)
         self.query.thing_loc_and_next_set(
             character,
             node,

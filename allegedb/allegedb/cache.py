@@ -459,11 +459,13 @@ class Cache(object):
         except KeyError:
             prev = None
         if turn in settings_turns or turn in settings_turns.future():
-            assert turn in presettings_turns or turn in presettings_turns.future()
+            # These assertions hold for most caches but not for the contents
+            # caches, and are therefore commented out.
+            # assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
-            assert tick not in setticks
+            # assert tick not in setticks
             presetticks = presettings_turns[turn]
-            assert tick not in presetticks
+            # assert tick not in presetticks
             presetticks[tick] = parent + (entity, key, prev)
             setticks[tick] = parent + (entity, key, value)
         else:

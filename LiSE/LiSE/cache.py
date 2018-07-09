@@ -450,6 +450,53 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
+    def _store(self, *args, planning):
+        character, thing, branch, turn, tick, (location, next_location) = args
+        try:
+            oldloc, oldnxtloc = self.retrieve(character, thing, branch, turn, tick)
+        except KeyError:
+            oldloc = oldnxtloc = None
+        super()._store(*args, planning=planning)
+        if oldloc is not None:
+            oldnodecont = self.db._node_contents_cache.retrieve(
+                character, oldloc, branch, turn, tick
+            )
+            self.db._node_contents_cache.store(
+                character, thing, branch, turn, tick, oldnodecont.difference((thing,)),
+                planning=planning
+            )
+        if oldnxtloc is not None:
+            oldedgecont = self.db._edge_contents_cache.retrieve(
+                character, oldloc, oldnxtloc, branch, turn, tick
+            )
+            self.db._edge_contents_cache.store(
+                character, oldloc, oldnxtloc, branch, turn, tick,
+                oldedgecont.difference((thing,)), planning=planning
+            )
+        try:
+            newnodecont = self.db._node_contents_cache.retrieve(
+                character, location, branch, turn, tick
+            )
+        except KeyError:
+            newnodecont = frozenset()
+        self.db._node_contents_cache.store(
+            character, location, branch, turn, tick,
+            newnodecont.union((thing,)), planning=planning
+        )
+        if next_location is not None:
+            try:
+                newedgecont = self.db._portal_contents_cache.retrieve(
+                    character, location, next_location,
+                    branch, turn, tick
+                )
+            except KeyError:
+                newedgecont = frozenset()
+            self.db._portal_contents_cache.store(
+                character, location, next_location,
+                branch, turn, tick,
+                newedgecont.union((thing,)), planning=planning
+            )
+
     def turn_before(self, character, thing, branch, turn):
         try:
             self.retrieve(character, thing, branch, turn, 0)
@@ -463,12 +510,3 @@ class ThingsCache(Cache):
         except KeyError:
             pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
-
-    def load(self, data, validate=False):
-        super().load(data, validate=validate, cb=self._update_contents)
-
-    def _update_contents(self, row, validate):
-        (character, thing, branch, turn, tick, (location, next_location)) = row
-        self.db._set_contents(
-            character, thing, location, next_location, branch, turn, tick, forward=True, validate=validate
-        )
