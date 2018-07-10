@@ -151,7 +151,7 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    max_lru = 128
+    keycache_maxsize = 1024
 
     def __init__(self, db):
         self.db = db
@@ -415,7 +415,8 @@ class Cache(object):
         if forward is None:
             forward = self.db._forward
         self._store(*args, planning=planning)
-        self._update_keycache(*args, forward=forward)
+        if not self.db._no_kc:
+            self._update_keycache(*args, forward=forward)
 
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
@@ -575,6 +576,9 @@ class Cache(object):
             forward = self.db._forward
         entity = args[:-3]
         branch, turn, tick = args[-3:]
+        if self.db._no_kc:
+            yield from self._get_adds_dels(self.keys[entity], branch, turn, tick)[0]
+            return
         yield from self._get_keycache(entity, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
@@ -588,6 +592,8 @@ class Cache(object):
             forward = self.db._forward
         entity = args[:-3]
         branch, turn, tick = args[-3:]
+        if self.db._no_kc:
+            return len(self._get_adds_dels(self.keys[entity], branch, turn, tick)[0])
         return len(self._get_keycache(entity, branch, turn, tick, forward=forward))
     count_entities = count_keys = count_entity_keys = count_entities_or_keys
 

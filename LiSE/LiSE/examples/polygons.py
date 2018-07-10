@@ -62,7 +62,7 @@ def install(eng):
 
 
     # make an 8-way-connected grid
-    physical.grid_2d_8graph(10, 10)
+    physical.grid_2d_8graph(100, 100)
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
@@ -79,7 +79,8 @@ if __name__ == '__main__':
         if os.path.exists(stale):
             os.remove(stale)
     with Engine('LiSEworld.db') as eng:
-        install(eng)
+        with eng.batch():
+            install(eng)
     import sys
     if '--profile' in sys.argv:
         import cProfile

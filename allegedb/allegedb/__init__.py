@@ -264,6 +264,21 @@ class ORM(object):
         yield
         self._forward = False
 
+    @contextmanager
+    def batch(self):
+        """A context manager for when you're creating lots of state.
+
+        Reads will be much slower in a batch, but writes will be faster.
+
+        You *can* combine this with ``advancing`` but it isn't any faster.
+
+        """
+        if self._no_kc:
+            raise ValueError("Already in a batch")
+        self._no_kc = True
+        yield
+        self._no_kc = False
+
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to all graphs.
 
@@ -453,6 +468,7 @@ class ORM(object):
         """
         self._planning = False
         self._forward = False
+        self._no_kc = False
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
