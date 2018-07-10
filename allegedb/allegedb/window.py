@@ -493,6 +493,8 @@ class WindowDict(MutableMapping):
         # to do so would likely require iterating thru history,
         # which I have to do anyway in deleting.
         # But handle degenerate case.
+        if not self:
+            raise HistoryError("Tried to delete from an empty WindowDict")
         if not within_history(rev, self):
             raise HistoryError("Rev outside of history: {}".format(rev))
         self.seek(rev)
