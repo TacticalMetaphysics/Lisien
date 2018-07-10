@@ -355,12 +355,16 @@ class WindowDict(MutableMapping):
     still without retaining the revision they're from.
 
     """
-    def future(self):
-        """Return a Mapping of future values."""
+    def future(self, rev=None):
+        """Return a Mapping of items after the given revision."""
+        if rev is not None:
+            self.seek(rev)
         return WindowDictFutureView(self._future)
 
-    def past(self):
-        """Return a Mapping of past values."""
+    def past(self, rev=None):
+        """Return a Mapping of items at or before the given revision."""
+        if rev is not None:
+            self.seek(rev)
         return WindowDictPastView(self._past)
 
     def seek(self, rev):
