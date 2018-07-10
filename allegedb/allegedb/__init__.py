@@ -418,7 +418,10 @@ class ORM(object):
             else:
                 self._global_cache[k] = v
         self._childbranch = defaultdict(set)
+        """Immediate children of a branch"""
         self._branches = {}
+        self._branch_parents = defaultdict(set)
+        """Parents of a branch at any remove"""
         self._turn_end = defaultdict(lambda: 0)
         self._turn_end_plan = defaultdict(lambda: 0)
         self._graph_val_cache = Cache(self)
@@ -461,7 +464,7 @@ class ORM(object):
         self._init_caches()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
-            self._childbranch[parent].add(branch)
+            self._upd_branch_parentage(parent, branch)
         for (branch, turn, end_tick, plan_end_tick) in self.query.turns_dump():
             self._turn_end[branch, turn] = end_tick
             self._turn_end_plan[branch, turn] = plan_end_tick
@@ -469,6 +472,13 @@ class ORM(object):
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._load_graphs()
         self._init_load(validate=validate)
+
+    def _upd_branch_parentage(self, parent, child):
+        self._childbranch[parent].add(child)
+        self._branch_parents[child].add(parent)
+        while parent in self._branches:
+            parent, _, _, _, _ = self._branches
+            self._branch_parents[child].add(parent)
 
     def _init_load(self, validate=False):
         if not hasattr(self, 'graph'):
@@ -524,32 +534,31 @@ class ORM(object):
         return self._obranch
 
     def _set_branch(self, v):
+        if self._planning:
+            raise ValueError("Don't change branches while planning")
         curbranch, curturn, curtick = self.btt()
         if curbranch == v:
             self._otick = self._turn_end_plan[curbranch, curturn]
             return
+        # make sure I'll end up within the revision range of the
+        # destination branch
+        if v != 'trunk' and v in self._branches:
+            parturn = self._branches[v][1]
+            if curturn < parturn:
+                raise ValueError(
+                    "Tried to jump to branch {br}, "
+                    "which starts at turn {rv}. "
+                    "Go to turn {rv} or later to use this branch.".format(
+                        br=v,
+                        rv=parturn
+                    )
+                )
         if v not in self._branches:
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
-            if not self._planning:
-                self._branches[v] = curbranch, curturn, curtick, curturn, curtick
-        # make sure I'll end up within the revision range of the
-        # destination branch
-        if v != 'trunk' and not self._planning:
-            if v in self._branches:
-                parturn = self._branches[v][1]
-                if curturn < parturn:
-                    raise ValueError(
-                        "Tried to jump to branch {br}, "
-                        "which starts at turn {rv}. "
-                        "Go to turn {rv} or later to use this branch.".format(
-                            br=v,
-                            rv=parturn
-                        )
-                    )
-            else:
-                self._branches[v] = (curbranch, curturn, curtick, curturn, curtick)
+            self._branches[v] = curbranch, curturn, curtick, curturn, curtick
+            self._upd_branch_parentage(v, curbranch)
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
     branch = property(_get_branch, _set_branch)  # easier to override this way
@@ -773,20 +782,22 @@ class ORM(object):
         if stoptime:
             if type(stoptime) is tuple:
                 stopbranch = stoptime[0]
+                stopbranches.add(stopbranch)
+                stopbranches.update(self._branch_parents[stopbranch])
             else:
                 stopbranch = stoptime
-            while stopbranch in self._branches:
-                (stopbranch, _, _, _, _) = self._branches[b]
-                stopbranches.add(stopbranch)
-        while b in self._branches:
-            (b, trn, tck, _, _) = self._branches[b]
+                stopbranches = self._branch_parents[stopbranch]
+        _branches = self._branches
+        _turn_end = self._turn_end  # maybe this should be self._turn_end_plan
+        while b in _branches:
+            (b, trn, tck, _, _) = _branches[b]
             if b in stopbranches:
                 if (
                     type(stoptime) is not tuple
                         or (trn < stoptime[1] or (trn == stoptime[1] and (stoptime[2] is None or tck <= stoptime[2])))
                 ):
                     return
-            yield b, trn, self._turn_end[b, trn]
+            yield b, trn, _turn_end[b, trn]
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current
