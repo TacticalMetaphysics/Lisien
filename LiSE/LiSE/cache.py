@@ -466,10 +466,10 @@ class ThingsCache(Cache):
                 planning=planning
             )
         if oldnxtloc is not None:
-            oldedgecont = self.db._edge_contents_cache.retrieve(
+            oldedgecont = self.db._portal_contents_cache.retrieve(
                 character, oldloc, oldnxtloc, branch, turn, tick
             )
-            self.db._edge_contents_cache.store(
+            self.db._portal_contents_cache.store(
                 character, oldloc, oldnxtloc, branch, turn, tick,
                 oldedgecont.difference((thing,)), planning=planning
             )

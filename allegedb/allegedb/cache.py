@@ -264,7 +264,7 @@ class Cache(object):
                         )
                     )
                     ret = old_turn_kc[old_turn_kc.end].union(added).difference(deleted)
-                    assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                    # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                     new_turn_kc = FuturistWindowDict()
                     new_turn_kc[0] = ret
                     kc[turn] = new_turn_kc
@@ -278,7 +278,7 @@ class Cache(object):
                             )
                         )
                         ret = kcturn[tick].union(added).difference(deleted)
-                        assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                        # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                         kcturn[tick] = ret
                         return ret
                     else:
@@ -291,9 +291,9 @@ class Cache(object):
                             )
                         )
                         ret = kcturn[tick] = keys_before.union(added).difference(deleted)
-                        assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                        # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                         return ret
-                assert kcturn[tick] == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                # assert kcturn[tick] == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return kcturn[tick]
             else:
                 for (parbranch, parturn, partick) in self.db._iter_parent_btt(branch, turn, tick):
@@ -311,7 +311,7 @@ class Cache(object):
                     )
                 )
                 ret = kc[turn][tick] = parkeys.union(added).difference(deleted)
-                assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return ret
         kc = keycache[keycache_key] = TurnDict()
         ret = kc[turn][tick] = frozenset(get_adds_dels(keys[parentity], branch, turn, tick)[0])
