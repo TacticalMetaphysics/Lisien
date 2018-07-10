@@ -174,7 +174,7 @@ class Cache(object):
         Deeper layers of this cache are keyed by branch, turn, and tick.
 
         """
-        self.keycache = PickyDefaultDict(TurnDict)
+        self.keycache = PickyDefaultDict(SettingsTurnDict)
         """Keys an entity has at a given turn and tick."""
         self.branches = StructuredDefaultDict(1, TurnDict)
         """A less structured alternative to ``keys``.
