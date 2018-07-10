@@ -428,14 +428,14 @@ class Cache(object):
         keys = self.keys[parent+(entity,)][key][branch]
         if planning:
             if keys:
-                if turn in keys and tick <= keys[turn].end:
+                if turn in keys and tick < keys[turn].end:
                     raise HistoryError(
                         "Already have some ticks after {} in turn {} of branch {}".format(
                             tick, turn, branch
                         )
                     )
             if branches:
-                if turn in branches and tick <= branches[turn].end:
+                if turn in branches and tick < branches[turn].end:
                     raise HistoryError(
                         "Already have some ticks after {} in turn {} of branch {}".format(
                             tick, turn, branch
