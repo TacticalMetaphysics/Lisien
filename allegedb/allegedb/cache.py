@@ -3,7 +3,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
-from collections import deque
+from collections import OrderedDict
 
 
 class FuturistWindowDict(WindowDict):
@@ -185,14 +185,13 @@ class Cache(object):
         but still need to iterate through history to find the value.
 
         """
-        self.shallowest = {}
+        self.shallowest = OrderedDict()
         """A dictionary for plain, unstructured hinting."""
         self.settings = PickyDefaultDict(SettingsTurnDict)
         """All the ``entity[key] = value`` operations that were performed on some turn"""
         self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
-        self._lru = deque()
-        self._lruset = set()
+        self._kc_lru = OrderedDict()
 
     def load(self, data, validate=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -333,7 +332,7 @@ class Cache(object):
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
-        self._lru_append((parentity+(branch,), turn, tick))
+        self._lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), self.keycache_maxsize)
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
@@ -349,20 +348,17 @@ class Cache(object):
             kc = kc.union((key,))
         self.keycache[parent+(entity, branch)][turn][tick] = kc
 
-    def _lru_append(self, kckey):
-        if kckey in self._lruset:
+    def _lru_append(self, kc, lru, kckey, maxsize):
+        if kckey in lru:
             return
-        kc = self.keycache
-        while len(self._lru) >= self.max_lru:
-            peb, turn, tick = self._lru.popleft()
-            self._lruset.remove((peb, turn, tick))
+        while len(lru) >= maxsize:
+            (peb, turn, tick), _ = lru.popitem(False)
             del kc[peb][turn][tick]
             if not kc[peb][turn]:
                 del kc[peb][turn]
             if not kc[peb]:
                 del kc[peb]
-        self._lru.append(kckey)
-        self._lruset.add(kckey)
+        lru[kckey] = True
 
     def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
@@ -459,6 +455,8 @@ class Cache(object):
                         del settings_turns[trn][tic]
         self._store_journal(*args)
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
+        while len(self.shallowest) > self.keycache_maxsize:
+            self.shallowest.popitem(False)
         new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
@@ -637,6 +635,8 @@ class EdgesCache(Cache):
         self.destcache = PickyDefaultDict(SettingsTurnDict)
         self.origcache = PickyDefaultDict(SettingsTurnDict)
         self.predecessors = StructuredDefaultDict(3, TurnDict)
+        self._origcache_lru = OrderedDict()
+        self._destcache_lru = OrderedDict()
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
@@ -652,12 +652,14 @@ class EdgesCache(Cache):
         return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
+        self._lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), self.keycache_maxsize)
         return self._get_keycachelike(
             self.destcache, self.successors, self._adds_dels_sucpred, (graph, orig),
             branch, turn, tick, forward=forward
         )
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
+        self._lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), self.keycache_maxsize)
         return self._get_keycachelike(
             self.origcache, self.predecessors, self._adds_dels_sucpred, (graph, dest),
             branch, turn, tick, forward=forward
