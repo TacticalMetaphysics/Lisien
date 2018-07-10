@@ -270,8 +270,8 @@ class Cache(object):
                     )
                     ret = old_turn_kc[old_turn_kc.end].union(added).difference(deleted)
                     # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
-                    new_turn_kc = FuturistWindowDict()
-                    new_turn_kc[0] = ret
+                    new_turn_kc = WindowDict()
+                    new_turn_kc[tick] = ret
                     kc[turn] = new_turn_kc
                     return ret
                 kcturn = kc[turn]
@@ -320,8 +320,16 @@ class Cache(object):
                 keycache[keycache_key] = kc
                 # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return ret
-        kc = keycache[keycache_key] = TurnDict()
-        ret = kc[turn][tick] = frozenset(get_adds_dels(keys[parentity], branch, turn, tick)[0])
+        ret = frozenset(get_adds_dels(keys[parentity], branch, turn, tick)[0])
+        if keycache_key in keycache:
+            if turn in keycache[keycache_key]:
+                keycache[keycache_key][turn][tick] = ret
+            else:
+                keycache[keycache_key][turn] = {tick: ret}
+        else:
+            kcc = SettingsTurnDict()
+            kcc[turn][tick] = ret
+            keycache[keycache_key] = kcc
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
@@ -340,15 +348,12 @@ class Cache(object):
         else:
             kc = kc.union((key,))
         self.keycache[parent+(entity, branch)][turn][tick] = kc
-        self._lru_append((parent+(entity, branch), turn, tick))
 
     def _lru_append(self, kckey):
         if kckey in self._lruset:
             return
-        self._lru.append(kckey)
-        self._lruset.add(kckey)
         kc = self.keycache
-        while len(self._lru) > self.max_lru:
+        while len(self._lru) >= self.max_lru:
             peb, turn, tick = self._lru.popleft()
             self._lruset.remove((peb, turn, tick))
             del kc[peb][turn][tick]
@@ -356,6 +361,8 @@ class Cache(object):
                 del kc[peb][turn]
             if not kc[peb]:
                 del kc[peb]
+        self._lru.append(kckey)
+        self._lruset.add(kckey)
 
     def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
@@ -632,8 +639,8 @@ class EdgesCache(Cache):
 
     def __init__(self, db):
         Cache.__init__(self, db)
-        self.destcache = PickyDefaultDict(TurnDict)
-        self.origcache = PickyDefaultDict(TurnDict)
+        self.destcache = PickyDefaultDict(SettingsTurnDict)
+        self.origcache = PickyDefaultDict(SettingsTurnDict)
         self.predecessors = StructuredDefaultDict(3, TurnDict)
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
