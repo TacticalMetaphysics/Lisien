@@ -3,6 +3,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
+from collections import deque
 
 
 class FuturistWindowDict(WindowDict):
@@ -150,6 +151,7 @@ class StructuredDefaultDict(dict):
 
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
+    max_lru = 128
 
     def __init__(self, db):
         self.db = db
@@ -189,6 +191,8 @@ class Cache(object):
         """All the ``entity[key] = value`` operations that were performed on some turn"""
         self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
+        self._lru = deque()
+        self._lruset = set()
 
     def load(self, data, validate=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -254,6 +258,7 @@ class Cache(object):
             # In LiSE this means every change to the world state should happen inside of a call to
             # ``Engine.next_turn`` in a rule.
             if keycache_key in keycache and keycache[keycache_key].rev_gettable(turn):
+
                 kc = keycache[keycache_key]
                 if turn not in kc:
                     old_turn = kc.rev_before(turn)
@@ -304,13 +309,15 @@ class Cache(object):
                         break
                 else:
                     parkeys = frozenset()
-                kc = keycache[keycache_key] = TurnDict()
+                kc = SettingsTurnDict()
                 added, deleted = get_adds_dels(
                     keys[parentity], branch, turn, tick, stoptime=(
                         parbranch, parturn, partick
                     )
                 )
-                ret = kc[turn][tick] = parkeys.union(added).difference(deleted)
+                ret = parkeys.union(added).difference(deleted)
+                kc[turn] = {tick: ret}
+                keycache[keycache_key] = kc
                 # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return ret
         kc = keycache[keycache_key] = TurnDict()
@@ -318,10 +325,37 @@ class Cache(object):
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
+        self._lru_append((parentity+(branch,), turn, tick))
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
         )
+
+    def _update_keycache(self, *args, forward):
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
+        kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
+        if value is None:
+            kc = kc.difference((key,))
+        else:
+            kc = kc.union((key,))
+        self.keycache[parent+(entity, branch)][turn][tick] = kc
+        self._lru_append((parent+(entity, branch), turn, tick))
+
+    def _lru_append(self, kckey):
+        if kckey in self._lruset:
+            return
+        self._lru.append(kckey)
+        self._lruset.add(kckey)
+        kc = self.keycache
+        while len(self._lru) > self.max_lru:
+            peb, turn, tick = self._lru.popleft()
+            self._lruset.remove((peb, turn, tick))
+            del kc[peb][turn][tick]
+            if not kc[peb][turn]:
+                del kc[peb][turn]
+            if not kc[peb]:
+                del kc[peb]
 
     def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
@@ -356,7 +390,7 @@ class Cache(object):
                         break
         return added, deleted
 
-    def store(self, *args, planning=None):
+    def store(self, *args, planning=None, forward=None):
         """Put a value in various dictionaries for later .retrieve(...).
 
         Needs at least five arguments, of which the -1th is the value
@@ -374,7 +408,10 @@ class Cache(object):
         """
         if planning is None:
             planning = self.db._planning
+        if forward is None:
+            forward = self.db._forward
         self._store(*args, planning=planning)
+        self._update_keycache(*args, forward=forward)
 
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
