@@ -462,8 +462,7 @@ class ThingsCache(Cache):
                 character, oldloc, branch, turn, tick
             )
             self.db._node_contents_cache.store(
-                character, thing, branch, turn, tick, oldnodecont.difference((thing,)),
-                planning=planning
+                character, thing, branch, turn, tick, oldnodecont.difference((thing,))
             )
         if oldnxtloc is not None:
             oldedgecont = self.db._portal_contents_cache.retrieve(
@@ -471,7 +470,7 @@ class ThingsCache(Cache):
             )
             self.db._portal_contents_cache.store(
                 character, oldloc, oldnxtloc, branch, turn, tick,
-                oldedgecont.difference((thing,)), planning=planning
+                oldedgecont.difference((thing,))
             )
         try:
             newnodecont = self.db._node_contents_cache.retrieve(
@@ -481,7 +480,7 @@ class ThingsCache(Cache):
             newnodecont = frozenset()
         self.db._node_contents_cache.store(
             character, location, branch, turn, tick,
-            newnodecont.union((thing,)), planning=planning
+            newnodecont.union((thing,))
         )
         if next_location is not None:
             try:
@@ -494,7 +493,7 @@ class ThingsCache(Cache):
             self.db._portal_contents_cache.store(
                 character, location, next_location,
                 branch, turn, tick,
-                newedgecont.union((thing,)), planning=planning
+                newedgecont.union((thing,))
             )
 
     def turn_before(self, character, thing, branch, turn):
