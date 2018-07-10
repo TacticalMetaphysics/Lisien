@@ -593,22 +593,16 @@ class Cache(object):
         return len(self._get_keycache(entity, branch, turn, tick, forward=forward))
     count_entities = count_keys = count_entity_keys = count_entities_or_keys
 
-    def contains_entity_or_key(self, *args, forward=None):
+    def contains_entity_or_key(self, *args):
         """Check if an entity has a key at the given time, if entity specified.
 
         Otherwise check if the entity exists.
 
         """
         try:
-            return self.shallowest[args] is not None
+            return self.retrieve(*args) is not None
         except KeyError:
-            pass
-        if forward is None:
-            forward = self.db._forward
-        entity = args[:-4]
-        key, branch, turn, tick = args[-4:]
-        kc = self._get_keycache(entity, branch, turn, tick, forward=forward)
-        return key in kc
+            return False
     contains_entity = contains_key = contains_entity_key \
                     = contains_entity_or_key
 

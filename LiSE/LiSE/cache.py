@@ -47,8 +47,8 @@ class EntitylessCache(Cache):
         return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=None):
-        return super().contains_entity_or_key(None, ke, branch, turn, tick, forward=forward)
+    def contains_entity_or_key(self, ke, branch, turn, tick):
+        return super().contains_entity_or_key(None, ke, branch, turn, tick)
     contains_entity = contains_key = contains_entity_or_key
 
     def retrieve(self, *args):
