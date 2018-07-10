@@ -352,17 +352,13 @@ class AbstractCharacter(MutableMapping):
                     n += 1
             renamed[ok] = k
             self.place[k] = v
-        if type(g) is nx.MultiDiGraph:
-            g = nx.DiGraph(g)
-        elif type(g) is nx.MultiGraph:
-            g = nx.Graph(g)
-        if type(g) is nx.DiGraph:
-            for u, v in g.edges:
-                self.edge[renamed[u]][renamed[v]] = g.adj[u][v]
-        else:
-            assert type(g) is nx.Graph
-            for u, v, d in g.edges.data():
-                self.add_portal(renamed[u], renamed[v], symmetrical=True, **d)
+        for u in g.adj:
+            for v in g.adj[u]:
+                if isinstance(g, nx.MultiGraph) or\
+                   isinstance(g, nx.MultiDiGraph):
+                    self.edge[renamed[u]][renamed[v]] = g.adj[u][v][0]
+                else:
+                    self.edge[renamed[u]][renamed[v]] = g.adj[u][v]
         return self
 
     def become(self, g):
@@ -399,22 +395,19 @@ class AbstractCharacter(MutableMapping):
 
     def grid_2d_8graph(self, m, n):
         """Make a 2d graph that's connected 8 ways, enabling diagonal movement"""
-        me = nx.Graph()
-        node = me.node
-        add_node = me.add_node
-        add_edge = me.add_edge
+        place = self.place
+        new_place = self.new_place
         for i in range(m):
             for j in range(n):
-                add_node((i, j))
+                new = new_place((i, j))
                 if i > 0:
-                    add_edge((i, j), (i-1, j))
+                    new.two_way(place[i - 1, j])
                     if j > 0:
-                        add_edge((i, j), (i-1, j-1))
+                        new.two_way(place[i - 1, j - 1])
                 if j > 0:
-                    add_edge((i, j), (i, j-1))
-                if (i - 1, j + 1) in node:
-                    add_edge((i, j), (i-1, j+1))
-        return self.copy_from(me)
+                    new.two_way(place[i, j - 1])
+                if (i - 1, j + 1) in place:
+                    new.two_way(place[i - 1, j + 1])
 
     def grid_graph(self, dim, periodic=False):
         return self.copy_from(nx.grid_graph(dim, periodic))

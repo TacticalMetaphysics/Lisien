@@ -302,10 +302,15 @@ class Cache(object):
             else:
                 for (parbranch, parturn, partick) in self.db._iter_parent_btt(branch, turn, tick):
                     par_kc_key = parentity + (parbranch,)
-                    if par_kc_key in keycache and keycache[par_kc_key].rev_gettable(parturn) \
-                            and keycache[par_kc_key][parturn].rev_gettable(partick):
-                        parkeys = keycache[par_kc_key][parturn][partick]
-                        break
+                    if par_kc_key in keycache:
+                        kcpkc = keycache[par_kc_key]
+                        if parturn in kcpkc and kcpkc[parturn].rev_gettable(partick):
+                            parkeys = kcpkc[parturn][partick]
+                            break
+                        elif kcpkc.rev_gettable(parturn-1):
+                            partkeys = kcpkc[parturn-1]
+                            parkeys = partkeys[partkeys.end]
+                            break
                 else:
                     parkeys = frozenset()
                 kc = SettingsTurnDict()
