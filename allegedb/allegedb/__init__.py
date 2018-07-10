@@ -477,7 +477,7 @@ class ORM(object):
         self._childbranch[parent].add(child)
         self._branch_parents[child].add(parent)
         while parent in self._branches:
-            parent, _, _, _, _ = self._branches
+            parent, _, _, _, _ = self._branches[parent]
             self._branch_parents[child].add(parent)
 
     def _init_load(self, validate=False):
