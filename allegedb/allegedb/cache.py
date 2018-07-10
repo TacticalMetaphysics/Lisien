@@ -407,10 +407,11 @@ class Cache(object):
         and the remaining arguments identify the entity that has
         the key, eg. a graph, node, or edge.
 
-        With ``planning=True``, raise HistoryError instead of overwriting.
-        Otherwise, any information about this key of this entity in the
-        future will be deleted. Separate branches of history will be
-        unaffected.
+        With ``planning=True``, you will be permitted to alter
+        "history" that takes place after the last non-planning
+        moment of time, without much regard to consistency.
+        Otherwise, contradictions will be handled by deleting
+        everything after the present moment.
 
         """
         if planning is None:
