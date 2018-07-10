@@ -1886,27 +1886,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def add_place(self, n, **kwargs):
         super().add_node(n, **kwargs)
 
-        def init_store_node_rulebook():
-            try:
-                if (self.name, n) == self.engine._nodes_rulebooks_cache.retrieve(self.name, n, *self.engine.btt()):
-                    return
-            except KeyError:
-                pass
-            branch, turn, tick = self.engine.nbtt()
-            self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
-
-        def init_store_rulebook():
-            try:
-                if [] == self.engine._rulebooks_cache.retrieve((self.name, n), *self.engine.btt()):
-                    return
-            except KeyError:
-                pass
-            branch, turn, tick = self.engine.nbtt()
-            self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])
-
-        init_store_node_rulebook()
-        init_store_rulebook()
-
     def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""
         super().add_nodes_from(seq, **attrs)
