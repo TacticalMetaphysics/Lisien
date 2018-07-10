@@ -470,7 +470,7 @@ class WindowDict(MutableMapping):
         return ret
 
     def __setitem__(self, rev, v):
-        if hasattr(v, 'unwrap'):
+        if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
         if not self._past and not self._future:
             self._past.append((rev, v))
