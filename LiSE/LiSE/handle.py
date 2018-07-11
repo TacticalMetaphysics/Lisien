@@ -1185,9 +1185,12 @@ class EngineHandle(object):
     def all_rules_delta(self, *, store=True):
         ret = {}
         for rule in self._real.rule.keys():
-            delta = self.rule_delta(rule, store=store)
-            if delta:
-                ret[rule] = delta
+            try:
+                delta = self.rule_delta(rule, store=store)
+                if delta:
+                    ret[rule] = delta
+            except KeyError:
+                pass
         return ret
 
     def source_copy(self, store):
