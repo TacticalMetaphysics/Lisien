@@ -688,36 +688,50 @@ class EdgesCache(Cache):
 
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Iterate over successors of a given origin node at a given time."""
+        if self.db._no_kc:
+            yield from self._adds_dels_sucpred(self.successors[graph, orig], branch, turn, tick)[0]
+            return
         if forward is None:
             forward = self.db._forward
         yield from self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
 
     def iter_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
         """Iterate over predecessors to a given destination node at a given time."""
+        if self.db._no_kc:
+            yield from self._adds_dels_sucpred(self.predecessors[graph, dest], branch, turn, tick)[0]
+            return
         if forward is None:
             forward = self.db._forward
         yield from self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
     def count_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Return the number of successors to a given origin node at a given time."""
+        if self.db._no_kc:
+            return len(self._adds_dels_sucpred(self.successors[graph, orig], branch, turn, tick)[0])
         if forward is None:
             forward = self.db._forward
         return len(self._get_destcache(graph, orig, branch, turn, tick, forward=forward))
 
     def count_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
         """Return the number of predecessors from a given destination node at a given time."""
+        if self.db._no_kc:
+            return len(self._adds_dels_sucpred(self.predecessors[graph, dest], branch, turn, tick)[0])
         if forward is None:
             forward = self.db._forward
         return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))
 
     def has_successor(self, graph, orig, dest, branch, turn, tick, *, forward=None):
         """Return whether an edge connects the origin to the destination at the given time."""
+        if self.db._no_kc:
+            return dest in self._adds_dels_sucpred(self.successors[graph, orig], branch, turn, tick)[0]
         if forward is None:
             forward = self.db._forward
         return dest in self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
-    
+
     def has_predecessor(self, graph, dest, orig, branch, turn, tick, forward=None):
         """Return whether an edge connects the destination to the origin at the given time."""
+        if self.db._no_kc:
+            return orig in self._adds_dels_sucpred(self.predecessors[graph, dest], branch, turn, tick)[0]
         if forward is None:
             forward = self.db._forward
         return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
