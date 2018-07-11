@@ -1363,7 +1363,6 @@ class Engine(AbstractEngine, gORM):
             True
         )
         self._nodes_cache.store(character, node, branch, turn, tick, True)
-        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node))
 
     def _edge_exists(self, character, orig, dest):
         return self._edges_cache.contains_entity(
@@ -1387,7 +1386,6 @@ class Engine(AbstractEngine, gORM):
         self._edges_cache.store(
             character, orig, dest, 0, branch, turn, tick, exist
         )
-        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, (character, orig, dest))
 
     def alias(self, v, stat='dummy'):
         from .util import EntityStatAccessor
