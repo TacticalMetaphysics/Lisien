@@ -355,6 +355,8 @@ class WindowDict(MutableMapping):
     still without retaining the revision they're from.
 
     """
+    __slots__ = ('_future', '_past')
+
     def future(self, rev=None):
         """Return a Mapping of items after the given revision."""
         if rev is not None:
