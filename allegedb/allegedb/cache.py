@@ -547,24 +547,34 @@ class Cache(object):
             and self.branches[entity+(key,)][branch].rev_gettable(turn)
         ):
             brancs = self.branches[entity+(key,)][branch]
-            if turn in brancs and tick in brancs[turn]:
-                ret = brancs[turn][tick]
+            if turn in brancs:
+                if brancs[turn].rev_gettable(tick):
+                    ret = brancs[turn][tick]
+                    self.shallowest[args] = ret
+                    return ret
+                elif brancs.rev_gettable(turn-1):
+                    b1 = brancs[turn-1]
+                    ret = b1[b1.end]
+                    self.shallowest[args] = ret
+                    return ret
             else:
                 ret = brancs[turn]
                 ret = ret[ret.end]
-            self.shallowest[args] = ret
-            return ret
+                self.shallowest[args] = ret
+                return ret
         for (b, r, t) in self.db._iter_parent_btt(branch):
             if (
                     b in self.branches[entity+(key,)]
                     and self.branches[entity+(key,)][b].rev_gettable(r)
             ):
                 brancs = self.branches[entity+(key,)][b]
-                if r in brancs and t in brancs[r]:
+                if r in brancs and brancs[r].rev_gettable(t):
                     ret = brancs[r][t]
-                else:
-                    ret = brancs[r]
+                elif brancs.rev_gettable(r-1):
+                    ret = brancs[r-1]
                     ret = ret[ret.end]
+                else:
+                    continue
                 self.shallowest[args] = ret
                 return ret
         else:
