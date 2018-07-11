@@ -509,4 +509,6 @@ class WindowDict(MutableMapping):
         del self._past[-1]
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, dict(self._past).update(self._future))
+        me = dict(self._past)
+        me.update(self._future)
+        return "{}({})".format(self.__class__.__name__, me)
