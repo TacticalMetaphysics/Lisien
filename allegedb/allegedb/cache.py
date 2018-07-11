@@ -720,21 +720,19 @@ class EdgesCache(Cache):
             forward = self.db._forward
         return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))
 
-    def has_successor(self, graph, orig, dest, branch, turn, tick, *, forward=None):
+    def has_successor(self, graph, orig, dest, branch, turn, tick):
         """Return whether an edge connects the origin to the destination at the given time."""
-        if self.db._no_kc:
-            return dest in self._adds_dels_sucpred(self.successors[graph, orig], branch, turn, tick)[0]
-        if forward is None:
-            forward = self.db._forward
-        return dest in self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
+        try:
+            return self.retrieve(graph, orig, dest, 0, branch, turn, tick) is not None
+        except KeyError:
+            return False
 
-    def has_predecessor(self, graph, dest, orig, branch, turn, tick, forward=None):
+    def has_predecessor(self, graph, dest, orig, branch, turn, tick):
         """Return whether an edge connects the destination to the origin at the given time."""
-        if self.db._no_kc:
-            return orig in self._adds_dels_sucpred(self.predecessors[graph, dest], branch, turn, tick)[0]
-        if forward is None:
-            forward = self.db._forward
-        return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
+        try:
+            return self.retrieve(graph, orig, dest, 0, branch, turn, tick) is not None
+        except KeyError:
+            return False
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
         if not ex:
