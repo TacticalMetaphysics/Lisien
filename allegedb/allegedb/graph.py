@@ -55,6 +55,7 @@ class AllegedMapping(MutableMappingUnwrapper, Signal):
 
 
 class AbstractEntityMapping(AllegedMapping):
+    __slots__ = ('receivers', '_by_receiver', '_by_sender', '_weak_senders')
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
 
@@ -692,7 +693,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
     the dest provided to this
 
     """
-    _predcache = defaultdict(dict)
+    __slots__ = ('receivers', '_by_receiver', '_by_sender', '_weak_senders', 'graph')
 
     def __contains__(self, dest):
         return dest in self.graph.node
@@ -708,16 +709,12 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             self._cache[dest] = self.Predecessors(self, dest)
         return self._cache[dest]
 
-    def _getpreds(self, dest):
-        cache = self._predcache[id(self)]
-        if dest not in cache:
-            cache[dest] = self.Predecessors(self, dest)
-        return cache[dest]
-
     def __setitem__(self, key, val):
         """Interpret ``val`` as a mapping of edges that end at ``dest``"""
         created = key not in self
-        preds = self._getpreds(key)
+        if key not in self._cache:
+            self._cache[key] = self.Predecessors(self, key)
+        preds = self._cache[key]
         preds.clear()
         preds.update(val)
         if created:
@@ -725,7 +722,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     def __delitem__(self, key):
         """Delete all edges ending at ``dest``"""
-        self._getpreds(key).clear()
+        if key in self._cache:
+            self._cache[key].clear()
+            del self._cache[key]
         self.send(self, key=key, val=None)
 
     def __iter__(self):
