@@ -8,6 +8,7 @@ from collections import OrderedDict, deque
 
 class FuturistWindowDict(WindowDict):
     """A WindowDict that does not let you rewrite the past."""
+    __slots__ = ('_future', '_past')
 
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
@@ -37,26 +38,38 @@ class FuturistWindowDict(WindowDict):
             self._future = deque(self._future)
 
 
-class AbstractTurnDict(WindowDict):
+class TurnDict(FuturistWindowDict):
+    __slots__ = ('_future', '_past')
+    cls = FuturistWindowDict
+
     def __getitem__(self, rev):
         try:
             return super().__getitem__(rev)
         except KeyError:
-            ret = self[rev] = self.cls()
+            ret = self[rev] = FuturistWindowDict()
             return ret
 
     def __setitem__(self, turn, value):
-        if type(value) is not self.cls:
-            value = self.cls(value)
+        if type(value) is not FuturistWindowDict:
+            value = FuturistWindowDict(value)
         super().__setitem__(turn, value)
 
 
-class TurnDict(AbstractTurnDict, FuturistWindowDict):
-    cls = FuturistWindowDict
-
-
-class SettingsTurnDict(AbstractTurnDict):
+class SettingsTurnDict(WindowDict):
+    __slots__ = ('_future', '_past')
     cls = WindowDict
+
+    def __getitem__(self, rev):
+        try:
+            return super().__getitem__(rev)
+        except KeyError:
+            ret = self[rev] = WindowDict()
+            return ret
+
+    def __setitem__(self, turn, value):
+        if type(value) is not WindowDict:
+            value = WindowDict(value)
+        super().__setitem__(turn, value)
 
 
 def _default_args_munger(self, k):
@@ -200,13 +213,6 @@ class Cache(object):
         self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
-        self._asizes = 0
-        self._avgsize = 0
-
-    def asize(self):
-        from pympler.asizeof import asizeof
-        return asizeof(self.parents) + asizeof(self.keys) + asizeof(self.keycache) + asizeof(self.branches) \
-               + asizeof(self.shallowest) + asizeof(self.settings) + asizeof(self.presettings) + asizeof(self._kc_lru)
 
     def load(self, data, validate=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -673,11 +679,6 @@ class EdgesCache(Cache):
         self.predecessors = StructuredDefaultDict(3, TurnDict)
         self._origcache_lru = OrderedDict()
         self._destcache_lru = OrderedDict()
-
-    def asize(self):
-        from pympler.asizeof import asizeof
-        return super().asize() + asizeof(self.destcache) + asizeof(self.origcache) + asizeof(self.predecessors) \
-               + asizeof(self._origcache_lru) + asizeof(self._destcache_lru)
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
