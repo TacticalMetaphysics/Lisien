@@ -3,10 +3,8 @@
 """allegedb's special implementations of the NetworkX graph objects"""
 import networkx
 from networkx.exception import NetworkXError
-from blinker import Signal
 from collections import defaultdict
 from .wrap import MutableMappingUnwrapper
-
 
 class EntityCollisionError(ValueError):
     """For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""
@@ -34,8 +32,42 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     )
 
 
-class AllegedMapping(MutableMappingUnwrapper, Signal):
+_alleged_receivers = defaultdict(list)
+
+
+class AllegedMapping(MutableMappingUnwrapper):
     """Common amenities for mappings"""
+    __slots__ = ()
+
+    def connect(self, func):
+        """Arrange to call this function whenever something changes here.
+
+        The arguments will be this object, the key changed, and the value set.
+
+        """
+        l = _alleged_receivers[id(self)]
+        if func not in l:
+            l.append(func)
+
+    def disconnect(self, func):
+        """No longer call the function when something changes here."""
+        if id(self) not in _alleged_receivers:
+            return
+        l = _alleged_receivers[id(self)]
+        try:
+            l.remove(func)
+        except ValueError:
+            return
+        if not l:
+            del _alleged_receivers[id(self)]
+
+    def send(self, sender, **kwargs):
+        """Internal. Call connected functions."""
+        if id(self) not in _alleged_receivers:
+            return
+        for func in _alleged_receivers[id(self)]:
+            func(sender, **kwargs)
+
     def clear(self):
         """Delete everything"""
         for k in list(self.keys()):
@@ -55,7 +87,8 @@ class AllegedMapping(MutableMappingUnwrapper, Signal):
 
 
 class AbstractEntityMapping(AllegedMapping):
-    __slots__ = ('receivers', '_by_receiver', '_by_sender', '_weak_senders')
+    __slots__ = ()
+
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
 
@@ -129,6 +162,8 @@ class AbstractEntityMapping(AllegedMapping):
 
 class GraphMapping(AbstractEntityMapping):
     """Mapping for graph attributes"""
+    __slots__ = ('graph',)
+
     db = getatt('graph.db')
 
     def __init__(self, graph):
@@ -201,6 +236,8 @@ class GraphMapping(AbstractEntityMapping):
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
+    __slots__ = ('graph', 'node')
+
     db = getatt('graph.db')
 
     def __new__(cls, graph, node):
@@ -265,6 +302,8 @@ class Node(AbstractEntityMapping):
 
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
+    __slots__ = ('graph', 'orig', 'dest', 'idx')
+
     db = getatt('graph.db')
 
     def __new__(cls, graph, orig, dest, idx=0):
@@ -368,6 +407,8 @@ class Edge(AbstractEntityMapping):
 
 class GraphNodeMapping(AllegedMapping):
     """Mapping for nodes in a graph"""
+    __slots__ = ('graph',)
+
     db = getatt('graph.db')
 
     def __init__(self, graph):
@@ -492,6 +533,8 @@ class GraphEdgeMapping(AllegedMapping):
     for a graph.
 
     """
+    __slots__ = ('graph',)
+
     _metacache = defaultdict(dict)
 
     @property
@@ -528,6 +571,8 @@ class GraphEdgeMapping(AllegedMapping):
 
 
 class AbstractSuccessors(GraphEdgeMapping):
+    __slots__ = ('graph', 'container', 'orig')
+
     db = getatt('graph.db')
     _metacache = defaultdict(dict)
 
@@ -636,7 +681,11 @@ class AbstractSuccessors(GraphEdgeMapping):
 
 class GraphSuccessorsMapping(GraphEdgeMapping):
     """Mapping for Successors (itself a MutableMapping)"""
+    __slots__ = ('graph',)
+
     class Successors(AbstractSuccessors):
+        __slots__ = ('graph', 'container', 'orig')
+
         def _order_nodes(self, dest):
             if dest < self.orig:
                 return (dest, self.orig)
@@ -683,7 +732,11 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 
 
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
+    __slots__ = ('graph',)
+
     class Successors(AbstractSuccessors):
+        __slots__ = ('graph', 'container', 'orig')
+
         def _order_nodes(self, dest):
             return (self.orig, dest)
 
@@ -693,7 +746,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
     the dest provided to this
 
     """
-    __slots__ = ('receivers', '_by_receiver', '_by_sender', '_weak_senders', 'graph')
+    __slots__ = ('graph',)
 
     def __contains__(self, dest):
         return dest in self.graph.node
@@ -735,6 +788,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     class Predecessors(GraphEdgeMapping):
         """Mapping of Edges that end at a particular node"""
+        __slots__ = ('graph', 'container', 'dest')
 
         def __init__(self, container, dest):
             """Store container and node ID"""
@@ -851,8 +905,10 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             self.send(self, key=orig, val=None)
 
 
-class MultiEdges(GraphEdgeMapping, Signal):
+class MultiEdges(GraphEdgeMapping):
     """Mapping of Edges between two nodes"""
+    __slots__ = ('graph', 'orig', 'dest')
+
     db = getatt('graph.db')
 
     def __init__(self, graph, orig, dest):
@@ -942,6 +998,8 @@ class MultiEdges(GraphEdgeMapping, Signal):
 
 class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
     """Mapping of Successors that map to MultiEdges"""
+    __slots__ = ('graph',)
+
     def __getitem__(self, orig):
         """If the node exists, return its Successors"""
         if orig not in self.graph.node:
@@ -972,6 +1030,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""
+        __slots__ = ('graph', 'container', 'orig', '_multedge')
 
         def __init__(self, container, orig):
             super().__init__(container, orig)
@@ -1013,8 +1072,12 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
 class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
     """Version of DiGraphPredecessorsMapping for multigraphs"""
+    __slots__ = ('graph',)
+
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         """Predecessor edges from a given node"""
+        __slots__ = ('graph', 'container', 'dest')
+
         def __getitem__(self, orig):
             """Get MultiEdges"""
             return MultiEdges(self.graph, orig, self.dest)
@@ -1029,7 +1092,10 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
 
 
 class MultiDiGraphSuccessorsMapping(MultiGraphSuccessorsMapping):
+    __slots__ = ('graph',)
+
     class Successors(MultiGraphSuccessorsMapping.Successors):
+        __slots__ = ('graph', 'container', 'orig', '_multedge')
         def _order_nodes(self, dest):
             return self.orig, dest
 
@@ -1338,3 +1404,5 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
             keydict = {key: datadict}
             self.succ[u][v] = keydict
         return key
+
+pass
