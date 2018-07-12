@@ -3,7 +3,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError
-from collections import OrderedDict
+from collections import OrderedDict, deque
 
 
 class FuturistWindowDict(WindowDict):
@@ -12,6 +12,8 @@ class FuturistWindowDict(WindowDict):
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
+        if self._past is None:
+            self._past = []
         if not self._past and not self._future:
             self._past.append((rev, v))
             return
@@ -29,6 +31,10 @@ class FuturistWindowDict(WindowDict):
                 "Already have some history after {} "
                 "(and my seek function is broken?)".format(rev)
             )
+        if type(self._past) is list and len(self._past) > self.DEQUE_THRESHOLD:
+            self._past = deque(self._past)
+        if type(self._future) is list and len(self._future) > self.DEQUE_THRESHOLD:
+            self._future = deque(self._future)
 
 
 class AbstractTurnDict(WindowDict):
@@ -192,6 +198,13 @@ class Cache(object):
         self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
+        self._asizes = 0
+        self._avgsize = 0
+
+    def asize(self):
+        from pympler.asizeof import asizeof
+        return asizeof(self.parents) + asizeof(self.keys) + asizeof(self.keycache) + asizeof(self.branches) \
+               + asizeof(self.shallowest) + asizeof(self.settings) + asizeof(self.presettings) + asizeof(self._kc_lru)
 
     def load(self, data, validate=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
@@ -658,6 +671,11 @@ class EdgesCache(Cache):
         self.predecessors = StructuredDefaultDict(3, TurnDict)
         self._origcache_lru = OrderedDict()
         self._destcache_lru = OrderedDict()
+
+    def asize(self):
+        from pympler.asizeof import asizeof
+        return super().asize() + asizeof(self.destcache) + asizeof(self.origcache) + asizeof(self.predecessors) \
+               + asizeof(self._origcache_lru) + asizeof(self._destcache_lru)
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
