@@ -297,7 +297,10 @@ class WindowDictSlice:
             for i in range(slic.start or dic.beginning, slic.stop or dic.end, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            yield from map(itemgetter(1), dic._past + dic._future)
+            if dic._past:
+                yield from map(itemgetter(1), dic._past)
+            if dic._future:
+                yield from map(itemgetter(1), dic._future)
         elif None not in (slic.start, slic.stop):
             if slic.stop == slic.start:
                 yield dic[slic.stop]
@@ -307,8 +310,9 @@ class WindowDictSlice:
             if not dic._past:
                 return
             past = dic._past.copy()
+            popper = getattr(past, 'popleft', lambda: past.pop(0))
             while past and past[0][0] < left:
-                past.pop(0)
+                popper()
             yield from map(itemgetter(1), past)
         elif slic.start is None:
             stac = []
@@ -321,13 +325,13 @@ class WindowDictSlice:
             yield from map(itemgetter(1), stac)
             return
         else:  # slic.stop is None
-            stac = []
+            stac = deque()
             if dic._past:
                 stac.extend(dic._past)
             if dic._future:
                 stac.extend(dic._future)
             while stac and stac[0][0] < slic.start:
-                stac.pop(0)
+                stac.popleft()
             yield from map(itemgetter(1), stac)
 
 
@@ -351,7 +355,10 @@ class WindowDictReverseSlice:
             for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            yield from map(itemgetter(1), reversed(dic._past + dic._future))
+            if dic._future:
+                yield from map(itemgetter(1), reversed(dic._future))
+            if dic._past:
+                yield from map(itemgetter(1), reversed(dic._past))
         elif None not in (slic.start, slic.stop):
             if slic.start == slic.stop:
                 yield dic[slic.stop]
@@ -363,14 +370,22 @@ class WindowDictReverseSlice:
                     return
                 yield fv
         elif slic.start is None:
-            stac = dic._past + dic._future
+            stac = deque()
+            if dic._past:
+                stac.extend(dic._past)
+            if dic._future:
+                stac.extend(dic._future)
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
             yield from map(itemgetter(1), reversed(stac))
         else:  # slic.stop is None
-            stac = dic._past + dic._future
+            stac = deque()
+            if dic._past:
+                stac.extend(dic._past)
+            if dic._future:
+                stac.extend(dic._future)
             while stac and stac[0][0] < slic.start:
-                stac.pop(0)
+                stac.popleft()
             yield from map(itemgetter(1), reversed(stac))
 
 
@@ -428,12 +443,16 @@ class WindowDict(MutableMapping):
             return
         if self._past is None:
             self._past = []
-        while self._future and self._future[0][0] <= rev:
-            self._past.append(self._future.pop(0))
+        if self._future:
+            popper = getattr(self._future, 'popleft', lambda: self._future.pop(0))
+            while self._future and self._future[0][0] <= rev:
+                self._past.append(popper())
         if self._past and self._future is None:
             self._future = []
-        while self._past and self._past[-1][0] > rev:
-            self._future.insert(0, self._past.pop())
+        if self._past:
+            prepender = getattr(self._future, 'appendleft', lambda x: self._future.insert(0, x))
+            while self._past and self._past[-1][0] > rev:
+                prepender(self._past.pop())
 
     def rev_gettable(self, rev):
         if self._past:
