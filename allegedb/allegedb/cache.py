@@ -59,6 +59,14 @@ class SettingsTurnDict(AbstractTurnDict):
     cls = WindowDict
 
 
+def _default_args_munger(self, k):
+    return tuple()
+
+
+def _default_kwargs_munger(self, k):
+    return {}
+
+
 class PickyDefaultDict(dict):
     """A ``defaultdict`` alternative that requires values of a specific type.
 
@@ -75,15 +83,9 @@ class PickyDefaultDict(dict):
 
     def __init__(
             self, type=object,
-            args_munger=None,
-            kwargs_munger=None
+            args_munger=_default_args_munger,
+            kwargs_munger=_default_kwargs_munger
     ):
-        if args_munger is None:
-            def args_munger(self, k):
-                return tuple()
-        if kwargs_munger is None:
-            def kwargs_munger(self, k):
-                return dict()
         self.type = type
         self.args_munger = args_munger
         self.kwargs_munger = kwargs_munger
@@ -124,8 +126,8 @@ class StructuredDefaultDict(dict):
 
     def __init__(
             self, layers, type=object,
-            args_munger=None,
-            kwargs_munger=None
+            args_munger=_default_args_munger,
+            kwargs_munger=_default_kwargs_munger
     ):
         if layers < 1:
             raise ValueError("Not enough layers")
