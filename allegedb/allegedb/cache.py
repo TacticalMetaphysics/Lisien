@@ -753,13 +753,8 @@ class EdgesCache(Cache):
         if (graph, orig, dest, idx) not in self.db._edge_objs:
             self.db._edge_objs[(graph, orig, dest, idx)] \
                 = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
-        preds = self.predecessors[(graph, dest)][orig][idx][branch]
-        if turn in preds:
-            preds[turn][tick] = ex
-        else:
-            newp = FuturistWindowDict()
-            newp[tick] = ex
-            preds[turn] = newp
+        self.predecessors[(graph, dest)][orig][idx][branch][turn] \
+            = self.successors[graph, orig][dest][idx][branch][turn]
         if ex:
             assert self.has_successor(graph, orig, dest, branch, turn, tick)
             assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
