@@ -484,17 +484,26 @@ class Cache(object):
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         while len(self.shallowest) > self.keycache_maxsize:
             self.shallowest.popitem(False)
-        new = None
         if parent:
             parents = self.parents[parent][entity][key][branch]
+            if parents and turn < parents.end:
+                if turn in parents:
+                    mapp_turn = parents[turn]
+                    settings_turn = settings_turns[turn]
+                    if tick in mapp_turn:
+                        del settings_turn[tick]
+                    for tic in mapp_turn.future(tick):
+                        del settings_turn[tic]
             if turn in parents:
                 parentsturn = parents[turn]
                 parentsturn.truncate(tick)
                 parentsturn[tick] = value
+                assert parentsturn is branches[turn] is keys[turn]
             else:
                 new = FuturistWindowDict()
                 new[tick] = value
-                parents[turn] = new
+                parents[turn] = branches[turn] = keys[turn] = new
+            return
         if branches and turn < branches.end:
             # deal with the paradox by erasing history after this tick and turn
             if turn in branches:
@@ -513,10 +522,7 @@ class Cache(object):
             branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:
-            if new is None:
-                new = FuturistWindowDict()
-                new[tick] = value
-            branches[turn] = keys[turn] = new
+            branches[turn] = keys[turn] = {tick: value}
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
