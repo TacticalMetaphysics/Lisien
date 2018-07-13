@@ -447,7 +447,7 @@ class Cache(object):
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
-        settings_turns = self.settings[branch]
+        parents = self.parents[parent][entity][key][branch] if parent else None
         branches = self.branches[parent+(entity, key)][branch]
         keys = self.keys[parent+(entity,)][key][branch]
         if planning:
@@ -467,54 +467,33 @@ class Cache(object):
                     )
         else:
             # truncate settings
-            prefix = parent + (entity, key)
-            for settings in self.settings, self.presettings:
-                settings_turns = settings[branch]
-                settings_turns.seek(turn)
-                deletable = {}
-                for trn, tics in settings_turns.future().items():
-                    deletable[trn] = [
-                        tic for tic in tics
-                        if tic >= tick and tics[tic][:len(prefix)] == prefix
-                    ]
-                for trn, tics in deletable.items():
-                    for tic in tics:
-                        del settings_turns[trn][tic]
+            mapps = [branches, keys, self.settings[branch], self.presettings[branch]]
+            if parents:
+                mapps.append(parents)
+            for mapp in mapps:
+                if turn in mapp:
+                    mapp[turn].truncate(tick)
+                mapp.truncate(turn)
         self._store_journal(*args)
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         while len(self.shallowest) > self.keycache_maxsize:
             self.shallowest.popitem(False)
-        if parent:
-            parents = self.parents[parent][entity][key][branch]
-            if parents and turn < parents.end:
-                if turn in parents:
-                    mapp_turn = parents[turn]
-                    settings_turn = settings_turns[turn]
-                    if tick in mapp_turn:
-                        del settings_turn[tick]
-                    for tic in mapp_turn.future(tick):
-                        del settings_turn[tic]
+        if parents:
             if turn in parents:
+                assert turn in branches
+                assert turn in keys
                 parentsturn = parents[turn]
+                assert parentsturn is branches[turn] is keys[turn]
                 parentsturn.truncate(tick)
                 parentsturn[tick] = value
-                assert parentsturn is branches[turn] is keys[turn]
             else:
+                assert turn not in branches
+                assert turn not in keys
                 new = FuturistWindowDict()
                 new[tick] = value
                 parents[turn] = branches[turn] = keys[turn] = new
+                assert parents[turn] is branches[turn] is keys[turn]
             return
-        if branches and turn < branches.end:
-            # deal with the paradox by erasing history after this tick and turn
-            if turn in branches:
-                mapp_turn = branches[turn]
-                settings_turn = settings_turns[turn]
-                if tick in mapp_turn:
-                    del settings_turn[tick]
-                for tic in mapp_turn.future():
-                    del settings_turn[tic]
-            branches.truncate(turn)
-            keys.truncate(turn)
         if turn in branches:
             assert turn in keys
             branchesturn = branches[turn]
@@ -522,7 +501,11 @@ class Cache(object):
             branchesturn.truncate(tick)
             branchesturn[tick] = value
         else:
-            branches[turn] = keys[turn] = {tick: value}
+            assert turn not in keys
+            new = FuturistWindowDict()
+            new[tick] = value
+            branches[turn] = keys[turn] = new
+            assert branches[turn] is keys[turn]
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
