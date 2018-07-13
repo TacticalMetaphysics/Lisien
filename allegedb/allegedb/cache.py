@@ -132,8 +132,6 @@ class StructuredDefaultDict(dict):
     ``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
     to my constructor.
 
-    This will never accept manual assignments at any layer but the deepest.
-
     """
     __slots__ = ['layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key']
 
@@ -167,6 +165,24 @@ class StructuredDefaultDict(dict):
         return ret
 
     def __setitem__(self, k, v):
+        if type(v) is StructuredDefaultDict:
+            if (
+                    v.layer == self.layer - 1
+                    and v.type is self.type
+                    and v.args_munger is self.args_munger
+                    and v.kwargs_munger is self.kwargs_munger
+            ):
+                super().__setitem__(k, v)
+                return
+        elif type(v) is PickyDefaultDict:
+            if (
+                self.layer < 2
+                and v.type is self.type
+                and v.args_munger is self.args_munger
+                and v.kwargs_munger is self.kwargs_munger
+            ):
+                super().__setitem__(k, v)
+                return
         raise TypeError("Can't set layer {}".format(self.layer))
 
 
@@ -447,30 +463,36 @@ class Cache(object):
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
-        parents = self.parents[parent][entity][key][branch] if parent else None
-        branches = self.branches[parent+(entity, key)][branch]
-        keys = self.keys[parent+(entity,)][key][branch]
+        if parent:
+            parentity = self.parents[parent][entity]
+            if key in parentity:
+                branches = parentity[key]
+                assert branches is self.branches[parent+(entity, key)] is self.keys[parent+(entity,)][key]
+                turns = branches[branch]
+            else:
+                branches = self.branches[parent+(entity, key)] \
+                    = self.keys[parent+(entity,)][key] \
+                    = parentity[key]
+                turns = branches[branch]
+        else:
+            if (entity, key) in self.branches:
+                branches = self.branches[entity, key]
+                assert branches is self.keys[entity, ][key]
+                turns = branches[branch]
+            else:
+                branches = self.branches[entity, key]
+                self.keys[entity,][key] = branches
+                turns = branches[branch]
         if planning:
-            if keys:
-                if turn in keys and tick < keys[turn].end:
-                    raise HistoryError(
-                        "Already have some ticks after {} in turn {} of branch {}".format(
-                            tick, turn, branch
-                        )
+            if turn in turns and tick < turns[turn].end:
+                raise HistoryError(
+                    "Already have some ticks after {} in turn {} of branch {}".format(
+                        tick, turn, branch
                     )
-            if branches:
-                if turn in branches and tick < branches[turn].end:
-                    raise HistoryError(
-                        "Already have some ticks after {} in turn {} of branch {}".format(
-                            tick, turn, branch
-                        )
-                    )
+                )
         else:
             # truncate settings
-            mapps = [branches, keys, self.settings[branch], self.presettings[branch]]
-            if parents:
-                mapps.append(parents)
-            for mapp in mapps:
+            for mapp in (self.settings[branch], self.presettings[branch], turns):
                 if turn in mapp:
                     mapp[turn].truncate(tick)
                 mapp.truncate(turn)
@@ -478,34 +500,14 @@ class Cache(object):
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         while len(self.shallowest) > self.keycache_maxsize:
             self.shallowest.popitem(False)
-        if parents:
-            if turn in parents:
-                assert turn in branches
-                assert turn in keys
-                parentsturn = parents[turn]
-                assert parentsturn is branches[turn] is keys[turn]
-                parentsturn.truncate(tick)
-                parentsturn[tick] = value
-            else:
-                assert turn not in branches
-                assert turn not in keys
-                new = FuturistWindowDict()
-                new[tick] = value
-                parents[turn] = branches[turn] = keys[turn] = new
-                assert parents[turn] is branches[turn] is keys[turn]
-            return
-        if turn in branches:
-            assert turn in keys
-            branchesturn = branches[turn]
-            assert branchesturn is keys[turn]
-            branchesturn.truncate(tick)
-            branchesturn[tick] = value
+        if turn in turns:
+            the_turn = turns[turn]
+            the_turn.truncate(tick)
+            the_turn[tick] = value
         else:
-            assert turn not in keys
             new = FuturistWindowDict()
             new[tick] = value
-            branches[turn] = keys[turn] = new
-            assert branches[turn] is keys[turn]
+            turns[turn] = new
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
@@ -552,6 +554,8 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
+        if entity+(key,) not in self.branches:
+            raise KeyError
         if (
             branch in self.branches[entity+(key,)]
             and self.branches[entity+(key,)][branch].rev_gettable(turn)
