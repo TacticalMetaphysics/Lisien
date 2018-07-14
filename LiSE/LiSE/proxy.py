@@ -2520,6 +2520,12 @@ class EngineProxy(AbstractEngine):
         self.handle(command='close')
         self.send('shutdown')
 
+    def _node_contents(self, character, node):
+        # very slow. do better
+        for thing in self.character[character].thing.values():
+            if thing['location'] == node:
+                yield thing.name
+
 
 def subprocess(
     args, kwargs, handle_out_pipe, handle_in_pipe, logq, loglevel

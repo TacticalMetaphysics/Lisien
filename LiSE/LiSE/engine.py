@@ -1364,6 +1364,11 @@ class Engine(AbstractEngine, gORM):
         )
         self._nodes_cache.store(character, node, branch, turn, tick, True)
 
+    def _node_contents(self, character, node):
+        return node.engine._node_contents_cache.retrieve(
+            character, node, *self.btt()
+        )
+
     def _edge_exists(self, character, orig, dest):
         return self._edges_cache.contains_entity(
             character, orig, dest, 0, *self.btt()
