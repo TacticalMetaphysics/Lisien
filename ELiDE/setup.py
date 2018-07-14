@@ -14,11 +14,9 @@ setup(
     packages=[
         "ELiDE",
         "ELiDE.board",
-        "ELiDE.kivygarden.stiffscroll",
         "ELiDE.kivygarden.texturestack"
     ],
     package_dir={
-        'ELiDE.kivygarden.stiffscroll': 'ELiDE/kivygarden/stiffscroll',
         'ELiDE.kivygarden.texturestack':
         'ELiDE/kivygarden/texturestack'
     },
