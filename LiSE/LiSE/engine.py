@@ -494,16 +494,19 @@ class Engine(AbstractEngine, gORM):
     char_cls = Character
     thing_cls = Thing
     place_cls = node_cls = Place
-    portal_cls = edge_cls = _make_edge = Portal
+    portal_cls = edge_cls = Portal
     query_engine_cls = QueryEngine
     illegal_graph_names = ['global', 'eternal', 'universal', 'rulebooks', 'rules']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
-    def _make_node(self, char, node):
-        if self._is_thing(char.name, node):
-            return self.thing_cls(char, node)
+    def _make_node(self, graph, node):
+        if self._is_thing(graph.name, node):
+            return self.thing_cls(graph, node)
         else:
-            return self.place_cls(char, node)
+            return self.place_cls(graph, node)
+
+    def _make_edge(self, graph, orig, dest, idx=0):
+        return self.portal_cls(graph, orig, dest)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to the world.
@@ -1347,44 +1350,6 @@ class Engine(AbstractEngine, gORM):
             tick,
             loc,
             nextloc
-        )
-
-    def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self.btt())
-
-    def _exist_node(self, character, node):
-        branch, turn, tick = self.nbtt()
-        self.query.exist_node(
-            character,
-            node,
-            branch,
-            turn,
-            tick,
-            True
-        )
-        self._nodes_cache.store(character, node, branch, turn, tick, True)
-
-    def _edge_exists(self, character, orig, dest):
-        return self._edges_cache.contains_entity(
-            character, orig, dest, 0, *self.btt()
-        )
-
-    def _exist_edge(
-            self, character, orig, dest, exist=True
-    ):
-        branch, turn, tick = self.nbtt()
-        self.query.exist_edge(
-            character,
-            orig,
-            dest,
-            0,
-            branch,
-            turn,
-            tick,
-            exist
-        )
-        self._edges_cache.store(
-            character, orig, dest, 0, branch, turn, tick, exist
         )
 
     def alias(self, v, stat='dummy'):

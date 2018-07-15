@@ -642,16 +642,6 @@ class Cache(object):
 
 class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
-    def __init__(self, db):
-        super().__init__(db)
-        self._make_node = db._make_node
-
-    def store(self, graph, node, branch, turn, tick, ex, *, planning=None):
-        """Store whether a node exists, and create an object for it"""
-        if ex and (graph, node) not in self.db._node_objs:
-            self.db._node_objs[(graph, node)] \
-                = self._make_node(self.db.graph[graph], node)
-        Cache.store(self, graph, node, branch, turn, tick, ex, planning=planning)
 
     def _store(self, graph, node, branch, turn, tick, ex, *, planning):
         if not ex:
@@ -754,9 +744,6 @@ class EdgesCache(Cache):
         if planning is None:
             planning = self.db.planning
         Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning)
-        if (graph, orig, dest, idx) not in self.db._edge_objs:
-            self.db._edge_objs[(graph, orig, dest, idx)] \
-                = self.db._make_edge(self.db.graph[graph], orig, dest, idx)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
         if ex:

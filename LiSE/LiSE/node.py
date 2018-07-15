@@ -251,7 +251,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ['graph', 'db', 'node']
+    __slots__ = ()
     engine = getatt('db')
     character = getatt('graph')
     name = getatt('node')

@@ -236,7 +236,7 @@ class GraphMapping(AbstractEntityMapping):
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
-    __slots__ = ('graph', 'node')
+    __slots__ = ('graph', 'node', '__weakref__')
 
     db = getatt('graph.db')
 
@@ -302,7 +302,7 @@ class Node(AbstractEntityMapping):
 
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
-    __slots__ = ('graph', 'orig', 'dest', 'idx')
+    __slots__ = ('graph', 'orig', 'dest', 'idx', '__weakref__')
 
     db = getatt('graph.db')
 
@@ -455,7 +455,7 @@ class GraphNodeMapping(AllegedMapping):
         """If the node exists at present, return it, else throw KeyError"""
         if node not in self:
             raise KeyError
-        return self.db._node_objs[(self.graph.name, node)]
+        return self.db._get_node(self.graph, node)
 
     def __setitem__(self, node, dikt):
         """Only accept dict-like values for assignment. These are taken to be
@@ -465,19 +465,8 @@ class GraphNodeMapping(AllegedMapping):
         """
         branch, turn, tick = self.db.nbtt()
         created = node not in self
-        self.db._nodes_cache.store(
-            self.graph.name,
-            node,
-            branch, turn, tick,
-            True
-        )
-        if (self.graph.name, node) in self.db._node_objs:
-            n = self.db._node_objs[(self.graph.name, node)]
-            n.clear()
-        else:
-            n = self.db._node_objs[(self.graph.name, node)] = Node(
-                self.graph, node
-            )
+        n = self.db._get_node(self.graph, node)
+        n.clear()
         n.update(dikt)
         if created:
             self.db.query.exist_node(
@@ -505,6 +494,9 @@ class GraphNodeMapping(AllegedMapping):
             branch, turn, tick,
             False
         )
+        key = (self.graph.name, node)
+        if node in self.db._node_objs:
+            del self.db._node_objs[key]
         self.send(self, node_name=node, exists=False)
 
     def __eq__(self, other):
@@ -618,10 +610,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         """Get the edge between my orig and the given node"""
         if dest not in self:
             raise KeyError("No edge {}->{}".format(self.orig, dest))
-        key = self.graph.name, self.orig, dest, 0
-        if key not in self.db._edge_objs:
-            self.db._edge_objs[key] = self._make_edge(dest)
-        return self.db._edge_objs[key]
+        return self.db._get_edge(self.graph, self.orig, dest, 0)
 
     def __setitem__(self, dest, value):
         """Set the edge between my orig and the given dest to the given
@@ -936,9 +925,7 @@ class MultiEdges(GraphEdgeMapping):
         )
 
     def _getedge(self, idx):
-        if idx not in self._cache:
-            self._cache[idx] = Edge(self.graph, self.orig, self.dest, idx)
-        return self._cache[idx]
+        return self.db._get_edge(self.graph, self.orig, self.dest, idx)
 
     def __getitem__(self, idx):
         """Get an Edge with a particular index, if it exists at the present

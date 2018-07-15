@@ -32,6 +32,7 @@ class Thing(Node):
     same.
 
     """
+    __slots__ = ('graph', 'db', 'node')
 
     extrakeys = {
         'name',
@@ -182,10 +183,10 @@ class Thing(Node):
 
         """
         (a, b) = self['locations']
-        try:
-            return self.engine._portal_objs[(self.character.name, a, b)]
-        except KeyError:
-            return self.engine._node_objs[(self.character.name, a)]
+        if b:
+            return self.engine._get_edge(self.character, a, b)
+        else:
+            return self.engine._get_node(self.character, a)
 
     @property
     def location(self):
@@ -193,8 +194,7 @@ class Thing(Node):
         started.
 
         """
-        loc, nxtloc = self._get_locations()
-        return self.engine._node_objs.get((self.character.name, loc))
+        return self.engine._get_node(self.character, self['location'])
 
     @location.setter
     def location(self, v):
@@ -211,10 +211,7 @@ class Thing(Node):
         loc, nxtloc = self._get_locations()
         if nxtloc is None:
             return None
-        try:
-            return self.engine._node_objs[(self.character.name, nxtloc)]
-        except KeyError:
-            raise ValueError("Nonexistent next location: ".format(nxtloc))
+        return self.engine._get_node(self.character, nxtloc)
 
     @next_location.setter
     def next_location(self, v):
@@ -238,11 +235,9 @@ class Thing(Node):
     @property
     def locations(self):
         loc, nxtloc = self._get_locations()
-        nobjs = self.engine._node_objs
-        charn = self.character.name
-        loc = nobjs[charn, loc]
+        loc = self.engine._get_node(self.character, loc)
         if nxtloc is not None:
-            nxtloc = nobjs[charn, nxtloc]
+            nxtloc = self.engine._get_node(self.character, nxtloc)
         return loc, nxtloc
 
     @locations.setter

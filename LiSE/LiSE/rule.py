@@ -497,6 +497,8 @@ class RuleFollower(ABC):
     get a :class:`RuleMapping` into
 
     """
+    __slots__ = ()
+
     @property
     def _rule_mapping(self):
         if id(self) not in rule_mappings:

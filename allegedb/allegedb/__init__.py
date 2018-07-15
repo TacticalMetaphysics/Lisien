@@ -2,6 +2,7 @@
 # Copyright (C) Zachary Spector. public@zacharyspector.com
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
 from contextlib import ContextDecorator
+from weakref import WeakValueDictionary
 
 from blinker import Signal
 
@@ -237,12 +238,38 @@ class ORM(object):
     allegedb.
 
     """
-    node_cls = _make_node = Node
-    edge_cls = _make_edge = Edge
+    node_cls = Node
+    edge_cls = Edge
     query_engine_cls = QueryEngine
     illegal_graph_names = ['global']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val']
     time = TimeSignalDescriptor()
+
+    def _make_node(self, graph, node):
+        return self.node_cls(graph, node)
+
+    def _get_node(self, graph, node):
+        key = (graph.name, node)
+        if key in self._node_objs:
+            return self._node_objs[key]
+        if not self._node_exists(graph.name, node):
+            self._exist_node(graph.name, node)
+        ret = self._make_node(graph, node)
+        self._node_objs[key] = ret
+        return ret
+
+    def _make_edge(self, graph, orig, dest, idx):
+        return self.edge_cls(graph, orig, dest, idx)
+
+    def _get_edge(self, graph, orig, dest, idx=0):
+        key = (graph.name, orig, dest, idx)
+        if key in self._edge_objs:
+            return self._edge_objs[key]
+        if not self._edge_exists(graph.name, orig, dest, idx):
+            self._exist_edge(graph.name, orig, dest, idx)
+        ret = self._make_edge(graph, orig, dest, idx)
+        self._edge_objs[key] = ret
+        return ret
 
     def plan(self):
         return PlanningContext(self)
@@ -421,8 +448,8 @@ class ORM(object):
         from collections import defaultdict
         from .cache import Cache, NodesCache, EdgesCache
         self._global_cache = self.query._global_cache = {}
-        self._node_objs = {}
-        self._edge_objs = {}
+        self._node_objs = WeakValueDictionary()
+        self._edge_objs = WeakValueDictionary()
         for k, v in self.query.global_items():
             if k == 'branch':
                 self._obranch = v
@@ -511,10 +538,6 @@ class ORM(object):
             in self.query.edges_dump()
         ]
         self._edges_cache.load(edgerows, validate=validate)
-        for graph, node, branch, turn, tick, ex in noderows:
-            self._node_objs[(graph, node)] = self._make_node(self.graph[graph], node)
-        for graph, orig, dest, idx, branch, turn, tick, ex in edgerows:
-            self._edge_objs[(graph, orig, dest, idx)] = self._make_edge(self.graph[graph], orig, dest, idx)
         self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
         self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
         self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
@@ -824,3 +847,41 @@ class ORM(object):
         for (parent, (child, _, _, _, _)) in self._branches.items():
             if parent == branch:
                 yield child
+
+    def _node_exists(self, character, node):
+        return self._nodes_cache.contains_entity(character, node, *self.btt())
+
+    def _exist_node(self, character, node, exist=True):
+        branch, turn, tick = self.nbtt()
+        self.query.exist_node(
+            character,
+            node,
+            branch,
+            turn,
+            tick,
+            True
+        )
+        self._nodes_cache.store(character, node, branch, turn, tick, exist)
+
+    def _edge_exists(self, character, orig, dest, idx=0):
+        return self._edges_cache.contains_entity(
+            character, orig, dest, idx, *self.btt()
+        )
+
+    def _exist_edge(
+            self, character, orig, dest, idx=0, exist=True
+    ):
+        branch, turn, tick = self.nbtt()
+        self.query.exist_edge(
+            character,
+            orig,
+            dest,
+            idx,
+            branch,
+            turn,
+            tick,
+            exist
+        )
+        self._edges_cache.store(
+            character, orig, dest, idx, branch, turn, tick, exist
+        )
