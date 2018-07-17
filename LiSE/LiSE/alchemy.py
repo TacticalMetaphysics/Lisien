@@ -23,7 +23,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-from allegedb.alchemy import tables_for_meta, queries_for_table_dict
+from allegedb.alchemy import tables_for_meta as alch_tab_meta, queries_for_table_dict
 
 
 def tables_for_meta(meta):
@@ -31,7 +31,7 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    tables_for_meta(meta)
+    alch_tab_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -550,6 +550,20 @@ def queries(table):
                 avatars.c.turn == bindparam('turn'),
                 avatars.c.tick >= bindparam('tick')
             )
+        )
+    ))
+    u = table['universals']
+    ugb = r['universals_get_branch'] = select([
+        u.c.key,
+        u.c.turn,
+        u.c.tick,
+        u.c.value
+    ]).where(u.c.branch == bindparam('branch'))
+    r['universals_get_branch_before'] = ugb.where(or_(
+        u.c.turn < bindparam('turn'),
+        and_(
+            u.c.turn == bindparam('turn'),
+            u.c.tick < bindparam('tick')
         )
     ))
 

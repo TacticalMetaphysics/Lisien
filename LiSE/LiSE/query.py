@@ -336,6 +336,21 @@ class QueryEngine(allegedb.query.QueryEngine):
         for key, branch, turn, tick, value in self.sql('universals_dump'):
             yield self.unpack(key), branch, turn, tick, self.unpack(value)
 
+    def universals_branch(self, branch):
+        unpack = self.unpack
+        for key, turn, tick, value in self.sql('universals_get_branch', branch):
+            yield unpack(key), branch, turn, tick, unpack(value)
+
+    def universals_before(self, parent_branches, branch, turn, tick):
+        unpack = self.unpack
+        universals_branch = self.universals_branch
+        for branc in parent_branches:
+            yield from universals_branch(branc)
+        for key, trn, tck, value in self.sql(
+            'universals_get_branch_before', branch, turn, tick
+        ):
+            yield unpack(key), branch, trn, tck, unpack(value)
+
     def rulebooks_dump(self):
         for rulebook, branch, turn, tick, rules in self.sql('rulebooks_dump'):
             yield self.unpack(rulebook), branch, turn, tick, self.unpack(rules)

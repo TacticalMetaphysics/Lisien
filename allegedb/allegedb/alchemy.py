@@ -273,6 +273,87 @@ def queries_for_table_dict(table):
             table['turns'].c.turn == bindparam('turn')
         ))
     }
+    gv = table['graph_val']
+    gvb = r['graph_val_get_branch'] = select([
+        gv.c.graph,
+        gv.c.key,
+        gv.c.turn,
+        gv.c.tick,
+        gv.c.value
+    ]).where(gv.c.branch == bindparam('branch'))
+    r['graph_val_get_branch_before'] = gvb.where(or_(
+        gv.c.turn < bindparam('turn'),
+        and_(
+            gv.c.turn == bindparam('turn'),
+            gv.c.tick < bindparam('tick')
+        )
+    ))
+    n = table['nodes']
+    nb = r['nodes_get_branch'] = select([
+        n.c.graph,
+        n.c.node,
+        n.c.turn,
+        n.c.tick,
+        n.c.extant
+    ]).where(n.c.branch == bindparam('branch'))
+    r['nodes_get_branch_before'] = nb.where(or_(
+        n.c.turn < bindparam('turn'),
+        and_(
+            n.c.turn == bindparam('turn'),
+            n.c.tick < bindparam('tick')
+        )
+    ))
+    nv = table['node_val']
+    nvb = r['node_val_get_branch'] = select([
+        nv.c.graph,
+        nv.c.node,
+        nv.c.key,
+        nv.c.turn,
+        nv.c.tick,
+        nv.c.value
+    ]).where(nv.c.branch == bindparam('branch'))
+    r['node_val_get_branch_before'] = nvb.where(or_(
+        nv.c.turn < bindparam('turn'),
+        and_(
+            nv.c.turn == bindparam('turn'),
+            nv.c.tick < bindparam('tick')
+        )
+    ))
+    e = table['edges']
+    eb = r['edges_get_branch'] = select([
+        e.c.graph,
+        e.c.orig,
+        e.c.dest,
+        e.c.idx,
+        e.c.turn,
+        e.c.tick,
+        e.c.extant
+    ]).where(e.c.branch == bindparam('branch'))
+    r['edges_get_branch_before'] = eb.where(or_(
+        eb.c.turn < bindparam('turn'),
+        and_(
+            eb.c.turn == bindparam('turn'),
+            eb.c.tick < bindparam('tick')
+        )
+    ))
+    ev = table['edge_val']
+    evb = r['edge_val_get_branch'] = select([
+        ev.c.graph,
+        ev.c.orig,
+        ev.c.dest,
+        ev.c.idx,
+        ev.c.key,
+        ev.c.turn,
+        ev.c.tick,
+        ev.c.value
+    ]).where(ev.c.branch == bindparam('branch'))
+    r['edge_val_get_branch_before'] = evb.where(or_(
+        evb.c.turn < bindparam('turn'),
+        and_(
+            evb.c.turn == bindparam('turn'),
+            evb.c.tick < bindparam('tick')
+        )
+    ))
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
