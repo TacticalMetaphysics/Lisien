@@ -6,6 +6,14 @@ from .window import WindowDict, HistoryError
 from collections import OrderedDict, deque
 
 
+class UnloadedException(KeyError):
+    def __init__(self, branch, turn, tick, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.branch = branch
+        self.turn = turn
+        self.tick = tick
+
+
 class FuturistWindowDict(WindowDict):
     """A WindowDict that does not let you rewrite the past."""
     __slots__ = ('_future', '_past')
@@ -192,6 +200,12 @@ class Cache(object):
 
     def __init__(self, db):
         self.db = db
+        self.keyframes = PickyDefaultDict(TurnDict)
+        """Snapshots of my state at various (branch, turn, tick)
+        
+        Data prior to a keyframe may be unloaded if not in use.
+        
+        """
         self.parents = StructuredDefaultDict(3, TurnDict)
         """Entity data keyed by the entities' parents.
 
@@ -230,7 +244,7 @@ class Cache(object):
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
 
-    def load(self, data, validate=False, cb=None):
+    def load(self, data, validate=False, keyframe=True, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
 
         With ``validate=True``, raise ValueError if this results in an
@@ -249,20 +263,47 @@ class Cache(object):
         # to make forwarding work.
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
+        if keyframe:
+            kftime = 'trunk', 0, 0
+            kf = {}
 
-        def store(*args):
-            self._store(*args, planning=False)
-        while branch2do:
-            branch = branch2do.popleft()
-            dd2b = dd2[branch]
-            for turn, tick in sorted(dd2b.keys()):
-                rows = dd2b[turn, tick]
-                for row in rows:
-                    store(*row)
-                    if cb:
-                        cb(row, validate=validate)
-            if branch in childbranch:
-                branch2do.extend(childbranch[branch])
+            while branch2do:
+                branch = branch2do.popleft()
+                dd2b = dd2[branch]
+                # I think I could avoid sorting here
+                for turn, tick in sorted(dd2b.keys()):
+                    rows = dd2b[turn, tick]
+                    for row in rows:
+                        kf[row[:-4]] = row[-1]
+                        kftime = row[-4:-1]
+                        if cb:
+                            cb(row, validate=validate)
+                if branch in childbranch:
+                    branch2do.extend(childbranch[branch])
+
+            if not kf:
+                return
+            branch, turn, tick = kftime
+            if turn in self.keyframes[branch]:
+                self.keyframes[branch][turn][tick] = kf
+            else:
+                self.keyframes[branch][turn] = {tick: kf}
+            assert branch in self.keyframes
+            assert turn in self.keyframes[branch]
+            assert tick in self.keyframes[branch][turn]
+        else:
+            store = self._store
+            while branch2do:
+                branch = branch2do.popleft()
+                dd2b = dd2[branch]
+                for turn, tick in sorted(dd2b.keys()):
+                    rows = dd2b[turn, tick]
+                    for row in rows:
+                        store(*row)
+                        if cb:
+                            cb(row, validate=validate)
+                if branch in childbranch:
+                    branch2do.extend(childbranch[branch])
 
     def _valcache_lookup(self, cache, branch, turn, tick):
         if branch in cache:
@@ -543,8 +584,9 @@ class Cache(object):
         the entity that the key is in.
 
         """
+        shallowest = self.shallowest
         try:
-            ret = self.shallowest[args]
+            ret = shallowest[args]
             if ret is None:
                 raise HistoryError("Set, then deleted", deleted=True)
             return ret
@@ -554,43 +596,75 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key,) not in self.branches:
-            raise KeyError
-        if (
-            branch in self.branches[entity+(key,)]
-            and self.branches[entity+(key,)][branch].rev_gettable(turn)
-        ):
-            brancs = self.branches[entity+(key,)][branch]
-            if turn in brancs:
-                if brancs[turn].rev_gettable(tick):
-                    ret = brancs[turn][tick]
-                    self.shallowest[args] = ret
-                    return ret
-                elif brancs.rev_gettable(turn-1):
-                    b1 = brancs[turn-1]
-                    ret = b1[b1.end]
-                    self.shallowest[args] = ret
-                    return ret
-            else:
-                ret = brancs[turn]
-                ret = ret[ret.end]
-                self.shallowest[args] = ret
-                return ret
-        for (b, r, t) in self.db._iter_parent_btt(branch):
+        branches = self.branches
+        if entity+(key,) in branches:
             if (
-                    b in self.branches[entity+(key,)]
-                    and self.branches[entity+(key,)][b].rev_gettable(r)
+                branch in branches[entity+(key,)]
+                and branches[entity+(key,)][branch].rev_gettable(turn)
             ):
-                brancs = self.branches[entity+(key,)][b]
-                if r in brancs and brancs[r].rev_gettable(t):
-                    ret = brancs[r][t]
-                elif brancs.rev_gettable(r-1):
-                    ret = brancs[r-1]
-                    ret = ret[ret.end]
+                brancs = branches[entity+(key,)][branch]
+                if turn in brancs:
+                    if brancs[turn].rev_gettable(tick):
+                        ret = brancs[turn][tick]
+                        shallowest[args] = ret
+                        return ret
+                    elif brancs.rev_gettable(turn-1):
+                        b1 = brancs[turn-1]
+                        ret = b1[b1.end]
+                        shallowest[args] = ret
+                        return ret
                 else:
-                    continue
-                self.shallowest[args] = ret
-                return ret
+                    ret = brancs[turn]
+                    ret = ret[ret.end]
+                    shallowest[args] = ret
+                    return ret
+        keyframes = self.keyframes
+        for (b, r, t) in self.db._iter_parent_btt(branch):
+            if entity+(key,) in branches:
+                if (
+                        b in branches[entity+(key,)]
+                        and branches[entity+(key,)][b].rev_gettable(r)
+                ):
+                    brancs = branches[entity+(key,)][b]
+                    if r in brancs and brancs[r].rev_gettable(t):
+                        ret = brancs[r][t]
+                    elif brancs.rev_gettable(r-1):
+                        ret = brancs[r-1]
+                        ret = ret[ret.end]
+                    elif b in keyframes:
+                        if keyframes[b].rev_gettable(r):
+                            kfb = keyframes[b]
+                            if r in kfb:
+                                if kfb[r].rev_gettable(t):
+                                    return kfb[r][t][entity + (key,)]
+                                elif kfb.rev_gettable(r-1):
+                                    kfbr = kfb[r-1]
+                                    return kfbr[kfbr.end][entity+(key,)]
+                                else:
+                                    raise UnloadedException(b, r, t, "Try to load the past before {}".format((b, r, t)))
+                            else:
+                                kfbr = kfb[r]
+                                return kfbr[kfbr.end][entity+(key,)]
+                        else:
+                            raise UnloadedException(b, r, t, "Try to load the past before {}".format((b, r, t)))
+                    else:
+                        continue
+                    shallowest[args] = ret
+                    return ret
+            if b in keyframes:
+                kfb = keyframes[b]
+                if kfb.rev_gettable(r):
+                    if r in kfb:
+                        if kfb[r].rev_gettable(t):
+                            return kfb[r][t][entity+(key,)]
+                        else:
+                            kfbr = kfb[r-1]
+                            return kfbr[kfbr.end][entity+(key,)]
+                    else:
+                        kfbr = kfb[r]
+                        return kfbr[kfbr.end][entity+(key,)]
+                else:
+                    raise UnloadedException(b, r, t, "Try to load the past before {}".format((b, r, t)))
         else:
             raise KeyError
 

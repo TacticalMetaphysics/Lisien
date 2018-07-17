@@ -73,18 +73,24 @@ def install(eng):
 
 
 if __name__ == '__main__':
-    import os
-    from LiSE import Engine
-    for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
-        if os.path.exists(stale):
-            os.remove(stale)
-    with Engine('LiSEworld.db') as eng:
-        with eng.batch():
-            install(eng)
     import sys
-    if '--profile' in sys.argv:
-        import cProfile
-
+    import os
+    import cProfile
+    from pympler.tracker import SummaryTracker
+    from LiSE import Engine
+    if '--profile' not in sys.argv:
+        for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
+            if os.path.exists(stale):
+                os.remove(stale)
+        def inst():
+            with Engine('LiSEworld.db') as eng:
+                with eng.batch():
+                    #tracc = SummaryTracker()
+                    install(eng)
+                    #tracc.print_diff()
+        inst()
+        #cProfile.run('inst()', 'polygons_inst.prof')
+    else:
         def test():
             with Engine('LiSEworld.db') as eng:
                 for n in range(10):
