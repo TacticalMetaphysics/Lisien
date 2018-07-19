@@ -281,11 +281,11 @@ def queries_for_table_dict(table):
         gv.c.tick,
         gv.c.value
     ]).where(gv.c.branch == bindparam('branch'))
-    r['graph_val_get_branch_before'] = gvb.where(or_(
+    r['graph_val_get_branch_until'] = gvb.where(or_(
         gv.c.turn < bindparam('turn'),
         and_(
             gv.c.turn == bindparam('turn'),
-            gv.c.tick < bindparam('tick')
+            gv.c.tick <= bindparam('tick')
         )
     ))
     n = table['nodes']
@@ -296,11 +296,11 @@ def queries_for_table_dict(table):
         n.c.tick,
         n.c.extant
     ]).where(n.c.branch == bindparam('branch'))
-    r['nodes_get_branch_before'] = nb.where(or_(
+    r['nodes_get_branch_until'] = nb.where(or_(
         n.c.turn < bindparam('turn'),
         and_(
             n.c.turn == bindparam('turn'),
-            n.c.tick < bindparam('tick')
+            n.c.tick <= bindparam('tick')
         )
     ))
     nv = table['node_val']
@@ -312,11 +312,11 @@ def queries_for_table_dict(table):
         nv.c.tick,
         nv.c.value
     ]).where(nv.c.branch == bindparam('branch'))
-    r['node_val_get_branch_before'] = nvb.where(or_(
+    r['node_val_get_branch_until'] = nvb.where(or_(
         nv.c.turn < bindparam('turn'),
         and_(
             nv.c.turn == bindparam('turn'),
-            nv.c.tick < bindparam('tick')
+            nv.c.tick <= bindparam('tick')
         )
     ))
     e = table['edges']
@@ -329,11 +329,11 @@ def queries_for_table_dict(table):
         e.c.tick,
         e.c.extant
     ]).where(e.c.branch == bindparam('branch'))
-    r['edges_get_branch_before'] = eb.where(or_(
+    r['edges_get_branch_until'] = eb.where(or_(
         eb.c.turn < bindparam('turn'),
         and_(
             eb.c.turn == bindparam('turn'),
-            eb.c.tick < bindparam('tick')
+            eb.c.tick <= bindparam('tick')
         )
     ))
     ev = table['edge_val']
@@ -347,11 +347,11 @@ def queries_for_table_dict(table):
         ev.c.tick,
         ev.c.value
     ]).where(ev.c.branch == bindparam('branch'))
-    r['edge_val_get_branch_before'] = evb.where(or_(
+    r['edge_val_get_branch_until'] = evb.where(or_(
         evb.c.turn < bindparam('turn'),
         and_(
             evb.c.turn == bindparam('turn'),
-            evb.c.tick < bindparam('tick')
+            evb.c.tick <= bindparam('tick')
         )
     ))
     for t in table.values():

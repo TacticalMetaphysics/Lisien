@@ -294,14 +294,13 @@ class QueryEngine(object):
                 unpack(value)
             )
 
-    def graph_val_before(self, parent_branches, branch, turn, tick):
+    def graph_val_until(self, branch, turn, tick):
         self._flush_graph_val()
         unpack = self.unpack
-        for branc in parent_branches:
-            yield from self.graph_val_branch(branc)
+
         for (
             graph, key, trn, tck, value
-        ) in self.sql('graph_val_get_branch_before', branch, turn, tick):
+        ) in self.sql('graph_val_get_branch_until', branch, turn, tick):
             yield (
                 unpack(graph),
                 unpack(key),
@@ -402,14 +401,12 @@ class QueryEngine(object):
                 bool(extant)
             )
 
-    def nodes_before(self, parent_branches, branch, turn, tick):
+    def nodes_until(self, branch, turn, tick):
         self._flush_nodes()
         unpack = self.unpack
-        for branc in parent_branches:
-            yield from self.nodes_branch(branc)
         for (
             graph, node, trn, tck, extant
-        ) in self.sql('nodes_get_branhc_before', branch, turn, turn, tick):
+        ) in self.sql('nodes_get_branch_until', branch, turn, turn, tick):
             yield (
                 unpack(graph),
                 unpack(node),
@@ -451,14 +448,12 @@ class QueryEngine(object):
                 unpack(value)
             )
 
-    def node_val_before(self, parent_branches, branch, turn, tick):
+    def node_val_until(self, branch, turn, tick):
         self._flush_node_val()
         unpack = self.unpack
-        for branc in parent_branches:
-            yield from self.node_val_branch(branc)
         for (
             graph, node, key, trn, tck, value
-        ) in self.sql('node_val_get_branch_before', branch, turn, turn, tick):
+        ) in self.sql('node_val_get_branch_until', branch, turn, turn, tick):
             yield (
                 unpack(graph),
                 unpack(node),
@@ -537,15 +532,12 @@ class QueryEngine(object):
                 bool(extant)
             )
 
-    def edges_before(self, parent_branches, branch, turn, tick):
+    def edges_until(self, branch, turn, tick):
         self._flush_edges()
         unpack = self.unpack
-        edges_branch = self.edges_branch
-        for branc in parent_branches:
-            yield from edges_branch(branc)
         for (
             graph, orig, dest, idx, trn, tck, extant
-        ) in self.sql('edges_get_branch_before', branch, turn, turn, tick):
+        ) in self.sql('edges_get_branch_until', branch, turn, turn, tick):
             yield (
                 unpack(graph),
                 unpack(orig),
@@ -624,16 +616,13 @@ class QueryEngine(object):
                 unpack(value)
             )
 
-    def edge_val_before(self, parent_branches, branch, turn, tick):
+    def edge_val_until(self, branch, turn, tick):
         """Yield edge_val rows in all ``parent_branches`` and in ``branch`` up until ``(turn, tick)``"""
         self._flush_edge_val()
         unpack = self.unpack
-        sql = self.sql
-        for brnch in parent_branches:
-            yield from self.edge_val_branch(brnch)
         for (
             graph, orig, dest, idx, key, trn, tck, value
-        ) in sql('edge_val_get_branch_before', branch, turn, turn, tick):
+        ) in self.sql('edge_val_get_branch_until', branch, turn, turn, tick):
             yield (
                 unpack(graph),
                 unpack(orig),
