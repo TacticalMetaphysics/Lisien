@@ -1814,7 +1814,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     self.character.name, *self.engine.btt()
                 )
                 return self.engine._get_node(self.engine.character[charn], noden)
-            except KeyError:
+            except TypeError:
                 raise AttributeError(
                     "I have no avatar, or more than one avatar"
                 )

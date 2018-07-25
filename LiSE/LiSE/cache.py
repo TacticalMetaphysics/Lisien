@@ -73,6 +73,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
+    def load(self, data, validate=False, keyframe=True, cb=None):
+        super().load(data, validate, keyframe, cb)
+
     def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
         is_avatar = True if is_avatar else None
         super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning)

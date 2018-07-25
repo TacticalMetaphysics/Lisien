@@ -307,22 +307,49 @@ class Cache(object):
 
     def _valcache_lookup(self, cache, branch, turn, tick):
         if branch in cache:
-            branc = cache[branch]
-            if turn in branc:
-                return branc[turn].get(tick, None)
-            try:
-                turnd = branc[turn]
-                return turnd[turnd.end]
-            except HistoryError:
-                return
-        for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-            if b in cache and r in cache[b] and t in cache[b][r]:
+            cacheb = cache[branch]
+            if turn in cacheb:
+                cachebt = cacheb[turn]
+                if cachebt.rev_gettable(tick):
+                    try:
+                        return cachebt[tick]
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            return
+                else:
+                    try:
+                        cachebt = cacheb[turn-1]
+                        return cachebt[cachebt.end]
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            return
+            elif cacheb.rev_gettable(turn):
+                cachebt = cacheb[turn]
                 try:
-                    turnd = cache[b][r]
-                    return turnd[t]
+                    return cachebt[cachebt.end]
                 except HistoryError as ex:
                     if ex.deleted:
                         return
+        for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
+            if b in cache:
+                cacheb = cache[b]
+                if r in cacheb:
+                    cachebr = cacheb[r]
+                    if cachebr.rev_gettable(t):
+                        return cachebr[t]
+                    try:
+                        cachebr = cacheb[r-1]
+                        return cachebr[cachebr.end]
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            return
+                elif cacheb.rev_gettable(r):
+                    cachebr = cacheb[r]
+                    try:
+                        return cachebr[cachebr.end]
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            return
 
     def _get_keycachelike(self, keycache, keys, get_adds_dels, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)
