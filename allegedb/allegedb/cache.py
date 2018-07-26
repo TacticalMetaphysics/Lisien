@@ -291,6 +291,7 @@ class Cache(object):
             assert branch in self.keyframes
             assert turn in self.keyframes[branch]
             assert tick in self.keyframes[branch][turn]
+            return kf
         else:
             store = self._store
             while branch2do:
@@ -304,8 +305,18 @@ class Cache(object):
                             cb(row, validate=validate)
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
+            return dd2
 
-    def _valcache_lookup(self, cache, branch, turn, tick):
+    def _valcache_lookup(self, cache, kfcache, branch, turn, tick):
+        """Look up a value in a cache at a particular time.
+
+        If, while travelling back in time, I encounter a keyframe in ``kfcache``,
+        I'll return the value from it instead.
+
+        """
+        # why isn't this used in retrieve?
+        if branch in kfcache and turn in kfcache[branch] and tick in kfcache[branch][turn]:
+            return kfcache[branch][turn][tick][cache.key]
         if branch in cache:
             cacheb = cache[branch]
             if turn in cacheb:
@@ -350,6 +361,18 @@ class Cache(object):
                     except HistoryError as ex:
                         if ex.deleted:
                             return
+            if b in kfcache:
+                kfcacheb = kfcache[b]
+                if r in kfcacheb:
+                    kfcachebr = kfcacheb[r]
+                    if kfcachebr.rev_gettable(t):
+                        return kfcachebr[t][cache.key]
+                    elif kfcacheb.rev_gettable(r-1):
+                        kfcachebr = kfcacheb[r-1]
+                        return kfcachebr[kfcachebr.end][cache.key]
+                elif kfcacheb.rev_gettable(r):
+                    kfcachebr = kfcacheb[r]
+                    return kfcachebr[kfcachebr.end][cache.key]
 
     def _get_keycachelike(self, keycache, keys, get_adds_dels, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)

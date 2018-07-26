@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) Zachary Spector,  public@zacharyspector.com
+from collections import defaultdict
 from allegedb.cache import (
     Cache,
     PickyDefaultDict,
@@ -66,15 +67,44 @@ class AvatarnessCache(Cache):
         self.user_order = StructuredDefaultDict(3, TurnDict)
         self.user_shallow = PickyDefaultDict(TurnDict)
         self.graphs = StructuredDefaultDict(1, TurnDict)
+        self.graphs_kf = PickyDefaultDict(TurnDict)
         self.graphavs = StructuredDefaultDict(1, TurnDict)
+        self.graphavs_kf = PickyDefaultDict(TurnDict)
         self.charavs = StructuredDefaultDict(1, TurnDict)
+        self.charavs_kf = PickyDefaultDict(TurnDict)
         self.soloav = StructuredDefaultDict(1, TurnDict)
+        self.soloav_kf = PickyDefaultDict(TurnDict)
         self.uniqav = StructuredDefaultDict(1, TurnDict)
+        self.uniqav_kf = PickyDefaultDict(TurnDict)
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
+        self.uniqgraph_kf = PickyDefaultDict(TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
+        self.users_kf = PickyDefaultDict(TurnDict)
 
     def load(self, data, validate=False, keyframe=True, cb=None):
-        super().load(data, validate, keyframe, cb)
+        kf = super().load(data, validate, keyframe, cb)
+        if keyframe:
+            soloav_kf = {}
+            uniqav_kf = {}
+            uniqgraph_kf = {}
+            chargraphs = defaultdict(set)
+            graphavs = defaultdict(set)
+            avuser = defaultdict(set)
+            charavs = defaultdict(set)
+
+            for (character, graph, avatar), extant in kf.items():
+                if extant:
+                    charavs[character].add((graph, avatar))
+                    chargraphs[character].add(graph)
+                    graphavs[character, graph].add(avatar)
+                    avuser[graph, avatar].add(character)
+            for character, graphav_s in charavs.items():
+                if len(graphav_s) == 1:
+                    soloav_kf[character] = uniqav_kf[character] = next(iter(graphav_s))
+            for character, graph_s in chargraphs.items():
+                if len(graph_s) == 1:
+                    uniqgraph_kf[character] = next(iter(graph_s))
+
 
     def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
         is_avatar = True if is_avatar else None
@@ -181,27 +211,27 @@ class AvatarnessCache(Cache):
 
     def get_char_graph_avs(self, char, graph, branch, turn, tick):
         return self._valcache_lookup(
-            self.graphavs[(char, graph)], branch, turn, tick
+            self.graphavs[(char, graph)], self.graphavs_kf, branch, turn, tick
         ) or set()
 
     def get_char_graph_solo_av(self, char, graph, branch, turn, tick):
         return self._valcache_lookup(
-            self.soloav[(char, graph)], branch, turn, tick
+            self.soloav[(char, graph)], self.soloav_kf, branch, turn, tick
         )
 
     def get_char_only_av(self, char, branch, turn, tick):
         return self._valcache_lookup(
-            self.uniqav[char], branch, turn, tick
+            self.uniqav[char], self.uniqav_kf, branch, turn, tick
         )
 
     def get_char_only_graph(self, char, branch, turn, tick):
         return self._valcache_lookup(
-            self.uniqgraph[char], branch, turn, tick
+            self.uniqgraph[char], self.uniqgraph_kf, branch, turn, tick
         )
 
     def get_char_graphs(self, char, branch, turn, tick):
         return self._valcache_lookup(
-            self.graphs[char], branch, turn, tick
+            self.graphs[char], self.graphs_kf, branch, turn, tick
         ) or set()
 
     def _slow_iter_character_avatars(self, character, branch, turn, tick, *, forward):

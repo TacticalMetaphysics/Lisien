@@ -218,8 +218,8 @@ def install(eng):
 
 if __name__ == "__main__":
     from LiSE.engine import Engine
-    with Engine(":memory:") as eng:
-        install(eng)
+    with Engine("college24_premade.db") as eng:
+        # install(eng)
         for i in range(72):
             eng.next_turn()
             print(i)
