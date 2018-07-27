@@ -288,6 +288,22 @@ def queries_for_table_dict(table):
             gv.c.tick <= bindparam('tick')
         )
     ))
+    r['graph_val_get_branch_window'] = gvb.where(and_(
+        or_(
+            gv.c.turn > bindparam('turn_from'),
+            and_(
+                gv.c.turn == bindparam('turn_from'),
+                gv.c.tick >= bindparam('tick_from')
+            )
+        ),
+        or_(
+            gv.c.turn < bindparam('turn_to'),
+            and_(
+                gv.c.turn == bindparam('turn_to'),
+                gv.c.tick <= bindparam('tick_to')
+            )
+        )
+    ))
     n = table['nodes']
     nb = r['nodes_get_branch'] = select([
         n.c.graph,
@@ -301,6 +317,22 @@ def queries_for_table_dict(table):
         and_(
             n.c.turn == bindparam('turn'),
             n.c.tick <= bindparam('tick')
+        )
+    ))
+    r['nodes_get_branch_window'] = nb.where(and_(
+        or_(
+            n.c.turn > bindparam('turn_from'),
+            and_(
+                n.c.turn == bindparam('turn_from'),
+                n.c.tick >= bindparam('tick_from')
+            )
+        ),
+        or_(
+            n.c.turn < bindparam('turn_to'),
+            and_(
+                n.c.turn == bindparam('turn_to'),
+                n.c.tick <= bindparam('tick_to')
+            )
         )
     ))
     nv = table['node_val']
@@ -319,6 +351,22 @@ def queries_for_table_dict(table):
             nv.c.tick <= bindparam('tick')
         )
     ))
+    r['node_val_get_branch_window'] = nvb.where(and_(
+        or_(
+            nv.c.turn > bindparam('turn_from'),
+            and_(
+                nv.c.turn == bindparam('turn_from'),
+                nv.c.tick >= bindparam('tick_from')
+            )
+        ),
+        or_(
+            nv.c.turn < bindparam('turn_to'),
+            and_(
+                nv.c.turn == bindparam('turn_to'),
+                nv.c.tick <= bindparam('tick_to')
+            )
+        )
+    ))
     e = table['edges']
     eb = r['edges_get_branch'] = select([
         e.c.graph,
@@ -330,10 +378,26 @@ def queries_for_table_dict(table):
         e.c.extant
     ]).where(e.c.branch == bindparam('branch'))
     r['edges_get_branch_until'] = eb.where(or_(
-        eb.c.turn < bindparam('turn'),
+        e.c.turn < bindparam('turn'),
         and_(
-            eb.c.turn == bindparam('turn'),
-            eb.c.tick <= bindparam('tick')
+            e.c.turn == bindparam('turn'),
+            e.c.tick <= bindparam('tick')
+        )
+    ))
+    r['edges_get_branch_window'] = eb.where(and_(
+        or_(
+            e.c.turn > bindparam('turn_from'),
+            and_(
+                e.c.turn == bindparam('turn_from'),
+                e.c.tick >= bindparam('tick_from')
+            )
+        ),
+        or_(
+            e.c.turn < bindparam('turn_to'),
+            and_(
+                e.c.turn == bindparam('turn_to'),
+                e.c.tick <= bindparam('tick_to')
+            )
         )
     ))
     ev = table['edge_val']
@@ -348,10 +412,26 @@ def queries_for_table_dict(table):
         ev.c.value
     ]).where(ev.c.branch == bindparam('branch'))
     r['edge_val_get_branch_until'] = evb.where(or_(
-        evb.c.turn < bindparam('turn'),
+        ev.c.turn < bindparam('turn'),
         and_(
-            evb.c.turn == bindparam('turn'),
-            evb.c.tick <= bindparam('tick')
+            ev.c.turn == bindparam('turn'),
+            ev.c.tick <= bindparam('tick')
+        )
+    ))
+    r['edge_val_get_branch_window'] = evb.where(and_(
+        or_(
+            ev.c.turn > bindparam('turn_from'),
+            and_(
+                ev.c.turn == bindparam('turn_from'),
+                ev.c.tick >= bindparam('tick_from')
+            )
+        ),
+        or_(
+            ev.c.turn < bindparam('turn_to'),
+            and_(
+                ev.c.turn == bindparam('turn_to'),
+                ev.c.tick <= bindparam('tick_to')
+            )
         )
     ))
     for t in table.values():

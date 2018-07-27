@@ -310,6 +310,25 @@ class QueryEngine(object):
                 unpack(value)
             )
 
+    def graph_val_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        self._flush_graph_val()
+        unpack = self.unpack
+
+        for (
+            graph, key, trn, tck, value
+        ) in self.sql(
+            'graph_val_get_branch_window',
+            branch, turn_from, turn_from, tick_from, turn_to, turn_to, tick_to
+        ):
+            yield (
+                unpack(graph),
+                unpack(key),
+                branch,
+                trn,
+                tck,
+                unpack(value)
+            )
+
     def _flush_graph_val(self):
         """Send all new and changed graph values to the database."""
         if not self._graphvals2set:
@@ -416,6 +435,24 @@ class QueryEngine(object):
                 bool(extant)
             )
 
+    def nodes_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        self._flush_nodes()
+        unpack = self.unpack
+        for (
+            graph, node, trn, tck, extant
+        ) in self.sql(
+            'nodes_get_branch_window',
+            branch, turn_from, turn_from, tick_from, turn_to, turn_to, tick_to
+        ):
+            yield (
+                unpack(graph),
+                unpack(node),
+                branch,
+                trn,
+                tck,
+                bool(extant)
+            )
+
     def node_val_dump(self):
         """Yield the entire contents of the node_val table."""
         self._flush_node_val()
@@ -454,6 +491,25 @@ class QueryEngine(object):
         for (
             graph, node, key, trn, tck, value
         ) in self.sql('node_val_get_branch_until', branch, turn, turn, tick):
+            yield (
+                unpack(graph),
+                unpack(node),
+                unpack(key),
+                branch,
+                trn,
+                tck,
+                unpack(value)
+            )
+
+    def node_val_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        self._flush_node_val()
+        unpack = self.unpack
+        for (
+            graph, node, key, trn, tck, value
+        ) in self.sql(
+            'node_val_get_branch_window',
+            branch, turn_from, turn_from, tick_from, turn_to, turn_to, tick_to
+        ):
             yield (
                 unpack(graph),
                 unpack(node),
@@ -549,6 +605,26 @@ class QueryEngine(object):
                 bool(extant)
             )
 
+    def edges_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        self._flush_edges()
+        unpack = self.unpack
+        for (
+            graph, orig, dest, idx, trn, tck, extant
+        ) in self.sql(
+            'edges_get_branch_window',
+            branch, turn_from, turn_from, tick_from, turn_to, turn_to, tick_to
+        ):
+            yield (
+                unpack(graph),
+                unpack(orig),
+                unpack(dest),
+                idx,
+                branch,
+                trn,
+                tck,
+                bool(extant)
+            )
+
     def _flush_edges(self):
         if not self._edges2set:
             return
@@ -617,12 +693,33 @@ class QueryEngine(object):
             )
 
     def edge_val_until(self, branch, turn, tick):
-        """Yield edge_val rows in all ``parent_branches`` and in ``branch`` up until ``(turn, tick)``"""
+        """Yield edge_val rowsin ``branch`` up until ``(turn, tick)``"""
         self._flush_edge_val()
         unpack = self.unpack
         for (
             graph, orig, dest, idx, key, trn, tck, value
         ) in self.sql('edge_val_get_branch_until', branch, turn, turn, tick):
+            yield (
+                unpack(graph),
+                unpack(orig),
+                unpack(dest),
+                idx,
+                unpack(key),
+                branch,
+                trn,
+                tck,
+                unpack(value)
+            )
+
+    def edge_val_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        self._flush_edge_val()
+        unpack = self.unpack
+        for (
+            graph, orig, dest, idx, key, trn, tck, value
+        ) in self.sql(
+            'edge_val_get_branch_window',
+            branch, turn_from, turn_from, tick_from, turn_to, turn_to, tick_to
+        ):
             yield (
                 unpack(graph),
                 unpack(orig),
