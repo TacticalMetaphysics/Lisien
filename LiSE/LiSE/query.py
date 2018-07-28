@@ -336,39 +336,105 @@ class QueryEngine(allegedb.query.QueryEngine):
         for key, branch, turn, tick, value in self.sql('universals_dump'):
             yield self.unpack(key), branch, turn, tick, self.unpack(value)
 
-    def universals_branch(self, branch):
+    def _universals_branch_query(self, branch, cursor):
         unpack = self.unpack
-        for key, turn, tick, value in self.sql('universals_get_branch', branch):
+        for key, turn, tick, value in cursor:
             yield unpack(key), branch, turn, tick, unpack(value)
 
-    def universals_before(self, parent_branches, branch, turn, tick):
-        unpack = self.unpack
-        universals_branch = self.universals_branch
-        for branc in parent_branches:
-            yield from universals_branch(branc)
-        for key, trn, tck, value in self.sql(
-            'universals_get_branch_before', branch, turn, tick
-        ):
-            yield unpack(key), branch, trn, tck, unpack(value)
+    def universals_branch(self, branch):
+        yield from self._universals_branch_query(
+            branch, self._branch('universals', branch)
+        )
+    universal_branch = universals_branch
+
+    def universals_before(self, branch, turn, tick):
+        yield from self._universals_branch_query(
+            branch, self._before('universals', branch, turn, tick)
+        )
+    universal_before = universals_before
+
+    def universals_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._universals_branch_query(
+            branch, self._window(
+                'universals', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+    universal_window = universals_window
 
     def rulebooks_dump(self):
         unpack = self.unpack
         for rulebook, branch, turn, tick, rules in self.sql('rulebooks_dump'):
             yield unpack(rulebook), branch, turn, tick, unpack(rules)
 
+    def _rulebooks_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for rulebook, turn, tick, rules in cursor:
+            yield unpack(rulebook), branch, turn, tick, unpack(rules)
+
+    def rulebooks_branch(self, branch):
+        yield from self._rulebooks_branch_query(
+            branch, self._branch('rulebooks', branch)
+        )
+
+    def rulebooks_until(self, branch, turn, tick):
+        yield from self._rulebooks_branch_query(
+            branch, self._until('rulebooks', branch, turn, tick)
+        )
+
+    def rulebooks_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._rulebooks_branch_query(
+            branch, self._window(
+                'rulebooks', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
     def _rule_dump(self, typ):
         unpack = self.unpack
         for rule, branch, turn, tick, lst in self.sql('rule_{}_dump'.format(typ)):
             yield rule, branch, turn, tick, unpack(lst)
 
-    def rule_triggers_dump(self):
-        return self._rule_dump('triggers')
+    def _rule_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for rule, turn, tick, lst in cursor:
+            yield rule, branch, turn, tick, unpack(lst)
 
-    def rule_prereqs_dump(self):
-        return self._rule_dump('prereqs')
+    def _rule_branch(self, typ, branch):
+        yield from self._rule_branch_query(
+            branch, self._branch('rule_'+typ, branch)
+        )
 
-    def rule_actions_dump(self):
-        return self._rule_dump('actions')
+    def _rule_until(self, typ, branch, turn, tick):
+        yield from self._rule_branch_query(
+            branch, self._until('rule_'+typ, branch, turn, tick)
+        )
+
+    def _rule_window(self, typ, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._rule_branch_query(
+            branch, self._window(
+                'rule_'+typ, branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
+    rule_triggers_dump = partialmethod(_rule_dump, 'triggers')
+    rule_triggers_branch = partialmethod(_rule_branch, 'triggers')
+    rule_triggers_before = partialmethod(_rule_until, 'triggers')
+    rule_triggers_window = partialmethod(_rule_window, 'triggers')
+
+    rule_prereqs_dump = partialmethod(_rule_dump, 'prereqs')
+    rule_prereqs_branch = partialmethod(_rule_branch, 'prereqs')
+    rule_prereqs_before = partialmethod(_rule_until, 'prereqs')
+    rule_prereqs_window = partialmethod(_rule_window, 'prereqs')
+
+    rule_actions_dump = partialmethod(_rule_dump, 'actions')
+    rule_actions_branch = partialmethod(_rule_branch, 'actions')
+    rule_actions_before = partialmethod(_rule_until, 'actions')
+    rule_actions_window = partialmethod(_rule_window, 'actions')
 
     def characters_dump(self):
         for graph, typ in self.sql('graphs_dump'):
@@ -381,6 +447,28 @@ class QueryEngine(allegedb.query.QueryEngine):
         for character, node, branch, turn, tick, rulebook in self.sql('node_rulebook_dump'):
             yield unpack(character), unpack(node), branch, turn, tick, unpack(rulebook)
 
+    def _nrbq(self, branch, cursor):
+        unpack = self.unpack
+        for character, node, turn, tick, rulebook in cursor:
+            yield unpack(character), unpack(node), branch, turn, tick, unpack(rulebook)
+
+    def node_rulebook_branch(self, branch):
+        yield from self._nrbq(branch, self._branch('node_rulebook', branch))
+
+    def node_rulebook_until(self, branch, turn, tick):
+        yield from self._nrbq(
+            branch, self._until('node_rulebook', branch, turn, tick)
+        )
+
+    def node_rulebook_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._nrbq(
+            branch, self._window(
+                'node_rulebook', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
     def portal_rulebook_dump(self):
         unpack = self.unpack
         for character, orig, dest, branch, turn, tick, rulebook in self.sql('portal_rulebook_dump'):
@@ -388,6 +476,30 @@ class QueryEngine(allegedb.query.QueryEngine):
                 unpack(character), unpack(orig), unpack(dest),
                 branch, turn, tick, unpack(rulebook)
             )
+
+    def _porbq(self, branch, cursor):
+        unpack = self.unpack
+        for character, orig, dest, turn, tick, rulebook in cursor:
+            yield (
+                unpack(character), unpack(orig), unpack(dest),
+                branch, turn, tick, unpack(rulebook)
+            )
+
+    def portal_rulebook_branch(self, branch):
+        yield from self._porbq(branch, self._branch(
+            'portal_rulebook', branch
+        ))
+
+    def portal_rulebook_until(self, branch, turn, tick):
+        yield from self._porbq(branch, self._until(
+            'portal_rulebook', branch, turn, tick
+        ))
+
+    def portal_rulebook_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._porbq(branch, self._window(
+            'portal_rulebook',
+            branch, turn_from, tick_from, turn_to, tick_to
+        ))
 
     def _charactery_rulebook_dump(self, qry):
         unpack = self.unpack
@@ -400,10 +512,109 @@ class QueryEngine(allegedb.query.QueryEngine):
     character_place_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character_place')
     character_portal_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character_portal')
 
+    def _charactery_rulebook_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for character, turn, tick, rulebook in cursor:
+            yield unpack(character), branch, turn, tick, unpack(rulebook)
+
+    def _charactery_rulebook_branch(self, qry, branch):
+        yield from self._charactery_rulebook_branch_query(
+            branch, self._branch(
+                qry+'_rulebook', branch
+            )
+        )
+
+    character_rulebook_branch = partialmethod(_charactery_rulebook_branch, 'character')
+    avatar_rulebook_branch = partialmethod(_charactery_rulebook_branch, 'avatar')
+    character_thing_rulebook_branch = partialmethod(_charactery_rulebook_branch, 'character_thing')
+    character_place_rulebook_branch = partialmethod(_charactery_rulebook_branch, 'character_place')
+    character_portal_rulebook_branch = partialmethod(_charactery_rulebook_branch, 'character_portal')
+
+    def _charactery_rulebook_until(self, qry, branch, turn, tick):
+        yield from self._charactery_rulebook_branch_query(
+            branch, self._until(
+                qry+'_rulebook', branch, turn, tick
+            )
+        )
+
+    character_rulebook_until = partialmethod(_charactery_rulebook_until, 'character')
+    avatar_rulebook_until = partialmethod(_charactery_rulebook_until, 'avatar')
+    character_thing_rulebook_until = partialmethod(_charactery_rulebook_until, 'character_thing')
+    character_place_rulebook_until = partialmethod(_charactery_rulebook_until, 'character_place')
+    character_portal_rulebook_until = partialmethod(_charactery_rulebook_until, 'character_portal')
+
+    def _charactery_rulebook_window(self, qry, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._charactery_rulebook_branch_query(
+            branch, self._window(
+                qry+'_rulebook',
+                branch, turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
+    character_rulebook_window = partialmethod(_charactery_rulebook_window, 'character')
+    avatar_rulebook_window = partialmethod(_charactery_rulebook_window, 'avatar')
+    character_thing_rulebook_window = partialmethod(_charactery_rulebook_window, 'character_thing')
+    character_place_rulebook_window = partialmethod(_charactery_rulebook_window, 'character_place')
+    character_portal_rulebook_window = partialmethod(_charactery_rulebook_window, 'character_portal')
+
+    def _character_rules_handled_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for character, rulebook, rule, turn, tick in cursor:
+            yield unpack(character), unpack(rulebook), rule, branch, turn, tick
+
+    def character_rules_handled_branch(self, branch):
+        yield from self._character_rules_handled_branch_query(
+            branch, self._branch('character_rules_handled', branch)
+        )
+
+    def character_rules_handled_until(self, branch, turn, tick):
+        yield from self._character_rules_handled_branch_query(
+            branch, self._until(
+                'character_rules_handled',
+                branch, turn, tick
+            )
+        )
+
+    def character_rules_handled_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._character_rules_handled_branch_query(
+            branch, self._window(
+                'character_rules_handled',
+                branch, turn_from, tick_from, turn_to, tick_to
+            )
+        )
+
     def character_rules_handled_dump(self):
         unpack = self.unpack
         for character, rulebook, rule, branch, turn, tick in self.sql('character_rules_handled_dump'):
             yield unpack(character), unpack(rulebook), rule, branch, turn, tick
+
+    def _avatar_rules_handled_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for character, rulebook, rule, graph, avatar, turn, tick in cursor:
+            yield (
+                unpack(character), unpack(rulebook), rule,
+                unpack(graph), unpack(avatar), branch, turn, tick
+            )
+
+    def avatar_rules_handled_branch(self, branch):
+        yield from self._avatar_rules_handled_branch_query(
+            branch, self._branch('avatar_rules_handled', branch)
+        )
+
+    def avatar_rules_handled_until(self, branch, turn, tick):
+        yield from self._avatar_rules_handled_branch_query(
+            branch, self._until('avatar_rules_handled', branch, turn, tick)
+        )
+
+    def avatar_rules_handled_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._avatar_rules_handled_branch_query(
+            branch, self._window(
+                'avatar_rules_handled',
+                branch, turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
 
     def avatar_rules_handled_dump(self):
         unpack = self.unpack
@@ -412,6 +623,42 @@ class QueryEngine(allegedb.query.QueryEngine):
                 unpack(character), unpack(rulebook), rule,
                 unpack(graph), unpack(avatar), branch, turn, tick
             )
+
+    def _character_node_rules_handled_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for character, rulebook, rule, thing, turn, tick in cursor:
+            yield unpack(character), unpack(rulebook), rule, unpack(thing), branch, turn, tick
+
+    def _character_node_rules_handled_branch(self, typ, branch):
+        yield from self._character_node_rules_handled_branch_query(
+            branch, self._branch('character_'+typ+'_rules_handled', branch)
+        )
+
+    character_thing_rules_handled_branch = partialmethod(_character_node_rules_handled_branch, 'thing')
+    character_place_rules_handled_branch = partialmethod(_character_node_rules_handled_branch, 'place')
+
+    def _character_node_rules_handled_until(self, typ, branch, turn, tick):
+        yield from self._character_node_rules_handled_branch_query(
+            branch, self._until(
+                'character_'+typ+'_rules_handled',
+                branch, turn, tick
+            )
+        )
+
+    character_thing_rules_handled_until = partialmethod(_character_node_rules_handled_until, 'thing')
+    character_place_rules_handled_until = partialmethod(_character_node_rules_handled_until, 'place')
+
+    def _character_node_rules_handled_window(self, typ, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._character_node_rules_handled_branch_query(
+            branch, self._window(
+                'character_'+typ+'_rules_handled',
+                branch, turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
+    character_thing_rules_handled_window = partialmethod(_character_node_rules_handled_window, 'thing')
+    character_place_rules_handled_window = partialmethod(_character_node_rules_handled_window, 'place')
 
     def character_thing_rules_handled_dump(self):
         unpack = self.unpack
@@ -423,6 +670,37 @@ class QueryEngine(allegedb.query.QueryEngine):
         for character, rulebook, rule, place, branch, turn, tick in self.sql('character_place_rules_handled_dump'):
             yield unpack(character), unpack(rulebook), rule, unpack(place), branch, turn, tick
 
+    def _character_portal_rules_handled_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for character, rulebook, rule, orig, dest, turn, tick in cursor:
+            yield (
+                unpack(character), unpack(rulebook), rule, unpack(orig), unpack(dest),
+                branch, turn, tick
+            )
+
+    def character_portal_rules_handled_branch(self, branch):
+        yield from self._character_portal_rules_handled_branch_query(
+            branch, self._branch(
+                'character_portal_rules_handled', branch
+            )
+        )
+
+    def character_portal_rules_handled_until(self, branch, turn, tick):
+        yield from self._character_portal_rules_handled_branch_query(
+            branch, self._until(
+                'character_portal_rules_handled',
+                branch, turn, tick
+            )
+        )
+
+    def character_portal_rules_handled_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._character_portal_rules_handled_branch_query(
+            branch, self._window(
+                'character_portal_rules_handled',
+                branch, turn_from, tick_from, turn_to, tick_to
+            )
+        )
+
     def character_portal_rules_handled_dump(self):
         unpack = self.unpack
         for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql('character_portal_rules_handled_dump'):
@@ -431,10 +709,61 @@ class QueryEngine(allegedb.query.QueryEngine):
                 branch, turn, tick
             )
 
+    def _node_rules_handled_branch_query(self, branch, cursor):
+        unpack = self.unpack
+        for character, node, rulebook, rule, turn, tick in cursor:
+            yield unpack(character), unpack(node), unpack(rulebook), rule, branch, turn, tick
+
+    def node_rules_handled_branch(self, branch):
+        yield from self._node_rules_handled_branch_query(
+            branch, self._branch('node_rules_handled', branch)
+        )
+
+    def node_rules_handled_until(self, branch, turn, tick):
+        yield from self._node_rules_handled_branch_query(
+            branch, self._until('node_rules_handled', branch, turn, tick)
+        )
+
+    def node_rules_handled_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._node_rules_handled_branch_query(
+            branch, self._window(
+                'node_rules_handled', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
     def node_rules_handled_dump(self):
         unpack = self.unpack
         for character, node, rulebook, rule, branch, turn, tick in self.sql('node_rules_handled_dump'):
             yield unpack(character), unpack(node), unpack(rulebook), rule, branch, turn, tick
+
+    def _porrhbq(self, branch, cursor):
+        unpack = self.unpack
+        for character, orig, dest, rulebook, rule, turn, tick in cursor:
+            yield (
+                unpack(character), unpack(orig), unpack(dest),
+                unpack(rulebook), rule, branch, turn, tick
+            )
+
+    def portal_rules_handled_branch(self, branch):
+        yield from self._porrhbq(branch, self._branch('portal_rules_handled', branch))
+
+    def portal_rules_handled_until(self, branch, turn, tick):
+        yield from self._porrhbq(
+            branch, self._until(
+                'portal_rules_handled', branch, turn, tick
+            )
+        )
+
+    def portal_rules_handled_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._porrhbq(
+            branch, self._window(
+                'portal_rules_handled', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
 
     def portal_rules_handled_dump(self):
         unpack = self.unpack
@@ -444,25 +773,96 @@ class QueryEngine(allegedb.query.QueryEngine):
                 unpack(rulebook), rule, branch, turn, tick
             )
 
+    def _senses_bq(self, branch, cursor):
+        unpack = self.unpack
+        for character, sense, turn, tick, function in cursor:
+            yield unpack(character), sense, branch, turn, tick, function
+
+    def senses_branch(self, branch):
+        yield from self._senses_bq(branch, self._branch('senses', branch))
+
+    def senses_until(self, branch, turn, tick):
+        yield from self._senses_bq(branch, self._until('senses', branch, turn, tick))
+
+    def senses_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._senses_bq(
+            branch, self._window(
+                'senses', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
+
     def senses_dump(self):
         unpack = self.unpack
         for character, sense, branch, turn, tick, function in self.sql('senses_dump'):
             yield unpack(character), sense, branch, turn, tick, function
+
+    def _things_bq(self, branch, cursor):
+        unpack = self.unpack
+        for character, thing, turn, tick, location, next_location in cursor:
+            yield (
+                unpack(character), unpack(thing), branch, turn, tick,
+                unpack(location), unpack(next_location) if next_location is not None else None
+            )
+
+    def things_branch(self, branch):
+        yield from self._things_bq(branch, self._branch('things', branch))
+
+    def things_until(self, branch, turn, tick):
+        yield from self._things_bq(
+            branch,
+            self._until('things', branch, turn, tick)
+        )
+
+    def things_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._things_bq(
+            branch,
+            self._window(
+                'things', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
 
     def things_dump(self):
         unpack = self.unpack
         for character, thing, branch, turn, tick, location, next_location in self.sql('things_dump'):
             yield (
                 unpack(character), unpack(thing), branch, turn, tick,
-                unpack(location), unpack(next_location) if next_location else None
+                unpack(location), unpack(next_location) if next_location is not None else None
             )
+
+    def _avatars_bq(self, branch, cursor):
+        unpack = self.unpack
+        for char, av, node, turn, tick, isav in cursor:
+            yield (
+                unpack(char), unpack(av), unpack(node), branch, turn, tick, bool(isav)
+            )
+
+    def avatars_branch(self, branch):
+        yield from self._avatars_bq(branch, self._branch('avatars', branch))
+
+    def avatars_until(self, branch, turn, tick):
+        yield from self._avatars_bq(
+            branch, self._until('avatars', branch, turn, tick)
+        )
+
+    def avatars_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        yield from self._avatars_bq(
+            branch, self._window(
+                'avatars', branch,
+                turn_from, tick_from,
+                turn_to, tick_to
+            )
+        )
 
     def avatars_dump(self):
         unpack = self.unpack
         for character_graph, avatar_graph, avatar_node, branch, turn, tick, is_av in self.sql('avatars_dump'):
             yield (
                 unpack(character_graph), unpack(avatar_graph),
-                unpack(avatar_node), branch, turn, tick, is_av
+                unpack(avatar_node), branch, turn, tick, bool(is_av)
             )
 
     def universal_set(self, key, branch, turn, tick, val):
