@@ -81,7 +81,7 @@ class AvatarnessCache(Cache):
         self.users = StructuredDefaultDict(1, TurnDict)
         self.users_kf = PickyDefaultDict(TurnDict)
 
-    def load(self, data, validate=False, keyframe=True, cb=None):
+    def load(self, data, validate=False, keyframe=False, cb=None):
         kf = super().load(data, validate, keyframe, cb)
         if keyframe:
             soloav_kf = {}
@@ -104,7 +104,6 @@ class AvatarnessCache(Cache):
             for character, graph_s in chargraphs.items():
                 if len(graph_s) == 1:
                     uniqgraph_kf[character] = next(iter(graph_s))
-
 
     def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
         is_avatar = True if is_avatar else None

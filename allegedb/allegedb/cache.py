@@ -198,8 +198,11 @@ class Cache(object):
     """A data store that's useful for tracking graph revisions."""
     keycache_maxsize = 1024
 
-    def __init__(self, db):
+    def __init__(self, db, branch_loader=None, until_loader=None, window_loader=None):
         self.db = db
+        self.load_branch = branch_loader
+        self.load_until = until_loader
+        self.load_window = window_loader
         self.keyframes = PickyDefaultDict(TurnDict)
         """Snapshots of my state at various (branch, turn, tick)
         
@@ -244,7 +247,7 @@ class Cache(object):
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
 
-    def load(self, data, validate=False, keyframe=True, cb=None):
+    def load(self, data, validate=False, keyframe=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
 
         With ``validate=True``, raise ValueError if this results in an
@@ -300,7 +303,7 @@ class Cache(object):
                 for turn, tick in sorted(dd2b.keys()):
                     rows = dd2b[turn, tick]
                     for row in rows:
-                        store(*row)
+                        store(*row, planning=False)
                         if cb:
                             cb(row, validate=validate)
                 if branch in childbranch:
