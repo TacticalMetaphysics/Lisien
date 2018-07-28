@@ -269,14 +269,15 @@ class QueryEngine(object):
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
+        unpack = self.unpack
         for (graph, key, branch, turn, tick, value) in self.sql('graph_val_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(key),
+                unpack(graph),
+                unpack(key),
                 branch,
                 turn,
                 tick,
-                self.unpack(value)
+                unpack(value)
             )
 
     def graph_val_branch(self, branch):
@@ -362,8 +363,9 @@ class QueryEngine(object):
         self.graph_val_set(graph, key, branch, turn, tick, None)
 
     def graphs_types(self):
+        unpack = self.unpack
         for (graph, typ) in self.sql('graphs_types'):
-            yield (self.unpack(graph), typ)
+            yield (unpack(graph), typ)
 
     def _flush_nodes(self):
         if not self._nodes2set:
@@ -395,10 +397,11 @@ class QueryEngine(object):
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
+        unpack = self.unpack
         for (graph, node, branch, turn,tick, extant) in self.sql('nodes_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(node),
+                unpack(graph),
+                unpack(node),
                 branch,
                 turn,
                 tick,
@@ -456,17 +459,18 @@ class QueryEngine(object):
     def node_val_dump(self):
         """Yield the entire contents of the node_val table."""
         self._flush_node_val()
+        unpack = self.unpack
         for (
                 graph, node, key, branch, turn, tick, value
         ) in self.sql('node_val_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(node),
-                self.unpack(key),
+                unpack(graph),
+                unpack(node),
+                unpack(key),
                 branch,
                 turn,
                 tick,
-                self.unpack(value)
+                unpack(value)
             )
 
     def node_val_branch(self, branch):
@@ -557,13 +561,14 @@ class QueryEngine(object):
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
         self._flush_edges()
+        unpack = self.unpack
         for (
                 graph, orig, dest, idx, branch, turn, tick, extant
         ) in self.sql('edges_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(orig),
-                self.unpack(dest),
+                unpack(graph),
+                unpack(orig),
+                unpack(dest),
                 idx,
                 branch,
                 turn,
@@ -659,19 +664,20 @@ class QueryEngine(object):
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
         self._flush_edge_val()
+        unpack = self.unpack
         for (
                 graph, orig, dest, idx, key, branch, turn, tick, value
         ) in self.sql('edge_val_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(orig),
-                self.unpack(dest),
+                unpack(graph),
+                unpack(orig),
+                unpack(dest),
                 idx,
-                self.unpack(key),
+                unpack(key),
                 branch,
                 turn,
                 tick,
-                self.unpack(value)
+                unpack(value)
             )
 
     def edge_val_branch(self, branch):

@@ -352,12 +352,14 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield unpack(key), branch, trn, tck, unpack(value)
 
     def rulebooks_dump(self):
+        unpack = self.unpack
         for rulebook, branch, turn, tick, rules in self.sql('rulebooks_dump'):
-            yield self.unpack(rulebook), branch, turn, tick, self.unpack(rules)
+            yield unpack(rulebook), branch, turn, tick, unpack(rules)
 
     def _rule_dump(self, typ):
+        unpack = self.unpack
         for rule, branch, turn, tick, lst in self.sql('rule_{}_dump'.format(typ)):
-            yield rule, branch, turn, tick, self.unpack(lst)
+            yield rule, branch, turn, tick, unpack(lst)
 
     def rule_triggers_dump(self):
         return self._rule_dump('triggers')
@@ -375,19 +377,22 @@ class QueryEngine(allegedb.query.QueryEngine):
     characters = characters_dump
 
     def node_rulebook_dump(self):
+        unpack = self.unpack
         for character, node, branch, turn, tick, rulebook in self.sql('node_rulebook_dump'):
-            yield self.unpack(character), self.unpack(node), branch, turn, tick, self.unpack(rulebook)
+            yield unpack(character), unpack(node), branch, turn, tick, unpack(rulebook)
 
     def portal_rulebook_dump(self):
+        unpack = self.unpack
         for character, orig, dest, branch, turn, tick, rulebook in self.sql('portal_rulebook_dump'):
             yield (
-                self.unpack(character), self.unpack(orig), self.unpack(dest),
-                branch, turn, tick, self.unpack(rulebook)
+                unpack(character), unpack(orig), unpack(dest),
+                branch, turn, tick, unpack(rulebook)
             )
 
     def _charactery_rulebook_dump(self, qry):
+        unpack = self.unpack
         for character, branch, turn, tick, rulebook in self.sql(qry+'_rulebook_dump'):
-            yield self.unpack(character), branch, turn, tick, self.unpack(rulebook)
+            yield unpack(character), branch, turn, tick, unpack(rulebook)
 
     character_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character')
     avatar_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'avatar')
@@ -396,58 +401,68 @@ class QueryEngine(allegedb.query.QueryEngine):
     character_portal_rulebook_dump = partialmethod(_charactery_rulebook_dump, 'character_portal')
 
     def character_rules_handled_dump(self):
+        unpack = self.unpack
         for character, rulebook, rule, branch, turn, tick in self.sql('character_rules_handled_dump'):
-            yield self.unpack(character), self.unpack(rulebook), rule, branch, turn, tick
+            yield unpack(character), unpack(rulebook), rule, branch, turn, tick
 
     def avatar_rules_handled_dump(self):
+        unpack = self.unpack
         for character, rulebook, rule, graph, avatar, branch, turn, tick in self.sql('avatar_rules_handled_dump'):
             yield (
-                self.unpack(character), self.unpack(rulebook), rule,
-                self.unpack(graph), self.unpack(avatar), branch, turn, tick
+                unpack(character), unpack(rulebook), rule,
+                unpack(graph), unpack(avatar), branch, turn, tick
             )
 
     def character_thing_rules_handled_dump(self):
+        unpack = self.unpack
         for character, rulebook, rule, thing, branch, turn, tick in self.sql('character_thing_rules_handled_dump'):
-            yield self.unpack(character), self.unpack(rulebook), rule, self.unpack(thing), branch, turn, tick
+            yield unpack(character), unpack(rulebook), rule, unpack(thing), branch, turn, tick
 
     def character_place_rules_handled_dump(self):
+        unpack = self.unpack
         for character, rulebook, rule, place, branch, turn, tick in self.sql('character_place_rules_handled_dump'):
-            yield self.unpack(character), self.unpack(rulebook), rule, self.unpack(place), branch, turn, tick
+            yield unpack(character), unpack(rulebook), rule, unpack(place), branch, turn, tick
 
     def character_portal_rules_handled_dump(self):
+        unpack = self.unpack
         for character, rulebook, rule, orig, dest, branch, turn, tick in self.sql('character_portal_rules_handled_dump'):
             yield (
-                self.unpack(character), self.unpack(rulebook), rule, self.unpack(orig), self.unpack(dest),
+                unpack(character), unpack(rulebook), rule, unpack(orig), unpack(dest),
                 branch, turn, tick
             )
 
     def node_rules_handled_dump(self):
+        unpack = self.unpack
         for character, node, rulebook, rule, branch, turn, tick in self.sql('node_rules_handled_dump'):
-            yield self.unpack(character), self.unpack(node), self.unpack(rulebook), rule, branch, turn, tick
+            yield unpack(character), unpack(node), unpack(rulebook), rule, branch, turn, tick
 
     def portal_rules_handled_dump(self):
+        unpack = self.unpack
         for character, orig, dest, rulebook, rule, branch, turn, tick in self.sql('portal_rules_handled_dump'):
             yield (
-                self.unpack(character), self.unpack(orig), self.unpack(dest),
-                self.unpack(rulebook), rule, branch, turn, tick
+                unpack(character), unpack(orig), unpack(dest),
+                unpack(rulebook), rule, branch, turn, tick
             )
 
     def senses_dump(self):
+        unpack = self.unpack
         for character, sense, branch, turn, tick, function in self.sql('senses_dump'):
-            yield self.unpack(character), sense, branch, turn, tick, function
+            yield unpack(character), sense, branch, turn, tick, function
 
     def things_dump(self):
+        unpack = self.unpack
         for character, thing, branch, turn, tick, location, next_location in self.sql('things_dump'):
             yield (
-                self.unpack(character), self.unpack(thing), branch, turn, tick,
-                self.unpack(location), self.unpack(next_location) if next_location else None
+                unpack(character), unpack(thing), branch, turn, tick,
+                unpack(location), unpack(next_location) if next_location else None
             )
 
     def avatars_dump(self):
+        unpack = self.unpack
         for character_graph, avatar_graph, avatar_node, branch, turn, tick, is_av in self.sql('avatars_dump'):
             yield (
-                self.unpack(character_graph), self.unpack(avatar_graph),
-                self.unpack(avatar_node), branch, turn, tick, is_av
+                unpack(character_graph), unpack(avatar_graph),
+                unpack(avatar_node), branch, turn, tick, is_av
             )
 
     def universal_set(self, key, branch, turn, tick, val):
@@ -511,8 +526,9 @@ class QueryEngine(allegedb.query.QueryEngine):
     set_character_portal_rulebook = partialmethod(_set_rulebook_on_character, 'character_portal')
 
     def rulebooks(self):
+        unpack = self.unpack
         for book in self.sql('rulebooks'):
-            yield self.unpack(book)
+            yield unpack(book)
 
     def exist_node(self, character, node, branch, turn, tick, extant):
         super().exist_node(character, node, branch, turn, tick, extant)
@@ -653,8 +669,9 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
 
     def rulebooks_rules(self):
+        unpack = self.unpack
         for (rulebook, rule) in self.sql('rulebooks_rules'):
-            yield map(self.unpack, (rulebook, rule))
+            yield unpack(rulebook), unpack(rule)
 
     def rulebook_get(self, rulebook, idx):
         return self.unpack(
@@ -664,9 +681,10 @@ class QueryEngine(allegedb.query.QueryEngine):
         )
 
     def branch_descendants(self, branch):
+        branch_descendants = self.branch_descendants
         for child in self.sql('branch_children', branch):
             yield child
-            yield from self.branch_descendants(child)
+            yield from branch_descendants(child)
 
     def initdb(self):
         """Set up the database schema, both for allegedb and the special
@@ -674,6 +692,7 @@ class QueryEngine(allegedb.query.QueryEngine):
 
         """
         super().initdb()
+        init_table = self.init_table
         for table in (
             'universals',
             'rules',
@@ -699,4 +718,4 @@ class QueryEngine(allegedb.query.QueryEngine):
             'rule_prereqs',
             'rule_actions'
         ):
-            self.init_table(table)
+            init_table(table)
