@@ -311,7 +311,9 @@ def queries_for_table_dict(table):
         gv.c.turn,
         gv.c.tick,
         gv.c.value
-    ]).where(gv.c.branch == bindparam('branch'))
+    ]).where(gv.c.branch == bindparam('branch')).order_by(
+        gv.c.turn, gv.c.tick
+    )
     r['graph_val_get_branch_until'] = branch_query_until(gv, gvb)
     r['graph_val_get_branch_window'] = branch_query_window(gv, gvb)
     n = table['nodes']
@@ -321,7 +323,9 @@ def queries_for_table_dict(table):
         n.c.turn,
         n.c.tick,
         n.c.extant
-    ]).where(n.c.branch == bindparam('branch'))
+    ]).where(n.c.branch == bindparam('branch')).order_by(
+        n.c.turn, n.c.tick
+    )
     r['nodes_get_branch_until'] = branch_query_until(n, nb)
     r['nodes_get_branch_window'] = branch_query_window(n, nb)
     nv = table['node_val']
@@ -332,7 +336,9 @@ def queries_for_table_dict(table):
         nv.c.turn,
         nv.c.tick,
         nv.c.value
-    ]).where(nv.c.branch == bindparam('branch'))
+    ]).where(nv.c.branch == bindparam('branch')).order_by(
+        nv.c.turn, nv.c.tick
+    )
     r['node_val_get_branch_until'] = branch_query_until(nv, nvb)
     r['node_val_get_branch_window'] = branch_query_window(nv, nvb)
     e = table['edges']
@@ -357,7 +363,9 @@ def queries_for_table_dict(table):
         ev.c.turn,
         ev.c.tick,
         ev.c.value
-    ]).where(ev.c.branch == bindparam('branch'))
+    ]).where(ev.c.branch == bindparam('branch')).order_by(
+        ev.c.turn, ev.c.tick
+    )
     r['edge_val_get_branch_until'] = branch_query_until(ev, evb)
     r['edge_val_get_branch_window'] = branch_query_window(ev, evb)
     for t in table.values():

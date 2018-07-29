@@ -442,7 +442,7 @@ def queries(table):
         u.c.turn,
         u.c.tick,
         u.c.value
-    ]).where(u.c.branch == bindparam('branch'))
+    ]).where(u.c.branch == bindparam('branch')).order_by(u.c.turn, u.c.tick)
     r['universals_get_branch_until'] = branch_query_until(u, ugb)
     r['universals_get_branch_window'] = branch_query_window(u, ugb)
     rbs = table['rulebooks']
@@ -451,7 +451,7 @@ def queries(table):
         rbs.c.turn,
         rbs.c.tick,
         rbs.c.rules
-    ]).where(rbs.c.branch == bindparam('branch'))
+    ]).where(rbs.c.branch == bindparam('branch')).order_by(rbs.c.turn, rbs.c.tick)
     r['rulebooks_get_branch_until'] = branch_query_until(rbs, rbsb)
     r['rulebooks_get_branch_window'] = branch_query_window(rbs, rbsb)
     rts = table['rule_triggers']
@@ -460,7 +460,7 @@ def queries(table):
         rts.c.turn,
         rts.c.tick,
         rts.c.triggers
-    ]).where(rts.c.branch == bindparam('branch'))
+    ]).where(rts.c.branch == bindparam('branch')).order_by(rts.c.turn, rts.c.tick)
     r['rule_triggers_get_branch_until'] = branch_query_until(rts, rtsb)
     r['rule_triggers_get_branch_window'] = branch_query_window(rts, rtsb)
     rps = table['rule_prereqs']
@@ -469,7 +469,7 @@ def queries(table):
         rps.c.turn,
         rps.c.tick,
         rps.c.prereqs
-    ]).where(rps.c.branch == bindparam('branch'))
+    ]).where(rps.c.branch == bindparam('branch')).order_by(rps.c.turn, rps.c.tick)
     r['rule_prereqs_get_branch_until'] = branch_query_until(rps, rpsb)
     r['rule_prereqs_get_branch_window'] = branch_query_window(rps, rpsb)
     ras = table['rule_actions']
@@ -478,7 +478,7 @@ def queries(table):
         ras.c.turn,
         ras.c.tick,
         ras.c.actions
-    ]).where(ras.c.branch == bindparam('branch'))
+    ]).where(ras.c.branch == bindparam('branch')).order_by(ras.c.turn, ras.c.tick)
     r['rule_actions_get_branch_until'] = branch_query_until(ras, rasb)
     r['rule_actions_get_branch_window'] = branch_query_window(ras, rasb)
     for name in (
@@ -494,7 +494,7 @@ def queries(table):
             tab.c.turn,
             tab.c.tick,
             tab.c.rulebook
-        ]).where(tab.c.branch == bindparam('branch'))
+        ]).where(tab.c.branch == bindparam('branch')).order_by(tab.c.turn, tab.c.tick)
         r[name + '_get_branch_until'] = branch_query_until(tab, q)
         r[name + '_get_branch_window'] = branch_query_window(tab, q)
     nrh = table['node_rules_handled']
@@ -505,7 +505,7 @@ def queries(table):
         nrh.c.rule,
         nrh.c.turn,
         nrh.c.tick
-    ]).where(nrh.c.branch == bindparam('branch'))
+    ]).where(nrh.c.branch == bindparam('branch')).order_by(nrh.c.turn, nrh.c.tick)
     r['node_rules_handled_get_branch_until'] = branch_query_until(nrh, nrhb)
     r['node_rules_handled_get_branch_window'] = branch_query_window(nrh, nrhb)
     prh = table['portal_rules_handled']
@@ -517,7 +517,7 @@ def queries(table):
         prh.c.rule,
         prh.c.turn,
         prh.c.tick
-    ]).where(prh.c.branch == bindparam('branch'))
+    ]).where(prh.c.branch == bindparam('branch')).order_by(prh.c.turn, prh.c.tick)
     r['portal_rules_handled_get_branch_until'] = branch_query_until(prh, prhb)
     r['portal_rules_handled_get_branch_window'] = branch_query_window(prh, prhb)
     avs = table['avatars']
@@ -538,7 +538,7 @@ def queries(table):
         crh.c.rule,
         crh.c.turn,
         crh.c.tick
-    ]).where(crh.c.branch == bindparam('branch'))
+    ]).where(crh.c.branch == bindparam('branch')).order_by(crh.c.turn, crh.c.tick)
     r['character_rules_handled_get_branch_until'] = branch_query_until(crh, crhb)
     r['character_rules_handled_get_branch_window'] = branch_query_window(crh, crhb)
     avrh = table['avatar_rules_handled']
@@ -550,7 +550,9 @@ def queries(table):
         avrh.c.avatar,
         avrh.c.turn,
         avrh.c.tick
-    ]).where(avrh.c.branch == bindparam('branch'))
+    ]).where(avrh.c.branch == bindparam('branch')).order_by(
+        avrh.c.turn, avrh.c.tick
+    )
     r['avatar_rules_handled_get_branch_until'] = branch_query_until(avrh, avrhb)
     r['avatar_rules_handled_get_branch_window'] = branch_query_window(avrh, avrhb)
     ctrh = table['character_thing_rules_handled']
@@ -561,7 +563,9 @@ def queries(table):
         ctrh.c.thing,
         ctrh.c.turn,
         ctrh.c.tick
-    ]).where(ctrh.c.branch == bindparam('branch'))
+    ]).where(ctrh.c.branch == bindparam('branch')).order_by(
+        ctrh.c.turn, ctrh.c.tick
+    )
     r['character_thing_rules_handled_get_branch_until'] = branch_query_until(ctrh, ctrhb)
     r['character_thing_rules_handled_get_branch_window'] = branch_query_window(ctrh, ctrhb)
     cplrh = table['character_place_rules_handled']
@@ -572,7 +576,9 @@ def queries(table):
         cplrh.c.place,
         cplrh.c.turn,
         cplrh.c.tick
-    ]).where(cplrh.c.branch == bindparam('branch'))
+    ]).where(cplrh.c.branch == bindparam('branch')).order_by(
+        cplrh.c.turn, cplrh.c.tick
+    )
     r['character_place_rules_handled_get_branch_until'] = branch_query_until(cplrh, cplrhb)
     r['character_place_rules_handled_get_branch_window'] = branch_query_window(cplrh, cplrhb)
     cporh = table['character_portal_rules_handled']
@@ -584,7 +590,9 @@ def queries(table):
         cporh.c.dest,
         cporh.c.turn,
         cporh.c.tick
-    ]).where(cporh.c.branch == bindparam('branch'))
+    ]).where(cporh.c.branch == bindparam('branch')).order_by(
+        cporh.c.turn, cporh.c.tick
+    )
     r['character_portal_rules_handled_get_branch_until'] = branch_query_until(cporh, cporhb)
     r['character_portal_rules_handled_get_branch_window'] = branch_query_window(cporh, cporhb)
 
