@@ -323,18 +323,18 @@ class ORM(object):
         graph_objs = self._graph_objs
         if turn_to < turn_from:
             updater = partial(update_backward_window, turn_from, tick_from, turn_to, tick_to)
-            gvbranches = self._graph_val_cache.presettings
-            nbranches = self._nodes_cache.presettings
-            nvbranches = self._node_val_cache.presettings
-            ebranches = self._edges_cache.presettings
-            evbranches = self._edge_val_cache.presettings
+            gvbranches = self._graph_val_cache.journal.presettings
+            nbranches = self._nodes_cache.journal.presettings
+            nvbranches = self._node_val_cache.journal.presettings
+            ebranches = self._edges_cache.journal.presettings
+            evbranches = self._edge_val_cache.journal.presettings
         else:
             updater = partial(update_window, turn_from, tick_from, turn_to, tick_to)
-            gvbranches = self._graph_val_cache.settings
-            nbranches = self._nodes_cache.settings
-            nvbranches = self._node_val_cache.settings
-            ebranches = self._edges_cache.settings
-            evbranches = self._edge_val_cache.settings
+            gvbranches = self._graph_val_cache.journal.settings
+            nbranches = self._nodes_cache.journal.settings
+            nvbranches = self._node_val_cache.journal.settings
+            ebranches = self._edges_cache.journal.settings
+            evbranches = self._edge_val_cache.journal.settings
 
         if branch in gvbranches:
             updater(partial(setgraphval, delta), gvbranches[branch])
@@ -371,17 +371,17 @@ class ORM(object):
         tick_to = tick_to or self.tick
         delta = {}
         if tick_from < tick_to:
-            gvbranches = self._graph_val_cache.settings
-            nbranches = self._nodes_cache.settings
-            nvbranches = self._node_val_cache.settings
-            ebranches = self._edges_cache.settings
-            evbranches = self._edge_val_cache.settings
+            gvbranches = self._graph_val_cache.journal.settings
+            nbranches = self._nodes_cache.journal.settings
+            nvbranches = self._node_val_cache.journal.settings
+            ebranches = self._edges_cache.journal.settings
+            evbranches = self._edge_val_cache.journal.settings
         else:
-            gvbranches = self._graph_val_cache.presettings
-            nbranches = self._nodes_cache.presettings
-            nvbranches = self._node_val_cache.presettings
-            ebranches = self._edges_cache.presettings
-            evbranches = self._edge_val_cache.presettings
+            gvbranches = self._graph_val_cache.journal.presettings
+            nbranches = self._nodes_cache.journal.presettings
+            nvbranches = self._node_val_cache.journal.presettings
+            ebranches = self._edges_cache.journal.presettings
+            evbranches = self._edge_val_cache.journal.presettings
 
         if branch in gvbranches and turn in gvbranches[branch]:
             for graph, key, value in gvbranches[branch][turn][tick_from:tick_to]:

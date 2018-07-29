@@ -2,6 +2,7 @@
 # Copyright (c) Zachary Spector. public@zacharyspector.com
 """Classes for in-memory storage and retrieval of historical graph data.
 """
+from blinker import Signal
 from .window import WindowDict, HistoryError
 from collections import OrderedDict, deque
 
@@ -12,6 +13,84 @@ class UnloadedException(KeyError):
         self.branch = branch
         self.turn = turn
         self.tick = tick
+
+
+class NotCached:
+    """Singleton for values that are unknown due to not having been loaded
+
+    Or possibly just not having been cached here yet, though I want to avoid
+    that situation.
+
+    """
+
+
+uncached = NotCached()
+
+
+class JournalContainer(Signal):
+    """Holds the core data of a cache, loading and unloading as needed
+
+    Well, that's the theory anyway. At the moment this will just hold the
+    entire history of whatever it's about and never unload until I decide
+    how best to do that.
+
+    """
+    def __init__(self, db, branch_loader, until_loader, window_loader):
+        super().__init__()
+        self.db = db
+        self.get_branch = branch_loader
+        self.get_until = until_loader
+        self.get_window = window_loader
+        self.settings = PickyDefaultDict(SettingsTurnDict)
+        self.presettings = PickyDefaultDict(SettingsTurnDict)
+
+    def load_branch(self, branch):
+        prevs = {}  # TODO: use keyframe from fork-off point of parent branch
+        for row in self.get_branch(branch):
+            key, _, _, _, value = row[-5:]
+            self.store(*row, prev=prevs.get(key, uncached))
+            prevs[key] = value
+
+    def load_until(self, branch, turn, tick):
+        prevs = {}
+        for row in self.get_until(branch, turn, tick):
+            key, _, _, _, value = row[-5:]
+            self.store(row, prev=prevs.get(key, uncached))
+            prevs[key] = value
+
+    def load_window(self, branch, turn_from, tick_from, turn_to, tick_to):
+        prevs = {}
+        for row in self.get_window(branch, turn_from, tick_from, turn_to, tick_to):
+            key, _, _, _, value = row[-5:]
+            self.store(row, prev=prevs.get(key, uncached))
+            prevs[key] = value
+
+    def store(self, *args, prev):
+        # overridden in LiSE.cache.InitializedCache
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
+        settings_turns = self.settings[branch]
+        presettings_turns = self.presettings[branch]
+        if turn in settings_turns or turn in settings_turns.future():
+            # These assertions hold for most caches but not for the contents
+            # caches, and are therefore commented out.
+            # assert turn in presettings_turns or turn in presettings_turns.future()
+            setticks = settings_turns[turn]
+            # assert tick not in setticks
+            presetticks = presettings_turns[turn]
+            # assert tick not in presetticks
+            presetticks[tick] = parent + (entity, key, prev)
+            setticks[tick] = parent + (entity, key, value)
+        else:
+            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
+            settings_turns[turn] = {tick: parent + (entity, key, value)}
+        self.send(self, row=args, prev=prev)
+
+    def truncate(self, branch, turn, tick):
+        for mapp in (self.settings[branch], self.presettings[branch]):
+            if turn in mapp:
+                mapp[turn].truncate(tick)
+            mapp.truncate(turn)
 
 
 class FuturistWindowDict(WindowDict):
@@ -197,12 +276,11 @@ class StructuredDefaultDict(dict):
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
     keycache_maxsize = 1024
+    journal_container_cls = JournalContainer
 
     def __init__(self, db, branch_loader=None, until_loader=None, window_loader=None):
         self.db = db
-        self.load_branch = branch_loader
-        self.load_until = until_loader
-        self.load_window = window_loader
+        self.journal = self.journal_container_cls(db, branch_loader, until_loader, window_loader)
         self.keyframes = PickyDefaultDict(TurnDict)
         """Snapshots of my state at various (branch, turn, tick)
         
@@ -241,10 +319,6 @@ class Cache(object):
         """
         self.shallowest = OrderedDict()
         """A dictionary for plain, unstructured hinting."""
-        self.settings = PickyDefaultDict(SettingsTurnDict)
-        """All the ``entity[key] = value`` operations that were performed on some turn"""
-        self.presettings = PickyDefaultDict(SettingsTurnDict)
-        """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
 
     def load(self, data, validate=False, keyframe=False, cb=None):
@@ -586,11 +660,15 @@ class Cache(object):
                 )
         else:
             # truncate settings
-            for mapp in (self.settings[branch], self.presettings[branch], turns):
-                if turn in mapp:
-                    mapp[turn].truncate(tick)
-                mapp.truncate(turn)
-        self._store_journal(*args)
+            self.journal.truncate(branch, turn, tick)
+            if turn in turns:
+                turns[turn].truncate(tick)
+            turns.truncate(turn)
+        try:
+            prev = self.retrieve(*args[:-1])
+        except KeyError:
+            prev = None
+        self.journal.store(*args, prev=prev)
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         while len(self.shallowest) > self.keycache_maxsize:
             self.shallowest.popitem(False)
@@ -602,30 +680,6 @@ class Cache(object):
             new = FuturistWindowDict()
             new[tick] = value
             turns[turn] = new
-
-    def _store_journal(self, *args):
-        # overridden in LiSE.cache.InitializedCache
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
-        settings_turns = self.settings[branch]
-        presettings_turns = self.presettings[branch]
-        try:
-            prev = self.retrieve(*args[:-1])
-        except KeyError:
-            prev = None
-        if turn in settings_turns or turn in settings_turns.future():
-            # These assertions hold for most caches but not for the contents
-            # caches, and are therefore commented out.
-            # assert turn in presettings_turns or turn in presettings_turns.future()
-            setticks = settings_turns[turn]
-            # assert tick not in setticks
-            presetticks = presettings_turns[turn]
-            # assert tick not in presetticks
-            presetticks[tick] = parent + (entity, key, prev)
-            setticks[tick] = parent + (entity, key, value)
-        else:
-            presettings_turns[turn] = {tick: parent + (entity, key, prev)}
-            settings_turns[turn] = {tick: parent + (entity, key, value)}
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.

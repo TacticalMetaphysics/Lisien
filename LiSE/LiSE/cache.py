@@ -6,21 +6,20 @@ from allegedb.cache import (
     PickyDefaultDict,
     StructuredDefaultDict,
     TurnDict,
-    HistoryError
+    HistoryError,
+    JournalContainer
 )
 from .util import singleton_get, sort_set
 
 
-class InitializedCache(Cache):
-    def _store_journal(self, *args):
+class InitializedJournalContainer(JournalContainer):
+    def store(self, *args, prev):
+        if prev is None:
+            return  # because you can't rewind past this
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
-        try:
-            prev = self.retrieve(*args[:-1])
-        except KeyError:
-            return  # because you can't rewind past this
         if prev == value:
             return  # not much point reporting on a non-change in a diff
         if turn in settings_turns or turn in settings_turns.future():
@@ -32,6 +31,10 @@ class InitializedCache(Cache):
         else:
             presettings_turns[turn] = {tick: parent + (entity, key, prev)}
             settings_turns[turn] = {tick: parent + (entity, key, value)}
+
+
+class InitializedCache(Cache):
+    journal_container_cls = InitializedJournalContainer
 
 
 class EntitylessCache(Cache):
