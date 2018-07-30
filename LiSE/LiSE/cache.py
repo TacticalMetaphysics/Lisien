@@ -108,9 +108,9 @@ class AvatarnessCache(Cache):
                 if len(graph_s) == 1:
                     uniqgraph_kf[character] = next(iter(graph_s))
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
+    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, journal):
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning)
+        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, journal=journal)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -485,13 +485,13 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def _store(self, *args, planning):
+    def _store(self, *args, planning, journal=True):
         character, thing, branch, turn, tick, (location, next_location) = args
         try:
             oldloc, oldnxtloc = self.retrieve(character, thing, branch, turn, tick)
         except KeyError:
             oldloc = oldnxtloc = None
-        super()._store(*args, planning=planning)
+        super()._store(*args, planning=planning, journal=journal)
         if oldloc is not None:
             oldnodecont = self.db._node_contents_cache.retrieve(
                 character, oldloc, branch, turn, tick
