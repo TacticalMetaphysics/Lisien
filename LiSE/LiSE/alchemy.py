@@ -11,9 +11,20 @@ where LiSE will look for it, as in:
 ``python3 sqlalchemy.py >sqlite.json``
 
 """
-from collections import OrderedDict
 from functools import partial
-from sqlalchemy import Table, Column, ForeignKeyConstraint, select, bindparam, func, and_, or_, INT, TEXT, BOOLEAN
+from sqlalchemy import (
+    Table,
+    Column,
+    ForeignKeyConstraint,
+    select,
+    bindparam,
+    func,
+    and_,
+    or_,
+    INT,
+    TEXT,
+    BOOLEAN
+)
 from sqlalchemy.sql.ddl import CreateTable, CreateIndex
 
 
@@ -47,6 +58,7 @@ def tables_for_meta(meta):
         ),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT),
         Column('value', TEXT)
     )
 
@@ -62,7 +74,8 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('rules', TEXT, default='[]')
+        Column('prev', TEXT),
+        Column('rules', TEXT)
     )
 
     # Table for rules' triggers, those functions that return True only
@@ -73,7 +86,8 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('triggers', TEXT, default='[]'),
+        Column('prev', TEXT),
+        Column('triggers', TEXT),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
         )
@@ -87,7 +101,8 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('prereqs', TEXT, default='[]'),
+        Column('prev', TEXT),
+        Column('prereqs', TEXT),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
         )
@@ -101,7 +116,8 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('actions', TEXT, default='[]'),
+        Column('prev', TEXT),
+        Column('actions', TEXT),
         ForeignKeyConstraint(
             ['rule'], ['rules.rule']
         )
@@ -125,6 +141,7 @@ def tables_for_meta(meta):
             Column('branch', TEXT, primary_key=True, default='trunk'),
             Column('turn', INT, primary_key=True, default=0),
             Column('tick', INT, primary_key=True, default=0),
+            Column('prev', TEXT),
             Column('rulebook', TEXT),
             ForeignKeyConstraint(
                 ['character'], ['graphs.graph']
@@ -136,7 +153,7 @@ def tables_for_meta(meta):
 
     # Rules handled within the rulebook associated with one node in
     # particular.
-    nrh = Table(
+    Table(
         'node_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
@@ -152,7 +169,7 @@ def tables_for_meta(meta):
 
     # Rules handled within the rulebook associated with one portal in
     # particular.
-    porh = Table(
+    Table(
         'portal_rules_handled', meta,
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
@@ -186,6 +203,7 @@ def tables_for_meta(meta):
         ),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('function', TEXT, nullable=True),
         ForeignKeyConstraint(['character'], ['graphs.graph'])
     )
@@ -207,10 +225,12 @@ def tables_for_meta(meta):
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
         # when location is null, this node is not a thing, but a place
+        Column('prev_location', TEXT),
         Column('location', TEXT),
         # when next_location is not null, thing is en route between
         # location and next_location
-        Column('next_location', TEXT, default='null'),
+        Column('prev_next_location', TEXT),
+        Column('next_location', TEXT),
         ForeignKeyConstraint(
             ['character', 'thing'], ['nodes.graph', 'nodes.node']
         ),
@@ -223,18 +243,20 @@ def tables_for_meta(meta):
     )
 
     # The rulebook followed by a given node.
-    Table(
+    nrb = Table(
         'node_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('node', TEXT, primary_key=True),
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('rulebook', TEXT),
-        ForeignKeyConstraint(
-            ['character', 'node'], ['nodes.graph', 'nodes.node']
-        )
+        Column('prev', TEXT),
+        Column('rulebook', TEXT)
     )
+    nodes = meta.tables['nodes']
+    nrb.append_constraint(ForeignKeyConstraint(
+        (nrb.c.character, nrb.c.node), (nodes.c.graph, nodes.c.node)
+    ))
 
     # The rulebook followed by a given Portal.
     #
@@ -242,7 +264,7 @@ def tables_for_meta(meta):
     # graphs it uses. The name is different to distinguish them from
     # Edge objects, which exist in an underlying object-relational
     # mapper called allegedb, and have a different API.
-    Table(
+    porb = Table(
         'portal_rulebook', meta,
         Column('character', TEXT, primary_key=True),
         Column('orig', TEXT, primary_key=True),
@@ -250,12 +272,14 @@ def tables_for_meta(meta):
         Column('branch', TEXT, primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('rulebook', TEXT),
-        ForeignKeyConstraint(
-            ['character', 'orig', 'dest'],
-            ['edges.graph', 'edges.orig', 'edges.dest']
-        )
+        Column('prev', TEXT),
+        Column('rulebook', TEXT)
     )
+    edges = meta.tables['edges']
+    porb.append_constraint(ForeignKeyConstraint(
+        (porb.c.character, porb.c.orig, porb.c.dest),
+        (edges.c.graph, edges.c.orig, edges.c.dest)
+    ))
 
     # The avatars representing one Character in another.
     #
@@ -268,7 +292,7 @@ def tables_for_meta(meta):
     # you like, you can make rules that affect all avatars of some
     # Character, irrespective of what Character the avatar is actually
     # *in*.
-    Table(
+    avs = Table(
         'avatars', meta,
         Column('character_graph', TEXT, primary_key=True),
         Column('avatar_graph', TEXT, primary_key=True),
@@ -278,13 +302,15 @@ def tables_for_meta(meta):
         ),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
-        Column('is_avatar', BOOLEAN),
-        ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
-        ForeignKeyConstraint(
-            ['avatar_graph', 'avatar_node'],
-            ['nodes.graph', 'nodes.node']
-        )
+        Column('is_avatar', BOOLEAN)
     )
+    graphs = meta.tables['graphs']
+    avs.append_constraint(ForeignKeyConstraint(
+        (avs.c.character_graph,), (graphs.c.graph,)
+    ))
+    avs.append_constraint(ForeignKeyConstraint(
+        (avs.c.avatar_graph, avs.c.avatar_node), (nodes.c.graph, nodes.c.node)
+    ))
 
     Table(
         'character_rules_handled', meta,
@@ -378,23 +404,6 @@ def queries(table):
     of all the rest of the queries I need.
 
     """
-    def update_where(updcols, wherecols):
-        """Return an ``UPDATE`` statement that updates the columns ``updcols``
-        when the ``wherecols`` match. Every column has a bound parameter of
-        the same name.
-
-        updcols are strings, wherecols are column objects
-
-        """
-        vmap = OrderedDict()
-        for col in updcols:
-            vmap[col] = bindparam(col)
-        wheres = [
-            c == bindparam(c.name) for c in wherecols
-        ]
-        tab = wherecols[0].table
-        return tab.update().values(**vmap).where(and_(*wheres))
-
     r = queries_for_table_dict(table)
 
     for t in table.values():
@@ -441,6 +450,7 @@ def queries(table):
         u.c.key,
         u.c.turn,
         u.c.tick,
+        u.c.prev,
         u.c.value
     ]).where(u.c.branch == bindparam('branch')).order_by(u.c.turn, u.c.tick)
     r['universals_get_branch_until'] = branch_query_until(u, ugb)
@@ -450,6 +460,7 @@ def queries(table):
         rbs.c.rulebook,
         rbs.c.turn,
         rbs.c.tick,
+        rbs.c.prev,
         rbs.c.rules
     ]).where(rbs.c.branch == bindparam('branch')).order_by(rbs.c.turn, rbs.c.tick)
     r['rulebooks_get_branch_until'] = branch_query_until(rbs, rbsb)
@@ -459,6 +470,7 @@ def queries(table):
         rts.c.rule,
         rts.c.turn,
         rts.c.tick,
+        rts.c.prev,
         rts.c.triggers
     ]).where(rts.c.branch == bindparam('branch')).order_by(rts.c.turn, rts.c.tick)
     r['rule_triggers_get_branch_until'] = branch_query_until(rts, rtsb)
@@ -468,6 +480,7 @@ def queries(table):
         rps.c.rule,
         rps.c.turn,
         rps.c.tick,
+        rps.c.prev,
         rps.c.prereqs
     ]).where(rps.c.branch == bindparam('branch')).order_by(rps.c.turn, rps.c.tick)
     r['rule_prereqs_get_branch_until'] = branch_query_until(rps, rpsb)
@@ -477,6 +490,7 @@ def queries(table):
         ras.c.rule,
         ras.c.turn,
         ras.c.tick,
+        ras.c.prev,
         ras.c.actions
     ]).where(ras.c.branch == bindparam('branch')).order_by(ras.c.turn, ras.c.tick)
     r['rule_actions_get_branch_until'] = branch_query_until(ras, rasb)

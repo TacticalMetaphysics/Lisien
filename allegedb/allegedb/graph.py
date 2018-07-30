@@ -87,7 +87,9 @@ class AllegedMapping(MutableMappingUnwrapper):
 
 
 class AbstractEntityMapping(AllegedMapping):
-    __slots__ = ()
+    __slots__ = ('graph',)
+
+    db = getatt('graph.db')
 
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
@@ -98,23 +100,23 @@ class AbstractEntityMapping(AllegedMapping):
     def _cache_contains(self, key, branch, turn, tick):
         raise NotImplementedError
 
-    def _set_db(self, key, branch, turn, tick, value):
+    def _set_db(self, key, branch, turn, tick, prev, value):
         """Set a value for a key in the database (not the cache)."""
         raise NotImplementedError
 
-    def _set_cache(self, key, branch, turn, tick, value):
+    def _set_cache(self, key, branch, turn, tick, prev, value):
         raise NotImplementedError
 
-    def _set_cache_now(self, key, value):
+    def _set_cache_now(self, key, prev, value):
         branch, turn, tick = self.db.nbtt()
-        self._set_cache(key, branch, turn, tick, value)
+        self._set_cache(key, branch, turn, tick, prev, value)
 
-    def _del_db(self, key, branch, turn, tick):
+    def _del_db(self, key, branch, turn, tick, prev):
         """Delete a key from the database (not the cache)."""
-        self._set_db(key, branch, turn, tick, None)
+        self._set_db(key, branch, turn, tick, prev, None)
 
-    def _del_cache(self, key, branch, turn, tick):
-        self._set_cache(key, branch, turn, tick, None)
+    def _del_cache(self, key, branch, turn, tick, prev):
+        self._set_cache(key, branch, turn, tick, prev, None)
 
     def __getitem__(self, key):
         """If key is 'graph', return myself as a dict, else get the present
@@ -146,17 +148,19 @@ class AbstractEntityMapping(AllegedMapping):
             )
         branch, turn, tick = self.db.nbtt()
         try:
-            if self._get_cache(key, branch, turn, tick) != value:
-                self._set_cache(key, branch, turn, tick, value)
+            prev = self._get_cache(key, branch, turn, tick)
         except KeyError:
-            self._set_cache(key, branch, turn, tick, value)
-        self._set_db(key, branch, turn, tick, value)
-        self.send(self, key=key, value=value)
+            prev = None
+        if prev != value:
+            self._set_cache(key, branch, turn, tick, prev, value)
+            self._set_db(key, branch, turn, tick, prev, value)
+            self.send(self, key=key, value=value)
 
     def __delitem__(self, key):
+        prev = self._get_cache(key, *self.db.btt())  # may raise KeyError
         branch, turn, tick = self.db.nbtt()
-        self._del_cache(key, branch, turn, tick)
-        self._del_db(key, branch, turn, tick)
+        self._del_cache(key, branch, turn, tick, prev)
+        self._del_db(key, branch, turn, tick, prev)
         self.send(self, key=key, value=None)
 
 
@@ -204,24 +208,26 @@ class GraphMapping(AbstractEntityMapping):
     def _get(self, key):
         return self._get_cache(key, *self.db.btt())
 
-    def _set_db(self, key, branch, turn, tick, value):
+    def _set_db(self, key, branch, turn, tick, prev, value):
         self.db.query.graph_val_set(
             self.graph.name,
             key,
             branch, turn, tick,
+            prev,
             value
         )
 
-    def _set_cache(self, key, branch, turn, tick, value):
+    def _set_cache(self, key, branch, turn, tick, prev, value):
         self.db._graph_val_cache.store(
-            self.graph.name, key, branch, turn, tick, value
+            self.graph.name, key, branch, turn, tick, prev, value
         )
 
-    def _del_db(self, key, branch, turn, tick):
+    def _del_db(self, key, branch, turn, tick, prev):
         self.db.query.graph_val_del(
             self.graph.name,
             key,
-            branch, turn, tick
+            branch, turn, tick,
+            prev
         )
 
     def clear(self):
@@ -237,8 +243,6 @@ class GraphMapping(AbstractEntityMapping):
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
     __slots__ = ('graph', 'node', '__weakref__')
-
-    db = getatt('graph.db')
 
     def __new__(cls, graph, node):
         if (graph.name, node) in graph.db._node_objs:
@@ -281,21 +285,23 @@ class Node(AbstractEntityMapping):
             self.graph.name, self.node, key, branch, turn, tick
         )
 
-    def _set_db(self, key, branch, turn, tick, value):
+    def _set_db(self, key, branch, turn, tick, prev, value):
         self.db.query.node_val_set(
             self.graph.name,
             self.node,
             key,
             branch, turn, tick,
+            prev,
             value
         )
 
-    def _set_cache(self, key, branch, turn, tick, value):
+    def _set_cache(self, key, branch, turn, tick, prev, value):
         self.db._node_val_cache.store(
             self.graph.name,
             self.node,
             key,
             branch, turn, tick,
+            prev,
             value
         )
 
@@ -303,8 +309,6 @@ class Node(AbstractEntityMapping):
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
     __slots__ = ('graph', 'orig', 'dest', 'idx', '__weakref__')
-
-    db = getatt('graph.db')
 
     def __new__(cls, graph, orig, dest, idx=0):
         if (graph.name, orig, dest, idx) in graph.db._edge_objs:
@@ -382,7 +386,7 @@ class Edge(AbstractEntityMapping):
             branch, turn, tick
         )
 
-    def _set_db(self, key, branch, turn, tick, value):
+    def _set_db(self, key, branch, turn, tick, prev, value):
         self.db.query.edge_val_set(
             self.graph.name,
             self.orig,
@@ -390,10 +394,10 @@ class Edge(AbstractEntityMapping):
             self.idx,
             key,
             branch, turn, tick,
-            value
+            prev, value
         )
 
-    def _set_cache(self, key, branch, turn, tick, value):
+    def _set_cache(self, key, branch, turn, tick, prev, value):
         self.db._edge_val_cache.store(
             self.graph.name,
             self.orig,
@@ -401,7 +405,7 @@ class Edge(AbstractEntityMapping):
             self.idx,
             key,
             branch, turn, tick,
-            value
+            prev, value
         )
 
 

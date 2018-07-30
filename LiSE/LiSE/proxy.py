@@ -60,15 +60,14 @@ class CachingProxy(MutableMapping, Signal):
         return self._cache_get_munge(k, self._cache[k])
 
     def __setitem__(self, k, v):
-        self._set_item(k, v)
+        self._set_item(self.get(k), k, v)
         self._cache[k] = self._cache_set_munge(k, v)
         self.send(self, key=k, value=v)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such key: {}".format(k))
-        self._del_item(k)
-        del self._cache[k]
+        self._del_item(self._cache.pop(k), k)
         self.send(self, key=k, value=None)
 
     def _apply_delta(self, delta):
@@ -88,11 +87,11 @@ class CachingProxy(MutableMapping, Signal):
         return v
 
     @abstractmethod
-    def _set_item(self, k, v):
+    def _set_item(self, old, k, v):
         raise NotImplementedError("Abstract method")
 
     @abstractmethod
-    def _del_item(self, k):
+    def _del_item(self, old, k):
         raise NotImplementedError("Abstract method")
 
 
@@ -221,7 +220,7 @@ class NodeProxy(CachingEntityProxy):
             node=self.name
         )
 
-    def _set_item(self, k, v):
+    def _set_item(self, old, k, v):
         if k == 'name':
             raise KeyError("Nodes can't be renamed")
         self.engine.handle(
@@ -233,7 +232,7 @@ class NodeProxy(CachingEntityProxy):
             branching=True
         )
 
-    def _del_item(self, k):
+    def _del_item(self, old, k):
         if k == 'name':
             raise KeyError("Nodes need names")
         self.engine.handle(
@@ -477,7 +476,7 @@ class PortalProxy(CachingEntityProxy):
     def destination(self):
         return self.character.node[self._destination]
 
-    def _set_item(self, k, v):
+    def _set_item(self, old, k, v):
         self.engine.handle(
             command='set_portal_stat',
             char=self._charname,
@@ -488,8 +487,8 @@ class PortalProxy(CachingEntityProxy):
             branching=True
         )
 
-    def _del_item(self, k):
-        self.engine_handle(
+    def _del_item(self, old, k):
+        self.engine.handle(
             command='del_portal_stat',
             char=self._charname,
             orig=self._origin,
@@ -665,7 +664,7 @@ class ThingMapProxy(CachingProxy):
             )
         )
 
-    def _set_item(self, k, v):
+    def _set_item(self, old, k, v):
         self.engine.handle(
             command='set_thing',
             char=self.name,
@@ -681,7 +680,7 @@ class ThingMapProxy(CachingProxy):
         )
         self.engine._node_stat_cache[self.name][k] = v
 
-    def _del_item(self, k):
+    def _del_item(self, old, k):
         self.engine.handle(
             command='del_node',
             char=self.name,
@@ -731,7 +730,7 @@ class PlaceMapProxy(CachingProxy):
     def _cache_set_munge(self, k, v):
         return PlaceProxy(self, k)
 
-    def _set_item(self, k, v):
+    def _set_item(self, old, k, v):
         self.engine.handle(
             command='set_place',
             char=self.name,
@@ -741,7 +740,7 @@ class PlaceMapProxy(CachingProxy):
         )
         self.engine._node_stat_cache[self.name][k] = v
 
-    def _del_item(self, k):
+    def _del_item(self, old, k):
         self.engine.handle(
             command='del_node',
             char=self.name,
@@ -795,7 +794,7 @@ class SuccessorsProxy(CachingProxy):
             return v
         return PortalProxy(self, self._orig, k)
 
-    def _set_item(self, dest, value):
+    def _set_item(self, old, dest, value):
         self.engine.handle(
             command='set_portal',
             char=self._charname,
@@ -806,7 +805,7 @@ class SuccessorsProxy(CachingProxy):
             branching=True
         )
 
-    def _del_item(self, dest):
+    def _del_item(self, old, dest):
         self.engine.del_portal(self._charname, self._orig, dest)
 
 
@@ -880,7 +879,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
                         if len(self._cache[o]) == 0:
                             del self._cache[o]
 
-    def _set_item(self, orig, val):
+    def _set_item(self, old, orig, val):
         self.engine.handle(
             command='character_set_node_successors',
             character=self.name,
@@ -890,7 +889,7 @@ class CharSuccessorsMappingProxy(CachingProxy):
             branching=True
         )
 
-    def _del_item(self, orig):
+    def _del_item(self, old, orig):
         for dest in self[orig]:
             self.engine.del_portal(self.name, orig, dest)
 
@@ -1023,7 +1022,7 @@ class CharStatProxy(CachingEntityProxy):
             char=self.name
         )
 
-    def _set_item(self, k, v):
+    def _set_item(self, old, k, v):
         self.engine.handle(
             command='set_character_stat',
             char=self.name,
@@ -1032,7 +1031,7 @@ class CharStatProxy(CachingEntityProxy):
             branching=True
         )
 
-    def _del_item(self, k):
+    def _del_item(self, old, k):
         self.engine.handle(
             command='del_character_stat',
             char=self.name,

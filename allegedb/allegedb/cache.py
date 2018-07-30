@@ -45,30 +45,24 @@ class JournalContainer(Signal):
         self.presettings = PickyDefaultDict(SettingsTurnDict)
 
     def load_branch(self, branch):
-        prevs = {}  # TODO: use keyframe from fork-off point of parent branch
         for row in self.get_branch(branch):
             key, _, _, _, value = row[-5:]
-            self.store(*row, prev=prevs.get(key, uncached))
-            prevs[key] = value
+            self.store(*row)
 
     def load_until(self, branch, turn, tick):
-        prevs = {}
         for row in self.get_until(branch, turn, tick):
             key, _, _, _, value = row[-5:]
-            self.store(row, prev=prevs.get(key, uncached))
-            prevs[key] = value
+            self.store(row)
 
     def load_window(self, branch, turn_from, tick_from, turn_to, tick_to):
-        prevs = {}
         for row in self.get_window(branch, turn_from, tick_from, turn_to, tick_to):
             key, _, _, _, value = row[-5:]
-            self.store(row, prev=prevs.get(key, uncached))
-            prevs[key] = value
+            self.store(row)
 
-    def store(self, *args, prev):
+    def store(self, *args):
         # overridden in LiSE.cache.InitializedCache
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
+        entity, key, branch, turn, tick, prev, value = args[-7:]
+        parent = args[:-7]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
         if turn in settings_turns or turn in settings_turns.future():
@@ -353,7 +347,7 @@ class Cache(object):
                 for turn, tick in sorted(dd2b.keys()):
                     rows = dd2b[turn, tick]
                     for row in rows:
-                        self.journal.store(*row, prev=kf.get(row[:-4], uncached))
+                        self.journal.store(*row)
                         kf[row[:-4]] = row[-1]
                         kftime = row[-4:-1]
                         if cb:
@@ -554,8 +548,8 @@ class Cache(object):
         )
 
     def _update_keycache(self, *args, forward):
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
+        entity, key, branch, turn, tick, prev, value = args[-7:]
+        parent = args[:-7]
         kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
         if value is None:
             kc = kc.difference((key,))
@@ -629,7 +623,9 @@ class Cache(object):
             planning = self.db._planning
         if forward is None:
             forward = self.db._forward
+        self.journal.disconnect(self._journal_cb)
         self._store(*args, planning=planning, journal=True)
+        self.journal.connect(self._journal_cb)
         if not self.db._no_kc:
             self._update_keycache(*args, forward=forward)
 
@@ -638,8 +634,8 @@ class Cache(object):
         self._store(*row, planning=self.db._planning, journal=False)
 
     def _store(self, *args, planning, journal):
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
+        entity, key, branch, turn, tick, prev, value = args[-7:]
+        parent = args[:-7]
         if parent:
             parentity = self.parents[parent][entity]
             if key in parentity:
@@ -674,11 +670,7 @@ class Cache(object):
                 turns[turn].truncate(tick)
             turns.truncate(turn)
         if journal:
-            try:
-                prev = self.retrieve(*args[:-1])
-            except KeyError:
-                prev = None
-            self.journal.store(*args, prev=prev)
+            self.journal.store(*args)
         self.shallowest[parent+(entity, key, branch, turn, tick)] = value
         while len(self.shallowest) > self.keycache_maxsize:
             self.shallowest.popitem(False)
@@ -834,10 +826,8 @@ class Cache(object):
 class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
 
-    def _store(self, graph, node, branch, turn, tick, ex, *, planning, journal):
-        if not ex:
-            ex = None
-        return super()._store(graph, node, branch, turn, tick, ex, planning=planning, journal=journal)
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=None):
+        return super().store(graph, node, branch, turn, tick, not ex, ex or None, planning=planning)
 
 
 class EdgesCache(Cache):
@@ -930,7 +920,8 @@ class EdgesCache(Cache):
             return False
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning, journal):
-        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, journal=journal)
+        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, not ex, ex or None,
+                     planning=planning, journal=journal)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
         if ex:

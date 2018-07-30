@@ -12,7 +12,7 @@ python3 alchemy.py >sqlite.json
 from functools import partial
 from sqlalchemy import (
     Table,
-    Index,
+    column,
     Column,
     CheckConstraint,
     ForeignKeyConstraint,
@@ -78,6 +78,7 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('value', TEXT, nullable=True)
     )
     Table(
@@ -100,6 +101,7 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('value', TEXT, nullable=True),
         ForeignKeyConstraint(
             ['graph', 'node'], ['nodes.graph', 'nodes.node']
@@ -135,6 +137,7 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('value', TEXT, nullable=True),
         ForeignKeyConstraint(
             ['graph', 'orig', 'dest', 'idx'],
@@ -310,6 +313,7 @@ def queries_for_table_dict(table):
         gv.c.key,
         gv.c.turn,
         gv.c.tick,
+        gv.c.prev,
         gv.c.value
     ]).where(gv.c.branch == bindparam('branch')).order_by(
         gv.c.turn, gv.c.tick
@@ -335,6 +339,7 @@ def queries_for_table_dict(table):
         nv.c.key,
         nv.c.turn,
         nv.c.tick,
+        nv.c.prev,
         nv.c.value
     ]).where(nv.c.branch == bindparam('branch')).order_by(
         nv.c.turn, nv.c.tick
@@ -362,6 +367,7 @@ def queries_for_table_dict(table):
         ev.c.key,
         ev.c.turn,
         ev.c.tick,
+        ev.c.prev,
         ev.c.value
     ]).where(ev.c.branch == bindparam('branch')).order_by(
         ev.c.turn, ev.c.tick

@@ -786,6 +786,7 @@ class Engine(AbstractEngine, gORM):
             branch,
             turn,
             tick,
+            not is_avatar,
             is_avatar
         )
         self.query.avatar_set(
@@ -953,8 +954,8 @@ class Engine(AbstractEngine, gORM):
         from .rule import Rule
         q = self.query
         self._things_cache.load((
-            (character, thing, branch, turn, tick, (location, next_location))
-            for character, thing, branch, turn, tick, location, next_location
+            (character, thing, branch, turn, tick, (oldloc, oldnxtloc), (location, next_location))
+            for character, thing, branch, turn, tick, oldloc, location, oldnxtloc, next_location
             in q.things_dump()
         ), validate)
         super()._init_load(validate=validate)
@@ -1341,14 +1342,22 @@ class Engine(AbstractEngine, gORM):
             self, character, node, loc, nextloc=None
     ):
         branch, turn, tick = self.nbtt()
-        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
+        try:
+            (oldloc, oldnxtloc) = self._things_cache.retrieve(
+                character, node, branch, turn, tick
+            )
+        except KeyError:
+            oldloc = oldnxtloc = None
+        self._things_cache.store(character, node, branch, turn, tick, (oldloc, oldnxtloc), (loc, nextloc))
         self.query.thing_loc_and_next_set(
             character,
             node,
             branch,
             turn,
             tick,
+            oldloc,
             loc,
+            oldnxtloc,
             nextloc
         )
 

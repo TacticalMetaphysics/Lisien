@@ -13,15 +13,13 @@ from .util import singleton_get, sort_set
 
 
 class InitializedJournalContainer(JournalContainer):
-    def store(self, *args, prev):
-        if prev is None:
-            return  # because you can't rewind past this
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
+    def store(self, *args):
+        entity, key, branch, turn, tick, prev, value = args[-7:]
+        if prev is None or prev == value:
+            return
+        parent = args[:-7]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
-        if prev == value:
-            return  # not much point reporting on a non-change in a diff
         if turn in settings_turns or turn in settings_turns.future():
             assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
@@ -38,8 +36,8 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=None):
-        super().store(None, key, branch, turn, tick, value, planning=planning)
+    def store(self, key, branch, turn, tick, prev, value, *, planning=None):
+        super().store(None, key, branch, turn, tick, prev, value, planning=planning)
 
     def load(self, data, validate=False):
         return super().load(((None,) + row for row in data), validate)
@@ -108,9 +106,11 @@ class AvatarnessCache(Cache):
                 if len(graph_s) == 1:
                     uniqgraph_kf[character] = next(iter(graph_s))
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, journal):
+    def _store(self, character, graph, node, branch, turn, tick, was_avatar, is_avatar, *, planning, journal):
+        if was_avatar == is_avatar:
+            return
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, journal=journal)
+        super()._store(character, graph, node, branch, turn, tick, was_avatar, is_avatar, planning=planning, journal=journal)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -486,18 +486,14 @@ class ThingsCache(Cache):
         self._make_node = db.thing_cls
 
     def _store(self, *args, planning, journal=True):
-        character, thing, branch, turn, tick, (location, next_location) = args
-        try:
-            oldloc, oldnxtloc = self.retrieve(character, thing, branch, turn, tick)
-        except KeyError:
-            oldloc = oldnxtloc = None
+        character, thing, branch, turn, tick, (oldloc, oldnxtloc), (location, next_location) = args
         super()._store(*args, planning=planning, journal=journal)
         if oldloc is not None:
             oldnodecont = self.db._node_contents_cache.retrieve(
                 character, oldloc, branch, turn, tick
             )
             self.db._node_contents_cache.store(
-                character, thing, branch, turn, tick, oldnodecont.difference((thing,))
+                character, thing, branch, turn, tick, oldnodecont, oldnodecont.difference((thing,))
             )
         if oldnxtloc is not None:
             oldedgecont = self.db._portal_contents_cache.retrieve(
@@ -505,7 +501,7 @@ class ThingsCache(Cache):
             )
             self.db._portal_contents_cache.store(
                 character, oldloc, oldnxtloc, branch, turn, tick,
-                oldedgecont.difference((thing,))
+                oldedgecont, oldedgecont.difference((thing,))
             )
         try:
             newnodecont = self.db._node_contents_cache.retrieve(
@@ -515,7 +511,7 @@ class ThingsCache(Cache):
             newnodecont = frozenset()
         self.db._node_contents_cache.store(
             character, location, branch, turn, tick,
-            newnodecont.union((thing,))
+            newnodecont, newnodecont.union((thing,))
         )
         if next_location is not None:
             try:
@@ -528,7 +524,7 @@ class ThingsCache(Cache):
             self.db._portal_contents_cache.store(
                 character, location, next_location,
                 branch, turn, tick,
-                newedgecont.union((thing,))
+                newedgecont, newedgecont.union((thing,))
             )
 
     def turn_before(self, character, thing, branch, turn):

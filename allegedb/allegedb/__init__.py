@@ -527,13 +527,13 @@ class ORM(object):
         if not hasattr(self, 'graph'):
             self.graph = self._graph_objs
         noderows = [
-            (graph, node, branch, turn, tick, ex if ex else None)
+            (graph, node, branch, turn, tick, not ex, ex if ex else None)
             for (graph, node, branch, turn, tick, ex)
             in self.query.nodes_dump()
         ]
         self._nodes_cache.load(noderows, validate=validate)
         edgerows = [
-            (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
+            (graph, orig, dest, idx, branch, turn, tick, not ex, ex if ex else None)
             for (graph, orig, dest, idx, branch, turn, tick, ex)
             in self.query.edges_dump()
         ]

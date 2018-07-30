@@ -1424,11 +1424,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             'character_portal': engine._characters_portals_rulebooks_cache
         }
         for rulebook, cache in cachemap.items():
+            if rulebook not in attr:
+                continue
             branch, turn, tick = engine.nbtt()
             rulebook_or_name = attr.get(rulebook, (name, rulebook))
             rulebook_name = getattr(rulebook_or_name, 'name', rulebook_or_name)
-            engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, rulebook_name)
-            cache.store((name, rulebook), branch, turn, tick, rulebook_name)
+            try:
+                prev = self._get_rulebook_cache().retrive(self.name, rulebook, branch, turn, tick)
+            except KeyError:
+                prev = None
+            engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, prev, rulebook_name)
+            cache.store((name, rulebook), branch, turn, tick, prev, rulebook_name)
 
     class ThingMapping(MutableMappingUnwrapper, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""
