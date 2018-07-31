@@ -329,7 +329,7 @@ class Cache(object):
         from collections import defaultdict, deque
         dd2 = defaultdict(lambda: defaultdict(list))
         for row in data:
-            entity, key, branch, turn, tick, value = row[-6:]
+            entity, key, branch, turn, tick, prev, value = row[-7:]
             dd2[branch][turn, tick].append(row)
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
@@ -919,8 +919,10 @@ class EdgesCache(Cache):
         except KeyError:
             return False
 
-    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning, journal):
-        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, not ex, ex or None,
+    def _store(self, graph, orig, dest, idx, branch, turn, tick, prev, ex, *, planning, journal):
+        if prev == ex:
+            return
+        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, prev, ex or None,
                      planning=planning, journal=journal)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]

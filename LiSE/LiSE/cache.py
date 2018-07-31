@@ -489,16 +489,22 @@ class ThingsCache(Cache):
         character, thing, branch, turn, tick, (oldloc, oldnxtloc), (location, next_location) = args
         super()._store(*args, planning=planning, journal=journal)
         if oldloc is not None:
-            oldnodecont = self.db._node_contents_cache.retrieve(
-                character, oldloc, branch, turn, tick
-            )
+            try:
+                oldnodecont = self.db._node_contents_cache.retrieve(
+                    character, oldloc, branch, turn, tick
+                )
+            except KeyError:
+                oldnodecont = frozenset()
             self.db._node_contents_cache.store(
                 character, thing, branch, turn, tick, oldnodecont, oldnodecont.difference((thing,))
             )
         if oldnxtloc is not None:
-            oldedgecont = self.db._portal_contents_cache.retrieve(
-                character, oldloc, oldnxtloc, branch, turn, tick
-            )
+            try:
+                oldedgecont = self.db._portal_contents_cache.retrieve(
+                    character, oldloc, oldnxtloc, branch, turn, tick
+                )
+            except KeyError:
+                oldedgecont = frozenset()
             self.db._portal_contents_cache.store(
                 character, oldloc, oldnxtloc, branch, turn, tick,
                 oldedgecont, oldedgecont.difference((thing,))
