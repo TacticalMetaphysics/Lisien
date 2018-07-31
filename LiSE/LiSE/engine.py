@@ -959,7 +959,7 @@ class Engine(AbstractEngine, gORM):
             in q.things_dump()
         ), validate)
         super()._init_load(validate=validate)
-        self._avatarness_cache.load(q.avatars_dump(), validate)
+        self._avatarness_cache.load((row[:-1] + (not row[-1], row[-1]) for row in q.avatars_dump()), validate)
         self._universal_cache.load(q.universals_dump(), validate)
         self._rulebooks_cache.load(q.rulebooks_dump(), validate)
         self._characters_rulebooks_cache.load(q.character_rulebook_dump(), validate)
