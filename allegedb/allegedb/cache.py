@@ -919,6 +919,9 @@ class EdgesCache(Cache):
         except KeyError:
             return False
 
+    def store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, forward=None):
+        super().store(graph, orig, dest, idx, branch, turn, tick, not ex, ex, planning=planning, forward=forward)
+
     def _store(self, graph, orig, dest, idx, branch, turn, tick, prev, ex, *, planning, journal):
         if prev == ex:
             return
