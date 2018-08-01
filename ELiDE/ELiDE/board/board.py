@@ -121,7 +121,7 @@ class Board(RelativeLayout):
     grabbed = ObjectProperty(None, allownone=True)
     spot_cls = ObjectProperty(Spot)
     pawn_cls = ObjectProperty(Pawn)
-    arrow_cls = ObjectProperty(Arrow)
+    arrow_cls = ObjectProperty(Arrow, allownone=True)
     proto_arrow_cls = ObjectProperty(ArrowWidget)
 
     @property
@@ -714,8 +714,10 @@ class Board(RelativeLayout):
         self.remove_absent_arrows()
         # add widgets to represent new stuff
         self.add_new_spots()
-        self.add_new_arrows()
+        if self.arrow_cls:
+            self.add_new_arrows()
         self.add_new_pawns()
+        Logger.debug("Board: updated")
 
     def update_from_delta(self, delta, *args):
         """Apply the changes described in the dict ``delta``."""

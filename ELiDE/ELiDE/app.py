@@ -284,7 +284,8 @@ class ELiDEApp(App):
             play_speed=int(config['ELiDE']['play_speed']),
             boards={
                 name: Board(
-                    character=char
+                    character=char,
+                    arrow_cls=None
                 ) for name, char in self.engine.character.items()
             }
         )

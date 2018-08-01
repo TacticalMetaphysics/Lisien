@@ -2195,6 +2195,9 @@ class EngineProxy(AbstractEngine):
             kwargs['command'] = cmd
         else:
             raise TypeError("No command")
+        if cmd == 'update_nodes':
+            import traceback
+            traceback.print_stack()
         branching = kwargs.get('branching', False)
         cb = kwargs.pop('cb', None)
         self._handle_lock.acquire()
