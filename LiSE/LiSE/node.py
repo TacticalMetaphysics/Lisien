@@ -106,7 +106,9 @@ class NodeContentValues(ValuesView):
         node = self._mapping.node
         nodem = node.character.node
         try:
-            for name in node.engine._node_contents(node.character.name, node.name):
+            for name in node.engine._node_contents_cache.retrieve(
+                    node.character.name, node.name, *node.engine.btt()
+            ):
                 yield nodem[name]
         except KeyError:
             return
