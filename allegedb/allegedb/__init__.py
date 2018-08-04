@@ -157,6 +157,15 @@ class TimeSignalDescriptor:
                     "occurs before the start of "
                     "the branch {}".format(turn_now, branch_now)
                 )
+            if turn_now == turn_start and tick_now < tick_start:
+                raise ValueError(
+                    "The tick number {}"
+                    "on turn {} "
+                    "occurs before the start of "
+                    "the branch {}".format(
+                        tick_now, turn_now, branch_now
+                    )
+                )
             if not e._planning and (turn_now > turn_end or tick_now > tick_end):
                 branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
         else:
