@@ -145,7 +145,10 @@ class TimeSignalDescriptor:
         # make sure I'll end up within the revision range of the
         # destination branch
         branches = e._branches
-        tick_now = e._turn_end_plan.setdefault((branch_now, turn_now), 0)
+        tick_now = e._turn_end_plan.setdefault(
+            (branch_now, turn_now),
+            tick_then
+        )
         if branch_now in branches:
             parent, turn_start, tick_start, turn_end, tick_end = branches[branch_now]
             if turn_now < turn_start:
