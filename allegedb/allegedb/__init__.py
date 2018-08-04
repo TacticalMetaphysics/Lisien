@@ -166,7 +166,7 @@ class TimeSignalDescriptor:
         if not e._planning:
             if tick_now > e._turn_end[val]:
                 e._turn_end[val] = tick_now
-        e._otick = tick_now
+        e._otick = e._turn_end_plan[val] = tick_now
         real.send(
             e,
             branch_then=branch_then,
@@ -813,10 +813,10 @@ class ORM(object):
         iteration will stop instead of yielding the turn.
 
         """
-        b = branch or self.branch
+        branch = branch or self.branch
         trn = self.turn if turn is None else turn
         tck = self.tick if tick is None else tick
-        yield b, trn, tck
+        yield branch, trn, tck
         stopbranches = set()
         if stoptime:
             if type(stoptime) is tuple:
@@ -827,16 +827,20 @@ class ORM(object):
                 stopbranch = stoptime
                 stopbranches = self._branch_parents[stopbranch]
         _branches = self._branches
-        _turn_end = self._turn_end  # maybe this should be self._turn_end_plan
-        while b in _branches:
-            (b, trn, tck, _, _) = _branches[b]
-            if b in stopbranches:
-                if (
-                    type(stoptime) is not tuple
-                        or (trn < stoptime[1] or (trn == stoptime[1] and (stoptime[2] is None or tck <= stoptime[2])))
-                ):
-                    return
-            yield b, trn, _turn_end[b, trn]
+        while branch in _branches:
+            # ``par`` is the parent branch;
+            # ``(trn, tck)`` is when ``branch`` forked off from ``par``
+            (par, trn, tck, _, _) = _branches[branch]
+            if par in stopbranches and (
+                trn < stoptime[1] or (
+                    trn == stoptime[1] and (
+                        stoptime[2] is None or tck <= stoptime[2]
+                    )
+                )
+            ):
+                return
+            yield branch, trn, tck
+            branch = par
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current
