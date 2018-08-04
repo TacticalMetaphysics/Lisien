@@ -842,8 +842,8 @@ class ORM(object):
         while branch in _branches:
             # ``par`` is the parent branch;
             # ``(trn, tck)`` is when ``branch`` forked off from ``par``
-            (par, trn, tck, _, _) = _branches[branch]
-            if par in stopbranches and (
+            (branch, trn, tck, _, _) = _branches[branch]
+            if branch in stopbranches and (
                 trn < stoptime[1] or (
                     trn == stoptime[1] and (
                         stoptime[2] is None or tck <= stoptime[2]
@@ -852,7 +852,6 @@ class ORM(object):
             ):
                 return
             yield branch, trn, tck
-            branch = par
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current
