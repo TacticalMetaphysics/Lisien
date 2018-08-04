@@ -2206,7 +2206,6 @@ class EngineProxy(AbstractEngine):
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
-            self._handle_lock.release()
             r = self.unpack(result)
             if (branch, turn, tick) != self.btt():
                 self._branch = branch
@@ -2214,9 +2213,11 @@ class EngineProxy(AbstractEngine):
                 self._tick = tick
                 self.time.send(self, branch=branch, turn=turn, tick=tick)
             if isinstance(r, Exception):
+                self._handle_lock.release()
                 raise r
             if cb:
                 cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+            self._handle_lock.release()
             return r
         else:
             kwargs['silent'] = not (branching or cb)
