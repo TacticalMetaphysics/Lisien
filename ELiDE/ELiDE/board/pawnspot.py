@@ -213,7 +213,6 @@ class PawnSpot(ImageStack, Layout):
         self._trigger_layout()
 
     def do_layout(self, *args):
-        Logger.debug("PawnSpot: {} is laying-out".format(self.name))
         xpad = self.proxy.get('_xpad', 32)
         ypad = self.proxy.get('_ypad', 32)
         self.gutter = gutter = self.proxy.get('_gutter', xpad/2)
