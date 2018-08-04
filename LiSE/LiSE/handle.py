@@ -762,9 +762,6 @@ class EngineHandle(object):
             self._real.tick = parrev
         for i, (n, npatch) in enumerate(patch.items(), 1):
             self.update_node(char, n, npatch)
-            if i % 100 == 0:
-                print("updated %d nodes" % i)
-        print("finished, updated %d nodes" % i)
         if backdate:
             self._real.tick = tick_now
 
