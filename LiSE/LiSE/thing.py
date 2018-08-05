@@ -138,9 +138,9 @@ class Thing(Node):
         ``locations``: return a pair of ``(location, next_location)``
 
         """
-        try:
+        if key in self._getitem_dispatch:
             return self._getitem_dispatch[key](self)
-        except KeyError:
+        else:
             return super().__getitem__(key)
 
     def __setitem__(self, key, value):
