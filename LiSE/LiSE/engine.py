@@ -610,7 +610,8 @@ class Engine(AbstractEngine, gORM):
             updater(updrb, rbbranches[branch])
 
         def updru(key, _, rule, funs):
-            delta.setdefault('rules', {}).setdefault(rule, {})[key] = funs
+            if funs is not None:
+                delta.setdefault('rules', {}).setdefault(rule, {})[key] = funs
 
         if branch in trigbranches:
             updater(partial(updru, 'triggers'), trigbranches[branch])
