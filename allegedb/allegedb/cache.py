@@ -268,20 +268,24 @@ class Cache(object):
         if branch in cache:
             branc = cache[branch]
             if turn in branc:
-                return branc[turn].get(tick, None)
-            try:
-                turnd = branc[turn]
-                return turnd[turnd.end]
-            except HistoryError:
-                return
+                return branc[turn][tick]
+            turnd = branc[turn]
+            return turnd[turnd.end]
         for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-            if b in cache and r in cache[b] and t in cache[b][r]:
-                try:
-                    turnd = cache[b][r]
-                    return turnd[t]
-                except HistoryError as ex:
-                    if ex.deleted:
-                        return
+            if b in cache:
+                if r in cache[b] and cache[b][r].rev_gettable(t):
+                    try:
+                        return cache[b][r][t]
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            raise
+                elif cache[b].rev_gettable(r-1):
+                    cbr = cache[b][r-1]
+                    try:
+                        return cbr[cbr.end]
+                    except HistoryError as ex:
+                        if ex.deleted:
+                            raise
 
     def _get_keycachelike(self, keycache, keys, get_adds_dels, parentity, branch, turn, tick, *, forward):
         keycache_key = parentity + (branch,)
