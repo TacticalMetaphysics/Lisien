@@ -399,6 +399,7 @@ class RuleBook(MutableSequence, Signal):
             raise IndexError
         cache = prev.copy()
         del cache[i]
+        branch, turn, tick = self.engine.nbtt()
         self.engine.query.set_rulebook(self.name, branch, turn, tick, prev, cache)
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, prev, cache)
         self.engine.rulebook.send(self, i=i, v=None)
