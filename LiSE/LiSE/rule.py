@@ -70,10 +70,7 @@ class RuleFuncList(MutableSequence, Signal):
         return v
 
     def _get(self):
-        try:
-            return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
-        except KeyError:
-            return None
+        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
 
     def _set(self, v):
         prev = self._get()
@@ -82,39 +79,36 @@ class RuleFuncList(MutableSequence, Signal):
         self._setter(self.rule.name, branch, turn, tick, prev, v)
 
     def __iter__(self):
-        for funcname in self._get() or ():
+        for funcname in self._get():
             yield getattr(self._funcstore, funcname)
 
     def __len__(self):
-        return len(self._get() or ())
+        return len(self._get())
 
     def __getitem__(self, i):
-        me = self._get()
-        if me is None:
-            raise IndexError
-        return getattr(self._funcstore, me[i])
+        return getattr(self._funcstore, self._get()[i])
 
     def __setitem__(self, i, v):
         v = self._nominate(v)
-        l = list(self._get() or ())
+        l = list(self._get())
         l[i] = v
         self._set(tuple(l))
         self.send(self)
 
     def __delitem__(self, i):
-        l = list(self._get() or ())
+        l = list(self._get())
         del l[i]
         self._set(tuple(l))
         self.send(self)
 
     def insert(self, i, v):
-        l = list(self._get() or ())
+        l = list(self._get())
         l.insert(i, self._nominate(v))
         self._set(tuple(l))
         self.send(self)
 
     def append(self, v):
-        self._set(self._get() or () + (self._nominate(v),))
+        self._set(self._get() + (self._nominate(v),))
         self.send(self)
 
     def index(self, x, start=0, end=None):
@@ -237,12 +231,9 @@ class Rule(object):
             self.engine.query.set_rule(
                 name, branch, turn, tick, triggers, prereqs, actions
             )
-            if triggers:
-                self.engine._triggers_cache.store(name, branch, turn, tick, None, triggers)
-            if prereqs:
-                self.engine._prereqs_cache.store(name, branch, turn, tick, None, prereqs)
-            if actions:
-                self.engine._actions_cache.store(name, branch, turn, tick, None, actions)
+            self.engine._triggers_cache.store(name, branch, turn, tick, [], triggers)
+            self.engine._prereqs_cache.store(name, branch, turn, tick, [], prereqs)
+            self.engine._actions_cache.store(name, branch, turn, tick, [], actions)
 
     def __eq__(self, other):
         return (

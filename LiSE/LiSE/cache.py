@@ -15,12 +15,13 @@ from .util import singleton_get, sort_set
 class InitializedJournalContainer(JournalContainer):
     def store(self, *args):
         entity, key, branch, turn, tick, prev, value = args[-7:]
-        if prev == value:
+        if prev is None or prev == value:
             return
         parent = args[:-7]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
         if turn in settings_turns or turn in settings_turns.future():
+            assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
             presetticks = presettings_turns[turn]
             presetticks[tick] = parent + (entity, key, prev)
@@ -57,8 +58,7 @@ class EntitylessCache(Cache):
 
 
 class InitializedEntitylessCache(EntitylessCache, InitializedCache):
-    def store(self, key, branch, turn, tick, prev, value, *, planning=None):
-        InitializedCache.store(self, None, key, branch, turn, tick, prev, value, planning=planning)
+    pass
 
 
 class AvatarnessCache(Cache):
