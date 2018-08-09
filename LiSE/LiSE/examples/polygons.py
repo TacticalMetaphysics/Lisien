@@ -62,7 +62,7 @@ def install(eng):
 
 
     # make an 8-way-connected grid
-    physical.grid_2d_8graph(100, 100)
+    physical.grid_2d_8graph(20, 20)
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
