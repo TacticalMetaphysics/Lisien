@@ -89,19 +89,22 @@ ELiDE uses third-party graphics sets:
 * The default wallpaper, wallpape.jpg, is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 * The ELiDE icon is by Robin Hill, used with permission.
 
-The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George
-Douros, in the public domain.
+``reify.py`` is derived from the Pyramid project and carries its BSD-like license.
 
-[networkx](http://networkx.github.io/), which forms the basis of
-LiSE's data model, is available under
-[BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My
-versions of the networkx graph classes are in the ``allegedb``
-directory, and use the same license.
+``collide.py`` is ported from Kivy's ``garden.collider`` module and carries the MIT license.
 
-reify.py is derived from the Pyramid project and carries its BSD-like license.
+The allegedb, LiSE, and ELiDE source files are licensed under the terms of the GNU Affero Public License
+version 3. If you make a game with it, you have to release any modifications you make to LiSE itself
+under the AGPL, but this doesn't apply to your game code. Game code is that which is loaded into the
+engine at launch time from modules specified by the following parameters to the LiSE engine:
+* ``trigger``
+* ``prereq``
+* ``action``
+* ``function``
+* ``method`` 
 
-collide.py is ported from Kivy's garden.collider module and carries the MIT license.
+If you write another application (not using any allegedb, LiSE, or ELiDE code)
+that accesses a LiSE server via HTTP(S), it is separate from LiSE and not subject to its license.
 
-The rest of the LiSE source files are licensed under the terms of the GNU General Public License
-version 3. In case of my death, I, Zachary Spector, wish for every allegedb, LiSE, texturestack, and ELiDE source file
+In case of my death, I, Zachary Spector, wish for every allegedb, LiSE, texturestack, and ELiDE source file
 to be relicensed under [CC0](https://creativecommons.org/choose/zero/).
