@@ -93,9 +93,9 @@ ELiDE uses third-party graphics sets:
 
 ``collide.py`` is ported from Kivy's ``garden.collider`` module and carries the MIT license.
 
-The allegedb, LiSE, and ELiDE source files are licensed under the terms of the GNU General Public License
+The allegedb, LiSE, and ELiDE source files are licensed under the terms of the GNU Affero Public License
 version 3. If you make a game with it, you have to release any modifications you make to LiSE itself
-under the GPL, but this doesn't apply to your game code. Game code is that which is loaded into the
+under the AGPL, but this doesn't apply to your game code. Game code is that which is loaded into the
 engine at launch time from modules specified by the following parameters to the LiSE engine:
 * ``trigger``
 * ``prereq``
