@@ -473,8 +473,7 @@ class Engine(AbstractEngine, gORM):
       ``True`` for it to run.
     - ``action``: A mapping of functions that might manipulate the world
       state as a result of a rule running.
-    - ``function``: A mapping of generic functions stored in the same
-      database as the previous.
+    - ``function``: A mapping of generic functions.
     - ``string``: A mapping of strings, probably shown to the player
       at some point.
     - ``eternal``: Mapping of arbitrary serializable objects. It isn't
