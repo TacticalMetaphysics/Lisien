@@ -1051,7 +1051,7 @@ class QueryEngine(allegedb.query.QueryEngine):
         raise KeyError("No rulebook")
 
     def thing_loc_and_next_set(
-            self, character, thing, branch, turn, tick, loc, nextloc, oldloc, oldnextloc
+            self, character, thing, branch, turn, tick, oldloc, loc, oldnextloc, nextloc
     ):
         (character, thing, loc, nextloc, oldloc, oldnextloc) = map(
             self.pack,

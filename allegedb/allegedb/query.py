@@ -518,7 +518,7 @@ class QueryEngine(object):
         self.sqlmany('node_val_insert', *self._nodevals2set)
         self._nodevals2set = []
 
-    def node_val_set(self, graph, node, key, branch, turn, tick, value, prev):
+    def node_val_set(self, graph, node, key, branch, turn, tick, prev, value):
         """Set a key-value pair on a node at a specific branch and revision"""
         if (branch, turn, tick) in self._btts:
             raise TimeError
