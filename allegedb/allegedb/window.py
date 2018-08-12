@@ -487,10 +487,27 @@ class WindowDict(MutableMapping):
         if self._future:
             return self._future[0][0]
 
-    def truncate(self, rev):
-        """Delete everything after the given revision."""
+    def truncate(self, rev, reverse=False, inclusive=False):
+        """Delete everything after the given revision.
+
+        Or, with ``reverse=True``, everything before the given revision.
+
+        Normally leaves the exact revision you give it alone. To delete that too,
+        pass in ``inclusive=True``.
+
+        """
+        if reverse:
+            self.seek(rev)
+            if self._past:
+                if inclusive or self._past[-1][0] != rev:
+                    self._past = None
+                else:
+                    self._past = [self._past[-1]]
+            return
         self.seek(rev)
         self._future = None
+        if inclusive and self._past and self._past[-1][0] == rev:
+            self._past.pop()
 
     @property
     def beginning(self):

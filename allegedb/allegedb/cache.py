@@ -289,10 +289,16 @@ class Cache(object):
         self.db = db
         self.journal = self.journal_container_cls(db, branch_loader, until_loader, window_loader)
         self.journal.connect(self._journal_cb)
-        self.keyframes = PickyDefaultDict(TurnDict)
-        """Snapshots of my state at various (branch, turn, tick)
+        self.keyframes = {}
+        """Snapshots of my state at various times.
         
         Data prior to a keyframe may be unloaded if not in use.
+        
+        """
+        self.loaded = {}
+        """Tuples describing which parts of each branch are loaded.
+        
+        ``(earliest_turn, earliest_tick, latest_turn, latest_tick)``
         
         """
         self.parents = StructuredDefaultDict(3, TurnDict)
@@ -355,6 +361,7 @@ class Cache(object):
 
             while branch2do:
                 branch = branch2do.popleft()
+                earliest_turn = earliest_tick = latest_turn = latest_tick = None
                 dd2b = dd2[branch]
                 # I think I could avoid sorting here
                 for turn, tick in sorted(dd2b.keys()):
@@ -362,31 +369,45 @@ class Cache(object):
                     for row in rows:
                         self.journal.store(*row)
                         kf[row[:-4]] = row[-1]
-                        kftime = row[-4:-1]
+                        kftime = brnch, trn, tck = row[-4:-1]
+                        if earliest_turn is None or (trn, tck) < (earliest_turn, earliest_tick):
+                            (earliest_turn, earliest_tick) = (trn, tck)
+                        if latest_turn is None or (trn, tck) > (latest_turn, latest_tick):
+                            (latest_turn, latest_tick) = (trn, tck)
                         if cb:
                             cb(row, validate=validate)
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
+                if None not in (earliest_turn, earliest_tick, latest_turn, latest_tick):
+                    if branch in self.loaded:
+                        earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
+                            = self.loaded[branch]
+                        self.loaded[branch] = min((
+                            (earliest_turn, earliest_tick), (earliest_turn2, earliest_tick2)
+                        )) + max((
+                            (latest_turn, latest_tick), (latest_turn2, latest_tick2)
+                        ))
+                    else:
+                        self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
 
             if not kf:
                 self.journal.connect(self._journal_cb)
                 return
             branch, turn, tick = kftime
-            if turn in self.keyframes[branch]:
-                self.keyframes[branch][turn][tick] = kf
-            else:
-                self.keyframes[branch][turn] = {tick: kf}
-            assert branch in self.keyframes
-            assert turn in self.keyframes[branch]
-            assert tick in self.keyframes[branch][turn]
+            self.keyframes[branch] = (turn, tick, kf)
             self.journal.connect(self._journal_cb)
             return kf
         else:
             store = self._store
             while branch2do:
                 branch = branch2do.popleft()
+                earliest_turn = earliest_tick = latest_turn = latest_tick = None
                 dd2b = dd2[branch]
                 for turn, tick in sorted(dd2b.keys()):
+                    if earliest_turn is None or (turn, tick) < (earliest_turn, earliest_tick):
+                        (earliest_turn, earliest_tick) = (turn, tick)
+                    if latest_turn is None or (turn, tick) > (latest_turn, latest_tick):
+                        (latest_turn, latest_tick) = (turn, tick)
                     rows = dd2b[turn, tick]
                     for row in rows:
                         store(*row, planning=False, journal=True)
@@ -394,7 +415,75 @@ class Cache(object):
                             cb(row, validate=validate)
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
+                if None not in (earliest_turn, earliest_tick, latest_turn, latest_tick):
+                    if branch in self.loaded:
+                        earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
+                            = self.loaded[branch]
+                        self.loaded[branch] = min((
+                            (earliest_turn, earliest_tick), (earliest_turn2, earliest_tick2)
+                        )) + max((
+                            (latest_turn, latest_tick), (latest_turn2, latest_tick2)
+                        ))
+                    else:
+                        self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
             return dd2
+
+    def unload(self, branch, turn, tick, direction='backward'):
+        """Remove all data from before the time ``(turn, tick)`` in the given ``branch``.
+
+        Or after that time, with ``direction='forward'``.
+
+        """
+        if direction not in {'forward', 'backward'}:
+            raise ValueError("direction must be 'forward' or 'backward'")
+        if branch in self.keyframes:
+            trn, tck, _ = self.keyframes[branch]
+            if (
+                direction == 'forward' and (turn, tick) < (trn, tck)
+            ) or (
+                direction == 'backward' and (turn, tick) > (trn, tck)
+            ):
+                raise ValueError("Can't unload keyframe at {}".format((trn, tck)))
+        # TODO: check if there's a keyframe sometime in the future when unloading backward
+        # If there isn't, that whole branch subtree is unusable!
+        earliest_turn, earliest_tick, latest_turn, latest_tick = self.loaded[branch]
+        if (
+            direction == 'backward' and (turn, tick) < (earliest_turn, earliest_tick)
+        ) or (
+            direction == 'forward' and (turn, tick) > (latest_turn, latest_tick)
+        ):
+            return
+        keys = self.keys
+        reverse = direction == 'backward'
+        if turn == earliest_turn:
+            mapps = [
+                self.journal.settings[branch][turn],
+                self.journal.presettings[branch][turn]
+            ]
+            for keysk in keys.values():
+                if branch in keysk:
+                    keyskb = keysk[branch]
+                    if turn in keyskb:
+                        mapps.append(keyskb[turn])
+            for mapp in mapps:
+                mapp.truncate(tick, reverse=reverse, inclusive=True)
+        else:
+            mapps = [
+                self.journal.settings[branch],
+                self.journal.presettings[branch]
+            ]
+            for keysk in keys.values():
+                if branch in keysk:
+                    mapps.append(keysk[branch])
+            for mapp in mapps:
+                if turn in mapp:
+                    mappt = mapp[turn]
+                    mappt.truncate(tick, reverse=reverse, inclusive=True)
+                mapp.truncate(turn, reverse=reverse, inclusive=True)
+        if reverse:
+            self.loaded[branch] = turn, tick, latest_turn, latest_tick
+        else:
+            self.loaded[branch] = earliest_turn, earliest_tick, turn, tick
 
     def _valcache_lookup(self, cache, kfcache, branch, turn, tick):
         """Look up a value in a cache at a particular time.
@@ -695,6 +784,30 @@ class Cache(object):
             new = FuturistWindowDict()
             new[tick] = value
             turns[turn] = new
+        if branch in self.loaded:
+            earliest_turn, earliest_tick, latest_turn, latest_tick = self.loaded[branch]
+            self.loaded[branch] = min((
+                (earliest_turn, earliest_tick), (turn, tick)
+            )) + max((
+                (latest_turn, latest_tick), (turn, tick)
+            ))
+        else:
+            self.loaded[branch] = turn, tick, turn, tick
+
+    def _check_loaded(self, branch, turn, tick):
+        if branch in self.loaded:
+            earliest_turn, earliest_tick, latest_turn, latest_tick = self.loaded[branch]
+            if (turn, tick) < (earliest_turn, earliest_tick):
+                raise UnloadedException(
+                    branch, turn, tick,
+                    "The time {} is not loaded within the branch {}".format(
+                        (turn, tick), branch
+                    ))
+        else:
+            raise UnloadedException(
+                branch, None, None,
+                "The branch {} is not loaded".format(branch)
+            )
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.
@@ -718,6 +831,7 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
+        self._check_loaded(branch, turn, tick)
         branches = self.branches
         if entity+(key,) in branches:
             if (
@@ -749,44 +863,20 @@ class Cache(object):
                 ):
                     brancs = branches[entity+(key,)][b]
                     if r in brancs and brancs[r].rev_gettable(t):
-                        ret = brancs[r][t]
+                        ret = shallowest[args] = brancs[r][t]
+                        return ret
                     elif brancs.rev_gettable(r-1):
                         ret = brancs[r-1]
-                        ret = ret[ret.end]
-                    elif b in keyframes:
-                        if keyframes[b].rev_gettable(r):
-                            kfb = keyframes[b]
-                            if r in kfb:
-                                if kfb[r].rev_gettable(t):
-                                    return kfb[r][t][entity + (key,)]
-                                elif kfb.rev_gettable(r-1):
-                                    kfbr = kfb[r-1]
-                                    return kfbr[kfbr.end][entity+(key,)]
-                                else:
-                                    raise UnloadedException(b, r, t, "Try to load the past before {}".format((b, r, t)))
-                            else:
-                                kfbr = kfb[r]
-                                return kfbr[kfbr.end][entity+(key,)]
-                        else:
-                            raise UnloadedException(b, r, t, "Try to load the past before {}".format((b, r, t)))
-                    else:
-                        continue
-                    shallowest[args] = ret
-                    return ret
+                        ret = shallowest[args] = ret[ret.end]
+                        return ret
             if b in keyframes:
-                kfb = keyframes[b]
-                if kfb.rev_gettable(r):
-                    if r in kfb:
-                        if kfb[r].rev_gettable(t):
-                            return kfb[r][t][entity+(key,)]
-                        else:
-                            kfbr = kfb[r-1]
-                            return kfbr[kfbr.end][entity+(key,)]
-                    else:
-                        kfbr = kfb[r]
-                        return kfbr[kfbr.end][entity+(key,)]
+                trn, tck, kf = keyframes[b]
+                if r > trn or (r == trn and t >= tck):
+                    # may raise KeyError
+                    ret = shallowest[args] = kf[entity + (key,)]
+                    return ret
                 else:
-                    raise UnloadedException(b, r, t, "Try to load the past before {}".format((b, r, t)))
+                    continue
         else:
             raise KeyError
 
