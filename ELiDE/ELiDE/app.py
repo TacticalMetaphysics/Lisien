@@ -252,6 +252,13 @@ class ELiDEApp(App):
             toggle=toggler('rules')
         )
 
+        self.charrules = ELiDE.rulesview.CharacterRulesScreen(
+            engine=self.engine,
+            character=self.character,
+            toggle=toggler('charrules')
+        )
+        self.bind(character=self.charrules.setter('character'))
+
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
             toggle=toggler('chars'),
@@ -316,6 +323,7 @@ class ELiDEApp(App):
                 self.spotcfg,
                 self.statcfg,
                 self.rules,
+                self.charrules,
                 self.chars,
                 self.strings,
                 self.funcs

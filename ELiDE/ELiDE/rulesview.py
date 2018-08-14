@@ -19,7 +19,7 @@ from inspect import signature
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import AliasProperty, ObjectProperty, StringProperty
+from kivy.properties import AliasProperty, ObjectProperty, OptionProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.recycleview import RecycleView
@@ -348,12 +348,12 @@ class RulesView(FloatLayout):
     _trigger_push_triggers = trigger(push_triggers)
 
 
-class RulesScreen(Screen):
+class RulesBox(BoxLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
-    rulesview = ObjectProperty()
     new_rule_name = StringProperty()
     toggle = ObjectProperty()
+    rulesview = ObjectProperty
 
     def new_rule(self, *args):
         if self.new_rule_name in self.engine.rule:
@@ -363,8 +363,70 @@ class RulesScreen(Screen):
         assert(new_rule is not None)
         self.rulebook.append(new_rule)
         self.rulesview.redata()
-        self.ids.rulesview.rule = new_rule
+        self.rulesview.rule = new_rule
         self.ids.rulename.text = ''
+
+
+class RulesScreen(Screen):
+    engine = ObjectProperty()
+    rulebook = ObjectProperty()
+    toggle = ObjectProperty()
+
+    def new_rule(self, *args):
+        self.children[0].new_rule()
+
+
+class CharacterRulesScreen(Screen):
+    engine = ObjectProperty()
+    character = ObjectProperty()
+    toggle = ObjectProperty()
+
+    def _get_rulebook(self, rb):
+        return {
+            'character': self.character.rulebook,
+            'avatar': self.character.avatar.rulebook,
+            'character_thing': self.character.thing.rulebook,
+            'character_place': self.character.place.rulebook,
+            'character_portal': self.character.portal.rulebook
+        }[rb]
+
+    def finalize(self, *args):
+        assert not hasattr(self, '_finalized')
+        if (
+            not self.engine or not self.toggle or not self.character
+        ):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self._tabs = TabbedPanel(do_default_tab=False)
+        for rb in (
+            'character', 'avatar', 'character_thing',
+            'character_place', 'character_portal'
+        ):
+            tab = TabbedPanelItem(text=rb)
+            setattr(self, '_{}_tab'.format(rb), tab)
+            box = RulesBox(
+                engine=self.engine,
+                rulebook=self._get_rulebook(rb),
+                toggle=self.toggle
+            )
+            tab.add_widget(box)
+            self._tabs.add_widget(tab)
+        self.add_widget(self._tabs)
+        self._finalized = True
+
+    def on_character(self, *args):
+        if not hasattr(self, '_finalized'):
+            self.finalize()
+            return
+        for rb in (
+            'character', 'avatar', 'character_thing',
+            'character_place', 'character_portal'
+        ):
+            tab = getattr(self, '_{}_tab'.format(rb))
+            tab.content.rulebook = self._get_rulebook(rb)
+            # Currently there's no way to assign a new rulebook to an entity
+            # in ELiDE, so I don't need to account for that, but I will eventually
+            # 2018-08-13
 
 
 Builder.load_string("""
@@ -378,27 +440,33 @@ Builder.load_string("""
         height: self.minimum_height
         size_hint_y: None
         orientation: 'vertical'
-<RulesScreen>:
-    name: 'rules'
+<RulesBox>:
     new_rule_name: rulename.text
     rulesview: rulesview
+    orientation: 'vertical'
+    RulesView:
+        id: rulesview
+        engine: root.engine
+        rulebook: root.rulebook
     BoxLayout:
-        orientation: 'vertical'
-        RulesView:
-            id: rulesview
-            engine: root.engine
-            rulebook: root.rulebook
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.05
-            TextInput:
-                id: rulename
-                hint_text: 'New rule name'
-                write_tab: False
-            Button:
-                text: '+'
-                on_press: root.new_rule()
-            Button:
-                text: 'Close'
-                on_press: root.toggle()
+        orientation: 'horizontal'
+        size_hint_y: 0.05
+        TextInput:
+            id: rulename
+            hint_text: 'New rule name'
+            write_tab: False
+        Button:
+            text: '+'
+            on_press: root.new_rule()
+        Button:
+            text: 'Close'
+            on_press: root.toggle()
+<RulesScreen>:
+    name: 'rules'
+    RulesBox:
+        engine: root.engine
+        rulebook: root.rulebook
+        toggle: root.toggle
+<CharacterRulesScreen>:
+    name: 'charrules'
 """)
