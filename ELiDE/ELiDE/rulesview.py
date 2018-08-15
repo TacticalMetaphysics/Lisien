@@ -63,7 +63,7 @@ class RulesList(RecycleView):
         if self.rulebook is None:
             return
         self.rulebook.connect(self._trigger_redata, weak=False)
-        self._trigger_redata()
+        self.redata()
 
     def redata(self, *args):
         self.data = [
