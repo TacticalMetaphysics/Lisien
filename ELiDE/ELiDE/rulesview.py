@@ -444,10 +444,17 @@ Builder.load_string("""
     new_rule_name: rulename.text
     rulesview: rulesview
     orientation: 'vertical'
-    RulesView:
-        id: rulesview
-        engine: root.engine
-        rulebook: root.rulebook
+    BoxLayout:
+        orientation: 'horizontal'
+        RulesList:
+            id: ruleslist
+            rulebook: root.rulebook
+            rulesview: rulesview
+            size_hint_x: 0.2
+        RulesView:
+            id: rulesview
+            engine: root.engine
+            size_hint_x: 0.8
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: 0.05
