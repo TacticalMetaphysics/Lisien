@@ -43,6 +43,7 @@ dbg = Logger.debug
 
 # How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
+    """A button to select a rule to edit"""
     rulesview = ObjectProperty()
     ruleslist = ObjectProperty()
     rule = ObjectProperty()
@@ -56,6 +57,11 @@ class RuleButton(ToggleButton, RecycleDataViewBehavior):
 
 
 class RulesList(RecycleView):
+    """A list of rules you might want to edit
+
+    Presented as buttons, which you can click to select one rule at a time.
+
+    """
     rulebook = ObjectProperty()
     rulesview = ObjectProperty()
 
@@ -77,6 +83,12 @@ class RulesList(RecycleView):
 
 
 class RulesView(FloatLayout):
+    """The view to edit a rule
+
+    Presents three tabs, one each for trigger, prereq, and action. Each has a
+    deckbuilder in it with a column of used functions and a column of unused actions.
+
+    """
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty(allownone=True)
@@ -352,6 +364,14 @@ class RulesView(FloatLayout):
 
 
 class RulesBox(BoxLayout):
+    """A BoxLayout containing a RulesList and a RulesView
+
+    As well as an input for a new rule name; a button to add a new rule by that
+    name; and a close button.
+
+    Currently has no way to rename rules (2018-08-15)
+
+    """
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     new_rule_name = StringProperty()
@@ -371,6 +391,7 @@ class RulesBox(BoxLayout):
 
 
 class RulesScreen(Screen):
+    """Screen containing a RulesBox for one rulebook"""
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     toggle = ObjectProperty()
@@ -380,6 +401,7 @@ class RulesScreen(Screen):
 
 
 class CharacterRulesScreen(Screen):
+    """Screen with TabbedPanel for all the character-rulebooks"""
     engine = ObjectProperty()
     character = ObjectProperty()
     toggle = ObjectProperty()
