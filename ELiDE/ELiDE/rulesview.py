@@ -124,7 +124,7 @@ class RulesView(FloatLayout):
             character = self.engine.character[char]
             if node in {
                     'character', 'avatar', 'character_thing',
-                    'character_place', 'character_node', 'character_portal'
+                    'character_place', 'character_portal'
             }:
                 return "Character: {}, rulebook: {}".format(char, node)
             elif node in character.thing:
