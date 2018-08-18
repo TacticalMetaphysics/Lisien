@@ -20,6 +20,7 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import AliasProperty, ObjectProperty, OptionProperty, StringProperty
+from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.recycleview import RecycleView
@@ -75,14 +76,21 @@ class RulesList(RecycleView):
         if self.rulesview is None:
             Clock.schedule_once(self.redata, 0)
             return
-        self.data = [
+        data = [
             {'rulesview': self.rulesview, 'rule': rule, 'index': i, 'ruleslist': self}
             for i, rule in enumerate(self.rulebook)
         ]
-    _trigger_redata = trigger(redata)
+        self.data = data
+
+    def _trigger_redata(self, *args, **kwargs):
+        Clock.unschedule(self.redata)
+        Clock.schedule_once(self.redata, 0)
+
+    def on_size(self, *args):
+        pass
 
 
-class RulesView(FloatLayout):
+class RulesView(Widget):
     """The view to edit a rule
 
     Presents three tabs, one each for trigger, prereq, and action. Each has a
@@ -91,6 +99,7 @@ class RulesView(FloatLayout):
     """
     engine = ObjectProperty()
     rulebook = ObjectProperty()
+    entity = ObjectProperty()
     rule = ObjectProperty(allownone=True)
 
     def on_rule(self, *args):
@@ -109,46 +118,12 @@ class RulesView(FloatLayout):
         if 'actions' in kwargs:
             self.pull_actions()
 
-    def _get_headline_text(self):
-        # This shows the entity whose rules you're editing if you
-        # haven't assigned a different rulebook from usual. Otherwise
-        # it shows the name of the rulebook. I'd like it to show
-        # *both*.
-        if self.rulebook is None:
-            return ''
-        rn = self.rulebook.name
-        if not isinstance(rn, tuple):
-            return str(rn)
-        if len(rn) == 2:
-            (char, node) = rn
-            character = self.engine.character[char]
-            if node in {
-                    'character', 'avatar', 'character_thing',
-                    'character_place', 'character_portal'
-            }:
-                return "Character: {}, rulebook: {}".format(char, node)
-            elif node in character.thing:
-                return "Character: {}, Thing: {}".format(*rn)
-            elif node in character.place:
-                return "Character: {}, Place: {}".format(*rn)
-            else:
-                raise KeyError("Node {} not present in character".format(node))
-        elif len(rn) == 3:
-            return "Character: {}, Portal: {}->{}".format(*rn)
-        else:
-            return str(rn)
-    headline_text = AliasProperty(
-        _get_headline_text,
-        lambda self, v: None,
-        bind=('rulebook',)
-    )
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.finalize()
 
     def finalize(self, *args):
-        if self.canvas is None:
+        if None in (self.canvas, self.entity, self.rulebook):
             Clock.schedule_once(self.finalize, 0)
             return
 
@@ -159,32 +134,17 @@ class RulesView(FloatLayout):
             'card_hint_step': (0, -0.1),
             'deck_x_hint_step': 0.4
         }
-        self._headline = Label(
-            size_hint_y=0.05,
-            pos_hint={
-                'top': 1,
-                'center_x': 0.5
-            },
-            text=self.headline_text
-        )
-        self.bind(headline_text=self._headline.setter('text'))
-        self.add_widget(self._headline)
-        self._box = BoxLayout(
-            size_hint_y=0.95,
-            pos_hint={'top': 0.95}
-        )
-        self.add_widget(self._box)
-        self._list = RulesList(
-            rulebook=self.rulebook,
-            rulesview=self,
-            size_hint_x=0.33
-        )
-        self.bind(rulebook=self._list.setter('rulebook'))
-        self._box.add_widget(self._list)
+
         self._tabs = TabbedPanel(
+            size=self.size,
+            pos=self.pos,
             do_default_tab=False
         )
-        self._box.add_widget(self._tabs)
+        self.bind(
+            size=self._tabs.setter('size'),
+            pos=self._tabs.setter('pos')
+        )
+        self.add_widget(self._tabs)
 
         for functyp in 'trigger', 'prereq', 'action':
             tab = TabbedPanelItem(text=functyp.capitalize())
@@ -374,9 +334,10 @@ class RulesBox(BoxLayout):
     """
     engine = ObjectProperty()
     rulebook = ObjectProperty()
+    entity = ObjectProperty()
     new_rule_name = StringProperty()
     toggle = ObjectProperty()
-    rulesview = ObjectProperty
+    rulesview = ObjectProperty()
 
     def new_rule(self, *args):
         if self.new_rule_name in self.engine.rule:
@@ -393,6 +354,7 @@ class RulesBox(BoxLayout):
 class RulesScreen(Screen):
     """Screen containing a RulesBox for one rulebook"""
     engine = ObjectProperty()
+    entity = ObjectProperty()
     rulebook = ObjectProperty()
     toggle = ObjectProperty()
 
@@ -417,8 +379,8 @@ class CharacterRulesScreen(Screen):
 
     def finalize(self, *args):
         assert not hasattr(self, '_finalized')
-        if (
-            not self.engine or not self.toggle or not self.character
+        if not (
+            self.engine and self.toggle and self.character
         ):
             Clock.schedule_once(self.finalize, 0)
             return
@@ -432,6 +394,7 @@ class CharacterRulesScreen(Screen):
             box = RulesBox(
                 engine=self.engine,
                 rulebook=self._get_rulebook(rb),
+                entity=self.character,
                 toggle=self.toggle
             )
             tab.add_widget(box)
@@ -448,9 +411,11 @@ class CharacterRulesScreen(Screen):
             'character_place', 'character_portal'
         ):
             tab = getattr(self, '_{}_tab'.format(rb))
+            tab.content.entity = self.character
             tab.content.rulebook = self._get_rulebook(rb)
             # Currently there's no way to assign a new rulebook to an entity
-            # in ELiDE, so I don't need to account for that, but I will eventually
+            # in ELiDE, so I don't need to account for that, but what if the
+            # rulebook changes as a result of some code running in the LiSE core?
             # 2018-08-13
 
 
@@ -469,16 +434,22 @@ Builder.load_string("""
     new_rule_name: rulename.text
     rulesview: rulesview
     orientation: 'vertical'
+    Label:
+        text: (str(root.entity.name) if root.entity else '') + '    -    ' + (str(root.rulebook.name) if root.rulebook else '')
+        size_hint_y: 0.05
     BoxLayout:
         orientation: 'horizontal'
         RulesList:
             id: ruleslist
             rulebook: root.rulebook
+            entity: root.entity
             rulesview: rulesview
             size_hint_x: 0.2
         RulesView:
             id: rulesview
             engine: root.engine
+            rulebook: root.rulebook
+            entity: root.entity
             size_hint_x: 0.8
     BoxLayout:
         orientation: 'horizontal'
@@ -498,6 +469,7 @@ Builder.load_string("""
     RulesBox:
         engine: root.engine
         rulebook: root.rulebook
+        entity: root.entity
         toggle: root.toggle
 <CharacterRulesScreen>:
     name: 'charrules'

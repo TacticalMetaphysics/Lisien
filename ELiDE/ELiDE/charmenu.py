@@ -74,8 +74,10 @@ class CharMenu(BoxLayout):
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
         if self.app.manager.current != 'rules' and not isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.rules.entity = self.app.selected_proxy
             self.app.rules.rulebook = self.app.selected_proxy.rulebook
         if isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.charrules.character = self.app.selected_proxy
             self.app.charrules.toggle()
         else:
             self.app.rules.toggle()
