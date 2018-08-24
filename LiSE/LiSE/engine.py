@@ -890,34 +890,52 @@ class Engine(AbstractEngine, gORM):
             commit_modulus=None,
             random_seed=None,
             logfun=None,
-            validate=False
+            validate=False,
+            clear_code=False,
+            clear_world=False
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
+        import os
+        worlddbpath = worlddb.replace('sqlite:///', '')
+        if clear_world and os.path.exists(worlddbpath):
+            os.remove(worlddbpath)
         if isinstance(string, str):
             self._string_file = string
+            if clear_code and os.path.exists(string):
+                os.remove(string)
         else:
             self.string = string
         if isinstance(function, str):
             self._function_file = function
+            if clear_code and os.path.exists(function):
+                os.remove(function)
         else:
             self.function = function
         if isinstance(method, str):
             self._method_file = method
+            if clear_code and os.path.exists(method):
+                os.remove(method)
         else:
             self.method = method
         if isinstance(trigger, str):
             self._trigger_file = trigger
+            if clear_code and os.path.exists(trigger):
+                os.remove(trigger)
         else:
             self.trigger = trigger
         if isinstance(prereq, str):
             self._prereq_file = prereq
+            if clear_code and os.path.exists(prereq):
+                os.remove(prereq)
         else:
             self.prereq = prereq
         if isinstance(action, str):
             self._action_file = action
+            if clear_code and os.path.exists(action):
+                os.remove(action)
         else:
             self.action = action
         super().__init__(
