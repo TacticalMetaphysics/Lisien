@@ -280,11 +280,17 @@ class Cache(object):
     def _valcache_lookup(self, cache, branch, turn, tick):
         if branch in cache:
             branc = cache[branch]
-            if turn in branc and branc[turn].rev_gettable(tick):
-                return branc[turn][tick]
-            elif branc.rev_gettable(turn-1):
-                turnd = branc[turn-1]
-                return turnd[turnd.end]
+            try:
+                if turn in branc and branc[turn].rev_gettable(tick):
+                    return branc[turn][tick]
+                elif branc.rev_gettable(turn-1):
+                    turnd = branc[turn-1]
+                    return turnd[turnd.end]
+            except HistoryError as ex:
+                # probably shouldn't ever happen, empty branches shouldn't be kept in the cache at all...
+                # but it's easy to handle
+                if ex.deleted:
+                    raise
         for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
             if b in cache:
                 if r in cache[b] and cache[b][r].rev_gettable(t):
