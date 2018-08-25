@@ -212,6 +212,8 @@ If you want to travel through time programmatically, set the properties ``eng.br
 What next? If you wanted, you could set rules to be followed by only some of the shapes, like so:
 
 ```python
+    # this needs to replace any existing rule code you've written,
+    # it won't work so well together with eg. @phys.thing.rule
     @tri.avatar.rule
     def tri_relocate(poly):
         """Move to a random unoccupied place"""
