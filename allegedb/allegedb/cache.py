@@ -280,10 +280,11 @@ class Cache(object):
     def _valcache_lookup(self, cache, branch, turn, tick):
         if branch in cache:
             branc = cache[branch]
-            if turn in branc:
+            if turn in branc and branc[turn].rev_gettable(tick):
                 return branc[turn][tick]
-            turnd = branc[turn]
-            return turnd[turnd.end]
+            elif branc.rev_gettable(turn-1):
+                turnd = branc[turn-1]
+                return turnd[turnd.end]
         for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
             if b in cache:
                 if r in cache[b] and cache[b][r].rev_gettable(t):
