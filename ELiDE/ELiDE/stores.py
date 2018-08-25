@@ -21,11 +21,6 @@ like a dictionary. Each of the widgets defined here,
 buttons with which the user may select one of the keys in the store,
 and edit its value in a text box.
 
-Though they retrieve data the same way, these widgets have different
-ways of saving data -- the contents of the :class:`FuncsEditor` input
-will be compiled into Python bytecode, stored along with the source
-code.
-
 """
 import re
 import string
