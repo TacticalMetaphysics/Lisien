@@ -292,7 +292,7 @@ Or you could build a rulebook ahead-of-time and assign it to many entities:
 ```
 
 There are a variety of graph generators accessible on character objects, and convenience methods for common game actions
-like travelling along a path accessible on thing and place objects (eg. ``Thing.travel_to``, ``Place.contents``).
+like travelling along a path (``Thing.travel_to``) accessible on thing and place objects.
 The API for these isn't really solid yet, but tell me how you like them.
 
 # License Information
