@@ -318,7 +318,7 @@ class EdBox(BoxLayout):
         self.save()
         self.toggle()
 
-    def save(self, *args):
+    def save(self, *args, name=None):
         if not self.editor:
             return
         if hasattr(self, '_lock_save'):
@@ -326,15 +326,14 @@ class EdBox(BoxLayout):
         self._lock_save = True
         save_select = self.editor.save()
         if save_select:
-            name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
             self.storelist.redata(select_name=name)
         else:
             del self._lock_save
 
     def _trigger_save(self, name=None):
-        self._select_name = name
-        Clock.unschedule(self.save)
-        Clock.schedule_once(self.save, 0)
+        part = partial(self.save, name=name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def delete(self, *args):
         if not self.editor:
