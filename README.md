@@ -140,15 +140,13 @@ Now we have our world, but nothing ever happens in it. Let's add the rules of th
         home = poly.location
         similar = 0
         n = 0
-        for n, neighbor_portal in enumerate(home.portal.values(), 1):
+        for neighbor_portal in home.portal.values():
+            n += 1
             neighbor_home = neighbor_portal.destination
-            # assume only 1 poly per home for now; this is faithful to the original
-            try:
-                neighbor = next(iter(neighbor_home.contents()))
-            except StopIteration:
-                continue
-            if neighbor.user is poly.user:
-                similar += 1
+            # there's really only 1 polygon per home right now, but this will still work if there are more
+            for neighbor in neighbor_home.contents():
+                if neighbor.user is poly.user:
+                    similar += 1
         return cmp(poly.user.stat[stat], similar / n)
 
     @phys.thing.rule
