@@ -211,7 +211,6 @@ class Board(RelativeLayout):
             if not self.selection_candidates:
                 self.keep_selection = True
             ret = super().on_touch_move(touch)
-            Logger.debug('Board: dispatched touch to selection {}'.format(self.app.selection))
             return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
@@ -220,10 +219,7 @@ class Board(RelativeLayout):
                     cand.selected = True
                     touch.grab(cand)
                     ret = super().on_touch_move(touch)
-                    Logger.debug('Board: dispatched touch to candidate {}'.format(cand))
                     return ret
-        else:
-            Logger.debug('Board: dispatched touch to nobody')
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
