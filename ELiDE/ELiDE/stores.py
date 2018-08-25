@@ -422,9 +422,8 @@ def munge_source(v, spaces=4):
 class FuncEditor(Editor):
     """The editor widget for working with any particular function.
 
-    Contains a one-line field for the function's name; a multi-line
-    field for its code; and radio buttons to select its signature
-    from among those permitted.
+    Contains a one-line field for the function's name and a multi-line
+    field for its code.
 
     """
     storelist = ObjectProperty()
@@ -466,9 +465,7 @@ class FuncsEdBox(EdBox):
     """Widget for editing the Python source of funcs to be used in LiSE sims.
 
     Contains a list of functions in the store it's about, next to a
-    FuncEditor showing the source of the selected one, and some
-    controls on the bottom that let you add, delete, and rename the function,
-    or close the screen.
+    FuncEditor showing the source of the selected one, and a close button.
 
     """
 
