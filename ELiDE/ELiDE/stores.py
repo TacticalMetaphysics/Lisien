@@ -31,6 +31,7 @@ import re
 import string
 from functools import partial
 from ast import parse
+from textwrap import indent, dedent
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -389,7 +390,8 @@ class FunctionNameInput(TextInput):
             self._trigger_save(self.text)
 
 
-def munge_source(v, spaces=4):
+def munge_source(v):
+    """Take Python source code, return its parameters and the rest of it dedented"""
     lines = v.split('\n')
     if not lines:
         return tuple(), ''
@@ -398,14 +400,6 @@ def munge_source(v, spaces=4):
         del lines[0]
     if not lines:
         return tuple(), ''
-    # how indented is it?
-    for ch in lines[0]:
-        if ch == ' ':
-            spaces += 1
-        elif ch == '\t':
-            spaces += 4
-        else:
-            break
     params = tuple(
         parm.strip() for parm in
         sig_ex.match(lines[0]).group(1).split(',')
@@ -416,7 +410,7 @@ def munge_source(v, spaces=4):
     # hack to allow 'empty' functions
     if lines and lines[-1].strip() == 'pass':
         del lines[-1]
-    return params, '\n'.join(line[spaces:] for line in lines)
+    return params, dedent('\n'.join(lines))
 
 
 class FuncEditor(Editor):
@@ -435,8 +429,7 @@ class FuncEditor(Editor):
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
         if self._text:
-            for line in self._text.split('\n'):
-                code += (' ' * 4 + line + '\n')
+            code += indent(self._text, ' ' * 4)
         else:
             code += ' ' * 4 + 'pass'
         return code.rstrip(' \n\t')
