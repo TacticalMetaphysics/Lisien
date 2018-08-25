@@ -140,6 +140,7 @@ Now we have our world, but nothing ever happens in it. Let's add the rules of th
         home = poly.location
         similar = 0
         n = 0
+        # iterate over portals leading outward from home
         for neighbor_portal in home.portal.values():
             n += 1
             neighbor_home = neighbor_portal.destination
