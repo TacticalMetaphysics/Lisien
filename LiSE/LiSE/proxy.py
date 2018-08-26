@@ -1424,19 +1424,18 @@ class CharacterProxy(AbstractCharacter):
     def add_nodes_from(self, seq):
         self.add_places_from(seq)
 
-    def add_thing(self, name, location, next_location=None, **kwargs):
+    def add_thing(self, name, location, **kwargs):
         self.engine.handle(
             command='add_thing',
             char=self.name,
             thing=name,
             loc=location,
-            next_loc=next_location,
             statdict=kwargs,
             block=False,
             branching=True
         )
         self.thing._cache[name] = ThingProxy(
-            self, name, location, next_location, self.engine.turn, None
+            self, name, location, kwargs.get('next_location'), self.engine.turn, None
         )
 
     def add_things_from(self, seq):
@@ -1456,8 +1455,8 @@ class CharacterProxy(AbstractCharacter):
         self.add_place(name, **kwargs)
         return self.place[name]
 
-    def new_thing(self, name, location, next_location=None, **kwargs):
-        self.add_thing(name, location, next_location, **kwargs)
+    def new_thing(self, name, location, **kwargs):
+        self.add_thing(name, location, **kwargs)
         return self.thing[name]
 
     def place2thing(self, node, location, next_location=None):
