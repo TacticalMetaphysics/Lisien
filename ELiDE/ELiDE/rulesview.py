@@ -191,9 +191,6 @@ class RulesView(Widget):
             )
             self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
 
-    def redata(self, *args):
-        self._list.redata()
-
     def _pull_functions(self, what):
         allfuncs = list(map(self._inspect_func, getattr(self.engine, what)._cache.items()))
         rulefuncnames = getattr(self.rule, what+'s')
@@ -334,9 +331,12 @@ class RulesBox(BoxLayout):
     """
     engine = ObjectProperty()
     rulebook = ObjectProperty()
+    rulebook_name = StringProperty()
     entity = ObjectProperty()
+    entity_name = StringProperty()
     new_rule_name = StringProperty()
     toggle = ObjectProperty()
+    ruleslist = ObjectProperty()
     rulesview = ObjectProperty()
 
     def new_rule(self, *args):
@@ -346,8 +346,8 @@ class RulesBox(BoxLayout):
         new_rule = self.engine.rule.new_empty(self.new_rule_name)
         assert(new_rule is not None)
         self.rulebook.append(new_rule)
-        self.rulesview.redata()
-        self.rulesview.rule = new_rule
+        self.ruleslist.redata()
+        self.ruleslist.rule = new_rule
         self.ids.rulename.text = ''
 
 
@@ -432,10 +432,13 @@ Builder.load_string("""
         orientation: 'vertical'
 <RulesBox>:
     new_rule_name: rulename.text
+    ruleslist: ruleslist
     rulesview: rulesview
+    rulebook_name: str(self.rulebook.name) if self.rulebook is not None else ''
+    entity_name: str(self.entity.name) if self.entity is not None else ''
     orientation: 'vertical'
     Label:
-        text: (str(root.entity.name) if root.entity else '') + '    -    ' + (str(root.rulebook.name) if root.rulebook else '')
+        text: root.entity_name + '    -    ' + root.rulebook_name
         size_hint_y: 0.05
     BoxLayout:
         orientation: 'horizontal'
