@@ -226,8 +226,10 @@ class PawnSpot(ImageStack, Layout):
         self._trigger_layout()
 
     def do_layout(self, *args):
-        xpad = self.proxy.get('_xpad', self.width)
-        ypad = self.proxy.get('_ypad', self.height)
+        # First try to lay out my children inside of me,
+        # leaving at least this much space on the sides
+        xpad = self.proxy.get('_xpad', self.width / 4)
+        ypad = self.proxy.get('_ypad', self.height / 4)
         self.gutter = gutter = self.proxy.get('_gutter', xpad/2)
         height = self.height - ypad
         content_height = 0
@@ -263,14 +265,14 @@ class PawnSpot(ImageStack, Layout):
         self.content_width = content_width + gutter * (len(piles) - 1)
         too_wide = content_width > width
         # If I'm big enough to fit all this stuff, calculate an offset that will ensure
-        # it's all centered. Otherwise just offset by my padding so the user can still
+        # it's all centered. Otherwise just offset to my top-right so the user can still
         # reach me underneath all the pawns.
         if too_wide:
-            offx = xpad
+            offx = self.width
         else:
             offx = self.width / 2 - content_width / 2
         if too_tall:
-            offy = ypad
+            offy = self.height
         else:
             offy = self.height / 2 - content_height / 2
         positions = {}
@@ -278,8 +280,8 @@ class PawnSpot(ImageStack, Layout):
             for subgroup in subgroups:
                 subw = subh = 0
                 for member in subgroup:
-                    subw = max((subw, member.width))
                     positions[member.uid] = (offx, offy + subh)
+                    subw = max((subw, member.width))
                     subh += member.height
                 offx += subw
             offx += gutter
