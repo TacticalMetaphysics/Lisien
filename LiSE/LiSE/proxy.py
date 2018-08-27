@@ -1069,7 +1069,7 @@ class RuleProxy(Signal):
 
     @property
     def _cache(self):
-        return self.engine._rules_cache[self.name]
+        return self.engine._rules_cache.setdefault(self.name, {})
 
     @property
     def triggers(self):
