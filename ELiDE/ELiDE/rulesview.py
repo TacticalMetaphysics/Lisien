@@ -385,11 +385,14 @@ class CharacterRulesScreen(Screen):
             Clock.schedule_once(self.finalize, 0)
             return
         self._tabs = TabbedPanel(do_default_tab=False)
-        for rb in (
-            'character', 'avatar', 'character_thing',
-            'character_place', 'character_portal'
+        for rb, txt in (
+                ('character', 'character'),
+                ('avatar', 'avatar'),
+                ('character_thing', 'thing'),
+                ('character_place', 'place'),
+                ('character_portal', 'portal')
         ):
-            tab = TabbedPanelItem(text=rb)
+            tab = TabbedPanelItem(text=txt)
             setattr(self, '_{}_tab'.format(rb), tab)
             box = RulesBox(
                 engine=self.engine,
