@@ -29,6 +29,7 @@ from .graph import (
     Edge
 )
 from .query import QueryEngine
+from .window import HistoryError
 
 
 class GraphNameError(KeyError):
@@ -706,9 +707,11 @@ class ORM(object):
                 )
             )
         parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
-        if turn_end > turn:
+        if turn < turn_end or (
+            turn == turn_end and tick < tick_end
+        ):
             raise HistoryError(
-                "You're in the past. Go to turn {} to change things".format(turn_end)
+                "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
             )
         if not self._planning:
             if turn_end != turn:
