@@ -1990,6 +1990,7 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
+        self._commit_lock = Lock()
         self.send(self.pack({'command': 'get_watched_btt'}))
         self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
         self.logger = logger
@@ -2527,9 +2528,15 @@ class EngineProxy(AbstractEngine):
         )
 
     def commit(self):
-        self.handle('commit', block=False)
+        self._commit_lock.acquire()
+        self.handle('commit', block=False, cb=self._release_commit_lock)
+
+    def _release_commit_lock(self, *, command, branch, turn, tick, result):
+        self._commit_lock.release()
 
     def close(self):
+        self._commit_lock.acquire()
+        self._commit_lock.release()
         self.handle(command='close')
         self.send('shutdown')
 
