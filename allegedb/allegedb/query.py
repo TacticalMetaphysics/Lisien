@@ -35,7 +35,9 @@ except ImportError:
     pass
 
 
-IntegrityError = alchemyIntegError or sqliteIntegError
+IntegrityError = (
+    alchemyIntegError, sqliteIntegError
+) if alchemyIntegError is not None else sqliteIntegError
 
 
 class TimeError(ValueError):
