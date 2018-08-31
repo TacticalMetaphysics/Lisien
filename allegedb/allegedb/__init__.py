@@ -28,7 +28,7 @@ from .graph import (
     Node,
     Edge
 )
-from .query import QueryEngine
+from .query import QueryEngine, TimeError
 from .window import HistoryError
 
 
@@ -151,11 +151,11 @@ class TimeSignalDescriptor:
         # enforce the arrow of time, if it's in effect
         if e._forward:
             if branch_now != branch_then:
-                raise ValueError("Can't change branches in a forward context")
+                raise TimeError("Can't change branches in a forward context")
             if turn_now < turn_then:
-                raise ValueError("Can't time travel backward in a forward context")
+                raise TimeError("Can't time travel backward in a forward context")
             if turn_now > turn_then + 1:
-                raise ValueError("Can't skip turns in a forward context")
+                raise TimeError("Can't skip turns in a forward context")
         # make sure I'll end up within the revision range of the
         # destination branch
         branches = e._branches
