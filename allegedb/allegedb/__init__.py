@@ -180,7 +180,11 @@ class TimeSignalDescriptor:
                         tick_now, turn_now, branch_now
                     )
                 )
-            if not e._planning and (turn_now > turn_end or tick_now > tick_end):
+            if not e._planning and (
+                turn_now > turn_end or (
+                    turn_now == turn_end and tick_now > tick_end
+                )
+            ):
                 branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
         else:
             branches[branch_now] = (
