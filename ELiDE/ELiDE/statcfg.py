@@ -180,15 +180,16 @@ class StatListViewConfigurator(BaseStatListView):
     _control_wids = DictProperty()
 
     def set_control(self, key, value):
+        config = self.proxy.get('_config', {})
         if value == 'slider':
-            if 'min' not in self.proxy['_config']:
+            if 'min' not in config:
                 self.set_config(key, 'min', 0.0)
-            if 'max' not in self.proxy['_config']:
+            if 'max' not in config:
                 self.set_config(key, 'max', 1.0)
         elif value == 'togglebutton':
-            if 'true_text' not in self.proxy['_config']:
+            if 'true_text' not in config:
                 self.set_config(key, 'true_text', '1')
-            if 'false_text' not in self.proxy['_config']:
+            if 'false_text' not in config:
                 self.set_config(key, 'false_text', '0')
         self.set_config(key, 'control', value)
 
