@@ -22,7 +22,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.resources import resource_add_path
 
-from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 from kivy.properties import (
     AliasProperty,
@@ -180,7 +180,7 @@ class ELiDEApp(App):
             pdb.set_trace()
 
 
-        self.manager = ScreenManager()
+        self.manager = ScreenManager(transition=NoTransition())
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
