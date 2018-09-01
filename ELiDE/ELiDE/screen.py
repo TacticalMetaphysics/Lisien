@@ -52,13 +52,13 @@ class StatListPanel(BoxLayout):
     the selected entity, defaulting to those of the character being
     viewed.
 
-    Has a 'cfg' button on the bottom to open the StatWindow in which
+    Has a button on the bottom to open the StatWindow in which
     to add and delete stats, or to change the way they are displayed
     in the StatListPanel.
 
     """
     selection_name = StringProperty()
-    button_text = StringProperty('cfg')
+    button_text = StringProperty('Configure stats')
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
