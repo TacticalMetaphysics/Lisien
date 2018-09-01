@@ -186,8 +186,8 @@ class ELiDEApp(App):
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.manager)
         
-        Clock.schedule_once(self._start_subprocess, 0.1)
-        Clock.schedule_once(self._add_screens, 0.2)
+        self._start_subprocess()
+        self._add_screens()
         return self.manager
 
     def _pull_lang(self, *args, **kwargs):
@@ -200,6 +200,8 @@ class ELiDEApp(App):
         self.branch, self.turn, self.tick = branch, turn, tick
 
     def _start_subprocess(self, *args):
+        if hasattr(self, '_started'):
+            raise ChildProcessError("Subprocess already running")
         config = self.config
         self.procman = EngineProcessManager()
         enkw = {'logger': Logger}
@@ -226,8 +228,12 @@ class ELiDEApp(App):
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             self.engine.add_character(char)
+        self._started = True
 
     def _add_screens(self, *args):
+        if not getattr(self, '_started'):
+            Clock.schedule_once(self._add_screens, 0)
+            return
         def toggler(screenname):
             def tog(*args):
                 if self.manager.current == screenname:
