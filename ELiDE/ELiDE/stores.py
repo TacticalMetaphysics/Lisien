@@ -506,7 +506,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     TextInput:
         id: string
         disabled: root.disable_text_input
@@ -543,7 +543,7 @@ Builder.load_string("""
             size_hint_y: 0.05
             Button:
                 text: 'Close'
-                on_press: edbox.dismiss()
+                on_release: edbox.dismiss()
             Label:
                 text_size: self.size
                 halign: 'right'
@@ -593,7 +593,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     BoxLayout:
         orientation: 'horizontal'
         Label:
@@ -638,7 +638,7 @@ Builder.load_string("""
         size_hint_y: 0.05
         Button:
             text: 'Close'
-            on_press: root.dismiss()
+            on_release: root.dismiss()
             size_hint_x: 0.2
         Widget:
             id: spacer

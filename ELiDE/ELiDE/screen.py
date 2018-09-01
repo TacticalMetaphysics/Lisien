@@ -328,7 +328,7 @@ Builder.load_string(
         id: cfgstatbut
         size_hint_y: 0.05
         text: root.button_text
-        on_press: root.toggle_stat_cfg()
+        on_release: root.toggle_stat_cfg()
 <TimePanel>:
     playbut: playbut
     BoxLayout:
@@ -340,7 +340,7 @@ Builder.load_string(
         Button:
             text: 'Next turn'
             size_hint_y: 0.3
-            on_press: root.screen.next_turn()
+            on_release: root.screen.next_turn()
     BoxLayout:
         orientation: 'vertical'
         Label:

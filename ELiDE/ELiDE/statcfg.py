@@ -74,7 +74,7 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         readoutbut.bind(
-            on_press=lambda instance: self.dropdown.select('readout')
+            on_release=lambda instance: self.dropdown.select('readout')
         )
         self.dropdown.add_widget(readoutbut)
         textinbut = Button(
@@ -84,7 +84,7 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         textinbut.bind(
-            on_press=lambda instance: self.dropdown.select('textinput')
+            on_release=lambda instance: self.dropdown.select('textinput')
         )
         self.dropdown.add_widget(textinbut)
         togbut = Button(
@@ -94,7 +94,7 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         togbut.bind(
-            on_press=lambda instance: self.dropdown.select('togglebutton')
+            on_release=lambda instance: self.dropdown.select('togglebutton')
         )
         self.dropdown.add_widget(togbut)
         sliderbut = Button(
@@ -104,10 +104,10 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         sliderbut.bind(
-            on_press=lambda instance: self.dropdown.select('slider')
+            on_release=lambda instance: self.dropdown.select('slider')
         )
         self.dropdown.add_widget(sliderbut)
-        self.bind(on_press=self.dropdown.open)
+        self.bind(on_release=self.dropdown.open)
 
 
 class ConfigListItemToggleButton(BoxLayout):
@@ -262,7 +262,7 @@ Builder.load_string("""
     Button:
         size_hint_x: 0.4 / 3
         text: 'del'
-        on_press: root.deleter(root.key)
+        on_release: root.deleter(root.key)
     Label:
         size_hint_x: 0.4 / 3
         text: str(root.key)
@@ -312,9 +312,9 @@ Builder.load_string("""
             Button:
                 id: newstatbut
                 text: '+'
-                on_press: root.new_stat()
+                on_release: root.new_stat()
             Button:
                 id: closer
                 text: 'Close'
-                on_press: root.toggle()
+                on_release: root.toggle()
 """)

@@ -178,19 +178,19 @@ Builder.load_string("""
     portaldirbut: portaldirbut
     Button:
         text: 'Characters'
-        on_press: root.toggle_chars_screen()
+        on_release: root.toggle_chars_screen()
     Button:
         text: 'Strings'
-        on_press: root.toggle_strings_editor()
+        on_release: root.toggle_strings_editor()
     Button:
         text: 'Python'
-        on_press: root.toggle_funcs_editor()
+        on_release: root.toggle_funcs_editor()
     Button:
         text: 'Rules'
-        on_press: root.toggle_rules()
+        on_release: root.toggle_rules()
     Button:
         text: 'Delete'
-        on_press: app.delete_selection()
+        on_release: app.delete_selection()
     BoxLayout:
         Widget:
             id: placetab
@@ -201,7 +201,7 @@ Builder.load_string("""
                 on_pos_up: root.spot_from_dummy(self)
         Button:
             text: 'cfg'
-            on_press: root.toggle_spot_cfg()
+            on_release: root.toggle_spot_cfg()
     BoxLayout:
         orientation: 'vertical'
         ToggleButton:
@@ -223,7 +223,7 @@ Builder.load_string("""
         Button:
             id: portaldirbut
             text: 'One-way' if root.reciprocal_portal else 'Two-way'
-            on_press: root.toggle_reciprocal()
+            on_release: root.toggle_reciprocal()
     BoxLayout:
         Widget:
             id: thingtab
@@ -234,5 +234,5 @@ Builder.load_string("""
                 on_pos_up: root.pawn_from_dummy(self)
         Button:
             text: 'cfg'
-            on_press: root.toggle_pawn_cfg()
+            on_release: root.toggle_pawn_cfg()
 """)

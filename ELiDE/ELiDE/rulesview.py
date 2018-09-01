@@ -466,10 +466,10 @@ Builder.load_string("""
             write_tab: False
         Button:
             text: '+'
-            on_press: root.new_rule()
+            on_release: root.new_rule()
         Button:
             text: 'Close'
-            on_press: root.toggle()
+            on_release: root.toggle()
 <RulesScreen>:
     name: 'rules'
     RulesBox:
