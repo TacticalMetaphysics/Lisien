@@ -628,6 +628,7 @@ class ORM(object):
             self.query.new_branch(v, curbranch, curturn, curtick)
             self._branches[v] = curbranch, curturn, curtick, curturn, curtick
             self._upd_branch_parentage(v, curbranch)
+            self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
     branch = property(_get_branch, _set_branch)  # easier to override this way
