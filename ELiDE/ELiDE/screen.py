@@ -21,6 +21,8 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
+from ast import literal_eval
+
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -74,7 +76,7 @@ class StatListPanel(BoxLayout):
             del self.proxy[k]
         else:
             try:
-                vv = self.engine.unpack(v)
+                vv = literal_eval(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv
