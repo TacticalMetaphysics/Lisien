@@ -339,16 +339,31 @@ class RulesBox(BoxLayout):
     ruleslist = ObjectProperty()
     rulesview = ObjectProperty()
 
+    def on_ruleslist(self, *args):
+        if not self.ruleslist.children:
+            Clock.schedule_once(self.on_ruleslist, 0)
+            return
+        self.ruleslist.children[0].bind(children=self._upd_ruleslist_selection)
+
     def new_rule(self, *args):
         if self.new_rule_name in self.engine.rule:
             # TODO: feedback to say you already have such a rule
             return
+        self._new_rule_name = self.new_rule_name
         new_rule = self.engine.rule.new_empty(self.new_rule_name)
         assert(new_rule is not None)
         self.rulebook.append(new_rule)
         self.ruleslist.redata()
-        self.ruleslist.rule = new_rule
         self.ids.rulename.text = ''
+
+    def _upd_ruleslist_selection(self, *args):
+        if not hasattr(self, '_new_rule_name'):
+            return
+        for child in self.ruleslist.children[0].children:
+            if child.text == self._new_rule_name:
+                child.state = 'down'
+            else:
+                child.state = 'normal'
 
 
 class RulesScreen(Screen):
