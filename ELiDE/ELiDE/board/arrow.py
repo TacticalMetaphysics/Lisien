@@ -22,6 +22,9 @@ screen they are at the moment.
 """
 from math import cos, sin, atan, pi
 from kivy.uix.widget import Widget
+from kivy.uix.floatlayout import FloatLayout
+from kivy.graphics.fbo import Fbo
+from kivy.graphics import Translate, Rectangle
 from kivy.properties import (
     ReferenceListProperty,
     AliasProperty,
@@ -530,6 +533,8 @@ class Arrow(ArrowWidget):
     creating a new :class:`Portal`.
 
     """
+    origspot = ObjectProperty()
+    destspot = ObjectProperty()
     portal = ObjectProperty()
     """The portal that I represent."""
     reciprocal = AliasProperty(
@@ -555,6 +560,66 @@ class Arrow(ArrowWidget):
             return self.board.arrow[destn][orign]
         else:
             return None
+
+
+class ArrowLayout(FloatLayout):
+    def __init__(self, **kwargs):
+        self._trigger_redraw = Clock.create_trigger(self.redraw)
+        self.bind(children=self._trigger_redraw)
+        super().__init__(**kwargs)
+
+    def on_parent(self, *args):
+        if not self.canvas:
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        with self.canvas:
+            self._fbo = Fbo(size=self.size)
+            self._translate = Translate(x=self.x, y=self.y)
+            self._rectangle = Rectangle(size=self.size, texture=self._fbo.texture)
+
+    def redraw(self, *args):
+        if not hasattr(self, '_rectangle'):
+            self._trigger_redraw()
+            return
+        print('redrawing {} children'.format(len(self.children)))
+        fbo = self._fbo
+        fbo.clear()
+        trigger_redraw = self._trigger_redraw
+        it = self.walk()
+        next(it)  # skip myself
+        for child in it:
+            if isinstance(child, Arrow):
+                fbo.add(child.canvas)
+                child.origspot.bind(pos=trigger_redraw)
+                child.destspot.bind(pos=trigger_redraw)
+
+    def on_pos(self, *args):
+        if not hasattr(self, '_translate'):
+            return
+        self._translate.x, self._translate.y = self.pos
+
+    def on_size(self, *args):
+        if not hasattr(self, '_rectangle') or not hasattr(self, '_fbo'):
+            return
+        self._rectangle.size = self._fbo.size = self.size
+        self.redraw()
+
+    def add_widget(self, widget, index=0, canvas=None):
+        if index == 0 or len(self.children) == 0:
+            self.children.insert(0, widget)
+        else:
+            children = self.children
+            if index >= len(children):
+                index = len(children)
+
+            children.insert(index, widget)
+        widget.parent = self
+
+    def remove_widget(self, widget):
+        if widget not in self.children:
+            return
+        self.children.remove(widget)
+        widget.parent = None
 
 
 Builder.load_string(

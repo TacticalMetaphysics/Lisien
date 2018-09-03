@@ -34,7 +34,7 @@ from kivy.uix.scatter import ScatterPlane
 from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
 from .spot import Spot
-from .arrow import Arrow, ArrowWidget
+from .arrow import Arrow, ArrowWidget, ArrowLayout
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
@@ -325,7 +325,7 @@ class Board(RelativeLayout):
         if self.wallpaper_path:
             self._pull_size()
         self.kvlayoutback = KvLayoutBack(**self.widkwargs)
-        self.arrowlayout = FloatLayout(**self.widkwargs)
+        self.arrowlayout = ArrowLayout(**self.widkwargs)
         self.spotlayout = FinalLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
@@ -427,7 +427,9 @@ class Board(RelativeLayout):
             raise KeyError("Already have an Arrow for this Portal")
         r = self.arrow_cls(
             board=self,
-            portal=portal
+            portal=portal,
+            origspot=self.spot[portal['origin']],
+            destspot=self.spot[portal['destination']]
         )
         if portal["origin"] not in self.arrow:
             self.arrow[portal["origin"]] = {}
