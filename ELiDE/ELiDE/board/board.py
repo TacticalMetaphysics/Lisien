@@ -38,6 +38,7 @@ from .arrow import Arrow, ArrowWidget, ArrowLayout
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+from ..kivygarden.texturestack import TextureStackBatchWidget
 import numpy as np
 
 
@@ -89,7 +90,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class FinalLayout(FloatLayout):
+class FinalLayout(TextureStackBatchWidget):
     def finalize_all(self, *args):
         for child in self.children:
             child.finalize()
@@ -319,11 +320,14 @@ class Board(RelativeLayout):
         """Create some subwidgets and trigger the first update."""
         if not self.parent or hasattr(self, '_parented'):
             return
+        if not self.wallpaper_path:
+            Logger.debug("Board: waiting for wallpaper_path")
+            Clock.schedule_once(self.on_parent, 0)
+            return
         self._parented = True
         self.wallpaper = Image(source=self.wallpaper_path)
         self.bind(wallpaper_path=self._pull_image)
-        if self.wallpaper_path:
-            self._pull_size()
+        self._pull_size()
         self.kvlayoutback = KvLayoutBack(**self.widkwargs)
         self.arrowlayout = ArrowLayout(**self.widkwargs)
         self.spotlayout = FinalLayout(**self.widkwargs)
@@ -334,7 +338,7 @@ class Board(RelativeLayout):
             wid.size = self.size
             if wid is not self.wallpaper:
                 self.bind(size=wid.setter('size'))
-        self.trigger_update()
+        self.update()
 
     def on_character(self, *args):
         if self.character is None:
@@ -711,8 +715,7 @@ class Board(RelativeLayout):
                 whereat = self.spot[thing['location']]
             whereat.add_widget(pwn)
 
-    @trigger
-    def trigger_update(self, *args):
+    def update(self, *args):
         """Force an update to match the current state of my character.
 
         This polls every element of the character, and therefore
@@ -732,6 +735,7 @@ class Board(RelativeLayout):
             self.add_new_arrows()
         self.add_new_pawns()
         Logger.debug("Board: updated")
+    trigger_update = trigger(update)
 
     def update_from_delta(self, delta, *args):
         """Apply the changes described in the dict ``delta``."""
