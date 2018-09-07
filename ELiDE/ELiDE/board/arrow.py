@@ -587,14 +587,11 @@ class ArrowLayout(FloatLayout):
         fbo.clear_buffer()
         fbo.release()
         trigger_redraw = self._trigger_redraw
-        it = self.walk()
-        next(it)  # skip myself
-        for child in it:
-            if isinstance(child, Arrow):
-                fbo.add(child.canvas)
-                child.bind(selected=trigger_redraw)
-                child.origspot.bind(pos=trigger_redraw)
-                child.destspot.bind(pos=trigger_redraw)
+        for child in self.children:
+            fbo.add(child.canvas)
+            child.bind(selected=trigger_redraw)
+            child.origspot.bind(pos=trigger_redraw)
+            child.destspot.bind(pos=trigger_redraw)
 
     def on_pos(self, *args):
         if not hasattr(self, '_translate'):
