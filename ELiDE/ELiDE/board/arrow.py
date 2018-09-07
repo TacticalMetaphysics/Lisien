@@ -581,9 +581,11 @@ class ArrowLayout(FloatLayout):
         if not hasattr(self, '_rectangle'):
             self._trigger_redraw()
             return
-        print('redrawing {} children'.format(len(self.children)))
         fbo = self._fbo
+        fbo.bind()
         fbo.clear()
+        fbo.clear_buffer()
+        fbo.release()
         trigger_redraw = self._trigger_redraw
         it = self.walk()
         next(it)  # skip myself
