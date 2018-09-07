@@ -592,6 +592,7 @@ class ArrowLayout(FloatLayout):
         for child in it:
             if isinstance(child, Arrow):
                 fbo.add(child.canvas)
+                child.bind(selected=trigger_redraw)
                 child.origspot.bind(pos=trigger_redraw)
                 child.destspot.bind(pos=trigger_redraw)
 
