@@ -191,8 +191,7 @@ class RulesView(Widget):
             )
             self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
 
-    def _pull_functions(self, what):
-        allfuncs = list(map(self._inspect_func, getattr(self.engine, what)._cache.items()))
+    def get_functions_cards(self, what, allfuncs):
         rulefuncnames = getattr(self.rule, what+'s')
         unused = [
             Card(
@@ -223,6 +222,12 @@ class RulesView(Widget):
         ]
         return used, unused
 
+    def set_functions(self, what, allfuncs):
+        setattr(getattr(self, '_{}_builder'.format(what)), 'decks', self.get_functions_cards(what, allfuncs))
+
+    def _pull_functions(self, what):
+        return self.get_functions_cards(what, list(map(self.inspect_func, getattr(self.engine, what)._cache.items())))
+
     def pull_triggers(self, *args):
         self._trigger_builder.decks = self._pull_functions('trigger')
     _trigger_pull_triggers = trigger(pull_triggers)
@@ -235,7 +240,7 @@ class RulesView(Widget):
         self._action_builder.decks = self._pull_functions('action')
     _trigger_pull_actions = trigger(pull_actions)
 
-    def _inspect_func(self, namesrc):
+    def inspect_func(self, namesrc):
         (name, src) = namesrc
         glbls = {}
         lcls = {}
@@ -372,6 +377,7 @@ class RulesScreen(Screen):
     entity = ObjectProperty()
     rulebook = ObjectProperty()
     toggle = ObjectProperty()
+    rulesview = ObjectProperty()
 
     def new_rule(self, *args):
         self.children[0].new_rule()
@@ -487,7 +493,9 @@ Builder.load_string("""
             on_release: root.toggle()
 <RulesScreen>:
     name: 'rules'
+    rulesview: box.rulesview
     RulesBox:
+        id: box
         engine: root.engine
         rulebook: root.rulebook
         entity: root.entity

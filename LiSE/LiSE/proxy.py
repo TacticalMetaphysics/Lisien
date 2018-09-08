@@ -1840,6 +1840,11 @@ class FuncStoreProxy(Signal):
         )
         del self._cache[func_name]
 
+    def get_source(self, func_name):
+        return self.engine.handle(
+            command='get_source', store=self._store, name=func_name
+        )
+
 
 class ChangeSignatureError(TypeError):
     pass
