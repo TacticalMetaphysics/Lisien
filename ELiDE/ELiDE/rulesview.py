@@ -90,9 +90,6 @@ class RulesList(RecycleView):
         Clock.unschedule(self.redata)
         Clock.schedule_once(self.redata, 0)
 
-    def on_size(self, *args):
-        pass
-
 
 class RulesView(Widget):
     """The view to edit a rule
