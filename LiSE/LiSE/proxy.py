@@ -1069,7 +1069,7 @@ class RuleProxy(Signal):
 
     @property
     def _cache(self):
-        return self.engine._rules_cache[self.name]
+        return self.engine._rules_cache.setdefault(self.name, {})
 
     @property
     def triggers(self):
@@ -1424,19 +1424,18 @@ class CharacterProxy(AbstractCharacter):
     def add_nodes_from(self, seq):
         self.add_places_from(seq)
 
-    def add_thing(self, name, location, next_location=None, **kwargs):
+    def add_thing(self, name, location, **kwargs):
         self.engine.handle(
             command='add_thing',
             char=self.name,
             thing=name,
             loc=location,
-            next_loc=next_location,
             statdict=kwargs,
             block=False,
             branching=True
         )
         self.thing._cache[name] = ThingProxy(
-            self, name, location, next_location, self.engine.turn, None
+            self, name, location, kwargs.get('next_location'), self.engine.turn, None
         )
 
     def add_things_from(self, seq):
@@ -1456,8 +1455,8 @@ class CharacterProxy(AbstractCharacter):
         self.add_place(name, **kwargs)
         return self.place[name]
 
-    def new_thing(self, name, location, next_location=None, **kwargs):
-        self.add_thing(name, location, next_location, **kwargs)
+    def new_thing(self, name, location, **kwargs):
+        self.add_thing(name, location, **kwargs)
         return self.thing[name]
 
     def place2thing(self, node, location, next_location=None):
@@ -1991,6 +1990,7 @@ class EngineProxy(AbstractEngine):
         self._handle_in = handle_in
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
+        self._commit_lock = Lock()
         self.send(self.pack({'command': 'get_watched_btt'}))
         self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
         self.logger = logger
@@ -2219,7 +2219,6 @@ class EngineProxy(AbstractEngine):
                 "Sent command {} but received results for {}".format(
                     cmd, command
                 )
-            self._handle_lock.release()
             r = self.unpack(result)
             if (branch, turn, tick) != self.btt():
                 self._branch = branch
@@ -2227,9 +2226,11 @@ class EngineProxy(AbstractEngine):
                 self._tick = tick
                 self.time.send(self, branch=branch, turn=turn, tick=tick)
             if isinstance(r, Exception):
+                self._handle_lock.release()
                 raise r
             if cb:
                 cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+            self._handle_lock.release()
             return r
         else:
             kwargs['silent'] = not (branching or cb)
@@ -2527,11 +2528,23 @@ class EngineProxy(AbstractEngine):
         )
 
     def commit(self):
-        self.handle('commit', block=False)
+        self._commit_lock.acquire()
+        self.handle('commit', block=False, cb=self._release_commit_lock)
+
+    def _release_commit_lock(self, *, command, branch, turn, tick, result):
+        self._commit_lock.release()
 
     def close(self):
+        self._commit_lock.acquire()
+        self._commit_lock.release()
         self.handle(command='close')
         self.send('shutdown')
+
+    def _node_contents(self, character, node):
+        # very slow. do better
+        for thing in self.character[character].thing.values():
+            if thing['location'] == node:
+                yield thing.name
 
 
 def subprocess(

@@ -92,6 +92,8 @@ class MutableWrapperDictList(MutableWrapper):
 
 
 class MutableMappingUnwrapper(MutableMapping):
+    __slots__ = ()
+
     def __eq__(self, other):
         if not isinstance(other, Mapping):
             return NotImplemented

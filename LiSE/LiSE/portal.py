@@ -94,6 +94,7 @@ class Portal(Edge, RuleFollower):
     set it here instead.
 
     """
+    __slots__ = ('graph', 'orig', 'dest', 'idx')
     character = getatt('graph')
     engine = getatt('db')
     no_unwrap = True
@@ -126,9 +127,12 @@ class Portal(Edge, RuleFollower):
         ))
 
     def _get_rulebook_name(self):
-        return self.engine._portals_rulebooks_cache.retrieve(
-            self.character.name, self.orig, self.dest, *self.engine.btt()
-        )
+        try:
+            return self.engine._portals_rulebooks_cache.retrieve(
+                self.character.name, self.orig, self.dest, *self.engine.btt()
+            )
+        except KeyError:
+            return (self.character.name, self.orig, self.dest)
 
     def _set_rulebook_name(self, rulebook):
         character = self.character

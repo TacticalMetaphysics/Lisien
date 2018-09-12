@@ -24,6 +24,7 @@ from kivy.properties import (
 )
 from .board.arrow import ArrowWidget
 from .util import try_load, dummynum
+from LiSE.proxy import CharStatProxy
 
 
 class CharMenu(BoxLayout):
@@ -72,14 +73,14 @@ class CharMenu(BoxLayout):
 
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
-        if self.app.manager.current != 'rules':
-            try:
-                rb = self.app.selected_proxy.rulebook
-            except AttributeError:
-                charn = self.app.selected_proxy.name
-                rb = self.app.engine.character[charn].rulebook
-            self.app.rules.rulebook = rb
-        self.app.rules.toggle()
+        if self.app.manager.current != 'rules' and not isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.rules.entity = self.app.selected_proxy
+            self.app.rules.rulebook = self.app.selected_proxy.rulebook
+        if isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.charrules.character = self.app.selected_proxy
+            self.app.charrules.toggle()
+        else:
+            self.app.rules.toggle()
 
     def toggle_funcs_editor(self):
         """Display or hide the text editing window for functions."""

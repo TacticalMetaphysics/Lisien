@@ -493,16 +493,19 @@ class Engine(AbstractEngine, gORM):
     char_cls = Character
     thing_cls = Thing
     place_cls = node_cls = Place
-    portal_cls = edge_cls = _make_edge = Portal
+    portal_cls = edge_cls = Portal
     query_engine_cls = QueryEngine
     illegal_graph_names = ['global', 'eternal', 'universal', 'rulebooks', 'rules']
     illegal_node_names = ['nodes', 'node_val', 'edges', 'edge_val', 'things']
 
-    def _make_node(self, char, node):
-        if self._is_thing(char.name, node):
-            return self.thing_cls(char, node)
+    def _make_node(self, graph, node):
+        if self._is_thing(graph.name, node):
+            return self.thing_cls(graph, node)
         else:
-            return self.place_cls(char, node)
+            return self.place_cls(graph, node)
+
+    def _make_edge(self, graph, orig, dest, idx=0):
+        return self.portal_cls(graph, orig, dest)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to the world.
@@ -887,34 +890,52 @@ class Engine(AbstractEngine, gORM):
             commit_modulus=None,
             random_seed=None,
             logfun=None,
-            validate=False
+            validate=False,
+            clear_code=False,
+            clear_world=False
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
+        import os
+        worlddbpath = worlddb.replace('sqlite:///', '')
+        if clear_world and os.path.exists(worlddbpath):
+            os.remove(worlddbpath)
         if isinstance(string, str):
             self._string_file = string
+            if clear_code and os.path.exists(string):
+                os.remove(string)
         else:
             self.string = string
         if isinstance(function, str):
             self._function_file = function
+            if clear_code and os.path.exists(function):
+                os.remove(function)
         else:
             self.function = function
         if isinstance(method, str):
             self._method_file = method
+            if clear_code and os.path.exists(method):
+                os.remove(method)
         else:
             self.method = method
         if isinstance(trigger, str):
             self._trigger_file = trigger
+            if clear_code and os.path.exists(trigger):
+                os.remove(trigger)
         else:
             self.trigger = trigger
         if isinstance(prereq, str):
             self._prereq_file = prereq
+            if clear_code and os.path.exists(prereq):
+                os.remove(prereq)
         else:
             self.prereq = prereq
         if isinstance(action, str):
             self._action_file = action
+            if clear_code and os.path.exists(action):
+                os.remove(action)
         else:
             self.action = action
         super().__init__(
@@ -1296,9 +1317,9 @@ class Engine(AbstractEngine, gORM):
         except StopIteration:
             self._rules_iter = self._follow_rules()
             return final_rule
-        except Exception as ex:
-            self._rules_iter = self._follow_rules()
-            return ex
+        # except Exception as ex:
+        #     self._rules_iter = self._follow_rules()
+        #     return ex
 
     def new_character(self, name, data=None, **kwargs):
         """Create and return a new :class:`Character`."""
@@ -1333,33 +1354,11 @@ class Engine(AbstractEngine, gORM):
     def _is_thing(self, character, node):
         return self._things_cache.contains_entity(character, node, *self.btt())
 
-    def _set_contents(self, character, node, loc, nextloc, branch, turn, tick, forward=None, validate=False):
-        try:
-            node_contents = self._node_contents_cache.retrieve(
-                character, loc, branch, turn, tick
-            ) | frozenset([node])
-        except KeyError:
-            node_contents = frozenset([node])
-        self._node_contents_cache.store(
-            character, loc, branch, turn, tick, node_contents, forward=forward, validate=validate
-        )
-        if nextloc is not None:
-            try:
-                portal_contents = self._portal_contents_cache.retrieve(
-                    character, loc, nextloc, branch, turn, tick
-                ) | frozenset([node])
-            except KeyError:
-                portal_contents = frozenset([node])
-            self._portal_contents_cache.store(
-                character, loc, nextloc, branch, turn, tick, portal_contents, forward=forward, validate=validate
-            )
-
     def _set_thing_loc_and_next(
             self, character, node, loc, nextloc=None
     ):
         branch, turn, tick = self.nbtt()
         self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
-        self._set_contents(character, node, loc, nextloc, branch, turn, tick)
         self.query.thing_loc_and_next_set(
             character,
             node,
@@ -1369,46 +1368,6 @@ class Engine(AbstractEngine, gORM):
             loc,
             nextloc
         )
-
-    def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self.btt())
-
-    def _exist_node(self, character, node):
-        branch, turn, tick = self.nbtt()
-        self.query.exist_node(
-            character,
-            node,
-            branch,
-            turn,
-            tick,
-            True
-        )
-        self._nodes_cache.store(character, node, branch, turn, tick, True)
-        self._nodes_rulebooks_cache.store(character, node, branch, turn, tick, (character, node))
-
-    def _edge_exists(self, character, orig, dest):
-        return self._edges_cache.contains_entity(
-            character, orig, dest, 0, *self.btt()
-        )
-
-    def _exist_edge(
-            self, character, orig, dest, exist=True
-    ):
-        branch, turn, tick = self.nbtt()
-        self.query.exist_edge(
-            character,
-            orig,
-            dest,
-            0,
-            branch,
-            turn,
-            tick,
-            exist
-        )
-        self._edges_cache.store(
-            character, orig, dest, 0, branch, turn, tick, exist
-        )
-        self._portals_rulebooks_cache.store(character, orig, dest, branch, turn, tick, (character, orig, dest))
 
     def alias(self, v, stat='dummy'):
         from .util import EntityStatAccessor
