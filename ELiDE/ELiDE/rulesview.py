@@ -50,6 +50,8 @@ class RuleButton(ToggleButton, RecycleDataViewBehavior):
     rule = ObjectProperty()
 
     def on_state(self, *args):
+        """If I'm pressed, unpress all other buttons in the ruleslist"""
+        # This really ought to be done with the selection behavior
         if self.state == 'down':
             self.rulesview.rule = self.rule
             for button in self.ruleslist.children[0].children:
@@ -67,12 +69,14 @@ class RulesList(RecycleView):
     rulesview = ObjectProperty()
 
     def on_rulebook(self, *args):
+        """Make sure to update when the rulebook changes"""
         if self.rulebook is None:
             return
         self.rulebook.connect(self._trigger_redata, weak=False)
         self.redata()
 
     def redata(self, *args):
+        """Make my data represent what's in my rulebook right now"""
         if self.rulesview is None:
             Clock.schedule_once(self.redata, 0)
             return
@@ -103,6 +107,7 @@ class RulesView(Widget):
     rule = ObjectProperty(allownone=True)
 
     def on_rule(self, *args):
+        """Make sure to update when the rule changes"""
         if self.rule is None:
             return
         self.rule.connect(self._listen_to_rule)
@@ -123,6 +128,7 @@ class RulesView(Widget):
         self.finalize()
 
     def finalize(self, *args):
+        """Add my tabs"""
         if None in (self.canvas, self.entity, self.rulebook):
             Clock.schedule_once(self.finalize, 0)
             return
@@ -192,6 +198,12 @@ class RulesView(Widget):
             self.bind(rule=getattr(self, '_trigger_pull_{}s'.format(functyp)))
 
     def get_functions_cards(self, what, allfuncs):
+        """Return a pair of lists of Card widgets for used and unused functions.
+
+        :param what: a string: 'trigger', 'prereq', or 'action'
+        :param allfuncs: a sequence of functions' (name, sourcecode, signature)
+
+        """
         rulefuncnames = getattr(self.rule, what+'s')
         unused = [
             Card(
@@ -223,24 +235,35 @@ class RulesView(Widget):
         return used, unused
 
     def set_functions(self, what, allfuncs):
+        """Set the cards in the ``what`` builder to ``allfuncs``
+
+        :param what: a string, 'trigger', 'prereq', or 'action'
+        :param allfuncs: a sequence of triples of (name, sourcecode, signature) as taken by my
+        ``get_function_cards`` method.
+
+        """
         setattr(getattr(self, '_{}_builder'.format(what)), 'decks', self.get_functions_cards(what, allfuncs))
 
     def _pull_functions(self, what):
         return self.get_functions_cards(what, list(map(self.inspect_func, getattr(self.engine, what)._cache.items())))
 
     def pull_triggers(self, *args):
+        """Refresh the cards in the trigger builder"""
         self._trigger_builder.decks = self._pull_functions('trigger')
     _trigger_pull_triggers = trigger(pull_triggers)
 
     def pull_prereqs(self, *args):
+        """Refresh the cards in the prereq builder"""
         self._prereq_builder.decks = self._pull_functions('prereq')
     _trigger_pull_prereqs = trigger(pull_prereqs)
 
     def pull_actions(self, *args):
+        """Refresh the cards in the action builder"""
         self._action_builder.decks = self._pull_functions('action')
     _trigger_pull_actions = trigger(pull_actions)
 
     def inspect_func(self, namesrc):
+        """Take a function's (name, sourcecode) and return a triple of (name, sourcecode, signature)"""
         (name, src) = namesrc
         glbls = {}
         lcls = {}
@@ -273,6 +296,8 @@ class RulesView(Widget):
         "unused" pile on the right.
 
         Doesn't read from the database.
+
+        :param what: a string, 'trigger', 'prereq', or 'action'
 
         """
         builder = getattr(self, '_{}_builder'.format(what))
