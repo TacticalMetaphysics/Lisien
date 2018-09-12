@@ -19,7 +19,7 @@ from inspect import signature
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.properties import AliasProperty, ObjectProperty, OptionProperty, StringProperty
+from kivy.properties import ObjectProperty, StringProperty
 from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
