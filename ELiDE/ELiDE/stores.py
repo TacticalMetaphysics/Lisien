@@ -21,16 +21,12 @@ like a dictionary. Each of the widgets defined here,
 buttons with which the user may select one of the keys in the store,
 and edit its value in a text box.
 
-Though they retrieve data the same way, these widgets have different
-ways of saving data -- the contents of the :class:`FuncsEditor` input
-will be compiled into Python bytecode, stored along with the source
-code.
-
 """
 import re
 import string
 from functools import partial
 from ast import parse
+from textwrap import indent, dedent
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -317,7 +313,7 @@ class EdBox(BoxLayout):
         self.save()
         self.toggle()
 
-    def save(self, *args):
+    def save(self, *args, name=None):
         if not self.editor:
             return
         if hasattr(self, '_lock_save'):
@@ -325,15 +321,14 @@ class EdBox(BoxLayout):
         self._lock_save = True
         save_select = self.editor.save()
         if save_select:
-            name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
             self.storelist.redata(select_name=name)
         else:
             del self._lock_save
 
     def _trigger_save(self, name=None):
-        self._select_name = name
-        Clock.unschedule(self.save)
-        Clock.schedule_once(self.save, 0)
+        part = partial(self.save, name=name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def delete(self, *args):
         if not self.editor:
@@ -389,7 +384,8 @@ class FunctionNameInput(TextInput):
             self._trigger_save(self.text)
 
 
-def munge_source(v, spaces=4):
+def munge_source(v):
+    """Take Python source code, return its parameters and the rest of it dedented"""
     lines = v.split('\n')
     if not lines:
         return tuple(), ''
@@ -398,14 +394,6 @@ def munge_source(v, spaces=4):
         del lines[0]
     if not lines:
         return tuple(), ''
-    # how indented is it?
-    for ch in lines[0]:
-        if ch == ' ':
-            spaces += 1
-        elif ch == '\t':
-            spaces += 4
-        else:
-            break
     params = tuple(
         parm.strip() for parm in
         sig_ex.match(lines[0]).group(1).split(',')
@@ -416,15 +404,14 @@ def munge_source(v, spaces=4):
     # hack to allow 'empty' functions
     if lines and lines[-1].strip() == 'pass':
         del lines[-1]
-    return params, '\n'.join(line[spaces:] for line in lines)
+    return params, dedent('\n'.join(lines))
 
 
 class FuncEditor(Editor):
     """The editor widget for working with any particular function.
 
-    Contains a one-line field for the function's name; a multi-line
-    field for its code; and radio buttons to select its signature
-    from among those permitted.
+    Contains a one-line field for the function's name and a multi-line
+    field for its code.
 
     """
     storelist = ObjectProperty()
@@ -436,8 +423,7 @@ class FuncEditor(Editor):
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
         if self._text:
-            for line in self._text.split('\n'):
-                code += (' ' * 4 + line + '\n')
+            code += indent(self._text, ' ' * 4)
         else:
             code += ' ' * 4 + 'pass'
         return code.rstrip(' \n\t')
@@ -466,9 +452,7 @@ class FuncsEdBox(EdBox):
     """Widget for editing the Python source of funcs to be used in LiSE sims.
 
     Contains a list of functions in the store it's about, next to a
-    FuncEditor showing the source of the selected one, and some
-    controls on the bottom that let you add, delete, and rename the function,
-    or close the screen.
+    FuncEditor showing the source of the selected one, and a close button.
 
     """
 

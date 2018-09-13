@@ -16,10 +16,8 @@
 """allegedb's special implementations of the NetworkX graph objects"""
 import networkx
 from networkx.exception import NetworkXError
-from blinker import Signal
 from collections import defaultdict
 from .wrap import MutableMappingUnwrapper
-
 
 class EntityCollisionError(ValueError):
     """For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""
@@ -47,8 +45,42 @@ def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     )
 
 
-class AllegedMapping(MutableMappingUnwrapper, Signal):
+_alleged_receivers = defaultdict(list)
+
+
+class AllegedMapping(MutableMappingUnwrapper):
     """Common amenities for mappings"""
+    __slots__ = ()
+
+    def connect(self, func):
+        """Arrange to call this function whenever something changes here.
+
+        The arguments will be this object, the key changed, and the value set.
+
+        """
+        l = _alleged_receivers[id(self)]
+        if func not in l:
+            l.append(func)
+
+    def disconnect(self, func):
+        """No longer call the function when something changes here."""
+        if id(self) not in _alleged_receivers:
+            return
+        l = _alleged_receivers[id(self)]
+        try:
+            l.remove(func)
+        except ValueError:
+            return
+        if not l:
+            del _alleged_receivers[id(self)]
+
+    def send(self, sender, **kwargs):
+        """Internal. Call connected functions."""
+        if id(self) not in _alleged_receivers:
+            return
+        for func in _alleged_receivers[id(self)]:
+            func(sender, **kwargs)
+
     def clear(self):
         """Delete everything"""
         for k in list(self.keys()):
@@ -68,6 +100,8 @@ class AllegedMapping(MutableMappingUnwrapper, Signal):
 
 
 class AbstractEntityMapping(AllegedMapping):
+    __slots__ = ()
+
     def _get_cache(self, key, branch, turn, tick):
         raise NotImplementedError
 
@@ -141,6 +175,8 @@ class AbstractEntityMapping(AllegedMapping):
 
 class GraphMapping(AbstractEntityMapping):
     """Mapping for graph attributes"""
+    __slots__ = ('graph',)
+
     db = getatt('graph.db')
 
     def __init__(self, graph):
@@ -213,6 +249,8 @@ class GraphMapping(AbstractEntityMapping):
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
+    __slots__ = ('graph', 'node', '__weakref__')
+
     db = getatt('graph.db')
 
     def __new__(cls, graph, node):
@@ -277,6 +315,8 @@ class Node(AbstractEntityMapping):
 
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
+    __slots__ = ('graph', 'orig', 'dest', 'idx', '__weakref__')
+
     db = getatt('graph.db')
 
     def __new__(cls, graph, orig, dest, idx=0):
@@ -380,6 +420,8 @@ class Edge(AbstractEntityMapping):
 
 class GraphNodeMapping(AllegedMapping):
     """Mapping for nodes in a graph"""
+    __slots__ = ('graph',)
+
     db = getatt('graph.db')
 
     def __init__(self, graph):
@@ -426,7 +468,7 @@ class GraphNodeMapping(AllegedMapping):
         """If the node exists at present, return it, else throw KeyError"""
         if node not in self:
             raise KeyError
-        return self.db._node_objs[(self.graph.name, node)]
+        return self.db._get_node(self.graph, node)
 
     def __setitem__(self, node, dikt):
         """Only accept dict-like values for assignment. These are taken to be
@@ -436,19 +478,8 @@ class GraphNodeMapping(AllegedMapping):
         """
         branch, turn, tick = self.db.nbtt()
         created = node not in self
-        self.db._nodes_cache.store(
-            self.graph.name,
-            node,
-            branch, turn, tick,
-            True
-        )
-        if (self.graph.name, node) in self.db._node_objs:
-            n = self.db._node_objs[(self.graph.name, node)]
-            n.clear()
-        else:
-            n = self.db._node_objs[(self.graph.name, node)] = Node(
-                self.graph, node
-            )
+        n = self.db._get_node(self.graph, node)
+        n.clear()
         n.update(dikt)
         if created:
             self.db.query.exist_node(
@@ -476,6 +507,9 @@ class GraphNodeMapping(AllegedMapping):
             branch, turn, tick,
             False
         )
+        key = (self.graph.name, node)
+        if node in self.db._node_objs:
+            del self.db._node_objs[key]
         self.send(self, node_name=node, exists=False)
 
     def __eq__(self, other):
@@ -504,6 +538,8 @@ class GraphEdgeMapping(AllegedMapping):
     for a graph.
 
     """
+    __slots__ = ('graph',)
+
     _metacache = defaultdict(dict)
 
     @property
@@ -540,6 +576,8 @@ class GraphEdgeMapping(AllegedMapping):
 
 
 class AbstractSuccessors(GraphEdgeMapping):
+    __slots__ = ('graph', 'container', 'orig')
+
     db = getatt('graph.db')
     _metacache = defaultdict(dict)
 
@@ -585,18 +623,15 @@ class AbstractSuccessors(GraphEdgeMapping):
         """Get the edge between my orig and the given node"""
         if dest not in self:
             raise KeyError("No edge {}->{}".format(self.orig, dest))
-        key = self.graph.name, self.orig, dest, 0
-        if key not in self.db._edge_objs:
-            self.db._edge_objs[key] = self._make_edge(dest)
-        return self.db._edge_objs[key]
+        return self.db._get_edge(self.graph, self.orig, dest, 0)
 
     def __setitem__(self, dest, value):
         """Set the edge between my orig and the given dest to the given
         value, a mapping.
 
         """
-        branch, turn, tick = self.db.nbtt()
         created = dest not in self
+        branch, turn, tick = self.db.nbtt()
         self.db.query.exist_edge(
             self.graph.name,
             self.orig,
@@ -648,7 +683,11 @@ class AbstractSuccessors(GraphEdgeMapping):
 
 class GraphSuccessorsMapping(GraphEdgeMapping):
     """Mapping for Successors (itself a MutableMapping)"""
+    __slots__ = ('graph',)
+
     class Successors(AbstractSuccessors):
+        __slots__ = ('graph', 'container', 'orig')
+
         def _order_nodes(self, dest):
             if dest < self.orig:
                 return (dest, self.orig)
@@ -695,7 +734,11 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 
 
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
+    __slots__ = ('graph',)
+
     class Successors(AbstractSuccessors):
+        __slots__ = ('graph', 'container', 'orig')
+
         def _order_nodes(self, dest):
             return (self.orig, dest)
 
@@ -705,7 +748,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
     the dest provided to this
 
     """
-    _predcache = defaultdict(dict)
+    __slots__ = ('graph',)
 
     def __contains__(self, dest):
         return dest in self.graph.node
@@ -721,16 +764,12 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             self._cache[dest] = self.Predecessors(self, dest)
         return self._cache[dest]
 
-    def _getpreds(self, dest):
-        cache = self._predcache[id(self)]
-        if dest not in cache:
-            cache[dest] = self.Predecessors(self, dest)
-        return cache[dest]
-
     def __setitem__(self, key, val):
         """Interpret ``val`` as a mapping of edges that end at ``dest``"""
         created = key not in self
-        preds = self._getpreds(key)
+        if key not in self._cache:
+            self._cache[key] = self.Predecessors(self, key)
+        preds = self._cache[key]
         preds.clear()
         preds.update(val)
         if created:
@@ -738,7 +777,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     def __delitem__(self, key):
         """Delete all edges ending at ``dest``"""
-        self._getpreds(key).clear()
+        if key in self._cache:
+            self._cache[key].clear()
+            del self._cache[key]
         self.send(self, key=key, val=None)
 
     def __iter__(self):
@@ -749,6 +790,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     class Predecessors(GraphEdgeMapping):
         """Mapping of Edges that end at a particular node"""
+        __slots__ = ('graph', 'container', 'dest')
 
         def __init__(self, container, dest):
             """Store container and node ID"""
@@ -865,8 +907,10 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             self.send(self, key=orig, val=None)
 
 
-class MultiEdges(GraphEdgeMapping, Signal):
+class MultiEdges(GraphEdgeMapping):
     """Mapping of Edges between two nodes"""
+    __slots__ = ('graph', 'orig', 'dest')
+
     db = getatt('graph.db')
 
     def __init__(self, graph, orig, dest):
@@ -894,9 +938,7 @@ class MultiEdges(GraphEdgeMapping, Signal):
         )
 
     def _getedge(self, idx):
-        if idx not in self._cache:
-            self._cache[idx] = Edge(self.graph, self.orig, self.dest, idx)
-        return self._cache[idx]
+        return self.db._get_edge(self.graph, self.orig, self.dest, idx)
 
     def __getitem__(self, idx):
         """Get an Edge with a particular index, if it exists at the present
@@ -956,6 +998,8 @@ class MultiEdges(GraphEdgeMapping, Signal):
 
 class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
     """Mapping of Successors that map to MultiEdges"""
+    __slots__ = ('graph',)
+
     def __getitem__(self, orig):
         """If the node exists, return its Successors"""
         if orig not in self.graph.node:
@@ -986,6 +1030,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""
+        __slots__ = ('graph', 'container', 'orig', '_multedge')
 
         def __init__(self, container, orig):
             super().__init__(container, orig)
@@ -1027,8 +1072,12 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
 class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
     """Version of DiGraphPredecessorsMapping for multigraphs"""
+    __slots__ = ('graph',)
+
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         """Predecessor edges from a given node"""
+        __slots__ = ('graph', 'container', 'dest')
+
         def __getitem__(self, orig):
             """Get MultiEdges"""
             return MultiEdges(self.graph, orig, self.dest)
@@ -1043,7 +1092,10 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
 
 
 class MultiDiGraphSuccessorsMapping(MultiGraphSuccessorsMapping):
+    __slots__ = ('graph',)
+
     class Successors(MultiGraphSuccessorsMapping.Successors):
+        __slots__ = ('graph', 'container', 'orig', '_multedge')
         def _order_nodes(self, dest):
             return self.orig, dest
 
@@ -1352,3 +1404,5 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
             keydict = {key: datadict}
             self.succ[u][v] = keydict
         return key
+
+pass

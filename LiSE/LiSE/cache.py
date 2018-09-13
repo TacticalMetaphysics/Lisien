@@ -47,8 +47,8 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=None, forward=None):
-        super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward)
+    def store(self, key, branch, turn, tick, value, *, planning=None):
+        super().store(None, key, branch, turn, tick, value, planning=planning)
 
     def load(self, data, validate=False):
         return super().load(((None,) + row for row in data), validate)
@@ -60,8 +60,8 @@ class EntitylessCache(Cache):
         return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=None):
-        return super().contains_entity_or_key(None, ke, branch, turn, tick, forward=forward)
+    def contains_entity_or_key(self, ke, branch, turn, tick):
+        return super().contains_entity_or_key(None, ke, branch, turn, tick)
     contains_entity = contains_key = contains_entity_or_key
 
     def retrieve(self, *args):
@@ -359,7 +359,9 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
         charm = self.engine.character
         for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            for thing in sort_set(charm[character].thing.keys()):
+            things = sort_set(charm[character].thing.keys())
+            pass
+            for thing in things:
                 try:
                     rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
                 except KeyError:
@@ -461,6 +463,52 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
+    def _store(self, *args, planning):
+        character, thing, branch, turn, tick, (location, next_location) = args
+        try:
+            oldloc, oldnxtloc = self.retrieve(character, thing, branch, turn, tick)
+        except KeyError:
+            oldloc = oldnxtloc = None
+        super()._store(*args, planning=planning)
+        if oldloc is not None:
+            oldnodecont = self.db._node_contents_cache.retrieve(
+                character, oldloc, branch, turn, tick
+            )
+            self.db._node_contents_cache.store(
+                character, thing, branch, turn, tick, oldnodecont.difference((thing,))
+            )
+        if oldnxtloc is not None:
+            oldedgecont = self.db._portal_contents_cache.retrieve(
+                character, oldloc, oldnxtloc, branch, turn, tick
+            )
+            self.db._portal_contents_cache.store(
+                character, oldloc, oldnxtloc, branch, turn, tick,
+                oldedgecont.difference((thing,))
+            )
+        try:
+            newnodecont = self.db._node_contents_cache.retrieve(
+                character, location, branch, turn, tick
+            )
+        except KeyError:
+            newnodecont = frozenset()
+        self.db._node_contents_cache.store(
+            character, location, branch, turn, tick,
+            newnodecont.union((thing,))
+        )
+        if next_location is not None:
+            try:
+                newedgecont = self.db._portal_contents_cache.retrieve(
+                    character, location, next_location,
+                    branch, turn, tick
+                )
+            except KeyError:
+                newedgecont = frozenset()
+            self.db._portal_contents_cache.store(
+                character, location, next_location,
+                branch, turn, tick,
+                newedgecont.union((thing,))
+            )
+
     def turn_before(self, character, thing, branch, turn):
         try:
             self.retrieve(character, thing, branch, turn, 0)
@@ -474,12 +522,3 @@ class ThingsCache(Cache):
         except KeyError:
             pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
-
-    def load(self, data, validate=False):
-        super().load(data, validate=validate, cb=self._update_contents)
-
-    def _update_contents(self, row, validate):
-        (character, thing, branch, turn, tick, (location, next_location)) = row
-        self.db._set_contents(
-            character, thing, location, next_location, branch, turn, tick, forward=True, validate=validate
-        )

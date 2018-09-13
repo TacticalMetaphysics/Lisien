@@ -321,9 +321,12 @@ class RuleBook(MutableSequence, Signal):
 
     """
     def _get_cache(self, branch, turn, tick):
-        return self.engine._rulebooks_cache.retrieve(
-            self.name, branch, turn, tick
-        )
+        try:
+            return self.engine._rulebooks_cache.retrieve(
+                self.name, branch, turn, tick
+            )
+        except KeyError:
+            return []
 
     def _set_cache(self, branch, turn, tick, v):
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
@@ -507,6 +510,8 @@ class RuleFollower(ABC):
     get a :class:`RuleMapping` into
 
     """
+    __slots__ = ()
+
     @property
     def _rule_mapping(self):
         if id(self) not in rule_mappings:

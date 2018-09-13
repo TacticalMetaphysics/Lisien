@@ -34,10 +34,11 @@ from kivy.uix.scatter import ScatterPlane
 from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
 from .spot import Spot
-from .arrow import Arrow, ArrowWidget
+from .arrow import Arrow, ArrowWidget, ArrowLayout
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+from ..kivygarden.texturestack import TextureStackBatchWidget
 import numpy as np
 
 
@@ -89,7 +90,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class FinalLayout(FloatLayout):
+class FinalLayout(TextureStackBatchWidget):
     def finalize_all(self, *args):
         for child in self.children:
             child.finalize()
@@ -134,7 +135,7 @@ class Board(RelativeLayout):
     grabbed = ObjectProperty(None, allownone=True)
     spot_cls = ObjectProperty(Spot)
     pawn_cls = ObjectProperty(Pawn)
-    arrow_cls = ObjectProperty(Arrow)
+    arrow_cls = ObjectProperty(Arrow, allownone=True)
     proto_arrow_cls = ObjectProperty(ArrowWidget)
 
     @property
@@ -211,7 +212,6 @@ class Board(RelativeLayout):
             if not self.selection_candidates:
                 self.keep_selection = True
             ret = super().on_touch_move(touch)
-            Logger.debug('Board: dispatched touch to selection {}'.format(self.app.selection))
             return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
@@ -220,10 +220,7 @@ class Board(RelativeLayout):
                     cand.selected = True
                     touch.grab(cand)
                     ret = super().on_touch_move(touch)
-                    Logger.debug('Board: dispatched touch to candidate {}'.format(cand))
                     return ret
-        else:
-            Logger.debug('Board: dispatched touch to nobody')
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
@@ -323,13 +320,16 @@ class Board(RelativeLayout):
         """Create some subwidgets and trigger the first update."""
         if not self.parent or hasattr(self, '_parented'):
             return
+        if not self.wallpaper_path:
+            Logger.debug("Board: waiting for wallpaper_path")
+            Clock.schedule_once(self.on_parent, 0)
+            return
         self._parented = True
         self.wallpaper = Image(source=self.wallpaper_path)
         self.bind(wallpaper_path=self._pull_image)
-        if self.wallpaper_path:
-            self._pull_size()
+        self._pull_size()
         self.kvlayoutback = KvLayoutBack(**self.widkwargs)
-        self.arrowlayout = FloatLayout(**self.widkwargs)
+        self.arrowlayout = ArrowLayout(**self.widkwargs)
         self.spotlayout = FinalLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
@@ -338,7 +338,7 @@ class Board(RelativeLayout):
             wid.size = self.size
             if wid is not self.wallpaper:
                 self.bind(size=wid.setter('size'))
-        self.trigger_update()
+        self.update()
 
     def on_character(self, *args):
         if self.character is None:
@@ -431,7 +431,9 @@ class Board(RelativeLayout):
             raise KeyError("Already have an Arrow for this Portal")
         r = self.arrow_cls(
             board=self,
-            portal=portal
+            portal=portal,
+            origspot=self.spot[portal['origin']],
+            destspot=self.spot[portal['destination']]
         )
         if portal["origin"] not in self.arrow:
             self.arrow[portal["origin"]] = {}
@@ -595,9 +597,12 @@ class Board(RelativeLayout):
                 else:
                     patch['_image_paths'] = Spot.default_image_paths
                     zeroes = [0]
-                patch['_offxs'] = place.get('_offxs', zeroes)
-                patch['_offys'] = place.get('_offys', zeroes)
-                nodes_patch[place_name] = patch
+                if '_offxs' not in place:
+                    patch['_offxs'] = zeroes
+                if '_offys' not in place:
+                    patch['_offys'] = zeroes
+                if patch:
+                    nodes_patch[place_name] = patch
         if nodes_patch:
             self.character.node.patch(nodes_patch)
         for place in places2add:
@@ -710,8 +715,7 @@ class Board(RelativeLayout):
                 whereat = self.spot[thing['location']]
             whereat.add_widget(pwn)
 
-    @trigger
-    def trigger_update(self, *args):
+    def update(self, *args):
         """Force an update to match the current state of my character.
 
         This polls every element of the character, and therefore
@@ -727,8 +731,11 @@ class Board(RelativeLayout):
         self.remove_absent_arrows()
         # add widgets to represent new stuff
         self.add_new_spots()
-        self.add_new_arrows()
+        if self.arrow_cls:
+            self.add_new_arrows()
         self.add_new_pawns()
+        Logger.debug("Board: updated")
+    trigger_update = trigger(update)
 
     def update_from_delta(self, delta, *args):
         """Apply the changes described in the dict ``delta``."""

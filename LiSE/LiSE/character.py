@@ -365,13 +365,17 @@ class AbstractCharacter(MutableMapping):
                     n += 1
             renamed[ok] = k
             self.place[k] = v
-        for u in g.adj:
-            for v in g.adj[u]:
-                if isinstance(g, nx.MultiGraph) or\
-                   isinstance(g, nx.MultiDiGraph):
-                    self.edge[renamed[u]][renamed[v]] = g.adj[u][v][0]
-                else:
-                    self.edge[renamed[u]][renamed[v]] = g.adj[u][v]
+        if type(g) is nx.MultiDiGraph:
+            g = nx.DiGraph(g)
+        elif type(g) is nx.MultiGraph:
+            g = nx.Graph(g)
+        if type(g) is nx.DiGraph:
+            for u, v in g.edges:
+                self.edge[renamed[u]][renamed[v]] = g.adj[u][v]
+        else:
+            assert type(g) is nx.Graph
+            for u, v, d in g.edges.data():
+                self.add_portal(renamed[u], renamed[v], symmetrical=True, **d)
         return self
 
     def become(self, g):
@@ -408,19 +412,22 @@ class AbstractCharacter(MutableMapping):
 
     def grid_2d_8graph(self, m, n):
         """Make a 2d graph that's connected 8 ways, enabling diagonal movement"""
-        place = self.place
-        new_place = self.new_place
+        me = nx.Graph()
+        node = me.node
+        add_node = me.add_node
+        add_edge = me.add_edge
         for i in range(m):
             for j in range(n):
-                new = new_place((i, j))
+                add_node((i, j))
                 if i > 0:
-                    new.two_way(place[i - 1, j])
+                    add_edge((i, j), (i-1, j))
                     if j > 0:
-                        new.two_way(place[i - 1, j - 1])
+                        add_edge((i, j), (i-1, j-1))
                 if j > 0:
-                    new.two_way(place[i, j - 1])
-                if (i - 1, j + 1) in place:
-                    new.two_way(place[i - 1, j + 1])
+                    add_edge((i, j), (i, j-1))
+                if (i - 1, j + 1) in node:
+                    add_edge((i, j), (i-1, j+1))
+        return self.copy_from(me)
 
     def grid_graph(self, dim, periodic=False):
         return self.copy_from(nx.grid_graph(dim, periodic))
@@ -1475,12 +1482,19 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __getitem__(self, thing):
             if thing not in self:
                 raise KeyError("No such thing: {}".format(thing))
+            return self._make_thing(thing)
+
+        def _make_thing(self, thing, val=None):
             cache = self.engine._node_objs
-            if (self.name, thing) not in cache or not isinstance(
-                    cache[(self.name, thing)], Thing
-            ):
-                cache[(self.name, thing)] = Thing(self.character, thing)
-            return cache[(self.name, thing)]
+            if isinstance(val, Thing):
+                th = cache[self.name, thing] = val
+            elif (self.name, thing) in cache:
+                th = cache[(self.name, thing)]
+                if type(th) is not Thing:
+                    th = cache[self.name, thing] = Thing(self.character, thing)
+            else:
+                th = cache[(self.name, thing)] = Thing(self.character, thing)
+            return th
 
         def __setitem__(self, thing, val):
             if not isinstance(val, Mapping):
@@ -1495,13 +1509,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 val['location'],
                 val.get('next_location', None)
             )
-            cache = self.engine._node_objs
-            if isinstance(val, Thing):
-                th = val
-            elif (self.name, thing) in cache:
-                th = cache[(self.name, thing)]
-            else:
-                th = cache[(self.name, thing)] = Thing(self.character, thing)
+            th = self._make_thing(thing, val)
             th.clear()
             th.update(val)
             if created:
@@ -1563,18 +1571,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             if (self.name, place) not in cache or not isinstance(
                     cache[(self.name, place)], Place
             ):
-                cache[(self.name, place)] = Place(self.character, place)
+                ret = cache[(self.name, place)] = Place(self.character, place)
+                return ret
             return cache[(self.name, place)]
 
         def __setitem__(self, place, v):
-            cache = self.engine._node_objs
-            if (self.name, place) not in cache or not isinstance(
-                    cache[(self.name, place)], Place
-            ):
-                cache[(self.name, place)] = Place(self.character, place)
-            if not self.engine._node_exists(self.character.name, place):
-                self.engine._exist_node(self.character.name, place)
-            pl = cache[(self.name, place)]
+            pl = self.engine._get_node(self.character, place)
+            if not isinstance(pl, Place):
+                raise KeyError("{} is not a place".format(place))
             pl.clear()
             pl.update(v)
             self.send(self, key=place, val=v)
@@ -1603,14 +1607,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         def __getitem__(self, k):
             if k not in self:
-                raise KeyError()
-            cache = self.engine._node_objs
-            if (self.name, k) not in cache:
-                if self.engine._is_thing(self.character.name, k):
-                    cache[(self.name, k)] = Thing(self.character, k)
-                else:
-                    cache[(self.name, k)] = Place(self.character, k)
-            return cache[(self.name, k)]
+                raise KeyError
+            return self.engine._get_node(self.character, k)
 
         def __setitem__(self, k, v):
             self.character.place[k] = v
@@ -1825,10 +1823,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
             """
             try:
-                return self.engine._node_objs[
-                    self.engine._avatarness_cache.get_char_only_av(
-                        self.character.name, *self.engine.btt()
-                    )]
+                charn, noden = self.engine._avatarness_cache.get_char_only_av(
+                    self.character.name, *self.engine.btt()
+                )
+                return self.engine._get_node(self.engine.character[charn], noden)
             except KeyError:
                 raise AttributeError(
                     "I have no avatar, or more than one avatar"
@@ -1869,7 +1867,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
             def __getitem__(self, av):
                 if av in self:
-                    return self.engine._node_objs[(self.graph, av)]
+                    return self.engine._get_node(self.engine.character[self.graph], av)
                 raise KeyError("No avatar: {}".format(av))
 
             @property
@@ -1877,7 +1875,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 mykey = singleton_get(self.keys())
                 if mykey is None:
                     raise AttributeError("No avatar, or more than one")
-                return self.engine._node_objs[(self.graph, mykey)]
+                return self.engine._get_node(self.engine.character[self.graph], mykey)
 
             def __setitem__(self, k, v):
                 mykey = singleton_get(self.keys())
@@ -1888,7 +1886,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                             self.graph
                         )
                     )
-                self.engine._node_objs[(self.graph, mykey)][k] = v
+                self.engine._get_node(self.graph, mykey)[k] = v
 
             def __repr__(self):
                 return "{}.character[{}].avatar".format(repr(self.engine), repr(self.name))
@@ -1898,27 +1896,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     def add_place(self, n, **kwargs):
         super().add_node(n, **kwargs)
-
-        def init_store_node_rulebook():
-            try:
-                if (self.name, n) == self.engine._nodes_rulebooks_cache.retrieve(self.name, n, *self.engine.btt()):
-                    return
-            except KeyError:
-                pass
-            branch, turn, tick = self.engine.nbtt()
-            self.engine._nodes_rulebooks_cache.store(self.name, n, branch, turn, tick, (self.name, n))
-
-        def init_store_rulebook():
-            try:
-                if [] == self.engine._rulebooks_cache.retrieve((self.name, n), *self.engine.btt()):
-                    return
-            except KeyError:
-                pass
-            branch, turn, tick = self.engine.nbtt()
-            self.engine._rulebooks_cache.store((self.name, n), branch, turn, tick, [])
-
-        init_store_node_rulebook()
-        init_store_rulebook()
 
     def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""
@@ -1960,7 +1937,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         )
         if (self.name, name) in self.engine._node_objs:
             del self.engine._node_objs[self.name, name]
-            self.engine._node_objs[self.name, name] = Thing(self, name)
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
@@ -1969,7 +1945,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         )
         if (self.name, name) in self.engine._node_objs:
             del self.engine._node_objs[self.name, name]
-            self.engine._node_objs[self.name, name] = Place(self, name)
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         """Connect the origin to the destination with a :class:`Portal`.
@@ -1997,7 +1972,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         if isinstance(destination, Node):
             destination = destination.name
         self.add_portal(origin, destination, symmetrical, **kwargs)
-        return self.engine._edge_objs[self.name, origin, destination, 0]
+        return self.engine._get_edge(self, origin, destination, 0)
 
     def add_portals_from(self, seq, symmetrical=False):
         """Take a sequence of (origin, destination) pairs and make a
@@ -2082,23 +2057,30 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     def portals(self):
         """Iterate over all portals."""
+        char = self.character
+        make_edge = self.engine._get_edge
         for (o, d) in self.engine._edges_cache.iter_keys(
                 self.character.name, *self.engine.btt()
         ):
-            yield self.engine._portal_objs[(self.character.name, o, d)]
+            yield make_edge(char, o, d)
 
     def avatars(self):
         """Iterate over all my avatars, regardless of what character they are
         in.
 
         """
-        for graph in self.engine._avatarness_cache.iter_entities(
-                self.character.name, *self.engine.btt()
+        charname = self.character.name
+        branch, turn, tick = self.engine.btt()
+        charmap = self.engine.character
+        avit = self.engine._avatarness_cache.iter_entities
+        makenode = self.engine._get_node
+        for graph in avit(
+                charname, branch, turn, tick
         ):
-            for node in self.engine._avatarness_cache.iter_entities(
-                    self.character.name, graph, *self.engine.btt()
+            for node in avit(
+                    charname, graph, branch, turn, tick
             ):
                 try:
-                    yield self.engine._node_objs[(graph, node)]
+                    yield makenode(charmap[graph], node)
                 except KeyError:
                     continue

@@ -182,8 +182,7 @@ class EngineHandle(object):
                 portst = self._portal_stat_cache[charn]
                 for port in char.portals():
                     portst.setdefault(port.orig, {})[port.dest] = self.portal_stat_copy(charn, port.orig, port.dest)
-                self._char_things_cache[charn] = self.character_things(char)
-                self._char_places_cache[charn] = self.character_places(char)
+                self._char_nodes_cache[charn] = self.character_nodes(char)
                 self._char_portals_cache[charn] = self.character_portals(char)
                 self._char_rulebooks_cache[charn] = self.character_rulebooks_copy(char)
             return
@@ -773,7 +772,7 @@ class EngineHandle(object):
             )
             tick_now = self._real.tick
             self._real.tick = parrev
-        for (n, npatch) in patch.items():
+        for i, (n, npatch) in enumerate(patch.items(), 1):
             self.update_node(char, n, npatch)
         if backdate:
             self._real.tick = tick_now
@@ -865,19 +864,23 @@ class EngineHandle(object):
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        loc = statdict.pop('location')
-        nxtloc = statdict.pop('next_location', None)
-        arrt = statdict.pop('arrival_time', self.tick)
-        nxtarrt = statdict.pop('next_arrival_time', None)
-        self._char_things_cache.setdefault(char, {})[thing] = (loc, nxtloc, arrt, nxtarrt)
+        if char in self._char_nodes_cache:
+            cache = self._char_nodes_cache[char]
+        else:
+            cache = frozenset()
+        self._char_nodes_cache[char] = cache.union((thing,))
 
     @timely
-    def add_thing(self, char, thing, loc, next_loc, statdict):
+    def add_thing(self, char, thing, loc, statdict):
         self._real.character[char].add_thing(
-            thing, loc, next_loc, **statdict
+            thing, loc, **statdict
         )
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
+        if char in self._char_nodes_cache:
+            cache = self._char_nodes_cache[char]
+        else:
+            cache = frozenset()
+        self._char_nodes_cache[char] = cache.union((thing,))
 
     @timely
     def place2thing(self, char, node, loc):
@@ -1199,9 +1202,12 @@ class EngineHandle(object):
     def all_rules_delta(self, *, store=True):
         ret = {}
         for rule in self._real.rule.keys():
-            delta = self.rule_delta(rule, store=store)
-            if delta:
-                ret[rule] = delta
+            try:
+                delta = self.rule_delta(rule, store=store)
+                if delta:
+                    ret[rule] = delta
+            except KeyError:
+                pass
         return ret
 
     def source_copy(self, store):

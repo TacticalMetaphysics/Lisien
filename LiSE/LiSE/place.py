@@ -26,6 +26,8 @@ from .node import Node
 
 class Place(Node):
     """The kind of node where a thing might ultimately be located."""
+    __slots__ = ('graph', 'db', 'node')
+
     extrakeys = {
         'name',
         'character'
