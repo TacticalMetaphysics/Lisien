@@ -119,8 +119,8 @@ they have locations -- each square and triangle is located in a place in the gra
 The new_thing method of a place object creates a new thing and puts it there. You have to give the thing a name as its
 first argument. You can supply further keyword arguments to customize the thing's stats; in this case, I've given
 the things graphics representing what shape they are. If you wanted, you could set the _image_paths to a list of paths
-to whatever graphics. The 'atlas://' in the front is unnecessary; read about atlases
-[here](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like, or just use some .png files you have lying around.
+to whatever graphics. The 'atlas://' in the front is unnecessary;
+[read about atlases](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like, or just use some .png files you have lying around.
 
 The add_avatar method of a character object marks a thing or place so that it's considered part of a character whose
 graph it is not in. This doesn't do anything yet, but we'll be using it to write our rules in a little while.
