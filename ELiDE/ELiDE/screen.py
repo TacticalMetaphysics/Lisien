@@ -97,6 +97,15 @@ class TimePanel(BoxLayout):
 
     """
     screen = ObjectProperty()
+    buttons_font_size = NumericProperty(18)
+    graphics_top = NumericProperty()
+    graphics_bot = NumericProperty()
+    graphics_center_y = NumericProperty()
+    play_arrow_left = NumericProperty()
+    play_arrow_right = NumericProperty()
+    step_arrow_left = NumericProperty()
+    step_center_x = NumericProperty()
+    step_bar_right = NumericProperty()
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -333,16 +342,42 @@ Builder.load_string(
         on_release: root.toggle_stat_cfg()
 <TimePanel>:
     playbut: playbut
+    play_arrow_left: playbut.center_x - playbut.width / 6
+    play_arrow_right: playbut.center_x + playbut.width / 6
+    graphics_top: self.y + self.buttons_font_size + (self.height - self.buttons_font_size) * (3/4)
+    graphics_bot: self.y + self.buttons_font_size
+    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+    step_arrow_left: stepbut.center_x - (stepbut.width / 3)
+    step_center_x: stepbut.center_x + stepbut.width / 6.9
+    step_bar_right: stepbut.center_x + stepbut.width / 3
     BoxLayout:
-        orientation: 'vertical'
         ToggleButton:
             id: playbut
-            font_size: 40
-            text: '>'
+            canvas:
+                Triangle:
+                    points: root.play_arrow_left, root.graphics_top, root.play_arrow_right, root.graphics_center_y, root.play_arrow_left, root.graphics_bot
+            Label:
+                id: playlabel
+                font_size: 15
+                center_x: playbut.center_x
+                y: playbut.y
+                size: self.texture_size
+                text: 'Simulate'
         Button:
-            text: 'Next turn'
-            size_hint_y: 0.3
+            id: stepbut
+            size_hint_x: 0.3
             on_release: root.screen.next_turn()
+            canvas:
+                Triangle:
+                    points: root.step_arrow_left, root.graphics_top, root.step_center_x, root.graphics_center_y, root.step_arrow_left, root.graphics_bot
+                Quad:
+                    points: root.step_center_x, root.graphics_top, root.step_bar_right, root.graphics_top, root.step_bar_right, root.graphics_bot, root.step_center_x, root.graphics_bot 
+            Label:
+                font_size: 12
+                center_x: stepbut.center_x
+                y: stepbut.y
+                size: self.texture_size
+                text: '1 turn'
     BoxLayout:
         orientation: 'vertical'
         Label:
