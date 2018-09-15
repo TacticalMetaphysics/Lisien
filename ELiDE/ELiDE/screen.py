@@ -21,6 +21,8 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
+from ast import literal_eval
+
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -52,13 +54,13 @@ class StatListPanel(BoxLayout):
     the selected entity, defaulting to those of the character being
     viewed.
 
-    Has a 'cfg' button on the bottom to open the StatWindow in which
+    Has a button on the bottom to open the StatWindow in which
     to add and delete stats, or to change the way they are displayed
     in the StatListPanel.
 
     """
     selection_name = StringProperty()
-    button_text = StringProperty('cfg')
+    button_text = StringProperty('Configure stats')
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
@@ -74,7 +76,7 @@ class StatListPanel(BoxLayout):
             del self.proxy[k]
         else:
             try:
-                vv = self.engine.unpack(v)
+                vv = literal_eval(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv
@@ -328,7 +330,7 @@ Builder.load_string(
         id: cfgstatbut
         size_hint_y: 0.05
         text: root.button_text
-        on_press: root.toggle_stat_cfg()
+        on_release: root.toggle_stat_cfg()
 <TimePanel>:
     playbut: playbut
     BoxLayout:
@@ -340,7 +342,7 @@ Builder.load_string(
         Button:
             text: 'Next turn'
             size_hint_y: 0.3
-            on_press: root.screen.next_turn()
+            on_release: root.screen.next_turn()
     BoxLayout:
         orientation: 'vertical'
         Label:

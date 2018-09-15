@@ -93,7 +93,7 @@ class Collide2DPoly(object):
             width = int(ceil(self.max_x) - min_x + 1.)
             self.width = width
             height = int(ceil(self.max_y) - min_y + 1.)
-            self.space = []
+            self.space = space = []
             for y in range(height):
                 for x in range(width):
                     j = count - 1
@@ -105,7 +105,7 @@ class Collide2DPoly(object):
                                         points[j_y] < y and points[i_y] >= y):
                             odd ^= y * multiple[i] + constant[i] < x
                         j = i
-                    self.space[y * width + x] = odd
+                    space[y * width + x] = odd
 
     def collide_point(self, x, y):
         points = self.points
@@ -119,12 +119,14 @@ class Collide2DPoly(object):
 
         j = self.count - 1
         odd = 0
+        multiple = self.multiple
+        constant = self.constant
         for i in range(self.count):
             i_y = i * 2 + 1
             j_y = j * 2 + 1
             if (points[i_y] < y and points[j_y] >= y or
                             points[j_y] < y and points[i_y] >= y):
-                odd ^= y * self.multiple[i] + self.constant[i] < x
+                odd ^= y * multiple[i] + constant[i] < x
             j = i
         return odd
 

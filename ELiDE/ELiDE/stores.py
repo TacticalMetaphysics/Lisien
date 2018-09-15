@@ -343,6 +343,9 @@ class EdBox(BoxLayout):
             del self._lock_save
     _trigger_delete = trigger(delete)
 
+    def on_store(self, *args):
+        pass
+
 
 class StringNameInput(TextInput):
     _trigger_save = ObjectProperty()
@@ -506,7 +509,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     TextInput:
         id: string
         disabled: root.disable_text_input
@@ -543,7 +546,7 @@ Builder.load_string("""
             size_hint_y: 0.05
             Button:
                 text: 'Close'
-                on_press: edbox.dismiss()
+                on_release: edbox.dismiss()
             Label:
                 text_size: self.size
                 halign: 'right'
@@ -593,7 +596,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     BoxLayout:
         orientation: 'horizontal'
         Label:
@@ -616,6 +619,7 @@ Builder.load_string("""
     editor: funcs_ed
     storelist: funcs_list
     orientation: 'vertical'
+    data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
     BoxLayout:
         orientation: 'horizontal'
         BoxLayout:
@@ -638,7 +642,7 @@ Builder.load_string("""
         size_hint_y: 0.05
         Button:
             text: 'Close'
-            on_press: root.dismiss()
+            on_release: root.dismiss()
             size_hint_x: 0.2
         Widget:
             id: spacer
@@ -655,7 +659,7 @@ Builder.load_string("""
                 toggle: root.toggle
                 table: 'triggers'
                 store: app.engine.trigger
-                on_data: app.rules.rulesview._trigger_pull_triggers()
+                on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: prereq
             text: 'Prereq'
@@ -665,7 +669,7 @@ Builder.load_string("""
                 toggle: root.toggle
                 table: 'prereqs'
                 store: app.engine.prereq
-                on_data: app.rules.rulesview._trigger_pull_prereqs()
+                on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: action
             text: 'Action'
@@ -675,5 +679,5 @@ Builder.load_string("""
                 toggle: root.toggle
                 table: 'actions'
                 store: app.engine.action
-                on_data: app.rules.rulesview._trigger_pull_actions()
+                on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)

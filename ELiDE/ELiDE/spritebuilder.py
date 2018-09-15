@@ -207,7 +207,7 @@ Builder.load_string("""
             id: preview
         Button:
             text: 'OK'
-            on_press: root.pressed()
+            on_release: root.pressed()
 <PawnConfigScreen>:
     name: 'pawncfg'
     imgpaths: dialog.imgpaths
