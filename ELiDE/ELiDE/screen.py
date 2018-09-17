@@ -34,6 +34,7 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
+    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
@@ -106,6 +107,9 @@ class TimePanel(BoxLayout):
     step_arrow_left = NumericProperty()
     step_center_x = NumericProperty()
     step_bar_right = NumericProperty()
+    play_arrow_points = ListProperty([0] * 6)
+    step_arrow_points = ListProperty([0] * 6)
+    step_rect_points = ListProperty([0] * 8)
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -350,15 +354,20 @@ Builder.load_string(
     step_arrow_left: stepbut.center_x - (stepbut.width / 3)
     step_center_x: stepbut.center_x + stepbut.width / 6.9
     step_bar_right: stepbut.center_x + stepbut.width / 3
+    play_arrow_points: root.play_arrow_left, root.graphics_top, root.play_arrow_right, root.graphics_center_y, root.play_arrow_left, root.graphics_bot
+    step_arrow_points: root.step_arrow_left, root.graphics_top, root.step_center_x, root.graphics_center_y, root.step_arrow_left, root.graphics_bot
+    step_rect_points: root.step_center_x, root.graphics_top, root.step_bar_right, root.graphics_top, root.step_bar_right, root.graphics_bot, root.step_center_x, root.graphics_bot
     BoxLayout:
         ToggleButton:
             id: playbut
             canvas:
                 Triangle:
-                    points: root.play_arrow_left, root.graphics_top, root.play_arrow_right, root.graphics_center_y, root.play_arrow_left, root.graphics_bot
+                    points: root.play_arrow_points
+                SmoothLine:
+                    points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
             Label:
                 id: playlabel
-                font_size: 15
+                font_size: root.buttons_font_size - 3
                 center_x: playbut.center_x
                 y: playbut.y
                 size: self.texture_size
@@ -369,11 +378,15 @@ Builder.load_string(
             on_release: root.screen.next_turn()
             canvas:
                 Triangle:
-                    points: root.step_arrow_left, root.graphics_top, root.step_center_x, root.graphics_center_y, root.step_arrow_left, root.graphics_bot
+                    points: root.step_arrow_points
                 Quad:
-                    points: root.step_center_x, root.graphics_top, root.step_bar_right, root.graphics_top, root.step_bar_right, root.graphics_bot, root.step_center_x, root.graphics_bot 
+                    points: root.step_rect_points 
+                SmoothLine:
+                    points: root.step_arrow_points
+                SmoothLine:
+                    points: root.step_rect_points 
             Label:
-                font_size: 12
+                font_size: root.buttons_font_size - 3
                 center_x: stepbut.center_x
                 y: stepbut.y
                 size: self.texture_size
