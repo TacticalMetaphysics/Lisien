@@ -140,7 +140,8 @@ class Pawn(PawnSpot):
             parent.remove_widget(self)
             spot.add_widget(self)
         else:
-            self.pos = parent.positions[self.uid]
+            x, y = parent.positions[self.uid]
+            self.pos = parent.x + x, parent.y + y
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
