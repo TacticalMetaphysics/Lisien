@@ -126,7 +126,7 @@ class RulesView(Widget):
 
     def finalize(self, *args):
         """Add my tabs"""
-        if None in (self.canvas, self.entity, self.rulebook):
+        if not self.canvas:
             Clock.schedule_once(self.finalize, 0)
             return
 
@@ -201,6 +201,8 @@ class RulesView(Widget):
         :param allfuncs: a sequence of functions' (name, sourcecode, signature)
 
         """
+        if not self.rule:
+            return [], []
         rulefuncnames = getattr(self.rule, what+'s')
         unused = [
             Card(
@@ -326,6 +328,9 @@ class RulesView(Widget):
     _trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
 
     def _push_funcs(self, what):
+        if not self.rule:
+            Logger.debug("RulesView: not pushing {} for lack of rule".format(what))
+            return
         funcs = [
             card.ud['funcname'] for card in
             getattr(self, '_{}_builder'.format(what)).decks[0]
