@@ -38,7 +38,6 @@ from .arrow import Arrow, ArrowWidget, ArrowLayout
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
-from ..kivygarden.texturestack import TextureStackBatchWidget
 import numpy as np
 
 
@@ -90,7 +89,7 @@ class KvLayoutFront(FloatLayout):
     pass
 
 
-class FinalLayout(TextureStackBatchWidget):
+class FinalLayout(FloatLayout):
     def finalize_all(self, *args):
         for child in self.children:
             child.finalize()
