@@ -341,7 +341,7 @@ class AvatarRulesHandledCache(RulesHandledCache):
             for graph in sort_set(charavm.keys()):
                 for avatar in sort_set(charavm[graph].keys()):
                     try:
-                        rules = self.unhandled_rulebook_rules((graph, avatar), rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(graph, avatar, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
@@ -363,7 +363,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
             pass
             for thing in things:
                 try:
-                    rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
+                    rules = self.unhandled_rulebook_rules(character, thing, rulebook, branch, turn, tick)
                 except KeyError:
                     continue
                 for rule in rules:
@@ -383,7 +383,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
             rulebook = self.get_rulebook(character, branch, turn, tick)
             for place in sort_set(charm[character].place.keys()):
                 try:
-                    rules = self.unhandled_rulebook_rules((character, place), rulebook, branch, turn, tick)
+                    rules = self.unhandled_rulebook_rules(character, place, rulebook, branch, turn, tick)
                 except KeyError:
                     continue
                 for rule in rules:
@@ -408,7 +408,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
             for orig in sort_set(charp.keys()):
                 for dest in sort_set(charp[orig].keys()):
                     try:
-                        rules = self.unhandled_rulebook_rules((character, orig, dest), rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(character, orig, dest, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
@@ -428,7 +428,7 @@ class NodeRulesHandledCache(RulesHandledCache):
             for node in sort_set(charm[character].node.keys()):
                 try:
                     rulebook = self.get_rulebook(character, node, branch, turn, tick)
-                    rules = self.unhandled_rulebook_rules((character, node), rulebook, branch, turn, tick)
+                    rules = self.unhandled_rulebook_rules(character, node, rulebook, branch, turn, tick)
                 except KeyError:
                     continue
                 for rule in rules:
@@ -451,7 +451,7 @@ class PortalRulesHandledCache(RulesHandledCache):
                 for dest in sort_set(dests.keys()):
                     try:
                         rulebook = self.get_rulebook(character, orig, dest, branch, turn, tick)
-                        rules = self.unhandled_rulebook_rules((character, orig, dest), rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(character, orig, dest, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
