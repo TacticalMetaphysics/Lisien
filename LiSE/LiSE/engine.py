@@ -1244,7 +1244,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             todo[rulebook].append(('character', charactername, rulebook, rulename))
         for (
-            charn, rulebook, graphn, avn, rulen
+            charn, graphn, avn, rulebook, rulen
         ) in self._avatar_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):

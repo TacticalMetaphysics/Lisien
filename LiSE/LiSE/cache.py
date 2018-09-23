@@ -341,11 +341,11 @@ class AvatarRulesHandledCache(RulesHandledCache):
             for graph in sort_set(charavm.keys()):
                 for avatar in sort_set(charavm[graph].keys()):
                     try:
-                        rules = self.unhandled_rulebook_rules(graph, avatar, rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(character, graph, avatar, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
-                        yield character, rulebook, graph, avatar, rule
+                        yield character, graph, avatar, rulebook, rule
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
