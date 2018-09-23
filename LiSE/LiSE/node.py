@@ -243,7 +243,10 @@ class UserDescriptor:
     def __get__(self, instance, owner):
         mapping = self.usermapping(instance)
         it = iter(mapping)
-        k = next(it)
+        try:
+            k = next(it)
+        except StopIteration:
+            raise AmbiguousUserError("No users")
         try:
             next(it)
             raise AmbiguousUserError("{} users. Use the ``users`` property".format(len(mapping)))
