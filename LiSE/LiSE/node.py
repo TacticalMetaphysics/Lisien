@@ -238,6 +238,13 @@ class Origs(Mapping):
 
 
 class UserDescriptor:
+    """Give a node's user if there's only one
+
+    If there are many users, but one of them has the same name as this node, give that one.
+
+    Otherwise, raise AmbiguousUserError.
+
+    """
     usermapping = UserMapping
 
     def __get__(self, instance, owner):
