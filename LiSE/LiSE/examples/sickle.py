@@ -148,12 +148,18 @@ def install(
     # is just a test
     @phys.thing.rule
     def wander(critter):
-        dest = critter.engine.choice(list(critter.character.place.keys()))
+        dests = list(critter.character.place.keys())
+        dests.remove(critter['location'])
+        dest = critter.engine.choice(dests)
         critter.travel_to(dest)
 
     @wander.trigger
     def not_travelling(critter):
         return critter['next_location'] is None
+
+    @wander.prereq
+    def big_map(critter):
+        return len(critter.character.place) > 1
 
 
 
