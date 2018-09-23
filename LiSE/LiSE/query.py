@@ -627,7 +627,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             tick,
         )
 
-    def handled_avatar_rule(self, character, graph, av, rulebook, rule, branch, turn, tick):
+    def handled_avatar_rule(self, character,  rulebook, rule, graph, av, branch, turn, tick):
         character, graph, av, rulebook = map(
             self.pack, (character, graph, av, rulebook)
         )
@@ -638,6 +638,52 @@ class QueryEngine(allegedb.query.QueryEngine):
             rule,
             graph,
             av,
+            branch,
+            turn,
+            tick
+        )
+
+    def handled_character_thing_rule(self, character, rulebook, rule, thing, branch, turn, tick):
+        character, thing, rulebook = map(
+            self.pack, (character, thing, rulebook)
+        )
+        return self.sql(
+            'character_thing_rules_handled_insert',
+            character,
+            rulebook,
+            rule,
+            thing,
+            branch,
+            turn,
+            tick
+        )
+
+    def handled_character_place_rule(self, character, rulebook, rule, place, branch, turn, tick):
+        character, rulebook, place = map(
+            self.pack, (character, rulebook, place)
+        )
+        return self.sql(
+            'character_place_rules_handled_insert',
+            character,
+            rulebook,
+            rule,
+            place,
+            branch,
+            turn,
+            tick
+        )
+
+    def handled_character_portal_rule(self, character, rulebook, rule, orig, dest, branch, turn, tick):
+        character, rulebook, orig, dest = map(
+            self.pack, (character, rulebook, orig, dest)
+        )
+        return self.sql(
+            'character_portal_rules_handled_insert',
+            character,
+            rulebook,
+            rule,
+            orig,
+            dest,
             branch,
             turn,
             tick

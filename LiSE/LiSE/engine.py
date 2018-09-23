@@ -1229,7 +1229,7 @@ class Engine(AbstractEngine, gORM):
                 ) if self._node_exists(charn, noden) else None,
                 'portal': lambda charn, orign, destn, rulebook, rulen: self._follow_rule(
                     rulemap[rulen],
-                    partial(self._handled_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
+                    partial(self._handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick),
                     branch, turn,
                     charmap[charn].portal[orign][destn]
                 ) if self._edge_exists(charn, orign, destn) else None
@@ -1255,13 +1255,13 @@ class Engine(AbstractEngine, gORM):
                 continue
             todo[rulebook].append(('avatar', charn, rulebook, graphn, avn, rulen))
         for (
-            charn, rulebook, rulen, thingn
+            charn, thingn, rulebook, rulen
         ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             if charn not in charmap or thingn not in charmap[charn].thing:
                 continue
             todo[rulebook].append(('character_thing', charn, rulebook, rulen, thingn))
         for (
-            charn, rulebook, rulen, placen
+            charn, placen, rulebook, rulen
         ) in self._character_place_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
@@ -1269,7 +1269,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             todo[rulebook].append(('character_place', charn, rulebook, rulen, placen))
         for (
-            charn, rulebook, rulen, orign, destn
+            charn, orign, destn, rulebook, rulen
         ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
