@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Test the API of the Rule objects and mappings"""
 import pytest
 import os
 from LiSE.engine import Engine
@@ -20,6 +21,7 @@ from .util import engy
 
 
 def something_dot_rule_test(something, eng):
+    """Utility function to test some rule-follower"""
     @something.rule
     def somerule():
         pass
@@ -96,40 +98,47 @@ def something_dot_rule_test(something, eng):
 
 
 def test_engine_dot_rule(engy):
+    """Test that the global rule mapping can be used to make and change rules"""
     something_dot_rule_test(engy, engy)
 
 
 def test_character_dot_rule(engy):
+    """Test that you can make and change rules on characters"""
     character = engy.new_character('physical')
     rule = something_dot_rule_test(character, engy)
     assert character.rulebook[0] == rule
 
 
 def test_character_dot_thing_dot_rule(engy):
+    """Test that you can make and change rules on the thing mapping of a character"""
     character = engy.new_character('physical')
     rule = something_dot_rule_test(character.thing, engy)
     assert character.thing.rulebook[0] == rule
 
 
 def test_character_dot_place_dot_rule(engy):
+    """Test that you can make and change rules on the place mapping of a character"""
     character = engy.new_character('physical')
     rule = something_dot_rule_test(character.place, engy)
     assert character.place.rulebook[0] == rule
 
 
 def test_character_dot_portal_dot_rule(engy):
+    """Test that you can make and change rules on the portal mapping of a character"""
     character = engy.new_character('physical')
     rule = something_dot_rule_test(character.portal, engy)
     assert character.portal.rulebook[0] == rule
 
 
 def test_node_dot_rule(engy):
+    """Test that you can make and change rules on a node"""
     here = engy.new_character('physical').new_place(1)
     rule = something_dot_rule_test(here, engy)
     assert here.rulebook[0] == rule
 
 
 def test_portal_dot_rule(engy):
+    """Test that you can make and change rules on a portal"""
     character = engy.new_character('physical')
     character.new_place(0)
     character.new_place(1)
