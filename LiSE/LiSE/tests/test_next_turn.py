@@ -1,9 +1,30 @@
-"""Tests for the rules engine's basic polling functionality"""
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Tests for the rules engine's basic polling functionality
+
+Make sure that every type of rule gets followed, and that the fact
+it was followed got recorded correctly.
+
+"""
 
 from .util import engy
 
 
 def test_character_dot_rule(engy):
+    """Test that a rule on a character is polled correctly"""
     char = engy.new_character('who')
 
     @char.rule(always=True)
@@ -22,6 +43,7 @@ def test_character_dot_rule(engy):
 
 
 def test_avatar_dot_rule(engy):
+    """Test that a rule applied to a character's avatars is polled correctly"""
     char = engy.new_character('char')
     graph = engy.new_character('graph')
     av = graph.new_place('av')
@@ -44,6 +66,7 @@ def test_avatar_dot_rule(engy):
 
 
 def test_thing_dot_rule(engy):
+    """Test that a rule applied to a thing mapping is polled correctly"""
     char = engy.new_character('char')
     place = char.new_place('place')
     thing = place.new_thing('thing')
@@ -65,6 +88,7 @@ def test_thing_dot_rule(engy):
 
 
 def test_place_dot_rule(engy):
+    """Test that a rule applied to a place mapping is polled correctly"""
     char = engy.new_character('char')
     place = char.new_place('place')
     starttick = engy.tick
@@ -85,6 +109,7 @@ def test_place_dot_rule(engy):
 
 
 def test_portal_dot_rule(engy):
+    """Test that a rule applied to a portal mapping is polled correctly"""
     char = engy.new_character('char')
     orig = char.new_place('orig')
     dest = char.new_place('dest')
@@ -107,6 +132,7 @@ def test_portal_dot_rule(engy):
 
 
 def test_node_rule(engy):
+    """Test that a rule applied to one node is polled correctly"""
     char = engy.new_character('char')
     place = char.new_place('place')
     thing = place.new_thing('thing')
@@ -135,6 +161,7 @@ def test_node_rule(engy):
 
 
 def test_portal_rule(engy):
+    """Test that a rule applied to one portal is polled correctly"""
     char = engy.new_character('char')
     orig = char.new_place('orig')
     dest = char.new_place('dest')
