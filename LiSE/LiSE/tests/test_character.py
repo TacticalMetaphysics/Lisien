@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
 import pytest
 import allegedb.tests.test_all
 from LiSE.engine import Engine
@@ -25,6 +26,12 @@ class CharacterTest(allegedb.tests.test_all.AllegedTest):
 
     def tearDown(self):
         self.engine.close()
+        for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.remove(f)
 
 
 class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):

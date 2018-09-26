@@ -14,13 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pytest
-from LiSE.engine import Engine
+from .util import engy
 
 
 @pytest.fixture(scope='function')
-def chara():
-    with Engine(":memory:") as eng:
-        yield eng.new_character('chara')
+def chara(engy):
+    yield engy.new_character('chara')
 
 
 def test_many_things_in_place(chara):

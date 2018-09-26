@@ -19,6 +19,7 @@ import pytest
 import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
 import LiSE.examples.sickle as sickle
+import os
 
 
 class ProxyTest(allegedb.tests.test_all.AllegedTest):
@@ -29,6 +30,12 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
 
     def tearDown(self):
         self.manager.shutdown()
+        for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.remove(f)
 
 
 class ProxyGraphTest(allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
@@ -59,6 +66,12 @@ def hand(request):
         request.param(hand._real)
     yield hand
     hand.close()
+    for f in (
+        'trigger.py', 'prereq.py', 'action.py', 'function.py',
+        'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.remove(f)
 
 def test_fast_delta(hand):
     # just set a baseline for the diff
@@ -353,3 +366,10 @@ def test_assignment():
             'cell6': {'rulebook': ('dorm0room0student0', 'cell6'), 'drunk': 0, 'slow': 0},
             'cell72': {'rulebook': ('dorm0room0student0', 'cell72'), 'drunk': 0, 'slow': 0}}}
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
+    hand.close()
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.remove(f)

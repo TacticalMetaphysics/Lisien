@@ -5,7 +5,7 @@ import os
 
 @pytest.fixture(scope='function')
 def engy():
-    codefiles = ('trigger.py', 'prereq.py', 'action.py', 'method.py', 'function.py')
+    codefiles = ('trigger.py', 'prereq.py', 'action.py', 'method.py', 'function.py', 'strings.json')
     for file in codefiles:
         if os.path.exists(file):
             os.remove(file)
