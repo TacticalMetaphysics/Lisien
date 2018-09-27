@@ -36,7 +36,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-from allegedb.alchemy import tables_for_meta, queries_for_table_dict
+import allegedb.alchemy
 
 
 def tables_for_meta(meta):
@@ -44,7 +44,7 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    tables_for_meta(meta)
+    allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -495,6 +495,12 @@ def tables_for_meta(meta):
         )
     )
 
+    Table(
+        'turns_completed', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True)
+    )
+
     return meta.tables
 
 
@@ -524,7 +530,7 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = queries_for_table_dict(table)
+    r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
