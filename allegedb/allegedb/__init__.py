@@ -492,10 +492,13 @@ class ORM(object):
         self._childbranch = defaultdict(set)
         """Immediate children of a branch"""
         self._branches = {}
+        """Start time, end time, and parent of each branch"""
         self._branch_parents = defaultdict(set)
         """Parents of a branch at any remove"""
         self._turn_end = defaultdict(lambda: 0)
+        """Tick on which a (branch, turn) ends"""
         self._turn_end_plan = defaultdict(lambda: 0)
+        """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
         self._graph_val_cache = Cache(self)
         self._nodes_cache = NodesCache(self)
         self._edges_cache = EdgesCache(self)
