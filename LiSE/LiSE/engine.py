@@ -6,6 +6,7 @@ flow of time.
 
 """
 from functools import partial
+from collections import defaultdict
 from types import FunctionType, MethodType
 
 import umsgpack
@@ -37,6 +38,33 @@ class NextTurn(Signal):
     def __call__(self):
         engine = self.engine
         start_branch, start_turn, start_tick = engine.btt()
+        latest_turn = engine._turns_completed[start_branch]
+        if start_turn < latest_turn:
+            engine.turn += 1
+            self.send(
+                engine,
+                branch=engine.branch,
+                turn=engine.turn,
+                tick=engine.tick
+            )
+            return [], engine.get_delta(
+                branch=start_branch,
+                turn_from=start_turn,
+                turn_to=engine.turn,
+                tick_from=start_tick,
+                tick_to=engine.tick
+            )
+        elif start_turn > latest_turn + 1:
+            raise ValueError("Can't run the rules engine on any turn but the latest")
+        if start_turn == latest_turn:
+            # As a side effect, the following assignment sets the tick to
+            # the latest in the new turn, which will be 0 if that turn has not
+            # yet been simulated.
+            engine.turn += 1
+            if engine.tick == 0:
+                engine.universal['rando_state'] = engine.rando.getstate()
+            else:
+                engine.rando.setstate(engine.universal['rando_state'])
         with engine.advancing():
             for res in iter(engine.advance, final_rule):
                 if res:
@@ -57,27 +85,18 @@ class NextTurn(Signal):
                         tick_from=start_tick,
                         tick_to=tick
                     )
-
-        branch, turn = engine.time
-        turn += 1
-        # As a side effect, the following assignment sets the tick to
-        # the latest in the new turn, which will be 0 if that turn has not
-        # yet been simulated.
-        engine.time = branch, turn
-        if engine.tick == 0:
-            engine.universal['rando_state'] = engine.rando.getstate()
-        else:
-            engine.rando.setstate(engine.universal['rando_state'])
+        engine._turns_completed[start_branch] = engine.turn
+        engine.query.complete_turn(start_branch, engine.turn)
         self.send(
             self.engine,
-            branch=branch,
-            turn=turn,
+            branch=engine.branch,
+            turn=engine.turn,
             tick=engine.tick
         )
         return [], engine.get_delta(
-            branch=branch,
+            branch=engine.branch,
             turn_from=start_turn,
-            turn_to=turn,
+            turn_to=engine.turn,
             tick_from=start_tick,
             tick_to=engine.tick
         )
@@ -850,6 +869,8 @@ class Engine(AbstractEngine, gORM):
         self._character_portal_rules_handled_cache \
             = CharacterPortalRulesHandledCache(self)
         self._avatarness_cache = AvatarnessCache(self)
+        self._turns_completed = defaultdict(lambda: 0)
+        """The last turn when the rules engine ran in each branch"""
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
         if hasattr(self, '_action_file'):
@@ -1002,6 +1023,7 @@ class Engine(AbstractEngine, gORM):
             self._node_rules_handled_cache.store(*row, loading=True)
         for row in q.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(*row, loading=True)
+        self._turns_completed.update(q.turns_completed_dump())
         self._rules_cache = {name: Rule(self, name, create=False) for name in q.rules_dump()}
 
     @property

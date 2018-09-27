@@ -498,7 +498,7 @@ def tables_for_meta(meta):
     Table(
         'turns_completed', meta,
         Column('branch', TEXT, primary_key=True),
-        Column('turn', INT, primary_key=True)
+        Column('turn', INT)
     )
 
     return meta.tables
@@ -579,6 +579,9 @@ def queries(table):
     ).where(
         branches.c.parent == bindparam('branch')
     )
+
+    tc = table['turns_completed']
+    r['turns_completed_update'] = update_where(['turn'], [tc.c.branch])
 
     return r
 

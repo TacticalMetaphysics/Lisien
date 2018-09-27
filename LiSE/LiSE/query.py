@@ -781,6 +781,15 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield child
             yield from self.branch_descendants(child)
 
+    def turns_completed_dump(self):
+        return self.sql('turns_completed_dump')
+
+    def complete_turn(self, branch, turn):
+        try:
+            self.sql('turns_completed_insert', branch, turn)
+        except IntegrityError:
+            self.sql('turns_completed_update', turn, branch)
+
     def initdb(self):
         """Set up the database schema, both for allegedb and the special
         extensions for LiSE
@@ -810,6 +819,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             'portal_rules_handled',
             'rule_triggers',
             'rule_prereqs',
-            'rule_actions'
+            'rule_actions',
+            'turns_completed'
         ):
             self.init_table(table)
