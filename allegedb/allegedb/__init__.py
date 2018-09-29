@@ -33,7 +33,7 @@ from .window import HistoryError
 
 
 class GraphNameError(KeyError):
-    pass
+    """For errors involving graphs' names"""
 
 
 class PlanningContext(ContextDecorator):
@@ -41,13 +41,16 @@ class PlanningContext(ContextDecorator):
 
     Start a block of code like:
 
-    with orm.plan:
+    ```
+    with orm.plan():
         ...
+    ```
 
     and any changes you make to the world state within that block will be
     'plans,' meaning that they are used as defaults. The world will
     obey your plan unless you make changes to the same entities outside
-    of the plan, in which case the world will obey those.
+    of the plan, in which case the world will obey those, and cancel any
+    future plan.
 
     New branches cannot be started within plans.
 
@@ -70,7 +73,12 @@ class PlanningContext(ContextDecorator):
 
 
 class TimeSignal(Signal):
-    """Acts like a tuple of the time in (branch, turn) for the most part.
+    """Acts like a list of ``[branch, turn]`` for the most part.
+
+    You can set these to new values, or even replace them with a whole new
+    ``[branch, turn]`` if you wish. It's even possible to use the strings
+    ``'branch'`` or ``'turn'`` in the place of indices, but at that point
+    you might prefer to set ``engine.branch`` or ``engine.turn`` directly.
 
     This is a Signal, so pass a function to the connect(...) method and
     it will be called whenever the time changes. Not when the tick
