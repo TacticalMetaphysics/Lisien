@@ -1202,7 +1202,7 @@ class Engine(AbstractEngine, gORM):
         return actres
 
     def _follow_rules(self):
-        # TODO: apply changes to a facade first, and commit it when you're done. Then report changes to the facade
+        # TODO: roll back changes done by rules that raise an exception
         from collections import defaultdict
         branch, turn, tick = self.btt()
         charmap = self.character
