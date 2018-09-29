@@ -159,8 +159,8 @@ class TimeSignalDescriptor:
         # make sure I'll end up within the revision range of the
         # destination branch
         branches = e._branches
-        tick_now = e._turn_end_plan[branch_now, turn_now]  # defaults to 0
         if branch_now in branches:
+            tick_now = e._turn_end_plan[branch_now, turn_now]  # defaults to 0
             parent, turn_start, tick_start, turn_end, tick_end = branches[branch_now]
             if turn_now < turn_start:
                 raise ValueError(
@@ -184,6 +184,7 @@ class TimeSignalDescriptor:
             ):
                 branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
         else:
+            tick_now = tick_then
             branches[branch_now] = (
                 branch_then, turn_now, tick_now, turn_now, tick_now
             )
