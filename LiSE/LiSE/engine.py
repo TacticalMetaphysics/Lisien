@@ -869,7 +869,7 @@ class Engine(AbstractEngine, gORM):
         self._character_portal_rules_handled_cache \
             = CharacterPortalRulesHandledCache(self)
         self._avatarness_cache = AvatarnessCache(self)
-        self._turns_completed = defaultdict(lambda: 0)
+        self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
         """The last turn when the rules engine ran in each branch"""
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
