@@ -631,7 +631,15 @@ class ORM(object):
             self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
-    branch = property(_get_branch, _set_branch)  # easier to override this way
+
+    # easier to override things this way
+    @property
+    def branch(self):
+        return self._get_branch()
+
+    @branch.setter
+    def branch(self, v):
+        self._set_branch(v)
 
     def _get_turn(self):
         return self._oturn
@@ -660,7 +668,15 @@ class ORM(object):
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
-    turn = property(_get_turn, _set_turn)  # easier to override this way
+
+    # easier to override things this way
+    @property
+    def turn(self):
+        return self._get_turn()
+
+    @turn.setter
+    def turn(self, v):
+        self._set_turn(v)
 
     def _get_tick(self):
         return self._otick
@@ -681,7 +697,15 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
-    tick = property(_get_tick, _set_tick)  # easier to override this way
+
+    # easier to override things this way
+    @property
+    def tick(self):
+        return self._get_tick()
+
+    @tick.setter
+    def tick(self, v):
+        self._set_tick(v)
 
     def btt(self):
         """Return the branch, turn, and tick."""
