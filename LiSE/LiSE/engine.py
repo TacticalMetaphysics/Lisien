@@ -1330,7 +1330,11 @@ class Engine(AbstractEngine, gORM):
                     raise InnerStopIteration
 
     def advance(self):
-        """Follow the next rule if available, or advance to the next turn."""
+        """Follow the next rule if available.
+
+        If we've run out of rules, reset the rules iterator.
+
+        """
         try:
             return next(self._rules_iter)
         except InnerStopIteration:
