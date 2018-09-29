@@ -1203,6 +1203,7 @@ class Engine(AbstractEngine, gORM):
 
     def _follow_rules(self):
         # TODO: roll back changes done by rules that raise an exception
+        # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         from collections import defaultdict
         branch, turn, tick = self.btt()
         charmap = self.character
@@ -1256,7 +1257,6 @@ class Engine(AbstractEngine, gORM):
                     charmap[charn].portal[orign][destn]
                 ) if self._edge_exists(charn, orign, destn) else None
             }[tup[0]](*tup[1:])
-        # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         for (
             charactername, rulebook, rulename
         ) in self._character_rules_handled_cache.iter_unhandled_rules(
