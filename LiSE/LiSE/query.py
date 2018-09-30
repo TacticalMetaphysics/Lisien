@@ -504,10 +504,10 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield self.unpack(character), sense, branch, turn, tick, function
 
     def things_dump(self):
-        for character, thing, branch, turn, tick, location, next_location in self.sql('things_dump'):
+        for character, thing, branch, turn, tick, location in self.sql('things_dump'):
             yield (
                 self.unpack(character), self.unpack(thing), branch, turn, tick,
-                self.unpack(location), self.unpack(next_location) if next_location else None
+                self.unpack(location)
             )
 
     def avatars_dump(self):
@@ -732,15 +732,14 @@ class QueryEngine(allegedb.query.QueryEngine):
             return self.unpack(book)
         raise KeyError("No rulebook")
 
-    def thing_loc_and_next_set(
-            self, character, thing, branch, turn, tick, loc, nextloc
+    def set_thing_loc(
+            self, character, thing, branch, turn, tick, loc
     ):
         (character, thing) = map(
             self.pack,
             (character, thing)
         )
         loc = self.pack(loc)
-        nextloc = self.pack(nextloc)
         self.sql('del_things_after', character, thing, branch, turn, turn, tick)
         self.sql(
             'things_insert',
@@ -749,8 +748,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             branch,
             turn,
             tick,
-            loc,
-            nextloc
+            loc
         )
 
     def avatar_set(self, character, graph, node, branch, turn, tick, isav):

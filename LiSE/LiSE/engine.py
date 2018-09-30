@@ -545,7 +545,7 @@ class Engine(AbstractEngine, gORM):
         * 'character_portal_rulebook'
 
         And each node and edge may have a 'rulebook' stat of its own. If a node is a thing,
-        it gets a 'location' and possibly 'next_location'; when the 'location' is deleted,
+        it gets a 'location'; when the 'location' is deleted,
         that means it's back to being a place.
 
         Keys at the top level that are not character names:
@@ -603,20 +603,15 @@ class Engine(AbstractEngine, gORM):
         if branch in avbranches:
             updater(updav, avbranches[branch])
 
-        def updthing(char, thing, locs):
+        def updthing(char, thing, loc):
             if (
                 char in delta and 'nodes' in delta[char]
                 and thing in delta[char]['nodes'] and not
                 delta[char]['nodes'][thing]
             ):
                 return
-            if locs is None:
-                loc = nxtloc = None
-            else:
-                loc, nxtloc = locs
             thingd = delta.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
             thingd['location'] = loc
-            thingd['next_location'] = nxtloc
         if branch in thbranches:
             updater(updthing, thbranches[branch])
         # TODO handle arrival_time and next_arrival_time stats of things
@@ -700,10 +695,9 @@ class Engine(AbstractEngine, gORM):
             for chara, graph, node, is_av in self._avatarness_cache.settings[branch][turn][start_tick:tick]:
                 delta.setdefault(chara, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = is_av
         if branch in self._things_cache.settings and turn in self._things_cache.settings[branch]:
-            for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
+            for chara, thing, location in self._things_cache.settings[branch][turn][start_tick:tick]:
                 thingd = delta.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
                 thingd['location'] = location
-                thingd['next_location'] = next_location
         delta['rulebooks'] = rbdif = {}
         if branch in self._rulebooks_cache.settings and turn in self._rulebooks_cache.settings[branch]:
             for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
@@ -844,7 +838,6 @@ class Engine(AbstractEngine, gORM):
         self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self._node_contents_cache = Cache(self)
-        self._portal_contents_cache = Cache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = InitializedEntitylessCache(self)
@@ -990,11 +983,7 @@ class Engine(AbstractEngine, gORM):
     def _init_load(self, validate=False):
         from .rule import Rule
         q = self.query
-        self._things_cache.load((
-            (character, thing, branch, turn, tick, (location, next_location))
-            for character, thing, branch, turn, tick, location, next_location
-            in q.things_dump()
-        ), validate)
+        self._things_cache.load(q.things_dump(), validate)
         super()._init_load(validate=validate)
         self._avatarness_cache.load(q.avatars_dump(), validate)
         self._universal_cache.load(q.universals_dump(), validate)
@@ -1179,6 +1168,7 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _follow_rule(self, rule, handled_fun, branch, turn, *args):
+        self.debug("following rule: " + repr(rule))
         satisfied = True
         for prereq in rule.prereqs:
             res = prereq(*args)
@@ -1380,19 +1370,18 @@ class Engine(AbstractEngine, gORM):
     def _is_thing(self, character, node):
         return self._things_cache.contains_entity(character, node, *self.btt())
 
-    def _set_thing_loc_and_next(
-            self, character, node, loc, nextloc=None
+    def _set_thing_loc(
+            self, character, node, loc
     ):
         branch, turn, tick = self.nbtt()
-        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
-        self.query.thing_loc_and_next_set(
+        self._things_cache.store(character, node, branch, turn, tick, loc)
+        self.query.set_thing_loc(
             character,
             node,
             branch,
             turn,
             tick,
-            loc,
-            nextloc
+            loc
         )
 
     def alias(self, v, stat='dummy'):

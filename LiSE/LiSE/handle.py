@@ -211,7 +211,7 @@ class EngineHandle(object):
             for node, val in d.pop('node_val', {}).items():
                 nodenvd = nodevd.setdefault(node, {})
                 for k, v in val.items():
-                    if k not in ('location', 'next_location') and v is None:
+                    if k != 'location' and v is None:
                         if k in nodenvd:
                             del nodenvd[k]
                     else:
@@ -904,18 +904,6 @@ class EngineHandle(object):
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
         self._node_stat_cache.setdefault(char, {}).setdefault(thing, {})['location'] = loc
-
-    def get_thing_special_stats(self, char, thing):
-        try:
-            thing = self._real.character[char].thing[thing]
-        except KeyError:
-            return (None, None, None, None)
-        return (
-            thing['location'],
-            thing['next_location'],
-            thing['arrival_time'],
-            thing['next_arrival_time']
-        )
 
     @timely
     def thing_follow_path(self, char, thing, path, weight):

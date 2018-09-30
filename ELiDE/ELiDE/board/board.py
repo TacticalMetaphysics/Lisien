@@ -657,14 +657,7 @@ class Board(RelativeLayout):
             thingn not in self.pawn
         ):
             pwn = self.make_pawn(self.character.thing[thingn])
-            locn = pwn.thing['location']
-            nextlocn = pwn.thing['next_location']
-            if nextlocn is None:
-                self.add_spot(nextlocn)
-                whereat = self.spot[locn]
-            else:
-                self.add_arrow(locn, nextlocn)
-                whereat = self.arrow[locn][nextlocn]
+            whereat = self.spot[pwn.thing['location']]
             whereat.add_widget(pwn)
             self.pawn[thingn] = pwn
 
@@ -704,14 +697,7 @@ class Board(RelativeLayout):
         for thing in things2add:
             pwn = self.make_pawn(thing)
             pawns_added.append(pwn)
-            try:
-                whereat = self.arrow[
-                    thing['location']
-                ][
-                    thing['next_location']
-                ]
-            except KeyError:
-                whereat = self.spot[thing['location']]
+            whereat = self.spot[thing['location']]
             whereat.add_widget(pwn)
 
     def update(self, *args):
@@ -769,8 +755,6 @@ class Board(RelativeLayout):
                 pawn = self.pawn[node]
                 if 'location' in stats:
                     pawn.loc_name = stats['location']
-                if 'next_location' in stats:
-                    pawn.next_loc_name = stats['next_location']
                 if '_image_paths' in stats:
                     pawn.paths = stats['_image_paths'] or pawn.default_image_paths
             else:
