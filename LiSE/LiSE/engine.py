@@ -835,7 +835,6 @@ class Engine(AbstractEngine, gORM):
         from .rule import AllRuleBooks, AllRules
 
         super()._init_caches()
-        self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self._node_contents_cache = Cache(self)
         self.character = self.graph = CharacterMapping(self)

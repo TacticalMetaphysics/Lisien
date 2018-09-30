@@ -1655,13 +1655,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self.container.send(self, **kwargs)
 
             def __getitem__(self, dest):
-                key = (self.graph.name, self.orig, dest)
                 if dest in self:
-                    if key not in self.engine._portal_objs:
-                        self.engine._portal_objs[key] = Portal(
-                            self.graph, self.orig, dest
-                        )
-                    return self.engine._portal_objs[key]
+                    return self.engine._get_edge(self.graph, self.orig, dest, 0)
                 raise KeyError("No such portal: {}->{}".format(
                     self.orig, dest
                 ))
@@ -1672,12 +1667,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     self.orig,
                     dest
                 )
-                key = (self.graph.name, self.orig, dest)
-                if key not in self.engine._portal_objs:
-                    self.engine._portal_objs[key] = Portal(
-                        self.graph, self.orig, dest
-                    )
-                p = self.engine._portal_objs[key]
+                p = self.engine._get_edge(self.graph, self.orig, dest, 0)
                 p.clear()
                 p.update(value)
                 self.send(self, key=dest, val=p)
