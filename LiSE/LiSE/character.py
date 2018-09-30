@@ -1373,11 +1373,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     Nodes in a Character are subcategorized into Things and
     Places. Things have locations, and those locations may be Places
-    or other Things. A Thing might also travel, in which case, though
-    it will spend its travel time located in its origin node, it may
-    spend some time contained by a Portal (i.e. an edge specialized
-    for Character). If a Thing is not contained by a Portal, it's
-    contained by whatever it's located in.
+    or other Things.
 
     Characters may have avatars in other Characters. These are just
     nodes. You can apply rules to a Character's avatars, and thus to
