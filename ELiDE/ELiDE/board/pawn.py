@@ -40,7 +40,6 @@ class Pawn(PawnSpot):
 
     """
     loc_name = ObjectProperty()
-    next_loc_name = ObjectProperty(None, allownone=True)
     thing = AliasProperty(
         lambda self: self.proxy,
         lambda self, v: self.proxy.setter()(v),
@@ -55,7 +54,6 @@ class Pawn(PawnSpot):
             del kwargs['thing']
         if 'proxy' in kwargs:
             kwargs['loc_name'] = kwargs['proxy']['location']
-            kwargs['next_loc_name'] = kwargs['proxy']['next_location']
         super().__init__(**kwargs)
         self.register_event_type('on_drop')
 
@@ -63,8 +61,7 @@ class Pawn(PawnSpot):
         if self.parent:
             self.board = self.parent.board
             self.bind(
-                loc_name=self._trigger_relocate,
-                next_loc_name=self._trigger_relocate
+                loc_name=self._trigger_relocate
             )
             if self.proxy:
                 self._trigger_relocate()
@@ -82,7 +79,6 @@ class Pawn(PawnSpot):
     def finalize(self, initial=True):
         if initial:
             self.loc_name = self.proxy['location']
-            self.next_loc_name = self.proxy.get('next_location', None)
             self.priority = self.proxy.get('_priority', 0.0)
         self.bind(
             loc_name=self._trigger_push_location
@@ -100,9 +96,6 @@ class Pawn(PawnSpot):
         relocate = False
         if self.loc_name != self.proxy['location']:
             self.loc_name = self.proxy['location']  # aliasing? could be trouble
-            relocate = True
-        if self.next_loc_name != self.proxy['next_location']:
-            self.next_loc_name = self.proxy['next_location']
             relocate = True
         if '_priority' in self.proxy:
             self.priority = self.proxy['_priority']

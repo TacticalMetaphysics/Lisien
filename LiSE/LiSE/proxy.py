@@ -301,41 +301,21 @@ class ThingProxy(NodeProxy):
             raise TypeError("Location must be a node or the name of one")
         self._set_location(locn)
 
-    @property
-    def next_location(self):
-        if self._next_location is None:
-            return None
-        return self.engine.character[self._charname].node[self._next_location]
-
     def __init__(
-            self, character, name, location=None, next_location=None,
-            arrival_time=None, next_arrival_time=None
+            self, character, name, location=None
     ):
         if location is None and getattr(character.engine, '_initialized', True):
             raise ValueError("Thing must have location")
         super().__init__(character, name)
         self._location = location
-        self._next_location = next_location
-        self._arrival_time = arrival_time or character.engine.turn
-        self._next_arrival_time = next_arrival_time
 
     def __iter__(self):
         yield from super().__iter__()
-        yield from {
-            'location',
-            'next_location',
-            'arrival_time',
-            'next_arrival_time'
-        }
+        yield 'location'
 
     def __getitem__(self, k):
-        if k in {
-                'location',
-                'next_location',
-                'arrival_time',
-                'next_arrival_time'
-        }:
-            return getattr(self, '_' + k)
+        if k == 'location':
+            return self._location
         return super().__getitem__(k)
 
     def _apply_delta(self, delta):
@@ -344,8 +324,8 @@ class ThingProxy(NodeProxy):
                 if k in self._cache:
                     del self._cache[k]
                     self.send(self, key=k, value=None)
-            elif k in {'location', 'next_location'}:
-                setattr(self, '_'+k, v)
+            elif k == 'location':
+                self._location = v
                 self.send(self, key=k, value=v)
             elif k not in self._cache or self._cache[k] != v:
                 self._cache[k] = v
@@ -366,20 +346,10 @@ class ThingProxy(NodeProxy):
     def __setitem__(self, k, v):
         if k == 'location':
             self._set_location(v)
-        elif k in {'next_location', 'arrival_time', 'next_arrival_time'}:
-            raise ValueError("Read-only")
         else:
             super().__setitem__(k, v)
 
     def __repr__(self):
-        if self._next_location is not None:
-            return "<proxy to {}.thing[{}]@{}->{} at {}>".format(
-                self._charname,
-                self.name,
-                self._location,
-                self._next_location,
-                id(self)
-            )
         return "<proxy to {}.thing[{}]@{} at {}>".format(
             self._charname,
             self.name,
@@ -688,9 +658,7 @@ class ThingMapProxy(CachingProxy):
             branching=True
         )
         self._cache[k] = ThingProxy(
-            self.engine, self.name,
-            v.pop('location'), v.pop('next_location', None),
-            v.pop('arrival_time', None), v.pop('next_arrival_time', None)
+            self.engine, self.name, v.pop('location')
         )
         self.engine._node_stat_cache[self.name][k] = v
 
@@ -1349,9 +1317,7 @@ class CharacterProxy(AbstractCharacter):
                     nodeval = delta.get('node_val', {}).get(node, None)
                     if nodeval and 'location' in nodeval:
                         self.thing._cache[node] = prox = ThingProxy(
-                            self, node, nodeval['location'],
-                            nodeval.get('next_location'), nodeval.get('arrival_time'),
-                            nodeval.get('next_arrival_time')
+                            self, node, nodeval['location']
                         )
                         self.thing.send(self.thing, key=node, value=prox)
                     else:
@@ -1435,7 +1401,7 @@ class CharacterProxy(AbstractCharacter):
             branching=True
         )
         self.thing._cache[name] = ThingProxy(
-            self, name, location, kwargs.get('next_location'), self.engine.turn, None
+            self, name, location
         )
 
     def add_things_from(self, seq):
@@ -1459,13 +1425,12 @@ class CharacterProxy(AbstractCharacter):
         self.add_thing(name, location, **kwargs)
         return self.thing[name]
 
-    def place2thing(self, node, location, next_location=None):
+    def place2thing(self, node, location):
         self.engine.handle(
             command='place2thing',
             char=self.name,
             node=node,
             loc=location,
-            next_loc=next_location,
             block=False,
             branching=True
         )
@@ -2097,9 +2062,7 @@ class EngineProxy(AbstractEngine):
                         noded = self._node_stat_cache[char].get(node)
                         if noded and 'location' in noded:
                             self._things_cache[char][node] = ThingProxy(
-                                character, node, noded['location'],
-                                noded.get('next_location'), noded.get('arrival_time'),
-                                noded.get('next_arrival_time')
+                                character, node, noded['location']
                             )
                         else:
                             self._character_places_cache[char][node] = PlaceProxy(
@@ -2465,10 +2428,8 @@ class EngineProxy(AbstractEngine):
             if 'arrival_time' in stats or 'next_arrival_time' in stats:
                 raise ValueError('The arrival_time stats are read-only')
             loc = stats.pop('location')
-            nxtloc = stats.pop('next_location') \
-                     if 'next_location' in stats else None
             self._things_cache[char][thing] \
-                = ThingProxy(loc, nxtloc, self.engine.rev, None)
+                = ThingProxy(char, thing, loc)
             self._node_stat_cache[char][thing] = stats
         portdata = data.get('edge', data.get('portal', data.get('adj',  {})))
         for orig, dests in portdata.items():
@@ -2478,7 +2439,7 @@ class EngineProxy(AbstractEngine):
                 assert dest not in self._character_portals_cache[char][orig]
                 assert dest not in self._portal_stat_cache[char][orig]
                 self._character_portals_cache[char][orig][dest] \
-                    = PortalProxy(self.engine, char, orig, dest)
+                    = PortalProxy(self.engine.character[char], orig, dest)
                 self._portal_stat_cache[char][orig][dest] = stats
         self.handle(
             command='add_character', char=char, data=data, attr=attr,

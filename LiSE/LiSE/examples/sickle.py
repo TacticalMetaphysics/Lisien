@@ -155,12 +155,11 @@ def install(
 
     @wander.trigger
     def not_travelling(critter):
-        return critter['next_location'] is None
+        return critter.next_location is None
 
     @wander.prereq
     def big_map(critter):
         return len(critter.character.place) > 1
-
 
 
 def sickle_cell_test(

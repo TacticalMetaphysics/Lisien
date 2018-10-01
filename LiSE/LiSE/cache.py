@@ -464,11 +464,11 @@ class ThingsCache(Cache):
         self._make_node = db.thing_cls
 
     def _store(self, *args, planning):
-        character, thing, branch, turn, tick, (location, next_location) = args
+        character, thing, branch, turn, tick, location = args
         try:
-            oldloc, oldnxtloc = self.retrieve(character, thing, branch, turn, tick)
+            oldloc = self.retrieve(character, thing, branch, turn, tick)
         except KeyError:
-            oldloc = oldnxtloc = None
+            oldloc = None
         super()._store(*args, planning=planning)
         if oldloc is not None:
             oldnodecont = self.db._node_contents_cache.retrieve(
@@ -476,14 +476,6 @@ class ThingsCache(Cache):
             )
             self.db._node_contents_cache.store(
                 character, thing, branch, turn, tick, oldnodecont.difference((thing,))
-            )
-        if oldnxtloc is not None:
-            oldedgecont = self.db._portal_contents_cache.retrieve(
-                character, oldloc, oldnxtloc, branch, turn, tick
-            )
-            self.db._portal_contents_cache.store(
-                character, oldloc, oldnxtloc, branch, turn, tick,
-                oldedgecont.difference((thing,))
             )
         try:
             newnodecont = self.db._node_contents_cache.retrieve(
@@ -495,19 +487,6 @@ class ThingsCache(Cache):
             character, location, branch, turn, tick,
             newnodecont.union((thing,))
         )
-        if next_location is not None:
-            try:
-                newedgecont = self.db._portal_contents_cache.retrieve(
-                    character, location, next_location,
-                    branch, turn, tick
-                )
-            except KeyError:
-                newedgecont = frozenset()
-            self.db._portal_contents_cache.store(
-                character, location, next_location,
-                branch, turn, tick,
-                newedgecont.union((thing,))
-            )
 
     def turn_before(self, character, thing, branch, turn):
         try:

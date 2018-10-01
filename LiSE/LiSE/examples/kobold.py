@@ -111,9 +111,11 @@ def inittest(
 
     @shrubsprint.prereq
     def not_traveling(thing):
-        if thing['next_location'] is not None:
-            thing.engine.info("kobold already travelling to {}".format(thing['next_location']))
-        return thing['next_location'] is None
+        if thing.next_location is not None:
+            thing.engine.info("kobold already travelling to {}".format(thing.next_location))
+            return False
+        else:
+            return True
 
     @engine.method
     def set_kill_flag(eng):
@@ -189,7 +191,7 @@ def inittest(
 
     @wander.trigger
     def standing_still(thing):
-        return thing['next_location'] is None
+        return thing.next_location is None
 
 
 if __name__ == '__main__':
