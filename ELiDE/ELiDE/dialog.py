@@ -88,7 +88,7 @@ class DialogMenu(Box):
         for txt, part in self.options:
             if not callable(part):
                 raise TypeError("Menu options must be callable")
-            layout.add_widget(Button(text=txt, on_press=part, font_name=self.font_name, font_size=self.font_size))
+            layout.add_widget(Button(text=txt, on_release=part, font_name=self.font_name, font_size=self.font_size))
         self.add_widget(self._sv)
 
 

@@ -504,10 +504,10 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield self.unpack(character), sense, branch, turn, tick, function
 
     def things_dump(self):
-        for character, thing, branch, turn, tick, location, next_location in self.sql('things_dump'):
+        for character, thing, branch, turn, tick, location in self.sql('things_dump'):
             yield (
                 self.unpack(character), self.unpack(thing), branch, turn, tick,
-                self.unpack(location), self.unpack(next_location) if next_location else None
+                self.unpack(location)
             )
 
     def avatars_dump(self):
@@ -627,7 +627,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             tick,
         )
 
-    def handled_avatar_rule(self, character, graph, av, rulebook, rule, branch, turn, tick):
+    def handled_avatar_rule(self, character,  rulebook, rule, graph, av, branch, turn, tick):
         character, graph, av, rulebook = map(
             self.pack, (character, graph, av, rulebook)
         )
@@ -638,6 +638,52 @@ class QueryEngine(allegedb.query.QueryEngine):
             rule,
             graph,
             av,
+            branch,
+            turn,
+            tick
+        )
+
+    def handled_character_thing_rule(self, character, rulebook, rule, thing, branch, turn, tick):
+        character, thing, rulebook = map(
+            self.pack, (character, thing, rulebook)
+        )
+        return self.sql(
+            'character_thing_rules_handled_insert',
+            character,
+            rulebook,
+            rule,
+            thing,
+            branch,
+            turn,
+            tick
+        )
+
+    def handled_character_place_rule(self, character, rulebook, rule, place, branch, turn, tick):
+        character, rulebook, place = map(
+            self.pack, (character, rulebook, place)
+        )
+        return self.sql(
+            'character_place_rules_handled_insert',
+            character,
+            rulebook,
+            rule,
+            place,
+            branch,
+            turn,
+            tick
+        )
+
+    def handled_character_portal_rule(self, character, rulebook, rule, orig, dest, branch, turn, tick):
+        character, rulebook, orig, dest = map(
+            self.pack, (character, rulebook, orig, dest)
+        )
+        return self.sql(
+            'character_portal_rules_handled_insert',
+            character,
+            rulebook,
+            rule,
+            orig,
+            dest,
             branch,
             turn,
             tick
@@ -686,15 +732,14 @@ class QueryEngine(allegedb.query.QueryEngine):
             return self.unpack(book)
         raise KeyError("No rulebook")
 
-    def thing_loc_and_next_set(
-            self, character, thing, branch, turn, tick, loc, nextloc
+    def set_thing_loc(
+            self, character, thing, branch, turn, tick, loc
     ):
         (character, thing) = map(
             self.pack,
             (character, thing)
         )
         loc = self.pack(loc)
-        nextloc = self.pack(nextloc)
         self.sql('del_things_after', character, thing, branch, turn, turn, tick)
         self.sql(
             'things_insert',
@@ -703,8 +748,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             branch,
             turn,
             tick,
-            loc,
-            nextloc
+            loc
         )
 
     def avatar_set(self, character, graph, node, branch, turn, tick, isav):
@@ -735,6 +779,15 @@ class QueryEngine(allegedb.query.QueryEngine):
             yield child
             yield from self.branch_descendants(child)
 
+    def turns_completed_dump(self):
+        return self.sql('turns_completed_dump')
+
+    def complete_turn(self, branch, turn):
+        try:
+            self.sql('turns_completed_insert', branch, turn)
+        except IntegrityError:
+            self.sql('turns_completed_update', turn, branch)
+
     def initdb(self):
         """Set up the database schema, both for allegedb and the special
         extensions for LiSE
@@ -764,6 +817,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             'portal_rules_handled',
             'rule_triggers',
             'rule_prereqs',
-            'rule_actions'
+            'rule_actions',
+            'turns_completed'
         ):
             self.init_table(table)

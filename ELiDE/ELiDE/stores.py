@@ -21,16 +21,12 @@ like a dictionary. Each of the widgets defined here,
 buttons with which the user may select one of the keys in the store,
 and edit its value in a text box.
 
-Though they retrieve data the same way, these widgets have different
-ways of saving data -- the contents of the :class:`FuncsEditor` input
-will be compiled into Python bytecode, stored along with the source
-code.
-
 """
 import re
 import string
 from functools import partial
 from ast import parse
+from textwrap import indent, dedent
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -317,7 +313,7 @@ class EdBox(BoxLayout):
         self.save()
         self.toggle()
 
-    def save(self, *args):
+    def save(self, *args, name=None):
         if not self.editor:
             return
         if hasattr(self, '_lock_save'):
@@ -325,15 +321,14 @@ class EdBox(BoxLayout):
         self._lock_save = True
         save_select = self.editor.save()
         if save_select:
-            name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
             self.storelist.redata(select_name=name)
         else:
             del self._lock_save
 
     def _trigger_save(self, name=None):
-        self._select_name = name
-        Clock.unschedule(self.save)
-        Clock.schedule_once(self.save, 0)
+        part = partial(self.save, name=name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def delete(self, *args):
         if not self.editor:
@@ -347,6 +342,9 @@ class EdBox(BoxLayout):
         else:
             del self._lock_save
     _trigger_delete = trigger(delete)
+
+    def on_store(self, *args):
+        pass
 
 
 class StringNameInput(TextInput):
@@ -389,7 +387,8 @@ class FunctionNameInput(TextInput):
             self._trigger_save(self.text)
 
 
-def munge_source(v, spaces=4):
+def munge_source(v):
+    """Take Python source code, return its parameters and the rest of it dedented"""
     lines = v.split('\n')
     if not lines:
         return tuple(), ''
@@ -398,14 +397,6 @@ def munge_source(v, spaces=4):
         del lines[0]
     if not lines:
         return tuple(), ''
-    # how indented is it?
-    for ch in lines[0]:
-        if ch == ' ':
-            spaces += 1
-        elif ch == '\t':
-            spaces += 4
-        else:
-            break
     params = tuple(
         parm.strip() for parm in
         sig_ex.match(lines[0]).group(1).split(',')
@@ -416,15 +407,14 @@ def munge_source(v, spaces=4):
     # hack to allow 'empty' functions
     if lines and lines[-1].strip() == 'pass':
         del lines[-1]
-    return params, '\n'.join(line[spaces:] for line in lines)
+    return params, dedent('\n'.join(lines))
 
 
 class FuncEditor(Editor):
     """The editor widget for working with any particular function.
 
-    Contains a one-line field for the function's name; a multi-line
-    field for its code; and radio buttons to select its signature
-    from among those permitted.
+    Contains a one-line field for the function's name and a multi-line
+    field for its code.
 
     """
     storelist = ObjectProperty()
@@ -436,8 +426,7 @@ class FuncEditor(Editor):
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
         if self._text:
-            for line in self._text.split('\n'):
-                code += (' ' * 4 + line + '\n')
+            code += indent(self._text, ' ' * 4)
         else:
             code += ' ' * 4 + 'pass'
         return code.rstrip(' \n\t')
@@ -466,9 +455,7 @@ class FuncsEdBox(EdBox):
     """Widget for editing the Python source of funcs to be used in LiSE sims.
 
     Contains a list of functions in the store it's about, next to a
-    FuncEditor showing the source of the selected one, and some
-    controls on the bottom that let you add, delete, and rename the function,
-    or close the screen.
+    FuncEditor showing the source of the selected one, and a close button.
 
     """
 
@@ -522,7 +509,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     TextInput:
         id: string
         disabled: root.disable_text_input
@@ -559,7 +546,7 @@ Builder.load_string("""
             size_hint_y: 0.05
             Button:
                 text: 'Close'
-                on_press: edbox.dismiss()
+                on_release: edbox.dismiss()
             Label:
                 text_size: self.size
                 halign: 'right'
@@ -609,7 +596,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     BoxLayout:
         orientation: 'horizontal'
         Label:
@@ -632,6 +619,7 @@ Builder.load_string("""
     editor: funcs_ed
     storelist: funcs_list
     orientation: 'vertical'
+    data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
     BoxLayout:
         orientation: 'horizontal'
         BoxLayout:
@@ -654,7 +642,7 @@ Builder.load_string("""
         size_hint_y: 0.05
         Button:
             text: 'Close'
-            on_press: root.dismiss()
+            on_release: root.dismiss()
             size_hint_x: 0.2
         Widget:
             id: spacer
@@ -671,7 +659,7 @@ Builder.load_string("""
                 toggle: root.toggle
                 table: 'triggers'
                 store: app.engine.trigger
-                on_data: app.rules.rulesview._trigger_pull_triggers()
+                on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: prereq
             text: 'Prereq'
@@ -681,7 +669,7 @@ Builder.load_string("""
                 toggle: root.toggle
                 table: 'prereqs'
                 store: app.engine.prereq
-                on_data: app.rules.rulesview._trigger_pull_prereqs()
+                on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: action
             text: 'Action'
@@ -691,5 +679,5 @@ Builder.load_string("""
                 toggle: root.toggle
                 table: 'actions'
                 store: app.engine.action
-                on_data: app.rules.rulesview._trigger_pull_actions()
+                on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)

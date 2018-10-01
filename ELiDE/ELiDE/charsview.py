@@ -122,10 +122,10 @@ Builder.load_string("""
             multiline: False
         Button:
             text: '+'
-            on_press: root._trigger_new_character(newname.text)
+            on_release: root._trigger_new_character(newname.text)
             size_hint_y: 0.05
         Button:
             text: 'Close'
-            on_press: root.toggle()
+            on_release: root.toggle()
             size_hint_y: 0.05
 """)

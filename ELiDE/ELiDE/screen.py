@@ -21,6 +21,8 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
+from ast import literal_eval
+
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -32,6 +34,7 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
+    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty,
@@ -52,13 +55,13 @@ class StatListPanel(BoxLayout):
     the selected entity, defaulting to those of the character being
     viewed.
 
-    Has a 'cfg' button on the bottom to open the StatWindow in which
+    Has a button on the bottom to open the StatWindow in which
     to add and delete stats, or to change the way they are displayed
     in the StatListPanel.
 
     """
     selection_name = StringProperty()
-    button_text = StringProperty('cfg')
+    button_text = StringProperty('Configure stats')
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
@@ -74,7 +77,7 @@ class StatListPanel(BoxLayout):
             del self.proxy[k]
         else:
             try:
-                vv = self.engine.unpack(v)
+                vv = literal_eval(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv
@@ -95,6 +98,18 @@ class TimePanel(BoxLayout):
 
     """
     screen = ObjectProperty()
+    buttons_font_size = NumericProperty(18)
+    graphics_top = NumericProperty()
+    graphics_bot = NumericProperty()
+    graphics_center_y = NumericProperty()
+    play_arrow_left = NumericProperty()
+    play_arrow_right = NumericProperty()
+    step_arrow_left = NumericProperty()
+    step_center_x = NumericProperty()
+    step_bar_right = NumericProperty()
+    play_arrow_points = ListProperty([0] * 6)
+    step_arrow_points = ListProperty([0] * 6)
+    step_rect_points = ListProperty([0] * 8)
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -328,19 +343,54 @@ Builder.load_string(
         id: cfgstatbut
         size_hint_y: 0.05
         text: root.button_text
-        on_press: root.toggle_stat_cfg()
+        on_release: root.toggle_stat_cfg()
 <TimePanel>:
     playbut: playbut
+    play_arrow_left: playbut.center_x - playbut.width / 6
+    play_arrow_right: playbut.center_x + playbut.width / 6
+    graphics_top: self.y + self.buttons_font_size + (self.height - self.buttons_font_size) * (3/4)
+    graphics_bot: self.y + self.buttons_font_size
+    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+    step_arrow_left: stepbut.center_x - (stepbut.width / 3)
+    step_center_x: stepbut.center_x + stepbut.width / 6.9
+    step_bar_right: stepbut.center_x + stepbut.width / 3
+    play_arrow_points: root.play_arrow_left, root.graphics_top, root.play_arrow_right, root.graphics_center_y, root.play_arrow_left, root.graphics_bot
+    step_arrow_points: root.step_arrow_left, root.graphics_top, root.step_center_x, root.graphics_center_y, root.step_arrow_left, root.graphics_bot
+    step_rect_points: root.step_center_x, root.graphics_top, root.step_bar_right, root.graphics_top, root.step_bar_right, root.graphics_bot, root.step_center_x, root.graphics_bot
     BoxLayout:
-        orientation: 'vertical'
         ToggleButton:
             id: playbut
-            font_size: 40
-            text: '>'
+            canvas:
+                Triangle:
+                    points: root.play_arrow_points
+                SmoothLine:
+                    points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
+            Label:
+                id: playlabel
+                font_size: root.buttons_font_size - 3
+                center_x: playbut.center_x
+                y: playbut.y
+                size: self.texture_size
+                text: 'Simulate'
         Button:
-            text: 'Next turn'
-            size_hint_y: 0.3
-            on_press: root.screen.next_turn()
+            id: stepbut
+            size_hint_x: 0.3
+            on_release: root.screen.next_turn()
+            canvas:
+                Triangle:
+                    points: root.step_arrow_points
+                Quad:
+                    points: root.step_rect_points 
+                SmoothLine:
+                    points: root.step_arrow_points
+                SmoothLine:
+                    points: root.step_rect_points 
+            Label:
+                font_size: root.buttons_font_size - 3
+                center_x: stepbut.center_x
+                y: stepbut.y
+                size: self.texture_size
+                text: '1 turn'
     BoxLayout:
         orientation: 'vertical'
         Label:

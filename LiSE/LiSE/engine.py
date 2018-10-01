@@ -6,14 +6,32 @@ flow of time.
 
 """
 from functools import partial
+from collections import defaultdict
+from operator import attrgetter
 from types import FunctionType, MethodType
 
 import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM
-from .util import getatt, reify, sort_set
+from .util import reify, sort_set
 
 from . import exc
+
+
+class NoPlanningAttrGetter:
+    __slots__ = ('_real',)
+
+    def __init__(self, attr, *attrs):
+        self._real = attrgetter(attr, *attrs)
+
+    def __call__(self, obj):
+        if obj._planning:
+            raise exc.PlanError("Don't use randomization in a plan")
+        return self._real(obj)
+
+
+def getnoplan(attribute_name):
+    return property(NoPlanningAttrGetter(attribute_name))
 
 
 class InnerStopIteration(StopIteration):
@@ -37,6 +55,33 @@ class NextTurn(Signal):
     def __call__(self):
         engine = self.engine
         start_branch, start_turn, start_tick = engine.btt()
+        latest_turn = engine._turns_completed[start_branch]
+        if start_turn < latest_turn:
+            engine.turn += 1
+            self.send(
+                engine,
+                branch=engine.branch,
+                turn=engine.turn,
+                tick=engine.tick
+            )
+            return [], engine.get_delta(
+                branch=start_branch,
+                turn_from=start_turn,
+                turn_to=engine.turn,
+                tick_from=start_tick,
+                tick_to=engine.tick
+            )
+        elif start_turn > latest_turn + 1:
+            raise exc.RulesEngineError("Can't run the rules engine on any turn but the latest")
+        if start_turn == latest_turn:
+            # As a side effect, the following assignment sets the tick to
+            # the latest in the new turn, which will be 0 if that turn has not
+            # yet been simulated.
+            engine.turn += 1
+            if engine.tick == 0:
+                engine.universal['rando_state'] = engine._rando.getstate()
+            else:
+                engine._rando.setstate(engine.universal['rando_state'])
         with engine.advancing():
             for res in iter(engine.advance, final_rule):
                 if res:
@@ -57,27 +102,18 @@ class NextTurn(Signal):
                         tick_from=start_tick,
                         tick_to=tick
                     )
-
-        branch, turn = engine.time
-        turn += 1
-        # As a side effect, the following assignment sets the tick to
-        # the latest in the new turn, which will be 0 if that turn has not
-        # yet been simulated.
-        engine.time = branch, turn
-        if engine.tick == 0:
-            engine.universal['rando_state'] = engine.rando.getstate()
-        else:
-            engine.rando.setstate(engine.universal['rando_state'])
+        engine._turns_completed[start_branch] = engine.turn
+        engine.query.complete_turn(start_branch, engine.turn)
         self.send(
             self.engine,
-            branch=branch,
-            turn=turn,
+            branch=engine.branch,
+            turn=engine.turn,
             tick=engine.tick
         )
         return [], engine.get_delta(
-            branch=branch,
+            branch=engine.branch,
             turn_from=start_turn,
-            turn_to=turn,
+            turn_to=engine.turn,
             tick_from=start_tick,
             tick_to=engine.tick
         )
@@ -303,6 +339,7 @@ class AbstractEngine(object):
             'NonUniqueError': exc.NonUniqueError,
             'AmbiguousAvatarError': exc.AmbiguousAvatarError,
             'AmbiguousUserError': exc.AmbiguousUserError,
+            'RulesEngineError': exc.RulesEngineError,
             'RuleError': exc.RuleError,
             'RedundantRuleError': exc.RedundantRuleError,
             'UserFunctionError': exc.UserFunctionError,
@@ -415,24 +452,24 @@ class AbstractEngine(object):
             return True
         return pct / 100 < self.random()
 
-    betavariate = getatt('rando.betavariate')
-    choice = getatt('rando.choice')
-    expovariate = getatt('rando.expovariate')
-    gammavariate = getatt('rando.gammavariate')
-    gauss = getatt('rando.gauss')
-    getrandbits = getatt('rando.getrandbits')
-    lognormvariate = getatt('rando.lognormvariate')
-    normalvariate = getatt('rando.normalvariate')
-    paretovariate = getatt('rando.paretovariate')
-    randint = getatt('rando.randint')
-    random = getatt('rando.random')
-    randrange = getatt('rando.randrange')
-    sample = getatt('rando.sample')
-    shuffle = getatt('rando.shuffle')
-    triangular = getatt('rando.triangular')
-    uniform = getatt('rando.uniform')
-    vonmisesvariate = getatt('rando.vonmisesvariate')
-    weibullvariate = getatt('rando.weibullvariate')
+    betavariate = getnoplan('_rando.betavariate')
+    choice = getnoplan('_rando.choice')
+    expovariate = getnoplan('_rando.expovariate')
+    gammavariate = getnoplan('_rando.gammavariate')
+    gauss = getnoplan('_rando.gauss')
+    getrandbits = getnoplan('_rando.getrandbits')
+    lognormvariate = getnoplan('_rando.lognormvariate')
+    normalvariate = getnoplan('_rando.normalvariate')
+    paretovariate = getnoplan('_rando.paretovariate')
+    randint = getnoplan('_rando.randint')
+    random = getnoplan('_rando.random')
+    randrange = getnoplan('_rando.randrange')
+    sample = getnoplan('_rando.sample')
+    shuffle = getnoplan('_rando.shuffle')
+    triangular = getnoplan('_rando.triangular')
+    uniform = getnoplan('_rando.uniform')
+    vonmisesvariate = getnoplan('_rando.vonmisesvariate')
+    weibullvariate = getnoplan('_rando.weibullvariate')
 
 
 class Engine(AbstractEngine, gORM):
@@ -482,7 +519,6 @@ class Engine(AbstractEngine, gORM):
       objects, but this one *is* sensitive to sim-time. Each turn, the
       state of the randomizer is saved here under the key
       ``'rando_state'``.
-    - ``rando``: The randomizer used by all of the rules.
 
     """
     from .character import Character
@@ -526,7 +562,7 @@ class Engine(AbstractEngine, gORM):
         * 'character_portal_rulebook'
 
         And each node and edge may have a 'rulebook' stat of its own. If a node is a thing,
-        it gets a 'location' and possibly 'next_location'; when the 'location' is deleted,
+        it gets a 'location'; when the 'location' is deleted,
         that means it's back to being a place.
 
         Keys at the top level that are not character names:
@@ -584,20 +620,15 @@ class Engine(AbstractEngine, gORM):
         if branch in avbranches:
             updater(updav, avbranches[branch])
 
-        def updthing(char, thing, locs):
+        def updthing(char, thing, loc):
             if (
                 char in delta and 'nodes' in delta[char]
                 and thing in delta[char]['nodes'] and not
                 delta[char]['nodes'][thing]
             ):
                 return
-            if locs is None:
-                loc = nxtloc = None
-            else:
-                loc, nxtloc = locs
             thingd = delta.setdefault(char, {}).setdefault('node_val', {}).setdefault(thing, {})
             thingd['location'] = loc
-            thingd['next_location'] = nxtloc
         if branch in thbranches:
             updater(updthing, thbranches[branch])
         # TODO handle arrival_time and next_arrival_time stats of things
@@ -681,10 +712,9 @@ class Engine(AbstractEngine, gORM):
             for chara, graph, node, is_av in self._avatarness_cache.settings[branch][turn][start_tick:tick]:
                 delta.setdefault(chara, {}).setdefault('avatars', {}).setdefault(graph, {})[node] = is_av
         if branch in self._things_cache.settings and turn in self._things_cache.settings[branch]:
-            for chara, thing, (location, next_location) in self._things_cache.settings[branch][turn][start_tick:tick]:
+            for chara, thing, location in self._things_cache.settings[branch][turn][start_tick:tick]:
                 thingd = delta.setdefault(chara, {}).setdefault('node_val', {}).setdefault(thing, {})
                 thingd['location'] = location
-                thingd['next_location'] = next_location
         delta['rulebooks'] = rbdif = {}
         if branch in self._rulebooks_cache.settings and turn in self._rulebooks_cache.settings[branch]:
             for _, rulebook, rules in self._rulebooks_cache.settings[branch][turn][start_tick:tick]:
@@ -822,10 +852,8 @@ class Engine(AbstractEngine, gORM):
         from .rule import AllRuleBooks, AllRules
 
         super()._init_caches()
-        self._portal_objs = {}
         self._things_cache = ThingsCache(self)
         self._node_contents_cache = Cache(self)
-        self._portal_contents_cache = Cache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._rulebooks_cache = InitializedEntitylessCache(self)
@@ -850,6 +878,8 @@ class Engine(AbstractEngine, gORM):
         self._character_portal_rules_handled_cache \
             = CharacterPortalRulesHandledCache(self)
         self._avatarness_cache = AvatarnessCache(self)
+        self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
+        """The last turn when the rules engine ran in each branch"""
         self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
         if hasattr(self, '_action_file'):
@@ -890,34 +920,52 @@ class Engine(AbstractEngine, gORM):
             commit_modulus=None,
             random_seed=None,
             logfun=None,
-            validate=False
+            validate=False,
+            clear_code=False,
+            clear_world=False
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
+        import os
+        worlddbpath = worlddb.replace('sqlite:///', '')
+        if clear_world and os.path.exists(worlddbpath):
+            os.remove(worlddbpath)
         if isinstance(string, str):
             self._string_file = string
+            if clear_code and os.path.exists(string):
+                os.remove(string)
         else:
             self.string = string
         if isinstance(function, str):
             self._function_file = function
+            if clear_code and os.path.exists(function):
+                os.remove(function)
         else:
             self.function = function
         if isinstance(method, str):
             self._method_file = method
+            if clear_code and os.path.exists(method):
+                os.remove(method)
         else:
             self.method = method
         if isinstance(trigger, str):
             self._trigger_file = trigger
+            if clear_code and os.path.exists(trigger):
+                os.remove(trigger)
         else:
             self.trigger = trigger
         if isinstance(prereq, str):
             self._prereq_file = prereq
+            if clear_code and os.path.exists(prereq):
+                os.remove(prereq)
         else:
             self.prereq = prereq
         if isinstance(action, str):
             self._action_file = action
+            if clear_code and os.path.exists(action):
+                os.remove(action)
         else:
             self.action = action
         super().__init__(
@@ -939,23 +987,19 @@ class Engine(AbstractEngine, gORM):
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         from random import Random
-        self.rando = Random()
+        self._rando = Random()
         if 'rando_state' in self.universal:
-            self.rando.setstate(self.universal['rando_state'])
+            self._rando.setstate(self.universal['rando_state'])
         else:
-            self.rando.seed(self.random_seed)
-            self.universal['rando_state'] = self.rando.getstate()
+            self._rando.seed(self.random_seed)
+            self.universal['rando_state'] = self._rando.getstate()
         if hasattr(self.method, 'init'):
             self.method.init(self)
 
     def _init_load(self, validate=False):
         from .rule import Rule
         q = self.query
-        self._things_cache.load((
-            (character, thing, branch, turn, tick, (location, next_location))
-            for character, thing, branch, turn, tick, location, next_location
-            in q.things_dump()
-        ), validate)
+        self._things_cache.load(q.things_dump(), validate)
         super()._init_load(validate=validate)
         self._avatarness_cache.load(q.avatars_dump(), validate)
         self._universal_cache.load(q.universals_dump(), validate)
@@ -984,6 +1028,7 @@ class Engine(AbstractEngine, gORM):
             self._node_rules_handled_cache.store(*row, loading=True)
         for row in q.portal_rules_handled_dump():
             self._portal_rules_handled_cache.store(*row, loading=True)
+        self._turns_completed.update(q.turns_completed_dump())
         self._rules_cache = {name: Rule(self, name, create=False) for name in q.rules_dump()}
 
     @property
@@ -1139,6 +1184,7 @@ class Engine(AbstractEngine, gORM):
         )
 
     def _follow_rule(self, rule, handled_fun, branch, turn, *args):
+        self.debug("following rule: " + repr(rule))
         satisfied = True
         for prereq in rule.prereqs:
             res = prereq(*args)
@@ -1162,7 +1208,8 @@ class Engine(AbstractEngine, gORM):
         return actres
 
     def _follow_rules(self):
-        # TODO: apply changes to a facade first, and commit it when you're done. Then report changes to the facade
+        # TODO: roll back changes done by rules that raise an exception
+        # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         from collections import defaultdict
         branch, turn, tick = self.btt()
         charmap = self.character
@@ -1211,12 +1258,11 @@ class Engine(AbstractEngine, gORM):
                 ) if self._node_exists(charn, noden) else None,
                 'portal': lambda charn, orign, destn, rulebook, rulen: self._follow_rule(
                     rulemap[rulen],
-                    partial(self._handled_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
+                    partial(self._handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick),
                     branch, turn,
                     charmap[charn].portal[orign][destn]
                 ) if self._edge_exists(charn, orign, destn) else None
             }[tup[0]](*tup[1:])
-        # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         for (
             charactername, rulebook, rulename
         ) in self._character_rules_handled_cache.iter_unhandled_rules(
@@ -1226,7 +1272,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             todo[rulebook].append(('character', charactername, rulebook, rulename))
         for (
-            charn, rulebook, graphn, avn, rulen
+            charn, graphn, avn, rulebook, rulen
         ) in self._avatar_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
@@ -1237,13 +1283,13 @@ class Engine(AbstractEngine, gORM):
                 continue
             todo[rulebook].append(('avatar', charn, rulebook, graphn, avn, rulen))
         for (
-            charn, rulebook, rulen, thingn
+            charn, thingn, rulebook, rulen
         ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
             if charn not in charmap or thingn not in charmap[charn].thing:
                 continue
             todo[rulebook].append(('character_thing', charn, rulebook, rulen, thingn))
         for (
-            charn, rulebook, rulen, placen
+            charn, placen, rulebook, rulen
         ) in self._character_place_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
@@ -1251,7 +1297,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             todo[rulebook].append(('character_place', charn, rulebook, rulen, placen))
         for (
-            charn, rulebook, rulen, orign, destn
+            charn, orign, destn, rulebook, rulen
         ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
@@ -1290,7 +1336,11 @@ class Engine(AbstractEngine, gORM):
                     raise InnerStopIteration
 
     def advance(self):
-        """Follow the next rule if available, or advance to the next turn."""
+        """Follow the next rule if available.
+
+        If we've run out of rules, reset the rules iterator.
+
+        """
         try:
             return next(self._rules_iter)
         except InnerStopIteration:
@@ -1336,19 +1386,18 @@ class Engine(AbstractEngine, gORM):
     def _is_thing(self, character, node):
         return self._things_cache.contains_entity(character, node, *self.btt())
 
-    def _set_thing_loc_and_next(
-            self, character, node, loc, nextloc=None
+    def _set_thing_loc(
+            self, character, node, loc
     ):
         branch, turn, tick = self.nbtt()
-        self._things_cache.store(character, node, branch, turn, tick, (loc, nextloc))
-        self.query.thing_loc_and_next_set(
+        self._things_cache.store(character, node, branch, turn, tick, loc)
+        self.query.set_thing_loc(
             character,
             node,
             branch,
             turn,
             tick,
-            loc,
-            nextloc
+            loc
         )
 
     def alias(self, v, stat='dummy'):

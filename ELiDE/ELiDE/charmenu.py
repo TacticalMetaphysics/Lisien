@@ -24,6 +24,7 @@ from kivy.properties import (
 )
 from .board.arrow import ArrowWidget
 from .util import try_load, dummynum
+from LiSE.proxy import CharStatProxy
 
 
 class CharMenu(BoxLayout):
@@ -72,14 +73,14 @@ class CharMenu(BoxLayout):
 
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
-        if self.app.manager.current != 'rules':
-            try:
-                rb = self.app.selected_proxy.rulebook
-            except AttributeError:
-                charn = self.app.selected_proxy.name
-                rb = self.app.engine.character[charn].rulebook
-            self.app.rules.rulebook = rb
-        self.app.rules.toggle()
+        if self.app.manager.current != 'rules' and not isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.rules.entity = self.app.selected_proxy
+            self.app.rules.rulebook = self.app.selected_proxy.rulebook
+        if isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.charrules.character = self.app.selected_proxy
+            self.app.charrules.toggle()
+        else:
+            self.app.rules.toggle()
 
     def toggle_funcs_editor(self):
         """Display or hide the text editing window for functions."""
@@ -177,19 +178,19 @@ Builder.load_string("""
     portaldirbut: portaldirbut
     Button:
         text: 'Characters'
-        on_press: root.toggle_chars_screen()
+        on_release: root.toggle_chars_screen()
     Button:
         text: 'Strings'
-        on_press: root.toggle_strings_editor()
+        on_release: root.toggle_strings_editor()
     Button:
         text: 'Python'
-        on_press: root.toggle_funcs_editor()
+        on_release: root.toggle_funcs_editor()
     Button:
         text: 'Rules'
-        on_press: root.toggle_rules()
+        on_release: root.toggle_rules()
     Button:
         text: 'Delete'
-        on_press: app.delete_selection()
+        on_release: app.delete_selection()
     BoxLayout:
         Widget:
             id: placetab
@@ -200,7 +201,7 @@ Builder.load_string("""
                 on_pos_up: root.spot_from_dummy(self)
         Button:
             text: 'cfg'
-            on_press: root.toggle_spot_cfg()
+            on_release: root.toggle_spot_cfg()
     BoxLayout:
         orientation: 'vertical'
         ToggleButton:
@@ -222,7 +223,7 @@ Builder.load_string("""
         Button:
             id: portaldirbut
             text: 'One-way' if root.reciprocal_portal else 'Two-way'
-            on_press: root.toggle_reciprocal()
+            on_release: root.toggle_reciprocal()
     BoxLayout:
         Widget:
             id: thingtab
@@ -233,5 +234,5 @@ Builder.load_string("""
                 on_pos_up: root.pawn_from_dummy(self)
         Button:
             text: 'cfg'
-            on_press: root.toggle_pawn_cfg()
+            on_release: root.toggle_pawn_cfg()
 """)

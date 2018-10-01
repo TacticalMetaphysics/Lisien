@@ -147,7 +147,11 @@ def install(eng):
     @learn.trigger
     def in_class(node):
         classroom = node.engine.character['physical'].place['classroom']
-        return node.location == classroom
+        if hasattr(node, 'location'):
+            assert node == node.character.avatar['physical'].only
+            return node.location == classroom
+        else:
+            return node.character.avatar['physical'].only.location == classroom
 
     learn.prereq(class_in_session)
 

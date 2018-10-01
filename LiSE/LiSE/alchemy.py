@@ -36,7 +36,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-from allegedb.alchemy import tables_for_meta, queries_for_table_dict
+import allegedb.alchemy
 
 
 def tables_for_meta(meta):
@@ -44,7 +44,7 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    tables_for_meta(meta)
+    allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -237,9 +237,7 @@ def tables_for_meta(meta):
     # locations.
     #
     # A Thing's location can be either a Place or another Thing, as long
-    # as it's in the same Character. Things also have a
-    # ``next_location``, defaulting to ``None``, which when set
-    # indicates that the thing is in transit to that location.
+    # as it's in the same Character.
     Table(
         'things', meta,
         Column('character', TEXT, primary_key=True),
@@ -251,17 +249,11 @@ def tables_for_meta(meta):
         Column('tick', INT, primary_key=True, default=0),
         # when location is null, this node is not a thing, but a place
         Column('location', TEXT),
-        # when next_location is not null, thing is en route between
-        # location and next_location
-        Column('next_location', TEXT, default='null'),
         ForeignKeyConstraint(
             ['character', 'thing'], ['nodes.graph', 'nodes.node']
         ),
         ForeignKeyConstraint(
             ['character', 'location'], ['nodes.graph', 'nodes.node']
-        ),
-        ForeignKeyConstraint(
-            ['character', 'next_location'], ['nodes.graph', 'nodes.node']
         )
     )
 
@@ -495,6 +487,12 @@ def tables_for_meta(meta):
         )
     )
 
+    Table(
+        'turns_completed', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT)
+    )
+
     return meta.tables
 
 
@@ -524,7 +522,7 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = queries_for_table_dict(table)
+    r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
@@ -573,6 +571,9 @@ def queries(table):
     ).where(
         branches.c.parent == bindparam('branch')
     )
+
+    tc = table['turns_completed']
+    r['turns_completed_update'] = update_where(['turn'], [tc.c.branch])
 
     return r
 

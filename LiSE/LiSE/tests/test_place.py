@@ -13,14 +13,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from LiSE import Engine
+from .util import engy
 import pytest
 
 
 @pytest.fixture(scope="function")
-def someplace():
-    with Engine("sqlite:///:memory:") as eng:
-        yield eng.new_character('physical').new_place('someplace')
+def someplace(engy):
+    yield engy.new_character('physical').new_place('someplace')
 
 
 def test_contents(someplace):
