@@ -26,35 +26,6 @@ from astunparse import Unparser
 from .util import dedent_source
 
 
-class NotThatMap(Mapping):
-    """Wraps another mapping and conceals exactly one of its keys."""
-    __slots__ = ['inner', 'k']
-
-    def __init__(self, inner, k):
-        """Store the inner mapping and the key to hide."""
-        self.inner = inner
-        self.k = k
-
-    def __iter__(self):
-        """Iterate over every key except the one I'm hiding."""
-        for key in self.inner:
-            if key != self.k:
-                yield key
-
-    def __len__(self):
-        """Return the length of my inner mapping minus one, on the assumption
-        that at least that one key is present in the inner mapping.
-
-        """
-        return len(self.inner) - 1
-
-    def __getitem__(self, key):
-        """Raise ``KeyError`` if you're trying to get the hidden key."""
-        if key == self.k:
-            raise KeyError("masked")
-        return self.inner[key]
-
-
 class Language(str):
     sigs = {}
 
@@ -136,10 +107,6 @@ class StringStore(MutableMapping, Signal):
         """
         del self.cache[self.language][k]
         self.send(self, key=k, val=None)
-
-    def format(self, k):
-        """Return a stored string with other strings substituted into it."""
-        return self[k].format_map(NotThatMap(self, k))
 
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
