@@ -519,7 +519,6 @@ class Engine(AbstractEngine, gORM):
       objects, but this one *is* sensitive to sim-time. Each turn, the
       state of the randomizer is saved here under the key
       ``'rando_state'``.
-    - ``rando``: The randomizer used by all of the rules.
 
     """
     from .character import Character
