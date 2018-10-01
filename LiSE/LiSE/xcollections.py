@@ -135,8 +135,10 @@ class FunctionStore(Signal):
     def __init__(self, filename):
         super().__init__()
         self._filename = filename
+        if filename.endswith(".py"):
+            filename = filename[-3:]
         try:
-            with open(filename, 'r') as inf:
+            with open(self._filename, 'r') as inf:
                 self._ast = parse(inf.read(), filename)
                 self._ast_idx = {}
                 for i, node in enumerate(self._ast.body):
@@ -145,7 +147,7 @@ class FunctionStore(Signal):
                 self._locl = {}
                 self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
                 for thing in self._locl.values():
-                    thing.__module__ = self._filename.rstrip('.py')
+                    thing.__module__ = filename
         except FileNotFoundError:
             self._ast = Module(body=[])
             self._ast_idx = {}
@@ -162,7 +164,10 @@ class FunctionStore(Signal):
         if not callable(v):
             super().__setattr__(k, v)
             return
-        v.__module__ = self._filename.rstrip('.py')
+        filename = self._filename
+        if filename.endswith(".py"):
+            filename = filename[:-3]
+        v.__module__ = filename
         self._locl[k] = v
         source = getsource(v)
         outdented = dedent_source(source)
