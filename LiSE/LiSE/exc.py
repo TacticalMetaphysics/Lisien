@@ -36,18 +36,6 @@ class AmbiguousUserError(NonUniqueError, AttributeError):
     """A user descriptor can't decide what you want."""
 
 
-class RuleError(ValueError):
-    pass
-
-
-class RedundantRuleError(RuleError):
-    """Error condition for when you try to run a rule on a (branch,
-    tick) it's already been executed.
-
-    """
-    pass
-
-
 class UserFunctionError(SyntaxError):
     """Error condition for when I try to load a user-defined function and
     something goes wrong.
@@ -110,3 +98,29 @@ class TravelException(Exception):
 
 class PlanError(AttributeError):
     """Tried to use an attribute that shouldn't be used while planning"""
+
+
+class RulesEngineError(Exception):
+    """For problems to do with the rules engine
+
+    Rules themselves should never raise this. Only the engine should.
+
+    """
+
+
+class RuleError(RulesEngineError):
+    """For problems to do with rules
+
+    Rather than the operation of the rules engine as a whole.
+
+    Don't use this in your trigger, prereq, or action functions.
+    It's only for Rule objects as such.
+
+    """
+
+
+class RedundantRuleError(RuleError):
+    """Error condition for when you try to run a rule on a (branch,
+    turn) it's already been executed.
+
+    """

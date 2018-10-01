@@ -72,7 +72,7 @@ class NextTurn(Signal):
                 tick_to=engine.tick
             )
         elif start_turn > latest_turn + 1:
-            raise ValueError("Can't run the rules engine on any turn but the latest")
+            raise exc.RulesEngineError("Can't run the rules engine on any turn but the latest")
         if start_turn == latest_turn:
             # As a side effect, the following assignment sets the tick to
             # the latest in the new turn, which will be 0 if that turn has not
@@ -339,6 +339,7 @@ class AbstractEngine(object):
             'NonUniqueError': exc.NonUniqueError,
             'AmbiguousAvatarError': exc.AmbiguousAvatarError,
             'AmbiguousUserError': exc.AmbiguousUserError,
+            'RulesEngineError': exc.RulesEngineError,
             'RuleError': exc.RuleError,
             'RedundantRuleError': exc.RedundantRuleError,
             'UserFunctionError': exc.UserFunctionError,
