@@ -120,6 +120,18 @@ class StringStore(MutableMapping, Signal):
 
 
 class FunctionStore(Signal):
+    """A module-like object that lets you alter its code and save your changes.
+
+    Instantiate it with a path to a file that you want to keep the code in.
+    Assign functions to its attributes, then call its ``save()`` method,
+    and they'll be unparsed and written to the file.
+
+    This is a ``Signal``, so you can pass a function to its ``connect`` method,
+    and it will be called when a function is added, changed, or deleted.
+    The keyword arguments will be ``attr``, the name of the function, and ``val``,
+    the function itself.
+
+    """
     def __init__(self, filename):
         super().__init__()
         self._filename = filename
