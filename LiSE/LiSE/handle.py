@@ -1235,7 +1235,7 @@ class EngineHandle(object):
 
     @timely
     def call_randomizer(self, method, *args, **kwargs):
-        return getattr(self._real.rando, method)(*args, **kwargs)
+        return getattr(self._real._rando, method)(*args, **kwargs)
 
     @timely
     def install_module(self, module):

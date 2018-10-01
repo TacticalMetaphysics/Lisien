@@ -106,3 +106,7 @@ class TravelException(Exception):
         self.turn = turn
         self.lastplace = lastplace
         super().__init__(message)
+
+
+class PlanError(AttributeError):
+    """Tried to use an attribute that shouldn't be used while planning"""

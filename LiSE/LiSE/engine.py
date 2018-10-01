@@ -7,14 +7,31 @@ flow of time.
 """
 from functools import partial
 from collections import defaultdict
+from operator import attrgetter
 from types import FunctionType, MethodType
 
 import umsgpack
 from blinker import Signal
 from allegedb import ORM as gORM
-from .util import getatt, reify, sort_set
+from .util import reify, sort_set
 
 from . import exc
+
+
+class NoPlanningAttrGetter:
+    __slots__ = ('_real',)
+
+    def __init__(self, attr, *attrs):
+        self._real = attrgetter(attr, *attrs)
+
+    def __call__(self, obj):
+        if obj._planning:
+            raise exc.PlanError("Don't use randomization in a plan")
+        return self._real(obj)
+
+
+def getnoplan(attribute_name):
+    return property(NoPlanningAttrGetter(attribute_name))
 
 
 class InnerStopIteration(StopIteration):
@@ -62,9 +79,9 @@ class NextTurn(Signal):
             # yet been simulated.
             engine.turn += 1
             if engine.tick == 0:
-                engine.universal['rando_state'] = engine.rando.getstate()
+                engine.universal['rando_state'] = engine._rando.getstate()
             else:
-                engine.rando.setstate(engine.universal['rando_state'])
+                engine._rando.setstate(engine.universal['rando_state'])
         with engine.advancing():
             for res in iter(engine.advance, final_rule):
                 if res:
@@ -434,24 +451,24 @@ class AbstractEngine(object):
             return True
         return pct / 100 < self.random()
 
-    betavariate = getatt('rando.betavariate')
-    choice = getatt('rando.choice')
-    expovariate = getatt('rando.expovariate')
-    gammavariate = getatt('rando.gammavariate')
-    gauss = getatt('rando.gauss')
-    getrandbits = getatt('rando.getrandbits')
-    lognormvariate = getatt('rando.lognormvariate')
-    normalvariate = getatt('rando.normalvariate')
-    paretovariate = getatt('rando.paretovariate')
-    randint = getatt('rando.randint')
-    random = getatt('rando.random')
-    randrange = getatt('rando.randrange')
-    sample = getatt('rando.sample')
-    shuffle = getatt('rando.shuffle')
-    triangular = getatt('rando.triangular')
-    uniform = getatt('rando.uniform')
-    vonmisesvariate = getatt('rando.vonmisesvariate')
-    weibullvariate = getatt('rando.weibullvariate')
+    betavariate = getnoplan('_rando.betavariate')
+    choice = getnoplan('_rando.choice')
+    expovariate = getnoplan('_rando.expovariate')
+    gammavariate = getnoplan('_rando.gammavariate')
+    gauss = getnoplan('_rando.gauss')
+    getrandbits = getnoplan('_rando.getrandbits')
+    lognormvariate = getnoplan('_rando.lognormvariate')
+    normalvariate = getnoplan('_rando.normalvariate')
+    paretovariate = getnoplan('_rando.paretovariate')
+    randint = getnoplan('_rando.randint')
+    random = getnoplan('_rando.random')
+    randrange = getnoplan('_rando.randrange')
+    sample = getnoplan('_rando.sample')
+    shuffle = getnoplan('_rando.shuffle')
+    triangular = getnoplan('_rando.triangular')
+    uniform = getnoplan('_rando.uniform')
+    vonmisesvariate = getnoplan('_rando.vonmisesvariate')
+    weibullvariate = getnoplan('_rando.weibullvariate')
 
 
 class Engine(AbstractEngine, gORM):
@@ -970,12 +987,12 @@ class Engine(AbstractEngine, gORM):
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         from random import Random
-        self.rando = Random()
+        self._rando = Random()
         if 'rando_state' in self.universal:
-            self.rando.setstate(self.universal['rando_state'])
+            self._rando.setstate(self.universal['rando_state'])
         else:
-            self.rando.seed(self.random_seed)
-            self.universal['rando_state'] = self.rando.getstate()
+            self._rando.seed(self.random_seed)
+            self.universal['rando_state'] = self._rando.getstate()
         if hasattr(self.method, 'init'):
             self.method.init(self)
 
