@@ -87,7 +87,7 @@ class NextTurn(Signal):
                 if res:
                     engine.universal['last_result'] = res
                     engine.universal['last_result_idx'] = 0
-                    engine.universal['rando_state'] = engine.rando.getstate()
+                    engine.universal['rando_state'] = engine._rando.getstate()
                     branch, turn, tick = engine.btt()
                     self.send(
                         engine,
