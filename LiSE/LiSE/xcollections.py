@@ -21,7 +21,7 @@ from ast import parse, Expr, Module
 import json
 
 from blinker import Signal
-from astunparse import Unparser
+from astunparse import unparse, Unparser
 
 from .util import dedent_source
 
@@ -136,7 +136,7 @@ class FunctionStore(Signal):
         super().__init__()
         self._filename = filename
         if filename.endswith(".py"):
-            filename = filename[-3:]
+            filename = filename[:-3]
         try:
             with open(self._filename, 'r') as inf:
                 self._ast = parse(inf.read(), filename)
@@ -194,8 +194,8 @@ class FunctionStore(Signal):
             Unparser(self._ast, outf)
 
     def iterplain(self):
-        for name, func in self._locl.items():
-            yield name, getsource(func)
+        for funcdef in self._ast.body:
+            yield funcdef.name, unparse(funcdef)
 
     def store_source(self, v, name=None):
         outdented = dedent_source(v)
@@ -218,7 +218,7 @@ class FunctionStore(Signal):
         self.send(self, attr=name, val=locl[name])
 
     def get_source(self, name):
-        return getsource(getattr(self, name))
+        return unparse(self._ast.body[self._ast_idx[name]])
 
 
 class MethodStore(FunctionStore):
