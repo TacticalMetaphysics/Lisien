@@ -2503,7 +2503,7 @@ class EngineProxy(AbstractEngine):
     def close(self):
         self._commit_lock.acquire()
         self._commit_lock.release()
-        self.handle(command='close')
+        self.handle('close')
         self.send('shutdown')
 
     def _node_contents(self, character, node):
