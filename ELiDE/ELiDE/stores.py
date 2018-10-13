@@ -445,7 +445,7 @@ class FuncEditor(Editor):
     def get_default_text(self, name):
         if not name or name == '+':
             name = 'a'
-        return "def {}(obj):\n".format(name)
+        return "def {}({}):\n".format(name, ', '.join(self.params))
 
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
