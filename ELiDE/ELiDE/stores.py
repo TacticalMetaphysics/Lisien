@@ -393,8 +393,9 @@ def munge_source(v):
     if not lines:
         return tuple(), ''
     firstline = lines[0].lstrip()
-    if firstline == '' or firstline[0] == '@':
+    while firstline == '' or firstline[0] == '@':
         del lines[0]
+        firstline = lines[0].lstrip()
     if not lines:
         return tuple(), ''
     params = tuple(
