@@ -302,12 +302,13 @@ class ThingProxy(NodeProxy):
         self._set_location(locn)
 
     def __init__(
-            self, character, name, location=None
+            self, character, name, location=None, **kwargs
     ):
         if location is None and getattr(character.engine, '_initialized', True):
             raise ValueError("Thing must have location")
         super().__init__(character, name)
         self._location = location
+        self._cache.update(kwargs)
 
     def __iter__(self):
         yield from super().__iter__()
@@ -1401,7 +1402,7 @@ class CharacterProxy(AbstractCharacter):
             branching=True
         )
         self.thing._cache[name] = ThingProxy(
-            self, name, location
+            self, name, location, **kwargs
         )
 
     def add_things_from(self, seq):
@@ -2503,7 +2504,7 @@ class EngineProxy(AbstractEngine):
     def close(self):
         self._commit_lock.acquire()
         self._commit_lock.release()
-        self.handle(command='close')
+        self.handle('close')
         self.send('shutdown')
 
     def _node_contents(self, character, node):
