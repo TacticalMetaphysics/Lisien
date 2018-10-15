@@ -25,6 +25,8 @@ from ast import literal_eval
 
 from kivy.factory import Factory
 from kivy.lang import Builder
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
@@ -83,6 +85,26 @@ class StatListPanel(BoxLayout):
             self.proxy[k] = vv
 
 
+class SimulateButton(ToggleButton):
+    play_arrow_left = NumericProperty()
+    play_arrow_right = NumericProperty()
+    play_arrow_points = ListProperty([0] * 6)
+    graphics_top = NumericProperty()
+    graphics_bot = NumericProperty()
+    graphics_center_y = NumericProperty()
+
+
+class OneTurnButton(Button):
+    graphics_top = NumericProperty()
+    graphics_bot = NumericProperty()
+    graphics_center_y = NumericProperty()
+    step_arrow_left = NumericProperty()
+    step_center_x = NumericProperty()
+    step_bar_right = NumericProperty()
+    step_arrow_points = ListProperty([0] * 6)
+    step_rect_points = ListProperty([0] * 8)
+
+
 class TimePanel(BoxLayout):
     """A panel that lets you to start and stop the game, or browse through
     its history.
@@ -99,17 +121,6 @@ class TimePanel(BoxLayout):
     """
     screen = ObjectProperty()
     buttons_font_size = NumericProperty(18)
-    graphics_top = NumericProperty()
-    graphics_bot = NumericProperty()
-    graphics_center_y = NumericProperty()
-    play_arrow_left = NumericProperty()
-    play_arrow_right = NumericProperty()
-    step_arrow_left = NumericProperty()
-    step_center_x = NumericProperty()
-    step_bar_right = NumericProperty()
-    play_arrow_points = ListProperty([0] * 6)
-    step_arrow_points = ListProperty([0] * 6)
-    step_rect_points = ListProperty([0] * 8)
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -336,85 +347,99 @@ Builder.load_string(
         text: root.selection_name
     StatListView:
         id: statlist
-        size_hint_y: 0.95
+        size_hint_y: 0.9
         engine: root.engine
         proxy: root.proxy
     Button:
         id: cfgstatbut
-        size_hint_y: 0.05
+        size_hint_y: 0.1
         text: root.button_text
         on_release: root.toggle_stat_cfg()
-<TimePanel>:
-    playbut: playbut
-    play_arrow_left: playbut.center_x - playbut.width / 6
-    play_arrow_right: playbut.center_x + playbut.width / 6
-    graphics_top: self.y + self.buttons_font_size + (self.height - self.buttons_font_size) * (3/4)
-    graphics_bot: self.y + self.buttons_font_size
+<SimulateButton>:
+    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
+    graphics_bot: self.y + self.font_size + 3
     graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
-    step_arrow_left: stepbut.center_x - (stepbut.width / 3)
-    step_center_x: stepbut.center_x + stepbut.width / 6.9
-    step_bar_right: stepbut.center_x + stepbut.width / 3
-    play_arrow_points: root.play_arrow_left, root.graphics_top, root.play_arrow_right, root.graphics_center_y, root.play_arrow_left, root.graphics_bot
-    step_arrow_points: root.step_arrow_left, root.graphics_top, root.step_center_x, root.graphics_center_y, root.step_arrow_left, root.graphics_bot
-    step_rect_points: root.step_center_x, root.graphics_top, root.step_bar_right, root.graphics_top, root.step_bar_right, root.graphics_bot, root.step_center_x, root.graphics_bot
+    play_arrow_left: self.center_x - self.width / 6
+    play_arrow_right: self.center_x + self.width / 6
+    play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot
+    canvas:
+        Triangle:
+            points: root.play_arrow_points
+        SmoothLine:
+            points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
+    Label:
+        id: playlabel
+        font_size: root.font_size
+        center_x: root.center_x
+        y: root.y
+        size: self.texture_size
+        text: 'Simulate'
+<OneTurnButton>:
+    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
+    graphics_bot: self.y + self.font_size + 3
+    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+    step_arrow_left: self.center_x - (self.width / 6)
+    step_center_x: self.center_x + self.width / 6
+    step_bar_right: self.center_x + self.width / 4
+    step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot
+    step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot
+    canvas:
+        Triangle:
+            points: root.step_arrow_points
+        Quad:
+            points: root.step_rect_points 
+        SmoothLine:
+            points: root.step_arrow_points
+        SmoothLine:
+            points: root.step_rect_points 
+    Label:
+        font_size: root.font_size
+        center_x: root.center_x
+        y: root.y
+        size: self.texture_size
+        text: '1 turn'
+<TimePanel>:
+    orientation: 'vertical'
+    playbut: playbut
     BoxLayout:
-        ToggleButton:
+        size_hint_y: 0.4
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                size_hint_y: 0.4
+                text: 'Branch'
+            MenuTextInput:
+                id: branchfield
+                setter: root.set_branch
+                hint_text: root.screen.app.branch if root.screen else ''
+        BoxLayout:
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: 0.4
+                    text: 'Turn'
+                MenuIntInput:
+                    id: turnfield
+                    setter: root.set_turn
+                    hint_text: str(root.screen.app.turn) if root.screen else ''
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: 0.4
+                    text: 'Tick'
+                MenuIntInput:
+                    id: tickfield
+                    setter: root.set_tick
+                    hint_text: str(root.screen.app.tick) if root.screen else ''
+    BoxLayout:
+        size_hint_y: 0.6
+        SimulateButton:
             id: playbut
-            canvas:
-                Triangle:
-                    points: root.play_arrow_points
-                SmoothLine:
-                    points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
-            Label:
-                id: playlabel
-                font_size: root.buttons_font_size - 3
-                center_x: playbut.center_x
-                y: playbut.y
-                size: self.texture_size
-                text: 'Simulate'
-        Button:
+            font_size: root.buttons_font_size
+        OneTurnButton:
             id: stepbut
-            size_hint_x: 0.3
+            font_size: root.buttons_font_size
             on_release: root.screen.next_turn()
-            canvas:
-                Triangle:
-                    points: root.step_arrow_points
-                Quad:
-                    points: root.step_rect_points 
-                SmoothLine:
-                    points: root.step_arrow_points
-                SmoothLine:
-                    points: root.step_rect_points 
-            Label:
-                font_size: root.buttons_font_size - 3
-                center_x: stepbut.center_x
-                y: stepbut.y
-                size: self.texture_size
-                text: '1 turn'
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Branch'
-        MenuTextInput:
-            id: branchfield
-            setter: root.set_branch
-            hint_text: root.screen.app.branch if root.screen else ''
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Turn'
-        MenuIntInput:
-            id: turnfield
-            setter: root.set_turn
-            hint_text: str(root.screen.app.turn) if root.screen else ''
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Tick'
-        MenuIntInput:
-            id: tickfield
-            setter: root.set_tick
-            hint_text: str(root.screen.app.tick) if root.screen else ''
 <MainScreen>:
     name: 'main'
     app: app
@@ -433,10 +458,10 @@ Builder.load_string(
         scale_min: 0.2
         scale_max: 4.0
         x: statpanel.right
-        y: timepanel.top
+        y: 0
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
-        height: root.height - timepanel.height
+        height: root.height
         board: root.boards[app.character_name]
         adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
@@ -444,17 +469,17 @@ Builder.load_string(
         engine: app.engine
         toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
-        size_hint: (0.2, 0.9)
+        size_hint: (0.25, 0.8)
     TimePanel:
         id: timepanel
         screen: root
         pos_hint: {'bot': 0}
-        size_hint: (0.85, 0.1)
+        size_hint: (0.25, 0.2)
     CharMenu:
         id: charmenu
         screen: root
         pos_hint: {'right': 1, 'top': 1}
-        size_hint: (0.1, 0.9)
+        size_hint: (0.1, 1)
     DialogLayout:
         id: dialoglayout
         engine: app.engine
