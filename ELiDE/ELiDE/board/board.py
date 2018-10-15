@@ -857,7 +857,7 @@ class BoardScatterPlane(ScatterPlane):
     keep_selection = BooleanProperty(False)
     board = ObjectProperty()
     adding_portal = BooleanProperty(False)
-    reciprocal_portal = BooleanProperty(False)
+    reciprocal_portal = BooleanProperty()
 
     def spot_from_dummy(self, dummy):
         """Make a real place and its spot from a dummy spot.
@@ -942,6 +942,8 @@ class BoardScatterPlane(ScatterPlane):
             )
         self.clear_widgets()
         self.add_widget(self.board)
+        self.board.adding_portal = self.adding_portal
+        self.board.reciprocal_portal = self.reciprocal_portal
         self.bind(
             adding_portal=self.board.setter('adding_portal'),
             reciprocal_portal=self.board.setter('reciprocal_portal')
@@ -990,7 +992,7 @@ class BoardView(StencilView):
     board = ObjectProperty()
     plane = ObjectProperty()
     adding_portal = BooleanProperty()
-    reciprocal_portal = BooleanProperty()
+    reciprocal_portal = BooleanProperty(True)
     scale_min = NumericProperty(allownone=True)
     scale_max = NumericProperty(allownone=True)
 
