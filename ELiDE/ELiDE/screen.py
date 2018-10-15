@@ -87,14 +87,14 @@ class TimePanel(BoxLayout):
     """A panel that lets you to start and stop the game, or browse through
     its history.
 
-    There's a "play" button, which is toggleable. When toggled on, the
+    There's a "simulate" button, which is toggleable. When toggled on, the
     simulation will continue to run until it's toggled off
-    again. Below this is a "Next turn" button, which will simulate
+    again. Next to this is a "1 turn" button, which will simulate
     exactly one turn and stop. And there are two text fields in which
     you can manually enter a Branch and Tick to go to. Moving through
     time this way doesn't simulate anything--you'll only see what
-    happened as a result of "play," "next turn," or some other input
-    that's been made to call the ``advance`` method of the LiSE core.
+    happened as a result of "simulate," "1 turn," or some other way
+    the LiSE rules engine has been made to run.
 
     """
     screen = ObjectProperty()
