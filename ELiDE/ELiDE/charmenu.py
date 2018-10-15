@@ -29,7 +29,7 @@ from LiSE.proxy import CharStatProxy
 
 class CharMenu(BoxLayout):
     screen = ObjectProperty()
-    reciprocal_portal = BooleanProperty()
+    reciprocal_portal = BooleanProperty(True)
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
@@ -55,9 +55,17 @@ class CharMenu(BoxLayout):
         ):
             Clock.schedule_once(self.on_screen, 0)
             return
-        self.reciprocal_portal = self.screen.boardview.reciprocal_portal
-        self.screen.boardview.bind(
-            reciprocal_portal=self.setter('reciprocal_portal')
+        self.screen.boardview.reciprocal_portal = self.reciprocal_portal
+        if self.reciprocal_portal:
+            assert (self.revarrow is None)
+            self.revarrow = ArrowWidget(
+                board=self.screen.boardview.board,
+                origin=self.ids.emptyright,
+                destination=self.ids.emptyleft
+            )
+            self.ids.portaladdbut.add_widget(self.revarrow)
+        self.bind(
+            reciprocal_portal=self.screen.boardview.setter('reciprocal_portal')
         )
 
     def spot_from_dummy(self, dummy):
