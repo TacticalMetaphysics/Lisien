@@ -154,6 +154,23 @@ def tables_for_meta(meta):
             ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
         )
     )
+    Table(
+        'plans', meta,
+        Column('id', INT, primary_key=True),
+        Column('branch', TEXT),
+        Column('turn', INT),
+        Column('tick', INT)
+    )
+    Table(
+        'plan_ticks', meta,
+        Column('plan_id', INT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ('plan_id',),
+            ('plans.id',)
+        )
+    )
     return meta.tables
 
 

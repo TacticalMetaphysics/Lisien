@@ -522,6 +522,24 @@ class QueryEngine(object):
         """
         self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, None)
 
+    def plans_dump(self):
+        return self.sql('plans_dump')
+
+    def plans_insert(self, plan_id, branch, turn, tick):
+        return self.sql('plans_insert', plan_id, branch, turn, tick)
+
+    def plans_insert_many(self, many):
+        return self.sqlmany('plans_insert', many)
+
+    def plan_ticks_insert(self, plan_id, turn, tick):
+        return self.sql('plan_ticks_insert', plan_id, turn, tick)
+
+    def plan_ticks_insert_many(self, many):
+        return self.sqlmany('plan_ticks_insert', many)
+
+    def plan_ticks_dump(self):
+        return self.sql('plan_ticks_dump')
+
     def initdb(self):
         """Create tables and indices as needed."""
         if hasattr(self, 'alchemist'):
@@ -543,39 +561,22 @@ class QueryEngine(object):
             self.globl['turn'] = 0
         if 'tick' not in self.globl:
             self.globl['tick'] = 0
-        try:
-            cursor.execute('SELECT * FROM branches;')
-        except OperationalError:
-            cursor.execute(self.strings['create_branches'])
-        try:
-            cursor.execute('SELECT * FROM turns;')
-        except OperationalError:
-            cursor.execute(self.strings['create_turns'])
-        try:
-            cursor.execute('SELECT * FROM graphs;')
-        except OperationalError:
-            cursor.execute(self.strings['create_graphs'])
-        try:
-            cursor.execute('SELECT * FROM graph_val;')
-        except OperationalError:
-            cursor.execute(self.strings['create_graph_val'])
-        try:
-            cursor.execute('SELECT * FROM nodes;')
-        except OperationalError:
-            cursor.execute(self.strings['create_nodes'])
-
-        try:
-            cursor.execute('SELECT * FROM node_val;')
-        except OperationalError:
-            cursor.execute(self.strings['create_node_val'])
-        try:
-            cursor.execute('SELECT * FROM edges;')
-        except OperationalError:
-            cursor.execute(self.strings['create_edges'])
-        try:
-            cursor.execute('SELECT * FROM edge_val;')
-        except OperationalError:
-            cursor.execute(self.strings['create_edge_val'])
+        for table in (
+            'branches',
+            'turns',
+            'graphs',
+            'graph_val',
+            'nodes',
+            'node_val',
+            'edges',
+            'edge_val',
+            'plans',
+            'plan_ticks'
+        ):
+            try:
+                cursor.execute('SELECT * FROM ' + table + ';')
+            except OperationalError:
+                cursor.execute(self.strings['create_' + table])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""

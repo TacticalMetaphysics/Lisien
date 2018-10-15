@@ -55,7 +55,7 @@ class PlanningContext(ContextDecorator):
     New branches cannot be started within plans.
 
     """
-    __slots__ = ['orm', 'time']
+    __slots__ = ['orm', 'time', 'id']
 
     def __init__(self, orm):
         self.orm = orm
@@ -65,6 +65,9 @@ class PlanningContext(ContextDecorator):
             raise ValueError("Already planning")
         self.orm._planning = True
         self.time = self.orm.btt()
+        self.id = self.orm._last_plan = self.orm._last_plan + 1
+        self.orm._plans[self.id] = self.time
+        self.orm._plans_uncommitted.append((self.id, *self.time))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -511,6 +514,11 @@ class ORM(object):
         self._node_val_cache = Cache(self)
         self._edge_val_cache = Cache(self)
         self._graph_objs = {}
+        self._plans = {}
+        self._branches_plans = defaultdict(set)
+        self._plan_ticks = defaultdict(lambda: defaultdict(list))
+        self._plans_uncommitted = []
+        self._plan_ticks_uncommitted = []
 
     def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
@@ -580,6 +588,15 @@ class ORM(object):
         self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
         self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
         self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
+        last_plan = -1
+        for plan, branch, turn, tick in self.query.plans_dump():
+            self._plans[plan] = branch, turn, tick
+            self._branches_plans[branch].add(plan)
+            if plan > last_plan:
+                last_plan = plan
+        self._last_plan = last_plan
+        for plan, turn, tick in self.query.plan_ticks_dump():
+            self._plan_ticks[plan][turn].append(tick)
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
@@ -638,6 +655,8 @@ class ORM(object):
             self._branches[v] = curbranch, curturn, curtick, curturn, curtick
             self._upd_branch_parentage(v, curbranch)
             self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
+            # Copy any plans that were created before now in the parent branch,
+            # but haven't come to pass yet
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
 
@@ -758,6 +777,13 @@ class ORM(object):
                 )
             self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
             self._turn_end[branch, turn] = tick
+        if self._planning:
+            if (turn, tick) in self._plan_ticks[self._last_plan]:
+                raise HistoryError(
+                    "Trying to make a plan at {}, but that time already happened".format((branch, turn, tick))
+                )
+            self._plan_ticks[self._last_plan].add((turn, tick))
+            self._plan_ticks_uncommitted.append((self._last_plan, turn, tick))
         self._otick = tick
         return branch, turn, tick
 
@@ -777,7 +803,12 @@ class ORM(object):
         set_turn = self.query.set_turn
         for (branch, turn), plan_end_tick in self._turn_end_plan.items():
             set_turn(branch, turn, turn_end[branch], plan_end_tick)
+        plans = self._plans
+        self.query.plans_insert_many((plan, *plans[plan]) for plan in self._plans_uncommitted)
+        self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
         self.query.commit()
+        self._plans_uncommitted = []
+        self._plan_ticks_uncommitted = []
 
     def close(self):
         """Write changes to database and close the connection"""
