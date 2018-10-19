@@ -62,7 +62,10 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                stored_source = getsource(getattr(self._funcstore, v.__name__))
+                if hasattr(self._funcstore, 'get_source'):
+                    stored_source = self._funcstore.get_source(v.__name__)
+                else:
+                    stored_source = getsource(getattr(self._funcstore, v.__name__))
                 new_source = getsource(v)
                 if roundtrip_dedent(stored_source) != roundtrip_dedent(new_source):
                     raise KeyError(
