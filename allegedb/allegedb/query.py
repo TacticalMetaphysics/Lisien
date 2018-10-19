@@ -529,13 +529,13 @@ class QueryEngine(object):
         return self.sql('plans_insert', plan_id, branch, turn, tick)
 
     def plans_insert_many(self, many):
-        return self.sqlmany('plans_insert', many)
+        return self.sqlmany('plans_insert', *many)
 
     def plan_ticks_insert(self, plan_id, turn, tick):
         return self.sql('plan_ticks_insert', plan_id, turn, tick)
 
     def plan_ticks_insert_many(self, many):
-        return self.sqlmany('plan_ticks_insert', many)
+        return self.sqlmany('plan_ticks_insert', *many)
 
     def plan_ticks_dump(self):
         return self.sql('plan_ticks_dump')

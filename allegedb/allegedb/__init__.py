@@ -804,9 +804,8 @@ class ORM(object):
         set_turn = self.query.set_turn
         for (branch, turn), plan_end_tick in self._turn_end_plan.items():
             set_turn(branch, turn, turn_end[branch], plan_end_tick)
-        plans = self._plans
         if self._plans_uncommitted:
-            self.query.plans_insert_many((plan, *plans[plan]) for plan in self._plans_uncommitted)
+            self.query.plans_insert_many(self._plans_uncommitted)
         if self._plan_ticks_uncommitted:
             self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
         self.query.commit()
