@@ -782,7 +782,7 @@ class ORM(object):
                 raise HistoryError(
                     "Trying to make a plan at {}, but that time already happened".format((branch, turn, tick))
                 )
-            self._plan_ticks[self._last_plan].add((turn, tick))
+            self._plan_ticks[self._last_plan][turn].append(tick)
             self._plans_uncommitted.append((self._last_plan, branch, turn, tick))
             self._plan_ticks_uncommitted.append((self._last_plan, turn, tick))
         self._otick = tick
