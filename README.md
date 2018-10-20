@@ -136,7 +136,6 @@ Now we have our world, but nothing ever happens in it. Let's add the rules of th
         some stat on the poly's user.
 
         """
-        from operator import attrgetter
         home = poly.location
         similar = 0
         n = 0
