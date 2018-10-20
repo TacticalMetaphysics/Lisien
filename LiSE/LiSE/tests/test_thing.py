@@ -18,9 +18,8 @@ import pytest
 
 
 @pytest.fixture(scope='function')
-def something():
-    with Engine("sqlite:///:memory:") as eng:
-        yield eng.new_character('physical').new_place('somewhere').new_thing('something')
+def something(engy):
+    yield engy.new_character('physical').new_place('somewhere').new_thing('something')
 
 
 def test_contents(something):

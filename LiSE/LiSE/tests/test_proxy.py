@@ -20,6 +20,7 @@ import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
 import LiSE.examples.sickle as sickle
 import os
+import tempfile
 
 
 class ProxyTest(allegedb.tests.test_all.AllegedTest):
@@ -27,6 +28,13 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         self.manager = EngineProcessManager()
         self.engine = self.manager.start('sqlite:///:memory:')
         self.graphmakers = (self.engine.new_character,)
+        self.tempdir = tempfile.mkdtemp(dir='.')
+        for f in (
+                'trigger.py', 'prereq.py', 'action.py', 'function.py',
+                'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.rename(f, os.path.join(self.tempdir, f))
 
     def tearDown(self):
         self.manager.shutdown()
@@ -36,6 +44,9 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         ):
             if os.path.exists(f):
                 os.remove(f)
+            if os.path.exists(os.path.join(self.tempdir, f)):
+                os.rename(os.path.join(self.tempdir, f), f)
+        os.rmdir(self.tempdir)
 
 
 class ProxyGraphTest(allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
@@ -61,17 +72,26 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
 ])
 def hand(request):
     from LiSE.handle import EngineHandle
+    tempdir = tempfile.mkdtemp(dir='.')
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.rename(f, os.path.join(tempdir, f))
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     with hand._real.advancing():
         request.param(hand._real)
     yield hand
     hand.close()
     for f in (
-        'trigger.py', 'prereq.py', 'action.py', 'function.py',
-        'method.py', 'strings.json'
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
     ):
-        if os.path.exists(f):
-            os.remove(f)
+        if os.path.exists(os.path.join(tempdir, f)):
+            os.rename(os.path.join(tempdir, f), f)
+    os.rmdir(tempdir)
+
 
 def test_fast_delta(hand):
     # just set a baseline for the diff
@@ -92,6 +112,13 @@ def test_fast_delta(hand):
 
 def test_assignment():
     from LiSE.handle import EngineHandle
+    tempdir = tempfile.mkdtemp(dir='.')
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.rename(f, os.path.join(tempdir, f))
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     eng = hand._real
     with eng.advancing():
@@ -361,5 +388,6 @@ def test_assignment():
             'trigger.py', 'prereq.py', 'action.py', 'function.py',
             'method.py', 'strings.json'
     ):
-        if os.path.exists(f):
-            os.remove(f)
+        if os.path.exists(os.path.join(tempdir, f)):
+            os.rename(os.path.join(tempdir, f), f)
+    os.rmdir(tempdir)

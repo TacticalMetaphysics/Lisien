@@ -20,8 +20,6 @@ it was followed got recorded correctly.
 
 """
 
-from .util import engy
-
 
 def test_character_dot_rule(engy):
     """Test that a rule on a character is polled correctly"""
