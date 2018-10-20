@@ -17,7 +17,6 @@
 import pytest
 import os
 from LiSE.engine import Engine
-from .util import engy
 
 
 def something_dot_rule_test(something, eng):
