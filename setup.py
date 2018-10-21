@@ -5,7 +5,7 @@ import os
 # convince Kivy to do a Cythonless "build," so we can import it but it does nothing
 os.environ["NDKPLATFORM"] = "aaaaa"
 os.environ["LIBLINK"] = "aaaaa"
-os.environ["READTHEDOCS"] = 1
+os.environ["READTHEDOCS"] = "True"
 setup(
     name="LiSE docs",
     version="0.9",
