@@ -3,8 +3,8 @@ print("This is just for readthedocs, please don't install it for real")
 from setuptools import setup
 import os
 # convince Kivy to do a Cythonless "build," so we can import it but it does nothing
-os.environ["NDKPLATFORM"] = 1
-os.environ["LIBLINK"] = 1
+os.environ["NDKPLATFORM"] = "aaaaa"
+os.environ["LIBLINK"] = "aaaaa"
 os.environ["READTHEDOCS"] = 1
 setup(
     name="LiSE docs",
