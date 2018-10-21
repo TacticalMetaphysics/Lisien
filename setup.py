@@ -6,7 +6,7 @@ import os
 os.environ["NDKPLATFORM"] = "aaaaa"
 os.environ["LIBLINK"] = "aaaaa"
 os.environ["READTHEDOCS"] = "True"
-os.environment["USE_OPENGL_ES2"] = "0"
+os.environ["USE_OPENGL_ES2"] = "0"
 setup(
     name="LiSE docs",
     version="0.9",
