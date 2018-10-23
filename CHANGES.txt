@@ -1,3 +1,22 @@
+== 0.9 | DATE HERE ==
+This release is for ProcJam 2018.
+
+* Changed license to AGPL3+, but also waive rights in case of my death.
+* Switched to semantic versioning.
+* Made the frontend experience faster by implementing deltas. Use Engine.get_delta(...) to rapidly generate a dictionary describing changes between two points in time in a single branch.
+* Switched serialization format from an abuse of JSON to msgpack.
+* Improved the API of the ELiDE widgets, making it easier to use them in your own game. See https://github.com/LogicalDash/DungeonUniversity for an example.
+* You can zoom the map with the mousewheel now.
+* Reduced memory usage for large worlds. They still take a long time to load; I'll work on that.
+* Wrote a real tutorial for building LiSE games in Python outside of ELiDE.
+* Made the order of execution for rulebooks easier to understand. Basically, rulebooks are followed in alphabetical order; rules within them go in whatever order they were added.
+* Rearranged the UI a little.
+* You can edit every rulebook in ELiDE now, including the ones that apply to all a character's avatars and so forth.
+* Rules will only be followed for entities that still exist when they're run.
+* The turn will always increment *before* running any rules, and no rules will be run on turn 0.
+* Various little performance improvements and fixes to things like data integrity.
+
+
 == Alpha 8 | 2017-10-06 ==
 This release is for ProcJam 2017.
 
