@@ -92,7 +92,7 @@ def inittest(
         if thing['location'] in shrub_places:
             shrub_places.remove(thing['location'])
             assert thing['location'] not in shrub_places
-        whereto = thing.engine.choice(shrub_places)
+        whereto = engine.choice(shrub_places)
         thing.travel_to(whereto)
 
     @shrubsprint.trigger
@@ -100,19 +100,19 @@ def inittest(
         for shrub_candidate in thing.location.contents():
             if shrub_candidate.name[:5] == "shrub":
                 return False
-        thing.engine.info("kobold uncovered")
+        engine.info("kobold uncovered")
         return True
 
     @shrubsprint.trigger
     def breakcover(thing):
-        if thing.engine.random() < thing['sprint_chance']:
-            thing.engine.info("kobold breaking cover")
+        if engine.random() < thing['sprint_chance']:
+            engine.info("kobold breaking cover")
             return True
 
     @shrubsprint.prereq
     def not_traveling(thing):
         if thing.next_location is not None:
-            thing.engine.info("kobold already travelling to {}".format(thing.next_location))
+            engine.info("kobold already travelling to {}".format(thing.next_location))
             return False
         else:
             return True
@@ -123,27 +123,26 @@ def inittest(
 
     @dwarf.rule
     def fight(thing):
-        method = thing.engine.method
-        return "Kill kobold?", [("Kill", method.set_kill_flag), ("Spare", None)]
+        return "Kill kobold?", [("Kill", engine.set_kill_flag), ("Spare", None)]
 
     @fight.trigger
     def sametile(thing):
         try:
             return (
-                thing['location'] == thing.character.thing['kobold']['location']
+                thing['location'] == character.thing['kobold']['location']
             )
         except KeyError:
             return False
 
     @fight.prereq
     def kobold_alive(thing):
-        return 'kobold' in thing.character.thing
+        return 'kobold' in character.thing
 
     def aware(thing):
         # calculate the distance from dwarf to kobold
         from math import hypot
         try:
-            bold = thing.character.thing['kobold']
+            bold = character.thing['kobold']
         except KeyError:
             return False
         (dx, dy) = bold['location']
@@ -158,7 +157,7 @@ def inittest(
 
     @dwarf.rule
     def kill_kobold(thing):
-        del thing.character.thing['kobold']
+        del character.thing['kobold']
         del thing['kill']
 
     kill_kobold.prereq(kobold_alive)
@@ -173,7 +172,7 @@ def inittest(
 
     @dwarf.rule
     def go2kobold(thing):
-        thing.travel_to(thing.character.thing['kobold']['location'])
+        thing.travel_to(character.thing['kobold']['location'])
 
     go2kobold.trigger(aware)
 
@@ -185,9 +184,9 @@ def inittest(
 
     @dwarf.rule
     def wander(thing):
-        dests = sorted(list(thing.character.place.keys()))
+        dests = sorted(list(character.place.keys()))
         dests.remove(thing['location'])
-        thing.travel_to(thing.engine.choice(dests))
+        thing.travel_to(engine.choice(dests))
 
     @wander.trigger
     def standing_still(thing):

@@ -53,17 +53,17 @@ def install(eng):
     @student_body.avatar.rule
     def go_to_class(node):
         # There's just one really long class every day.
-        node.travel_to(node.character.place['classroom'])
+        node.travel_to(character.place['classroom'])
 
 
     @go_to_class.trigger
     def absent(node):
-        return node.location != node.character.place['classroom']
+        return node.location != character.place['classroom']
 
 
     @go_to_class.prereq
     def class_in_session(node):
-        return 8 <= node.engine.character['physical'].stat['hour'] < 15
+        return 8 <= engine.character['physical'].stat['hour'] < 15
 
 
     @go_to_class.prereq
@@ -77,16 +77,16 @@ def install(eng):
         # Or we could have put the 'lazy' stat onto the node instead of the
         # character... or kept the student character in a stat of the node...
         # or assigned this rule to the student directly.
-        for user in node.users.values():
-            if user.name not in ('physical', 'student_body'):
-                return not user.stat['lazy'] or node.engine.coinflip()
+        for usr in node.users.values():
+            if usr.name not in ('physical', 'student_body'):
+                return not usr.stat['lazy'] or node.engine.coinflip()
 
 
     @student_body.avatar.rule
     def leave_class(node):
-        for user in node.users.values():
-            if user.name != 'student_body':
-                node.travel_to(user.stat['room'])
+        for usr in node.users.values():
+            if usr.name != 'student_body':
+                node.travel_to(usr.stat['room'])
                 return
 
 
@@ -99,38 +99,38 @@ def install(eng):
 
     # Let's make some rules and not assign them to anything yet.
     @eng.rule
-    def drink(character):
-        braincells = list(character.node.values())
-        character.engine.shuffle(braincells)
-        for i in range(0, character.engine.randrange(1, 20)):
+    def drink(chara):
+        braincells = list(chara.node.values())
+        chara.engine.shuffle(braincells)
+        for i in range(0, engine.randrange(1, 20)):
             braincells.pop()['drunk'] += 12
 
 
     @drink.trigger
-    def party_time(character):
-        phys = character.engine.character['physical']
+    def party_time(chara):
+        phys = engine.character['physical']
         return 23 >= phys.stat['hour'] > 15
 
 
     @drink.prereq
-    def is_drunkard(character):
-        return character.stat['drunkard']
+    def is_drunkard(chara):
+        return chara.stat['drunkard']
 
 
     @eng.rule
-    def sloth(character):
-        braincells = list(character.node.values())
-        character.engine.shuffle(braincells)
-        for i in range(0, character.engine.randrange(1, 20)):
+    def sloth(chara):
+        braincells = list(chara.node.values())
+        engine.shuffle(braincells)
+        for i in range(0, engine.randrange(1, 20)):
             braincells.pop()['slow'] += 1
 
 
     @sloth.trigger
-    def out_of_class(character):
+    def out_of_class(chara):
         # You don't want to use the global variable for the classroom
         # because it won't be around (or at least, won't work) after
         # the engine restarts.
-        avatar = character.avatar['physical'].only
+        avatar = chara.avatar['physical'].only
         classroom = avatar.character.place['classroom']
         return avatar.location != classroom
 
@@ -139,14 +139,14 @@ def install(eng):
 
     @eng.rule
     def learn(node):
-        for user in node.users.values():
-            if 'xp' in user.stat:
-                user.stat['xp'] += 1
+        for usr in node.users.values():
+            if 'xp' in usr.stat:
+                usr.stat['xp'] += 1
 
 
     @learn.trigger
     def in_class(node):
-        classroom = node.engine.character['physical'].place['classroom']
+        classroom = engine.character['physical'].place['classroom']
         if hasattr(node, 'location'):
             assert node == node.character.avatar['physical'].only
             return node.location == classroom

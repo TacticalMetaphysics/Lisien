@@ -1183,25 +1183,30 @@ class Engine(AbstractEngine, gORM):
             character, orig, dest, rulebook, rule, branch, turn, tick
         )
 
-    def _follow_rule(self, rule, handled_fun, branch, turn, *args):
+    def _follow_rule(self, rule, handled_fun, branch, turn, entity, **kwargs):
+        from types import FunctionType
         self.debug("following rule: " + repr(rule))
         satisfied = True
+        globs = {'engine': self, 'character': entity.character}
+        globs.update(kwargs)
+        globs.update(__builtins__)
         for prereq in rule.prereqs:
-            res = prereq(*args)
-            if not res:
+            dothis = FunctionType(prereq.__code__, globs, prereq.__name__)
+            if not dothis(entity):
                 satisfied = False
                 break
         if not satisfied:
             return handled_fun()
         for trigger in rule.triggers:
-            res = trigger(*args)
-            if res:
+            dothis = FunctionType(trigger.__code__, globs, trigger.__name__)
+            if dothis(entity):
                 break
         else:
             return handled_fun()
         actres = []
         for action in rule.actions:
-            res = action(*args)
+            dothis = FunctionType(action.__code__, globs, action.__name__)
+            res = dothis(entity)
             if res:
                 actres.append(res)
         handled_fun()
@@ -1230,7 +1235,8 @@ class Engine(AbstractEngine, gORM):
                     rulemap[rulen],
                     partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
                     branch, turn,
-                    charmap[graphn].node[avn]
+                    charmap[graphn].node[avn],
+                    user=charmap[graphn]
                 ) if self._node_exists(graphn, avn) else None,
                 'character_thing': lambda charn, rulebook, rulen, thingn: self._follow_rule(
                     rulemap[rulen],

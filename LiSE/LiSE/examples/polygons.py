@@ -43,20 +43,20 @@ def install(eng):
     @eng.rule
     def relocate(poly):
         """Move to a random unoccupied place"""
-        unoccupied = [place for place in poly.character.place.values() if not place.content]
+        unoccupied = [place for place in character.place.values() if not place.content]
         poly.location = poly.engine.choice(unoccupied)
 
     @relocate.trigger
     def similar_neighbors(poly):
         """Trigger when my neighborhood fails to be enough like me"""
         from operator import ge
-        return poly.engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
+        return engine.function.cmp_neighbor_shapes(poly, ge, 'min_sameness')
 
     @relocate.trigger
     def dissimilar_neighbors(poly):
         """Trigger when my neighborhood gets too much like me"""
         from operator import lt
-        return poly.engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
+        return engine.function.cmp_neighbor_shapes(poly, lt, 'max_sameness')
 
 
     eng.rulebook['parable'] = [relocate]
