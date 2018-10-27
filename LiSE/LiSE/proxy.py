@@ -1811,6 +1811,9 @@ class FuncStoreProxy(Signal):
             command='get_source', store=self._store, name=func_name
         )
 
+    def iterplain(self):
+        return self._cache.items()
+
 
 class ChangeSignatureError(TypeError):
     pass

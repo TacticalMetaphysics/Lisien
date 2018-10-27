@@ -131,8 +131,6 @@ class StoreList(RecycleView):
             Clock.schedule_once(self.redata)
             return
         self.data = list(map(self.munge, enumerate(self._iter_keys())))
-        if select_name:
-            self._trigger_select_name(select_name)
 
     def _trigger_redata(self, *args, **kwargs):
         part = partial(self.redata, *args, **kwargs)
@@ -237,7 +235,7 @@ class Editor(BoxLayout):
             return
         delattr(self.store, key)
         try:
-            return min(kee for kee in dir(self.store) if kee > key)
+            return min(kee for kee in self.store._cache if kee > key)
         except ValueError:
             return '+'
 
@@ -321,9 +319,9 @@ class EdBox(BoxLayout):
         self._lock_save = True
         save_select = self.editor.save()
         if save_select:
-            self.storelist.redata(select_name=name)
-        else:
-            del self._lock_save
+            self.storelist.select_name(save_select)
+        self.storelist.redata()
+        del self._lock_save
 
     def _trigger_save(self, name=None):
         part = partial(self.save, name=name)
@@ -338,9 +336,9 @@ class EdBox(BoxLayout):
         self._lock_save = True
         del_select = self.editor.delete()
         if del_select:
-            self.storelist.redata(del_select)
-        else:
-            del self._lock_save
+            self.storelist.select_name(del_select)
+            self.storelist.redata()
+        del self._lock_save
     _trigger_delete = trigger(delete)
 
     def on_store(self, *args):
