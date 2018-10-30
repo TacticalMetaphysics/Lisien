@@ -23,7 +23,7 @@ from setuptools import setup
 
 setup(
     name="ELiDE",
-    version="0.8.0a",
+    version="0.9.0",
     license="AGPL3+",
     packages=[
         "ELiDE",
