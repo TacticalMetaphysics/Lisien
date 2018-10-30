@@ -187,6 +187,9 @@ class FunctionStore(Signal):
         del self._locl[k]
         del self._ast.body[self._ast_idx[k]]
         del self._ast_idx[k]
+        for name in list(self._ast_idx):
+            if name > k:
+                self._ast_idx[name] -= 1
         self.send(self, attr=k, val=None)
 
     def save(self):
