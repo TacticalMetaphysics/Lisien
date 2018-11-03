@@ -68,8 +68,6 @@ class StoreButton(RecycleToggleButton):
     """RecycleToggleButton to select something to edit in a Store"""
     store = ObjectProperty()
     """Either a FunctionStore or a StringStore"""
-    table = StringProperty('functions')
-    """Name of the database table that the content is stored in"""
     name = StringProperty()
     """Name of this particular item"""
     source = StringProperty()
@@ -92,8 +90,6 @@ class StoreList(RecycleView):
     in a store, using one of the StoreAdapter classes.
 
     """
-    table = StringProperty()
-    """Name of the database table that the content is stored in"""
     store = ObjectProperty()
     """Either a FunctionStore or a StringStore"""
     selection_name = StringProperty()
@@ -320,8 +316,6 @@ class EdBox(BoxLayout):
     """An instance of ``StoreList``"""
     editor = ObjectProperty()
     """An instance of a subclass of ``Editor``"""
-    table = StringProperty()
-    """Name of the database table in which my contents are stored"""
     store = ObjectProperty()
     """Proxy to the store I represent"""
     data = ListProperty()
@@ -586,7 +580,6 @@ Builder.load_string("""
         StoreList:
             id: strings_list
             size_hint_x: 0.2
-            table: root.table
             store: root.store
         StringInput:
             id: strings_ed
@@ -603,7 +596,6 @@ Builder.load_string("""
         StringsEdBox:
             id: edbox
             toggle: root.toggle
-            table: 'strings'
             store: app.engine.string
             language: root.language
         BoxLayout:
@@ -691,11 +683,9 @@ Builder.load_string("""
             size_hint_x: 0.2
             StoreList:
                 id: funcs_list
-                table: root.table
                 store: root.store
         FuncEditor:
             id: funcs_ed
-            table: root.table
             store: root.store
             storelist: funcs_list
             disable_text_input: root.disable_text_input
@@ -721,7 +711,6 @@ Builder.load_string("""
             FuncsEdBox:
                 id: triggers
                 toggle: root.toggle
-                table: 'triggers'
                 store: app.engine.trigger
                 on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
@@ -731,7 +720,6 @@ Builder.load_string("""
             FuncsEdBox:
                 id: prereqs
                 toggle: root.toggle
-                table: 'prereqs'
                 store: app.engine.prereq
                 on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
@@ -741,7 +729,6 @@ Builder.load_string("""
             FuncsEdBox:
                 id: actions
                 toggle: root.toggle
-                table: 'actions'
                 store: app.engine.action
                 on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)
