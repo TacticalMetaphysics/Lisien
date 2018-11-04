@@ -222,7 +222,7 @@ class Editor(BoxLayout):
             return
         if self.name_wid.text and self.name_wid.text[0] in string.digits + string.whitespace + string.punctuation:
             # TODO alert the user to invalid name
-            Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
+            Logger.warning("{}: Not saving, invalid name".format(type(self).__name__))
             return
         if hasattr(self, '_do_parse'):
             try:
