@@ -397,11 +397,7 @@ class BaseStatListView(RecycleView):
                 k not in (
                     'character',
                     'name',
-                    'location',
-                    'next_location',
-                    'locations',
-                    'arrival_time',
-                    'next_arrival_time'
+                    'location'
                 )
             ):
                 yield k, v
@@ -466,6 +462,12 @@ Builder.load_string(
 <StatRowToggleButton>:
     text: self.true_text if self.value else self.false_text
     state: 'down' if self.value else 'normal'
+<StatRowSlider>:
+    Label:
+        center_x: root.center_x
+        y: root.center_y
+        text: str(root.value)
+        size: self.texture_size
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
     app: app

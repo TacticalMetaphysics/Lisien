@@ -34,55 +34,6 @@ class RuleMapping(BaseRuleMapping):
         self.portal = portal
 
 
-class PortalContentValues(ValuesView):
-    def __iter__(self):
-        portal = self._mapping.portal
-        for thing in portal.character.thing.values():
-            if thing.location == portal.origin and thing.next_location == portal.destination:
-                yield thing
-
-    def __contains__(self, item):
-        portal = self._mapping.portal
-        return hasattr(item, 'location') and hasattr(item, 'next_location') and \
-            item.location == portal.origin and item.next_location == portal.destination
-
-
-class PortalContent(Mapping):
-    def __init__(self, portal):
-        self.portal = portal
-
-    def __iter__(self):
-        try:
-            yield from self.portal.engine._portal_contents_cache.retrieve(
-                self.portal.orig, self.portal.dest, *self.portal.engine.btt()
-            )
-        except KeyError:
-            return
-
-    def __len__(self):
-        try:
-            return len(self.portal.engine._portal_contents_cache.retrieve(
-                self.portal.orig, self.portal.dest, *self.portal.engine.btt())
-            )
-        except KeyError:
-            return 0
-
-    def __contains__(self, item):
-        try:
-            thing = self.portal.character.thing[item]
-            return thing.location == self.portal.origin and thing.next_location == self.portal.destination
-        except KeyError:
-            return False
-
-    def __getitem__(self, item):
-        if item not in self:
-            raise KeyError
-        return self.portal.character.thing[item]
-
-    def values(self):
-        return PortalContentValues(self)
-
-
 class Portal(Edge, RuleFollower):
     """Connection between two Places that Things may travel along.
 
@@ -263,20 +214,6 @@ class Portal(Edge, RuleFollower):
         return StatusAlias(
             entity=self,
             stat=stat
-        )
-
-    @property
-    def content(self):
-        return PortalContent(self)
-
-    def contents(self):
-        return self.content.values()
-
-    def new_thing(self, name, statdict={}, **kwargs):
-        """Create and return a thing located in my origin and travelling to my
-        destination."""
-        return self.character.new_thing(
-            name, self.orig, self.dest, statdict, **kwargs
         )
 
     def update(self, d):

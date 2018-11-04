@@ -19,10 +19,16 @@ from collections import defaultdict
 from LiSE.engine import Engine
 import pytest
 import os
+import tempfile
 
 
 @pytest.fixture
 def college24_premade():
+    codefiles = ('trigger.py', 'prereq.py', 'action.py', 'method.py', 'function.py', 'strings.json')
+    tempdir = tempfile.mkdtemp(dir='.')
+    for codefile in codefiles:
+        if os.path.exists(codefile):
+            os.rename(codefile, os.path.join(tempdir, codefile))
     if not os.path.exists("college24_premade.db"):
         print("generating test data for query")
         from LiSE.examples.college import install
@@ -34,6 +40,10 @@ def college24_premade():
     eng = Engine("college24_premade.db")
     yield eng
     eng.close()
+    for codefile in codefiles:
+        if os.path.exists(os.path.join(tempdir, codefile)):
+            os.rename(os.path.join(tempdir, codefile), codefile)
+    os.rmdir(tempdir)
 
 
 def roommate_collisions(engine):

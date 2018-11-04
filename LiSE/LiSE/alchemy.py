@@ -53,6 +53,7 @@ from allegedb.alchemy import (
     branch_query_until,
     branch_query_window
 )
+import allegedb.alchemy
 
 
 def tables_for_meta(meta):
@@ -61,6 +62,7 @@ def tables_for_meta(meta):
 
     """
     alch_tab_meta(meta)
+    allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -225,9 +227,7 @@ def tables_for_meta(meta):
     # locations.
     #
     # A Thing's location can be either a Place or another Thing, as long
-    # as it's in the same Character. Things also have a
-    # ``next_location``, defaulting to ``None``, which when set
-    # indicates that the thing is in transit to that location.
+    # as it's in the same Character.
     Table(
         'things', meta,
         Column('character', TEXT, primary_key=True),
@@ -240,18 +240,11 @@ def tables_for_meta(meta):
         # when location is null, this node is not a thing, but a place
         Column('prev_location', TEXT),
         Column('location', TEXT),
-        # when next_location is not null, thing is en route between
-        # location and next_location
-        Column('prev_next_location', TEXT),
-        Column('next_location', TEXT),
         ForeignKeyConstraint(
             ['character', 'thing'], ['nodes.graph', 'nodes.node']
         ),
         ForeignKeyConstraint(
             ['character', 'location'], ['nodes.graph', 'nodes.node']
-        ),
-        ForeignKeyConstraint(
-            ['character', 'next_location'], ['nodes.graph', 'nodes.node']
         )
     )
 
@@ -405,6 +398,30 @@ def tables_for_meta(meta):
         )
     )
 
+    Table(
+        'character_portal_rules_changes', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('orig', TEXT, primary_key=True),
+        Column('dest', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('handled_branch', TEXT),
+        Column('handled_turn', INT),
+        ForeignKeyConstraint(
+            ['character', 'rulebook', 'rule', 'orig', 'dest', 'handled_branch', 'handled_turn'],
+            [cporh.c.character, cporh.c.rulebook, cporh.c.rule, cporh.c.orig, cporh.c.dest, cporh.c.branch, cporh.c.turn]
+        )
+    )
+
+    Table(
+        'turns_completed', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT)
+    )
+
     return meta.tables
 
 
@@ -417,7 +434,24 @@ def queries(table):
     of all the rest of the queries I need.
 
     """
-    r = queries_for_table_dict(table)
+    def update_where(updcols, wherecols):
+        """Return an ``UPDATE`` statement that updates the columns ``updcols``
+        when the ``wherecols`` match. Every column has a bound parameter of
+        the same name.
+
+        updcols are strings, wherecols are column objects
+
+        """
+        vmap = OrderedDict()
+        for col in updcols:
+            vmap[col] = bindparam(col)
+        wheres = [
+            c == bindparam(c.name) for c in wherecols
+        ]
+        tab = wherecols[0].table
+        return tab.update().values(**vmap).where(and_(*wheres))
+
+    r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
@@ -631,6 +665,9 @@ def queries(table):
     ).where(
         branches.c.parent == bindparam('branch')
     )
+
+    tc = table['turns_completed']
+    r['turns_completed_update'] = update_where(['turn'], [tc.c.branch])
 
     return r
 
