@@ -169,6 +169,7 @@ class LanguageInput(TextInput):
                 self.screen.language = self.text
             self.text = ''
 
+
 class StringsEdScreen(Screen):
     """A screen in which to edit strings to be presented to humans
 
