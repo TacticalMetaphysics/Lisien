@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>ELiDE &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="prev" title="LiSE" href="../LiSE/index.html" />
@@ -28,6 +29,8 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="elide">
@@ -42,18 +45,8 @@
 <dd><dl class="method">
 <dt id="ELiDE.game.GameApp.build">
 <code class="descname">build</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/game.html#GameApp.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.game.GameApp.build" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initializes the application; it will be called only once.
-If this method returns a widget (tree), it will be used as the root
-widget and added to the window.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None or a root <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code> instance
-if no self.root exists.</td>
-</tr>
-</tbody>
-</table>
+<dd><p>Make sure I can use the database, create the tables as needed, and
+return the root widget.</p>
 </dd></dl>
 
 <dl class="method">
@@ -484,6 +477,15 @@ return it.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="ELiDE.board.board.Board.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/board.html#Board.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.board.Board.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Force an update to match the current state of my character.</p>
+<p>This polls every element of the character, and therefore
+causes me to sync with the LiSE core for a long time. Avoid
+when possible.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="ELiDE.board.board.Board.update_from_delta">
 <code class="descname">update_from_delta</code><span class="sig-paren">(</span><em>delta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/board.html#Board.update_from_delta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.board.Board.update_from_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply the changes described in the dict <code class="docutils literal notranslate"><span class="pre">delta</span></code>.</p>
@@ -649,6 +651,11 @@ position, and imagery of the provided dummy.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="ELiDE.board.board.FinalLayout">
+<em class="property">class </em><code class="descclassname">ELiDE.board.board.</code><code class="descname">FinalLayout</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/board.html#FinalLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.board.FinalLayout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
 <dt id="ELiDE.board.board.KvLayoutBack">
 <em class="property">class </em><code class="descclassname">ELiDE.board.board.</code><code class="descname">KvLayoutBack</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/board.html#KvLayoutBack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.board.KvLayoutBack" title="Permalink to this definition">¶</a></dt>
 <dd><p>What to show behind the graph.</p>
@@ -689,23 +696,9 @@ in which case the <a class="reference internal" href="#ELiDE.board.pawn.Pawn" ti
 the <code class="xref py py-class docutils literal notranslate"><span class="pre">Arrow</span></code> that represents the <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> it’s moving
 through.</p>
 <dl class="method">
-<dt id="ELiDE.board.pawn.Pawn.add_widget">
-<code class="descname">add_widget</code><span class="sig-paren">(</span><em>pawn</em>, <em>index=0</em>, <em>canvas='after'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/pawn.html#Pawn.add_widget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.pawn.Pawn.add_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apart from the normal behavior, bind my <code class="docutils literal notranslate"><span class="pre">center</span></code> so that the
-child’s lower left corner will always be there, so long as
-it’s my child.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="ELiDE.board.pawn.Pawn.finalize">
 <code class="descname">finalize</code><span class="sig-paren">(</span><em>initial=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/pawn.html#Pawn.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.pawn.Pawn.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call this after you’ve created all the PawnSpot you need and are ready to add them to the board.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="ELiDE.board.pawn.Pawn.on_touch_move">
-<code class="descname">on_touch_move</code><span class="sig-paren">(</span><em>touch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/pawn.html#Pawn.on_touch_move"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.pawn.Pawn.on_touch_move" title="Permalink to this definition">¶</a></dt>
-<dd><p>Move with the touch if I’m grabbed.</p>
 </dd></dl>
 
 <dl class="method">
@@ -713,12 +706,6 @@ it’s my child.</p>
 <code class="descname">on_touch_up</code><span class="sig-paren">(</span><em>touch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/pawn.html#Pawn.on_touch_up"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.pawn.Pawn.on_touch_up" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
 <p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="ELiDE.board.pawn.Pawn.remove_widget">
-<code class="descname">remove_widget</code><span class="sig-paren">(</span><em>pawn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/pawn.html#Pawn.remove_widget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.pawn.Pawn.remove_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Unbind my <code class="docutils literal notranslate"><span class="pre">center</span></code> from the child before removing it.</p>
 </dd></dl>
 
 </dd></dl>
@@ -737,40 +724,16 @@ top of these.</p>
 coordinates are relative to its <code class="xref py py-class docutils literal notranslate"><span class="pre">Board</span></code>, not necessarily
 the window the <code class="xref py py-class docutils literal notranslate"><span class="pre">Board</span></code> is in.</p>
 <dl class="method">
-<dt id="ELiDE.board.spot.Spot.add_widget">
-<code class="descname">add_widget</code><span class="sig-paren">(</span><em>wid</em>, <em>i=0</em>, <em>canvas=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/spot.html#Spot.add_widget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.spot.Spot.add_widget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Put the widget’s canvas in my <code class="docutils literal notranslate"><span class="pre">board</span></code>’s <code class="docutils literal notranslate"><span class="pre">pawnlayout</span></code> rather
-than my own canvas.</p>
-<p>The idea is that all my child widgets are to be instances of
-<code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code>, and should therefore be drawn after every
-non-<code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> widget, so that pawns are on top of spots
-and arrows.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="ELiDE.board.spot.Spot.finalize">
 <code class="descname">finalize</code><span class="sig-paren">(</span><em>initial=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/spot.html#Spot.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.spot.Spot.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call this after you’ve created all the PawnSpot you need and are ready to add them to the board.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ELiDE.board.spot.Spot.on_touch_move">
-<code class="descname">on_touch_move</code><span class="sig-paren">(</span><em>touch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/spot.html#Spot.on_touch_move"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.spot.Spot.on_touch_move" title="Permalink to this definition">¶</a></dt>
-<dd><p>If I’m being dragged, move to follow the touch.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="ELiDE.board.spot.Spot.on_touch_up">
 <code class="descname">on_touch_up</code><span class="sig-paren">(</span><em>touch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/spot.html#Spot.on_touch_up"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.spot.Spot.on_touch_up" title="Permalink to this definition">¶</a></dt>
-<dd><p>Unset <code class="docutils literal notranslate"><span class="pre">touchpos</span></code></p>
-</dd></dl>
-
-<dl class="method">
-<dt id="ELiDE.board.spot.Spot.pospawn">
-<code class="descname">pospawn</code><span class="sig-paren">(</span><em>pawn</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/spot.html#Spot.pospawn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.spot.Spot.pospawn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given some <code class="xref py py-class docutils literal notranslate"><span class="pre">Pawn</span></code> instance that’s to be on top of me, set
-its <code class="docutils literal notranslate"><span class="pre">pos</span></code> so that it looks like it’s on top of me but
-doesn’t cover me so much that you can’t select me.</p>
+<dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
+<p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
 </dd></dl>
 
 <dl class="method">
@@ -782,9 +745,82 @@ entity in my <code class="docutils literal notranslate"><span class="pre">proxy<
 recorded in the database.</p>
 </dd></dl>
 
+</dd></dl>
+
+</div>
+<div class="section" id="module-ELiDE.board.arrow">
+<span id="arrow"></span><h3>arrow<a class="headerlink" href="#module-ELiDE.board.arrow" title="Permalink to this headline">¶</a></h3>
+<p>That which displays a one-way connection between two places.</p>
+<p>An arrow connects two spots, the origin and the destination, and it
+points from the origin to the destination, regardless of where on the
+screen they are at the moment.</p>
+<dl class="class">
+<dt id="ELiDE.board.arrow.Arrow">
+<em class="property">class </em><code class="descclassname">ELiDE.board.arrow.</code><code class="descname">Arrow</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#Arrow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.Arrow" title="Permalink to this definition">¶</a></dt>
+<dd><p>An <a class="reference internal" href="#ELiDE.board.arrow.ArrowWidget" title="ELiDE.board.arrow.ArrowWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArrowWidget</span></code></a> that represents a LiSE <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> object.</p>
+<p>This subclass is much more often used than <a class="reference internal" href="#ELiDE.board.arrow.ArrowWidget" title="ELiDE.board.arrow.ArrowWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArrowWidget</span></code></a>,
+which is only seen on its own when the user is in the process of
+creating a new <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
+<dl class="attribute">
+<dt id="ELiDE.board.arrow.Arrow.portal">
+<code class="descname">portal</code><a class="headerlink" href="#ELiDE.board.arrow.Arrow.portal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The portal that I represent.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ELiDE.board.arrow.ArrowLayout">
+<em class="property">class </em><code class="descclassname">ELiDE.board.arrow.</code><code class="descname">ArrowLayout</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#ArrowLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.ArrowLayout" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="ELiDE.board.arrow.ArrowLayout.add_widget">
+<code class="descname">add_widget</code><span class="sig-paren">(</span><em>widget</em>, <em>index=0</em>, <em>canvas=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#ArrowLayout.add_widget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.ArrowLayout.add_widget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new widget as a child of this widget.</p>
+<blockquote>
+<div><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><cite>widget</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></dt>
+<dd><p class="first last">Widget to add to our list of children.</p>
+</dd>
+<dt><cite>index</cite>: int, defaults to 0</dt>
+<dd><p class="first">Index to insert the widget in the list. Notice that the default
+of 0 means the widget is inserted at the beginning of the list
+and will thus be drawn on top of other sibling widgets. For a
+full discussion of the index and widget hierarchy, please see
+the <span class="xref std std-doc">Widgets Programming Guide</span>.</p>
+<div class="last versionadded">
+<p><span class="versionmodified">New in version 1.0.5.</span></p>
+</div>
+</dd>
+<dt><cite>canvas</cite>: str, defaults to None</dt>
+<dd><p class="first">Canvas to add widget’s canvas to. Can be ‘before’, ‘after’ or
+None for the default canvas.</p>
+<div class="last versionadded">
+<p><span class="versionmodified">New in version 1.9.0.</span></p>
+</div>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kivy.uix.slider</span> <span class="kn">import</span> <span class="n">Slider</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">Button</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">slider</span> <span class="o">=</span> <span class="n">Slider</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
 <dl class="method">
-<dt id="ELiDE.board.spot.Spot.remove_widget">
-<code class="descname">remove_widget</code><span class="sig-paren">(</span><em>wid</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/spot.html#Spot.remove_widget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.spot.Spot.remove_widget" title="Permalink to this definition">¶</a></dt>
+<dt id="ELiDE.board.arrow.ArrowLayout.remove_widget">
+<code class="descname">remove_widget</code><span class="sig-paren">(</span><em>widget</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#ArrowLayout.remove_widget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.ArrowLayout.remove_widget" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove a widget from the children of this widget.</p>
 <blockquote>
 <div><table class="docutils field-list" frame="void" rules="none">
@@ -808,28 +844,6 @@ recorded in the database.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">root</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">button</span><span class="p">)</span>
 </pre></div>
 </div>
-</dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-ELiDE.board.arrow">
-<span id="arrow"></span><h3>arrow<a class="headerlink" href="#module-ELiDE.board.arrow" title="Permalink to this headline">¶</a></h3>
-<p>That which displays a one-way connection between two places.</p>
-<p>An arrow connects two spots, the origin and the destination, and it
-points from the origin to the destination, regardless of where on the
-screen they are at the moment.</p>
-<dl class="class">
-<dt id="ELiDE.board.arrow.Arrow">
-<em class="property">class </em><code class="descclassname">ELiDE.board.arrow.</code><code class="descname">Arrow</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#Arrow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.Arrow" title="Permalink to this definition">¶</a></dt>
-<dd><p>An <a class="reference internal" href="#ELiDE.board.arrow.ArrowWidget" title="ELiDE.board.arrow.ArrowWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArrowWidget</span></code></a> that represents a LiSE <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> object.</p>
-<p>This subclass is much more often used than <a class="reference internal" href="#ELiDE.board.arrow.ArrowWidget" title="ELiDE.board.arrow.ArrowWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArrowWidget</span></code></a>,
-which is only seen on its own when the user is in the process of
-creating a new <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code>.</p>
-<dl class="attribute">
-<dt id="ELiDE.board.arrow.Arrow.portal">
-<code class="descname">portal</code><a class="headerlink" href="#ELiDE.board.arrow.Arrow.portal" title="Permalink to this definition">¶</a></dt>
-<dd><p>The portal that I represent.</p>
 </dd></dl>
 
 </dd></dl>
@@ -932,7 +946,7 @@ whole <a class="reference internal" href="#ELiDE.board.arrow.Arrow" title="ELiDE
 
 <dl class="function">
 <dt id="ELiDE.board.arrow.get_points">
-<code class="descclassname">ELiDE.board.arrow.</code><code class="descname">get_points</code><span class="sig-paren">(</span><em>ox</em>, <em>oy</em>, <em>ro</em>, <em>dx</em>, <em>dy</em>, <em>rd</em>, <em>taillen</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#get_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.get_points" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">ELiDE.board.arrow.</code><code class="descname">get_points</code><span class="sig-paren">(</span><em>orig</em>, <em>dest</em>, <em>taillen</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/board/arrow.html#get_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.board.arrow.get_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a pair of lists of points for use making an arrow.</p>
 <p>The first list is the beginning and end point of the trunk of the arrow.</p>
 <p>The second list is the arrowhead.</p>
@@ -1031,12 +1045,22 @@ of the widget tree.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="ELiDE.screen.OneTurnButton">
+<em class="property">class </em><code class="descclassname">ELiDE.screen.</code><code class="descname">OneTurnButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#OneTurnButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.screen.OneTurnButton" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="ELiDE.screen.SimulateButton">
+<em class="property">class </em><code class="descclassname">ELiDE.screen.</code><code class="descname">SimulateButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#SimulateButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.screen.SimulateButton" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
 <dt id="ELiDE.screen.StatListPanel">
 <em class="property">class </em><code class="descclassname">ELiDE.screen.</code><code class="descname">StatListPanel</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#StatListPanel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.screen.StatListPanel" title="Permalink to this definition">¶</a></dt>
 <dd><p>A panel that displays a simple two-column grid showing the stats of
 the selected entity, defaulting to those of the character being
 viewed.</p>
-<p>Has a ‘cfg’ button on the bottom to open the StatWindow in which
+<p>Has a button on the bottom to open the StatWindow in which
 to add and delete stats, or to change the way they are displayed
 in the StatListPanel.</p>
 </dd></dl>
@@ -1046,14 +1070,14 @@ in the StatListPanel.</p>
 <em class="property">class </em><code class="descclassname">ELiDE.screen.</code><code class="descname">TimePanel</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/screen.html#TimePanel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.screen.TimePanel" title="Permalink to this definition">¶</a></dt>
 <dd><p>A panel that lets you to start and stop the game, or browse through
 its history.</p>
-<p>There’s a “play” button, which is toggleable. When toggled on, the
+<p>There’s a “simulate” button, which is toggleable. When toggled on, the
 simulation will continue to run until it’s toggled off
-again. Below this is a “Next turn” button, which will simulate
+again. Next to this is a “1 turn” button, which will simulate
 exactly one turn and stop. And there are two text fields in which
 you can manually enter a Branch and Tick to go to. Moving through
 time this way doesn’t simulate anything–you’ll only see what
-happened as a result of “play,” “next turn,” or some other input
-that’s been made to call the <code class="docutils literal notranslate"><span class="pre">advance</span></code> method of the LiSE core.</p>
+happened as a result of “simulate,” “1 turn,” or some other way
+the LiSE rules engine has been made to run.</p>
 </dd></dl>
 
 </div>
@@ -1066,7 +1090,7 @@ of other cards.</p>
 <dt id="ELiDE.card.Card">
 <em class="property">class </em><code class="descclassname">ELiDE.card.</code><code class="descname">Card</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/card.html#Card"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.card.Card" title="Permalink to this definition">¶</a></dt>
 <dd><p>A trading card, similar to the kind you use to play games like
-_Magic: the <a href="#id3"><span class="problematic" id="id4">Gathering_</span></a>.</p>
+_Magic: the <a href="#id5"><span class="problematic" id="id6">Gathering_</span></a>.</p>
 <p>Its appearance is determined by several properties, the most
 important being:</p>
 <ul class="simple">
@@ -1641,7 +1665,7 @@ update the view to reflect the selection state. So the function may be
 called multiple times even if the selection state may not have changed.</p>
 <p>If the view is a instance of
 <code class="xref py py-class docutils literal notranslate"><span class="pre">RecycleDataViewBehavior</span></code>, its
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_selection()</span></code> method will be called everything the view needs to refresh
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_selection()</span></code> method will be called every time the view needs to refresh
 the selection state. Otherwise, the this method is responsible
 for applying the selection.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1712,6 +1736,12 @@ to <a class="reference internal" href="#ELiDE.dialog.MessageBox" title="ELiDE.di
 a Python module given by name. I’ll import it when I need it.</p>
 <p>Needs to be instantiated with a LiSE <code class="docutils literal notranslate"><span class="pre">engine</span></code> – probably an
 <code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProxy</span></code>.</p>
+<dl class="method">
+<dt id="ELiDE.dialog.DialogLayout.advance_dialog">
+<code class="descname">advance_dialog</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dialog.html#DialogLayout.advance_dialog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.dialog.DialogLayout.advance_dialog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to display the next dialog described in my <code class="docutils literal notranslate"><span class="pre">todo</span></code>.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="ELiDE.dialog.DialogLayout.ok">
 <code class="descname">ok</code><span class="sig-paren">(</span><em>*args</em>, <em>cb=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/dialog.html#DialogLayout.ok"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.dialog.DialogLayout.ok" title="Permalink to this definition">¶</a></dt>
@@ -1838,7 +1868,62 @@ from the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.
 <dl class="class">
 <dt id="ELiDE.pallet.Pallet">
 <em class="property">class </em><code class="descclassname">ELiDE.pallet.</code><code class="descname">Pallet</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#Pallet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.pallet.Pallet" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Many <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a>, gathered from an <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code>.</p>
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.atlas">
+<code class="descname">atlas</code><a class="headerlink" href="#ELiDE.pallet.Pallet.atlas" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> object I’ll make <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> from.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.filename">
+<code class="descname">filename</code><a class="headerlink" href="#ELiDE.pallet.Pallet.filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to an atlas; will construct <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.atlas.Atlas</span></code> when set</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.selection">
+<code class="descname">selection</code><a class="headerlink" href="#ELiDE.pallet.Pallet.selection" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>SwatchButton`s that are selected</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.selection_mode">
+<code class="descname">selection_mode</code><a class="headerlink" href="#ELiDE.pallet.Pallet.selection_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to allow only a ‘single’ selected <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> (default), or ‘multiple’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.swatch_height">
+<code class="descname">swatch_height</code><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_height" title="Permalink to this definition">¶</a></dt>
+<dd><p>Height of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.swatch_size">
+<code class="descname">swatch_size</code><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Size of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.swatch_width">
+<code class="descname">swatch_width</code><a class="headerlink" href="#ELiDE.pallet.Pallet.swatch_width" title="Permalink to this definition">¶</a></dt>
+<dd><p>Width of each and every <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> here</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.Pallet.swatches">
+<code class="descname">swatches</code><a class="headerlink" href="#ELiDE.pallet.Pallet.swatches" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> widgets here, keyed by name of their graphic</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.pallet.Pallet.upd_textures">
+<code class="descname">upd_textures</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#Pallet.upd_textures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.pallet.Pallet.upd_textures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create one <a class="reference internal" href="#ELiDE.pallet.SwatchButton" title="ELiDE.pallet.SwatchButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">SwatchButton</span></code></a> for each texture</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.pallet.PalletBox">
@@ -1850,30 +1935,155 @@ from the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.
 <em class="property">class </em><code class="descclassname">ELiDE.pallet.</code><code class="descname">SwatchButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/pallet.html#SwatchButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.pallet.SwatchButton" title="Permalink to this definition">¶</a></dt>
 <dd><p>Toggle button containing a texture and its name, which, when
 toggled, will report the fact to the <a class="reference internal" href="#ELiDE.pallet.Pallet" title="ELiDE.pallet.Pallet"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pallet</span></code></a> it’s in.</p>
+<dl class="attribute">
+<dt id="ELiDE.pallet.SwatchButton.name">
+<code class="descname">name</code><a class="headerlink" href="#ELiDE.pallet.SwatchButton.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>A name, either from a filename or a key into an atlas</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.pallet.SwatchButton.tex">
+<code class="descname">tex</code><a class="headerlink" href="#ELiDE.pallet.SwatchButton.tex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Texture to display here</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
 <div class="section" id="module-ELiDE.rulesview">
 <span id="rulesview"></span><h2>rulesview<a class="headerlink" href="#module-ELiDE.rulesview" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
+<dt id="ELiDE.rulesview.CharacterRulesScreen">
+<em class="property">class </em><code class="descclassname">ELiDE.rulesview.</code><code class="descname">CharacterRulesScreen</code><span class="sig-paren">(</span><em>**kw</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#CharacterRulesScreen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.CharacterRulesScreen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Screen with TabbedPanel for all the character-rulebooks</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="ELiDE.rulesview.RuleButton">
 <em class="property">class </em><code class="descclassname">ELiDE.rulesview.</code><code class="descname">RuleButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RuleButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RuleButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A button to select a rule to edit</p>
+<dl class="method">
+<dt id="ELiDE.rulesview.RuleButton.on_state">
+<code class="descname">on_state</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RuleButton.on_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RuleButton.on_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>If I’m pressed, unpress all other buttons in the ruleslist</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ELiDE.rulesview.RulesBox">
+<em class="property">class </em><code class="descclassname">ELiDE.rulesview.</code><code class="descname">RulesBox</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesBox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesBox" title="Permalink to this definition">¶</a></dt>
+<dd><p>A BoxLayout containing a RulesList and a RulesView</p>
+<p>As well as an input for a new rule name; a button to add a new rule by that
+name; and a close button.</p>
+<p>Currently has no way to rename rules (2018-08-15)</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.rulesview.RulesList">
 <em class="property">class </em><code class="descclassname">ELiDE.rulesview.</code><code class="descname">RulesList</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesList" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A list of rules you might want to edit</p>
+<p>Presented as buttons, which you can click to select one rule at a time.</p>
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesList.on_rulebook">
+<code class="descname">on_rulebook</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesList.on_rulebook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesList.on_rulebook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure to update when the rulebook changes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesList.redata">
+<code class="descname">redata</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesList.redata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesList.redata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make my data represent what’s in my rulebook right now</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.rulesview.RulesScreen">
 <em class="property">class </em><code class="descclassname">ELiDE.rulesview.</code><code class="descname">RulesScreen</code><span class="sig-paren">(</span><em>**kw</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesScreen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesScreen" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Screen containing a RulesBox for one rulebook</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.rulesview.RulesView">
 <em class="property">class </em><code class="descclassname">ELiDE.rulesview.</code><code class="descname">RulesView</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The view to edit a rule</p>
+<p>Presents three tabs, one each for trigger, prereq, and action. Each has a
+deckbuilder in it with a column of used functions and a column of unused actions.</p>
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.finalize">
+<code class="descname">finalize</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add my tabs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.get_functions_cards">
+<code class="descname">get_functions_cards</code><span class="sig-paren">(</span><em>what</em>, <em>allfuncs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.get_functions_cards"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.get_functions_cards" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a pair of lists of Card widgets for used and unused functions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>what</strong> – a string: ‘trigger’, ‘prereq’, or ‘action’</li>
+<li><strong>allfuncs</strong> – a sequence of functions’ (name, sourcecode, signature)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.inspect_func">
+<code class="descname">inspect_func</code><span class="sig-paren">(</span><em>namesrc</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.inspect_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.inspect_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a function’s (name, sourcecode) and return a triple of (name, sourcecode, signature)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.on_rule">
+<code class="descname">on_rule</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.on_rule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.on_rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure to update when the rule changes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.pull_actions">
+<code class="descname">pull_actions</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.pull_actions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.pull_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Refresh the cards in the action builder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.pull_prereqs">
+<code class="descname">pull_prereqs</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.pull_prereqs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.pull_prereqs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Refresh the cards in the prereq builder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.pull_triggers">
+<code class="descname">pull_triggers</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.pull_triggers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.pull_triggers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Refresh the cards in the trigger builder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.rulesview.RulesView.set_functions">
+<code class="descname">set_functions</code><span class="sig-paren">(</span><em>what</em>, <em>allfuncs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/rulesview.html#RulesView.set_functions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.rulesview.RulesView.set_functions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the cards in the <code class="docutils literal notranslate"><span class="pre">what</span></code> builder to <code class="docutils literal notranslate"><span class="pre">allfuncs</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>what</strong> – a string, ‘trigger’, ‘prereq’, or ‘action’</li>
+<li><strong>allfuncs</strong> – a sequence of triples of (name, sourcecode, signature) as taken by my</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">get_function_cards</span></code> method.</p>
+</dd></dl>
+
+</dd></dl>
 
 </div>
 <div class="section" id="module-ELiDE.spritebuilder">
@@ -1922,11 +2132,6 @@ toggled, will report the fact to the <a class="reference internal" href="#ELiDE.
 <dd></dd></dl>
 
 <dl class="class">
-<dt id="ELiDE.statcfg.ConfigListItemCustomization">
-<em class="property">class </em><code class="descclassname">ELiDE.statcfg.</code><code class="descname">ConfigListItemCustomization</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemCustomization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemCustomization" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
 <dt id="ELiDE.statcfg.ConfigListItemCustomizer">
 <em class="property">class </em><code class="descclassname">ELiDE.statcfg.</code><code class="descname">ConfigListItemCustomizer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#ConfigListItemCustomizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statcfg.ConfigListItemCustomizer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1961,7 +2166,13 @@ function in order to pre-process text for input validation.</p>
 <dl class="class">
 <dt id="ELiDE.statcfg.StatListViewConfigurator">
 <em class="property">class </em><code class="descclassname">ELiDE.statcfg.</code><code class="descname">StatListViewConfigurator</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatListViewConfigurator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statcfg.StatListViewConfigurator" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><dl class="method">
+<dt id="ELiDE.statcfg.StatListViewConfigurator.munge">
+<code class="descname">munge</code><span class="sig-paren">(</span><em>k</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statcfg.html#StatListViewConfigurator.munge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statcfg.StatListViewConfigurator.munge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn a key and value into a dictionary describing a widget to show</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.statcfg.StatScreen">
@@ -1984,12 +2195,80 @@ user. Autoupdates when there’s a change for any reason.</p>
 <dl class="class">
 <dt id="ELiDE.statlist.BaseStatListView">
 <em class="property">class </em><code class="descclassname">ELiDE.statlist.</code><code class="descname">BaseStatListView</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Base class for widgets showing lists of stats and their values</p>
+<dl class="attribute">
+<dt id="ELiDE.statlist.BaseStatListView.app">
+<code class="descname">app</code><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.app" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Kivy app object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.del_key">
+<code class="descname">del_key</code><span class="sig-paren">(</span><em>k</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.del_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.del_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the key and any configuration for it</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.BaseStatListView.engine">
+<code class="descname">engine</code><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.proxy.EngineProxy</span></code> object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.init_config">
+<code class="descname">init_config</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.init_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.init_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the configuration for the key to something that will always work</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.iter_data">
+<code class="descname">iter_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.iter_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.iter_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over key-value pairs that are really meant to be displayed</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.munge">
+<code class="descname">munge</code><span class="sig-paren">(</span><em>k</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.munge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.munge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn a key and value into a dictionary describing a widget to show</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.BaseStatListView.proxy">
+<code class="descname">proxy</code><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.proxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>A proxy object representing a LiSE entity</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.set_config">
+<code class="descname">set_config</code><span class="sig-paren">(</span><em>key</em>, <em>option</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.set_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.set_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a configuration option for a key</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.set_configs">
+<code class="descname">set_configs</code><span class="sig-paren">(</span><em>key</em>, <em>d</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.set_configs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.set_configs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the whole configuration for a key</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.set_value">
+<code class="descname">set_value</code><span class="sig-paren">(</span><em>k</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.set_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.set_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a value on the proxy, parsing it to a useful datatype if possible</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.BaseStatListView.upd_data">
+<code class="descname">upd_data</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#BaseStatListView.upd_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.BaseStatListView.upd_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update to match new entity data</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.statlist.StatListView">
 <em class="property">class </em><code class="descclassname">ELiDE.statlist.</code><code class="descname">StatListView</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatListView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatListView" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The type of StatListView that shows only stats and their values</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.statlist.StatRowLabel">
@@ -2034,7 +2313,7 @@ user. Autoupdates when there’s a change for any reason.</p>
 <dl class="attribute">
 <dt id="ELiDE.statlist.StatRowListItem.unlisten">
 <code class="descname">unlisten</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItem.unlisten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function that takes a <a href="#id1"><span class="problematic" id="id2">``</span></a>listen``ed function and stops it listening.</p>
+<dd><p>Function that takes a <a href="#id3"><span class="problematic" id="id4">``</span></a>listen``ed function and stops it listening.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -2048,12 +2327,87 @@ user. Autoupdates when there’s a change for any reason.</p>
 <dl class="class">
 <dt id="ELiDE.statlist.StatRowListItemContainer">
 <em class="property">class </em><code class="descclassname">ELiDE.statlist.</code><code class="descname">StatRowListItemContainer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItemContainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The name of a stat followed by a widget representing its value.</p>
+<p>The widget can be</p>
+<ul class="simple">
+<li><a class="reference internal" href="#ELiDE.statlist.StatRowLabel" title="ELiDE.statlist.StatRowLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowLabel</span></code></a></li>
+<li><a class="reference internal" href="#ELiDE.statlist.StatRowTextInput" title="ELiDE.statlist.StatRowTextInput"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowTextInput</span></code></a></li>
+<li><a class="reference internal" href="#ELiDE.statlist.StatRowToggleButton" title="ELiDE.statlist.StatRowToggleButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowToggleButton</span></code></a></li>
+<li><a class="reference internal" href="#ELiDE.statlist.StatRowSlider" title="ELiDE.statlist.StatRowSlider"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatRowSlider</span></code></a></li>
+</ul>
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowListItemContainer.config">
+<code class="descname">config</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary describing the configuration of this stat’s widget.</p>
+<p>The key ‘control’ has the widget type as its value, which may be</p>
+<ul class="simple">
+<li>‘readout’</li>
+<li>‘textinput’</li>
+<li>‘togglebutton’</li>
+<li>‘slider’</li>
+</ul>
+<p>Other keys are specific to one widget type or another.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowListItemContainer.gett">
+<code class="descname">gett</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.gett" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to get the current value of stats, taking the stat name as its argument</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowListItemContainer.key">
+<code class="descname">key</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.key" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the stat</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowListItemContainer.listen">
+<code class="descname">listen</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.listen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to register a listener to a LiSE entity</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.StatRowListItemContainer.remake">
+<code class="descname">remake</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItemContainer.remake"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.remake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace any existing child widget with the one described by my <code class="docutils literal notranslate"><span class="pre">config</span></code>.</p>
+<p>This doesn’t need arguments, but accepts any positional arguments provided,
+so that you can use this in kvlang</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.statlist.StatRowListItemContainer.set_value">
+<code class="descname">set_value</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowListItemContainer.set_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.set_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use my <code class="docutils literal notranslate"><span class="pre">sett</span></code> function to set my stat (<code class="docutils literal notranslate"><span class="pre">key</span></code>) to my new <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
+<p>This doesn’t need arguments, but accepts any positional arguments provided,
+so that you can use this in kvlang</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowListItemContainer.sett">
+<code class="descname">sett</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.sett" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to set the current value of stats, taking args (key, value)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowListItemContainer.unlisten">
+<code class="descname">unlisten</code><a class="headerlink" href="#ELiDE.statlist.StatRowListItemContainer.unlisten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to unregister a listener from a LiSE entity</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.statlist.StatRowSlider">
 <em class="property">class </em><code class="descclassname">ELiDE.statlist.</code><code class="descname">StatRowSlider</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowSlider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowSlider" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Display the current value of a numeric stat and let the user slide it.</p>
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowSlider.need_set">
+<code class="descname">need_set</code><a class="headerlink" href="#ELiDE.statlist.StatRowSlider.need_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal. Usually False, becomes True briefly when the value has changed.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="ELiDE.statlist.StatRowSlider.on_touch_up">
 <code class="descname">on_touch_up</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowSlider.on_touch_up"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowSlider.on_touch_up" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
@@ -2065,16 +2419,30 @@ user. Autoupdates when there’s a change for any reason.</p>
 <dl class="class">
 <dt id="ELiDE.statlist.StatRowTextInput">
 <em class="property">class </em><code class="descclassname">ELiDE.statlist.</code><code class="descname">StatRowTextInput</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowTextInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowTextInput" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Display the current value of a stat and accept text input to change it.</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.statlist.StatRowToggleButton">
 <em class="property">class </em><code class="descclassname">ELiDE.statlist.</code><code class="descname">StatRowToggleButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowToggleButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Display the current value of a stat, 0 or 1, and let the user press a button to flip it.</p>
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowToggleButton.false_text">
+<code class="descname">false_text</code><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton.false_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>String to display when the stat is false.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="ELiDE.statlist.StatRowToggleButton.on_touch_up">
 <code class="descname">on_touch_up</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/statlist.html#StatRowToggleButton.on_touch_up"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton.on_touch_up" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch up event. The touch is in parent coordinates.</p>
 <p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">on_touch_down()</span></code> for more information.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.statlist.StatRowToggleButton.true_text">
+<code class="descname">true_text</code><a class="headerlink" href="#ELiDE.statlist.StatRowToggleButton.true_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>String to display when the stat is true.</p>
 </dd></dl>
 
 </dd></dl>
@@ -2088,22 +2456,81 @@ like a dictionary. Each of the widgets defined here,
 <code class="xref py py-class docutils literal notranslate"><span class="pre">StringsEditor</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">FuncsEditor</span></code>, displays a list of
 buttons with which the user may select one of the keys in the store,
 and edit its value in a text box.</p>
-<p>Though they retrieve data the same way, these widgets have different
-ways of saving data – the contents of the <code class="xref py py-class docutils literal notranslate"><span class="pre">FuncsEditor</span></code> input
-will be compiled into Python bytecode, stored along with the source
-code.</p>
 <dl class="class">
 <dt id="ELiDE.stores.EdBox">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">EdBox</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#EdBox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.EdBox" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Box containing most of an editor’s screen</p>
+<p>Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.EdBox.data">
+<code class="descname">data</code><a class="headerlink" href="#ELiDE.stores.EdBox.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionaries describing widgets in my <code class="docutils literal notranslate"><span class="pre">storelist</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.EdBox.disable_text_input">
+<code class="descname">disable_text_input</code><a class="headerlink" href="#ELiDE.stores.EdBox.disable_text_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to prevent entering text in the editor</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.EdBox.editor">
+<code class="descname">editor</code><a class="headerlink" href="#ELiDE.stores.EdBox.editor" title="Permalink to this definition">¶</a></dt>
+<dd><p>An instance of a subclass of <code class="docutils literal notranslate"><span class="pre">Editor</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.EdBox.store">
+<code class="descname">store</code><a class="headerlink" href="#ELiDE.stores.EdBox.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proxy to the store I represent</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.EdBox.storelist">
+<code class="descname">storelist</code><a class="headerlink" href="#ELiDE.stores.EdBox.storelist" title="Permalink to this definition">¶</a></dt>
+<dd><p>An instance of <code class="docutils literal notranslate"><span class="pre">StoreList</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.EdBox.toggle">
+<code class="descname">toggle</code><a class="headerlink" href="#ELiDE.stores.EdBox.toggle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to show or hide my screen</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.Editor">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">Editor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#Editor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.Editor" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Abstract widget for editing strings or functions</p>
+<dl class="method">
+<dt id="ELiDE.stores.Editor.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#Editor.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.Editor.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the currently selected item from my store</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.Editor.disable_text_input">
+<code class="descname">disable_text_input</code><a class="headerlink" href="#ELiDE.stores.Editor.disable_text_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to prevent text entry (not name entry)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.Editor.name_wid">
+<code class="descname">name_wid</code><a class="headerlink" href="#ELiDE.stores.Editor.name_wid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Text input widget holding the name of the string being edited</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="ELiDE.stores.Editor.save">
 <code class="descname">save</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#Editor.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.Editor.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Put text in my store, return True if it changed</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.Editor.store">
+<code class="descname">store</code><a class="headerlink" href="#ELiDE.stores.Editor.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proxy to the <code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code> or <code class="docutils literal notranslate"><span class="pre">StringStore</span></code></p>
 </dd></dl>
 
 </dd></dl>
@@ -2112,9 +2539,14 @@ code.</p>
 <dt id="ELiDE.stores.FuncEditor">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">FuncEditor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#FuncEditor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.FuncEditor" title="Permalink to this definition">¶</a></dt>
 <dd><p>The editor widget for working with any particular function.</p>
-<p>Contains a one-line field for the function’s name; a multi-line
-field for its code; and radio buttons to select its signature
-from among those permitted.</p>
+<p>Contains a one-line field for the function’s name and a multi-line
+field for its code.</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.FuncEditor.storelist">
+<code class="descname">storelist</code><a class="headerlink" href="#ELiDE.stores.FuncEditor.storelist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance of <code class="docutils literal notranslate"><span class="pre">StoreList</span></code> that shows all the functions you can edit</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -2122,20 +2554,22 @@ from among those permitted.</p>
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">FuncsEdBox</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#FuncsEdBox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.FuncsEdBox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Widget for editing the Python source of funcs to be used in LiSE sims.</p>
 <p>Contains a list of functions in the store it’s about, next to a
-FuncEditor showing the source of the selected one, and some
-controls on the bottom that let you add, delete, and rename the function,
-or close the screen.</p>
+FuncEditor showing the source of the selected one, and a close button.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.FuncsEdScreen">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">FuncsEdScreen</code><span class="sig-paren">(</span><em>**kw</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#FuncsEdScreen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.FuncsEdScreen" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Screen containing three FuncsEdBox</p>
+<p>Triggers, prereqs, and actions.</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.FunctionNameInput">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">FunctionNameInput</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#FunctionNameInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.FunctionNameInput" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Input for the name of a function</p>
+<p>Filters out illegal characters.</p>
+<dl class="method">
 <dt id="ELiDE.stores.FunctionNameInput.insert_text">
 <code class="descname">insert_text</code><span class="sig-paren">(</span><em>s</em>, <em>from_undo=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#FunctionNameInput.insert_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.FunctionNameInput.insert_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Insert new text at the current cursor position. Override this
@@ -2147,12 +2581,20 @@ function in order to pre-process text for input validation.</p>
 <dl class="class">
 <dt id="ELiDE.stores.LanguageInput">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">LanguageInput</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#LanguageInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.LanguageInput" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Widget to enter the language you want to edit</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.LanguageInput.screen">
+<code class="descname">screen</code><a class="headerlink" href="#ELiDE.stores.LanguageInput.screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>The instance of <code class="docutils literal notranslate"><span class="pre">StringsEdScreen</span></code> that I’m in</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.RecycleToggleButton">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">RecycleToggleButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#RecycleToggleButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.RecycleToggleButton" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Toggle button at some index in a RecycleView</p>
+<dl class="method">
 <dt id="ELiDE.stores.RecycleToggleButton.on_touch_down">
 <code class="descname">on_touch_down</code><span class="sig-paren">(</span><em>touch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#RecycleToggleButton.on_touch_down"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.RecycleToggleButton.on_touch_down" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receive a touch down event.</p>
@@ -2184,34 +2626,134 @@ of the widget tree.</p>
 <dl class="class">
 <dt id="ELiDE.stores.StoreButton">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">StoreButton</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StoreButton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StoreButton" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>RecycleToggleButton to select something to edit in a Store</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreButton.name">
+<code class="descname">name</code><a class="headerlink" href="#ELiDE.stores.StoreButton.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of this particular item</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreButton.select">
+<code class="descname">select</code><a class="headerlink" href="#ELiDE.stores.StoreButton.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that gets called with my <code class="docutils literal notranslate"><span class="pre">index</span></code> when I’m selected</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreButton.source">
+<code class="descname">source</code><a class="headerlink" href="#ELiDE.stores.StoreButton.source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Text of this item</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreButton.store">
+<code class="descname">store</code><a class="headerlink" href="#ELiDE.stores.StoreButton.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Either a FunctionStore or a StringStore</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.StoreList">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">StoreList</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StoreList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StoreList" title="Permalink to this definition">¶</a></dt>
 <dd><p>Holder for a <code class="xref py py-class docutils literal notranslate"><span class="pre">kivy.uix.listview.ListView</span></code> that shows what’s
 in a store, using one of the StoreAdapter classes.</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreList.boxl">
+<code class="descname">boxl</code><a class="headerlink" href="#ELiDE.stores.StoreList.boxl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance of <code class="docutils literal notranslate"><span class="pre">SelectableRecycleBoxLayout</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.stores.StoreList.redata">
+<code class="descname">redata</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StoreList.redata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StoreList.redata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update my <code class="docutils literal notranslate"><span class="pre">data</span></code> to match what’s in my <code class="docutils literal notranslate"><span class="pre">store</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ELiDE.stores.StoreList.select_name">
+<code class="descname">select_name</code><span class="sig-paren">(</span><em>name</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StoreList.select_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StoreList.select_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select an item by its name, highlighting</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreList.selection_name">
+<code class="descname">selection_name</code><a class="headerlink" href="#ELiDE.stores.StoreList.selection_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">name</span></code> of the <code class="docutils literal notranslate"><span class="pre">StoreButton</span></code> currently selected</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StoreList.store">
+<code class="descname">store</code><a class="headerlink" href="#ELiDE.stores.StoreList.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Either a FunctionStore or a StringStore</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.StringInput">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">StringInput</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StringInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StringInput" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Editor for human-readable strings</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.StringInput.validate_name_input">
+<code class="descname">validate_name_input</code><a class="headerlink" href="#ELiDE.stores.StringInput.validate_name_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boolean function for checking if a string name is acceptable</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.StringNameInput">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">StringNameInput</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StringNameInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StringNameInput" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Small text box for the names of strings</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.StringsEdBox">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">StringsEdBox</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StringsEdBox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StringsEdBox" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Box containing most of the strings editing screen</p>
+<p>Contains the storelist and the editor, which in turn contains the string name input
+and a bigger input field for the string itself.</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="ELiDE.stores.StringsEdScreen">
 <em class="property">class </em><code class="descclassname">ELiDE.stores.</code><code class="descname">StringsEdScreen</code><span class="sig-paren">(</span><em>**kw</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#StringsEdScreen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.StringsEdScreen" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A screen in which to edit strings to be presented to humans</p>
+<p>Needs a <code class="docutils literal notranslate"><span class="pre">toggle</span></code> function to switch back to the main screen;
+a <code class="docutils literal notranslate"><span class="pre">language</span></code> identifier; and a <code class="docutils literal notranslate"><span class="pre">language_setter</span></code> function to be called
+with that <code class="docutils literal notranslate"><span class="pre">language</span></code> when changed.</p>
+<dl class="attribute">
+<dt id="ELiDE.stores.StringsEdScreen.edbox">
+<code class="descname">edbox</code><a class="headerlink" href="#ELiDE.stores.StringsEdScreen.edbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Widget containing editors for the current string and its name</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StringsEdScreen.language">
+<code class="descname">language</code><a class="headerlink" href="#ELiDE.stores.StringsEdScreen.language" title="Permalink to this definition">¶</a></dt>
+<dd><p>Code identifying the language we’re editing</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StringsEdScreen.language_setter">
+<code class="descname">language_setter</code><a class="headerlink" href="#ELiDE.stores.StringsEdScreen.language_setter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function called with <code class="docutils literal notranslate"><span class="pre">language</span></code> when it changes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ELiDE.stores.StringsEdScreen.toggle">
+<code class="descname">toggle</code><a class="headerlink" href="#ELiDE.stores.StringsEdScreen.toggle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to switch back to the main screen</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="ELiDE.stores.munge_source">
+<code class="descclassname">ELiDE.stores.</code><code class="descname">munge_source</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ELiDE/stores.html#munge_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ELiDE.stores.munge_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take Python source code, return a pair of its parameters and the rest of it dedented</p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-ELiDE.util">
@@ -2331,38 +2873,47 @@ aren’t the same.</p>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">ELiDE</a><ul>
-<li><a class="reference internal" href="#module-ELiDE.game">game</a></li>
-<li><a class="reference internal" href="#module-ELiDE.board.board">board</a><ul>
-<li><a class="reference internal" href="#module-ELiDE.board.pawn">pawn</a></li>
-<li><a class="reference internal" href="#module-ELiDE.board.spot">spot</a></li>
-<li><a class="reference internal" href="#module-ELiDE.board.arrow">arrow</a></li>
+<h1 class="logo"><a href="../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ELiDE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.game">game</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.board.board">board</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.screen">screen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.card">card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.charmenu">charmenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.charsview">charsview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.dialog">dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.dummy">dummy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.menu">menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.pallet">pallet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.rulesview">rulesview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.spritebuilder">spritebuilder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.statcfg">statcfg</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.statlist">statlist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.stores">stores</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.util">util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ELiDE.app">app</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-ELiDE.screen">screen</a></li>
-<li><a class="reference internal" href="#module-ELiDE.card">card</a></li>
-<li><a class="reference internal" href="#module-ELiDE.charmenu">charmenu</a></li>
-<li><a class="reference internal" href="#module-ELiDE.charsview">charsview</a></li>
-<li><a class="reference internal" href="#module-ELiDE.dialog">dialog</a></li>
-<li><a class="reference internal" href="#module-ELiDE.dummy">dummy</a></li>
-<li><a class="reference internal" href="#module-ELiDE.menu">menu</a></li>
-<li><a class="reference internal" href="#module-ELiDE.pallet">pallet</a></li>
-<li><a class="reference internal" href="#module-ELiDE.rulesview">rulesview</a></li>
-<li><a class="reference internal" href="#module-ELiDE.spritebuilder">spritebuilder</a></li>
-<li><a class="reference internal" href="#module-ELiDE.statcfg">statcfg</a></li>
-<li><a class="reference internal" href="#module-ELiDE.statlist">statlist</a></li>
-<li><a class="reference internal" href="#module-ELiDE.stores">stores</a></li>
-<li><a class="reference internal" href="#module-ELiDE.util">util</a></li>
-<li><a class="reference internal" href="#module-ELiDE.app">app</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -2371,13 +2922,6 @@ aren’t the same.</p>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/ELiDE/index.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <div class="searchformwrapper">
@@ -2390,6 +2934,14 @@ aren’t the same.</p>
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
@@ -2398,8 +2950,8 @@ aren’t the same.</p>
       &copy;2018, Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/ELiDE/index.rst.txt"

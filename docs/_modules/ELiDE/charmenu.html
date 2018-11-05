@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>ELiDE.charmenu &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -27,11 +28,26 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for ELiDE.charmenu</h1><div class="highlight"><pre>
-<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
-<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span></span><span class="c1"># This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="k">import</span> <span class="n">BoxLayout</span>
@@ -43,11 +59,12 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.board.arrow</span> <span class="k">import</span> <span class="n">ArrowWidget</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">try_load</span><span class="p">,</span> <span class="n">dummynum</span>
+<span class="kn">from</span> <span class="nn">LiSE.proxy</span> <span class="k">import</span> <span class="n">CharStatProxy</span>
 
 
 <div class="viewcode-block" id="CharMenu"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charmenu.CharMenu">[docs]</a><span class="k">class</span> <span class="nc">CharMenu</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
     <span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">()</span>
+    <span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">revarrow</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">dummyplace</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
     <span class="n">dummything</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -73,9 +90,17 @@
         <span class="p">):</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_screen</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">reciprocal_portal</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-            <span class="n">reciprocal_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;reciprocal_portal&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reciprocal_portal</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reciprocal_portal</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span> <span class="o">=</span> <span class="n">ArrowWidget</span><span class="p">(</span>
+                <span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="p">,</span>
+                <span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="p">,</span>
+                <span class="n">destination</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">reciprocal_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s1">&#39;reciprocal_portal&#39;</span><span class="p">)</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">spot_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
@@ -86,23 +111,23 @@
 
 <div class="viewcode-block" id="CharMenu.toggle_chars_screen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charmenu.CharMenu.toggle_chars_screen">[docs]</a>    <span class="k">def</span> <span class="nf">toggle_chars_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Display or hide the list you use to switch between characters.&quot;&quot;&quot;</span>
-        <span class="c1"># TODO: update the list of chars</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+        <span class="c1"># TODO: update the list of chars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="CharMenu.toggle_rules"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charmenu.CharMenu.toggle_rules">[docs]</a>    <span class="k">def</span> <span class="nf">toggle_rules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Display or hide the view for constructing rules out of cards.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s1">&#39;rules&#39;</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">rb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="o">.</span><span class="n">rulebook</span>
-            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                <span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="o">.</span><span class="n">name</span>
-                <span class="n">rb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">rulebook</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="n">rb</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s1">&#39;rules&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">,</span> <span class="n">CharStatProxy</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">entity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="o">.</span><span class="n">rulebook</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">,</span> <span class="n">CharStatProxy</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">charrules</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">charrules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="CharMenu.toggle_funcs_editor"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charmenu.CharMenu.toggle_funcs_editor">[docs]</a>    <span class="k">def</span> <span class="nf">toggle_funcs_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Display or hide the text editing window for functions.&quot;&quot;&quot;</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">funcs</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;Display or hide the text editing window for functions.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">funcs</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">toggle_strings_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
@@ -124,8 +149,8 @@
             <span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">placetab</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">dummyplace</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="CharMenu.toggle_pawn_cfg"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charmenu.CharMenu.toggle_pawn_cfg">[docs]</a>    <span class="k">def</span> <span class="nf">toggle_pawn_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Show or hide the pop-over where you can configure the dummy pawn&quot;&quot;&quot;</span>
@@ -144,8 +169,8 @@
                 <span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;atlas://rltiles/base/unseen&#39;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">thingtab</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">dummything</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="CharMenu.toggle_reciprocal"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.charmenu.CharMenu.toggle_reciprocal">[docs]</a>    <span class="k">def</span> <span class="nf">toggle_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)</span>
@@ -164,8 +189,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;revarrow&#39;</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span></div>
-                <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span> <span class="o">=</span> <span class="kc">None</span></div>
 
     <span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">but</span><span class="p">):</span>
         <span class="n">charn</span> <span class="o">=</span> <span class="n">try_load</span><span class="p">(</span>
@@ -184,8 +209,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;orb.png&quot;</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">on_dummything</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">paths</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;atlas://rltiles/base.atlas/unseen&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">paths</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;atlas://rltiles/base.atlas/unseen&quot;</span><span class="p">]</span></div>
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">&lt;CharMenu&gt;:</span>
@@ -196,19 +221,19 @@
 <span class="s2">    portaldirbut: portaldirbut</span>
 <span class="s2">    Button:</span>
 <span class="s2">        text: &#39;Characters&#39;</span>
-<span class="s2">        on_press: root.toggle_chars_screen()</span>
+<span class="s2">        on_release: root.toggle_chars_screen()</span>
 <span class="s2">    Button:</span>
 <span class="s2">        text: &#39;Strings&#39;</span>
-<span class="s2">        on_press: root.toggle_strings_editor()</span>
+<span class="s2">        on_release: root.toggle_strings_editor()</span>
 <span class="s2">    Button:</span>
 <span class="s2">        text: &#39;Python&#39;</span>
-<span class="s2">        on_press: root.toggle_funcs_editor()</span>
+<span class="s2">        on_release: root.toggle_funcs_editor()</span>
 <span class="s2">    Button:</span>
 <span class="s2">        text: &#39;Rules&#39;</span>
-<span class="s2">        on_press: root.toggle_rules()</span>
+<span class="s2">        on_release: root.toggle_rules()</span>
 <span class="s2">    Button:</span>
 <span class="s2">        text: &#39;Delete&#39;</span>
-<span class="s2">        on_press: app.delete_selection()</span>
+<span class="s2">        on_release: app.delete_selection()</span>
 <span class="s2">    BoxLayout:</span>
 <span class="s2">        Widget:</span>
 <span class="s2">            id: placetab</span>
@@ -219,7 +244,7 @@
 <span class="s2">                on_pos_up: root.spot_from_dummy(self)</span>
 <span class="s2">        Button:</span>
 <span class="s2">            text: &#39;cfg&#39;</span>
-<span class="s2">            on_press: root.toggle_spot_cfg()</span>
+<span class="s2">            on_release: root.toggle_spot_cfg()</span>
 <span class="s2">    BoxLayout:</span>
 <span class="s2">        orientation: &#39;vertical&#39;</span>
 <span class="s2">        ToggleButton:</span>
@@ -241,7 +266,7 @@
 <span class="s2">        Button:</span>
 <span class="s2">            id: portaldirbut</span>
 <span class="s2">            text: &#39;One-way&#39; if root.reciprocal_portal else &#39;Two-way&#39;</span>
-<span class="s2">            on_press: root.toggle_reciprocal()</span>
+<span class="s2">            on_release: root.toggle_reciprocal()</span>
 <span class="s2">    BoxLayout:</span>
 <span class="s2">        Widget:</span>
 <span class="s2">            id: thingtab</span>
@@ -252,15 +277,34 @@
 <span class="s2">                on_pos_up: root.pawn_from_dummy(self)</span>
 <span class="s2">        Button:</span>
 <span class="s2">            text: &#39;cfg&#39;</span>
-<span class="s2">            on_press: root.toggle_pawn_cfg()</span>
+<span class="s2">            on_release: root.toggle_pawn_cfg()</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -281,6 +325,14 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
@@ -289,8 +341,8 @@
       &copy;2018, Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

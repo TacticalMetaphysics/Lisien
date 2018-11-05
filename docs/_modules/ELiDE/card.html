@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>ELiDE.card &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -27,11 +28,26 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for ELiDE.card</h1><div class="highlight"><pre>
-<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
-<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+<span></span><span class="c1"># This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;Widget that looks like a trading card, and a layout within which it</span>
 <span class="sd">can be dragged and dropped to some particular position within stacks</span>
 <span class="sd">of other cards.</span>
@@ -82,8 +98,8 @@
         <span class="k">elif</span> <span class="s1">&#39;right&#39;</span> <span class="ow">in</span> <span class="n">poshints</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span>
                 <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span> <span class="o">-</span>
-                <span class="n">sizehintx</span></div>
-            <span class="p">)</span>
+                <span class="n">sizehintx</span>
+            <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_pos_hint_y"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.get_pos_hint_y">[docs]</a><span class="k">def</span> <span class="nf">get_pos_hint_y</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">):</span>
@@ -102,8 +118,8 @@
         <span class="k">elif</span> <span class="s1">&#39;top&#39;</span> <span class="ow">in</span> <span class="n">poshints</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span>
                 <span class="n">poshints</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span> <span class="o">-</span>
-                <span class="n">sizehinty</span></div>
-            <span class="p">)</span>
+                <span class="n">sizehinty</span>
+            <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_pos_hint"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.get_pos_hint">[docs]</a><span class="k">def</span> <span class="nf">get_pos_hint</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehintx</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">):</span>
@@ -115,8 +131,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">get_pos_hint_x</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehintx</span><span class="p">),</span>
-        <span class="n">get_pos_hint_y</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">)</span></div>
-    <span class="p">)</span>
+        <span class="n">get_pos_hint_y</span><span class="p">(</span><span class="n">poshints</span><span class="p">,</span> <span class="n">sizehinty</span><span class="p">)</span>
+    <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ColorTextureBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.ColorTextureBox">[docs]</a><span class="k">class</span> <span class="nc">ColorTextureBox</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
@@ -125,8 +141,8 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="n">outline_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span></div>
-    <span class="n">texture</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">outline_color</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">texture</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Card"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card">[docs]</a><span class="k">class</span> <span class="nc">Card</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
@@ -222,48 +238,48 @@
 <span class="sd">        :class:`Image` and store that in ``background_image``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_source</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">background_image</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">background_source</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_source</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">background_image</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">background_source</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Card.on_background_image"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_background_image">[docs]</a>    <span class="k">def</span> <span class="nf">on_background_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;When I get a new ``background_image``, store its texture in</span>
 <span class="sd">        ``background_texture``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">background_texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_image</span><span class="o">.</span><span class="n">texture</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">background_texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_image</span><span class="o">.</span><span class="n">texture</span></div>
 
 <div class="viewcode-block" id="Card.on_foreground_source"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_foreground_source">[docs]</a>    <span class="k">def</span> <span class="nf">on_foreground_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;When I get a new ``foreground_source``, load it as an</span>
 <span class="sd">        :class:`Image` and store that in ``foreground_image``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">foreground_source</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">foreground_image</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">foreground_source</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">foreground_source</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">foreground_image</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">foreground_source</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Card.on_foreground_image"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_foreground_image">[docs]</a>    <span class="k">def</span> <span class="nf">on_foreground_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;When I get a new ``foreground_image``, store its texture in my</span>
 <span class="sd">        ``foreground_texture``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">foreground_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">foreground_texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">foreground_image</span><span class="o">.</span><span class="n">texture</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">foreground_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">foreground_texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">foreground_image</span><span class="o">.</span><span class="n">texture</span></div>
 
 <div class="viewcode-block" id="Card.on_art_source"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_art_source">[docs]</a>    <span class="k">def</span> <span class="nf">on_art_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;When I get a new ``art_source``, load it as an :class:`Image` and</span>
 <span class="sd">        store that in ``art_image``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">art_source</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">art_image</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">art_source</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">art_source</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">art_image</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">art_source</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Card.on_art_image"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_art_image">[docs]</a>    <span class="k">def</span> <span class="nf">on_art_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;When I get a new ``art_image``, store its texture in</span>
 <span class="sd">        ``art_texture``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">art_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">art_texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">art_image</span><span class="o">.</span><span class="n">texture</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">art_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">art_texture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">art_image</span><span class="o">.</span><span class="n">texture</span></div>
 
 <div class="viewcode-block" id="Card.on_touch_down"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_touch_down">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If I&#39;m the first card to collide this touch, grab it, store my</span>
@@ -281,8 +297,8 @@
         <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span>
         <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;deck&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deck</span>
         <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">collide_x</span> <span class="o">=</span> <span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">collide_y</span> <span class="o">=</span> <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collide_x</span> <span class="o">=</span> <span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collide_y</span> <span class="o">=</span> <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span></div>
 
 <div class="viewcode-block" id="Card.on_touch_move"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_touch_move">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If I&#39;m being dragged, move so as to be always positioned the same</span>
@@ -294,15 +310,15 @@
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">touch</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_x</span><span class="p">,</span>
-            <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_y</span></div>
-        <span class="p">)</span>
+            <span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_y</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Card.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Stop dragging if needed.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dragging</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="n">touch</span><span class="o">.</span><span class="n">ungrab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dragging</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">touch</span><span class="o">.</span><span class="n">ungrab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dragging</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 <div class="viewcode-block" id="Card.copy"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Card.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a new :class:`Card` just like me.&quot;&quot;&quot;</span>
@@ -351,8 +367,8 @@
         <span class="p">):</span>
             <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">d</span><span class="p">[</span><span class="n">att</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div></div>
-        <span class="k">return</span> <span class="n">Card</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">att</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">Card</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Foundation"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Foundation">[docs]</a><span class="k">class</span> <span class="nc">Foundation</span><span class="p">(</span><span class="n">ColorTextureBox</span><span class="p">):</span>
@@ -369,15 +385,15 @@
         <span class="sd">&quot;&quot;&quot;Ask the foundation where I should be, based on what deck I&#39;m</span>
 <span class="sd">        for.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_get_foundation_pos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck</span><span class="p">)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_get_foundation_pos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Foundation.upd_size"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.Foundation.upd_size">[docs]</a>    <span class="k">def</span> <span class="nf">upd_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;I&#39;m the same size as any given card in my :class:`DeckLayout`.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">height</span></div></div>
-        <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">card_size_hint_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">height</span>
+        <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="DeckBuilderLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout">[docs]</a><span class="k">class</span> <span class="nc">DeckBuilderLayout</span><span class="p">(</span><span class="n">Layout</span><span class="p">):</span>
@@ -475,8 +491,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
                 <span class="n">decknum</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">[</span><span class="n">decknum</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scroll_x</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deck_x_hint_offsets</span><span class="p">[</span><span class="n">decknum</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scroll_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.scroll_deck_y"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.scroll_deck_y">[docs]</a>    <span class="k">def</span> <span class="nf">scroll_deck_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Move a deck up or down.&quot;&quot;&quot;</span>
@@ -486,13 +502,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
                 <span class="n">decknum</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">[</span><span class="n">decknum</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scroll_y</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">[</span><span class="n">decknum</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scroll_y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.scroll_deck"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.scroll_deck">[docs]</a>    <span class="k">def</span> <span class="nf">scroll_deck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Move a deck.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">scroll_deck_x</span><span class="p">(</span><span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">scroll_deck_y</span><span class="p">(</span><span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scroll_deck_x</span><span class="p">(</span><span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scroll_deck_y</span><span class="p">(</span><span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_get_foundation_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Private. Get the absolute coordinates to use for a deck&#39;s</span>
@@ -577,8 +593,8 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
                 <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deck_y_hint_offsets</span><span class="p">)</span>
-            <span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.point_before_card"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.point_before_card">[docs]</a>    <span class="k">def</span> <span class="nf">point_before_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return whether ``(x, y)`` is somewhere before ``card``, given how I</span>
@@ -608,8 +624,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># stacking to the left</span>
             <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">card</span><span class="o">.</span><span class="n">right</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">True</span></div>
-            <span class="k">return</span> <span class="n">ycmp</span><span class="p">()</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="n">ycmp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.point_after_card"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.point_after_card">[docs]</a>    <span class="k">def</span> <span class="nf">point_after_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return whether ``(x, y)`` is somewhere after ``card``, given how I</span>
@@ -639,8 +655,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># stacking to the left</span>
             <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">card</span><span class="o">.</span><span class="n">x</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">True</span></div>
-            <span class="k">return</span> <span class="n">ycmp</span><span class="p">()</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="n">ycmp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_touch_move"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.on_touch_move">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If a card is being dragged, move other cards out of the way to show</span>
@@ -714,8 +730,8 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">=</span> <span class="n">j</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="mi">0</span>
                         <span class="k">return</span>
-                        <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span></div>
-            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If a card is being dragged, put it in the place it was just dropped</span>
@@ -745,20 +761,20 @@
             <span class="n">card</span><span class="o">.</span><span class="n">deck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span>
             <span class="n">card</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span><span class="p">]</span> <span class="o">=</span> <span class="n">deck</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="kc">None</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_insertion_card"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.on_insertion_card">[docs]</a>    <span class="k">def</span> <span class="nf">on_insertion_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Trigger a layout&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.do_layout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.do_layout">[docs]</a>    <span class="k">def</span> <span class="nf">do_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Layout each of my decks&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
             <span class="k">return</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)):</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">layout_deck</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layout_deck</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.layout_deck"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.layout_deck">[docs]</a>    <span class="k">def</span> <span class="nf">layout_deck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Stack the cards, starting at my deck&#39;s foundation, and proceeding</span>
@@ -808,16 +824,16 @@
                 <span class="p">)</span>
                 <span class="n">card</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">shw</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="n">shh</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">card</span><span class="p">)</span>
-            <span class="n">phx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_x_hint_step</span></div></div>
-            <span class="n">phy</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_y_hint_step</span>
+            <span class="n">phx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_x_hint_step</span>
+            <span class="n">phy</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">card_y_hint_step</span></div></div>
 
 
 <div class="viewcode-block" id="DeckBuilderView"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderView">[docs]</a><span class="k">class</span> <span class="nc">DeckBuilderView</span><span class="p">(</span><span class="n">DeckBuilderLayout</span><span class="p">,</span> <span class="n">StencilView</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Just a :class:`DeckBuilderLayout` mixed with</span>
 <span class="sd">    :class:`StencilView`.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span></div>
-    <span class="k">pass</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ScrollBarBar"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.ScrollBarBar">[docs]</a><span class="k">class</span> <span class="nc">ScrollBarBar</span><span class="p">(</span><span class="n">ColorTextureBox</span><span class="p">):</span>
@@ -829,8 +845,8 @@
         <span class="sd">&quot;&quot;&quot;Tell my parent if I&#39;ve been touched&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span></div></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">bar_touched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">bar_touched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="DeckBuilderScrollBar"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar">[docs]</a><span class="k">class</span> <span class="nc">DeckBuilderScrollBar</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
@@ -968,8 +984,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hbar</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">size_hint_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vbar</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">vbar</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span></div>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">do_layout</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">vbar</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">do_layout</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.upd_scroll"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.upd_scroll">[docs]</a>    <span class="k">def</span> <span class="nf">upd_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update my own ``scroll`` property to where my deck is actually</span>
@@ -978,8 +994,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">att</span> <span class="o">=</span> <span class="s1">&#39;deck_</span><span class="si">{}</span><span class="s1">_hint_offsets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="s1">&#39;x&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span> <span class="s1">&#39;horizontal&#39;</span> <span class="k">else</span> <span class="s1">&#39;y&#39;</span>
-        <span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_deckbuilder"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.on_deckbuilder">[docs]</a>    <span class="k">def</span> <span class="nf">on_deckbuilder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Bind my deckbuilder to update my ``scroll``, and my ``scroll`` to</span>
@@ -997,8 +1013,8 @@
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">scroll</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">handle_scroll</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">att</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">})</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">()</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.handle_scroll"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.handle_scroll">[docs]</a>    <span class="k">def</span> <span class="nf">handle_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;When my ``scroll`` changes, tell my deckbuilder how it&#39;s scrolled</span>
@@ -1016,8 +1032,8 @@
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_scroll</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="n">offs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">,</span> <span class="n">offs</span><span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">,</span> <span class="n">offs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.bar_touched"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.bar_touched">[docs]</a>    <span class="k">def</span> <span class="nf">bar_touched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Start scrolling, and record where I started scrolling.&quot;&quot;&quot;</span>
@@ -1030,8 +1046,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_touch_hint</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_start_touch_pos_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_pos_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="p">)</span></div>
-        <span class="n">touch</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">touch</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_touch_move"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.on_touch_move">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Move the scrollbar to the touch, and update my ``scroll``</span>
@@ -1051,12 +1067,12 @@
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># self.orientation == &#39;vertical&#39;</span>
             <span class="n">hint_above_bar</span> <span class="o">=</span> <span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>
             <span class="n">hint_correction</span> <span class="o">=</span> <span class="n">hint_above_bar</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_bar_touch_hint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scroll</span> <span class="o">+=</span> <span class="n">hint_correction</span></div>
-        <span class="n">touch</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scroll</span> <span class="o">+=</span> <span class="n">hint_correction</span>
+        <span class="n">touch</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderScrollBar.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Stop scrolling.&quot;&quot;&quot;</span></div></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">scrolling</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="sd">&quot;&quot;&quot;Stop scrolling.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scrolling</span> <span class="o">=</span> <span class="kc">False</span></div></div>
 
 
 <span class="n">kv</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
@@ -1227,10 +1243,29 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -1251,6 +1286,14 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
@@ -1259,8 +1302,8 @@
       &copy;2018, Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

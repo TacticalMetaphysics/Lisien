@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>ELiDE.util &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -27,18 +28,32 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for ELiDE.util</h1><div class="highlight"><pre>
-<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
-<span class="c1"># Copyright (C) Zachary Spector, ZacharySpector@gmail.com</span>
+<span></span><span class="c1"># This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.recycleview.layout</span> <span class="k">import</span> <span class="n">LayoutSelectionBehavior</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.recycleboxlayout</span> <span class="k">import</span> <span class="n">RecycleBoxLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.behaviors</span> <span class="k">import</span> <span class="n">FocusBehavior</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">atan</span><span class="p">,</span> <span class="n">pi</span>
-<span class="kn">from</span> <span class="nn">.collide</span> <span class="k">import</span> <span class="n">Collide2DPoly</span>
 
 <span class="n">ninety</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
 <span class="sd">&quot;&quot;&quot;pi / 2&quot;&quot;&quot;</span>
@@ -47,8 +62,8 @@
 <span class="sd">&quot;&quot;&quot;pi / 4&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="SelectableRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span><span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span> <span class="n">RecycleBoxLayout</span><span class="p">):</span></div>
-    <span class="k">pass</span>
+<div class="viewcode-block" id="SelectableRecycleBoxLayout"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.SelectableRecycleBoxLayout">[docs]</a><span class="k">class</span> <span class="nc">SelectableRecycleBoxLayout</span><span class="p">(</span><span class="n">FocusBehavior</span><span class="p">,</span> <span class="n">LayoutSelectionBehavior</span><span class="p">,</span> <span class="n">RecycleBoxLayout</span><span class="p">):</span>
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="trigger"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.trigger">[docs]</a><span class="k">class</span> <span class="nc">trigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -83,8 +98,8 @@
         <span class="n">retval</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span>
             <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
         <span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">retval</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="n">retval</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">retval</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
 
 
 <div class="viewcode-block" id="try_load"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.try_load">[docs]</a><span class="k">def</span> <span class="nf">try_load</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
@@ -94,8 +109,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">loader</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span></div>
-        <span class="k">return</span> <span class="n">obj</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
 
 
 <div class="viewcode-block" id="dummynum"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.dummynum">[docs]</a><span class="k">def</span> <span class="nf">dummynum</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -112,8 +127,8 @@
             <span class="n">nodenum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nodename</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="n">num</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">nodenum</span><span class="p">,</span> <span class="n">num</span><span class="p">))</span></div>
-    <span class="k">return</span> <span class="n">num</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">nodenum</span><span class="p">,</span> <span class="n">num</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">num</span></div>
 
 
 <div class="viewcode-block" id="get_thin_rect_vertices"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.util.get_thin_rect_vertices">[docs]</a><span class="k">def</span> <span class="nf">get_thin_rect_vertices</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
@@ -171,15 +186,34 @@
         <span class="n">x1</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
         <span class="n">x2</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y2</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
         <span class="n">x3</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y3</span> <span class="o">*</span> <span class="n">yco</span><span class="p">,</span>
-        <span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span></div>
-    <span class="p">]</span>
+        <span class="n">x4</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">y4</span> <span class="o">*</span> <span class="n">yco</span>
+    <span class="p">]</span></div>
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -200,6 +234,14 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
@@ -208,8 +250,8 @@
       &copy;2018, Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 
