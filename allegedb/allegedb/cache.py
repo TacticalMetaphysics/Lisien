@@ -355,6 +355,10 @@ class Cache(object):
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
         if keyframe:
+            # Even though we're still loading all the same data, putting it into
+            # a keyframe rather than my special cache structures might be faster.
+            # My cache structures are expensive to instantiate.
+            # But all the same, it'd be better to save and load keyframes themselves.
             self.journal.disconnect(self._journal_cb)
             kftime = 'trunk', 0, 0
             kf = {}
@@ -855,6 +859,7 @@ class Cache(object):
                     shallowest[args] = ret
                     return ret
         keyframes = self.keyframes
+        # TODO: if there's a keyframe in this branch in the future, use it.
         for (b, r, t) in self.db._iter_parent_btt(branch):
             if entity+(key,) in branches:
                 if (
