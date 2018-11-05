@@ -835,7 +835,8 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        self._check_loaded(branch, turn, tick)
+        check_loaded = self._check_loaded
+        check_loaded(branch, turn, tick)
         branches = self.branches
         if entity+(key,) in branches:
             if (
@@ -861,6 +862,7 @@ class Cache(object):
         keyframes = self.keyframes
         # TODO: if there's a keyframe in this branch in the future, use it.
         for (b, r, t) in self.db._iter_parent_btt(branch):
+            check_loaded(b, r, t)
             if entity+(key,) in branches:
                 if (
                         b in branches[entity+(key,)]
