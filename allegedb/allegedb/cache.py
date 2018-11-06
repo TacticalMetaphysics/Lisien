@@ -93,10 +93,10 @@ class JournalContainer(Signal):
             settings_turns[turn] = {tick: parent + (entity, key, value)}
         self.send(self, row=args, prev=prev)
 
-    def truncate(self, branch, turn, tick):
+    def truncate(self, branch, turn, tick, reverse=False):
         for mapp in (self.settings[branch], self.presettings[branch]):
             if turn in mapp:
-                mapp[turn].truncate(tick)
+                mapp[turn].truncate(tick, reverse=reverse)
             mapp.truncate(turn)
 
 
