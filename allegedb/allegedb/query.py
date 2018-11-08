@@ -758,6 +758,10 @@ class QueryEngine(object):
             cursor.execute('SELECT * FROM edge_val;')
         except OperationalError:
             cursor.execute(self.strings['create_edge_val'])
+        try:
+            cursor.execute('SELECT * FROM keyframes;')
+        except OperationalError:
+            cursor.execute(self.strings['create_keyframes'])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""

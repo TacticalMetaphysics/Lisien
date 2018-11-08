@@ -40,40 +40,15 @@ class NotCached:
 uncached = NotCached()
 
 
-class JournalContainer(Signal):
-    """Holds the core data of a cache, loading and unloading as needed
-
-    Well, that's the theory anyway. At the moment this will just hold the
-    entire history of whatever it's about and never unload until I decide
-    how best to do that.
-
-    """
-    def __init__(self, db, branch_loader, until_loader, window_loader):
+class JournalContainer:
+    def __init__(self, db):
         super().__init__()
         self.db = db
-        self.get_branch = branch_loader
-        self.get_until = until_loader
-        self.get_window = window_loader
         self.settings = PickyDefaultDict(SettingsTurnDict)
         self.presettings = PickyDefaultDict(SettingsTurnDict)
 
-    def load_branch(self, branch):
-        for row in self.get_branch(branch):
-            key, _, _, _, value = row[-5:]
-            self.store(*row)
-
-    def load_until(self, branch, turn, tick):
-        for row in self.get_until(branch, turn, tick):
-            key, _, _, _, value = row[-5:]
-            self.store(row)
-
-    def load_window(self, branch, turn_from, tick_from, turn_to, tick_to):
-        for row in self.get_window(branch, turn_from, tick_from, turn_to, tick_to):
-            key, _, _, _, value = row[-5:]
-            self.store(row)
-
     def store(self, *args):
-        # overridden in LiSE.cache.InitializedCache
+        # overridden in LiSE.cache.InitializedJournalContainer
         entity, key, branch, turn, tick, prev, value = args[-7:]
         parent = args[:-7]
         settings_turns = self.settings[branch]
@@ -91,7 +66,6 @@ class JournalContainer(Signal):
         else:
             presettings_turns[turn] = {tick: parent + (entity, key, prev)}
             settings_turns[turn] = {tick: parent + (entity, key, value)}
-        self.send(self, row=args, prev=prev)
 
     def truncate(self, branch, turn, tick, reverse=False):
         for mapp in (self.settings[branch], self.presettings[branch]):
@@ -285,9 +259,9 @@ class Cache(object):
     keycache_maxsize = 1024
     journal_container_cls = JournalContainer
 
-    def __init__(self, db, branch_loader=None, until_loader=None, window_loader=None):
+    def __init__(self, db):
         self.db = db
-        self.journal = self.journal_container_cls(db, branch_loader, until_loader, window_loader)
+        self.journal = self.journal_container_cls(db)
         self.journal.connect(self._journal_cb)
         self.keyframes = {}
         """Snapshots of my state at various times.
