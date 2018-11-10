@@ -157,6 +157,16 @@ def tables_for_meta(meta):
             ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
         )
     )
+    Table(
+        'keyframes', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT),
+        Column('tick', INT),
+        Column('keyframe', TEXT),
+        ForeignKeyConstraint(
+            ['branch'], ['branches.branch']
+        )
+    )
     return meta.tables
 
 

@@ -704,6 +704,18 @@ class QueryEngine(object):
         """
         self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, prev, None)
 
+    def keyframes_dump(self):
+        unpack = self.unpack
+        for branch, turn, tick, kf in self.sql('keyframes_dump'):
+            yield branch, turn, tick, unpack(kf)
+
+    def set_keyframe(self, branch, turn, tick, kf):
+        kf = self.pack(kf)
+        try:
+            self.sql('keyframes_insert', branch, turn, tick, kf)
+        except IntegrityError:
+            self.sql('keyframes_update', kf, branch, turn, tick)
+
     def initdb(self):
         """Create tables and indices as needed."""
         if hasattr(self, 'alchemist'):

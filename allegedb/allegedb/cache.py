@@ -262,8 +262,7 @@ class Cache(object):
     def __init__(self, db):
         self.db = db
         self.journal = self.journal_container_cls(db)
-        self.journal.connect(self._journal_cb)
-        self.keyframes = {}
+        self.keyframes = PickyDefaultDict(SettingsTurnDict)
         """Snapshots of my state at various times.
         
         Data prior to a keyframe may be unloaded if not in use.
@@ -333,7 +332,6 @@ class Cache(object):
             # a keyframe rather than my special cache structures might be faster.
             # My cache structures are expensive to instantiate.
             # But all the same, it'd be better to save and load keyframes themselves.
-            self.journal.disconnect(self._journal_cb)
             kftime = 'trunk', 0, 0
             kf = {}
 
@@ -369,11 +367,14 @@ class Cache(object):
                         self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
 
             if not kf:
-                self.journal.connect(self._journal_cb)
                 return
             branch, turn, tick = kftime
-            self.keyframes[branch] = (turn, tick, kf)
-            self.journal.connect(self._journal_cb)
+            kfb = self.keyframes[branch]
+            if turn in kfb:
+                assert tick not in kfb[turn], "Already have a keyframe at {}, {}, {}".format(
+                    branch, turn, tick
+                )
+            kfb[turn][tick] = kf
             return kf
         else:
             store = self._store
@@ -703,15 +704,9 @@ class Cache(object):
             planning = self.db._planning
         if forward is None:
             forward = self.db._forward
-        self.journal.disconnect(self._journal_cb)
         self._store(*args, planning=planning, journal=True)
-        self.journal.connect(self._journal_cb)
         if not self.db._no_kc:
             self._update_keycache(*args, forward=forward)
-
-    def _journal_cb(self, journal, *, row, prev):
-        # TODO: if prev is unloaded, try to look it up myself and fill in the journal's presettings
-        self._store(*row, planning=self.db._planning, journal=False)
 
     def _store(self, *args, planning, journal):
         entity, key, branch, turn, tick, prev, value = args[-7:]
@@ -910,8 +905,8 @@ class Cache(object):
 class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
 
-    def store(self, graph, node, branch, turn, tick, ex, *, planning=None):
-        return super().store(graph, node, branch, turn, tick, not ex, ex or None, planning=planning)
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=None, forward=None):
+        return super().store(graph, node, branch, turn, tick, not ex, ex or None, planning=planning, forward=forward)
 
 
 class EdgesCache(Cache):
@@ -1016,3 +1011,67 @@ class EdgesCache(Cache):
         if ex:
             assert self.has_successor(graph, orig, dest, branch, turn, tick)
             assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
+
+
+class DataSwapper:
+    """Gets and sets data, caching as needed."""
+    def __init__(self, cache, saver, loader):
+        self.cache = cache
+        self.saver = saver
+        self.loader = loader
+
+    def store(self, *args, planning=None, forward=None):
+        self.saver(*args)
+        self.cache.store(*args, planning=planning, forward=forward)
+
+    def retrieve(self, *args):
+        try:
+            return self.cache.retrieve(*args)
+        except UnloadedException:
+            # Load the last keyframe prior to the timestamp requested
+            # Then load everything between that keyframe and the earliest loaded moment.
+            # Eventually I'd like to also support loading a nearby keyframe *after* the timestamp requested,
+            # and playing the journal *backwards* ... but it seems like a pain.
+            # This means I'll have to load stuff from an earlier branch, probably,
+            # or even all the way back to the beginning
+            val = self.loader(*args)
+            args += (val,)
+            self.cache.store(*args)
+            return val
+
+    def iter_entities_or_keys(self, *args, forward=None):
+        __doc__ = Cache.iter_entities_or_keys.__doc__
+        try:
+            return self.cache.iter_entities_or_keys(*args, forward=forward)
+    iter_entities = iter_keys = iter_entities_or_keys
+
+    def count_entities_or_keys(self, *args, forward=None):
+        __doc__ = Cache.count_entities_or_keys.__doc__
+        return self.cache.count_entities_or_keys(*args, forward=forward)
+    count_entities = count_keys = count_entities_or_keys
+
+
+class EdgesDataSwapper(DataSwapper):
+    def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
+        __doc__ = EdgesCache.iter_successors.__doc__
+        return self.cache.iter_successors(graph, orig, branch, turn, tick, forward=forward)
+
+    def iter_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
+        __doc__ = EdgesCache.iter_predecessors.__doc__
+        return self.cache.iter_predecessors(graph, dest, branch, turn, tick, forward=forward)
+
+    def count_successors(self, graph, orig, branch, turn, tick, *, forward=None):
+        __doc__ = EdgesCache.count_successors.__doc__
+        return self.cache.count_successors(graph, orig, branch, turn, tick, forward=forward)
+
+    def count_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
+        __doc__ = EdgesCache.count_predecessors.__doc__
+        return self.cache.count_predecessors(graph, dest, branch, turn, tick, forward=forward)
+
+    def has_successor(self, graph, orig, dest, branch, turn, tick):
+        __doc__ = EdgesCache.has_successor.__doc__
+        return self.cache.has_successor(graph, orig, dest, branch, turn, tick)
+
+    def has_predecessor(self, graph, dest, orig, branch, turn, tick):
+        __doc__ = EdgesCache.has_predecessor.__doc__
+        return self.cache.has_predecessor(graph, dest, orig, branch, turn, tick)
