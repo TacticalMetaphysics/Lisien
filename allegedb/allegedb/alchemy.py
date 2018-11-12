@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """SQLAlchemy code to generate the SQL used by the allegedb ORM
 
 If SQLAlchemy is installed at runtime, this will use it to generate SQL on the fly;
@@ -12,7 +25,7 @@ python3 alchemy.py >sqlite.json
 from functools import partial
 from sqlalchemy import (
     Table,
-    Index,
+    column,
     Column,
     CheckConstraint,
     ForeignKeyConstraint,
@@ -78,6 +91,7 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('value', TEXT, nullable=True)
     )
     Table(
@@ -100,6 +114,7 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('value', TEXT, nullable=True),
         ForeignKeyConstraint(
             ['graph', 'node'], ['nodes.graph', 'nodes.node']
@@ -135,10 +150,21 @@ def tables_for_meta(meta):
                primary_key=True, default='trunk'),
         Column('turn', INT, primary_key=True, default=0),
         Column('tick', INT, primary_key=True, default=0),
+        Column('prev', TEXT, nullable=True),
         Column('value', TEXT, nullable=True),
         ForeignKeyConstraint(
             ['graph', 'orig', 'dest', 'idx'],
             ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
+        )
+    )
+    Table(
+        'keyframes', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        Column('keyframe', TEXT),
+        ForeignKeyConstraint(
+            ['branch'], ['branches.branch']
         )
     )
     return meta.tables
@@ -310,6 +336,7 @@ def queries_for_table_dict(table):
         gv.c.key,
         gv.c.turn,
         gv.c.tick,
+        gv.c.prev,
         gv.c.value
     ]).where(gv.c.branch == bindparam('branch')).order_by(
         gv.c.turn, gv.c.tick
@@ -335,6 +362,7 @@ def queries_for_table_dict(table):
         nv.c.key,
         nv.c.turn,
         nv.c.tick,
+        nv.c.prev,
         nv.c.value
     ]).where(nv.c.branch == bindparam('branch')).order_by(
         nv.c.turn, nv.c.tick
@@ -362,6 +390,7 @@ def queries_for_table_dict(table):
         ev.c.key,
         ev.c.turn,
         ev.c.tick,
+        ev.c.prev,
         ev.c.value
     ]).where(ev.c.branch == bindparam('branch')).order_by(
         ev.c.turn, ev.c.tick
