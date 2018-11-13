@@ -1,6 +1,19 @@
 # Parable of the Polygons is public domain.
 # This implementation is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Implementation of Parable of the Polygons http://ncase.me/polygons/"""
 
 
@@ -62,7 +75,7 @@ def install(eng):
 
 
     # make an 8-way-connected grid
-    physical.grid_2d_8graph(100, 100)
+    physical.grid_2d_8graph(20, 20)
     empty = list(physical.place.values())
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places

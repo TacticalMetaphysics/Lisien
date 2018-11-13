@@ -354,17 +354,17 @@ class Cache(object):
                             cb(row, validate=validate)
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
-                assert None not in (earliest_turn, earliest_tick, latest_turn, latest_tick)
-                if branch in self.loaded:
-                    earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
-                        = self.loaded[branch]
-                    self.loaded[branch] = min((
-                        (earliest_turn, earliest_tick), (earliest_turn2, earliest_tick2)
-                    )) + max((
-                        (latest_turn, latest_tick), (latest_turn2, latest_tick2)
-                    ))
-                else:
-                    self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
+                if None not in (earliest_turn, earliest_tick, latest_turn, latest_tick):
+                    if branch in self.loaded:
+                        earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
+                            = self.loaded[branch]
+                        self.loaded[branch] = min((
+                            (earliest_turn, earliest_tick), (earliest_turn2, earliest_tick2)
+                        )) + max((
+                            (latest_turn, latest_tick), (latest_turn2, latest_tick2)
+                        ))
+                    else:
+                        self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
 
             if not kf:
                 return
@@ -394,17 +394,17 @@ class Cache(object):
                             cb(row, validate=validate)
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
-                assert None not in (earliest_turn, earliest_tick, latest_turn, latest_tick)
-                if branch in self.loaded:
-                    earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
-                        = self.loaded[branch]
-                    self.loaded[branch] = min((
-                        (earliest_turn, earliest_tick), (earliest_turn2, earliest_tick2)
-                    )) + max((
-                        (latest_turn, latest_tick), (latest_turn2, latest_tick2)
-                    ))
-                else:
-                    self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
+                if None not in (earliest_turn, earliest_tick, latest_turn, latest_tick):
+                    if branch in self.loaded:
+                        earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
+                            = self.loaded[branch]
+                        self.loaded[branch] = min((
+                            (earliest_turn, earliest_tick), (earliest_turn2, earliest_tick2)
+                        )) + max((
+                            (latest_turn, latest_tick), (latest_turn2, latest_tick2)
+                        ))
+                    else:
+                        self.loaded[branch] = earliest_turn, earliest_tick, latest_turn, latest_tick
             return dd2
 
     def unload(self, branch, turn, tick, direction='backward'):

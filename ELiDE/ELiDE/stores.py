@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Editors for textual data in the database.
 
 The data is accessed via a "store" -- a mapping onto the table, used
@@ -8,16 +21,12 @@ like a dictionary. Each of the widgets defined here,
 buttons with which the user may select one of the keys in the store,
 and edit its value in a text box.
 
-Though they retrieve data the same way, these widgets have different
-ways of saving data -- the contents of the :class:`FuncsEditor` input
-will be compiled into Python bytecode, stored along with the source
-code.
-
 """
 import re
 import string
 from functools import partial
 from ast import parse
+from textwrap import indent, dedent
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -41,6 +50,7 @@ from .util import trigger
 
 
 class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):
+    """Toggle button at some index in a RecycleView"""
     index = NumericProperty()
 
     def on_touch_down(self, touch):
@@ -55,11 +65,15 @@ class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):
 
 
 class StoreButton(RecycleToggleButton):
+    """RecycleToggleButton to select something to edit in a Store"""
     store = ObjectProperty()
-    table = StringProperty('functions')
+    """Either a FunctionStore or a StringStore"""
     name = StringProperty()
+    """Name of this particular item"""
     source = StringProperty()
+    """Text of this item"""
     select = ObjectProperty()
+    """Function that gets called with my ``index`` when I'm selected"""
 
     def on_parent(self, *args):
         if self.name == '+':
@@ -76,10 +90,12 @@ class StoreList(RecycleView):
     in a store, using one of the StoreAdapter classes.
 
     """
-    table = StringProperty()
     store = ObjectProperty()
+    """Either a FunctionStore or a StringStore"""
     selection_name = StringProperty()
+    """The ``name`` of the ``StoreButton`` currently selected"""
     boxl = ObjectProperty()
+    """Instance of ``SelectableRecycleBoxLayout``"""
 
     def __init__(self, **kwargs):
         self.bind(table=self._trigger_redata)
@@ -117,6 +133,7 @@ class StoreList(RecycleView):
         yield from sorted(self.store._cache.keys())
 
     def redata(self, *args, **kwargs):
+        """Update my ``data`` to match what's in my ``store``"""
         select_name = kwargs.get('select_name')
         if not self.table or self.store is None:
             Clock.schedule_once(self.redata)
@@ -131,6 +148,7 @@ class StoreList(RecycleView):
         Clock.schedule_once(part, 0)
 
     def select_name(self, name, *args):
+        """Select an item by its name, highlighting"""
         self.boxl.select_node(self._name2i[name])
 
     def _trigger_select_name(self, name):
@@ -140,7 +158,9 @@ class StoreList(RecycleView):
 
 
 class LanguageInput(TextInput):
+    """Widget to enter the language you want to edit"""
     screen = ObjectProperty()
+    """The instance of ``StringsEdScreen`` that I'm in"""
 
     def on_focus(self, instance, value, *largs):
         if not value:
@@ -149,11 +169,23 @@ class LanguageInput(TextInput):
                 self.screen.language = self.text
             self.text = ''
 
+
 class StringsEdScreen(Screen):
+    """A screen in which to edit strings to be presented to humans
+
+    Needs a ``toggle`` function to switch back to the main screen;
+    a ``language`` identifier; and a ``language_setter`` function to be called
+    with that ``language`` when changed.
+
+    """
     toggle = ObjectProperty()
+    """Function to switch back to the main screen"""
     language = StringProperty('eng')
+    """Code identifying the language we're editing"""
     language_setter = ObjectProperty()
+    """Function called with ``language`` when it changes"""
     edbox = ObjectProperty()
+    """Widget containing editors for the current string and its name"""
 
     def on_language(self, *args):
         if self.edbox is None:
@@ -169,9 +201,13 @@ class StringsEdScreen(Screen):
 
 
 class Editor(BoxLayout):
+    """Abstract widget for editing strings or functions"""
     name_wid = ObjectProperty()
+    """Text input widget holding the name of the string being edited"""
     store = ObjectProperty()
+    """Proxy to the ``FunctionStore`` or ``StringStore``"""
     disable_text_input = BooleanProperty(False)
+    """Whether to prevent text entry (not name entry)"""
     # This next is the trigger on the EdBox, which may redata the StoreList
     _trigger_save = ObjectProperty()
     _trigger_delete = ObjectProperty()
@@ -186,7 +222,7 @@ class Editor(BoxLayout):
             return
         if self.name_wid.text and self.name_wid.text[0] in string.digits + string.whitespace + string.punctuation:
             # TODO alert the user to invalid name
-            Logger.debug("{}: Not saving, invalid name".format(type(self).__name__))
+            Logger.warning("{}: Not saving, invalid name".format(type(self).__name__))
             return
         if hasattr(self, '_do_parse'):
             try:
@@ -222,6 +258,7 @@ class Editor(BoxLayout):
         return do_redata
 
     def delete(self, *args):
+        """Remove the currently selected item from my store"""
         key = self.name_wid.text or self.name_wid.hint_text
         if not hasattr(self.store, key):
             # TODO feedback about missing key
@@ -234,7 +271,9 @@ class Editor(BoxLayout):
 
 
 class StringInput(Editor):
+    """Editor for human-readable strings"""
     validate_name_input = ObjectProperty()
+    """Boolean function for checking if a string name is acceptable"""
 
     def on_name_wid(self, *args):
         if not self.validate_name_input:
@@ -269,13 +308,23 @@ class StringInput(Editor):
 
 
 class EdBox(BoxLayout):
+    """Box containing most of an editor's screen
+
+    Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.
+
+    """
     storelist = ObjectProperty()
+    """An instance of ``StoreList``"""
     editor = ObjectProperty()
-    table = StringProperty()
+    """An instance of a subclass of ``Editor``"""
     store = ObjectProperty()
+    """Proxy to the store I represent"""
     data = ListProperty()
+    """Dictionaries describing widgets in my ``storelist``"""
     toggle = ObjectProperty()
+    """Function to show or hide my screen"""
     disable_text_input = BooleanProperty(False)
+    """Set to ``True`` to prevent entering text in the editor"""
 
     def on_storelist(self, *args):
         self.storelist.bind(selection_name=self._pull_from_storelist)
@@ -304,7 +353,7 @@ class EdBox(BoxLayout):
         self.save()
         self.toggle()
 
-    def save(self, *args):
+    def save(self, *args, name=None):
         if not self.editor:
             return
         if hasattr(self, '_lock_save'):
@@ -312,15 +361,14 @@ class EdBox(BoxLayout):
         self._lock_save = True
         save_select = self.editor.save()
         if save_select:
-            name = save_select if isinstance(save_select, str) else getattr(self, '_select_name', None)
             self.storelist.redata(select_name=name)
         else:
             del self._lock_save
 
     def _trigger_save(self, name=None):
-        self._select_name = name
-        Clock.unschedule(self.save)
-        Clock.schedule_once(self.save, 0)
+        part = partial(self.save, name=name)
+        Clock.unschedule(part)
+        Clock.schedule_once(part, 0)
 
     def delete(self, *args):
         if not self.editor:
@@ -335,8 +383,12 @@ class EdBox(BoxLayout):
             del self._lock_save
     _trigger_delete = trigger(delete)
 
+    def on_store(self, *args):
+        pass
+
 
 class StringNameInput(TextInput):
+    """Small text box for the names of strings"""
     _trigger_save = ObjectProperty()
 
     def on_focus(self, inst, val, *largs):
@@ -345,6 +397,12 @@ class StringNameInput(TextInput):
 
 
 class StringsEdBox(EdBox):
+    """Box containing most of the strings editing screen
+
+    Contains the storelist and the editor, which in turn contains the string name input
+    and a bigger input field for the string itself.
+
+    """
     language = StringProperty('eng')
 
 
@@ -361,6 +419,11 @@ sig_ex = re.compile('^ *def .+?\((.+)\):$')
 
 
 class FunctionNameInput(TextInput):
+    """Input for the name of a function
+
+    Filters out illegal characters.
+
+    """
     _trigger_save = ObjectProperty()
 
     def insert_text(self, s, from_undo=False):
@@ -376,23 +439,17 @@ class FunctionNameInput(TextInput):
             self._trigger_save(self.text)
 
 
-def munge_source(v, spaces=4):
+def munge_source(v):
+    """Take Python source code, return a pair of its parameters and the rest of it dedented"""
     lines = v.split('\n')
     if not lines:
         return tuple(), ''
     firstline = lines[0].lstrip()
-    if firstline == '' or firstline[0] == '@':
+    while firstline == '' or firstline[0] == '@':
         del lines[0]
+        firstline = lines[0].lstrip()
     if not lines:
         return tuple(), ''
-    # how indented is it?
-    for ch in lines[0]:
-        if ch == ' ':
-            spaces += 1
-        elif ch == '\t':
-            spaces += 4
-        else:
-            break
     params = tuple(
         parm.strip() for parm in
         sig_ex.match(lines[0]).group(1).split(',')
@@ -403,18 +460,18 @@ def munge_source(v, spaces=4):
     # hack to allow 'empty' functions
     if lines and lines[-1].strip() == 'pass':
         del lines[-1]
-    return params, '\n'.join(line[spaces:] for line in lines)
+    return params, dedent('\n'.join(lines))
 
 
 class FuncEditor(Editor):
     """The editor widget for working with any particular function.
 
-    Contains a one-line field for the function's name; a multi-line
-    field for its code; and radio buttons to select its signature
-    from among those permitted.
+    Contains a one-line field for the function's name and a multi-line
+    field for its code.
 
     """
     storelist = ObjectProperty()
+    """Instance of ``StoreList`` that shows all the functions you can edit"""
     codeinput = ObjectProperty()
     params = ListProperty(['obj'])
     _text = StringProperty()
@@ -423,8 +480,7 @@ class FuncEditor(Editor):
     def _get_source(self):
         code = self.get_default_text(self.name_wid.text or self.name_wid.hint_text)
         if self._text:
-            for line in self._text.split('\n'):
-                code += (' ' * 4 + line + '\n')
+            code += indent(self._text, ' ' * 4)
         else:
             code += ' ' * 4 + 'pass'
         return code.rstrip(' \n\t')
@@ -442,7 +498,7 @@ class FuncEditor(Editor):
     def get_default_text(self, name):
         if not name or name == '+':
             name = 'a'
-        return "def {}(obj):\n".format(name)
+        return "def {}({}):\n".format(name, ', '.join(self.params))
 
     def on_codeinput(self, *args):
         self._text = self.codeinput.text
@@ -453,9 +509,7 @@ class FuncsEdBox(EdBox):
     """Widget for editing the Python source of funcs to be used in LiSE sims.
 
     Contains a list of functions in the store it's about, next to a
-    FuncEditor showing the source of the selected one, and some
-    controls on the bottom that let you add, delete, and rename the function,
-    or close the screen.
+    FuncEditor showing the source of the selected one, and a close button.
 
     """
 
@@ -468,6 +522,11 @@ class FuncsEdBox(EdBox):
 
 
 class FuncsEdScreen(Screen):
+    """Screen containing three FuncsEdBox
+
+    Triggers, prereqs, and actions.
+
+    """
     toggle = ObjectProperty()
 
     def save(self, *args):
@@ -509,7 +568,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     TextInput:
         id: string
         disabled: root.disable_text_input
@@ -522,7 +581,6 @@ Builder.load_string("""
         StoreList:
             id: strings_list
             size_hint_x: 0.2
-            table: root.table
             store: root.store
         StringInput:
             id: strings_ed
@@ -539,14 +597,13 @@ Builder.load_string("""
         StringsEdBox:
             id: edbox
             toggle: root.toggle
-            table: 'strings'
             store: app.engine.string
             language: root.language
         BoxLayout:
             size_hint_y: 0.05
             Button:
                 text: 'Close'
-                on_press: edbox.dismiss()
+                on_release: edbox.dismiss()
             Label:
                 text_size: self.size
                 halign: 'right'
@@ -596,7 +653,7 @@ Builder.load_string("""
         Button:
             text: 'del'
             size_hint_x: 0.1
-            on_press: root._trigger_delete()
+            on_release: root._trigger_delete()
     BoxLayout:
         orientation: 'horizontal'
         Label:
@@ -619,6 +676,7 @@ Builder.load_string("""
     editor: funcs_ed
     storelist: funcs_list
     orientation: 'vertical'
+    data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
     BoxLayout:
         orientation: 'horizontal'
         BoxLayout:
@@ -626,11 +684,9 @@ Builder.load_string("""
             size_hint_x: 0.2
             StoreList:
                 id: funcs_list
-                table: root.table
                 store: root.store
         FuncEditor:
             id: funcs_ed
-            table: root.table
             store: root.store
             storelist: funcs_list
             disable_text_input: root.disable_text_input
@@ -641,7 +697,7 @@ Builder.load_string("""
         size_hint_y: 0.05
         Button:
             text: 'Close'
-            on_press: root.dismiss()
+            on_release: root.dismiss()
             size_hint_x: 0.2
         Widget:
             id: spacer
@@ -656,9 +712,8 @@ Builder.load_string("""
             FuncsEdBox:
                 id: triggers
                 toggle: root.toggle
-                table: 'triggers'
                 store: app.engine.trigger
-                on_data: app.rules.rulesview._trigger_pull_triggers()
+                on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: prereq
             text: 'Prereq'
@@ -666,9 +721,8 @@ Builder.load_string("""
             FuncsEdBox:
                 id: prereqs
                 toggle: root.toggle
-                table: 'prereqs'
                 store: app.engine.prereq
-                on_data: app.rules.rulesview._trigger_pull_prereqs()
+                on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
         TabbedPanelItem:
             id: action
             text: 'Action'
@@ -676,7 +730,6 @@ Builder.load_string("""
             FuncsEdBox:
                 id: actions
                 toggle: root.toggle
-                table: 'actions'
                 store: app.engine.action
-                on_data: app.rules.rulesview._trigger_pull_actions()
+                on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)

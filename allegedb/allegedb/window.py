@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object-relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """WindowDict, the core data structure used by allegedb's caching system.
 
 It resembles a dictionary, more specifically a defaultdict-like where retrieving
@@ -474,10 +487,27 @@ class WindowDict(MutableMapping):
         if self._future:
             return self._future[0][0]
 
-    def truncate(self, rev):
-        """Delete everything after the given revision."""
+    def truncate(self, rev, reverse=False, inclusive=False):
+        """Delete everything after the given revision.
+
+        Or, with ``reverse=True``, everything before the given revision.
+
+        Normally leaves the exact revision you give it alone. To delete that too,
+        pass in ``inclusive=True``.
+
+        """
+        if reverse:
+            self.seek(rev)
+            if self._past:
+                if inclusive or self._past[-1][0] != rev:
+                    self._past = None
+                else:
+                    self._past = [self._past[-1]]
+            return
         self.seek(rev)
         self._future = None
+        if inclusive and self._past and self._past[-1][0] == rev:
+            self._past.pop()
 
     @property
     def beginning(self):

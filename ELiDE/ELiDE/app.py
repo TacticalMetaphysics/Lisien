@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop ELiDE."""
 
 import json
@@ -9,7 +22,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.resources import resource_add_path
 
-from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 from kivy.properties import (
     AliasProperty,
@@ -167,14 +180,14 @@ class ELiDEApp(App):
             pdb.set_trace()
 
 
-        self.manager = ScreenManager()
+        self.manager = ScreenManager(transition=NoTransition())
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
             inspector.create_inspector(Window, self.manager)
         
-        Clock.schedule_once(self._start_subprocess, 0.1)
-        Clock.schedule_once(self._add_screens, 0.2)
+        self._start_subprocess()
+        self._add_screens()
         return self.manager
 
     def _pull_lang(self, *args, **kwargs):
@@ -187,6 +200,8 @@ class ELiDEApp(App):
         self.branch, self.turn, self.tick = branch, turn, tick
 
     def _start_subprocess(self, *args):
+        if hasattr(self, '_started'):
+            raise ChildProcessError("Subprocess already running")
         config = self.config
         self.procman = EngineProcessManager()
         enkw = {'logger': Logger}
@@ -213,8 +228,12 @@ class ELiDEApp(App):
         char = config['ELiDE']['boardchar']
         if char not in self.engine.character:
             self.engine.add_character(char)
+        self._started = True
 
     def _add_screens(self, *args):
+        if not getattr(self, '_started'):
+            Clock.schedule_once(self._add_screens, 0)
+            return
         def toggler(screenname):
             def tog(*args):
                 if self.manager.current == screenname:
@@ -238,6 +257,13 @@ class ELiDEApp(App):
             engine=self.engine,
             toggle=toggler('rules')
         )
+
+        self.charrules = ELiDE.rulesview.CharacterRulesScreen(
+            engine=self.engine,
+            character=self.character,
+            toggle=toggler('charrules')
+        )
+        self.bind(character=self.charrules.setter('character'))
 
         self.chars = ELiDE.charsview.CharactersScreen(
             engine=self.engine,
@@ -302,6 +328,7 @@ class ELiDEApp(App):
                 self.spotcfg,
                 self.statcfg,
                 self.rules,
+                self.charrules,
                 self.chars,
                 self.strings,
                 self.funcs

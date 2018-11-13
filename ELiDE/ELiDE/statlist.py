@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Grid of current values for some entity. Can be changed by the
 user. Autoupdates when there's a change for any reason.
 
@@ -384,11 +397,7 @@ class BaseStatListView(RecycleView):
                 k not in (
                     'character',
                     'name',
-                    'location',
-                    'next_location',
-                    'locations',
-                    'arrival_time',
-                    'next_arrival_time'
+                    'location'
                 )
             ):
                 yield k, v
@@ -453,6 +462,12 @@ Builder.load_string(
 <StatRowToggleButton>:
     text: self.true_text if self.value else self.false_text
     state: 'down' if self.value else 'normal'
+<StatRowSlider>:
+    Label:
+        center_x: root.center_x
+        y: root.center_y
+        text: str(root.value)
+        size: self.texture_size
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
     app: app

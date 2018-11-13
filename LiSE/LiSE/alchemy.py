@@ -450,7 +450,7 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = queries_for_table_dict(table)
+    r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)

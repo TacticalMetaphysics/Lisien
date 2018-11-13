@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The sort of node that is ultimately located in a Place.
 
 Things may be located in other Things as well, but eventually must be
@@ -37,10 +50,7 @@ class Thing(Node):
     extrakeys = {
         'name',
         'character',
-        'location',
-        'next_location',
-        'arrival_time',
-        'next_arrival_time'
+        'location'
     }
 
     def _getname(self):
@@ -50,19 +60,9 @@ class Thing(Node):
         return self.character.name
 
     def _getloc(self):
-        return self._get_locations()[0]
-
-    def _setloc(self, v):
-        self._set_loc_and_next(v, None)
-
-    def _getnxtloc(self):
-        return self._get_locations()[1]
-
-    def _setnxtloc(self, v):
-        self._set_loc_and_next(self['location'], v)
-
-    def _setlocs(self, v):
-        self._set_loc_and_next(*v)
+        return self.engine._things_cache.retrieve(
+            self.character.name, self.name, *self.engine.btt()
+        )
 
     def _get_arrival_time(self):
         charn = self.character.name
@@ -78,27 +78,18 @@ class Thing(Node):
         else:
             raise ValueError("Couldn't find arrival time")
 
-    def _get_next_arrival_time(self):
-        try:
-            return self.engine._things_cache.turn_after(
-                self.character.name, self.name, *self.engine.time
-            )
-        except KeyError:
-            return None
-
-    def _get_locations(self):
-        return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine.btt()
+    def _set_loc(self, loc):
+        self.engine._set_thing_loc(
+            self.character.name,
+            self.name,
+            loc
         )
+        self.send(self, key='location', val=loc)
 
     _getitem_dispatch = {
         'name': _getname,
         'character': _getcharname,
-        'location': _getloc,
-        'next_location': _getnxtloc,
-        'locations': _get_locations,
-        'arrival_time': _get_arrival_time,
-        'next_arrival_time': _get_next_arrival_time
+        'location': _getloc
     }
 
     _setitem_dispatch = {
@@ -106,9 +97,7 @@ class Thing(Node):
         'character': roerror,
         'arrival_time': roerror,
         'next_arrival_time': roerror,
-        'location': _setloc,
-        'next_location': _setnxtloc,
-        'locations': _setlocs
+        'location': _set_loc
     }
 
     def __contains__(self, key):
@@ -127,20 +116,10 @@ class Thing(Node):
 
         ``location``: return the name of my location
 
-        ``arrival_time``: return the turn when I arrived in the
-        present location
-
-        ``next_location``: if I'm in transit, return where to, else return None
-
-        ``next_arrival_time``: return the turn when I'm going to
-        arrive at ``next_location``
-
-        ``locations``: return a pair of ``(location, next_location)``
-
         """
-        try:
+        if key in self._getitem_dispatch:
             return self._getitem_dispatch[key](self)
-        except KeyError:
+        else:
             return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -167,7 +146,7 @@ class Thing(Node):
 
     def delete(self):
         super().delete()
-        self._set_loc_and_next(None, None)
+        self._set_loc(None)
         self.character.thing.send(self.character.thing, key=self.name, val=None)
 
     def clear(self):
@@ -177,23 +156,8 @@ class Thing(Node):
                 del self[k]
 
     @property
-    def container(self):
-        """If I am in transit, this is the Portal I'm moving through. Otherwise
-        it's the Thing or Place I'm located in.
-
-        """
-        (a, b) = self['locations']
-        if b:
-            return self.engine._get_edge(self.character, a, b)
-        else:
-            return self.engine._get_node(self.character, a)
-
-    @property
     def location(self):
-        """The Thing or Place I'm in. If I'm in transit, it's where I
-        started.
-
-        """
+        """The ``Thing`` or ``Place`` I'm in."""
         return self.engine._get_node(self.character, self['location'])
 
     @location.setter
@@ -204,50 +168,13 @@ class Thing(Node):
 
     @property
     def next_location(self):
-        """If I'm not in transit, this is None. If I am, it's where I'm
-        headed.
-
-        """
-        loc, nxtloc = self._get_locations()
-        if nxtloc is None:
+        branch = self.engine.branch
+        turn = self.engine._things_cache.turn_after(self.character.name, self.name, *self.engine.time)
+        if turn is None:
             return None
-        return self.engine._get_node(self.character, nxtloc)
-
-    @next_location.setter
-    def next_location(self, v):
-        if hasattr(v, 'name'):
-            v = v.name
-        self['next_location'] = v
-
-    def _set_loc_and_next(self, loc, nextloc=None):
-        """Private method to simultaneously set ``location`` and
-        ``next_location``
-
-        """
-        self.engine._set_thing_loc_and_next(
-            self.character.name,
-            self.name,
-            loc,
-            nextloc
-        )
-        self.send(self, key='locations', val=(loc, nextloc))
-
-    @property
-    def locations(self):
-        loc, nxtloc = self._get_locations()
-        loc = self.engine._get_node(self.character, loc)
-        if nxtloc is not None:
-            nxtloc = self.engine._get_node(self.character, nxtloc)
-        return loc, nxtloc
-
-    @locations.setter
-    def locations(self, v):
-        loc, nxtloc = v
-        if hasattr(loc, 'name'):
-            loc = loc.name
-        if hasattr(nxtloc, 'name'):
-            nxtloc = nxtloc.name
-        self._set_loc_and_next(loc, nxtloc)
+        return self.engine._get_node(self.character, self.engine._things_cache.retrieve(
+            self.character.name, self.name, branch, turn, self.engine._turn_end_plan[branch, turn]
+        ))
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
@@ -267,10 +194,9 @@ class Thing(Node):
         orm = self.character.engine
         turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
-        self['next_location'] = placen
         with self.engine.plan():
             orm.turn += turns
-            self['locations'] = (placen, None)
+            self['location'] = placen
         return turns
 
     def follow_path(self, path, weight=None):
@@ -313,12 +239,12 @@ class Thing(Node):
             for subplace in subpath:
                 portal = self.character.portal[prevsubplace][subplace]
                 turn_inc = portal.get(weight, 1)
-                self.locations = prevsubplace, subplace
                 eng.turn += turn_inc
+                self.location = subplace
                 turns_total += turn_inc
                 subsubpath.append(subplace)
                 prevsubplace = subplace
-            self.locations = subplace, None
+            self.location = subplace
             return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):

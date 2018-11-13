@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A base class for nodes that can be in a character.
 
 Every actual node that you're meant to use will be a place or
@@ -225,12 +238,22 @@ class Origs(Mapping):
 
 
 class UserDescriptor:
+    """Give a node's user if there's only one
+
+    If there are many users, but one of them has the same name as this node, give that one.
+
+    Otherwise, raise AmbiguousUserError.
+
+    """
     usermapping = UserMapping
 
     def __get__(self, instance, owner):
         mapping = self.usermapping(instance)
         it = iter(mapping)
-        k = next(it)
+        try:
+            k = next(it)
+        except StopIteration:
+            raise AmbiguousUserError("No users")
         try:
             next(it)
             raise AmbiguousUserError("{} users. Use the ``users`` property".format(len(mapping)))

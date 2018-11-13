@@ -29,3 +29,5 @@ method.py
 strings.json
 ELiDE.ini
 .coverage
+.pytest_cache
+breakage.diff

@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in LiSE."""
 from allegedb.query import IntegrityError, TimeError
 
@@ -21,18 +34,6 @@ class AmbiguousAvatarError(NonUniqueError, KeyError):
 
 class AmbiguousUserError(NonUniqueError, AttributeError):
     """A user descriptor can't decide what you want."""
-
-
-class RuleError(ValueError):
-    pass
-
-
-class RedundantRuleError(RuleError):
-    """Error condition for when you try to run a rule on a (branch,
-    tick) it's already been executed.
-
-    """
-    pass
 
 
 class UserFunctionError(SyntaxError):
@@ -93,3 +94,33 @@ class TravelException(Exception):
         self.turn = turn
         self.lastplace = lastplace
         super().__init__(message)
+
+
+class PlanError(AttributeError):
+    """Tried to use an attribute that shouldn't be used while planning"""
+
+
+class RulesEngineError(Exception):
+    """For problems to do with the rules engine
+
+    Rules themselves should never raise this. Only the engine should.
+
+    """
+
+
+class RuleError(RulesEngineError):
+    """For problems to do with rules
+
+    Rather than the operation of the rules engine as a whole.
+
+    Don't use this in your trigger, prereq, or action functions.
+    It's only for Rule objects as such.
+
+    """
+
+
+class RedundantRuleError(RuleError):
+    """Error condition for when you try to run a rule on a (branch,
+    turn) it's already been executed.
+
+    """

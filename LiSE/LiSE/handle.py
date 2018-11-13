@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Wrap a LiSE engine so you can access and control it using only
 ordinary method calls.
 
@@ -169,8 +182,7 @@ class EngineHandle(object):
                 portst = self._portal_stat_cache[charn]
                 for port in char.portals():
                     portst.setdefault(port.orig, {})[port.dest] = self.portal_stat_copy(charn, port.orig, port.dest)
-                self._char_things_cache[charn] = self.character_things(char)
-                self._char_places_cache[charn] = self.character_places(char)
+                self._char_nodes_cache[charn] = self.character_nodes(char)
                 self._char_portals_cache[charn] = self.character_portals(char)
                 self._char_rulebooks_cache[charn] = self.character_rulebooks_copy(char)
             return
@@ -199,7 +211,7 @@ class EngineHandle(object):
             for node, val in d.pop('node_val', {}).items():
                 nodenvd = nodevd.setdefault(node, {})
                 for k, v in val.items():
-                    if k not in ('location', 'next_location') and v is None:
+                    if k != 'location' and v is None:
                         if k in nodenvd:
                             del nodenvd[k]
                     else:
@@ -760,7 +772,7 @@ class EngineHandle(object):
             )
             tick_now = self._real.tick
             self._real.tick = parrev
-        for (n, npatch) in patch.items():
+        for i, (n, npatch) in enumerate(patch.items(), 1):
             self.update_node(char, n, npatch)
         if backdate:
             self._real.tick = tick_now
@@ -852,19 +864,23 @@ class EngineHandle(object):
     def set_thing(self, char, thing, statdict):
         self._real.character[char].thing[thing] = statdict
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        loc = statdict.pop('location')
-        nxtloc = statdict.pop('next_location', None)
-        arrt = statdict.pop('arrival_time', self.tick)
-        nxtarrt = statdict.pop('next_arrival_time', None)
-        self._char_things_cache.setdefault(char, {})[thing] = (loc, nxtloc, arrt, nxtarrt)
+        if char in self._char_nodes_cache:
+            cache = self._char_nodes_cache[char]
+        else:
+            cache = frozenset()
+        self._char_nodes_cache[char] = cache.union((thing,))
 
     @timely
-    def add_thing(self, char, thing, loc, next_loc, statdict):
+    def add_thing(self, char, thing, loc, statdict):
         self._real.character[char].add_thing(
-            thing, loc, next_loc, **statdict
+            thing, loc, **statdict
         )
         self._node_stat_cache.setdefault(char, {})[thing] = statdict
-        self._char_things_cache.setdefault(char, {})[thing] = (loc, next_loc, self.tick, None)
+        if char in self._char_nodes_cache:
+            cache = self._char_nodes_cache[char]
+        else:
+            cache = frozenset()
+        self._char_nodes_cache[char] = cache.union((thing,))
 
     @timely
     def place2thing(self, char, node, loc):
@@ -888,18 +904,6 @@ class EngineHandle(object):
     def set_thing_location(self, char, thing, loc):
         self._real.character[char].thing[thing]['location'] = loc
         self._node_stat_cache.setdefault(char, {}).setdefault(thing, {})['location'] = loc
-
-    def get_thing_special_stats(self, char, thing):
-        try:
-            thing = self._real.character[char].thing[thing]
-        except KeyError:
-            return (None, None, None, None)
-        return (
-            thing['location'],
-            thing['next_location'],
-            thing['arrival_time'],
-            thing['next_arrival_time']
-        )
 
     @timely
     def thing_follow_path(self, char, thing, path, weight):
@@ -1107,6 +1111,7 @@ class EngineHandle(object):
     def set_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook][i] = rule
 
+
     @timely
     def ins_rulebook_rule(self, rulebook, i, rule):
         self._real.rulebook[rulebook].insert(i, rule)
@@ -1230,7 +1235,7 @@ class EngineHandle(object):
 
     @timely
     def call_randomizer(self, method, *args, **kwargs):
-        return getattr(self._real.rando, method)(*args, **kwargs)
+        return getattr(self._real._rando, method)(*args, **kwargs)
 
     @timely
     def install_module(self, module):

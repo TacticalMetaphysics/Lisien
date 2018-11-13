@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from types import MethodType
@@ -8,38 +21,9 @@ from ast import parse, Expr, Module
 import json
 
 from blinker import Signal
-from astunparse import Unparser
+from astunparse import unparse, Unparser
 
 from .util import dedent_source
-
-
-class NotThatMap(Mapping):
-    """Wraps another mapping and conceals exactly one of its keys."""
-    __slots__ = ['inner', 'k']
-
-    def __init__(self, inner, k):
-        """Store the inner mapping and the key to hide."""
-        self.inner = inner
-        self.k = k
-
-    def __iter__(self):
-        """Iterate over every key except the one I'm hiding."""
-        for key in self.inner:
-            if key != self.k:
-                yield key
-
-    def __len__(self):
-        """Return the length of my inner mapping minus one, on the assumption
-        that at least that one key is present in the inner mapping.
-
-        """
-        return len(self.inner) - 1
-
-    def __getitem__(self, key):
-        """Raise ``KeyError`` if you're trying to get the hidden key."""
-        if key == self.k:
-            raise KeyError("masked")
-        return self.inner[key]
 
 
 class Language(str):
@@ -124,10 +108,6 @@ class StringStore(MutableMapping, Signal):
         del self.cache[self.language][k]
         self.send(self, key=k, val=None)
 
-    def format(self, k):
-        """Return a stored string with other strings substituted into it."""
-        return self[k].format_map(NotThatMap(self, k))
-
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
@@ -140,11 +120,25 @@ class StringStore(MutableMapping, Signal):
 
 
 class FunctionStore(Signal):
+    """A module-like object that lets you alter its code and save your changes.
+
+    Instantiate it with a path to a file that you want to keep the code in.
+    Assign functions to its attributes, then call its ``save()`` method,
+    and they'll be unparsed and written to the file.
+
+    This is a ``Signal``, so you can pass a function to its ``connect`` method,
+    and it will be called when a function is added, changed, or deleted.
+    The keyword arguments will be ``attr``, the name of the function, and ``val``,
+    the function itself.
+
+    """
     def __init__(self, filename):
         super().__init__()
         self._filename = filename
+        if filename.endswith(".py"):
+            filename = filename[:-3]
         try:
-            with open(filename, 'r') as inf:
+            with open(self._filename, 'r') as inf:
                 self._ast = parse(inf.read(), filename)
                 self._ast_idx = {}
                 for i, node in enumerate(self._ast.body):
@@ -153,7 +147,7 @@ class FunctionStore(Signal):
                 self._locl = {}
                 self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
                 for thing in self._locl.values():
-                    thing.__module__ = self._filename.rstrip('.py')
+                    thing.__module__ = filename
         except FileNotFoundError:
             self._ast = Module(body=[])
             self._ast_idx = {}
@@ -170,7 +164,10 @@ class FunctionStore(Signal):
         if not callable(v):
             super().__setattr__(k, v)
             return
-        v.__module__ = self._filename.rstrip('.py')
+        filename = self._filename
+        if filename.endswith(".py"):
+            filename = filename[:-3]
+        v.__module__ = filename
         self._locl[k] = v
         source = getsource(v)
         outdented = dedent_source(source)
@@ -190,6 +187,9 @@ class FunctionStore(Signal):
         del self._locl[k]
         del self._ast.body[self._ast_idx[k]]
         del self._ast_idx[k]
+        for name in list(self._ast_idx):
+            if name > k:
+                self._ast_idx[name] -= 1
         self.send(self, attr=k, val=None)
 
     def save(self):
@@ -197,8 +197,8 @@ class FunctionStore(Signal):
             Unparser(self._ast, outf)
 
     def iterplain(self):
-        for name, func in self._locl.items():
-            yield name, getsource(func)
+        for funcdef in self._ast.body:
+            yield funcdef.name, unparse(funcdef)
 
     def store_source(self, v, name=None):
         outdented = dedent_source(v)
@@ -216,12 +216,12 @@ class FunctionStore(Signal):
             self._ast_idx[name] = len(self._ast.body)
             self._ast.body.append(expr)
         locl = {}
-        exec(compile(mod, '<LiSE>', 'exec'), {}, locl)
+        exec(compile(mod, self._filename, 'exec'), {}, locl)
         self._locl.update(locl)
         self.send(self, attr=name, val=locl[name])
 
     def get_source(self, name):
-        return getsource(getattr(self, name))
+        return unparse(self._ast.body[self._ast_idx[name]])
 
 
 class MethodStore(FunctionStore):
@@ -258,8 +258,13 @@ class UniversalMapping(MutableMapping, Signal):
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
         branch, turn, tick = self.engine.nbtt()
-        prev = self.engine._universal_cache.retrieve(k, branch, turn, tick)
-        self.engine._universal_cache.store(k, branch, turn, tick, prev, v)
+        try:
+            prev = self.engine._universal_cache.retrieve(k, branch, turn, tick)
+        except KeyError:
+            prev = None  # what if it's just not loaded? I guess the cache needs to take care of that
+        self.engine._universal_cache.store(
+            k, branch, turn, tick, prev, v
+        )
         self.engine.query.universal_set(k, branch, turn, tick, prev, v)
         self.engine.tick = tick
         self.send(self, key=k, val=v)
@@ -267,8 +272,12 @@ class UniversalMapping(MutableMapping, Signal):
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
         branch, turn, tick = self.engine.nbtt()
-        self.engine._universal_cache.store(k, branch, turn, tick, None)
-        self.engine.query.universal_del(k, branch, turn, tick)
+        try:
+            prev = self.engine._universal_cache.retrieve(k, branch, turn, tick)
+        except KeyError:
+            prev = None
+        self.engine._universal_cache.store(k, branch, turn, tick, prev, None)
+        self.engine.query.universal_del(k, branch, turn, tick, prev)
         self.send(self, key=k, val=None)
 
 

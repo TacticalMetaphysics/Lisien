@@ -1,5 +1,18 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """That which displays a one-way connection between two places.
 
 An arrow connects two spots, the origin and the destination, and it
@@ -9,6 +22,9 @@ screen they are at the moment.
 """
 from math import cos, sin, atan, pi
 from kivy.uix.widget import Widget
+from kivy.uix.floatlayout import FloatLayout
+from kivy.graphics.fbo import Fbo
+from kivy.graphics import Translate, Rectangle
 from kivy.properties import (
     ReferenceListProperty,
     AliasProperty,
@@ -517,6 +533,8 @@ class Arrow(ArrowWidget):
     creating a new :class:`Portal`.
 
     """
+    origspot = ObjectProperty()
+    destspot = ObjectProperty()
     portal = ObjectProperty()
     """The portal that I represent."""
     reciprocal = AliasProperty(
@@ -542,6 +560,66 @@ class Arrow(ArrowWidget):
             return self.board.arrow[destn][orign]
         else:
             return None
+
+
+class ArrowLayout(FloatLayout):
+    def __init__(self, **kwargs):
+        self._trigger_redraw = Clock.create_trigger(self.redraw)
+        self.bind(children=self._trigger_redraw)
+        super().__init__(**kwargs)
+
+    def on_parent(self, *args):
+        if not self.canvas:
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        with self.canvas:
+            self._fbo = Fbo(size=self.size)
+            self._translate = Translate(x=self.x, y=self.y)
+            self._rectangle = Rectangle(size=self.size, texture=self._fbo.texture)
+
+    def redraw(self, *args):
+        if not hasattr(self, '_rectangle'):
+            self._trigger_redraw()
+            return
+        fbo = self._fbo
+        fbo.bind()
+        fbo.clear()
+        fbo.clear_buffer()
+        fbo.release()
+        trigger_redraw = self._trigger_redraw
+        for child in self.children:
+            fbo.add(child.canvas)
+            child.bind(selected=trigger_redraw)
+            child.origspot.bind(pos=trigger_redraw)
+            child.destspot.bind(pos=trigger_redraw)
+
+    def on_pos(self, *args):
+        if not hasattr(self, '_translate'):
+            return
+        self._translate.x, self._translate.y = self.pos
+
+    def on_size(self, *args):
+        if not hasattr(self, '_rectangle') or not hasattr(self, '_fbo'):
+            return
+        self._rectangle.size = self._fbo.size = self.size
+        self.redraw()
+
+    def add_widget(self, widget, index=0, canvas=None):
+        if index == 0 or len(self.children) == 0:
+            self.children.insert(0, widget)
+        else:
+            children = self.children
+            if index >= len(children):
+                index = len(children)
+
+            children.insert(index, widget)
+        widget.parent = self
+
+    def remove_widget(self, widget):
+        if widget not in self.children:
+            return
+        self.children.remove(widget)
+        widget.parent = None
 
 
 Builder.load_string(

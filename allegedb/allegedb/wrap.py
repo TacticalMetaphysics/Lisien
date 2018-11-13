@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Wrapper classes to let you store mutable data types in the allegedb ORM"""
 from functools import partial
 from itertools import zip_longest
@@ -235,7 +248,7 @@ class DictWrapper(MutableMappingWrapper, dict):
         return dict(self._getter())
 
     def _set(self, v):
-        self._setter(v)
+        self._setter(self._copy(), v)
         self._outer[self._key] = v
 
 
@@ -272,7 +285,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         return list(self._getter())
 
     def _set(self, v):
-        self._setter(v)
+        self._setter(self._copy(), v)
         self._outer[self._key] = v
 
     def insert(self, i, v):
@@ -305,8 +318,11 @@ class SetWrapper(MutableWrapperSet, set):
         self._outer = outer
         self._key = key
 
+    def _copy(self):
+        return set(self._getter())
+
     def _set(self, v):
-        self._setter(v)
+        self._setter(self._copy(), v)
         self._outer[self._key] = v
 
 

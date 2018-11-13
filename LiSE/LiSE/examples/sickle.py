@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Sickle cell anemia vs. malaria, a classic example of population genetics.
 
 This script will initialize LiSEworld.db and the game code libraries to run the
@@ -135,13 +148,18 @@ def install(
     # is just a test
     @phys.thing.rule
     def wander(critter):
-        dest = critter.engine.choice(list(critter.character.place.keys()))
+        dests = list(critter.character.place.keys())
+        dests.remove(critter['location'])
+        dest = critter.engine.choice(dests)
         critter.travel_to(dest)
 
     @wander.trigger
     def not_travelling(critter):
-        return critter['next_location'] is None
+        return critter.next_location is None
 
+    @wander.prereq
+    def big_map(critter):
+        return len(critter.character.place) > 1
 
 
 def sickle_cell_test(

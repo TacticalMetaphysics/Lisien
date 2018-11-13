@@ -1,11 +1,26 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from LiSE.proxy import EngineProcessManager
 import allegedb.tests.test_all
 import pytest
 import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
 import LiSE.examples.sickle as sickle
+import os
+import tempfile
 
 
 class ProxyTest(allegedb.tests.test_all.AllegedTest):
@@ -13,9 +28,25 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         self.manager = EngineProcessManager()
         self.engine = self.manager.start('sqlite:///:memory:')
         self.graphmakers = (self.engine.new_character,)
+        self.tempdir = tempfile.mkdtemp(dir='.')
+        for f in (
+                'trigger.py', 'prereq.py', 'action.py', 'function.py',
+                'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.rename(f, os.path.join(self.tempdir, f))
 
     def tearDown(self):
         self.manager.shutdown()
+        for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.remove(f)
+            if os.path.exists(os.path.join(self.tempdir, f)):
+                os.rename(os.path.join(self.tempdir, f), f)
+        os.rmdir(self.tempdir)
 
 
 class ProxyGraphTest(allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
@@ -41,11 +72,26 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
 ])
 def hand(request):
     from LiSE.handle import EngineHandle
+    tempdir = tempfile.mkdtemp(dir='.')
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.rename(f, os.path.join(tempdir, f))
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     with hand._real.advancing():
         request.param(hand._real)
     yield hand
     hand.close()
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(os.path.join(tempdir, f)):
+            os.rename(os.path.join(tempdir, f), f)
+    os.rmdir(tempdir)
+
 
 def test_fast_delta(hand):
     # just set a baseline for the diff
@@ -66,163 +112,160 @@ def test_fast_delta(hand):
 
 def test_assignment():
     from LiSE.handle import EngineHandle
+    tempdir = tempfile.mkdtemp(dir='.')
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.rename(f, os.path.join(tempdir, f))
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     eng = hand._real
     with eng.advancing():
         college.install(eng)
     physical_inital_copy = {'node_val': {'common0': {'rulebook': ('physical', 'common0')},
                                          'dorm1room3': {'rulebook': ('physical', 'dorm1room3')},
-                                         'dorm1room4student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room4student1'),
+                                         'dorm1room4student1': {'rulebook': ('physical', 'dorm1room4student1'),
                                                                 'location': 'dorm1room4'},
-                                         'dorm2room4student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room4student0'),
+                                         'dorm2room4student0': {'rulebook': ('physical', 'dorm2room4student0'),
                                                                 'location': 'dorm2room4'},
                                          'classroom': {'rulebook': ('physical', 'classroom')},
-                                         'dorm0room5student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room5student1'),
+                                         'dorm0room5student1': {'rulebook': ('physical', 'dorm0room5student1'),
                                                                 'location': 'dorm0room5'},
-                                         'dorm2room3student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room3student1'),
+                                         'dorm2room3student1': {'rulebook': ('physical', 'dorm2room3student1'),
                                                                 'location': 'dorm2room3'},
-                                         'dorm0room3student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room3student0'),
+                                         'dorm0room3student0': {'rulebook': ('physical', 'dorm0room3student0'),
                                                                 'location': 'dorm0room3'},
-                                         'dorm0room2student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room2student0'),
+                                         'dorm0room2student0': {'rulebook': ('physical', 'dorm0room2student0'),
                                                                 'location': 'dorm0room2'},
-                                         'dorm2room1student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room1student0'),
+                                         'dorm2room1student0': {'rulebook': ('physical', 'dorm2room1student0'),
                                                                 'location': 'dorm2room1'},
-                                         'dorm1room4student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room4student0'),
+                                         'dorm1room4student0': {'rulebook': ('physical', 'dorm1room4student0'),
                                                                 'location': 'dorm1room4'},
-                                         'dorm2room0student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room0student1'),
+                                         'dorm2room0student1': {'rulebook': ('physical', 'dorm2room0student1'),
                                                                 'location': 'dorm2room0'},
                                          'dorm1room1': {'rulebook': ('physical', 'dorm1room1')},
                                          'dorm2room0': {'rulebook': ('physical', 'dorm2room0')},
-                                         'dorm2room3student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room3student0'),
+                                         'dorm2room3student0': {'rulebook': ('physical', 'dorm2room3student0'),
                                                                 'location': 'dorm2room3'},
-                                         'dorm0room0student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room0student0'),
+                                         'dorm0room0student0': {'rulebook': ('physical', 'dorm0room0student0'),
                                                                 'location': 'dorm0room0'},
-                                         'dorm2room2student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room2student0'),
+                                         'dorm2room2student0': {'rulebook': ('physical', 'dorm2room2student0'),
                                                                 'location': 'dorm2room2'},
-                                         'dorm0room3student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room3student1'),
+                                         'dorm0room3student1': {'rulebook': ('physical', 'dorm0room3student1'),
                                                                 'location': 'dorm0room3'},
                                          'dorm0room5': {'rulebook': ('physical', 'dorm0room5')},
                                          'dorm2room1': {'rulebook': ('physical', 'dorm2room1')},
-                                         'dorm1room1student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room1student1'),
+                                         'dorm1room1student1': {'rulebook': ('physical', 'dorm1room1student1'),
                                                                 'location': 'dorm1room1'},
-                                         'dorm0room4student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room4student0'),
+                                         'dorm0room4student0': {'rulebook': ('physical', 'dorm0room4student0'),
                                                                 'location': 'dorm0room4'},
-                                         'dorm2room2student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room2student1'),
+                                         'dorm2room2student1': {'rulebook': ('physical', 'dorm2room2student1'),
                                                                 'location': 'dorm2room2'},
                                          'dorm1room2': {'rulebook': ('physical', 'dorm1room2')},
                                          'dorm0room2': {'rulebook': ('physical', 'dorm0room2')},
                                          'dorm2room5': {'rulebook': ('physical', 'dorm2room5')},
-                                         'dorm1room3student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room3student1'),
+                                         'dorm1room3student1': {'rulebook': ('physical', 'dorm1room3student1'),
                                                                 'location': 'dorm1room3'},
-                                         'dorm0room2student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room2student1'),
+                                         'dorm0room2student1': {'rulebook': ('physical', 'dorm0room2student1'),
                                                                 'location': 'dorm0room2'},
-                                         'dorm1room5student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room5student0'),
+                                         'dorm1room5student0': {'rulebook': ('physical', 'dorm1room5student0'),
                                                                 'location': 'dorm1room5'},
-                                         'dorm1room0student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room0student0'),
+                                         'dorm1room0student0': {'rulebook': ('physical', 'dorm1room0student0'),
                                                                 'location': 'dorm1room0'},
-                                         'dorm2room5student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room5student0'),
+                                         'dorm2room5student0': {'rulebook': ('physical', 'dorm2room5student0'),
                                                                 'location': 'dorm2room5'},
-                                         'dorm1room5student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room5student1'),
+                                         'dorm1room5student1': {'rulebook': ('physical', 'dorm1room5student1'),
                                                                 'location': 'dorm1room5'},
                                          'dorm1room4': {'rulebook': ('physical', 'dorm1room4')},
-                                         'dorm0room1student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room1student1'),
+                                         'dorm0room1student1': {'rulebook': ('physical', 'dorm0room1student1'),
                                                                 'location': 'dorm0room1'},
-                                         'dorm1room2student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room2student0'),
+                                         'dorm1room2student0': {'rulebook': ('physical', 'dorm1room2student0'),
                                                                 'location': 'dorm1room2'},
                                          'common2': {'rulebook': ('physical', 'common2')},
-                                         'dorm2room1student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room1student1'),
+                                         'dorm2room1student1': {'rulebook': ('physical', 'dorm2room1student1'),
                                                                 'location': 'dorm2room1'},
-                                         'dorm1room0student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room0student1'),
+                                         'dorm1room0student1': {'rulebook': ('physical', 'dorm1room0student1'),
                                                                 'location': 'dorm1room0'},
-                                         'dorm1room2student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room2student1'),
+                                         'dorm1room2student1': {'rulebook': ('physical', 'dorm1room2student1'),
                                                                 'location': 'dorm1room2'},
-                                         'dorm0room0student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room0student1'),
+                                         'dorm0room0student1': {'rulebook': ('physical', 'dorm0room0student1'),
                                                                 'location': 'dorm0room0'},
-                                         'dorm0room1student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room1student0'),
+                                         'dorm0room1student0': {'rulebook': ('physical', 'dorm0room1student0'),
                                                                 'location': 'dorm0room1'},
                                          'dorm1room0': {'rulebook': ('physical', 'dorm1room0')},
-                                         'dorm2room0student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room0student0'),
+                                         'dorm2room0student0': {'rulebook': ('physical', 'dorm2room0student0'),
                                                                 'location': 'dorm2room0'},
                                          'dorm0room4': {'rulebook': ('physical', 'dorm0room4')},
-                                         'dorm0room4student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room4student1'),
+                                         'dorm0room4student1': {'rulebook': ('physical', 'dorm0room4student1'),
                                                                 'location': 'dorm0room4'},
                                          'dorm2room3': {'rulebook': ('physical', 'dorm2room3')},
                                          'dorm0room1': {'rulebook': ('physical', 'dorm0room1')},
-                                         'dorm1room1student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room1student0'),
+                                         'dorm1room1student0': {'rulebook': ('physical', 'dorm1room1student0'),
                                                                 'location': 'dorm1room1'},
                                          'dorm0room0': {'rulebook': ('physical', 'dorm0room0')},
-                                         'dorm1room3student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm1room3student0'),
+                                         'dorm1room3student0': {'rulebook': ('physical', 'dorm1room3student0'),
                                                                 'location': 'dorm1room3'},
                                          'dorm2room2': {'rulebook': ('physical', 'dorm2room2')},
-                                         'dorm2room4student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room4student1'),
+                                         'dorm2room4student1': {'rulebook': ('physical', 'dorm2room4student1'),
                                                                 'location': 'dorm2room4'},
-                                         'dorm0room5student0': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm0room5student0'),
+                                         'dorm0room5student0': {'rulebook': ('physical', 'dorm0room5student0'),
                                                                 'location': 'dorm0room5'},
                                          'dorm1room5': {'rulebook': ('physical', 'dorm1room5')},
                                          'dorm0room3': {'rulebook': ('physical', 'dorm0room3')},
-                                         'dorm2room5student1': {'next_location': None,
-                                                                'rulebook': ('physical', 'dorm2room5student1'),
+                                         'dorm2room5student1': {'rulebook': ('physical', 'dorm2room5student1'),
                                                                 'location': 'dorm2room5'},
                                          'common1': {'rulebook': ('physical', 'common1')},
-                                         'dorm2room4': {'rulebook': ('physical', 'dorm2room4')}}, 'hour': 0,
-                            'name': 'physical', 'edge_val': {
-            'common0': {'dorm0room5': {'is_mirror': True}, 'dorm0room3': {'is_mirror': True}, 'classroom': {},
-                        'dorm0room1': {'is_mirror': True}, 'dorm0room0': {'is_mirror': True},
-                        'dorm0room4': {'is_mirror': True}, 'dorm0room2': {'is_mirror': True}},
-            'dorm1room3': {'common1': {}},
-            'common2': {'dorm2room1': {'is_mirror': True}, 'dorm2room2': {'is_mirror': True},
-                        'dorm2room0': {'is_mirror': True}, 'classroom': {}, 'dorm2room5': {'is_mirror': True},
-                        'dorm2room4': {'is_mirror': True}, 'dorm2room3': {'is_mirror': True}},
-            'classroom': {'common0': {'is_mirror': True}, 'common2': {'is_mirror': True},
-                          'common1': {'is_mirror': True}}, 'dorm1room1': {'common1': {}}, 'dorm2room0': {'common2': {}},
-            'dorm1room0': {'common1': {}}, 'dorm0room0': {'common0': {}}, 'dorm0room4': {'common0': {}},
-            'dorm2room3': {'common2': {}}, 'dorm0room1': {'common0': {}}, 'dorm2room2': {'common2': {}},
-            'dorm1room5': {'common1': {}}, 'dorm1room2': {'common1': {}}, 'dorm0room2': {'common0': {}},
-            'dorm2room1': {'common2': {}}, 'dorm2room5': {'common2': {}}, 'dorm2room4': {'common2': {}},
-            'dorm0room3': {'common0': {}}, 'dorm0room5': {'common0': {}},
-            'common1': {'dorm1room3': {'is_mirror': True}, 'dorm1room1': {'is_mirror': True}, 'classroom': {},
-                        'dorm1room5': {'is_mirror': True}, 'dorm1room0': {'is_mirror': True},
-                        'dorm1room2': {'is_mirror': True}, 'dorm1room4': {'is_mirror': True}},
-            'dorm1room4': {'common1': {}}}, 'rulebooks': {'character': ('physical', 'character'),
-                                                          'thing': ('physical', 'character_thing'),
-                                                          'avatar': ('physical', 'avatar'),
-                                                          'place': ('physical', 'character_place'),
-                                                          'portal': ('physical', 'character_portal')}}
+                                         'dorm2room4': {'rulebook': ('physical', 'dorm2room4')}},
+                            'hour': 0,
+                            'name': 'physical',
+                            'edge_val': {'common0': {'dorm0room5': {'is_mirror': True},
+                                                     'dorm0room3': {'is_mirror': True},
+                                                     'classroom': {},
+                                                     'dorm0room1': {'is_mirror': True},
+                                                     'dorm0room0': {'is_mirror': True},
+                                                     'dorm0room4': {'is_mirror': True},
+                                                     'dorm0room2': {'is_mirror': True}},
+                                         'dorm1room3': {'common1': {}},
+                                         'common2': {'dorm2room1': {'is_mirror': True},
+                                                     'dorm2room2': {'is_mirror': True},
+                                                     'dorm2room0': {'is_mirror': True},
+                                                     'classroom': {},
+                                                     'dorm2room5': {'is_mirror': True},
+                                                     'dorm2room4': {'is_mirror': True},
+                                                     'dorm2room3': {'is_mirror': True}},
+                                         'classroom': {'common0': {'is_mirror': True},
+                                                       'common2': {'is_mirror': True},
+                                                       'common1': {'is_mirror': True}},
+                                         'dorm1room1': {'common1': {}},
+                                         'dorm2room0': {'common2': {}},
+                                         'dorm1room0': {'common1': {}},
+                                         'dorm0room0': {'common0': {}},
+                                         'dorm0room4': {'common0': {}},
+                                         'dorm2room3': {'common2': {}},
+                                         'dorm0room1': {'common0': {}},
+                                         'dorm2room2': {'common2': {}},
+                                         'dorm1room5': {'common1': {}},
+                                         'dorm1room2': {'common1': {}},
+                                         'dorm0room2': {'common0': {}},
+                                         'dorm2room1': {'common2': {}},
+                                         'dorm2room5': {'common2': {}},
+                                         'dorm2room4': {'common2': {}},
+                                         'dorm0room3': {'common0': {}},
+                                         'dorm0room5': {'common0': {}},
+                                         'common1': {'dorm1room3': {'is_mirror': True},
+                                                     'dorm1room1': {'is_mirror': True},
+                                                     'classroom': {},
+                                                     'dorm1room5': {'is_mirror': True},
+                                                     'dorm1room0': {'is_mirror': True},
+                                                     'dorm1room2': {'is_mirror': True},
+                                                     'dorm1room4': {'is_mirror': True}},
+                                         'dorm1room4': {'common1': {}}},
+                            'rulebooks': {'character': ('physical', 'character'),
+                                          'thing': ('physical', 'character_thing'),
+                                          'avatar': ('physical', 'avatar'),
+                                          'place': ('physical', 'character_place'),
+                                          'portal': ('physical', 'character_portal')}}
     physical_copy = hand.character_copy('physical')
     assert physical_copy == physical_inital_copy
     dorm_initial_copy = {'rulebooks': {'thing': ('dorm0', 'character_thing'), 'character': ('dorm0', 'character'),
@@ -340,3 +383,11 @@ def test_assignment():
             'cell6': {'rulebook': ('dorm0room0student0', 'cell6'), 'drunk': 0, 'slow': 0},
             'cell72': {'rulebook': ('dorm0room0student0', 'cell72'), 'drunk': 0, 'slow': 0}}}
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
+    hand.close()
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(os.path.join(tempdir, f)):
+            os.rename(os.path.join(tempdir, f), f)
+    os.rmdir(tempdir)

@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The top level of the LiSE world model, the Character.
 
 Based on NetworkX DiGraph objects with various additions and
@@ -1039,23 +1052,6 @@ class FacadeThing(FacadeEntity):
         except KeyError:
             return None
 
-    @property
-    def next_location(self):
-        try:
-            return self.facade.node[self['next_location']]
-        except KeyError:
-            return None
-
-    @property
-    def container(self):
-        if self['next_location'] is None:
-            return self.location
-        try:
-            return self.facade.portal[self['location']][
-                self['next_location']]
-        except KeyError:
-            return self.location
-
 
 class FacadePortal(FacadeEntity):
     """Lightweight analogue of Portal for Facade use."""
@@ -1377,11 +1373,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     Nodes in a Character are subcategorized into Things and
     Places. Things have locations, and those locations may be Places
-    or other Things. A Thing might also travel, in which case, though
-    it will spend its travel time located in its origin node, it may
-    spend some time contained by a Portal (i.e. an edge specialized
-    for Character). If a Thing is not contained by a Portal, it's
-    contained by whatever it's located in.
+    or other Things.
 
     Characters may have avatars in other Characters. These are just
     nodes. You can apply rules to a Character's avatars, and thus to
@@ -1424,11 +1416,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             'character_portal': engine._characters_portals_rulebooks_cache
         }
         for rulebook, cache in cachemap.items():
+            if rulebook not in attr:
+                continue
             branch, turn, tick = engine.nbtt()
             rulebook_or_name = attr.get(rulebook, (name, rulebook))
             rulebook_name = getattr(rulebook_or_name, 'name', rulebook_or_name)
-            engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, rulebook_name)
-            cache.store((name, rulebook), branch, turn, tick, rulebook_name)
+            try:
+                prev = self._get_rulebook_cache().retrive(self.name, rulebook, branch, turn, tick)
+            except KeyError:
+                prev = None
+            engine.query._set_rulebook_on_character(rulebook, name, branch, turn, tick, prev, rulebook_name)
+            cache.store((name, rulebook), branch, turn, tick, prev, rulebook_name)
 
     class ThingMapping(MutableMappingUnwrapper, RuleFollower, Signal):
         """:class:`Thing` objects that are in a :class:`Character`"""
@@ -1451,7 +1449,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             branch, turn, tick = self.engine.btt()
             for key in cache.iter_keys(char, branch, turn, tick):
                 try:
-                    if cache.retrieve(char, key, branch, turn, tick)[0] is not None:
+                    if cache.retrieve(char, key, branch, turn, tick) is not None:
                         yield key
                 except KeyError:
                     continue
@@ -1459,7 +1457,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __contains__(self, thing):
             args = self.character.name, thing, *self.engine.btt()
             cache = self.engine._things_cache
-            return cache.contains_key(*args) and cache.retrieve(*args)[0] is not None
+            return cache.contains_key(*args) and cache.retrieve(*args) is not None
 
         def __len__(self):
             return self.engine._things_cache.count_keys(
@@ -1490,11 +1488,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 raise ValueError('Thing needs location')
             created = thing not in self
             self.engine._exist_node(self.character.name, thing)
-            self.engine._set_thing_loc_and_next(
+            self.engine._set_thing_loc(
                 self.character.name,
                 thing,
-                val['location'],
-                val.get('next_location', None)
+                val['location']
             )
             th = self._make_thing(thing, val)
             th.clear()
@@ -1660,13 +1657,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self.container.send(self, **kwargs)
 
             def __getitem__(self, dest):
-                key = (self.graph.name, self.orig, dest)
                 if dest in self:
-                    if key not in self.engine._portal_objs:
-                        self.engine._portal_objs[key] = Portal(
-                            self.graph, self.orig, dest
-                        )
-                    return self.engine._portal_objs[key]
+                    return self.engine._get_edge(self.graph, self.orig, dest, 0)
                 raise KeyError("No such portal: {}->{}".format(
                     self.orig, dest
                 ))
@@ -1677,12 +1669,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     self.orig,
                     dest
                 )
-                key = (self.graph.name, self.orig, dest)
-                if key not in self.engine._portal_objs:
-                    self.engine._portal_objs[key] = Portal(
-                        self.graph, self.orig, dest
-                    )
-                p = self.engine._portal_objs[key]
+                p = self.engine._get_edge(self.graph, self.orig, dest, 0)
                 p.clear()
                 p.update(value)
                 self.send(self, key=dest, val=p)
@@ -1889,7 +1876,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         super().add_nodes_from(seq, **attrs)
 
     def add_thing(self, name, location, **kwargs):
-        """Create a Thing, set its location and next_location (if provided),
+        """Create a Thing, set its location,
         and set its initial attributes from the keyword arguments (if
         any).
 
@@ -1901,34 +1888,31 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         self.add_node(name, **kwargs)
         if isinstance(location, Node):
             location = location.name
-        self.place2thing(name, location, kwargs.get('next_location'))
+        self.place2thing(name, location,)
 
     def add_things_from(self, seq, **attrs):
         for tup in seq:
             name = tup[0]
             location = tup[1]
-            next_loc = tup[2] if len(tup) > 2 else None
-            kwargs = tup[3] if len(tup) > 3 else attrs
-            if next_loc:
-                kwargs['next_location'] = next_loc
+            kwargs = tup[2] if len(tup) > 2 else attrs
             self.add_thing(name, location, **kwargs)
 
-    def place2thing(self, name, location, next_location=None):
-        """Turn a Place into a Thing with the given.
+    def place2thing(self, name, location):
+        """Turn a Place into a Thing with the given location.
         
         It will keep all its attached Portals.
 
         """
-        self.engine._set_thing_loc_and_next(
-            self.name, name, location, next_location
+        self.engine._set_thing_loc(
+            self.name, name, location
         )
         if (self.name, name) in self.engine._node_objs:
             del self.engine._node_objs[self.name, name]
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
-        self.engine._set_thing_loc_and_next(
-            self.name, name, None, None
+        self.engine._set_thing_loc(
+            self.name, name, None
         )
         if (self.name, name) in self.engine._node_objs:
             del self.engine._node_objs[self.name, name]

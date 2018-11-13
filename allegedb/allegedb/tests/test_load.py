@@ -36,6 +36,12 @@ def db():
                 "{}'s nodes changed during instantiation".format(graph.name)
             assert set(graph.edges) == set(orm.graph[graph.name].edges), \
                 "{}'s edges changed during instantiation".format(graph.name)
+        orm.turn = 3
+        for graph in testgraphs:
+            deletable = next(graph.node)
+            del orm.graph[graph.name].node[deletable]
+        orm.bake_keyframe()
+        orm.turn = 0
     with ORM('sqlite:///' + name) as orm:
         yield orm
     os.remove(name)
@@ -44,6 +50,17 @@ def db():
 def test_basic_load(db):
     for graph in testgraphs:
         alleged = db.graph[graph.name]
+        assert set(graph.node.keys()) == set(alleged.node.keys()), "{}'s nodes are not the same after load".format(
+            graph.name
+        )
+        assert set(graph.edges) == set(alleged.edges), "{}'s edges are not the same after load".format(graph.name)
+        db.turn = 1
+        assert set(graph.node.keys()) == set(alleged.node.keys()), "{}'s nodes are not the same after load".format(
+            graph.name
+        )
+        assert set(graph.edges) == set(alleged.edges), "{}'s edges are not the same after load".format(graph.name)
+        db.turn = 2  # now looking up backward from the kf at turn 3
+
         assert set(graph.node.keys()) == set(alleged.node.keys()), "{}'s nodes are not the same after load".format(
             graph.name
         )

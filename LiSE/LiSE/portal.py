@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
 from collections import Mapping, ValuesView
 
@@ -19,55 +32,6 @@ class RuleMapping(BaseRuleMapping):
         """Store portal, engine, and rulebook."""
         super().__init__(portal.engine, portal.rulebook)
         self.portal = portal
-
-
-class PortalContentValues(ValuesView):
-    def __iter__(self):
-        portal = self._mapping.portal
-        for thing in portal.character.thing.values():
-            if thing.location == portal.origin and thing.next_location == portal.destination:
-                yield thing
-
-    def __contains__(self, item):
-        portal = self._mapping.portal
-        return hasattr(item, 'location') and hasattr(item, 'next_location') and \
-            item.location == portal.origin and item.next_location == portal.destination
-
-
-class PortalContent(Mapping):
-    def __init__(self, portal):
-        self.portal = portal
-
-    def __iter__(self):
-        try:
-            yield from self.portal.engine._portal_contents_cache.retrieve(
-                self.portal.orig, self.portal.dest, *self.portal.engine.btt()
-            )
-        except KeyError:
-            return
-
-    def __len__(self):
-        try:
-            return len(self.portal.engine._portal_contents_cache.retrieve(
-                self.portal.orig, self.portal.dest, *self.portal.engine.btt())
-            )
-        except KeyError:
-            return 0
-
-    def __contains__(self, item):
-        try:
-            thing = self.portal.character.thing[item]
-            return thing.location == self.portal.origin and thing.next_location == self.portal.destination
-        except KeyError:
-            return False
-
-    def __getitem__(self, item):
-        if item not in self:
-            raise KeyError
-        return self.portal.character.thing[item]
-
-    def values(self):
-        return PortalContentValues(self)
 
 
 class Portal(Edge, RuleFollower):
@@ -250,20 +214,6 @@ class Portal(Edge, RuleFollower):
         return StatusAlias(
             entity=self,
             stat=stat
-        )
-
-    @property
-    def content(self):
-        return PortalContent(self)
-
-    def contents(self):
-        return self.content.values()
-
-    def new_thing(self, name, statdict={}, **kwargs):
-        """Create and return a thing located in my origin and travelling to my
-        destination."""
-        return self.character.new_thing(
-            name, self.orig, self.dest, statdict, **kwargs
         )
 
     def update(self, d):

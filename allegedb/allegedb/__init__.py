@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
 from contextlib import ContextDecorator
 from weakref import WeakValueDictionary
@@ -15,11 +28,12 @@ from .graph import (
     Node,
     Edge
 )
-from .query import QueryEngine
+from .query import QueryEngine, TimeError
+from .window import HistoryError
 
 
 class GraphNameError(KeyError):
-    pass
+    """For errors involving graphs' names"""
 
 
 class PlanningContext(ContextDecorator):
@@ -27,13 +41,16 @@ class PlanningContext(ContextDecorator):
 
     Start a block of code like:
 
-    with orm.plan:
+    ```
+    with orm.plan():
         ...
+    ```
 
     and any changes you make to the world state within that block will be
     'plans,' meaning that they are used as defaults. The world will
     obey your plan unless you make changes to the same entities outside
-    of the plan, in which case the world will obey those.
+    of the plan, in which case the world will obey those, and cancel any
+    future plan.
 
     New branches cannot be started within plans.
 
@@ -56,7 +73,12 @@ class PlanningContext(ContextDecorator):
 
 
 class TimeSignal(Signal):
-    """Acts like a tuple of the time in (branch, turn) for the most part.
+    """Acts like a list of ``[branch, turn]`` for the most part.
+
+    You can set these to new values, or even replace them with a whole new
+    ``[branch, turn]`` if you wish. It's even possible to use the strings
+    ``'branch'`` or ``'turn'`` in the place of indices, but at that point
+    you might prefer to set ``engine.branch`` or ``engine.turn`` directly.
 
     This is a Signal, so pass a function to the connect(...) method and
     it will be called whenever the time changes. Not when the tick
@@ -137,16 +159,20 @@ class TimeSignalDescriptor:
         # enforce the arrow of time, if it's in effect
         if e._forward:
             if branch_now != branch_then:
-                raise ValueError("Can't change branches in a forward context")
+                raise TimeError("Can't change branches in a forward context")
             if turn_now < turn_then:
-                raise ValueError("Can't time travel backward in a forward context")
+                raise TimeError("Can't time travel backward in a forward context")
             if turn_now > turn_then + 1:
-                raise ValueError("Can't skip turns in a forward context")
+                raise TimeError("Can't skip turns in a forward context")
         # make sure I'll end up within the revision range of the
         # destination branch
         branches = e._branches
-        tick_now = e._turn_end_plan.setdefault((branch_now, turn_now), 0)
+
         if branch_now in branches:
+            tick_now = e._turn_end_plan.setdefault(
+                (branch_now, turn_now),
+                tick_then
+            )
             parent, turn_start, tick_start, turn_end, tick_end = branches[branch_now]
             if turn_now < turn_start:
                 raise ValueError(
@@ -154,9 +180,23 @@ class TimeSignalDescriptor:
                     "occurs before the start of "
                     "the branch {}".format(turn_now, branch_now)
                 )
-            if not e._planning and (turn_now > turn_end or tick_now > tick_end):
+            if turn_now == turn_start and tick_now < tick_start:
+                raise ValueError(
+                    "The tick number {}"
+                    "on turn {} "
+                    "occurs before the start of "
+                    "the branch {}".format(
+                        tick_now, turn_now, branch_now
+                    )
+                )
+            if not e._planning and (
+                turn_now > turn_end or (
+                    turn_now == turn_end and tick_now > tick_end
+                )
+            ):
                 branches[branch_now] = parent, turn_start, tick_start, turn_now, tick_now
         else:
+            tick_now = tick_then
             branches[branch_now] = (
                 branch_then, turn_now, tick_now, turn_now, tick_now
             )
@@ -166,7 +206,7 @@ class TimeSignalDescriptor:
         if not e._planning:
             if tick_now > e._turn_end[val]:
                 e._turn_end[val] = tick_now
-        e._otick = tick_now
+        e._otick = e._turn_end_plan[val] = tick_now
         real.send(
             e,
             branch_then=branch_then,
@@ -462,10 +502,13 @@ class ORM(object):
         self._childbranch = defaultdict(set)
         """Immediate children of a branch"""
         self._branches = {}
+        """Start time, end time, and parent of each branch"""
         self._branch_parents = defaultdict(set)
         """Parents of a branch at any remove"""
         self._turn_end = defaultdict(lambda: 0)
+        """Tick on which a (branch, turn) ends"""
         self._turn_end_plan = defaultdict(lambda: 0)
+        """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
         self._graph_val_cache = Cache(self)
         self._nodes_cache = NodesCache(self)
         self._edges_cache = EdgesCache(self)
@@ -527,13 +570,13 @@ class ORM(object):
         if not hasattr(self, 'graph'):
             self.graph = self._graph_objs
         noderows = [
-            (graph, node, branch, turn, tick, ex if ex else None)
+            (graph, node, branch, turn, tick, not ex, ex if ex else None)
             for (graph, node, branch, turn, tick, ex)
             in self.query.nodes_dump()
         ]
         self._nodes_cache.load(noderows, validate=validate)
         edgerows = [
-            (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
+            (graph, orig, dest, idx, branch, turn, tick, not ex, ex if ex else None)
             for (graph, orig, dest, idx, branch, turn, tick, ex)
             in self.query.edges_dump()
         ]
@@ -598,9 +641,18 @@ class ORM(object):
             self.query.new_branch(v, curbranch, curturn, curtick)
             self._branches[v] = curbranch, curturn, curtick, curturn, curtick
             self._upd_branch_parentage(v, curbranch)
+            self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
-    branch = property(_get_branch, _set_branch)  # easier to override this way
+
+    # easier to override things this way
+    @property
+    def branch(self):
+        return self._get_branch()
+
+    @branch.setter
+    def branch(self, v):
+        self._set_branch(v)
 
     def _get_turn(self):
         return self._oturn
@@ -629,7 +681,15 @@ class ORM(object):
             self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
-    turn = property(_get_turn, _set_turn)  # easier to override this way
+
+    # easier to override things this way
+    @property
+    def turn(self):
+        return self._get_turn()
+
+    @turn.setter
+    def turn(self, v):
+        self._set_turn(v)
 
     def _get_tick(self):
         return self._otick
@@ -650,7 +710,15 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
-    tick = property(_get_tick, _set_tick)  # easier to override this way
+
+    # easier to override things this way
+    @property
+    def tick(self):
+        return self._get_tick()
+
+    @tick.setter
+    def tick(self, v):
+        self._set_tick(v)
 
     def btt(self):
         """Return the branch, turn, and tick."""
@@ -681,9 +749,11 @@ class ORM(object):
                 )
             )
         parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
-        if turn_end > turn:
+        if turn < turn_end or (
+            turn == turn_end and tick < tick_end
+        ):
             raise HistoryError(
-                "You're in the past. Go to turn {} to change things".format(turn_end)
+                "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
             )
         if not self._planning:
             if turn_end != turn:
@@ -813,10 +883,10 @@ class ORM(object):
         iteration will stop instead of yielding the turn.
 
         """
-        b = branch or self.branch
+        branch = branch or self.branch
         trn = self.turn if turn is None else turn
         tck = self.tick if tick is None else tick
-        yield b, trn, tck
+        yield branch, trn, tck
         stopbranches = set()
         if stoptime:
             if type(stoptime) is tuple:
@@ -827,16 +897,19 @@ class ORM(object):
                 stopbranch = stoptime
                 stopbranches = self._branch_parents[stopbranch]
         _branches = self._branches
-        _turn_end = self._turn_end  # maybe this should be self._turn_end_plan
-        while b in _branches:
-            (b, trn, tck, _, _) = _branches[b]
-            if b in stopbranches:
-                if (
-                    type(stoptime) is not tuple
-                        or (trn < stoptime[1] or (trn == stoptime[1] and (stoptime[2] is None or tck <= stoptime[2])))
-                ):
-                    return
-            yield b, trn, _turn_end[b, trn]
+        while branch in _branches:
+            # ``par`` is the parent branch;
+            # ``(trn, tck)`` is when ``branch`` forked off from ``par``
+            (branch, trn, tck, _, _) = _branches[branch]
+            if branch in stopbranches and (
+                trn < stoptime[1] or (
+                    trn == stoptime[1] and (
+                        stoptime[2] is None or tck <= stoptime[2]
+                    )
+                )
+            ):
+                return
+            yield branch, trn, tck
 
     def _branch_descendants(self, branch=None):
         """Iterate over all branches immediately descended from the current

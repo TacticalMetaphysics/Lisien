@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for graphs.
 # Copyright (c) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Wrapper to run SQL queries in a lightly abstracted way, such that
 code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
@@ -283,24 +296,26 @@ class QueryEngine(object):
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
         unpack = self.unpack
-        for (graph, key, branch, turn, tick, value) in self.sql('graph_val_dump'):
+        for (graph, key, branch, turn, tick, prev, value) in self.sql('graph_val_dump'):
             yield (
                 unpack(graph),
                 unpack(key),
                 branch,
                 turn,
                 tick,
+                unpack(prev),
                 unpack(value)
             )
 
     def _graph_val_bq(self, branch, cursor):
         unpack = self.unpack
-        for graph, key, turn, tick, value in cursor:
+        for graph, key, turn, tick, value, prev in cursor:
             yield (
                 unpack(graph),
                 unpack(key),
                 branch, turn, tick,
-                unpack(value)
+                unpack(value),
+                unpack(prev)
             )
 
     def graph_val_branch(self, branch):
@@ -328,7 +343,7 @@ class QueryEngine(object):
         if not self._graphvals2set:
             return
         delafter = {}
-        for graph, key, branch, turn, tick, value in self._graphvals2set:
+        for graph, key, branch, turn, tick, value, prev in self._graphvals2set:
             if (graph, key, branch) in delafter:
                 delafter[graph, key, branch] = min((
                     (turn, tick),
@@ -344,16 +359,16 @@ class QueryEngine(object):
         self.sqlmany('graph_val_insert', *self._graphvals2set)
         self._graphvals2set = []
 
-    def graph_val_set(self, graph, key, branch, turn, tick, value):
+    def graph_val_set(self, graph, key, branch, turn, tick, prev, value):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        graph, key, value = map(self.pack, (graph, key, value))
-        self._graphvals2set.append((graph, key, branch, turn, tick, value))
+        graph, key, prev, value = map(self.pack, (graph, key, prev, value))
+        self._graphvals2set.append((graph, key, branch, turn, tick, prev, value))
 
-    def graph_val_del(self, graph, key, branch, turn, tick):
+    def graph_val_del(self, graph, key, branch, turn, tick, prev):
         """Indicate that the key is unset."""
-        self.graph_val_set(graph, key, branch, turn, tick, None)
+        self.graph_val_set(graph, key, branch, turn, tick, prev, None)
 
     def graphs_types(self):
         unpack = self.unpack
@@ -385,13 +400,13 @@ class QueryEngine(object):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, extant))
+        self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, bool(extant)))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
         unpack = self.unpack
-        for (graph, node, branch, turn,tick, extant) in self.sql('nodes_dump'):
+        for (graph, node, branch, turn, tick, extant) in self.sql('nodes_dump'):
             yield (
                 unpack(graph),
                 unpack(node),
@@ -436,7 +451,7 @@ class QueryEngine(object):
         self._flush_node_val()
         unpack = self.unpack
         for (
-                graph, node, key, branch, turn, tick, value
+                graph, node, key, branch, turn, tick, prev, value
         ) in self.sql('node_val_dump'):
             yield (
                 unpack(graph),
@@ -445,17 +460,19 @@ class QueryEngine(object):
                 branch,
                 turn,
                 tick,
+                unpack(prev),
                 unpack(value)
             )
 
     def _node_val_bq(self, branch, cursor):
         unpack = self.unpack
-        for graph, node, key, turn, tick, value in cursor:
+        for graph, node, key, turn, tick, prev, value in cursor:
             yield (
                 unpack(graph),
                 unpack(node),
                 unpack(key),
                 branch, turn, tick,
+                unpack(prev),
                 unpack(value)
             )
 
@@ -483,7 +500,7 @@ class QueryEngine(object):
         if not self._nodevals2set:
             return
         delafter = {}
-        for graph, node, key, branch, turn, tick, value in self._nodevals2set:
+        for graph, node, key, branch, turn, tick, prev, value in self._nodevals2set:
             if (graph, node, key, branch) in delafter:
                 delafter[graph, node, key, branch] = min((
                     (turn, tick),
@@ -501,17 +518,17 @@ class QueryEngine(object):
         self.sqlmany('node_val_insert', *self._nodevals2set)
         self._nodevals2set = []
 
-    def node_val_set(self, graph, node, key, branch, turn, tick, value):
+    def node_val_set(self, graph, node, key, branch, turn, tick, prev, value):
         """Set a key-value pair on a node at a specific branch and revision"""
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        graph, node, key, value = map(self.pack, (graph, node, key, value))
-        self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
+        graph, node, key, prev, value = map(self.pack, (graph, node, key, prev, value))
+        self._nodevals2set.append((graph, node, key, branch, turn, tick, prev, value))
 
-    def node_val_del(self, graph, node, key, branch, turn, tick):
+    def node_val_del(self, graph, node, key, branch, turn, prev, tick):
         """Delete a key from a node at a specific branch and revision"""
-        self.node_val_set(graph, node, key, branch, turn, tick, None)
+        self.node_val_set(graph, node, key, branch, turn, tick, prev, None)
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
@@ -599,7 +616,7 @@ class QueryEngine(object):
         self._flush_edge_val()
         unpack = self.unpack
         for (
-                graph, orig, dest, idx, key, branch, turn, tick, value
+                graph, orig, dest, idx, key, branch, turn, tick, prev, value
         ) in self.sql('edge_val_dump'):
             yield (
                 unpack(graph),
@@ -610,12 +627,13 @@ class QueryEngine(object):
                 branch,
                 turn,
                 tick,
+                unpack(prev),
                 unpack(value)
             )
 
     def _edge_val_bq(self, branch, cursor):
         unpack = self.unpack
-        for graph, orig, dest, idx, key, turn, tick, value in cursor:
+        for graph, orig, dest, idx, key, turn, tick, prev, value in cursor:
             yield (
                 unpack(graph),
                 unpack(orig),
@@ -623,6 +641,7 @@ class QueryEngine(object):
                 idx,
                 unpack(key),
                 branch, turn, tick,
+                unpack(prev),
                 unpack(value)
             )
 
@@ -651,7 +670,7 @@ class QueryEngine(object):
         if not self._edgevals2set:
             return
         delafter = {}
-        for graph, orig, dest, idx, key, branch, turn, tick, value in self._edgevals2set:
+        for graph, orig, dest, idx, key, branch, turn, tick, prev, value in self._edgevals2set:
             dkey = graph, orig, dest, idx, key, branch
             if dkey in delafter:
                 delafter[dkey] = min((
@@ -668,22 +687,34 @@ class QueryEngine(object):
         self.sqlmany('edge_val_insert', *self._edgevals2set)
         self._edgevals2set = []
 
-    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
+    def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, prev, value):
         """Set this key of this edge to this value."""
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        graph, orig, dest, key, value = map(self.pack, (graph, orig, dest, key, value))
+        graph, orig, dest, key, prev, value = map(self.pack, (graph, orig, dest, key, prev, value))
         self._edgevals2set.append(
-            (graph, orig, dest, idx, key, branch, turn, tick, value)
+            (graph, orig, dest, idx, key, branch, turn, tick, prev, value)
         )
 
-    def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick):
+    def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick, prev):
         """Declare that the key no longer applies to this edge, as of this
         branch and revision.
 
         """
-        self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, None)
+        self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, prev, None)
+
+    def keyframes_dump(self):
+        unpack = self.unpack
+        for branch, turn, tick, kf in self.sql('keyframes_dump'):
+            yield branch, turn, tick, unpack(kf)
+
+    def set_keyframe(self, branch, turn, tick, kf):
+        kf = self.pack(kf)
+        try:
+            self.sql('keyframes_insert', branch, turn, tick, kf)
+        except IntegrityError:
+            self.sql('keyframes_update', kf, branch, turn, tick)
 
     def initdb(self):
         """Create tables and indices as needed."""
@@ -739,6 +770,10 @@ class QueryEngine(object):
             cursor.execute('SELECT * FROM edge_val;')
         except OperationalError:
             cursor.execute(self.strings['create_edge_val'])
+        try:
+            cursor.execute('SELECT * FROM keyframes;')
+        except OperationalError:
+            cursor.execute(self.strings['create_keyframes'])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""

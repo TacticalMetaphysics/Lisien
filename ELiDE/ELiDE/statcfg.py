@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.clock import Clock
 from kivy.properties import (
     DictProperty,
@@ -61,7 +74,7 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         readoutbut.bind(
-            on_press=lambda instance: self.dropdown.select('readout')
+            on_release=lambda instance: self.dropdown.select('readout')
         )
         self.dropdown.add_widget(readoutbut)
         textinbut = Button(
@@ -71,7 +84,7 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         textinbut.bind(
-            on_press=lambda instance: self.dropdown.select('textinput')
+            on_release=lambda instance: self.dropdown.select('textinput')
         )
         self.dropdown.add_widget(textinbut)
         togbut = Button(
@@ -81,7 +94,7 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         togbut.bind(
-            on_press=lambda instance: self.dropdown.select('togglebutton')
+            on_release=lambda instance: self.dropdown.select('togglebutton')
         )
         self.dropdown.add_widget(togbut)
         sliderbut = Button(
@@ -91,10 +104,10 @@ class ControlTypePicker(Button):
             background_color=(0.7, 0.7, 0.7, 1)
         )
         sliderbut.bind(
-            on_press=lambda instance: self.dropdown.select('slider')
+            on_release=lambda instance: self.dropdown.select('slider')
         )
         self.dropdown.add_widget(sliderbut)
-        self.bind(on_press=self.dropdown.open)
+        self.bind(on_release=self.dropdown.open)
 
 
 class ConfigListItemToggleButton(BoxLayout):
@@ -167,15 +180,16 @@ class StatListViewConfigurator(BaseStatListView):
     _control_wids = DictProperty()
 
     def set_control(self, key, value):
+        config = self.proxy.get('_config', {})
         if value == 'slider':
-            if 'min' not in self.proxy['_config']:
+            if 'min' not in config:
                 self.set_config(key, 'min', 0.0)
-            if 'max' not in self.proxy['_config']:
+            if 'max' not in config:
                 self.set_config(key, 'max', 1.0)
         elif value == 'togglebutton':
-            if 'true_text' not in self.proxy['_config']:
+            if 'true_text' not in config:
                 self.set_config(key, 'true_text', '1')
-            if 'false_text' not in self.proxy['_config']:
+            if 'false_text' not in config:
                 self.set_config(key, 'false_text', '0')
         self.set_config(key, 'control', value)
 
@@ -249,7 +263,7 @@ Builder.load_string("""
     Button:
         size_hint_x: 0.4 / 3
         text: 'del'
-        on_press: root.deleter(root.key)
+        on_release: root.deleter(root.key)
     Label:
         size_hint_x: 0.4 / 3
         text: str(root.key)
@@ -299,9 +313,9 @@ Builder.load_string("""
             Button:
                 id: newstatbut
                 text: '+'
-                on_press: root.new_stat()
+                on_release: root.new_stat()
             Button:
                 id: closer
                 text: 'Close'
-                on_press: root.toggle()
+                on_release: root.toggle()
 """)
