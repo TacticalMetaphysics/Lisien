@@ -1111,6 +1111,7 @@ class QueryEngine(allegedb.query.QueryEngine):
             branch,
             turn,
             tick,
+            oldloc,
             loc
         )
 

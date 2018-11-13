@@ -499,11 +499,7 @@ class ThingsCache(Cache):
         self._make_node = db.thing_cls
 
     def _store(self, *args, planning, journal):
-        character, thing, branch, turn, tick, location = args
-        try:
-            oldloc = self.retrieve(character, thing, branch, turn, tick)
-        except KeyError:
-            oldloc = None
+        character, thing, branch, turn, tick, oldloc, location = args
         super()._store(*args, planning=planning, journal=journal)
         if oldloc is not None:
             oldnodecont = self.db._node_contents_cache.retrieve(

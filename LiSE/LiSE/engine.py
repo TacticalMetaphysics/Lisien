@@ -1391,7 +1391,10 @@ class Engine(AbstractEngine, gORM):
             self, character, node, loc
     ):
         branch, turn, tick = self.nbtt()
-        old = self._things_cache.retrieve(character, node, branch, turn, tick)
+        try:
+            old = self._things_cache.retrieve(character, node, branch, turn, tick)
+        except KeyError:
+            old = None
         self._things_cache.store(character, node, branch, turn, tick, old, loc)
         self.query.set_thing_loc(
             character,
