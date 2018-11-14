@@ -1078,14 +1078,6 @@ class Engine(AbstractEngine, gORM):
         """Close on exit."""
         self.close()
 
-    def _set_branch(self, v):
-        super()._set_branch(v)
-        self.time.send(self.time, branch=self._obranch, turn=self._oturn)
-
-    def _set_turn(self, v):
-        super()._set_turn(v)
-        self.time.send(self.time, branch=self._obranch, turn=self._oturn)
-
     def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
         try:
             self._character_rules_handled_cache.store(

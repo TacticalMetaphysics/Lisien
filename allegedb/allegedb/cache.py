@@ -260,6 +260,7 @@ class Cache(object):
     journal_container_cls = JournalContainer
 
     def __init__(self, db):
+        db.time.connect(self._initialize_loadedness)
         self.db = db
         self.journal = self.journal_container_cls(db)
         self.keyframes = PickyDefaultDict(SettingsTurnDict)
@@ -308,6 +309,10 @@ class Cache(object):
         """A dictionary for plain, unstructured hinting."""
         self._kc_lru = OrderedDict()
 
+    def _initialize_loadedness(self, time, *, branch_now, **kwargs):
+        if branch_now not in self.loaded:
+            self.loaded[branch_now] = None
+
     def load(self, data, validate=False, keyframe=False, cb=None):
         """Add a bunch of data. It doesn't need to be in chronological order.
 
@@ -355,7 +360,7 @@ class Cache(object):
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
                 if None not in (earliest_turn, earliest_tick, latest_turn, latest_tick):
-                    if branch in self.loaded:
+                    if branch in self.loaded and self.loaded[branch] is not None:
                         earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
                             = self.loaded[branch]
                         self.loaded[branch] = min((
@@ -395,7 +400,7 @@ class Cache(object):
                 if branch in childbranch:
                     branch2do.extend(childbranch[branch])
                 if None not in (earliest_turn, earliest_tick, latest_turn, latest_tick):
-                    if branch in self.loaded:
+                    if branch in self.loaded and self.loaded[branch] is not None:
                         earliest_turn2, earliest_tick2, latest_turn2, latest_tick2 \
                             = self.loaded[branch]
                         self.loaded[branch] = min((
@@ -425,6 +430,8 @@ class Cache(object):
                 raise ValueError("Can't unload keyframe at {}".format((trn, tck)))
         # TODO: check if there's a keyframe sometime in the future when unloading backward
         # If there isn't, that whole branch subtree is unusable!
+        if branch not in self.loaded or self.loaded[branch] is None:
+            raise UnloadedException("Branch is not loaded, or there's no data in it")
         earliest_turn, earliest_tick, latest_turn, latest_tick = self.loaded[branch]
         if (
             direction == 'backward' and (turn, tick) < (earliest_turn, earliest_tick)
@@ -711,7 +718,7 @@ class Cache(object):
     def _store(self, *args, planning, journal):
         entity, key, branch, turn, tick, prev, value = args[-7:]
         parent = args[:-7]
-        if branch in self.loaded:
+        if branch in self.loaded and self.loaded[branch] is not None:
             early_turn, early_tick, late_turn, late_tick = self.loaded[branch]
         else:
             early_turn, early_tick = late_turn, late_tick = turn, tick
@@ -772,7 +779,7 @@ class Cache(object):
             new = FuturistWindowDict()
             new[tick] = value
             turns[turn] = new
-        if branch in self.loaded:
+        if branch in self.loaded and self.loaded[branch] is not None:
             earliest_turn, earliest_tick, latest_turn, latest_tick = self.loaded[branch]
             self.loaded[branch] = min((
                 (earliest_turn, earliest_tick), (turn, tick)
@@ -784,6 +791,8 @@ class Cache(object):
 
     def _check_loaded(self, branch, turn, tick):
         if branch in self.loaded:
+            if self.loaded[branch] is None:
+                return
             earliest_turn, earliest_tick, latest_turn, latest_tick = self.loaded[branch]
             if (turn, tick) < (earliest_turn, earliest_tick):
                 raise UnloadedException(

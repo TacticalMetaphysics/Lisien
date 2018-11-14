@@ -659,7 +659,17 @@ class ORM(object):
 
     def _set_turn(self, v):
         if v == self.turn:
+            tick = self._otick
             self._otick = self._turn_end_plan[tuple(self.time)]
+            self.time.send(
+                self.time,
+                branch_then=self.branch,
+                branch_now=self.branch,
+                turn_then=self.turn,
+                turn_now=self.turn,
+                tick_then=tick,
+                tick_now=self._otick
+            )
             return
         if not isinstance(v, int):
             raise TypeError("turn must be an integer")
@@ -697,7 +707,8 @@ class ORM(object):
     def _set_tick(self, v):
         if not isinstance(v, int):
             raise TypeError("tick must be an integer")
-        time = branch, turn = self._obranch, self._oturn
+        branch, turn, tick = self._obranch, self._oturn, self._otick
+        time = branch, turn
         # enforce the arrow of time, if it's in effect
         if self._forward and v < self._otick:
             raise ValueError("Can't time travel backward in a forward context")
@@ -710,6 +721,15 @@ class ORM(object):
             if turn == turn_end and v > tick_end:
                 self._branches[branch] = parent, turn_start, tick_start, turn, v
         self._otick = v
+        self.time.send(
+            self.time,
+            branch_then=branch,
+            branch_now=branch,
+            turn_then=turn,
+            turn_now=turn,
+            tick_then=tick,
+            tick_now=v
+        )
 
     # easier to override things this way
     @property
