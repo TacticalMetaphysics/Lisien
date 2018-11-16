@@ -576,8 +576,9 @@ class Cache(object):
         the entity that the key is in.
 
         """
+        shallowest = self.shallowest
         try:
-            ret = self.shallowest[args]
+            ret = shallowest[args]
             if ret is None:
                 raise HistoryError("Set, then deleted", deleted=True)
             return ret
@@ -587,34 +588,30 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key,) not in self.branches:
+        branches = self.branches
+        if entity+(key,) not in branches:
             raise KeyError
-        if (
-            branch in self.branches[entity+(key,)]
-            and self.branches[entity+(key,)][branch].rev_gettable(turn)
-        ):
-            brancs = self.branches[entity+(key,)][branch]
+        branchentk = branches[entity+(key,)]
+        brancs = branchentk.get(branch)
+        if brancs is not None and brancs.rev_gettable(turn):
             if turn in brancs:
                 if brancs[turn].rev_gettable(tick):
                     ret = brancs[turn][tick]
-                    self.shallowest[args] = ret
+                    shallowest[args] = ret
                     return ret
                 elif brancs.rev_gettable(turn-1):
                     b1 = brancs[turn-1]
                     ret = b1[b1.end]
-                    self.shallowest[args] = ret
+                    shallowest[args] = ret
                     return ret
             else:
                 ret = brancs[turn]
                 ret = ret[ret.end]
-                self.shallowest[args] = ret
+                shallowest[args] = ret
                 return ret
         for (b, r, t) in self.db._iter_parent_btt(branch):
-            if (
-                    b in self.branches[entity+(key,)]
-                    and self.branches[entity+(key,)][b].rev_gettable(r)
-            ):
-                brancs = self.branches[entity+(key,)][b]
+            brancs = branchentk.get(b)
+            if brancs is not None and brancs.rev_gettable(r):
                 if r in brancs and brancs[r].rev_gettable(t):
                     ret = brancs[r][t]
                 elif brancs.rev_gettable(r-1):
@@ -622,7 +619,7 @@ class Cache(object):
                     ret = ret[ret.end]
                 else:
                     continue
-                self.shallowest[args] = ret
+                shallowest[args] = ret
                 return ret
         else:
             raise KeyError
