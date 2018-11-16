@@ -252,7 +252,10 @@ class Cache(object):
         self._kc_lru = OrderedDict()
 
     def load(self, data, validate=False, cb=None):
-        """Add a bunch of data. It doesn't need to be in chronological order.
+        """Add a bunch of data. Must be in chronological order.
+
+        But it doesn't need to all be from the same branch, as long as
+        each branch is chronological of itself.
 
         With ``validate=True``, raise ValueError if this results in an
         incoherent cache.
@@ -262,10 +265,10 @@ class Cache(object):
 
         """
         from collections import defaultdict, deque
-        dd2 = defaultdict(lambda: defaultdict(list))
+        branches = defaultdict(list)
         for row in data:
             entity, key, branch, turn, tick, value = row[-6:]
-            dd2[branch][turn, tick].append(row)
+            branches[branch].append(row)
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
         childbranch = self.db._childbranch
@@ -275,13 +278,11 @@ class Cache(object):
             self._store(*args, planning=False)
         while branch2do:
             branch = branch2do.popleft()
-            dd2b = dd2[branch]
-            for turn, tick in sorted(dd2b.keys()):
-                rows = dd2b[turn, tick]
-                for row in rows:
-                    store(*row)
-                    if cb:
-                        cb(row, validate=validate)
+            rows = branches[branch]
+            for row in rows:
+                store(*row)
+                if cb:
+                    cb(row, validate=validate)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
