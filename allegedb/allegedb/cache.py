@@ -28,27 +28,31 @@ class FuturistWindowDict(WindowDict):
             v = v.unwrap()
         if self._past is None:
             self._past = []
-        if not self._past and not self._future:
-            self._past.append((rev, v))
+        past = self._past
+        future = self._future
+        if not past and not future:
+            past.append((rev, v))
+            self._keys.add(rev)
             return
         self.seek(rev)
-        if self._future:
+        if future:
             raise HistoryError(
                 "Already have some history after {}".format(rev)
             )
-        if not self._past or rev > self._past[-1][0]:
-            self._past.append((rev, v))
-        elif rev == self._past[-1][0]:
-            self._past[-1] = (rev, v)
+        if not past or rev > past[-1][0]:
+            past.append((rev, v))
+        elif rev == past[-1][0]:
+            past[-1] = (rev, v)
         else:
             raise HistoryError(
                 "Already have some history after {} "
                 "(and my seek function is broken?)".format(rev)
             )
-        if type(self._past) is list and len(self._past) > self.DEQUE_THRESHOLD:
-            self._past = deque(self._past)
-        if type(self._future) is list and len(self._future) > self.DEQUE_THRESHOLD:
-            self._future = deque(self._future)
+        self._keys.add(rev)
+        if type(past) is list and len(past) > self.DEQUE_THRESHOLD:
+            self._past = deque(past)
+        if type(future) is list and len(future) > self.DEQUE_THRESHOLD:
+            self._future = deque(future)
 
 
 class TurnDict(FuturistWindowDict):
