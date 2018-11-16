@@ -28,13 +28,17 @@ class FuturistWindowDict(WindowDict):
             v = v.unwrap()
         if self._past is None:
             self._past = []
-        past = self._past
-        future = self._future
-        if not past and not future:
-            past.append((rev, v))
+        if not self._past or (
+            self._past and (
+                not self._future and
+                rev > self._past[-1][0]
+        )):
+            self._past.append((rev, v))
             self._keys.add(rev)
             return
         self.seek(rev)
+        past = self._past
+        future = self._future
         if future:
             raise HistoryError(
                 "Already have some history after {}".format(rev)
