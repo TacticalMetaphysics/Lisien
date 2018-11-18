@@ -546,6 +546,7 @@ class ORM(object):
             )
         self.query.initdb()
         # in case this is the first startup
+        self._obranch = 'trunk'
         self._otick = self._oturn = 0
         self._init_caches()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
