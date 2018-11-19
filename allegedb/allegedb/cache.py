@@ -15,82 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from .window import WindowDict, HistoryError, DEQUE_THRESHOLD
-from collections import OrderedDict, deque
-
-
-class FuturistWindowDict(WindowDict):
-    """A WindowDict that does not let you rewrite the past."""
-    __slots__ = ('_future', '_past')
-
-    def __setitem__(self, rev, v):
-        if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
-            v = v.unwrap()
-        if self._past is None:
-            self._past = []
-        if not self._past or (
-            self._past and (
-                not self._future and
-                rev > self._past[-1][0]
-        )):
-            self._past.append((rev, v))
-            self._keys.add(rev)
-            return
-        self.seek(rev)
-        past = self._past
-        future = self._future
-        if future:
-            raise HistoryError(
-                "Already have some history after {}".format(rev)
-            )
-        if not past or rev > past[-1][0]:
-            past.append((rev, v))
-        elif rev == past[-1][0]:
-            past[-1] = (rev, v)
-        else:
-            raise HistoryError(
-                "Already have some history after {} "
-                "(and my seek function is broken?)".format(rev)
-            )
-        self._keys.add(rev)
-        if type(past) is list and len(past) > DEQUE_THRESHOLD:
-            self._past = deque(past)
-        if type(future) is list and len(future) > DEQUE_THRESHOLD:
-            self._future = deque(future)
-
-
-class TurnDict(FuturistWindowDict):
-    __slots__ = ('_future', '_past')
-    cls = FuturistWindowDict
-
-    def __getitem__(self, rev):
-        try:
-            return super().__getitem__(rev)
-        except KeyError:
-            ret = self[rev] = FuturistWindowDict()
-            return ret
-
-    def __setitem__(self, turn, value):
-        if type(value) is not FuturistWindowDict:
-            value = FuturistWindowDict(value)
-        super().__setitem__(turn, value)
-
-
-class SettingsTurnDict(WindowDict):
-    __slots__ = ('_future', '_past')
-    cls = WindowDict
-
-    def __getitem__(self, rev):
-        try:
-            return super().__getitem__(rev)
-        except KeyError:
-            ret = self[rev] = WindowDict()
-            return ret
-
-    def __setitem__(self, turn, value):
-        if type(value) is not WindowDict:
-            value = WindowDict(value)
-        super().__setitem__(turn, value)
+from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
+from collections import OrderedDict
 
 
 def _default_args_munger(self, k):
