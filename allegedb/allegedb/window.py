@@ -410,8 +410,10 @@ class WindowDictReverseSlice:
                 stac.popleft()
             yield from map(get1, reversed(stac))
 
+
 DEQUE_THRESHOLD = 50
 """How long my past or future has to get before I'll turn it into a deque"""
+
 
 class WindowDict(MutableMapping):
     """A dict that keeps every value that a variable has had over time.
