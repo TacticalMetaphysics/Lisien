@@ -200,13 +200,12 @@ class Cache(object):
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
 
-        def store(*args):
-            self._store(*args, planning=False)
+        store = self._store
         while branch2do:
             branch = branch2do.popleft()
             rows = branches[branch]
             for row in rows:
-                store(*row)
+                store(*row, planning=False)
                 if cb:
                     cb(row, validate=validate)
             if branch in childbranch:
