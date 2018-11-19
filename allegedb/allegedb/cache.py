@@ -133,10 +133,24 @@ class StructuredDefaultDict(dict):
         raise TypeError("Can't set layer {}".format(self.layer))
 
 
+KEYCACHE_MAXSIZE = 1024
+
+
+def lru_append(kc, lru, kckey, maxsize):
+    if kckey in lru:
+        return
+    while len(lru) >= maxsize:
+        (peb, turn, tick), _ = lru.popitem(False)
+        del kc[peb][turn][tick]
+        if not kc[peb][turn]:
+            del kc[peb][turn]
+        if not kc[peb]:
+            del kc[peb]
+    lru[kckey] = True
+
+
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    keycache_maxsize = 1024
-
     def __init__(self, db):
         self.db = db
         self.parents = StructuredDefaultDict(3, TurnDict)
@@ -321,7 +335,7 @@ class Cache(object):
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
-        self._lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), self.keycache_maxsize)
+        lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
@@ -336,18 +350,6 @@ class Cache(object):
         else:
             kc = kc.union((key,))
         self.keycache[parent+(entity, branch)][turn][tick] = kc
-
-    def _lru_append(self, kc, lru, kckey, maxsize):
-        if kckey in lru:
-            return
-        while len(lru) >= maxsize:
-            (peb, turn, tick), _ = lru.popitem(False)
-            del kc[peb][turn][tick]
-            if not kc[peb][turn]:
-                del kc[peb][turn]
-            if not kc[peb]:
-                del kc[peb]
-        lru[kckey] = True
 
     def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
@@ -414,7 +416,6 @@ class Cache(object):
             parentity = self.parents[parent][entity]
             if key in parentity:
                 branches = parentity[key]
-                assert branches is self.branches[parent+(entity, key)] is self.keys[parent+(entity,)][key]
                 turns = branches[branch]
             else:
                 branches = self.branches[parent+(entity, key)] \
@@ -444,9 +445,10 @@ class Cache(object):
                     mapp[turn].truncate(tick)
                 mapp.truncate(turn)
         self._store_journal(*args)
-        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
-        while len(self.shallowest) > self.keycache_maxsize:
-            self.shallowest.popitem(False)
+        shallowest = self.shallowest
+        shallowest[parent + (entity, key, branch, turn, tick)] = value
+        while len(shallowest) > KEYCACHE_MAXSIZE:
+            shallowest.popitem(False)
         if turn in turns:
             the_turn = turns[turn]
             the_turn.truncate(tick)
@@ -621,14 +623,14 @@ class EdgesCache(Cache):
         return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
-        self._lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), self.keycache_maxsize)
+        lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.destcache, self.successors, self._adds_dels_sucpred, (graph, orig),
             branch, turn, tick, forward=forward
         )
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
-        self._lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), self.keycache_maxsize)
+        lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.origcache, self.predecessors, self._adds_dels_sucpred, (graph, dest),
             branch, turn, tick, forward=forward
