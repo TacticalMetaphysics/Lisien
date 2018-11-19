@@ -410,6 +410,8 @@ class WindowDictReverseSlice:
                 stac.popleft()
             yield from map(get1, reversed(stac))
 
+DEQUE_THRESHOLD = 50
+"""How long my past or future has to get before I'll turn it into a deque"""
 
 class WindowDict(MutableMapping):
     """A dict that keeps every value that a variable has had over time.
@@ -437,9 +439,6 @@ class WindowDict(MutableMapping):
 
     """
     __slots__ = ('_future', '_past', '_keys')
-
-    DEQUE_THRESHOLD = 50
-    """How long my past or future has to get before I'll turn it into a deque"""
 
     def future(self, rev=None):
         """Return a Mapping of items after the given revision."""
@@ -537,13 +536,13 @@ class WindowDict(MutableMapping):
 
     def __init__(self, data=None):
         if hasattr(data, 'items'):
-            if len(data) > self.DEQUE_THRESHOLD:
+            if len(data) > DEQUE_THRESHOLD:
                 self._past = deque(sorted(data.items()))
             else:
                 self._past = list(sorted(data.items()))
         elif data:
             # assume it's an orderable sequence of pairs
-            if len(data) > self.DEQUE_THRESHOLD:
+            if len(data) > DEQUE_THRESHOLD:
                 self._past = deque(sorted(data))
             else:
                 self._past = list(sorted(data))
@@ -618,9 +617,9 @@ class WindowDict(MutableMapping):
                 assert past[-1][0] < rev
                 past.append((rev, v))
         self._keys.add(rev)
-        if type(past) is list and len(past) > self.DEQUE_THRESHOLD:
+        if type(past) is list and len(past) > DEQUE_THRESHOLD:
             self._past = deque(past)
-        if type(future) is list and len(future) > self.DEQUE_THRESHOLD:
+        if type(future) is list and len(future) > DEQUE_THRESHOLD:
             self._future = deque(future)
 
     def __delitem__(self, rev):

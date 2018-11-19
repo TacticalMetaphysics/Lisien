@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from .window import WindowDict, HistoryError
+from .window import WindowDict, HistoryError, DEQUE_THRESHOLD
 from collections import OrderedDict, deque
 
 
@@ -53,9 +53,9 @@ class FuturistWindowDict(WindowDict):
                 "(and my seek function is broken?)".format(rev)
             )
         self._keys.add(rev)
-        if type(past) is list and len(past) > self.DEQUE_THRESHOLD:
+        if type(past) is list and len(past) > DEQUE_THRESHOLD:
             self._past = deque(past)
-        if type(future) is list and len(future) > self.DEQUE_THRESHOLD:
+        if type(future) is list and len(future) > DEQUE_THRESHOLD:
             self._future = deque(future)
 
 
