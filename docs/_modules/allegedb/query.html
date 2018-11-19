@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>allegedb.query &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -27,16 +28,32 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for allegedb.query</h1><div class="highlight"><pre>
 <span></span><span class="c1"># This file is part of allegedb, an object relational mapper for graphs.</span>
-<span class="c1"># Copyright (c) Zachary Spector</span>
+<span class="c1"># Copyright (c) Zachary Spector. public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;Wrapper to run SQL queries in a lightly abstracted way, such that</span>
 <span class="sd">code that&#39;s more to do with the queries than with the data per se</span>
 <span class="sd">doesn&#39;t pollute the other files so much.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">MutableMapping</span>
 <span class="kn">from</span> <span class="nn">sqlite3</span> <span class="k">import</span> <span class="n">IntegrityError</span> <span class="k">as</span> <span class="n">sqliteIntegError</span>
 <span class="k">try</span><span class="p">:</span>
@@ -45,7 +62,6 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="c1"># python 3</span>
     <span class="kn">from</span> <span class="nn">allegedb</span> <span class="k">import</span> <span class="n">wrap</span>
-<span class="kn">import</span> <span class="nn">os</span>
 <span class="n">wrappath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">wrap</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
 <span class="n">alchemyIntegError</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="k">try</span><span class="p">:</span>
@@ -57,6 +73,10 @@
 <span class="n">IntegrityError</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">alchemyIntegError</span><span class="p">,</span> <span class="n">sqliteIntegError</span>
 <span class="p">)</span> <span class="k">if</span> <span class="n">alchemyIntegError</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">sqliteIntegError</span>
+
+
+<div class="viewcode-block" id="TimeError"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.TimeError">[docs]</a><span class="k">class</span> <span class="nc">TimeError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception class for problems with the time model&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="GlobalKeyValueStore"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.GlobalKeyValueStore">[docs]</a><span class="k">class</span> <span class="nc">GlobalKeyValueStore</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
@@ -92,8 +112,8 @@
 
     <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">qe</span><span class="o">.</span><span class="n">global_del</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qe</span><span class="p">,</span> <span class="s1">&#39;_global_cache&#39;</span><span class="p">):</span></div>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">qe</span><span class="o">.</span><span class="n">_global_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qe</span><span class="p">,</span> <span class="s1">&#39;_global_cache&#39;</span><span class="p">):</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">qe</span><span class="o">.</span><span class="n">_global_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="QueryEngine"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine">[docs]</a><span class="k">class</span> <span class="nc">QueryEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -161,6 +181,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_graphvals2set</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">unpack</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">ast</span> <span class="k">import</span> <span class="n">literal_eval</span> <span class="k">as</span> <span class="n">unpack</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pack</span> <span class="o">=</span> <span class="n">pack</span> <span class="ow">or</span> <span class="nb">repr</span>
@@ -180,8 +201,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="n">stringname</span><span class="p">]</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="n">s</span><span class="p">,</span> <span class="n">args</span></div>
-            <span class="p">)</span>
+                <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="n">s</span><span class="p">,</span> <span class="n">args</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.sqlmany"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.sqlmany">[docs]</a>    <span class="k">def</span> <span class="nf">sqlmany</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stringname</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Wrapper for executing many SQL calls on my connection.</span>
@@ -194,18 +215,18 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;alchemist&#39;</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alchemist</span><span class="o">.</span><span class="n">many</span><span class="p">,</span> <span class="n">stringname</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="n">stringname</span><span class="p">]</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="n">stringname</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.have_graph"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.have_graph">[docs]</a>    <span class="k">def</span> <span class="nf">have_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return whether I have a graph by this name.&quot;&quot;&quot;</span>
-        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;graphs_named&#39;</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;graphs_named&#39;</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="QueryEngine.new_graph"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.new_graph">[docs]</a>    <span class="k">def</span> <span class="nf">new_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">typ</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Declare a new graph by this name of this type.&quot;&quot;&quot;</span>
-        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;new_graph&#39;</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">typ</span><span class="p">)</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;new_graph&#39;</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">typ</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.del_graph"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.del_graph">[docs]</a>    <span class="k">def</span> <span class="nf">del_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete all records to do with the graph&quot;&quot;&quot;</span>
@@ -214,37 +235,37 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_node_val_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_edge_val_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_edges_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_nodes_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_nodes_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_graph&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.graph_type"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.graph_type">[docs]</a>    <span class="k">def</span> <span class="nf">graph_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;What type of graph is this?&quot;&quot;&quot;</span>
-        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;graph_type&#39;</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;graph_type&#39;</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="QueryEngine.have_branch"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.have_branch">[docs]</a>    <span class="k">def</span> <span class="nf">have_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return whether the branch thus named exists in the database.&quot;&quot;&quot;</span></div>
-        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;ctbranch&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="sd">&quot;&quot;&quot;Return whether the branch thus named exists in the database.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;ctbranch&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="QueryEngine.all_branches"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.all_branches">[docs]</a>    <span class="k">def</span> <span class="nf">all_branches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return all the branch data in tuples of (branch, parent,</span>
 <span class="sd">        parent_turn).</span>
 
-<span class="sd">        &quot;&quot;&quot;</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branches_dump&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branches_dump&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="QueryEngine.global_get"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.global_get">[docs]</a>    <span class="k">def</span> <span class="nf">global_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the value for the given key in the ``globals`` table.&quot;&quot;&quot;</span>
         <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_get&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Not set&quot;</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Not set&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="QueryEngine.global_items"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.global_items">[docs]</a>    <span class="k">def</span> <span class="nf">global_items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Iterate over (key, value) pairs in the ``globals`` table.&quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_dump&#39;</span><span class="p">):</span></div>
-            <span class="k">yield</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_dump&#39;</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">v</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="QueryEngine.global_set"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.global_set">[docs]</a>    <span class="k">def</span> <span class="nf">global_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set ``key`` to ``value`` globally (not at any particular branch or</span>
@@ -254,20 +275,20 @@
         <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_insert&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span></div>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_update&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_update&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.global_del"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.global_del">[docs]</a>    <span class="k">def</span> <span class="nf">global_del</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete the global record for the key.&quot;&quot;&quot;</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_del&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;global_del&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.new_branch"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.new_branch">[docs]</a>    <span class="k">def</span> <span class="nf">new_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Declare that the ``branch`` is descended from ``parent`` at</span>
 <span class="sd">        ``parent_turn``, ``parent_tick``</span>
 
-<span class="sd">        &quot;&quot;&quot;</span></div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branches_insert&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branches_insert&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">update_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">,</span> <span class="n">end_turn</span><span class="p">,</span> <span class="n">end_tick</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;update_branches&#39;</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">parent_turn</span><span class="p">,</span> <span class="n">parent_tick</span><span class="p">,</span> <span class="n">end_turn</span><span class="p">,</span> <span class="n">end_tick</span><span class="p">,</span> <span class="n">branch</span><span class="p">)</span>
@@ -303,8 +324,8 @@
                 <span class="n">branch</span><span class="p">,</span>
                 <span class="n">turn</span><span class="p">,</span>
                 <span class="n">tick</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
-            <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_flush_graph_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Send all new and changed graph values to the database.&quot;&quot;&quot;</span>
@@ -328,12 +349,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_graphvals2set</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">graph_val_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TimeError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
         <span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_graphvals2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
 
 <div class="viewcode-block" id="QueryEngine.graph_val_del"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.graph_val_del">[docs]</a>    <span class="k">def</span> <span class="nf">graph_val_del</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Indicate that the key is unset.&quot;&quot;&quot;</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">graph_val_set</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;Indicate that the key is unset.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_val_set</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">graphs_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">typ</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;graphs_types&#39;</span><span class="p">):</span>
@@ -360,8 +384,11 @@
 
 <span class="sd">        Inserts a new record or updates an old one, as needed.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">node</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">))</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TimeError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nodes2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">node</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="QueryEngine.nodes_dump"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.nodes_dump">[docs]</a>    <span class="k">def</span> <span class="nf">nodes_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Dump the entire contents of the nodes table.&quot;&quot;&quot;</span>
@@ -373,8 +400,8 @@
                 <span class="n">branch</span><span class="p">,</span>
                 <span class="n">turn</span><span class="p">,</span>
                 <span class="n">tick</span><span class="p">,</span>
-                <span class="nb">bool</span><span class="p">(</span><span class="n">extant</span><span class="p">)</span></div>
-            <span class="p">)</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">extant</span><span class="p">)</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.node_val_dump"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.node_val_dump">[docs]</a>    <span class="k">def</span> <span class="nf">node_val_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Yield the entire contents of the node_val table.&quot;&quot;&quot;</span>
@@ -389,8 +416,8 @@
                 <span class="n">branch</span><span class="p">,</span>
                 <span class="n">turn</span><span class="p">,</span>
                 <span class="n">tick</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
-            <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_flush_node_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodevals2set</span><span class="p">:</span>
@@ -416,12 +443,15 @@
 
 <div class="viewcode-block" id="QueryEngine.node_val_set"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.node_val_set">[docs]</a>    <span class="k">def</span> <span class="nf">node_val_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set a key-value pair on a node at a specific branch and revision&quot;&quot;&quot;</span>
-        <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_nodevals2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TimeError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
+        <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nodevals2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="QueryEngine.node_val_del"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.node_val_del">[docs]</a>    <span class="k">def</span> <span class="nf">node_val_del</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Delete a key from a node at a specific branch and revision&quot;&quot;&quot;</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">node_val_set</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;Delete a key from a node at a specific branch and revision&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_val_set</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.edges_dump"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.edges_dump">[docs]</a>    <span class="k">def</span> <span class="nf">edges_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Dump the entire contents of the edges table.&quot;&quot;&quot;</span>
@@ -437,8 +467,8 @@
                 <span class="n">branch</span><span class="p">,</span>
                 <span class="n">turn</span><span class="p">,</span>
                 <span class="n">tick</span><span class="p">,</span>
-                <span class="nb">bool</span><span class="p">(</span><span class="n">extant</span><span class="p">)</span></div>
-            <span class="p">)</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">extant</span><span class="p">)</span>
+            <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_flush_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span><span class="p">:</span>
@@ -465,8 +495,11 @@
 
 <div class="viewcode-block" id="QueryEngine.exist_edge"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.exist_edge">[docs]</a>    <span class="k">def</span> <span class="nf">exist_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Declare whether or not this edge exists.&quot;&quot;&quot;</span>
-        <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TimeError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
+        <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_edges2set</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="QueryEngine.edge_val_dump"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.edge_val_dump">[docs]</a>    <span class="k">def</span> <span class="nf">edge_val_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Yield the entire contents of the edge_val table.&quot;&quot;&quot;</span>
@@ -483,8 +516,8 @@
                 <span class="n">branch</span><span class="p">,</span>
                 <span class="n">turn</span><span class="p">,</span>
                 <span class="n">tick</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
-            <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_flush_edge_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edgevals2set</span><span class="p">:</span>
@@ -509,17 +542,20 @@
 
 <div class="viewcode-block" id="QueryEngine.edge_val_set"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.edge_val_set">[docs]</a>    <span class="k">def</span> <span class="nf">edge_val_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set this key of this edge to this value.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TimeError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_btts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
         <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_edgevals2set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
-        <span class="p">)</span>
+            <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.edge_val_del"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.edge_val_del">[docs]</a>    <span class="k">def</span> <span class="nf">edge_val_del</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Declare that the key no longer applies to this edge, as of this</span>
 <span class="sd">        branch and revision.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">edge_val_set</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_val_set</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QueryEngine.initdb"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.initdb">[docs]</a>    <span class="k">def</span> <span class="nf">initdb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create tables and indices as needed.&quot;&quot;&quot;</span>
@@ -573,37 +609,56 @@
             <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="s1">&#39;create_edges&#39;</span><span class="p">])</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;SELECT * FROM edge_val;&#39;</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span></div>
-            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="s1">&#39;create_edge_val&#39;</span><span class="p">])</span>
+        <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">strings</span><span class="p">[</span><span class="s1">&#39;create_edge_val&#39;</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="QueryEngine.flush"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Put all pending changes into the SQL transaction.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_flush_nodes</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_flush_edges</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_flush_graph_val</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_node_val</span><span class="p">()</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_edge_val</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_node_val</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_edge_val</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="QueryEngine.commit"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.commit">[docs]</a>    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Commit the transaction&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;transaction&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;transaction&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">transaction</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">transaction</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;connection&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="QueryEngine.close"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.QueryEngine.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Commit the transaction, then close the connection&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;connection&#39;</span><span class="p">):</span></div></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;connection&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -626,6 +681,14 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
@@ -634,8 +697,8 @@
       &copy;2018, Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

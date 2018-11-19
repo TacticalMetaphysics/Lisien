@@ -24,6 +24,9 @@ of the same key and neighboring ones repeatedly and in sequence.
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter
 
+get0 = itemgetter(0)
+get1 = itemgetter(1)
+
 # TODO: cancel changes that would put something back to where it was at the start
 # This will complicate the update_window functions though, and I don't think it'll
 # improve much apart from a bit of efficiency in that the deltas are smaller
@@ -79,44 +82,39 @@ def within_history(rev, windowdict):
 class WindowDictKeysView(KeysView):
     """Look through all the keys a WindowDict contains."""
     def __contains__(self, rev):
-        if not within_history(rev, self._mapping):
-            return False
-        for mrev, mv in self._mapping._past:
-            if mrev == rev:
-                return True
-        for mrev, mv in self._mapping._future:
-            if mrev == rev:
-                return True
-        return False
+        return rev in self._mapping._keys
 
     def __iter__(self):
-        if self._mapping._past:
-            for rev, v in self._mapping._past:
-                yield rev
-        if self._mapping._future:
-            for rev, v in self._mapping._future:
-                yield rev
+        past = self._mapping._past
+        future = self._mapping._future
+        if past:
+            yield from map(get0, past)
+        if future:
+            yield from map(get0, future)
 
 
 class WindowDictItemsView(ItemsView):
     """Look through everything a WindowDict contains."""
     def __contains__(self, item):
         (rev, v) = item
-        if not within_history(rev, self._mapping):
+        mapp = self._mapping
+        if not within_history(rev, mapp):
             return False
-        for mrev, mv in self._mapping._past:
+        for mrev, mv in mapp._past:
             if mrev == rev:
                 return mv == v
-        for mrev, mv in self._mapping._future:
+        for mrev, mv in mapp._future:
             if mrev == rev:
                 return mv == v
         return False
 
     def __iter__(self):
-        if self._mapping._past:
-            yield from self._mapping._past
-        if self._mapping._future:
-            yield from self._mapping._future
+        past = self._mapping._past
+        future = self._mapping._future
+        if past:
+            yield from past
+        if future:
+            yield from future
 
 
 class WindowDictPastFutureKeysView(KeysView):
@@ -127,7 +125,7 @@ class WindowDictPastFutureKeysView(KeysView):
         deq = self._mapping.deq
         if not deq or item < deq[0][0] or item > deq[-1][0]:
             return False
-        for rev in map(itemgetter(0), deq):
+        for rev in map(get0, deq):
             if rev == item:
                 return True
         return False
@@ -138,7 +136,7 @@ class WindowDictPastKeysView(WindowDictPastFutureKeysView):
     def __iter__(self):
         if not self._mapping.deq:
             return
-        yield from map(itemgetter(0), reversed(self._mapping.deq))
+        yield from map(get0, reversed(self._mapping.deq))
 
 
 class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
@@ -146,7 +144,7 @@ class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
     def __iter__(self):
         if not self._mapping.deq:
             return
-        yield from map(itemgetter(0), self._mapping.deq)
+        yield from map(get0, self._mapping.deq)
 
 
 class WindowDictPastFutureItemsView(ItemsView):
@@ -173,17 +171,19 @@ class WindowDictPastItemsView(WindowDictPastFutureItemsView):
 class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
     """View on a WindowDict's future items relative to last lookup"""
     def __iter__(self):
-        if not self._mapping.deq:
+        deq = self._mapping.deq
+        if not deq:
             return
-        yield from self._mapping.deq
+        yield from deq
 
 
 class WindowDictPastFutureValuesView(ValuesView):
     """Abstract class for views on the past or future values of a WindowDict"""
     def __contains__(self, item):
-        if not self._mapping.deq:
+        deq = self._mapping.deq
+        if not deq:
             return False
-        for v in map(itemgetter(1), self._mapping.deq):
+        for v in map(get1, deq):
             if v == item:
                 return True
         return False
@@ -192,39 +192,43 @@ class WindowDictPastFutureValuesView(ValuesView):
 class WindowDictPastValuesView(WindowDictPastFutureValuesView):
     """View on a WindowDict's past values relative to last lookup"""
     def __iter__(self):
-        if not self._mapping.deq:
+        deq = self._mapping.deq
+        if not deq:
             return
-        yield from map(itemgetter(1), reversed(self._mapping.deq))
+        yield from map(get1, reversed(deq))
 
 
 class WindowDictFutureValuesView(WindowDictPastFutureValuesView):
     """View on a WindowDict's future values relative to last lookup"""
     def __iter__(self):
-        if not self._mapping.deq:
+        deq = self._mapping.deq
+        if not deq:
             return
-        yield from map(itemgetter(1), self._mapping.deq)
+        yield from map(get1, deq)
 
 
 class WindowDictValuesView(ValuesView):
     """Look through all the values that a WindowDict contains."""
     def __contains__(self, value):
-        if self._mapping._past:
-            for rev, v in self._mapping._past:
+        past = self._mapping._past
+        future = self._mapping._future
+        if past:
+            for rev, v in past:
                 if v == value:
                     return True
-        if self._mapping._future:
-            for rev, v in self._mapping._future:
+        if future:
+            for rev, v in future:
                 if v == value:
                     return True
         return False
 
     def __iter__(self):
-        if self._mapping._past:
-            for rev, v in self._mapping._past:
-                yield v
-        if self._mapping._future:
-            for rev, v in self._mapping._future:
-                yield v
+        past = self._mapping._past
+        future = self._mapping._future
+        if past:
+            yield from map(get1, past)
+        if future:
+            yield from map(get1, future)
 
 
 class WindowDictPastFutureView(Mapping):
@@ -235,14 +239,16 @@ class WindowDictPastFutureView(Mapping):
         self.deq = deq
 
     def __len__(self):
-        if not self.deq:
+        deq = self.deq
+        if not deq:
             return 0
-        return len(self.deq)
+        return len(deq)
 
     def __getitem__(self, key):
-        if not self.deq or key < self.deq[0][0] or key > self.deq[-1][0]:
+        deq = self.deq
+        if not deq or key < deq[0][0] or key > deq[-1][0]:
             raise KeyError
-        for rev, value in self.deq:
+        for rev, value in deq:
             if rev == key:
                 return value
         raise KeyError
@@ -251,9 +257,10 @@ class WindowDictPastFutureView(Mapping):
 class WindowDictPastView(WindowDictPastFutureView):
     """Read-only mapping of just the past of a WindowDict"""
     def __iter__(self):
-        if not self.deq:
+        deq = self.deq
+        if not deq:
             return
-        yield from map(itemgetter(0), reversed(self.deq))
+        yield from map(get0, reversed(deq))
 
     def keys(self):
         return WindowDictPastKeysView(self)
@@ -268,14 +275,16 @@ class WindowDictPastView(WindowDictPastFutureView):
 class WindowDictFutureView(WindowDictPastFutureView):
     """Read-only mapping of just the future of a WindowDict"""
     def __iter__(self):
-        if not self.deq:
+        deq = self.deq
+        if not deq:
             return
-        yield from map(itemgetter(0), self.deq)
+        yield from map(get0, deq)
 
     def __getitem__(self, key):
-        if not self.deq or key < self.deq[0][0] or key > self.deq[-1][0]:
+        deq = self.deq
+        if not deq or key < deq[0][0] or key > deq[-1][0]:
             raise KeyError
-        for rev, value in self.deq:
+        for rev, value in deq:
             if rev == key:
                 return value
         raise KeyError
@@ -311,9 +320,9 @@ class WindowDictSlice:
                 yield dic[i]
         if slic.start is None and slic.stop is None:
             if dic._past:
-                yield from map(itemgetter(1), dic._past)
+                yield from map(get1, dic._past)
             if dic._future:
-                yield from map(itemgetter(1), dic._future)
+                yield from map(get1, dic._future)
         elif None not in (slic.start, slic.stop):
             if slic.stop == slic.start:
                 yield dic[slic.stop]
@@ -326,7 +335,7 @@ class WindowDictSlice:
             popper = getattr(past, 'popleft', lambda: past.pop(0))
             while past and past[0][0] < left:
                 popper()
-            yield from map(itemgetter(1), past)
+            yield from map(get1, past)
         elif slic.start is None:
             stac = []
             if dic._past:
@@ -335,7 +344,7 @@ class WindowDictSlice:
                 stac.extend(dic._future)
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
-            yield from map(itemgetter(1), stac)
+            yield from map(get1, stac)
             return
         else:  # slic.stop is None
             stac = deque()
@@ -345,7 +354,7 @@ class WindowDictSlice:
                 stac.extend(dic._future)
             while stac and stac[0][0] < slic.start:
                 stac.popleft()
-            yield from map(itemgetter(1), stac)
+            yield from map(get1, stac)
 
 
 class WindowDictReverseSlice:
@@ -369,9 +378,9 @@ class WindowDictReverseSlice:
                 yield dic[i]
         if slic.start is None and slic.stop is None:
             if dic._future:
-                yield from map(itemgetter(1), reversed(dic._future))
+                yield from map(get1, reversed(dic._future))
             if dic._past:
-                yield from map(itemgetter(1), reversed(dic._past))
+                yield from map(get1, reversed(dic._past))
         elif None not in (slic.start, slic.stop):
             if slic.start == slic.stop:
                 yield dic[slic.stop]
@@ -390,7 +399,7 @@ class WindowDictReverseSlice:
                 stac.extend(dic._future)
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
-            yield from map(itemgetter(1), reversed(stac))
+            yield from map(get1, reversed(stac))
         else:  # slic.stop is None
             stac = deque()
             if dic._past:
@@ -399,7 +408,11 @@ class WindowDictReverseSlice:
                 stac.extend(dic._future)
             while stac and stac[0][0] < slic.start:
                 stac.popleft()
-            yield from map(itemgetter(1), reversed(stac))
+            yield from map(get1, reversed(stac))
+
+
+DEQUE_THRESHOLD = 50
+"""How long my past or future has to get before I'll turn it into a deque"""
 
 
 class WindowDict(MutableMapping):
@@ -427,10 +440,7 @@ class WindowDict(MutableMapping):
     still without retaining the revision they're from.
 
     """
-    __slots__ = ('_future', '_past')
-
-    DEQUE_THRESHOLD = 50
-    """How long my past or future has to get before I'll turn it into a deque"""
+    __slots__ = ('_future', '_past', '_keys')
 
     def future(self, rev=None):
         """Return a Mapping of items after the given revision."""
@@ -444,30 +454,34 @@ class WindowDict(MutableMapping):
             self.seek(rev)
         return WindowDictPastView(self._past)
 
-    def seek(self, rev):
+    def seek(self, rev: int) -> None:
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
         # deque is very large?
         if not self:
             return
-        if self._past and self._past[-1][0] <= rev and (
-                not self._future or self._future[0][0] > rev
+        past = self._past
+        future = self._future
+        if past and past[-1][0] <= rev and (
+                not future or future[0][0] > rev
         ):
             return
-        if self._past is None:
-            self._past = []
-        if self._future:
-            popper = getattr(self._future, 'popleft', lambda: self._future.pop(0))
-            while self._future and self._future[0][0] <= rev:
-                self._past.append(popper())
-        if self._past and self._future is None:
-            self._future = []
-        if self._past:
-            prepender = getattr(self._future, 'appendleft', lambda x: self._future.insert(0, x))
-            while self._past and self._past[-1][0] > rev:
-                prepender(self._past.pop())
+        if past is None:
+            past = self._past = []
+        if future:
+            appender = past.append
+            popper = getattr(future, 'popleft', lambda: future.pop(0))
+            while future and future[0][0] <= rev:
+                appender(popper())
+        if past and future is None:
+            future = self._future = []
+        if past:
+            prepender = getattr(future, 'appendleft', lambda x: future.insert(0, x))
+            popper = past.pop
+            while past and past[-1][0] > rev:
+                prepender(popper())
 
-    def rev_gettable(self, rev):
+    def rev_gettable(self, rev: int) -> bool:
         if self._past:
             return rev >= self._past[0][0]
         elif self._future:
@@ -475,25 +489,25 @@ class WindowDict(MutableMapping):
         else:
             return False
 
-    def rev_before(self, rev):
+    def rev_before(self, rev: int) -> int:
         """Return the latest past rev on which the value changed."""
         self.seek(rev)
         if self._past:
             return self._past[-1][0]
 
-    def rev_after(self, rev):
+    def rev_after(self, rev: int) -> int:
         """Return the earliest future rev on which the value will change."""
         self.seek(rev)
         if self._future:
             return self._future[0][0]
 
-    def truncate(self, rev):
+    def truncate(self, rev: int) -> None:
         """Delete everything after the given revision."""
         self.seek(rev)
         self._future = None
 
     @property
-    def beginning(self):
+    def beginning(self) -> int:
         if self._past:
             return self._past[0][0]
         elif self._future:
@@ -502,7 +516,7 @@ class WindowDict(MutableMapping):
             raise HistoryError("No history yet")
 
     @property
-    def end(self):
+    def end(self) -> int:
         if self._future:
             return self._future[-1][0]
         elif self._past:
@@ -523,41 +537,37 @@ class WindowDict(MutableMapping):
         return bool(self._past) or bool(self._future)
 
     def __init__(self, data=None):
-        if hasattr(data, 'items'):
-            if len(data) > self.DEQUE_THRESHOLD:
+        if not data:
+            self._past = None
+        elif hasattr(data, 'items'):
+            if len(data) > DEQUE_THRESHOLD:
                 self._past = deque(sorted(data.items()))
             else:
                 self._past = list(sorted(data.items()))
-        elif data:
+        else:
             # assume it's an orderable sequence of pairs
-            if len(data) > self.DEQUE_THRESHOLD:
+            if len(data) > DEQUE_THRESHOLD:
                 self._past = deque(sorted(data))
             else:
                 self._past = list(sorted(data))
-        else:
-            self._past = None
         self._future = None
+        self._keys = set(map(get0, self._past or ()))
 
     def __iter__(self):
         if not self:
             return
         if self._past:
-            for (rev, v) in self._past:
-                yield rev
+            yield from map(get0, self._past)
         if self._future:
-            for (rev, v) in self._future:
-                yield rev
+            yield from map(get0, self._future)
 
     def __contains__(self, item):
-        if not within_history(item, self):
-            return False
-        self.seek(item)
-        return self._past and self._past[-1][0] == item
+        return item in self._keys
 
     def __len__(self):
         return len(self._past or ()) + len(self._future or ())
 
-    def __getitem__(self, rev):
+    def __getitem__(self, rev: int):
         if not self:
             raise HistoryError("No history yet")
         if isinstance(rev, slice):
@@ -565,41 +575,60 @@ class WindowDict(MutableMapping):
                 return WindowDictReverseSlice(self, rev)
             return WindowDictSlice(self, rev)
         self.seek(rev)
-        if not self._past:
+        past = self._past
+        if not past:
             raise HistoryError(
                 "Revision {} is before the start of history".format(rev)
             )
-        ret = self._past[-1][1]
+        ret = past[-1][1]
         if ret is None:
             raise HistoryError("Set, then deleted", deleted=True)
         return ret
 
-    def __setitem__(self, rev, v):
+    def __setitem__(self, rev: int, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
         if self._past is None:
             self._past = []
-        if not self._past and not self._future:
-            self._past.append((rev, v))
-        elif self._past and rev < self._past[0][0]:
-            self._past.insert(0, (rev, v))
-        elif self._past and rev == self._past[0][0]:
-            self._past[0] = (rev, v)
+        past = self._past
+        future = self._future
+        have_past = bool(past)
+        have_future = bool(future)
+        past_start: int = -1 if not have_past else past[0][0]
+        past_end: int = -1 if not have_past else past[-1][0]
+        future_start: int = -1 if not have_future else future[0][0]
+        if not have_past and not have_future:
+            past.append((rev, v))
+        elif have_past and rev < past_start:
+            past.insert(0, (rev, v))
+        elif have_past and rev == past_start:
+            past[0] = (rev, v)
+        elif have_past and rev == past_end:
+            past[-1] = (rev, v)
+        elif have_past and (
+            not have_future or
+            rev < future_start
+        ) and rev > past_end:
+            past.append((rev, v))
         else:
             self.seek(rev)
-            if not self._past:
-                self._past.append((rev, v))
-            elif self._past[-1][0] == rev:
-                self._past[-1] = (rev, v)
+            past = self._past
+            future = self._future
+            past_end: int = -1 if not past else past[-1][0]
+            if not past:
+                past.append((rev, v))
+            elif past_end == rev:
+                past[-1] = (rev, v)
             else:
-                assert self._past[-1][0] < rev
-                self._past.append((rev, v))
-        if type(self._past) is list and len(self._past) > self.DEQUE_THRESHOLD:
-            self._past = deque(self._past)
-        if type(self._future) is list and len(self._future) > self.DEQUE_THRESHOLD:
-            self._future = deque(self._future)
+                assert past_end < rev
+                past.append((rev, v))
+        self._keys.add(rev)
+        if type(past) is list and len(past) > DEQUE_THRESHOLD:
+            self._past = deque(past)
+        if type(future) is list and len(future) > DEQUE_THRESHOLD:
+            self._future = deque(future)
 
-    def __delitem__(self, rev):
+    def __delitem__(self, rev: int):
         # Not checking for rev's presence at the beginning because
         # to do so would likely require iterating thru history,
         # which I have to do anyway in deleting.
@@ -612,8 +641,83 @@ class WindowDict(MutableMapping):
         if self._past[-1][0] != rev:
             raise HistoryError("Rev not present: {}".format(rev))
         del self._past[-1]
+        self._keys.remove(rev)
 
     def __repr__(self):
         me = dict(self._past)
         me.update(self._future)
         return "{}({})".format(self.__class__.__name__, me)
+
+
+class FuturistWindowDict(WindowDict):
+    """A WindowDict that does not let you rewrite the past."""
+    __slots__ = ('_future', '_past')
+
+    def __setitem__(self, rev, v):
+        if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
+            v = v.unwrap()
+        if self._past is None:
+            self._past = []
+        if not self._past or (
+            self._past and (
+                not self._future and
+                rev > self._past[-1][0]
+        )):
+            self._past.append((rev, v))
+            self._keys.add(rev)
+            return
+        self.seek(rev)
+        past = self._past
+        future = self._future
+        if future:
+            raise HistoryError(
+                "Already have some history after {}".format(rev)
+            )
+        if not past or rev > past[-1][0]:
+            past.append((rev, v))
+        elif rev == past[-1][0]:
+            past[-1] = (rev, v)
+        else:
+            raise HistoryError(
+                "Already have some history after {} "
+                "(and my seek function is broken?)".format(rev)
+            )
+        self._keys.add(rev)
+        if type(past) is list and len(past) > DEQUE_THRESHOLD:
+            self._past = deque(past)
+        if type(future) is list and len(future) > DEQUE_THRESHOLD:
+            self._future = deque(future)
+
+
+class TurnDict(FuturistWindowDict):
+    __slots__ = ('_future', '_past')
+    cls = FuturistWindowDict
+
+    def __getitem__(self, rev):
+        try:
+            return super().__getitem__(rev)
+        except KeyError:
+            ret = self[rev] = FuturistWindowDict()
+            return ret
+
+    def __setitem__(self, turn, value):
+        if type(value) is not FuturistWindowDict:
+            value = FuturistWindowDict(value)
+        super().__setitem__(turn, value)
+
+
+class SettingsTurnDict(WindowDict):
+    __slots__ = ('_future', '_past')
+    cls = WindowDict
+
+    def __getitem__(self, rev):
+        try:
+            return super().__getitem__(rev)
+        except KeyError:
+            ret = self[rev] = WindowDict()
+            return ret
+
+    def __setitem__(self, turn, value):
+        if type(value) is not WindowDict:
+            value = WindowDict(value)
+        super().__setitem__(turn, value)

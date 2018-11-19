@@ -525,7 +525,14 @@ def queries(table):
     r = allegedb.alchemy.queries_for_table_dict(table)
 
     for t in table.values():
-        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
+        key = list(t.primary_key)
+        if 'branch' in t.columns and 'turn' in t.columns and 'tick' in t.columns:
+            branch = t.columns['branch']
+            turn = t.columns['turn']
+            tick = t.columns['tick']
+            if branch in key and turn in key and tick in key:
+                key = [branch, turn, tick]
+        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 

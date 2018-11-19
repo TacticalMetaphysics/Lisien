@@ -15,74 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data.
 """
-from .window import WindowDict, HistoryError
-from collections import OrderedDict, deque
-
-
-class FuturistWindowDict(WindowDict):
-    """A WindowDict that does not let you rewrite the past."""
-    __slots__ = ('_future', '_past')
-
-    def __setitem__(self, rev, v):
-        if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
-            v = v.unwrap()
-        if self._past is None:
-            self._past = []
-        if not self._past and not self._future:
-            self._past.append((rev, v))
-            return
-        self.seek(rev)
-        if self._future:
-            raise HistoryError(
-                "Already have some history after {}".format(rev)
-            )
-        if not self._past or rev > self._past[-1][0]:
-            self._past.append((rev, v))
-        elif rev == self._past[-1][0]:
-            self._past[-1] = (rev, v)
-        else:
-            raise HistoryError(
-                "Already have some history after {} "
-                "(and my seek function is broken?)".format(rev)
-            )
-        if type(self._past) is list and len(self._past) > self.DEQUE_THRESHOLD:
-            self._past = deque(self._past)
-        if type(self._future) is list and len(self._future) > self.DEQUE_THRESHOLD:
-            self._future = deque(self._future)
-
-
-class TurnDict(FuturistWindowDict):
-    __slots__ = ('_future', '_past')
-    cls = FuturistWindowDict
-
-    def __getitem__(self, rev):
-        try:
-            return super().__getitem__(rev)
-        except KeyError:
-            ret = self[rev] = FuturistWindowDict()
-            return ret
-
-    def __setitem__(self, turn, value):
-        if type(value) is not FuturistWindowDict:
-            value = FuturistWindowDict(value)
-        super().__setitem__(turn, value)
-
-
-class SettingsTurnDict(WindowDict):
-    __slots__ = ('_future', '_past')
-    cls = WindowDict
-
-    def __getitem__(self, rev):
-        try:
-            return super().__getitem__(rev)
-        except KeyError:
-            ret = self[rev] = WindowDict()
-            return ret
-
-    def __setitem__(self, turn, value):
-        if type(value) is not WindowDict:
-            value = WindowDict(value)
-        super().__setitem__(turn, value)
+from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
+from collections import OrderedDict, defaultdict, deque
 
 
 def _default_args_munger(self, k):
@@ -199,10 +133,24 @@ class StructuredDefaultDict(dict):
         raise TypeError("Can't set layer {}".format(self.layer))
 
 
+KEYCACHE_MAXSIZE = 1024
+
+
+def lru_append(kc, lru, kckey, maxsize):
+    if kckey in lru:
+        return
+    while len(lru) >= maxsize:
+        (peb, turn, tick), _ = lru.popitem(False)
+        del kc[peb][turn][tick]
+        if not kc[peb][turn]:
+            del kc[peb][turn]
+        if not kc[peb]:
+            del kc[peb]
+    lru[kckey] = True
+
+
 class Cache(object):
     """A data store that's useful for tracking graph revisions."""
-    keycache_maxsize = 1024
-
     def __init__(self, db):
         self.db = db
         self.parents = StructuredDefaultDict(3, TurnDict)
@@ -243,37 +191,26 @@ class Cache(object):
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
 
-    def load(self, data, validate=False, cb=None):
-        """Add a bunch of data. It doesn't need to be in chronological order.
+    def load(self, data):
+        """Add a bunch of data. Must be in chronological order.
 
-        With ``validate=True``, raise ValueError if this results in an
-        incoherent cache.
-
-        If a callable ``cb`` is provided, it will be called with each row.
-        It will also be passed my ``validate`` argument.
+        But it doesn't need to all be from the same branch, as long as
+        each branch is chronological of itself.
 
         """
-        from collections import defaultdict, deque
-        dd2 = defaultdict(lambda: defaultdict(list))
+        branches = defaultdict(list)
         for row in data:
-            entity, key, branch, turn, tick, value = row[-6:]
-            dd2[branch][turn, tick].append(row)
+            branches[row[-4]].append(row)
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
 
-        def store(*args):
-            self._store(*args, planning=False)
+        store = self._store
         while branch2do:
             branch = branch2do.popleft()
-            dd2b = dd2[branch]
-            for turn, tick in sorted(dd2b.keys()):
-                rows = dd2b[turn, tick]
-                for row in rows:
-                    store(*row)
-                    if cb:
-                        cb(row, validate=validate)
+            for row in branches[branch]:
+                store(*row, planning=False)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
@@ -398,7 +335,7 @@ class Cache(object):
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
-        self._lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), self.keycache_maxsize)
+        lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
@@ -413,18 +350,6 @@ class Cache(object):
         else:
             kc = kc.union((key,))
         self.keycache[parent+(entity, branch)][turn][tick] = kc
-
-    def _lru_append(self, kc, lru, kckey, maxsize):
-        if kckey in lru:
-            return
-        while len(lru) >= maxsize:
-            (peb, turn, tick), _ = lru.popitem(False)
-            del kc[peb][turn][tick]
-            if not kc[peb][turn]:
-                del kc[peb][turn]
-            if not kc[peb]:
-                del kc[peb]
-        lru[kckey] = True
 
     def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
@@ -491,7 +416,6 @@ class Cache(object):
             parentity = self.parents[parent][entity]
             if key in parentity:
                 branches = parentity[key]
-                assert branches is self.branches[parent+(entity, key)] is self.keys[parent+(entity,)][key]
                 turns = branches[branch]
             else:
                 branches = self.branches[parent+(entity, key)] \
@@ -521,9 +445,10 @@ class Cache(object):
                     mapp[turn].truncate(tick)
                 mapp.truncate(turn)
         self._store_journal(*args)
-        self.shallowest[parent+(entity, key, branch, turn, tick)] = value
-        while len(self.shallowest) > self.keycache_maxsize:
-            self.shallowest.popitem(False)
+        shallowest = self.shallowest
+        shallowest[parent + (entity, key, branch, turn, tick)] = value
+        while len(shallowest) > KEYCACHE_MAXSIZE:
+            shallowest.popitem(False)
         if turn in turns:
             the_turn = turns[turn]
             the_turn.truncate(tick)
@@ -567,8 +492,9 @@ class Cache(object):
         the entity that the key is in.
 
         """
+        shallowest = self.shallowest
         try:
-            ret = self.shallowest[args]
+            ret = shallowest[args]
             if ret is None:
                 raise HistoryError("Set, then deleted", deleted=True)
             return ret
@@ -578,34 +504,30 @@ class Cache(object):
             pass
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        if entity+(key,) not in self.branches:
+        branches = self.branches
+        if entity+(key,) not in branches:
             raise KeyError
-        if (
-            branch in self.branches[entity+(key,)]
-            and self.branches[entity+(key,)][branch].rev_gettable(turn)
-        ):
-            brancs = self.branches[entity+(key,)][branch]
+        branchentk = branches[entity+(key,)]
+        brancs = branchentk.get(branch)
+        if brancs is not None and brancs.rev_gettable(turn):
             if turn in brancs:
                 if brancs[turn].rev_gettable(tick):
                     ret = brancs[turn][tick]
-                    self.shallowest[args] = ret
+                    shallowest[args] = ret
                     return ret
                 elif brancs.rev_gettable(turn-1):
                     b1 = brancs[turn-1]
                     ret = b1[b1.end]
-                    self.shallowest[args] = ret
+                    shallowest[args] = ret
                     return ret
             else:
                 ret = brancs[turn]
                 ret = ret[ret.end]
-                self.shallowest[args] = ret
+                shallowest[args] = ret
                 return ret
         for (b, r, t) in self.db._iter_parent_btt(branch):
-            if (
-                    b in self.branches[entity+(key,)]
-                    and self.branches[entity+(key,)][b].rev_gettable(r)
-            ):
-                brancs = self.branches[entity+(key,)][b]
+            brancs = branchentk.get(b)
+            if brancs is not None and brancs.rev_gettable(r):
                 if r in brancs and brancs[r].rev_gettable(t):
                     ret = brancs[r][t]
                 elif brancs.rev_gettable(r-1):
@@ -613,7 +535,7 @@ class Cache(object):
                     ret = ret[ret.end]
                 else:
                     continue
-                self.shallowest[args] = ret
+                shallowest[args] = ret
                 return ret
         else:
             raise KeyError
@@ -701,14 +623,14 @@ class EdgesCache(Cache):
         return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
-        self._lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), self.keycache_maxsize)
+        lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.destcache, self.successors, self._adds_dels_sucpred, (graph, orig),
             branch, turn, tick, forward=forward
         )
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
-        self._lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), self.keycache_maxsize)
+        lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.origcache, self.predecessors, self._adds_dels_sucpred, (graph, dest),
             branch, turn, tick, forward=forward

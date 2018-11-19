@@ -170,8 +170,12 @@ class TimeSignalDescriptor:
         # make sure I'll end up within the revision range of the
         # destination branch
         branches = e._branches
+
         if branch_now in branches:
-            tick_now = e._turn_end_plan[branch_now, turn_now]  # defaults to 0
+            tick_now = e._turn_end_plan.setdefault(
+                (branch_now, turn_now),
+                tick_then
+            )
             parent, turn_start, tick_start, turn_end, tick_end = branches[branch_now]
             if turn_now < turn_start:
                 raise ValueError(
@@ -550,6 +554,7 @@ class ORM(object):
             )
         self.query.initdb()
         # in case this is the first startup
+        self._obranch = 'trunk'
         self._otick = self._oturn = 0
         self._init_caches()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
@@ -578,16 +583,16 @@ class ORM(object):
             for (graph, node, branch, turn, tick, ex)
             in self.query.nodes_dump()
         ]
-        self._nodes_cache.load(noderows, validate=validate)
+        self._nodes_cache.load(noderows)
         edgerows = [
             (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
             for (graph, orig, dest, idx, branch, turn, tick, ex)
             in self.query.edges_dump()
         ]
-        self._edges_cache.load(edgerows, validate=validate)
-        self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
-        self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
-        self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
+        self._edges_cache.load(edgerows)
+        self._graph_val_cache.load(self.query.graph_val_dump())
+        self._node_val_cache.load(self.query.node_val_dump())
+        self._edge_val_cache.load(self.query.edge_val_dump())
         last_plan = -1
         for plan, branch, turn, tick in self.query.plans_dump():
             self._plans[plan] = branch, turn, tick

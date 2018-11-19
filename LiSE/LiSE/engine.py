@@ -10,7 +10,7 @@ from collections import defaultdict
 from operator import attrgetter
 from types import FunctionType, MethodType
 
-import umsgpack
+import msgpack
 from blinker import Signal
 from allegedb import ORM as gORM
 from .util import reify, sort_set
@@ -181,51 +181,51 @@ class AbstractEngine(object):
         return MethodType(meth, self)
 
     def _pack_character(self, char):
-        return umsgpack.Ext(MSGPACK_CHARACTER, umsgpack.packb(char.name, ext_handlers=self._pack_handlers))
+        return msgpack.ExtType(MSGPACK_CHARACTER, msgpack.packb(char.name, default=self._pack_handler, strict_types=True, use_bin_type=True))
 
     def _pack_place(self, place):
-        return umsgpack.Ext(MSGPACK_PLACE, umsgpack.packb(
-            (place.character.name, place.name), ext_handlers=self._pack_handlers
+        return msgpack.ExtType(MSGPACK_PLACE, msgpack.packb(
+            (place.character.name, place.name), default=self._pack_handler, strict_types=True, use_bin_type=True
         ))
 
     def _pack_thing(self, thing):
-        return umsgpack.Ext(MSGPACK_THING, umsgpack.packb(
-            (thing.character.name, thing.name), ext_handlers=self._pack_handlers
+        return msgpack.ExtType(MSGPACK_THING, msgpack.packb(
+            (thing.character.name, thing.name), default=self._pack_handler, strict_types=True, use_bin_type=True
         ))
 
     def _pack_portal(self, port):
-        return umsgpack.Ext(MSGPACK_PORTAL, umsgpack.packb(
-            (port.character.name, port.orig, port.dest), ext_handlers=self._pack_handlers
+        return msgpack.ExtType(MSGPACK_PORTAL, msgpack.packb(
+            (port.character.name, port.orig, port.dest), default=self._pack_handler, strict_types=True, use_bin_type=True
         ))
 
     def _pack_tuple(self, tup):
-        return umsgpack.Ext(MSGPACK_TUPLE, umsgpack.packb(list(tup), ext_handlers=self._pack_handlers))
+        return msgpack.ExtType(MSGPACK_TUPLE, msgpack.packb(list(tup), default=self._pack_handler, strict_types=True, use_bin_type=True))
 
     def _pack_frozenset(self, frozs):
-        return umsgpack.Ext(MSGPACK_FROZENSET, umsgpack.packb(list(frozs), ext_handlers=self._pack_handlers))
+        return msgpack.ExtType(MSGPACK_FROZENSET, msgpack.packb(list(frozs), default=self._pack_handler, strict_types=True, use_bin_type=True))
 
     def _pack_set(self, s):
-        return umsgpack.Ext(MSGPACK_SET, umsgpack.packb(list(s), ext_handlers = self._pack_handlers))
+        return msgpack.ExtType(MSGPACK_SET, msgpack.packb(list(s), default=self._pack_handler, strict_types=True, use_bin_type=True))
 
     def _pack_exception(self, exc):
-        return umsgpack.Ext(MSGPACK_EXCEPTION, umsgpack.packb(
-            [exc.__class__.__name__] + list(exc.args), ext_handlers=self._pack_handlers
+        return msgpack.ExtType(MSGPACK_EXCEPTION, msgpack.packb(
+            [exc.__class__.__name__] + list(exc.args), default=self._pack_handler, strict_types=True, use_bin_type=True
         ))
 
     def _pack_func(self, func):
-        return umsgpack.Ext({
+        return msgpack.ExtType({
             'method': MSGPACK_METHOD,
             'function': MSGPACK_FUNCTION,
             'trigger': MSGPACK_TRIGGER,
             'prereq': MSGPACK_PREREQ,
             'action': MSGPACK_ACTION
-        }[func.__module__], umsgpack.packb(func.__name__))
+        }[func.__module__], msgpack.packb(func.__name__, use_bin_type=True))
 
     def _pack_meth(self, func):
-        return umsgpack.Ext(MSGPACK_METHOD, umsgpack.packb(func.__name__))
+        return msgpack.ExtType(MSGPACK_METHOD, msgpack.packb(func.__name__, use_bin_type=True))
 
     def _unpack_char(self, ext):
-        charn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        charn = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
         try:
             return self.character[charn]
         except KeyError:
@@ -234,7 +234,7 @@ class AbstractEngine(object):
             return self.char_cls(self, charn)
 
     def _unpack_place(self, ext):
-        charn, placen = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        charn, placen = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
         try:
             char = self.character[charn]
         except KeyError:
@@ -249,7 +249,7 @@ class AbstractEngine(object):
             return self.place_cls(char, placen)
 
     def _unpack_thing(self, ext):
-        charn, thingn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        charn, thingn = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
         try:
             char = self.character[charn]
         except KeyError:
@@ -264,7 +264,7 @@ class AbstractEngine(object):
             return self.thing_cls(char, thingn)
 
     def _unpack_portal(self, ext):
-        charn, orign, destn = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        charn, orign, destn = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
         try:
             char = self.character[charn]
         except KeyError:
@@ -279,28 +279,28 @@ class AbstractEngine(object):
             return self.portal_cls(char, orign, destn)
 
     def _unpack_trigger(self, ext):
-        return getattr(self.trigger, umsgpack.unpackb(ext.data))
+        return getattr(self.trigger, msgpack.unpackb(ext, raw=False))
 
     def _unpack_prereq(self, ext):
-        return getattr(self.prereq, umsgpack.unpackb(ext.data))
+        return getattr(self.prereq, msgpack.unpackb(ext, raw=False))
 
     def _unpack_action(self, ext):
-        return getattr(self.action, umsgpack.unpackb(ext.data))
+        return getattr(self.action, msgpack.unpackb(ext, raw=False))
 
     def _unpack_function(self, ext):
-        return getattr(self.function, umsgpack.unpackb(ext.data))
+        return getattr(self.function, msgpack.unpackb(ext, raw=False))
 
     def _unpack_method(self, ext):
-        return getattr(self.method, umsgpack.unpackb(ext.data))
+        return getattr(self.method, msgpack.unpackb(ext, raw=False))
 
     def _unpack_tuple(self, ext):
-        return tuple(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
+        return tuple(msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False))
 
     def _unpack_frozenset(self, ext):
-        return frozenset(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
+        return frozenset(msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False))
 
     def _unpack_set(self, ext):
-        return set(umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers))
+        return set(msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False))
 
     def _unpack_exception(self, ext):
         excs = {
@@ -347,11 +347,10 @@ class AbstractEngine(object):
             'CacheError': exc.CacheError,
             'TravelException': exc.TravelException
         }
-        data = umsgpack.unpackb(ext.data, ext_handlers=self._unpack_handlers)
+        data = msgpack.unpackb(ext, ext_hook=self._unpack_handlers, raw=False)
         if data[0] not in excs:
             return Exception(*data)
         return excs[data[0]](*data[1:])
-
 
     @reify
     def _unpack_handlers(self):
@@ -372,6 +371,12 @@ class AbstractEngine(object):
             MSGPACK_EXCEPTION: self._unpack_exception
         }
 
+    def _unpack_handler(self, code, data):
+        handlers = self._unpack_handlers
+        if code in handlers:
+            return handlers[code](data)
+        return msgpack.ExtType(code, data)
+
     @reify
     def _pack_handlers(self):
         return {
@@ -382,17 +387,24 @@ class AbstractEngine(object):
             tuple: self._pack_tuple,
             frozenset: self._pack_frozenset,
             set: self._pack_set,
-            FinalRule: lambda obj: umsgpack.Ext(MSGPACK_FINAL_RULE, b""),
+            FinalRule: lambda obj: msgpack.ExtType(MSGPACK_FINAL_RULE, b""),
             FunctionType: self._pack_func,
             MethodType: self._pack_meth,
             Exception: self._pack_exception
         }
 
+    def _pack_handler(self, obj):
+        handlers = self._pack_handlers
+        typ = type(obj)
+        if typ in handlers:
+            return handlers[typ](obj)
+        raise TypeError("Can't pack {}".format(typ))
+
     def pack(self, obj):
-        return umsgpack.packb(obj, ext_handlers=self._pack_handlers)
+        return msgpack.packb(obj, default=self._pack_handler, strict_types=True, use_bin_type=True)
 
     def unpack(self, bs):
-        return umsgpack.unpackb(bs, ext_handlers=self._unpack_handlers)
+        return msgpack.unpackb(bs, ext_hook=self._unpack_handler, raw=False)
 
     def coinflip(self):
         """Return True or False with equal probability."""
@@ -999,21 +1011,21 @@ class Engine(AbstractEngine, gORM):
     def _init_load(self, validate=False):
         from .rule import Rule
         q = self.query
-        self._things_cache.load(q.things_dump(), validate)
+        self._things_cache.load(q.things_dump())
         super()._init_load(validate=validate)
-        self._avatarness_cache.load(q.avatars_dump(), validate)
-        self._universal_cache.load(q.universals_dump(), validate)
-        self._rulebooks_cache.load(q.rulebooks_dump(), validate)
-        self._characters_rulebooks_cache.load(q.character_rulebook_dump(), validate)
-        self._avatars_rulebooks_cache.load(q.avatar_rulebook_dump(), validate)
-        self._characters_things_rulebooks_cache.load(q.character_thing_rulebook_dump(), validate)
-        self._characters_places_rulebooks_cache.load(q.character_place_rulebook_dump(), validate)
-        self._characters_portals_rulebooks_cache.load(q.character_portal_rulebook_dump(), validate)
-        self._nodes_rulebooks_cache.load(q.node_rulebook_dump(), validate)
-        self._portals_rulebooks_cache.load(q.portal_rulebook_dump(), validate)
-        self._triggers_cache.load(q.rule_triggers_dump(), validate)
-        self._prereqs_cache.load(q.rule_prereqs_dump(), validate)
-        self._actions_cache.load(q.rule_actions_dump(), validate)
+        self._avatarness_cache.load(q.avatars_dump())
+        self._universal_cache.load(q.universals_dump())
+        self._rulebooks_cache.load(q.rulebooks_dump())
+        self._characters_rulebooks_cache.load(q.character_rulebook_dump())
+        self._avatars_rulebooks_cache.load(q.avatar_rulebook_dump())
+        self._characters_things_rulebooks_cache.load(q.character_thing_rulebook_dump())
+        self._characters_places_rulebooks_cache.load(q.character_place_rulebook_dump())
+        self._characters_portals_rulebooks_cache.load(q.character_portal_rulebook_dump())
+        self._nodes_rulebooks_cache.load(q.node_rulebook_dump())
+        self._portals_rulebooks_cache.load(q.portal_rulebook_dump())
+        self._triggers_cache.load(q.rule_triggers_dump())
+        self._prereqs_cache.load(q.rule_prereqs_dump())
+        self._actions_cache.load(q.rule_actions_dump())
         for row in q.character_rules_handled_dump():
             self._character_rules_handled_cache.store(*row, loading=True)
         for row in q.avatar_rules_handled_dump():
