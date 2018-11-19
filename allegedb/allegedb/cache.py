@@ -16,7 +16,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict, deque
 
 
 def _default_args_munger(self, k):
@@ -177,24 +177,16 @@ class Cache(object):
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self._kc_lru = OrderedDict()
 
-    def load(self, data, validate=False, cb=None):
+    def load(self, data):
         """Add a bunch of data. Must be in chronological order.
 
         But it doesn't need to all be from the same branch, as long as
         each branch is chronological of itself.
 
-        With ``validate=True``, raise ValueError if this results in an
-        incoherent cache.
-
-        If a callable ``cb`` is provided, it will be called with each row.
-        It will also be passed my ``validate`` argument.
-
         """
-        from collections import defaultdict, deque
         branches = defaultdict(list)
         for row in data:
-            entity, key, branch, turn, tick, value = row[-6:]
-            branches[branch].append(row)
+            branches[row[-4]].append(row)
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
         childbranch = self.db._childbranch
@@ -203,11 +195,8 @@ class Cache(object):
         store = self._store
         while branch2do:
             branch = branch2do.popleft()
-            rows = branches[branch]
-            for row in rows:
+            for row in branches[branch]:
                 store(*row, planning=False)
-                if cb:
-                    cb(row, validate=validate)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 

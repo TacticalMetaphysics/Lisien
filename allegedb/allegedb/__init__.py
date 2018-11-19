@@ -575,16 +575,16 @@ class ORM(object):
             for (graph, node, branch, turn, tick, ex)
             in self.query.nodes_dump()
         ]
-        self._nodes_cache.load(noderows, validate=validate)
+        self._nodes_cache.load(noderows)
         edgerows = [
             (graph, orig, dest, idx, branch, turn, tick, ex if ex else None)
             for (graph, orig, dest, idx, branch, turn, tick, ex)
             in self.query.edges_dump()
         ]
-        self._edges_cache.load(edgerows, validate=validate)
-        self._graph_val_cache.load(self.query.graph_val_dump(), validate=validate)
-        self._node_val_cache.load(self.query.node_val_dump(), validate=validate)
-        self._edge_val_cache.load(self.query.edge_val_dump(), validate=validate)
+        self._edges_cache.load(edgerows)
+        self._graph_val_cache.load(self.query.graph_val_dump())
+        self._node_val_cache.load(self.query.node_val_dump())
+        self._edge_val_cache.load(self.query.edge_val_dump())
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
