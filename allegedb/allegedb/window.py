@@ -454,7 +454,7 @@ class WindowDict(MutableMapping):
             self.seek(rev)
         return WindowDictPastView(self._past)
 
-    def seek(self, rev):
+    def seek(self, rev: int) -> None:
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
         # deque is very large?
@@ -481,7 +481,7 @@ class WindowDict(MutableMapping):
             while past and past[-1][0] > rev:
                 prepender(popper())
 
-    def rev_gettable(self, rev):
+    def rev_gettable(self, rev: int) -> bool:
         if self._past:
             return rev >= self._past[0][0]
         elif self._future:
@@ -489,25 +489,25 @@ class WindowDict(MutableMapping):
         else:
             return False
 
-    def rev_before(self, rev):
+    def rev_before(self, rev: int) -> int:
         """Return the latest past rev on which the value changed."""
         self.seek(rev)
         if self._past:
             return self._past[-1][0]
 
-    def rev_after(self, rev):
+    def rev_after(self, rev: int) -> int:
         """Return the earliest future rev on which the value will change."""
         self.seek(rev)
         if self._future:
             return self._future[0][0]
 
-    def truncate(self, rev):
+    def truncate(self, rev: int) -> None:
         """Delete everything after the given revision."""
         self.seek(rev)
         self._future = None
 
     @property
-    def beginning(self):
+    def beginning(self) -> int:
         if self._past:
             return self._past[0][0]
         elif self._future:
@@ -516,7 +516,7 @@ class WindowDict(MutableMapping):
             raise HistoryError("No history yet")
 
     @property
-    def end(self):
+    def end(self) -> int:
         if self._future:
             return self._future[-1][0]
         elif self._past:
@@ -567,7 +567,7 @@ class WindowDict(MutableMapping):
     def __len__(self):
         return len(self._past or ()) + len(self._future or ())
 
-    def __getitem__(self, rev):
+    def __getitem__(self, rev: int):
         if not self:
             raise HistoryError("No history yet")
         if isinstance(rev, slice):
@@ -585,7 +585,7 @@ class WindowDict(MutableMapping):
             raise HistoryError("Set, then deleted", deleted=True)
         return ret
 
-    def __setitem__(self, rev, v):
+    def __setitem__(self, rev: int, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
         if self._past is None:
@@ -594,29 +594,33 @@ class WindowDict(MutableMapping):
         future = self._future
         have_past = bool(past)
         have_future = bool(future)
+        past_start: int = -1 if not have_past else past[0][0]
+        past_end: int = -1 if not have_past else past[-1][0]
+        future_start: int = -1 if not have_future else future[0][0]
         if not have_past and not have_future:
             past.append((rev, v))
-        elif have_past and rev < past[0][0]:
+        elif have_past and rev < past_start:
             past.insert(0, (rev, v))
-        elif have_past and rev == past[0][0]:
+        elif have_past and rev == past_start:
             past[0] = (rev, v)
-        elif have_past and rev == past[-1][0]:
+        elif have_past and rev == past_end:
             past[-1] = (rev, v)
         elif have_past and (
             not have_future or
-            rev < future[0][0]
-        ) and rev > past[-1][0]:
+            rev < future_start
+        ) and rev > past_end:
             past.append((rev, v))
         else:
             self.seek(rev)
             past = self._past
             future = self._future
+            past_end: int = -1 if not past else past[-1][0]
             if not past:
                 past.append((rev, v))
-            elif past[-1][0] == rev:
+            elif past_end == rev:
                 past[-1] = (rev, v)
             else:
-                assert past[-1][0] < rev
+                assert past_end < rev
                 past.append((rev, v))
         self._keys.add(rev)
         if type(past) is list and len(past) > DEQUE_THRESHOLD:
@@ -624,7 +628,7 @@ class WindowDict(MutableMapping):
         if type(future) is list and len(future) > DEQUE_THRESHOLD:
             self._future = deque(future)
 
-    def __delitem__(self, rev):
+    def __delitem__(self, rev: int):
         # Not checking for rev's presence at the beginning because
         # to do so would likely require iterating thru history,
         # which I have to do anyway in deleting.
