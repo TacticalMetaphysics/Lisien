@@ -535,19 +535,19 @@ class WindowDict(MutableMapping):
         return bool(self._past) or bool(self._future)
 
     def __init__(self, data=None):
-        if hasattr(data, 'items'):
+        if not data:
+            self._past = None
+        elif hasattr(data, 'items'):
             if len(data) > DEQUE_THRESHOLD:
                 self._past = deque(sorted(data.items()))
             else:
                 self._past = list(sorted(data.items()))
-        elif data:
+        else:
             # assume it's an orderable sequence of pairs
             if len(data) > DEQUE_THRESHOLD:
                 self._past = deque(sorted(data))
             else:
                 self._past = list(sorted(data))
-        else:
-            self._past = None
         self._future = None
         self._keys = set(map(get0, self._past or ()))
 
