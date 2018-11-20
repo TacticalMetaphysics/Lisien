@@ -23,6 +23,17 @@ of the same key and neighboring ones repeatedly and in sequence.
 """
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter
+try:
+    import cython
+except ImportError:
+    class cython:
+        def locals(**kwargs):
+            def passthru(fun):
+                return fun
+            return passthru
+        cfunc = locals
+        int = None
+        bint = None
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -454,16 +465,21 @@ class WindowDict(MutableMapping):
             self.seek(rev)
         return WindowDictPastView(self._past)
 
-    def seek(self, rev: int) -> None:
+    @cython.locals(rev=cython.int, past_end=cython.int, future_start=cython.int)
+    def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
         # deque is very large?
         if not self:
             return
+        if type(rev) is not int:
+            raise TypeError("rev must be int")
         past = self._past
         future = self._future
-        if past and past[-1][0] <= rev and (
-                not future or future[0][0] > rev
+        past_end = -1 if not past else past[-1][0]
+        future_start = -1 if not future else future[0][0]
+        if past and past_end <= rev and (
+                not future or future_start > rev
         ):
             return
         if past is None:
@@ -471,15 +487,23 @@ class WindowDict(MutableMapping):
         if future:
             appender = past.append
             popper = getattr(future, 'popleft', lambda: future.pop(0))
-            while future and future[0][0] <= rev:
+            while future_start <= rev:
                 appender(popper())
+                if future:
+                    future_start = future[0][0]
+                else:
+                    break
         if past and future is None:
             future = self._future = []
         if past:
             prepender = getattr(future, 'appendleft', lambda x: future.insert(0, x))
             popper = past.pop
-            while past and past[-1][0] > rev:
+            while past_end > rev:
                 prepender(popper())
+                if past:
+                    past_end = past[-1][0]
+                else:
+                    break
 
     def rev_gettable(self, rev: int) -> bool:
         if self._past:
@@ -567,7 +591,7 @@ class WindowDict(MutableMapping):
     def __len__(self):
         return len(self._past or ()) + len(self._future or ())
 
-    def __getitem__(self, rev: int):
+    def __getitem__(self, rev):
         if not self:
             raise HistoryError("No history yet")
         if isinstance(rev, slice):
@@ -585,7 +609,8 @@ class WindowDict(MutableMapping):
             raise HistoryError("Set, then deleted", deleted=True)
         return ret
 
-    def __setitem__(self, rev: int, v):
+    @cython.locals(past_start=cython.int, past_end=cython.int, future_start=cython.int, have_past=cython.bint, have_future=cython.bint, rev=cython.int)
+    def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
         if self._past is None:
@@ -594,9 +619,9 @@ class WindowDict(MutableMapping):
         future = self._future
         have_past = bool(past)
         have_future = bool(future)
-        past_start: int = -1 if not have_past else past[0][0]
-        past_end: int = -1 if not have_past else past[-1][0]
-        future_start: int = -1 if not have_future else future[0][0]
+        past_start = -1 if not have_past else past[0][0]
+        past_end = -1 if not have_past else past[-1][0]
+        future_start = -1 if not have_future else future[0][0]
         if not have_past and not have_future:
             past.append((rev, v))
         elif have_past and rev < past_start:
@@ -614,7 +639,7 @@ class WindowDict(MutableMapping):
             self.seek(rev)
             past = self._past
             future = self._future
-            past_end: int = -1 if not past else past[-1][0]
+            past_end = -1 if not past else past[-1][0]
             if not past:
                 past.append((rev, v))
             elif past_end == rev:
@@ -628,7 +653,8 @@ class WindowDict(MutableMapping):
         if type(future) is list and len(future) > DEQUE_THRESHOLD:
             self._future = deque(future)
 
-    def __delitem__(self, rev: int):
+    @cython.locals(rev=cython.int, past_end=cython.int)
+    def __delitem__(self, rev):
         # Not checking for rev's presence at the beginning because
         # to do so would likely require iterating thru history,
         # which I have to do anyway in deleting.
@@ -638,7 +664,9 @@ class WindowDict(MutableMapping):
         if not self.beginning <= rev <= self.end:
             raise HistoryError("Rev outside of history: {}".format(rev))
         self.seek(rev)
-        if self._past[-1][0] != rev:
+        past = self._past
+        past_end = -1 if not past else past[-1][0]
+        if not past or past_end != rev:
             raise HistoryError("Rev not present: {}".format(rev))
         del self._past[-1]
         self._keys.remove(rev)
