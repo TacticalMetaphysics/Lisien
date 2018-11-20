@@ -23,6 +23,7 @@ of the same key and neighboring ones repeatedly and in sequence.
 """
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter
+from functools import partial
 try:
     import cython
 except ImportError:
@@ -486,17 +487,23 @@ class WindowDict(MutableMapping):
             past = self._past = []
         if future:
             appender = past.append
-            popper = getattr(future, 'popleft', lambda: future.pop(0))
+            if hasattr(future, 'popleft'):
+                popper = future.popleft
+            else:
+                popper = partial(future.pop, 0)
             while future_start <= rev:
                 appender(popper())
                 if future:
                     future_start = future[0][0]
                 else:
                     break
-        if past and future is None:
-            future = self._future = []
         if past:
-            prepender = getattr(future, 'appendleft', lambda x: future.insert(0, x))
+            if future is None:
+                future = self._future = []
+            if hasattr(future, 'appendleft'):
+                prepender = future.appendleft
+            else:
+                prepender = partial(future.insert, 0)
             popper = past.pop
             while past_end > rev:
                 prepender(popper())
