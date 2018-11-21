@@ -348,7 +348,7 @@ class WindowDictSlice:
                 popper()
             yield from map(get1, past)
         elif slic.start is None:
-            stac = deque()
+            stac = []
             if dic._past:
                 stac.extend(dic._past)
             if dic._future:
