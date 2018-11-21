@@ -331,10 +331,8 @@ class WindowDictSlice:
             for i in range(slic.start or dic.beginning, slic.stop or dic.end, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            if dic._past:
-                yield from map(get1, dic._past)
-            if dic._future:
-                yield from map(get1, dic._future)
+            yield from map(get1, dic._past)
+            yield from map(get1, reversed(dic._future))
         elif None not in (slic.start, slic.stop):
             if slic.stop == slic.start:
                 yield dic[slic.stop]
@@ -388,10 +386,8 @@ class WindowDictReverseSlice:
             for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            if dic._future:
-                yield from map(get1, reversed(dic._future))
-            if dic._past:
-                yield from map(get1, reversed(dic._past))
+            yield from map(get1, dic._future)
+            yield from map(get1, reversed(dic._past))
         elif None not in (slic.start, slic.stop):
             if slic.start == slic.stop:
                 yield dic[slic.stop]
