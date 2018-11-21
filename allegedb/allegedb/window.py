@@ -23,6 +23,7 @@ of the same key and neighboring ones repeatedly and in sequence.
 """
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter
+from itertools import chain
 try:
     import cython
 except ImportError:
@@ -348,24 +349,23 @@ class WindowDictSlice:
                 popper()
             yield from map(get1, past)
         elif slic.start is None:
-            stac = []
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
+            stac = dic._past + list(reversed(dic._future))
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
             yield from map(get1, stac)
             return
         else:  # slic.stop is None
-            stac = deque()
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
-            while stac and stac[0][0] < slic.start:
-                stac.popleft()
-            yield from map(get1, stac)
+            if not dic._past and not dic._future:
+                return
+            chan = chain(dic._past, reversed(dic._future))
+            nxt = next(chan)
+            while nxt[0][0] < slic.start:
+                try:
+                    nxt = next(chan)
+                except StopIteration:
+                    return
+            yield get1(nxt)
+            yield from map(get1, chan)
 
 
 class WindowDictReverseSlice:
@@ -403,20 +403,13 @@ class WindowDictReverseSlice:
                     return
                 yield fv
         elif slic.start is None:
-            stac = []
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
+            stac = dic._past + list(reversed(dic._future))
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
             yield from map(get1, reversed(stac))
         else:  # slic.stop is None
-            stac = []
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
+            stac = deque(dic._past)
+            stac.extend(reversed(dic._future))
             while stac and stac[0][0] < slic.start:
                 stac.popleft()
             yield from map(get1, reversed(stac))
