@@ -678,7 +678,7 @@ class TurnDict(FuturistWindowDict):
 
     def __getitem__(self, rev):
         try:
-            return super().__getitem__(rev)
+            return FuturistWindowDict.__getitem__(self, rev)
         except KeyError:
             ret = self[rev] = FuturistWindowDict()
             return ret
@@ -686,7 +686,7 @@ class TurnDict(FuturistWindowDict):
     def __setitem__(self, turn, value):
         if type(value) is not FuturistWindowDict:
             value = FuturistWindowDict(value)
-        super().__setitem__(turn, value)
+        FuturistWindowDict.__setitem__(self, turn, value)
 
 
 class SettingsTurnDict(WindowDict):
@@ -695,7 +695,7 @@ class SettingsTurnDict(WindowDict):
 
     def __getitem__(self, rev):
         try:
-            return super().__getitem__(rev)
+            return WindowDict.__getitem__(self, rev)
         except KeyError:
             ret = self[rev] = WindowDict()
             return ret
@@ -703,4 +703,4 @@ class SettingsTurnDict(WindowDict):
     def __setitem__(self, turn, value):
         if type(value) is not WindowDict:
             value = WindowDict(value)
-        super().__setitem__(turn, value)
+        WindowDict.__setitem__(self, turn, value)
