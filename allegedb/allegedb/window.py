@@ -23,7 +23,7 @@ of the same key and neighboring ones repeatedly and in sequence.
 """
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter
-from functools import partial
+from itertools import chain
 try:
     import cython
 except ImportError:
@@ -331,10 +331,8 @@ class WindowDictSlice:
             for i in range(slic.start or dic.beginning, slic.stop or dic.end, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            if dic._past:
-                yield from map(get1, dic._past)
-            if dic._future:
-                yield from map(get1, dic._future)
+            yield from map(get1, dic._past)
+            yield from map(get1, reversed(dic._future))
         elif None not in (slic.start, slic.stop):
             if slic.stop == slic.start:
                 yield dic[slic.stop]
@@ -349,24 +347,23 @@ class WindowDictSlice:
                 popper()
             yield from map(get1, past)
         elif slic.start is None:
-            stac = []
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
+            stac = dic._past + list(reversed(dic._future))
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
             yield from map(get1, stac)
             return
         else:  # slic.stop is None
-            stac = deque()
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
-            while stac and stac[0][0] < slic.start:
-                stac.popleft()
-            yield from map(get1, stac)
+            if not dic._past and not dic._future:
+                return
+            chan = chain(dic._past, reversed(dic._future))
+            nxt = next(chan)
+            while nxt[0][0] < slic.start:
+                try:
+                    nxt = next(chan)
+                except StopIteration:
+                    return
+            yield get1(nxt)
+            yield from map(get1, chan)
 
 
 class WindowDictReverseSlice:
@@ -389,10 +386,8 @@ class WindowDictReverseSlice:
             for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
                 yield dic[i]
         if slic.start is None and slic.stop is None:
-            if dic._future:
-                yield from map(get1, reversed(dic._future))
-            if dic._past:
-                yield from map(get1, reversed(dic._past))
+            yield from map(get1, dic._future)
+            yield from map(get1, reversed(dic._past))
         elif None not in (slic.start, slic.stop):
             if slic.start == slic.stop:
                 yield dic[slic.stop]
@@ -404,27 +399,16 @@ class WindowDictReverseSlice:
                     return
                 yield fv
         elif slic.start is None:
-            stac = deque()
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
+            stac = dic._past + list(reversed(dic._future))
             while stac and stac[-1][0] > slic.stop:
                 stac.pop()
             yield from map(get1, reversed(stac))
         else:  # slic.stop is None
-            stac = deque()
-            if dic._past:
-                stac.extend(dic._past)
-            if dic._future:
-                stac.extend(dic._future)
+            stac = deque(dic._past)
+            stac.extend(reversed(dic._future))
             while stac and stac[0][0] < slic.start:
                 stac.popleft()
             yield from map(get1, reversed(stac))
-
-
-DEQUE_THRESHOLD = 50
-"""How long my past or future has to get before I'll turn it into a deque"""
 
 
 class WindowDict(MutableMapping):
@@ -470,7 +454,7 @@ class WindowDict(MutableMapping):
     def seek(self, rev):
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
-        # deque is very large?
+        # stack is very large?
         if not self:
             return
         if type(rev) is not int:
@@ -478,35 +462,25 @@ class WindowDict(MutableMapping):
         past = self._past
         future = self._future
         past_end = -1 if not past else past[-1][0]
-        future_start = -1 if not future else future[0][0]
+        future_start = -1 if not future else future[-1][0]
         if past and past_end <= rev and (
                 not future or future_start > rev
         ):
             return
-        if past is None:
-            past = self._past = []
         if future:
             appender = past.append
-            if hasattr(future, 'popleft'):
-                popper = future.popleft
-            else:
-                popper = partial(future.pop, 0)
+            popper = future.pop
             while future_start <= rev:
                 appender(popper())
                 if future:
-                    future_start = future[0][0]
+                    future_start = future[-1][0]
                 else:
                     break
         if past:
-            if future is None:
-                future = self._future = []
-            if hasattr(future, 'appendleft'):
-                prepender = future.appendleft
-            else:
-                prepender = partial(future.insert, 0)
             popper = past.pop
+            appender = future.append
             while past_end > rev:
-                prepender(popper())
+                appender(popper())
                 if past:
                     past_end = past[-1][0]
                 else:
@@ -530,26 +504,26 @@ class WindowDict(MutableMapping):
         """Return the earliest future rev on which the value will change."""
         self.seek(rev)
         if self._future:
-            return self._future[0][0]
+            return self._future[-1][0]
 
     def truncate(self, rev: int) -> None:
         """Delete everything after the given revision."""
         self.seek(rev)
-        self._future = None
+        self._future = []
 
     @property
     def beginning(self) -> int:
         if self._past:
             return self._past[0][0]
         elif self._future:
-            return self._future[0][0]
+            return self._future[-1][0]
         else:
             raise HistoryError("No history yet")
 
     @property
     def end(self) -> int:
         if self._future:
-            return self._future[-1][0]
+            return self._future[0][0]
         elif self._past:
             return self._past[-1][0]
         else:
@@ -569,19 +543,13 @@ class WindowDict(MutableMapping):
 
     def __init__(self, data=None):
         if not data:
-            self._past = None
+            self._past = []
         elif hasattr(data, 'items'):
-            if len(data) > DEQUE_THRESHOLD:
-                self._past = deque(sorted(data.items()))
-            else:
-                self._past = list(sorted(data.items()))
+            self._past = list(sorted(data.items()))
         else:
             # assume it's an orderable sequence of pairs
-            if len(data) > DEQUE_THRESHOLD:
-                self._past = deque(sorted(data))
-            else:
-                self._past = list(sorted(data))
-        self._future = None
+            self._past = list(sorted(data))
+        self._future = []
         self._keys = set(map(get0, self._past or ()))
 
     def __iter__(self):
@@ -620,15 +588,13 @@ class WindowDict(MutableMapping):
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
-        if self._past is None:
-            self._past = []
         past = self._past
         future = self._future
         have_past = bool(past)
         have_future = bool(future)
         past_start = -1 if not have_past else past[0][0]
         past_end = -1 if not have_past else past[-1][0]
-        future_start = -1 if not have_future else future[0][0]
+        future_start = -1 if not have_future else future[-1][0]
         if not have_past and not have_future:
             past.append((rev, v))
         elif have_past and rev < past_start:
@@ -655,10 +621,6 @@ class WindowDict(MutableMapping):
                 assert past_end < rev
                 past.append((rev, v))
         self._keys.add(rev)
-        if type(past) is list and len(past) > DEQUE_THRESHOLD:
-            self._past = deque(past)
-        if type(future) is list and len(future) > DEQUE_THRESHOLD:
-            self._future = deque(future)
 
     @cython.locals(rev=cython.int, past_end=cython.int)
     def __delitem__(self, rev):
@@ -691,8 +653,6 @@ class FuturistWindowDict(WindowDict):
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
-        if self._past is None:
-            self._past = []
         if not self._past or (
             self._past and (
                 not self._future and
@@ -718,10 +678,6 @@ class FuturistWindowDict(WindowDict):
                 "(and my seek function is broken?)".format(rev)
             )
         self._keys.add(rev)
-        if type(past) is list and len(past) > DEQUE_THRESHOLD:
-            self._past = deque(past)
-        if type(future) is list and len(future) > DEQUE_THRESHOLD:
-            self._future = deque(future)
 
 
 class TurnDict(FuturistWindowDict):
