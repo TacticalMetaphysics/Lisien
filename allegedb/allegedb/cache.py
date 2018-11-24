@@ -482,31 +482,15 @@ class Cache(object):
             presettings_turns[turn] = {tick: parent + (entity, key, prev)}
             settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-    def retrieve(self, *args):
-        """Get a value previously .store(...)'d.
-
-        Needs at least five arguments. The -1th is the tick
-        within the turn you want,
-        the -2th is that turn, the -3th is the branch,
-        and the -4th is the key. All other arguments identify
-        the entity that the key is in.
-
-        """
+    def _base_retrieve(self, args):
         shallowest = self.shallowest
-        try:
-            ret = shallowest[args]
-            if ret is None:
-                raise HistoryError("Set, then deleted", deleted=True)
-            return ret
-        except HistoryError:
-            raise
-        except KeyError:
-            pass
+        if args in shallowest:
+            return shallowest[args]
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
         branches = self.branches
         if entity+(key,) not in branches:
-            raise KeyError
+            return KeyError
         branchentk = branches[entity+(key,)]
         brancs = branchentk.get(branch)
         if brancs is not None and brancs.rev_gettable(turn):
@@ -538,7 +522,24 @@ class Cache(object):
                 shallowest[args] = ret
                 return ret
         else:
-            raise KeyError
+            return KeyError
+
+    def retrieve(self, *args):
+        """Get a value previously .store(...)'d.
+
+        Needs at least five arguments. The -1th is the tick
+        within the turn you want,
+        the -2th is that turn, the -3th is the branch,
+        and the -4th is the key. All other arguments identify
+        the entity that the key is in.
+
+        """
+        ret = self._base_retrieve(args)
+        if ret is None:
+            raise HistoryError("Set, then deleted", deleted=True)
+        elif ret is KeyError:
+            raise ret
+        return ret
 
     def iter_entities_or_keys(self, *args, forward=None):
         """Iterate over the keys an entity has, if you specify an entity.

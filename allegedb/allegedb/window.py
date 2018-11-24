@@ -574,10 +574,7 @@ class WindowDict(MutableMapping):
             raise HistoryError(
                 "Revision {} is before the start of history".format(rev)
             )
-        ret = past[-1][1]
-        if ret is None:
-            raise HistoryError("Set, then deleted", deleted=True)
-        return ret
+        return past[-1][1]
 
     @cython.locals(past_start=cython.int, past_end=cython.int, future_start=cython.int, have_past=cython.bint, have_future=cython.bint, rev=cython.int)
     def __setitem__(self, rev, v):
