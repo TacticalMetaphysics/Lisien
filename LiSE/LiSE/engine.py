@@ -18,20 +18,17 @@ from .util import reify, sort_set
 from . import exc
 
 
-class NoPlanningAttrGetter:
-    __slots__ = ('_real',)
+class getnoplan:
+    """Attribute getter that raises an exception if in planning mode"""
+    __slots__ = ('_getter',)
 
     def __init__(self, attr, *attrs):
-        self._real = attrgetter(attr, *attrs)
+        self._getter = attrgetter(attr, *attrs)
 
-    def __call__(self, obj):
-        if obj._planning:
+    def __get__(self, instance, owner):
+        if instance._planning:
             raise exc.PlanError("Don't use randomization in a plan")
-        return self._real(obj)
-
-
-def getnoplan(attribute_name):
-    return property(NoPlanningAttrGetter(attribute_name))
+        return self._getter(instance)
 
 
 class InnerStopIteration(StopIteration):
