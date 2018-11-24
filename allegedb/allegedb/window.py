@@ -677,9 +677,9 @@ class TurnDict(FuturistWindowDict):
     cls = FuturistWindowDict
 
     def __getitem__(self, rev):
-        try:
+        if self.rev_gettable(rev):
             return FuturistWindowDict.__getitem__(self, rev)
-        except KeyError:
+        else:
             ret = self[rev] = FuturistWindowDict()
             return ret
 
@@ -694,9 +694,9 @@ class SettingsTurnDict(WindowDict):
     cls = WindowDict
 
     def __getitem__(self, rev):
-        try:
+        if self.rev_gettable(rev):
             return WindowDict.__getitem__(self, rev)
-        except KeyError:
+        else:
             ret = self[rev] = WindowDict()
             return ret
 
