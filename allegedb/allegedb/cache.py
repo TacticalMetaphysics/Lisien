@@ -96,7 +96,7 @@ class StructuredDefaultDict(dict):
 
     def __getitem__(self, k):
         if k in self:
-            return super(StructuredDefaultDict, self).__getitem__(k)
+            return dict.__getitem__(self, k)
         if self.layer < 2:
             ret = PickyDefaultDict(
                 self.type, self.args_munger, self.kwargs_munger
@@ -108,7 +108,7 @@ class StructuredDefaultDict(dict):
             )
         ret.parent = self
         ret.key = k
-        super(StructuredDefaultDict, self).__setitem__(k, ret)
+        dict.__setitem__(self, k, ret)
         return ret
 
     def __setitem__(self, k, v):
