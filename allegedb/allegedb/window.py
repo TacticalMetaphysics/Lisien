@@ -85,8 +85,8 @@ def within_history(rev, windowdict):
     if not windowdict:
         return False
     begin = windowdict._past[0][0] if windowdict._past else \
-            windowdict._future[0][0]
-    end = windowdict._future[-1][0] if windowdict._future else \
+            windowdict._future[-1][0]
+    end = windowdict._future[0][0] if windowdict._future else \
           windowdict._past[-1][0]
     return begin <= rev <= end
 
