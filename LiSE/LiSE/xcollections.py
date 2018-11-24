@@ -145,7 +145,7 @@ class FunctionStore(Signal):
                     self._ast_idx[node.name] = i
                 self._globl = {}
                 self._locl = {}
-                self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
+                exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
                 for thing in self._locl.values():
                     thing.__module__ = filename
         except FileNotFoundError:
@@ -168,16 +168,17 @@ class FunctionStore(Signal):
         if filename.endswith(".py"):
             filename = filename[:-3]
         v.__module__ = filename
-        self._locl[k] = v
         source = getsource(v)
         outdented = dedent_source(source)
-        expr = Expr(parse(outdented))
+        parsed = parse(outdented)
+        expr = Expr(parsed)
         expr.value.body[0].name = k
         if k in self._ast_idx:
             self._ast.body[self._ast_idx[k]] = expr
         else:
             self._ast_idx[k] = len(self._ast.body)
             self._ast.body.append(expr)
+        exec(compile(parsed, filename, 'exec'), self._globl, self._locl)
         self.send(self, attr=k, val=v)
 
     def __call__(self, v):
