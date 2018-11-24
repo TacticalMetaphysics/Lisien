@@ -464,9 +464,8 @@ class Cache(object):
         parent = args[:-6]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
-        try:
-            prev = self.retrieve(*args[:-1])
-        except KeyError:
+        prev = self._base_retrieve(args[:-1])
+        if prev is KeyError:
             prev = None
         if turn in settings_turns or turn in settings_turns.future():
             # These assertions hold for most caches but not for the contents
