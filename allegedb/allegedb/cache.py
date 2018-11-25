@@ -672,17 +672,13 @@ class EdgesCache(Cache):
 
     def has_successor(self, graph, orig, dest, branch, turn, tick):
         """Return whether an edge connects the origin to the destination at the given time."""
-        try:
-            return self.retrieve(graph, orig, dest, 0, branch, turn, tick) is not None
-        except KeyError:
-            return False
+        ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+        return ret is not None and ret is not KeyError
 
     def has_predecessor(self, graph, dest, orig, branch, turn, tick):
         """Return whether an edge connects the destination to the origin at the given time."""
-        try:
-            return self.retrieve(graph, orig, dest, 0, branch, turn, tick) is not None
-        except KeyError:
-            return False
+        ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+        return ret is not None and ret is not KeyError
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
         if not ex:
