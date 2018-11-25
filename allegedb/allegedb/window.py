@@ -85,8 +85,8 @@ def within_history(rev, windowdict):
     if not windowdict:
         return False
     begin = windowdict._past[0][0] if windowdict._past else \
-            windowdict._future[0][0]
-    end = windowdict._future[-1][0] if windowdict._future else \
+            windowdict._future[-1][0]
+    end = windowdict._future[0][0] if windowdict._future else \
           windowdict._past[-1][0]
     return begin <= rev <= end
 
@@ -129,94 +129,89 @@ class WindowDictItemsView(ItemsView):
             yield from future
 
 
-class WindowDictPastFutureKeysView(KeysView):
-    """Abstract class for views on the past or future keys of a WindowDict"""
-    def __contains__(self, item):
-        if not self._mapping.deq:
+class WindowDictPastKeysView(KeysView):
+    """View on a WindowDict's past keys relative to last lookup"""
+    def __iter__(self):
+        if not self._mapping.stack:
             return
-        deq = self._mapping.deq
-        if not deq or item < deq[0][0] or item > deq[-1][0]:
+        yield from map(get0, reversed(self._mapping.stack))
+
+    def __contains__(self, item):
+        if not self._mapping.stack:
             return False
-        for rev in map(get0, deq):
+        stack = self._mapping.stack
+        if not stack or item < stack[0][0] or item > stack[-1][0]:
+            return False
+        for rev in map(get0, stack):
             if rev == item:
                 return True
         return False
 
 
-class WindowDictPastKeysView(WindowDictPastFutureKeysView):
-    """View on a WindowDict's past keys relative to last lookup"""
-    def __iter__(self):
-        if not self._mapping.deq:
-            return
-        yield from map(get0, reversed(self._mapping.deq))
-
-
-class WindowDictFutureKeysView(WindowDictPastFutureKeysView):
+class WindowDictFutureKeysView(KeysView):
     """View on a WindowDict's future keys relative to last lookup"""
     def __iter__(self):
-        if not self._mapping.deq:
+        if not self._mapping.stack:
             return
-        yield from map(get0, self._mapping.deq)
+        yield from map(get0, reversed(self._mapping.stack))
 
-
-class WindowDictPastFutureItemsView(ItemsView):
-    """Abstract class for views on the past or future items of a WindowDict"""
     def __contains__(self, item):
-        deq = self._mapping.deq
-        if not deq or item[0] < deq[0][0] or item[0] > deq[-1][0]:
+        if not self._mapping.stack:
             return False
-        rev, v = item
-        for mrev, mv in deq:
-            if mrev == rev:
-                return mv == v
+        stack = self._mapping.stack
+        if not stack or item < stack[-1][0] or item > stack[0][0]:
+            return False
+        for rev in map(get0, stack):
+            if rev == item:
+                return True
         return False
 
 
-class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+class WindowDictPastItemsView(ItemsView):
     """View on a WindowDict's past items relative to last lookup"""
     def __iter__(self):
-        if not self._mapping.deq:
+        if not self._mapping.stack:
             return
-        yield from reversed(self._mapping.deq)
+        yield from reversed(self._mapping.stack)
+
+    def __contains__(self, item):
+        stack = self._mapping.stack
+        if not stack or item[0] < stack[0][0] or item[0] > stack[-1][0]:
+            return False
+        return item in stack
 
 
-class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
+class WindowDictFutureItemsView(ItemsView):
     """View on a WindowDict's future items relative to last lookup"""
     def __iter__(self):
-        deq = self._mapping.deq
-        if not deq:
+        stack = self._mapping.stack
+        if not stack:
             return
-        yield from deq
+        yield from stack
+
+    def __contains__(self, item):
+        stack = self._mapping.stack
+        if not stack or item[0] < stack[-1][0] or item[0] > stack[0][0]:
+            return False
+        return item in stack
 
 
 class WindowDictPastFutureValuesView(ValuesView):
     """Abstract class for views on the past or future values of a WindowDict"""
     def __contains__(self, item):
-        deq = self._mapping.deq
-        if not deq:
+        stack = self._mapping.stack
+        if not stack:
             return False
-        for v in map(get1, deq):
+        for v in map(get1, stack):
             if v == item:
                 return True
         return False
 
-
-class WindowDictPastValuesView(WindowDictPastFutureValuesView):
-    """View on a WindowDict's past values relative to last lookup"""
     def __iter__(self):
-        deq = self._mapping.deq
-        if not deq:
+        stack = self._mapping.stack
+        if not stack:
             return
-        yield from map(get1, reversed(deq))
-
-
-class WindowDictFutureValuesView(WindowDictPastFutureValuesView):
-    """View on a WindowDict's future values relative to last lookup"""
-    def __iter__(self):
-        deq = self._mapping.deq
-        if not deq:
-            return
-        yield from map(get1, deq)
+        yield from map(get1, reversed(stack))
 
 
 class WindowDictValuesView(ValuesView):
@@ -245,34 +240,34 @@ class WindowDictValuesView(ValuesView):
 
 class WindowDictPastFutureView(Mapping):
     """Abstract class for historical views on WindowDict"""
-    __slots__ = ('deq',)
+    __slots__ = ('stack',)
 
-    def __init__(self, deq):
-        self.deq = deq
+    def __init__(self, stack):
+        self.stack = stack
 
     def __len__(self):
-        deq = self.deq
-        if not deq:
+        stack = self.stack
+        if not stack:
             return 0
-        return len(deq)
-
-    def __getitem__(self, key):
-        deq = self.deq
-        if not deq or key < deq[0][0] or key > deq[-1][0]:
-            raise KeyError
-        for rev, value in deq:
-            if rev == key:
-                return value
-        raise KeyError
+        return len(stack)
 
 
 class WindowDictPastView(WindowDictPastFutureView):
     """Read-only mapping of just the past of a WindowDict"""
     def __iter__(self):
-        deq = self.deq
-        if not deq:
+        stack = self.stack
+        if not stack:
             return
-        yield from map(get0, reversed(deq))
+        yield from map(get0, reversed(stack))
+
+    def __getitem__(self, key):
+        stack = self.stack
+        if not stack or key < stack[0][0] or key > stack[-1][0]:
+            raise KeyError
+        for rev, value in stack:
+            if rev == key:
+                return value
+        raise KeyError
 
     def keys(self):
         return WindowDictPastKeysView(self)
@@ -281,22 +276,22 @@ class WindowDictPastView(WindowDictPastFutureView):
         return WindowDictPastItemsView(self)
 
     def values(self):
-        return WindowDictPastValuesView(self)
+        return WindowDictPastFutureValuesView(self)
 
 
 class WindowDictFutureView(WindowDictPastFutureView):
     """Read-only mapping of just the future of a WindowDict"""
     def __iter__(self):
-        deq = self.deq
-        if not deq:
+        stack = self.stack
+        if not stack:
             return
-        yield from map(get0, deq)
+        yield from map(get0, reversed(stack))
 
     def __getitem__(self, key):
-        deq = self.deq
-        if not deq or key < deq[0][0] or key > deq[-1][0]:
+        stack = self.stack
+        if not stack or key < stack[-1][0] or key > stack[0][0]:
             raise KeyError
-        for rev, value in deq:
+        for rev, value in stack:
             if rev == key:
                 return value
         raise KeyError
@@ -308,7 +303,7 @@ class WindowDictFutureView(WindowDictPastFutureView):
         return WindowDictFutureItemsView(self)
 
     def values(self):
-        return WindowDictFutureValuesView(self)
+        return WindowDictPastFutureValuesView(self)
 
 
 class WindowDictSlice:
@@ -357,7 +352,7 @@ class WindowDictSlice:
                 return
             chan = chain(dic._past, reversed(dic._future))
             nxt = next(chan)
-            while nxt[0][0] < slic.start:
+            while nxt[0] < slic.start:
                 try:
                     nxt = next(chan)
                 except StopIteration:
@@ -579,10 +574,7 @@ class WindowDict(MutableMapping):
             raise HistoryError(
                 "Revision {} is before the start of history".format(rev)
             )
-        ret = past[-1][1]
-        if ret is None:
-            raise HistoryError("Set, then deleted", deleted=True)
-        return ret
+        return past[-1][1]
 
     @cython.locals(past_start=cython.int, past_end=cython.int, future_start=cython.int, have_past=cython.bint, have_future=cython.bint, rev=cython.int)
     def __setitem__(self, rev, v):
@@ -685,16 +677,16 @@ class TurnDict(FuturistWindowDict):
     cls = FuturistWindowDict
 
     def __getitem__(self, rev):
-        try:
-            return super().__getitem__(rev)
-        except KeyError:
+        if self.rev_gettable(rev):
+            return FuturistWindowDict.__getitem__(self, rev)
+        else:
             ret = self[rev] = FuturistWindowDict()
             return ret
 
     def __setitem__(self, turn, value):
         if type(value) is not FuturistWindowDict:
             value = FuturistWindowDict(value)
-        super().__setitem__(turn, value)
+        FuturistWindowDict.__setitem__(self, turn, value)
 
 
 class SettingsTurnDict(WindowDict):
@@ -702,13 +694,13 @@ class SettingsTurnDict(WindowDict):
     cls = WindowDict
 
     def __getitem__(self, rev):
-        try:
-            return super().__getitem__(rev)
-        except KeyError:
+        if self.rev_gettable(rev):
+            return WindowDict.__getitem__(self, rev)
+        else:
             ret = self[rev] = WindowDict()
             return ret
 
     def __setitem__(self, turn, value):
         if type(value) is not WindowDict:
             value = WindowDict(value)
-        super().__setitem__(turn, value)
+        WindowDict.__setitem__(self, turn, value)

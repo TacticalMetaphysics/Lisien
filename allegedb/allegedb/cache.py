@@ -96,7 +96,7 @@ class StructuredDefaultDict(dict):
 
     def __getitem__(self, k):
         if k in self:
-            return super(StructuredDefaultDict, self).__getitem__(k)
+            return dict.__getitem__(self, k)
         if self.layer < 2:
             ret = PickyDefaultDict(
                 self.type, self.args_munger, self.kwargs_munger
@@ -108,7 +108,7 @@ class StructuredDefaultDict(dict):
             )
         ret.parent = self
         ret.key = k
-        super(StructuredDefaultDict, self).__setitem__(k, ret)
+        dict.__setitem__(self, k, ret)
         return ret
 
     def __setitem__(self, k, v):
@@ -464,9 +464,8 @@ class Cache(object):
         parent = args[:-6]
         settings_turns = self.settings[branch]
         presettings_turns = self.presettings[branch]
-        try:
-            prev = self.retrieve(*args[:-1])
-        except KeyError:
+        prev = self._base_retrieve(args[:-1])
+        if prev is KeyError:
             prev = None
         if turn in settings_turns or turn in settings_turns.future():
             # These assertions hold for most caches but not for the contents
@@ -482,31 +481,15 @@ class Cache(object):
             presettings_turns[turn] = {tick: parent + (entity, key, prev)}
             settings_turns[turn] = {tick: parent + (entity, key, value)}
 
-    def retrieve(self, *args):
-        """Get a value previously .store(...)'d.
-
-        Needs at least five arguments. The -1th is the tick
-        within the turn you want,
-        the -2th is that turn, the -3th is the branch,
-        and the -4th is the key. All other arguments identify
-        the entity that the key is in.
-
-        """
+    def _base_retrieve(self, args):
         shallowest = self.shallowest
-        try:
-            ret = shallowest[args]
-            if ret is None:
-                raise HistoryError("Set, then deleted", deleted=True)
-            return ret
-        except HistoryError:
-            raise
-        except KeyError:
-            pass
+        if args in shallowest:
+            return shallowest[args]
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
         branches = self.branches
         if entity+(key,) not in branches:
-            raise KeyError
+            return KeyError
         branchentk = branches[entity+(key,)]
         brancs = branchentk.get(branch)
         if brancs is not None and brancs.rev_gettable(turn):
@@ -538,7 +521,24 @@ class Cache(object):
                 shallowest[args] = ret
                 return ret
         else:
-            raise KeyError
+            return KeyError
+
+    def retrieve(self, *args):
+        """Get a value previously .store(...)'d.
+
+        Needs at least five arguments. The -1th is the tick
+        within the turn you want,
+        the -2th is that turn, the -3th is the branch,
+        and the -4th is the key. All other arguments identify
+        the entity that the key is in.
+
+        """
+        ret = self._base_retrieve(args)
+        if ret is None:
+            raise HistoryError("Set, then deleted", deleted=True)
+        elif ret is KeyError:
+            raise ret
+        return ret
 
     def iter_entities_or_keys(self, *args, forward=None):
         """Iterate over the keys an entity has, if you specify an entity.
@@ -672,17 +672,13 @@ class EdgesCache(Cache):
 
     def has_successor(self, graph, orig, dest, branch, turn, tick):
         """Return whether an edge connects the origin to the destination at the given time."""
-        try:
-            return self.retrieve(graph, orig, dest, 0, branch, turn, tick) is not None
-        except KeyError:
-            return False
+        ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+        return ret is not None and ret is not KeyError
 
     def has_predecessor(self, graph, dest, orig, branch, turn, tick):
         """Return whether an edge connects the destination to the origin at the given time."""
-        try:
-            return self.retrieve(graph, orig, dest, 0, branch, turn, tick) is not None
-        except KeyError:
-            return False
+        ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
+        return ret is not None and ret is not KeyError
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
         if not ex:
@@ -692,6 +688,6 @@ class EdgesCache(Cache):
         Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
-        if ex:
-            assert self.has_successor(graph, orig, dest, branch, turn, tick)
-            assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        # if ex:
+        #     assert self.has_successor(graph, orig, dest, branch, turn, tick)
+        #     assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
