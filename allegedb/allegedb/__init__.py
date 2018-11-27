@@ -490,6 +490,7 @@ class ORM(object):
     def _init_caches(self):
         from collections import defaultdict
         from .cache import Cache, NodesCache, EdgesCache
+        self._where_cached = defaultdict(list)
         self._global_cache = self.query._global_cache = {}
         self._node_objs = WeakValueDictionary()
         self._edge_objs = WeakValueDictionary()
