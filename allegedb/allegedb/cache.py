@@ -401,12 +401,14 @@ class Cache(object):
         everything after the present moment.
 
         """
+        db = self.db
         if planning is None:
-            planning = self.db._planning
+            planning = db._planning
         if forward is None:
-            forward = self.db._forward
+            forward = db._forward
         self._store(*args, planning=planning)
-        if not self.db._no_kc:
+        db._where_cached[args[-4:-1]].append(self)
+        if not db._no_kc:
             self._update_keycache(*args, forward=forward)
 
     def _store(self, *args, planning):
