@@ -31,3 +31,7 @@ def test_single_plan(orm):
     orm.turn = 2
     assert 1 not in g
     assert 2 not in g
+    orm.turn = 0
+    orm.branch = 'trunk'
+    orm.turn = 2
+    assert 2 in g
