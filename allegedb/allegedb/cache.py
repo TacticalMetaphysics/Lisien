@@ -20,10 +20,12 @@ from collections import OrderedDict, defaultdict, deque
 
 
 def _default_args_munger(self, k):
+    """By default, :class:`PickyDefaultDict`'s ``type`` is instantiated with no positional arguments."""
     return tuple()
 
 
 def _default_kwargs_munger(self, k):
+    """By default, :class:`PickyDefaultDict`'s ``type`` is instantiated with no keyword arguments."""
     return {}
 
 
@@ -137,6 +139,14 @@ KEYCACHE_MAXSIZE = 1024
 
 
 def lru_append(kc, lru, kckey, maxsize):
+    """Delete old data from ``kc``, then add the new ``kckey``.
+
+    :param kc: a three-layer keycache
+    :param lru: an :class:`OrderedDict` with a key for each triple that should fill out ``kc``'s three layers
+    :param kckey: a triple that indexes into ``kc``, which will be added to ``lru`` if needed
+    :param maxsize: maximum number of entries in ``lru`` and, therefore, ``kc``
+
+    """
     if kckey in lru:
         return
     while len(lru) >= maxsize:
