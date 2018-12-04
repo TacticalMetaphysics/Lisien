@@ -61,13 +61,15 @@ class PlanningContext(ContextDecorator):
         self.orm = orm
 
     def __enter__(self):
-        if self.orm._planning:
+        orm = self.orm
+        if orm._planning:
             raise ValueError("Already planning")
-        self.orm._planning = True
-        self.time = self.orm.btt()
-        self.id = self.orm._last_plan = self.orm._last_plan + 1
-        self.orm._plans[self.id] = self.time
-        self.orm._plans_uncommitted.append((self.id, *self.time))
+        orm._planning = True
+        self.time = branch, turn, tick = orm.btt()
+        self.id = myid = orm._last_plan = orm._last_plan + 1
+        orm._plans[myid] = branch, turn, tick
+        orm._plans_uncommitted.append((myid, branch, turn, tick))
+        orm._branches_plans[branch].add(myid)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -514,10 +516,15 @@ class ORM(object):
         self._turn_end_plan = defaultdict(lambda: 0)
         """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
         self._graph_val_cache = Cache(self)
+        self._graph_val_cache.setdb = self.query.graph_val_set
         self._nodes_cache = NodesCache(self)
+        self._nodes_cache.setdb = self.query.exist_node
         self._edges_cache = EdgesCache(self)
+        self._edges_cache.setdb = self.query.exist_edge
         self._node_val_cache = Cache(self)
+        self._node_val_cache.setdb = self.query.node_val_set
         self._edge_val_cache = Cache(self)
+        self._edge_val_cache.setdb = self.query.edge_val_set
         self._graph_objs = {}
         self._plans = {}
         self._branches_plans = defaultdict(set)
@@ -657,17 +664,49 @@ class ORM(object):
                         rv=parturn
                     )
                 )
-        if v not in self._branches:
+        branch_is_new = v not in self._branches
+        if branch_is_new:
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
             self._branches[v] = curbranch, curturn, curtick, curturn, curtick
             self._upd_branch_parentage(v, curbranch)
             self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
-            # Copy any plans that were created before now in the parent branch,
-            # but haven't come to pass yet
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
+        if branch_is_new:
+            self._copy_plans(curbranch, curturn, curtick)
+
+    def _copy_plans(self, branch_from, turn_from, tick_from):
+        plan_ticks = self._plan_ticks
+        plans = self._plans
+        branch = self.branch
+        where_cached = self._where_cached
+        last_plan = self._last_plan
+        turn_end_plan = self._turn_end_plan
+        for plan_id in self._branches_plans[branch_from]:
+            _, start_turn, start_tick = plans[plan_id]
+            incremented = False
+            for turn, ticks in list(plan_ticks[plan_id].items()):
+                if turn < turn_from:
+                    continue
+                for tick in ticks:
+                    if turn == turn_from and tick < tick_from:
+                        continue
+                    if not incremented:
+                        last_plan += 1
+                        incremented = True
+                        plans[last_plan] = branch, turn, tick
+                    for cache in where_cached[branch_from, turn, tick]:
+                        data = cache.settings[branch_from][turn][tick]
+                        value = data[-1]
+                        key = data[:-1]
+                        args = key + (branch, turn, tick, value)
+                        if hasattr(cache, 'setdb'):
+                            cache.setdb(*args)
+                        cache.store(*args)
+                        plan_ticks[last_plan][turn].append(tick)
+                        turn_end_plan[branch, turn] = tick
 
     # easier to override things this way
     @property
@@ -701,8 +740,6 @@ class ORM(object):
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
-        if not self._planning and v > turn_end:
-            self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
 
@@ -781,9 +818,10 @@ class ORM(object):
             )
         if not self._planning:
             if turn_end != turn:
-                raise HistoryError(
-                    "When advancing time outside of a plan, you can't skip turns. Go to turn {}".format(turn_end)
-                )
+                # Normally doesn't happen in LiSE, but if you manually set the time
+                # and edit the world state it could.
+                # I used to raise an exception here, don't remember why
+                print("skipped a turn?")  # use logger
             self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
             self._turn_end[branch, turn] = tick
         if self._planning:

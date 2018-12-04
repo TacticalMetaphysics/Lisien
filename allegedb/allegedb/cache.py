@@ -433,6 +433,7 @@ class Cache(object):
                 branches = self.branches[entity, key]
                 self.keys[entity,][key] = branches
                 turns = branches[branch]
+        shallowest = self.shallowest
         if planning:
             if turn in turns and tick < turns[turn].end:
                 raise HistoryError(
@@ -442,12 +443,23 @@ class Cache(object):
                 )
         else:
             # truncate settings
+            # TODO: reach out to the ORM to delete any ticks that just got contradicted
+            # ...which makes this truncation business pointless really
+            tainted = False
             for mapp in (self.settings[branch], self.presettings[branch], turns):
                 if turn in mapp:
-                    mapp[turn].truncate(tick)
+                    mtrn = mapp[turn]
+                    mtrn.seek(tick)
+                    if mtrn._future:
+                        tainted = True
+                    mtrn.truncate(tick)
+                mapp.seek(turn)
+                if mapp._future:
+                    tainted = True
                 mapp.truncate(turn)
+            if tainted:
+                shallowest = self.shallowest = {}
         self._store_journal(*args)
-        shallowest = self.shallowest
         shallowest[parent + (entity, key, branch, turn, tick)] = value
         while len(shallowest) > KEYCACHE_MAXSIZE:
             shallowest.popitem(False)
