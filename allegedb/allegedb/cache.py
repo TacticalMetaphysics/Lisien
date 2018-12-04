@@ -458,7 +458,7 @@ class Cache(object):
                     tainted = True
                 mapp.truncate(turn)
             if tainted:
-                shallowest = self.shallowest = {}
+                shallowest = self.shallowest = OrderedDict()
         self._store_journal(*args)
         shallowest[parent + (entity, key, branch, turn, tick)] = value
         while len(shallowest) > KEYCACHE_MAXSIZE:
