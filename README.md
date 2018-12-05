@@ -79,7 +79,7 @@ libsdl2-ttf-dev
 USE_GSTREAMER=0 pip3 install --user kivy
 ```
 
-# Both
+## Both
 ```
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
