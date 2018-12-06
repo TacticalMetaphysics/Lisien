@@ -98,7 +98,6 @@ class StoreList(RecycleView):
     """Instance of ``SelectableRecycleBoxLayout``"""
 
     def __init__(self, **kwargs):
-        self.bind(table=self._trigger_redata)
         self._i2name = {}
         self._name2i = {}
         super().__init__(**kwargs)
@@ -121,7 +120,6 @@ class StoreList(RecycleView):
         self._name2i[name] = i
         return {
             'store': self.store,
-            'table': self.table,
             'text': str(name),
             'name': name,
             'select': self.ids.boxl.select_node,
@@ -135,7 +133,7 @@ class StoreList(RecycleView):
     def redata(self, *args, **kwargs):
         """Update my ``data`` to match what's in my ``store``"""
         select_name = kwargs.get('select_name')
-        if not self.table or self.store is None:
+        if not self.store:
             Clock.schedule_once(self.redata)
             return
         self.data = list(map(self.munge, enumerate(self._iter_keys())))
