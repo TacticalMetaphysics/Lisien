@@ -342,7 +342,7 @@ class EngineHandle(object):
         return (self.branch, self.turn, self.tick)
 
     def get_language(self):
-        return self._real.string.language
+        return str(self._real.string.language)
 
     def set_language(self, lang):
         self._real.string.language = lang
