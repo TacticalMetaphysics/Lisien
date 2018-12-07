@@ -151,6 +151,8 @@ def lru_append(kc, lru, kckey, maxsize):
         return
     while len(lru) >= maxsize:
         (peb, turn, tick), _ = lru.popitem(False)
+        if peb not in kc or turn not in kc[peb] or tick not in kc[peb][turn]:
+            continue
         del kc[peb][turn][tick]
         if not kc[peb][turn]:
             del kc[peb][turn]
