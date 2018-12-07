@@ -63,6 +63,13 @@ yourself, after all.
 
 # Getting started
 
+## Windows
+```
+# install the Kivy app framework
+python3 -m pip install kivy.deps.sdl2 kivy.deps.glew
+```
+
+## Linux
 ```
 # install the Kivy app framework
 sudo apt-get install cython3 python3-dev python3-pip \
@@ -70,6 +77,10 @@ libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
 libsdl2-ttf-dev
 # ELiDE doesn't play movies, so disable gstreamer
 USE_GSTREAMER=0 pip3 install --user kivy
+```
+
+## Both
+```
 # install LiSE and the ELiDE frontend
 git clone https://github.com/LogicalDash/LiSE.git
 cd LiSE
