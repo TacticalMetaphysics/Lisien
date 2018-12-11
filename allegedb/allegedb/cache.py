@@ -437,7 +437,6 @@ class Cache(object):
         else:
             if (entity, key) in self.branches:
                 branches = self.branches[entity, key]
-                assert branches is self.keys[entity, ][key]
                 turns = branches[branch]
             else:
                 branches = self.branches[entity, key]
