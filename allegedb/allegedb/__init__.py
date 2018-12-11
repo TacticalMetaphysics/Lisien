@@ -708,6 +708,13 @@ class ORM(object):
                         plan_ticks[last_plan][turn].append(tick)
                         turn_end_plan[branch, turn] = tick
 
+    def _delete_contradicted(self, turn, tick):
+        """The current plan has been contradicted, and should be deleted starting with the given
+        turn and tick -- but leave everything prior to this in place.
+
+        """
+        # TODO
+
     # easier to override things this way
     @property
     def branch(self):

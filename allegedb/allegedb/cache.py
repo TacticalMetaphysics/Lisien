@@ -423,6 +423,17 @@ class Cache(object):
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
 
+    @staticmethod
+    def _find_future_contradiction(turns, turn, value):
+        # assumes that all future entries are in the plan
+        future_turns = turns[turn].future()
+        if not future_turns:
+            return
+        for trn, ticks in future_turns.items():
+            for tick, newval in ticks.items():
+                if newval != value:
+                    return trn, tick
+
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
@@ -454,22 +465,9 @@ class Cache(object):
                     )
                 )
         else:
-            # truncate settings
-            # TODO: reach out to the ORM to delete any ticks that just got contradicted
-            # ...which makes this truncation business pointless really
-            tainted = False
-            for mapp in (self.settings[branch], self.presettings[branch], turns):
-                if turn in mapp:
-                    mtrn = mapp[turn]
-                    mtrn.seek(tick)
-                    if mtrn._future:
-                        tainted = True
-                    mtrn.truncate(tick)
-                mapp.seek(turn)
-                if mapp._future:
-                    tainted = True
-                mapp.truncate(turn)
-            if tainted:
+            contra = self._find_future_contradiction(turns, turn, value)
+            if contra:
+                self.db._delete_contradicted(*contra)
                 shallowest = self.shallowest = OrderedDict()
         self._store_journal(*args)
         shallowest[parent + (entity, key, branch, turn, tick)] = value
