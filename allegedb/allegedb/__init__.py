@@ -517,18 +517,24 @@ class ORM(object):
         """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
         self._graph_val_cache = Cache(self)
         self._graph_val_cache.setdb = self.query.graph_val_set
+        self._graph_val_cache.deldb = self.query.graph_val_del_time
         self._nodes_cache = NodesCache(self)
         self._nodes_cache.setdb = self.query.exist_node
+        self._nodes_cache.deldb = self.query.nodes_del_time
         self._edges_cache = EdgesCache(self)
         self._edges_cache.setdb = self.query.exist_edge
+        self._edges_cache.deldb = self.query.edges_del_time
         self._node_val_cache = Cache(self)
         self._node_val_cache.setdb = self.query.node_val_set
+        self._node_val_cache.deldb = self.query.node_val_del_time
         self._edge_val_cache = Cache(self)
         self._edge_val_cache.setdb = self.query.edge_val_set
+        self._edge_val_cache.deldb = self.query.edge_val_del_time
         self._graph_objs = {}
         self._plans = {}
         self._branches_plans = defaultdict(set)
         self._plan_ticks = defaultdict(lambda: defaultdict(list))
+        self._time_plan = {}
         self._plans_uncommitted = []
         self._plan_ticks_uncommitted = []
 
@@ -611,8 +617,10 @@ class ORM(object):
                 last_plan = plan
         self._last_plan = last_plan
         plan_ticks = self._plan_ticks
+        time_plan = self._time_plan
         for plan, turn, tick in self.query.plan_ticks_dump():
             plan_ticks[plan][turn].append(tick)
+            time_plan[plans[plan][0], turn, tick] = plan
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
@@ -679,6 +687,8 @@ class ORM(object):
 
     def _copy_plans(self, branch_from, turn_from, tick_from):
         plan_ticks = self._plan_ticks
+        plan_ticks_uncommitted = self._plan_ticks_uncommitted
+        time_plan = self._time_plan
         plans = self._plans
         branch = self.branch
         where_cached = self._where_cached
@@ -686,6 +696,8 @@ class ORM(object):
         turn_end_plan = self._turn_end_plan
         for plan_id in self._branches_plans[branch_from]:
             _, start_turn, start_tick = plans[plan_id]
+            if start_turn > turn_from or (start_turn == turn_from and start_tick > tick_from):
+                continue
             incremented = False
             for turn, ticks in list(plan_ticks[plan_id].items()):
                 if turn < turn_from:
@@ -694,7 +706,7 @@ class ORM(object):
                     if turn == turn_from and tick < tick_from:
                         continue
                     if not incremented:
-                        last_plan += 1
+                        self._last_plan = last_plan = last_plan + 1
                         incremented = True
                         plans[last_plan] = branch, turn, tick
                     for cache in where_cached[branch_from, turn, tick]:
@@ -706,6 +718,8 @@ class ORM(object):
                             cache.setdb(*args)
                         cache.store(*args)
                         plan_ticks[last_plan][turn].append(tick)
+                        plan_ticks_uncommitted.append((last_plan, turn, tick))
+                        time_plan[branch, turn, tick] = last_plan
                         turn_end_plan[branch, turn] = tick
 
     def _delete_contradicted(self, turn, tick):
@@ -713,7 +727,32 @@ class ORM(object):
         turn and tick -- but leave everything prior to this in place.
 
         """
-        # TODO
+        # What plan is responsible for this turn and tick?
+        branch = self.branch
+        plan = self._time_plan[branch, turn, tick]
+        # Get the contradicted times within it
+        to_delete = []
+        plan_ticks = self._plan_ticks[plan]
+        for trn, tcks in plan_ticks.items():  # might improve performance to use a WindowDict for plan_ticks
+            if turn == trn:
+                for tck in tcks:
+                    if tck >= tick:
+                        to_delete.append((trn, tck))
+            elif trn > turn:
+                to_delete.extend((trn, tck) for tck in tcks)
+        # Delete stuff that happened at contradicted times, and then delete the times from the plan
+        where_cached = self._where_cached
+        time_plan = self._time_plan
+        for trn, tck in to_delete:
+            for cache in where_cached[branch, trn, tck]:
+                cache.remove(branch, trn, tck)
+                if hasattr(cache, 'deldb'):
+                    cache.deldb(branch, trn, tck)
+            del where_cached[branch, trn, tck]
+            plan_ticks[trn].remove(tck)
+            if not plan_ticks[trn]:
+                del plan_ticks[trn]
+            del time_plan[branch, trn, tck]
 
     # easier to override things this way
     @property
@@ -838,6 +877,7 @@ class ORM(object):
                 )
             self._plan_ticks[self._last_plan][turn].append(tick)
             self._plan_ticks_uncommitted.append((self._last_plan, turn, tick))
+            self._time_plan[branch, turn, tick] = self._last_plan
         self._otick = tick
         return branch, turn, tick
 

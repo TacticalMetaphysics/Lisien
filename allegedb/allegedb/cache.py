@@ -201,6 +201,7 @@ class Cache(object):
         """All the ``entity[key] = value`` operations that were performed on some turn"""
         self.presettings = PickyDefaultDict(SettingsTurnDict)
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
+        self.time_entity = {}
         self._kc_lru = OrderedDict()
 
     def load(self, data):
@@ -423,10 +424,68 @@ class Cache(object):
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
 
+    def remove(self, branch, turn, tick):
+        parent, entity, key = self.time_entity[branch, turn, tick]
+        branchkey = parent + (entity, key)
+        keykey = parent + (entity,)
+        if parent in self.parents:
+            parentt = self.parents[parent]
+            if entity in parentt:
+                entty = parentt[entity]
+                if key in entty:
+                    kee = entty[key]
+                    if branch in kee:
+                        branhc = kee[branch]
+                        if turn in branhc:
+                            trn = branhc[turn]
+                            del trn[tick]
+                            if not trn:
+                                del branhc[turn]
+        if branchkey in self.branches:
+            entty = self.branches[branchkey]
+            if branch in entty:
+                branhc = entty[branch]
+                if turn in branhc:
+                    trn = branhc[turn]
+                    if tick in trn:
+                        del trn[tick]
+                    if not trn:
+                        del branhc[turn]
+        if keykey in self.keys:
+            entty = self.keys[keykey]
+            if key in entty:
+                kee = entty[key]
+                if branch in kee:
+                    branhc = kee[branch]
+                    if turn in branhc:
+                        trn = entty[turn]
+                        if tick in trn:
+                            del trn[tick]
+                        if not trn:
+                            del branhc[turn]
+        branhc = self.settings[branch]
+        pbranhc = self.presettings[branch]
+        trn = branhc[turn]
+        ptrn = pbranhc[turn]
+        del trn[tick]
+        del ptrn[tick]
+        if not trn:
+            del branhc[turn]
+            del pbranhc[turn]
+        if not branhc:
+            del self.settings[branch]
+            del self.presettings[branch]
+        self.shallowest = OrderedDict()
+
     @staticmethod
     def _find_future_contradiction(turns, turn, value):
         # assumes that all future entries are in the plan
-        future_turns = turns[turn].future()
+        if not turns:
+            return
+        if turns.rev_gettable(turn):
+            future_turns = turns[turn].future()
+        else:
+            future_turns = turns
         if not future_turns:
             return
         for trn, ticks in future_turns.items():
@@ -481,6 +540,7 @@ class Cache(object):
             new = FuturistWindowDict()
             new[tick] = value
             turns[turn] = new
+        self.time_entity[branch, turn, tick] = parent, entity, key
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
@@ -617,6 +677,9 @@ class NodesCache(Cache):
         if not ex:
             ex = None
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
+
+    def remove(self, branch, turn, tick):
+        super().remove(branch, turn, tick)
 
 
 class EdgesCache(Cache):

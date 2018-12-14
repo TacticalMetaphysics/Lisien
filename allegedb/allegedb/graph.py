@@ -231,10 +231,10 @@ class GraphMapping(AbstractEntityMapping):
         )
 
     def _del_db(self, key, branch, turn, tick):
-        self.db.query.graph_val_del(
+        self.db.query.graph_val_set(
             self.graph.name,
             key,
-            branch, turn, tick
+            branch, turn, tick, None
         )
 
     def clear(self):

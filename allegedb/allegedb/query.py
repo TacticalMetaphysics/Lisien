@@ -320,9 +320,10 @@ class QueryEngine(object):
         graph, key, value = map(self.pack, (graph, key, value))
         self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
-    def graph_val_del(self, graph, key, branch, turn, tick):
-        """Indicate that the key is unset."""
-        self.graph_val_set(graph, key, branch, turn, tick, None)
+    def graph_val_del_time(self, branch, turn, tick):
+        self._flush_graph_val()
+        self.sql('graph_val_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
@@ -354,6 +355,11 @@ class QueryEngine(object):
             raise TimeError
         self._btts.add((branch, turn, tick))
         self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, extant))
+
+    def nodes_del_time(self, branch, turn, tick):
+        self._flush_nodes()
+        self.sql('nodes_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
@@ -414,9 +420,10 @@ class QueryEngine(object):
         graph, node, key, value = map(self.pack, (graph, node, key, value))
         self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
-    def node_val_del(self, graph, node, key, branch, turn, tick):
-        """Delete a key from a node at a specific branch and revision"""
-        self.node_val_set(graph, node, key, branch, turn, tick, None)
+    def node_val_del_time(self, branch, turn, tick):
+        self._flush_node_val()
+        self.sql('node_val_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
@@ -465,6 +472,11 @@ class QueryEngine(object):
         self._btts.add((branch, turn, tick))
         graph, orig, dest = map(self.pack, (graph, orig, dest))
         self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
+
+    def edges_del_time(self, branch, turn, tick):
+        self._flush_edges()
+        self.sql('edges_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
@@ -515,12 +527,10 @@ class QueryEngine(object):
             (graph, orig, dest, idx, key, branch, turn, tick, value)
         )
 
-    def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick):
-        """Declare that the key no longer applies to this edge, as of this
-        branch and revision.
-
-        """
-        self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, None)
+    def edge_val_del_time(self, branch, turn, tick):
+        self._flush_edge_val()
+        self.sql('edge_val_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def plans_dump(self):
         return self.sql('plans_dump')
