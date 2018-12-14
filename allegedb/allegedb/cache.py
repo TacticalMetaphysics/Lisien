@@ -678,9 +678,6 @@ class NodesCache(Cache):
             ex = None
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
 
-    def remove(self, branch, turn, tick):
-        super().remove(branch, turn, tick)
-
 
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
