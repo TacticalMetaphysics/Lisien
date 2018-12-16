@@ -20,6 +20,8 @@ def test_single_plan(orm):
         orm.turn = 3
         g.node[2]['funny'] = True
         g.add_node(3)
+        orm.turn = 4
+        g.node[2]['successful'] = True
     assert orm.turn == 1
     assert 2 not in g.node
     orm.branch = 'b'
@@ -32,6 +34,8 @@ def test_single_plan(orm):
     assert g.node[2]['funny']
     assert 3 in g
     assert g.node[2].keys() == {'funny', 'clever'}
+    orm.turn = 4
+    assert g.node[2].keys() == {'funny', 'clever', 'successful'}
     orm.turn = 2
     assert g.node[2].keys() == {'clever'}
     g.node[2]['funny'] = False
@@ -39,6 +43,8 @@ def test_single_plan(orm):
     orm.turn = 3
     assert not g.node[2]['funny']
     assert 3 not in g.node
+    orm.turn = 4
+    assert g.node[2].keys() == {'funny', 'clever'}
     orm.turn = 1
     orm.branch = 'trunk'
     orm.turn = 0
