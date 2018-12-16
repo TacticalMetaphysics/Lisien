@@ -17,6 +17,7 @@
 """
 from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
+from blinker import Signal
 
 
 def _default_args_munger(self, k):
@@ -161,9 +162,10 @@ def lru_append(kc, lru, kckey, maxsize):
     lru[kckey] = True
 
 
-class Cache(object):
+class Cache(Signal):
     """A data store that's useful for tracking graph revisions."""
     def __init__(self, db):
+        super().__init__()
         self.db = db
         self.parents = StructuredDefaultDict(3, TurnDict)
         """Entity data keyed by the entities' parents.
@@ -423,8 +425,10 @@ class Cache(object):
         db._where_cached[args[-4:-1]].append(self)
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
+        self.send(self, key=args[-5], branch=args[-4], turn=args[-3], tick=args[-2], value=args[-1], action='store')
 
     def remove(self, branch, turn, tick):
+        """Delete all data from a specific tick"""
         parent, entity, key = self.time_entity[branch, turn, tick]
         branchkey = parent + (entity, key)
         keykey = parent + (entity,)
@@ -467,8 +471,10 @@ class Cache(object):
         pbranhc = self.presettings[branch]
         trn = branhc[turn]
         ptrn = pbranhc[turn]
-        del trn[tick]
-        del ptrn[tick]
+        if tick in trn:
+            del trn[tick]
+        if tick in ptrn:
+            del ptrn[tick]
         if not trn:
             del branhc[turn]
             del pbranhc[turn]
@@ -476,6 +482,53 @@ class Cache(object):
             del self.settings[branch]
             del self.presettings[branch]
         self.shallowest = OrderedDict()
+        self._remove_keycache(parent + (entity, branch), turn, tick)
+        self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
+
+    def _remove_keycache(self, entity_branch, turn, tick):
+        if entity_branch in self.keycache:
+            kc = self.keycache[entity_branch]
+            if turn in kc:
+                kcturn = kc[turn]
+                kcturn.truncate(tick)
+            kc.truncate(turn)
+            if not kc:
+                del self.keycache[entity_branch]
+
+    def truncate(self, branch, turn, tick):
+        """Delete all data after (not on) a specific tick"""
+        def truncate_branhc(branhc):
+            if turn in branhc:
+                trn = branhc[turn]
+                trn.truncate(tick)
+                branhc.truncate(turn)
+                if not trn:
+                    del branhc[turn]
+            else:
+                branhc.truncate(turn)
+        for entities in self.parents.values():
+            for keys in entities.values():
+                for branches in keys.values():
+                    if branch not in branches:
+                        continue
+                    truncate_branhc(branches[branch])
+        for branches in self.branches.values():
+            if branch not in branches:
+                continue
+            truncate_branhc(branches[branch])
+        for keys in self.keys.values():
+            for branches in keys.values():
+                if branch not in branches:
+                    continue
+                truncate_branhc(branches[branch])
+        truncate_branhc(self.settings[branch])
+        truncate_branhc(self.presettings[branch])
+        self.shallowest = OrderedDict()
+        keycache = self.keycache
+        for entity_branch in keycache:
+            if entity_branch[-1] == branch:
+                truncate_branhc(keycache[entity_branch])
+        self.send(self, branch=branch, turn=turn, tick=tick, action='truncate')
 
     @staticmethod
     def _find_future_contradiction(turns, turn, value):
@@ -483,7 +536,7 @@ class Cache(object):
         if not turns:
             return
         if turns.rev_gettable(turn):
-            future_turns = turns[turn].future()
+            future_turns = turns.future(turn)
         else:
             future_turns = turns
         if not future_turns:
@@ -677,6 +730,12 @@ class NodesCache(Cache):
         if not ex:
             ex = None
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
+
+    def _update_keycache(self, *args, forward):
+        graph, node, branch, turn, tick, ex = args
+        if not ex:
+            ex = None
+        super()._update_keycache(graph, node, branch, turn, tick, ex, forward=forward)
 
 
 class EdgesCache(Cache):

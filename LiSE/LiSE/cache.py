@@ -470,23 +470,15 @@ class ThingsCache(Cache):
         except KeyError:
             oldloc = None
         super()._store(*args, planning=planning)
+        node_contents_cache = self.db._node_contents_cache
         if oldloc is not None:
-            oldnodecont = self.db._node_contents_cache.retrieve(
-                character, oldloc, branch, turn, tick
-            )
-            self.db._node_contents_cache.store(
-                character, thing, branch, turn, tick, oldnodecont.difference((thing,))
-            )
-        try:
-            newnodecont = self.db._node_contents_cache.retrieve(
-                character, location, branch, turn, tick
-            )
-        except KeyError:
-            newnodecont = frozenset()
-        self.db._node_contents_cache.store(
-            character, location, branch, turn, tick,
-            newnodecont.union((thing,))
-        )
+            oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
+            newconts_orig = oldconts_orig.difference({thing})
+            node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+        if location is not None:
+            oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
+            newconts_dest = oldconts_dest.union({thing})
+            node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
 
     def turn_before(self, character, thing, branch, turn):
         try:
@@ -501,3 +493,24 @@ class ThingsCache(Cache):
         except KeyError:
             pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
+
+
+class NodeContentsCache(Cache):
+    def slow_iter_contents(self, character, place, branch, turn, tick):
+        branch_now, turn_now, tick_now = self.db.btt()
+        self.db.time = branch, turn
+        self.db.tick = tick
+        for thing in self.db.character[character].thing.values():
+            if thing.location.name == place:
+                yield thing.name
+        self.db.time = branch_now, turn_now
+        self.db.tick = tick_now
+
+    def retrieve(self, *args):
+        try:
+            return super().retrieve(*args)
+        except (KeyError, HistoryError):
+            conts = frozenset(self.slow_iter_contents(*args))
+            stargs = args + (conts,)
+            self.store(*stargs)
+            return conts

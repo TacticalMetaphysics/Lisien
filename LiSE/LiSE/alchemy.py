@@ -524,6 +524,9 @@ def queries(table):
 
     r = allegedb.alchemy.queries_for_table_dict(table)
 
+    rulebooks = table['rulebooks']
+    r['rulebooks_update'] = update_where(['rules'], [rulebooks.c.rulebook, rulebooks.c.branch, rulebooks.c.turn, rulebooks.c.tick])
+
     for t in table.values():
         key = list(t.primary_key)
         if 'branch' in t.columns and 'turn' in t.columns and 'tick' in t.columns:

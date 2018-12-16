@@ -129,46 +129,18 @@ class WindowDictItemsView(ItemsView):
             yield from future
 
 
-class WindowDictPastKeysView(KeysView):
-    """View on a WindowDict's past keys relative to last lookup"""
+class WindowDictPastFutureKeysView(KeysView):
+    """View on a WindowDict's keys relative to last lookup"""
     def __iter__(self):
         if not self._mapping.stack:
             return
         yield from map(get0, reversed(self._mapping.stack))
 
     def __contains__(self, item):
-        if not self._mapping.stack:
-            return False
-        stack = self._mapping.stack
-        if not stack or item < stack[0][0] or item > stack[-1][0]:
-            return False
-        for rev in map(get0, stack):
-            if rev == item:
-                return True
-        return False
+        return item in self._mapping._keys
 
 
-class WindowDictFutureKeysView(KeysView):
-    """View on a WindowDict's future keys relative to last lookup"""
-    def __iter__(self):
-        if not self._mapping.stack:
-            return
-        yield from map(get0, reversed(self._mapping.stack))
-
-    def __contains__(self, item):
-        if not self._mapping.stack:
-            return False
-        stack = self._mapping.stack
-        if not stack or item < stack[-1][0] or item > stack[0][0]:
-            return False
-        for rev in map(get0, stack):
-            if rev == item:
-                return True
-        return False
-
-
-class WindowDictPastItemsView(ItemsView):
-    """View on a WindowDict's past items relative to last lookup"""
+class WindowDictPastFutureItemsView(ItemsView):
     def __iter__(self):
         if not self._mapping.stack:
             return
@@ -176,28 +148,32 @@ class WindowDictPastItemsView(ItemsView):
 
     def __contains__(self, item):
         stack = self._mapping.stack
-        if not stack or item[0] < stack[0][0] or item[0] > stack[-1][0]:
+        if not stack or self._out_of_range(item, stack):
             return False
         return item in stack
 
 
-class WindowDictFutureItemsView(ItemsView):
+class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+    @staticmethod
+    def _out_of_range(item, stack):
+        return item[0] < stack[0][0] or item[0] > stack[-1][0]
+
+
+class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
     """View on a WindowDict's future items relative to last lookup"""
-    def __iter__(self):
-        stack = self._mapping.stack
-        if not stack:
-            return
-        yield from stack
-
-    def __contains__(self, item):
-        stack = self._mapping.stack
-        if not stack or item[0] < stack[-1][0] or item[0] > stack[0][0]:
-            return False
-        return item in stack
+    @staticmethod
+    def _out_of_range(item, stack):
+        return item[0] < stack[-1][0] or item[0] > stack[0][0]
 
 
 class WindowDictPastFutureValuesView(ValuesView):
     """Abstract class for views on the past or future values of a WindowDict"""
+    def __iter__(self):
+        stack = self._mapping.stack
+        if not stack:
+            return
+        yield from map(get1, reversed(stack))
+
     def __contains__(self, item):
         stack = self._mapping.stack
         if not stack:
@@ -206,12 +182,6 @@ class WindowDictPastFutureValuesView(ValuesView):
             if v == item:
                 return True
         return False
-
-    def __iter__(self):
-        stack = self._mapping.stack
-        if not stack:
-            return
-        yield from map(get1, reversed(stack))
 
 
 class WindowDictValuesView(ValuesView):
@@ -270,7 +240,7 @@ class WindowDictPastView(WindowDictPastFutureView):
         raise KeyError
 
     def keys(self):
-        return WindowDictPastKeysView(self)
+        return WindowDictPastFutureKeysView(self)
 
     def items(self):
         return WindowDictPastItemsView(self)
@@ -297,7 +267,7 @@ class WindowDictFutureView(WindowDictPastFutureView):
         raise KeyError
 
     def keys(self):
-        return WindowDictFutureKeysView(self)
+        return WindowDictPastFutureKeysView(self)
 
     def items(self):
         return WindowDictFutureItemsView(self)

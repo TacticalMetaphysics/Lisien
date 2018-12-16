@@ -845,6 +845,7 @@ class Engine(AbstractEngine, gORM):
         )
         from .cache import (
             Cache,
+            NodeContentsCache,
             InitializedCache,
             EntitylessCache,
             InitializedEntitylessCache,
@@ -863,7 +864,7 @@ class Engine(AbstractEngine, gORM):
         super()._init_caches()
         self._things_cache = ThingsCache(self)
         self._things_cache.setdb = self.query.set_thing_loc
-        self._node_contents_cache = Cache(self)
+        self._node_contents_cache = NodeContentsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
         self._universal_cache.setdb = self.query.universal_set
