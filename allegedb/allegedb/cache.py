@@ -225,7 +225,7 @@ class Cache(Signal):
         while branch2do:
             branch = branch2do.popleft()
             for row in branches[branch]:
-                store(*row, planning=False)
+                store(*row, planning=False, loading=True)
             if branch in childbranch:
                 branch2do.extend(childbranch[branch])
 
@@ -415,13 +415,16 @@ class Cache(Signal):
         Otherwise, contradictions will be handled by deleting
         everything after the present moment.
 
+        ``loading=True`` prevents me from updating the ORM's records
+        of the ends of branches and turns.
+
         """
         db = self.db
         if planning is None:
             planning = db._planning
         if forward is None:
             forward = db._forward
-        self._store(*args, planning=planning)
+        self._store(*args, planning=planning, loading=loading)
         db._where_cached[args[-4:-1]].append(self)
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
@@ -552,7 +555,7 @@ class Cache(Signal):
                 if newval != value:
                     yield trn, tick
 
-    def _store(self, *args, planning):
+    def _store(self, *args, planning, loading=False):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         if parent:
@@ -592,8 +595,9 @@ class Cache(Signal):
                 if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
                     delete_plan(time_plan[branch, contra_turn, contra_tick])
             parbranch, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
-            self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
-            self.db._turn_end[branch, turn] = tick
+            if not loading:
+                self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
+                self.db._turn_end[branch, turn] = tick
         self._store_journal(*args)
         shallowest[parent + (entity, key, branch, turn, tick)] = value
         while len(shallowest) > KEYCACHE_MAXSIZE:
@@ -739,10 +743,10 @@ class Cache(Signal):
 class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
 
-    def _store(self, graph, node, branch, turn, tick, ex, *, planning):
+    def _store(self, graph, node, branch, turn, tick, ex, *, planning, loading=False):
         if not ex:
             ex = None
-        return super()._store(graph, node, branch, turn, tick, ex, planning=planning)
+        return super()._store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading)
 
     def _update_keycache(self, *args, forward):
         graph, node, branch, turn, tick, ex = args
@@ -859,12 +863,12 @@ class EdgesCache(Cache):
         ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
         return ret is not None and ret is not KeyError
 
-    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None):
+    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False):
         if not ex:
             ex = None
         if planning is None:
             planning = self.db.planning
-        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning)
+        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
         # if ex:

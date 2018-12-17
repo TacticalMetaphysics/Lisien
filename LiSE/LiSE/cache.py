@@ -86,9 +86,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
+    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False):
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning)
+        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -463,13 +463,13 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def _store(self, *args, planning):
+    def _store(self, *args, planning, loading=False):
         character, thing, branch, turn, tick, location = args
         try:
             oldloc = self.retrieve(character, thing, branch, turn, tick)
         except KeyError:
             oldloc = None
-        super()._store(*args, planning=planning)
+        super()._store(*args, planning=planning, loading=loading)
         node_contents_cache = self.db._node_contents_cache
         if oldloc is not None:
             oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
