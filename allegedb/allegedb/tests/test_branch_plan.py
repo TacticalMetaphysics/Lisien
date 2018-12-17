@@ -1,5 +1,6 @@
 import pytest
 import allegedb
+import os
 
 
 @pytest.fixture(scope='function')
@@ -84,3 +85,47 @@ def test_multi_plan(orm):
     assert 2 not in g1.node
     assert 2 not in g1.edge[1]
     assert 2 in g2.edge[1]
+
+
+def test_save_load_plan():
+    dbfile = 'sqlite:///test_save_load_plan.db'
+    if os.path.exists('test_save_load_plan.db'):
+        os.remove('test_save_load_plan.db')
+    with allegedb.ORM(dbfile) as orm:
+        g1 = orm.new_graph(1)
+        g2 = orm.new_graph(2)
+        with orm.plan():
+            g1.add_node(1)
+            g1.add_node(2)
+            orm.turn = 1
+            g1.add_edge(1, 2)
+        assert orm.turn == 0
+        with orm.plan():
+            g2.add_node(1)
+            g2.add_node(2)
+            orm.turn = 1
+            g2.add_edge(1, 2)
+        assert orm.turn == 0
+    with allegedb.ORM(dbfile) as orm:
+        g1 = orm.graph[1]
+        g2 = orm.graph[2]
+        # go to end of turn
+        orm.turn = 0
+        # contradict the plan
+        del g1.node[2]
+        assert 1 in g2.node
+        assert 2 in g2.node
+        orm.turn = 1
+        assert 2 not in g1.node
+        assert 2 not in g1.edge[1]
+        assert 2 in g2.edge[1]
+    with allegedb.ORM(dbfile) as orm:
+        g1 = orm.graph[1]
+        g2 = orm.graph[2]
+        assert 1 in g2.node
+        assert 2 in g2.node
+        orm.turn = 1
+        assert 2 not in g1.node
+        assert 2 not in g1.edge[1]
+        assert 2 in g2.edge[1]
+    os.remove('test_save_load_plan.db')
