@@ -751,12 +751,10 @@ class NodesCache(Cache):
         super()._update_keycache(graph, node, branch, turn, tick, ex, forward=forward)
 
     def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
-        l = list(super()._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
-        l.extend(self.db._edges_cache._slow_iter_node_contradicted_times(
+        yield from super()._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
+        yield from self.db._edges_cache._slow_iter_node_contradicted_times(
             branch, turn, tick, entity, key
-        ))
-        l.sort()
-        yield from l
+        )
 
 
 class EdgesCache(Cache):
