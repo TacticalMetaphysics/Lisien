@@ -399,7 +399,7 @@ class Cache(Signal):
                         break
         return added, deleted
 
-    def store(self, *args, planning=None, forward=None):
+    def store(self, *args, planning=None, forward=None, loading=False):
         """Put a value in various dictionaries for later .retrieve(...).
 
         Needs at least five arguments, of which the -1th is the value
@@ -531,11 +531,17 @@ class Cache(Signal):
         self.send(self, branch=branch, turn=turn, tick=tick, action='truncate')
 
     @staticmethod
-    def _find_future_contradiction(turns, turn, value):
+    def _iter_future_contradictions(turns, turn, tick, value):
         # assumes that all future entries are in the plan
         if not turns:
             return
-        if turns.rev_gettable(turn):
+        if turn in turns:
+            future_ticks = turns[turn].future(tick)
+            for tck, newval in future_ticks.items():
+                if newval != value:
+                    yield turn, tck
+            future_turns = turns.future(turn)
+        elif turns.rev_gettable(turn):
             future_turns = turns.future(turn)
         else:
             future_turns = turns
@@ -544,7 +550,7 @@ class Cache(Signal):
         for trn, ticks in future_turns.items():
             for tick, newval in ticks.items():
                 if newval != value:
-                    return trn, tick
+                    yield trn, tick
 
     def _store(self, *args, planning):
         entity, key, branch, turn, tick, value = args[-6:]
@@ -577,10 +583,17 @@ class Cache(Signal):
                     )
                 )
         else:
-            contra = self._find_future_contradiction(turns, turn, value)
-            if contra:
-                self.db._delete_contradicted(*contra)
+            contras = list(self._iter_future_contradictions(turns, turn, tick, value))
+            delete_plan = self.db._delete_plan
+            time_plan = self.db._time_plan
+            if contras:
                 shallowest = self.shallowest = OrderedDict()
+            for contra_turn, contra_tick in contras:
+                if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
+                    delete_plan(time_plan[branch, contra_turn, contra_tick])
+            _, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
+            self.db._branches[branch] = parent, turn_start, tick_start, turn, tick
+            self.db._turn_end[branch, turn] = tick
         self._store_journal(*args)
         shallowest[parent + (entity, key, branch, turn, tick)] = value
         while len(shallowest) > KEYCACHE_MAXSIZE:

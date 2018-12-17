@@ -722,15 +722,15 @@ class ORM(object):
                         time_plan[branch, turn, tick] = last_plan
                         turn_end_plan[branch, turn] = tick
 
-    def _delete_contradicted(self, turn, tick):
-        """The current plan has been contradicted, and should be deleted starting with the given
-        turn and tick -- but leave everything prior to this in place.
+    def _delete_plan(self, plan):
+        """The plan has been contradicted, so delete the rest of it
+
+        Though this takes the turn and tick of the contradicted change, all of
+        the plan that has not yet come to pass will be deleted, even if the given
+        turn and tick are far in the future.
 
         """
-        # What plan is responsible for this turn and tick?
-        branch = self.branch
-        plan = self._time_plan[branch, turn, tick]
-        # Get the contradicted times within it
+        branch, turn, tick = self.btt()
         to_delete = []
         plan_ticks = self._plan_ticks[plan]
         for trn, tcks in plan_ticks.items():  # might improve performance to use a WindowDict for plan_ticks
@@ -862,9 +862,6 @@ class ORM(object):
             raise HistoryError(
                 "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
             )
-        if not self._planning:
-            self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
-            self._turn_end[branch, turn] = tick
         if self._planning:
             if (turn, tick) in self._plan_ticks[self._last_plan]:
                 raise HistoryError(
