@@ -57,3 +57,30 @@ def test_single_plan(orm):
     orm.branch = 'trunk'
     orm.turn = 2
     assert 2 in g.node
+
+
+def test_multi_plan(orm):
+    g1 = orm.new_graph(1)
+    g2 = orm.new_graph(2)
+    with orm.plan():
+        g1.add_node(1)
+        g1.add_node(2)
+        orm.turn = 1
+        g1.add_edge(1, 2)
+    assert orm.turn == 0
+    with orm.plan():
+        g2.add_node(1)
+        g2.add_node(2)
+        orm.turn = 1
+        g2.add_edge(1, 2)
+    assert orm.turn == 0
+    # go to end of turn
+    orm.turn = 0
+    # contradict the plan
+    del g1.node[2]
+    assert 1 in g2.node
+    assert 2 in g2.node
+    orm.turn = 1
+    assert 2 not in g1.node
+    assert 2 not in g1.edge[1]
+    assert 2 in g2.edge[1]
