@@ -531,7 +531,7 @@ class Cache(Signal):
         self.send(self, branch=branch, turn=turn, tick=tick, action='truncate')
 
     @staticmethod
-    def _iter_future_contradictions(turns, turn, tick, value):
+    def _iter_future_contradictions(entity, key, turns, branch, turn, tick, value):
         # assumes that all future entries are in the plan
         if not turns:
             return
@@ -583,7 +583,7 @@ class Cache(Signal):
                     )
                 )
         else:
-            contras = list(self._iter_future_contradictions(turns, turn, tick, value))
+            contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
             delete_plan = self.db._delete_plan
             time_plan = self.db._time_plan
             if contras:
@@ -591,8 +591,8 @@ class Cache(Signal):
             for contra_turn, contra_tick in contras:
                 if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
                     delete_plan(time_plan[branch, contra_turn, contra_tick])
-            _, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
-            self.db._branches[branch] = parent, turn_start, tick_start, turn, tick
+            parbranch, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
+            self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
             self.db._turn_end[branch, turn] = tick
         self._store_journal(*args)
         shallowest[parent + (entity, key, branch, turn, tick)] = value
@@ -750,6 +750,12 @@ class NodesCache(Cache):
             ex = None
         super()._update_keycache(graph, node, branch, turn, tick, ex, forward=forward)
 
+    def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
+        yield from super()._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
+        yield from sorted(self.db._edges_cache._iter_node_contradicted_times(
+            branch, turn, tick, entity, key
+        ))
+
 
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
@@ -764,6 +770,22 @@ class EdgesCache(Cache):
         self.predecessors = StructuredDefaultDict(3, TurnDict)
         self._origcache_lru = OrderedDict()
         self._destcache_lru = OrderedDict()
+
+    def _iter_node_contradicted_times(self, branch, turn, tick, graph, node):
+        # slow and bad.
+        retrieve = self._base_retrieve
+        for dest, idxs in self.successors[graph, node].items():
+            for idx, branches in idxs.items():
+                brnch = branches[branch]
+                if turn in brnch:
+                    ticks = brnch[turn]
+                    for tck, present in ticks.future(tick).items():
+                        if tck > tick and present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
+                            yield turn, tck
+                for trn, ticks in brnch.future(turn).items():
+                    for tck, present in ticks.items():
+                        if present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
+                            yield trn, tck
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
