@@ -425,7 +425,6 @@ class Cache(Signal):
         if forward is None:
             forward = db._forward
         self._store(*args, planning=planning, loading=loading)
-        db._where_cached[args[-4:-1]].append(self)
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
         self.send(self, key=args[-5], branch=args[-4], turn=args[-3], tick=args[-2], value=args[-1], action='store')
@@ -611,6 +610,7 @@ class Cache(Signal):
             new[tick] = value
             turns[turn] = new
         self.time_entity[branch, turn, tick] = parent, entity, key
+        self.db._where_cached[args[-4:-1]].append(self)
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
