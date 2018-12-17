@@ -863,11 +863,6 @@ class ORM(object):
                 "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
             )
         if not self._planning:
-            if turn_end != turn:
-                # Normally doesn't happen in LiSE, but if you manually set the time
-                # and edit the world state it could.
-                # I used to raise an exception here, don't remember why
-                print("skipped a turn?")  # use logger
             self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
             self._turn_end[branch, turn] = tick
         if self._planning:
