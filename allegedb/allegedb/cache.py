@@ -751,10 +751,12 @@ class NodesCache(Cache):
         super()._update_keycache(graph, node, branch, turn, tick, ex, forward=forward)
 
     def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
-        yield from super()._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
-        yield from sorted(self.db._edges_cache._iter_node_contradicted_times(
+        l = list(super()._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
+        l.extend(self.db._edges_cache._slow_iter_node_contradicted_times(
             branch, turn, tick, entity, key
         ))
+        l.sort()
+        yield from l
 
 
 class EdgesCache(Cache):
@@ -771,21 +773,22 @@ class EdgesCache(Cache):
         self._origcache_lru = OrderedDict()
         self._destcache_lru = OrderedDict()
 
-    def _iter_node_contradicted_times(self, branch, turn, tick, graph, node):
+    def _slow_iter_node_contradicted_times(self, branch, turn, tick, graph, node):
         # slow and bad.
         retrieve = self._base_retrieve
-        for dest, idxs in self.successors[graph, node].items():
-            for idx, branches in idxs.items():
-                brnch = branches[branch]
-                if turn in brnch:
-                    ticks = brnch[turn]
-                    for tck, present in ticks.future(tick).items():
-                        if tck > tick and present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
-                            yield turn, tck
-                for trn, ticks in brnch.future(turn).items():
-                    for tck, present in ticks.items():
-                        if present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
-                            yield trn, tck
+        for items in (self.successors[graph, node].items(), self.predecessors[graph, node].items()):
+            for dest, idxs in items:  # dest might really be orig
+                for idx, branches in idxs.items():
+                    brnch = branches[branch]
+                    if turn in brnch:
+                        ticks = brnch[turn]
+                        for tck, present in ticks.future(tick).items():
+                            if tck > tick and present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
+                                yield turn, tck
+                    for trn, ticks in brnch.future(turn).items():
+                        for tck, present in ticks.items():
+                            if present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
+                                yield trn, tck
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
         added = set()
