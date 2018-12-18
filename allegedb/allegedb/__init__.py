@@ -716,7 +716,7 @@ class ORM(object):
                         args = key + (branch, turn, tick, value)
                         if hasattr(cache, 'setdb'):
                             cache.setdb(*args)
-                        cache.store(*args)
+                        cache.store(*args, planning=True)
                         plan_ticks[last_plan][turn].append(tick)
                         plan_ticks_uncommitted.append((last_plan, turn, tick))
                         time_plan[branch, turn, tick] = last_plan
