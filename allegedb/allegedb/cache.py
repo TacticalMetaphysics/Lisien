@@ -230,6 +230,7 @@ class Cache(Signal):
                 branch2do.extend(childbranch[branch])
 
     def _valcache_lookup(self, cache, branch, turn, tick):
+        """Return the value at the given time in ``cache``"""
         if branch in cache:
             branc = cache[branch]
             try:
@@ -260,6 +261,11 @@ class Cache(Signal):
                             raise
 
     def _get_keycachelike(self, keycache, keys, get_adds_dels, parentity, branch, turn, tick, *, forward):
+        """Try to retrieve a frozenset representing extant keys.
+
+        If I can't, generate one, store it, and return it.
+
+        """
         keycache_key = parentity + (branch,)
         if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
             return keycache[keycache_key][turn][tick]
@@ -270,9 +276,10 @@ class Cache(Signal):
             # In LiSE this means every change to the world state should happen inside of a call to
             # ``Engine.next_turn`` in a rule.
             if keycache_key in keycache and keycache[keycache_key].rev_gettable(turn):
-
+                # there's a keycache from a prior turn in this branch. Get it
                 kc = keycache[keycache_key]
                 if turn not in kc:
+                    # since it's not this *exact* turn there might be changes...
                     old_turn = kc.rev_before(turn)
                     old_turn_kc = kc[turn]
                     added, deleted = get_adds_dels(
@@ -357,6 +364,7 @@ class Cache(Signal):
         )
 
     def _update_keycache(self, *args, forward):
+        """Add or remove a key in the set describing the keys that exist."""
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
