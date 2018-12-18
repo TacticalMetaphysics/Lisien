@@ -128,4 +128,10 @@ def test_save_load_plan():
         assert 2 not in g1.node
         assert 2 not in g1.edge[1]
         assert 2 in g2.edge[1]
+        orm.turn = 0
+        while 2 in g2.node:
+            orm.tick -= 1
+        g2.add_node(2)  # contradict plan
+        orm.turn = 0  # end of turn
+        assert 2 not in g2.edge[1]
     os.remove('test_save_load_plan.db')
