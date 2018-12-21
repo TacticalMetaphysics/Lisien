@@ -381,10 +381,7 @@ class WindowDict(MutableMapping):
 
     Look up a revision number in this dict and it will give you the
     effective value as of that revision. Keys should always be
-    revision numbers. Once a key is set, all greater keys are
-    considered to be in this dict unless the value is ``None``. Keys
-    after that one aren't "set" until one's value is non-``None``
-    again.
+    revision numbers.
 
     Optimized for the cases where you look up the same revision
     repeatedly, or its neighbors.
@@ -394,23 +391,30 @@ class WindowDict(MutableMapping):
     values, with no indication of when they're from exactly --
     so explicitly supply a step of 1 to get the value at each point in
     the slice, or use the ``future`` and ``past`` methods to get read-only
-    mappings of data relative to when you last got an item from this.
+    mappings of data relative to a particular revision.
 
     Unlike slices of eg. lists, you can slice with a start greater than the stop
-    even if you don't supply a step. That will get you values in reverse order,
-    still without retaining the revision they're from.
+    even if you don't supply a step. That will get you values in reverse order.
 
     """
     __slots__ = ('_future', '_past', '_keys')
 
     def future(self, rev=None):
-        """Return a Mapping of items after the given revision."""
+        """Return a Mapping of items after the given revision.
+
+        Default revision is the last one looked up.
+
+        """
         if rev is not None:
             self.seek(rev)
         return WindowDictFutureView(self._future)
 
     def past(self, rev=None):
-        """Return a Mapping of items at or before the given revision."""
+        """Return a Mapping of items at or before the given revision.
+
+        Default revision is the last one looked up.
+
+        """
         if rev is not None:
             self.seek(rev)
         return WindowDictPastView(self._past)

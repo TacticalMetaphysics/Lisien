@@ -357,6 +357,12 @@ class Cache(Signal):
         return ret
 
     def _get_keycache(self, parentity, branch, turn, tick, *, forward):
+        """Get a frozenset of keys that exist in the entity at the moment.
+
+        With ``forward=True``, enable an optimization that copies old key sets
+        forward and updates them.
+
+        """
         lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
@@ -375,6 +381,11 @@ class Cache(Signal):
         self.keycache[parent+(entity, branch)][turn][tick] = kc
 
     def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
+        """Return a pair of ``(added, deleted)`` sets describing changes since ``stoptime``.
+
+        With ``stoptime=None`` (the default), ``added`` will in fact be all keys.
+
+        """
         added = set()
         deleted = set()
         for key, branches in cache.items():
@@ -496,6 +507,7 @@ class Cache(Signal):
         self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
 
     def _remove_keycache(self, entity_branch, turn, tick):
+        """Remove the future of a given entity from a branch in the keycache"""
         if entity_branch in self.keycache:
             kc = self.keycache[entity_branch]
             if turn in kc:
@@ -542,6 +554,7 @@ class Cache(Signal):
 
     @staticmethod
     def _iter_future_contradictions(entity, key, turns, branch, turn, tick, value):
+        """If setting ``key=value`` would result in a contradiction, iterate over contradicted ``(turn, tick)``s."""
         # assumes that all future entries are in the plan
         if not turns:
             return
@@ -801,6 +814,11 @@ class EdgesCache(Cache):
                                 yield trn, tck
 
     def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
+        """Take the successors or predecessors cache and get nodes added or deleted from it
+
+        Operates like ``_get_adds_dels``.
+
+        """
         added = set()
         deleted = set()
         for node, nodes in cache.items():
@@ -814,6 +832,7 @@ class EdgesCache(Cache):
         return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
+        """Return a set of destination nodes succeeding ``orig``"""
         lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.destcache, self.successors, self._adds_dels_sucpred, (graph, orig),
@@ -821,6 +840,7 @@ class EdgesCache(Cache):
         )
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
+        """Return a set of origin nodes leading to ``dest``"""
         lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.origcache, self.predecessors, self._adds_dels_sucpred, (graph, dest),

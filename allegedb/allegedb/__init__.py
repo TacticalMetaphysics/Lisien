@@ -686,6 +686,7 @@ class ORM(object):
             self._copy_plans(curbranch, curturn, curtick)
 
     def _copy_plans(self, branch_from, turn_from, tick_from):
+        """Collect all plans that are active at the given time and copy them to the current branch"""
         plan_ticks = self._plan_ticks
         plan_ticks_uncommitted = self._plan_ticks_uncommitted
         time_plan = self._time_plan
@@ -723,13 +724,7 @@ class ORM(object):
                         turn_end_plan[branch, turn] = tick
 
     def _delete_plan(self, plan):
-        """The plan has been contradicted, so delete the rest of it
-
-        Though this takes the turn and tick of the contradicted change, all of
-        the plan that has not yet come to pass will be deleted, even if the given
-        turn and tick are far in the future.
-
-        """
+        """The plan has been contradicted, so delete the rest of it"""
         branch, turn, tick = self.btt()
         to_delete = []
         plan_ticks = self._plan_ticks[plan]
