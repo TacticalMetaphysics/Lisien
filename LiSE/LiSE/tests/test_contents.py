@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pytest
+from allegedb.window import HistoryError
 
 
 @pytest.fixture(scope='function')
@@ -52,7 +53,10 @@ def test_contents_over_time(chara):
     correct_contents.remove(8)
     assert set(place.content.keys()) == correct_contents
     chara.engine.turn = 5
-    del chara.thing[5]  # starts new branch
+    with pytest.raises(HistoryError):
+        del chara.thing[5]
+    chara.engine.branch = 'b'
+    del chara.thing[5]
     assert set(place.content.keys()) == {1, 2, 3, 4}
 
 
