@@ -501,7 +501,7 @@ class NodeContentsCache(Cache):
         self.db.time = branch, turn
         self.db.tick = tick
         for thing in self.db.character[character].thing.values():
-            if thing.location.name == place:
+            if thing['location'] == place:
                 yield thing.name
         self.db.time = branch_now, turn_now
         self.db.tick = tick_now
