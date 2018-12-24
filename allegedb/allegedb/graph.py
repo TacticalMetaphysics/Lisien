@@ -476,18 +476,17 @@ class GraphNodeMapping(AllegedMapping):
         is made with them, perhaps clearing out the one already there.
 
         """
-        branch, turn, tick = self.db.nbtt()
-        created = node not in self
-        n = self.db._get_node(self.graph, node)
+        created = False
+        db = self.db
+        graph = self.graph
+        gname = graph.name
+        if not db._node_exists(gname, node):
+            created = True
+            db._exist_node(gname, node, True)
+        n = db._get_node(graph, node)
         n.clear()
         n.update(dikt)
         if created:
-            self.db.query.exist_node(
-                self.graph.name,
-                node,
-                branch, turn, tick,
-                True
-            )
             self.send(self, node_name=node, exists=True)
 
     def __delitem__(self, node):
