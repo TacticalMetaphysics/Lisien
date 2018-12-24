@@ -298,7 +298,7 @@ class ORM(object):
         if key in self._node_objs:
             return self._node_objs[key]
         if not self._node_exists(graph.name, node):
-            self._exist_node(graph.name, node)
+            raise KeyError("No such node: {} in {}".format(node, graph.name))
         ret = self._make_node(graph, node)
         self._node_objs[key] = ret
         return ret

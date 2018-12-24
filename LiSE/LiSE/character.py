@@ -1554,6 +1554,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             return cache[(self.name, place)]
 
         def __setitem__(self, place, v):
+            engine = self.engine
+            charn = self.character.name
+            if not engine._node_exists(charn, place):
+                self.engine._exist_node(charn, place, True)
             pl = self.engine._get_node(self.character, place)
             if not isinstance(pl, Place):
                 raise KeyError("{} is not a place".format(place))
@@ -1844,17 +1848,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 if mykey is None:
                     raise AttributeError("No avatar, or more than one")
                 return self.engine._get_node(self.engine.character[self.graph], mykey)
-
-            def __setitem__(self, k, v):
-                mykey = singleton_get(self.keys())
-                if mykey is None:
-                    raise AmbiguousAvatarError(
-                        "More than one avatar in {}; "
-                        "be more specific to set the stats of one.".format(
-                            self.graph
-                        )
-                    )
-                self.engine._get_node(self.graph, mykey)[k] = v
 
             def __repr__(self):
                 return "{}.character[{}].avatar".format(repr(self.engine), repr(self.name))
