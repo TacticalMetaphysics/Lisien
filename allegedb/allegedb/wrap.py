@@ -95,6 +95,8 @@ class MutableMappingUnwrapper(MutableMapping):
     __slots__ = ()
 
     def __eq__(self, other):
+        if self is other:
+            return True
         if not isinstance(other, Mapping):
             return NotImplemented
         if self.keys() != other.keys():
@@ -145,6 +147,8 @@ class SubDictWrapper(MutableMappingWrapper, dict):
 
 class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
     def __eq__(self, other):
+        if self is other:
+            return True
         if not isinstance(other, Sequence):
             return NotImplemented
         for me, you in zip_longest(self, other):
@@ -269,6 +273,8 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         self._setter = setter
 
     def __eq__(self, other):
+        if self is other:
+            return True
         if not isinstance(other, Sequence):
             return NotImplemented
         for me, you in zip_longest(self, other):
