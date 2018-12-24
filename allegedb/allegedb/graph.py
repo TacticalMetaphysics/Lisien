@@ -238,7 +238,7 @@ class GraphMapping(AbstractEntityMapping):
         )
 
     def clear(self):
-        keys = list(self.keys())
+        keys = set(self.keys())
         keys.remove('name')
         for k in keys:
             del self[k]
