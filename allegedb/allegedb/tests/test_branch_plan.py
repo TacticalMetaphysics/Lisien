@@ -87,6 +87,37 @@ def test_multi_plan(orm):
     assert 2 in g2.edge[1]
 
 
+def test_plan_vs_plan(orm):
+    g1 = orm.new_graph(1)
+    with orm.plan():
+        g1.add_node(1)
+        g1.add_node(2)
+        orm.turn = 1
+        g1.add_edge(1, 2)
+        g1.add_node(3)
+        g1.add_edge(3, 1)
+    assert orm.turn == 0
+    with orm.plan():
+        g1.add_node(0)  # not a contradiction, just two plans
+        g1.add_edge(0, 1)
+    orm.turn = 1
+    assert 0 in g1.node
+    assert 1 in g1.node
+    assert 2 in g1.node
+    assert 3 in g1.node
+    assert 1 in g1.edge[0]
+    assert 2 in g1.edge[1]
+    orm.turn = 0
+    with orm.plan():
+        del g1.node[2]
+    orm.turn = 0  # go to turn end
+    assert 2 not in g1.node
+    orm.turn = 2
+    assert 3 not in g1.node
+    assert 3 not in g1.adj
+    assert 0 in g1.node
+    assert 1 in g1.adj[0]
+
 def test_save_load_plan():
     dbfile = 'sqlite:///test_save_load_plan.db'
     if os.path.exists('test_save_load_plan.db'):
