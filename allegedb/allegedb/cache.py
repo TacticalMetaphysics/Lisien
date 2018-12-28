@@ -466,6 +466,14 @@ class Cache(Signal):
                             del trn[tick]
                             if not trn:
                                 del branhc[turn]
+                                if not branhc:
+                                    del kee[branch]
+                                    if not kee:
+                                        del entty[key]
+                                        if not entty:
+                                            del parentt[entity]
+                                            if not parentt:
+                                                del self.parents[parent]
         if branchkey in self.branches:
             entty = self.branches[branchkey]
             if branch in entty:
@@ -474,8 +482,12 @@ class Cache(Signal):
                     trn = branhc[turn]
                     if tick in trn:
                         del trn[tick]
-                    if not trn:
-                        del branhc[turn]
+                        if not trn:
+                            del branhc[turn]
+                            if not branhc:
+                                del entty[branch]
+                                if not entty:
+                                    del self.branches[branchkey]
         if keykey in self.keys:
             entty = self.keys[keykey]
             if key in entty:
@@ -486,8 +498,14 @@ class Cache(Signal):
                         trn = entty[turn]
                         if tick in trn:
                             del trn[tick]
-                        if not trn:
-                            del branhc[turn]
+                            if not trn:
+                                del branhc[turn]
+                                if not branhc:
+                                    del kee[branch]
+                                    if not kee:
+                                        del entty[key]
+                                        if not entty:
+                                            del self.keys[keykey]
         branhc = self.settings[branch]
         pbranhc = self.presettings[branch]
         trn = branhc[turn]
@@ -496,12 +514,12 @@ class Cache(Signal):
             del trn[tick]
         if tick in ptrn:
             del ptrn[tick]
-        if not trn:
-            del branhc[turn]
-            del pbranhc[turn]
-        if not branhc:
-            del self.settings[branch]
-            del self.presettings[branch]
+            if not ptrn:
+                del pbranhc[turn]
+                del branhc[turn]
+                if not pbranhc:
+                    del self.settings[branch]
+                    del self.presettings[branch]
         self.shallowest = OrderedDict()
         self._remove_keycache(parent + (entity, branch), turn, tick)
         self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
@@ -604,19 +622,20 @@ class Cache(Signal):
                         tick, turn, branch
                     )
                 )
-        else:
-            contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
-            delete_plan = self.db._delete_plan
-            time_plan = self.db._time_plan
-            if contras:
-                shallowest = self.shallowest = OrderedDict()
-            for contra_turn, contra_tick in contras:
-                if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
-                    delete_plan(time_plan[branch, contra_turn, contra_tick])
+        contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
+        delete_plan = self.db._delete_plan
+        time_plan = self.db._time_plan
+        if contras:
+            shallowest = self.shallowest = OrderedDict()
+        for contra_turn, contra_tick in contras:
+            if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
+                delete_plan(time_plan[branch, contra_turn, contra_tick])
+        if not turns:
+            branches[branch] = turns
+        if not loading and not planning:
             parbranch, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
-            if not loading:
-                self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
-                self.db._turn_end[branch, turn] = tick
+            self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
+            self.db._turn_end[branch, turn] = tick
         self._store_journal(*args)
         shallowest[parent + (entity, key, branch, turn, tick)] = value
         while len(shallowest) > KEYCACHE_MAXSIZE:
