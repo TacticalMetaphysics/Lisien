@@ -614,7 +614,6 @@ class Cache(Signal):
                 branches = self.branches[entity, key]
                 self.keys[entity,][key] = branches
                 turns = branches[branch]
-        shallowest = self.shallowest
         if planning:
             if turn in turns and tick < turns[turn].end:
                 raise HistoryError(
@@ -625,8 +624,6 @@ class Cache(Signal):
         contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
         delete_plan = self.db._delete_plan
         time_plan = self.db._time_plan
-        if contras:
-            shallowest = self.shallowest = OrderedDict()
         for contra_turn, contra_tick in contras:
             if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
                 delete_plan(time_plan[branch, contra_turn, contra_tick])
@@ -637,7 +634,8 @@ class Cache(Signal):
             self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
             self.db._turn_end[branch, turn] = tick
         self._store_journal(*args)
-        shallowest[parent + (entity, key, branch, turn, tick)] = value
+        self.shallowest[parent + (entity, key, branch, turn, tick)] = value
+        shallowest = self.shallowest
         while len(shallowest) > KEYCACHE_MAXSIZE:
             shallowest.popitem(False)
         if turn in turns:
