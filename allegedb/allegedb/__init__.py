@@ -55,7 +55,7 @@ class PlanningContext(ContextDecorator):
     New branches cannot be started within plans.
 
     """
-    __slots__ = ['orm', 'time', 'id']
+    __slots__ = ['orm', 'id']
 
     def __init__(self, orm):
         self.orm = orm
@@ -65,7 +65,7 @@ class PlanningContext(ContextDecorator):
         if orm._planning:
             raise ValueError("Already planning")
         orm._planning = True
-        self.time = branch, turn, tick = orm.btt()
+        branch, turn, tick = orm.btt()
         self.id = myid = orm._last_plan = orm._last_plan + 1
         orm._plans[myid] = branch, turn, tick
         orm._plans_uncommitted.append((myid, branch, turn, tick))
@@ -73,7 +73,6 @@ class PlanningContext(ContextDecorator):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm._obranch, self.orm._oturn, self.orm._otick = self.time
         self.orm._planning = False
 
 

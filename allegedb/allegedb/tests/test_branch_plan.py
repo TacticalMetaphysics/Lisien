@@ -23,7 +23,7 @@ def test_single_plan(orm):
         g.add_node(3)
         orm.turn = 4
         g.node[2]['successful'] = True
-    assert orm.turn == 1
+    orm.turn = 1
     assert 2 not in g.node
     orm.branch = 'b'
     assert 2 not in g.node
@@ -68,14 +68,12 @@ def test_multi_plan(orm):
         g1.add_node(2)
         orm.turn = 1
         g1.add_edge(1, 2)
-    assert orm.turn == 0
+    orm.turn = 0
     with orm.plan():
         g2.add_node(1)
         g2.add_node(2)
         orm.turn = 1
         g2.add_edge(1, 2)
-    assert orm.turn == 0
-    # go to end of turn
     orm.turn = 0
     # contradict the plan
     del g1.node[2]
@@ -96,7 +94,7 @@ def test_plan_vs_plan(orm):
         g1.add_edge(1, 2)
         g1.add_node(3)
         g1.add_edge(3, 1)
-    assert orm.turn == 0
+    orm.turn = 0
     with orm.plan():
         g1.add_node(0)  # not a contradiction, just two plans
         g1.add_edge(0, 1)
@@ -130,13 +128,13 @@ def test_save_load_plan():
             g1.add_node(2)
             orm.turn = 1
             g1.add_edge(1, 2)
-        assert orm.turn == 0
+        orm.turn = 0
         with orm.plan():
             g2.add_node(1)
             g2.add_node(2)
             orm.turn = 1
             g2.add_edge(1, 2)
-        assert orm.turn == 0
+        orm.turn = 0
     with allegedb.ORM(dbfile) as orm:
         g1 = orm.graph[1]
         g2 = orm.graph[2]
