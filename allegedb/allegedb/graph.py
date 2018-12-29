@@ -244,7 +244,7 @@ class GraphMapping(AbstractEntityMapping):
             del self[k]
 
     def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
+        return {k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for (k, v) in self.items()}
 
 
 class Node(AbstractEntityMapping):
@@ -443,9 +443,9 @@ class GraphNodeMapping(AllegedMapping):
         for k in self.keys():
             me = self[k]
             you = other[k]
-            if hasattr(me, 'unwrap'):
+            if hasattr(me, 'unwrap') and not hasattr(me, 'no_unwrap'):
                 me = me.unwrap()
-            if hasattr(you, 'unwrap'):
+            if hasattr(you, 'unwrap') and not hasattr(you, 'no_unwrap'):
                 you = you.unwrap()
             if me != you:
                 return False
