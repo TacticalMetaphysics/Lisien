@@ -650,13 +650,6 @@ class TurnDict(FuturistWindowDict):
     __slots__ = ('_future', '_past')
     cls = FuturistWindowDict
 
-    def __getitem__(self, rev):
-        if self.rev_gettable(rev):
-            return FuturistWindowDict.__getitem__(self, rev)
-        else:
-            ret = self[rev] = FuturistWindowDict()
-            return ret
-
     def __setitem__(self, turn, value):
         if type(value) is not FuturistWindowDict:
             value = FuturistWindowDict(value)
@@ -666,13 +659,6 @@ class TurnDict(FuturistWindowDict):
 class SettingsTurnDict(WindowDict):
     __slots__ = ('_future', '_past')
     cls = WindowDict
-
-    def __getitem__(self, rev):
-        if self.rev_gettable(rev):
-            return WindowDict.__getitem__(self, rev)
-        else:
-            ret = self[rev] = WindowDict()
-            return ret
 
     def __setitem__(self, turn, value):
         if type(value) is not WindowDict:

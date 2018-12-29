@@ -352,7 +352,7 @@ class Cache(Signal):
                 keycache[keycache_key][turn] = {tick: ret}
         else:
             kcc = SettingsTurnDict()
-            kcc[turn][tick] = ret
+            kcc[turn] = {tick: ret}
             keycache[keycache_key] = kcc
         return ret
 
