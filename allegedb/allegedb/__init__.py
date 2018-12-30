@@ -52,10 +52,12 @@ class PlanningContext(ContextDecorator):
     of the plan, in which case the world will obey those, and cancel any
     future plan.
 
-    New branches cannot be started within plans.
+    New branches cannot be started within plans. The ``with orm.forward():``
+    optimization is disabled within a ``with orm.plan():`` block, so
+    consider another approach instead of making a very large plan.
 
     """
-    __slots__ = ['orm', 'id']
+    __slots__ = ['orm', 'id', 'forward']
 
     def __init__(self, orm):
         self.orm = orm
@@ -67,6 +69,9 @@ class PlanningContext(ContextDecorator):
         orm._planning = True
         branch, turn, tick = orm.btt()
         self.id = myid = orm._last_plan = orm._last_plan + 1
+        self.forward = orm._forward
+        if orm._forward:
+            orm._forward = False
         orm._plans[myid] = branch, turn, tick
         orm._plans_uncommitted.append((myid, branch, turn, tick))
         orm._branches_plans[branch].add(myid)
@@ -74,6 +79,8 @@ class PlanningContext(ContextDecorator):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.orm._planning = False
+        if self.forward:
+            self.orm._forward = True
 
 
 class TimeSignal(Signal):
@@ -161,7 +168,7 @@ class TimeSignalDescriptor:
             return
         e = real.engine
         # enforce the arrow of time, if it's in effect
-        if e._forward:
+        if e._forward and not e._planning:
             if branch_now != branch_then:
                 raise TimeError("Can't change branches in a forward context")
             if turn_now < turn_then:

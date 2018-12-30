@@ -167,7 +167,7 @@ class Cache(Signal):
     def __init__(self, db):
         super().__init__()
         self.db = db
-        self.parents = StructuredDefaultDict(3, TurnDict)
+        self.parents = StructuredDefaultDict(3, SettingsTurnDict)
         """Entity data keyed by the entities' parents.
 
         An entity's parent is what it's contained in. When speaking of a node,
@@ -178,7 +178,7 @@ class Cache(Signal):
         Deeper layers of this cache are keyed by branch and revision.
 
         """
-        self.keys = StructuredDefaultDict(2, TurnDict)
+        self.keys = StructuredDefaultDict(2, SettingsTurnDict)
         """Cache of entity data keyed by the entities themselves.
 
         That means the whole tuple identifying the entity is the
@@ -190,7 +190,7 @@ class Cache(Signal):
         """
         self.keycache = PickyDefaultDict(SettingsTurnDict)
         """Keys an entity has at a given turn and tick."""
-        self.branches = StructuredDefaultDict(1, TurnDict)
+        self.branches = StructuredDefaultDict(1, SettingsTurnDict)
         """A less structured alternative to ``keys``.
 
         For when you already know the entity and the key within it,
