@@ -466,14 +466,14 @@ class Cache(Signal):
                             del trn[tick]
                             if not trn:
                                 del branhc[turn]
-                                if not branhc:
-                                    del kee[branch]
-                                    if not kee:
-                                        del entty[key]
-                                        if not entty:
-                                            del parentt[entity]
-                                            if not parentt:
-                                                del self.parents[parent]
+                            if not branhc:
+                                del kee[branch]
+                    if not kee:
+                        del entty[key]
+                if not entty:
+                    del parentt[entity]
+            if not parentt:
+                del self.parents[parent]
         if branchkey in self.branches:
             entty = self.branches[branchkey]
             if branch in entty:
@@ -482,12 +482,12 @@ class Cache(Signal):
                     trn = branhc[turn]
                     if tick in trn:
                         del trn[tick]
-                        if not trn:
-                            del branhc[turn]
-                            if not branhc:
-                                del entty[branch]
-                                if not entty:
-                                    del self.branches[branchkey]
+                    if not trn:
+                        del branhc[turn]
+                if not branhc:
+                    del entty[branch]
+            if not entty:
+                del self.branches[branchkey]
         if keykey in self.keys:
             entty = self.keys[keykey]
             if key in entty:
@@ -498,14 +498,14 @@ class Cache(Signal):
                         trn = entty[turn]
                         if tick in trn:
                             del trn[tick]
-                            if not trn:
-                                del branhc[turn]
-                                if not branhc:
-                                    del kee[branch]
-                                    if not kee:
-                                        del entty[key]
-                                        if not entty:
-                                            del self.keys[keykey]
+                        if not trn:
+                            del branhc[turn]
+                    if not branhc:
+                        del kee[branch]
+                if not kee:
+                    del entty[key]
+            if not entty:
+                del self.keys[keykey]
         branhc = self.settings[branch]
         pbranhc = self.presettings[branch]
         trn = branhc[turn]
@@ -514,12 +514,12 @@ class Cache(Signal):
             del trn[tick]
         if tick in ptrn:
             del ptrn[tick]
-            if not ptrn:
-                del pbranhc[turn]
-                del branhc[turn]
-                if not pbranhc:
-                    del self.settings[branch]
-                    del self.presettings[branch]
+        if not ptrn:
+            del pbranhc[turn]
+            del branhc[turn]
+        if not pbranhc:
+            del self.settings[branch]
+            del self.presettings[branch]
         self.shallowest = OrderedDict()
         self._remove_keycache(parent + (entity, branch), turn, tick)
         self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
@@ -649,7 +649,9 @@ class Cache(Signal):
             new[tick] = value
             turns[turn] = new
         self.time_entity[branch, turn, tick] = parent, entity, key
-        self.db._where_cached[args[-4:-1]].append(self)
+        where_cached = self.db._where_cached[args[-4:-1]]
+        if self not in where_cached:
+            where_cached.append(self)
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache

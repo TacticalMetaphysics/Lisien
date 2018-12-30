@@ -463,6 +463,15 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
+    def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
+        setb = self.settings[branch]
+        if turn in setb:
+            for tck in setb[turn].future():
+                yield turn, tck
+        for trn, tcks in setb.future(turn).items():
+            for tck in tcks:
+                yield trn, tck
+
     def _store(self, *args, planning, loading=False):
         character, thing, branch, turn, tick, location = args
         try:
@@ -496,6 +505,9 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
+    def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
+        return self.db._things_cache._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
+
     def slow_iter_contents(self, character, place, branch, turn, tick):
         branch_now, turn_now, tick_now = self.db.btt()
         self.db.time = branch, turn
