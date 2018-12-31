@@ -478,6 +478,7 @@ class WindowDict(MutableMapping):
     def truncate(self, rev: int) -> None:
         """Delete everything after the given revision."""
         self.seek(rev)
+        self._keys.difference_update(map(get0, self._future))
         self._future = []
 
     @property
