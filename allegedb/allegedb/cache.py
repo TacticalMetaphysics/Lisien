@@ -652,6 +652,16 @@ class Cache(Signal):
         where_cached = self.db._where_cached[args[-4:-1]]
         if self not in where_cached:
             where_cached.append(self)
+        # if we're editing the past, have to invalidate the keycache
+        keycache_key = parent + (entity, branch)
+        keycache = self.keycache
+        if keycache_key in keycache:
+            thiskeycache = keycache[keycache_key]
+            if turn in thiskeycache:
+                del thiskeycache[turn]
+            thiskeycache.truncate(turn)
+            if not thiskeycache:
+                del keycache[keycache_key]
 
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
