@@ -66,7 +66,7 @@ def test_contents_in_plan(chara):
     for th in correct_contents:
         place.new_thing(th)
     with chara.engine.plan():
-        for i in range(6, 11):
+        for i in range(6, 15):
             chara.engine.turn += 1
             place.new_thing(i)
             del chara.thing[i]
@@ -74,9 +74,24 @@ def test_contents_in_plan(chara):
             place.new_thing(i)
             correct_contents.add(i)
             assert set(place.content) == correct_contents
+    chara.engine.turn = 4
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9}
     chara.engine.turn = 2
     assert set(place.content) == {1, 2, 3, 4, 5, 6, 7}
-    # contradict the plan
+    # this does not contradict the plan
     place.new_thing(11)
-    chara.engine.turn = 5
     assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 11}
+    chara.engine.turn = 4
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 11}
+    # this neither
+    there = chara.new_place('there')
+    chara.thing[9].location = there
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 11}
+    chara.engine.turn = 6
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
+    # but this does
+    chara.engine.turn = 4
+    place.new_thing(10)
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
+    chara.engine.turn = 10
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
