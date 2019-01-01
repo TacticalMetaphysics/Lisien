@@ -21,6 +21,7 @@ from allegedb.cache import (
     HistoryError
 )
 from .util import singleton_get, sort_set
+from collections import OrderedDict
 
 
 class InitializedCache(Cache):
@@ -463,15 +464,6 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
-        setb = self.settings[branch]
-        if turn in setb:
-            for tck in setb[turn].future():
-                yield turn, tck
-        for trn, tcks in setb.future(turn).items():
-            for tck in tcks:
-                yield trn, tck
-
     def _store(self, *args, planning, loading=False):
         character, thing, branch, turn, tick, location = args
         try:
@@ -483,11 +475,15 @@ class ThingsCache(Cache):
         if oldloc is not None:
             oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
             newconts_orig = oldconts_orig.difference({thing})
+            node_contents_cache.truncate_loc(character, oldloc, branch, turn, tick)
             node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+            node_contents_cache.store(character, oldloc, branch, turn, tick+1, None)
         if location is not None:
             oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
             newconts_dest = oldconts_dest.union({thing})
+            node_contents_cache.truncate_loc(character, location, branch, turn, tick)
             node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+            node_contents_cache.store(character, location, branch, turn, tick+1, None)
 
     def turn_before(self, character, thing, branch, turn):
         try:
@@ -526,3 +522,37 @@ class NodeContentsCache(Cache):
             stargs = args + (conts,)
             self.store(*stargs)
             return conts
+
+    def truncate_loc(self, character, location, branch, turn, tick):
+        """Remove future data about a particular location"""
+        branches_turns = self.branches[character, location][branch]
+        branches_turns.truncate(turn)
+        if turn in branches_turns:
+            branches_turns[turn].truncate(tick)
+        keyses = self.keys[character, location]
+        for keysbranches in keyses.values():
+            if branch not in keysbranches:
+                continue
+            keysbranch = keysbranches[branch]
+            keysbranch.truncate(turn)
+            if turn in keysbranch:
+                keysbranch[turn].truncate(tick)
+        if branch in self.settings:
+            for sets in (self.settings, self.presettings):
+                sets_branch = sets[branch]
+                if turn in sets_branch:
+                    sets_turn = sets_branch[turn]
+                    for tic, setting in list(sets_turn.future(tick).items()):
+                        if setting[:2] == (character, location):
+                            del sets_turn[tic]
+                    if not sets_turn:
+                        del sets_branch[turn]
+                for trn, tics in list(sets_branch.future(turn).items()):
+                    for tic, setting in list(tics.future(tick).items()):
+                        if setting[:2] == (character, location):
+                            del tics[tic]
+                    if not tics:
+                        del sets_branch[trn]
+                if not sets_branch:
+                    del sets[branch]
+        self.shallowest = OrderedDict()
