@@ -30,3 +30,17 @@ def test_contents(something):
     assert not something.name in pl2.content
     assert [something] == list(pl1.contents())
     assert [] == list(pl2.contents())
+
+
+def test_travel(engy):
+    phys = engy.new_character('physical')
+    phys.grid_2d_graph(8, 8)
+    del phys.place[1, 1]
+    del phys.place[6, 1]
+    thing1 = phys.place[0, 0].new_thing(1)
+    thing2 = phys.place[7, 0].new_thing(2)
+    thing1.travel_to(phys.place[7, 7])
+    thing2.travel_to(phys.place[0, 7])
+    engy.turn = 8
+    assert thing1.location == phys.place[7, 7]
+    assert thing2.location == phys.place[0, 7]
