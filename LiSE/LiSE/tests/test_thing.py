@@ -41,6 +41,6 @@ def test_travel(engy):
     thing2 = phys.place[7, 0].new_thing(2)
     thing1.travel_to(phys.place[7, 7])
     thing2.travel_to(phys.place[0, 7])
-    engy.turn = 8
+    engy.turn = 14
     assert thing1.location == phys.place[7, 7]
     assert thing2.location == phys.place[0, 7]
