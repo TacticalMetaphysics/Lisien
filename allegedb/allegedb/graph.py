@@ -776,9 +776,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
     def __delitem__(self, key):
         """Delete all edges ending at ``dest``"""
-        if key in self._cache:
-            self._cache[key].clear()
-            del self._cache[key]
+        it = self[key]
+        it.clear()
+        del self._cache[key]
         self.send(self, key=key, val=None)
 
     def __iter__(self):
