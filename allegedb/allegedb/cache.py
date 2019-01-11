@@ -395,27 +395,21 @@ class Cache(Signal):
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
-                        try:
-                            if turnd[trn][tck] is not None:
-                                added.add(key)
-                                break
-                        except HistoryError as ex:
-                            if ex.deleted:
-                                deleted.add(key)
-                                break
+                        if turnd[trn][tck] is None:
+                            deleted.add(key)
+                        else:
+                            added.add(key)
+                        break
                     else:
                         trn -= 1
                 if not turnd.rev_gettable(trn):
                     break
                 tickd = turnd[trn]
-                try:
-                    if tickd[tickd.end] is not None:
-                        added.add(key)
-                        break
-                except HistoryError as ex:
-                    if ex.deleted:
-                        deleted.add(key)
-                        break
+                if tickd[tickd.end] is None:
+                    deleted.add(key)
+                else:
+                    added.add(key)
+                break
         return added, deleted
 
     def store(self, *args, planning=None, forward=None, loading=False):
@@ -626,6 +620,8 @@ class Cache(Signal):
         contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
         delete_plan = self.db._delete_plan
         time_plan = self.db._time_plan
+        if contras:
+            self.shallowest = OrderedDict()
         for contra_turn, contra_tick in contras:
             if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
                 delete_plan(time_plan[branch, contra_turn, contra_tick])
@@ -853,11 +849,9 @@ class EdgesCache(Cache):
         deleted = set()
         for node, nodes in cache.items():
             addidx, delidx = self._get_adds_dels(nodes, branch, turn, tick, stoptime=stoptime)
-            if addidx:
-                assert not delidx
+            if addidx and not delidx:
                 added.add(node)
-            elif delidx:
-                assert delidx and not addidx
+            elif delidx and not addidx:
                 deleted.add(node)
         return added, deleted
 
@@ -911,15 +905,27 @@ class EdgesCache(Cache):
             forward = self.db._forward
         return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))
 
-    def has_successor(self, graph, orig, dest, branch, turn, tick):
-        """Return whether an edge connects the origin to the destination at the given time."""
-        ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
-        return ret is not None and ret is not KeyError
+    def has_successor(self, graph, orig, dest, branch, turn, tick, *, forward=None):
+        """Return whether an edge connects the origin to the destination at the given time.
 
-    def has_predecessor(self, graph, dest, orig, branch, turn, tick):
-        """Return whether an edge connects the destination to the origin at the given time."""
-        ret = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
-        return ret is not None and ret is not KeyError
+        Doesn't require the edge's index, which makes it slower than retrieving a
+        particular edge.
+
+        """
+        if forward is None:
+            forward = self.db._forward
+        return dest in self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
+
+    def has_predecessor(self, graph, dest, orig, branch, turn, tick, *, forward=None):
+        """Return whether an edge connects the destination to the origin at the given time.
+
+        Doesn't require the edge's index, which makes it slower than retrieving a
+        particular edge.
+
+        """
+        if forward is None:
+            forward = self.db._forward
+        return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False):
         if not ex:
@@ -929,6 +935,11 @@ class EdgesCache(Cache):
         Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
-        # if ex:
-        #     assert self.has_successor(graph, orig, dest, branch, turn, tick)
-        #     assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        if ex:
+            assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
+            assert self.has_successor(graph, orig, dest, branch, turn, tick)
+            assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        else:
+            assert self._base_retrieve((graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
+            assert not self.has_successor(graph, orig, dest, branch, turn, tick)
+            assert not self.has_predecessor(graph, dest, orig, branch, turn, tick)

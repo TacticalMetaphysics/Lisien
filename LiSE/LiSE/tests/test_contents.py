@@ -79,19 +79,19 @@ def test_contents_in_plan(chara):
     chara.engine.turn = 2
     assert set(place.content) == {1, 2, 3, 4, 5, 6, 7}
     # this does not contradict the plan
-    place.new_thing(11)
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 11}
+    place.new_thing(15)
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 15}
     chara.engine.turn = 4
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 11}
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 15}
     # this neither
     there = chara.new_place('there')
     chara.thing[9].location = there
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 11}
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
     chara.engine.turn = 6
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
     # but this does
     chara.engine.turn = 4
     place.new_thing(10)
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
     chara.engine.turn = 10
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}

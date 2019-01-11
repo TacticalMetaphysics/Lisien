@@ -580,6 +580,9 @@ class AbstractSuccessors(GraphEdgeMapping):
     db = getatt('graph.db')
     _metacache = defaultdict(dict)
 
+    def _order_nodes(self, node):
+        raise NotImplemented
+
     @property
     def _cache(self):
         return self._metacache[id(self)]
@@ -600,9 +603,10 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __contains__(self, dest):
         """Is there an edge leading to ``dest`` at the moment?"""
+        orig, dest = self._order_nodes(dest)
         return self.db._edges_cache.has_successor(
             self.graph.name,
-            self.orig,
+            orig,
             dest,
             *self.db.btt()
         )
@@ -616,24 +620,31 @@ class AbstractSuccessors(GraphEdgeMapping):
         )
 
     def _make_edge(self, dest):
-        return Edge(self.graph, self.orig, dest)
+        return Edge(self.graph, *self._order_nodes(dest))
 
     def __getitem__(self, dest):
         """Get the edge between my orig and the given node"""
         if dest not in self:
             raise KeyError("No edge {}->{}".format(self.orig, dest))
-        return self.db._get_edge(self.graph, self.orig, dest, 0)
+        orig, dest = self._order_nodes(dest)
+        return self.db._get_edge(self.graph, orig, dest, 0)
 
     def __setitem__(self, dest, value):
         """Set the edge between my orig and the given dest to the given
         value, a mapping.
 
         """
+        real_dest = dest
+        orig, dest = self._order_nodes(dest)
         created = dest not in self
+        if orig not in self.graph.node:
+            self.graph.add_node(orig)
+        if dest not in self.graph.node:
+            self.graph.add_node(dest)
         branch, turn, tick = self.db.nbtt()
         self.db.query.exist_edge(
             self.graph.name,
-            self.orig,
+            orig,
             dest,
             0,
             branch, turn, tick,
@@ -641,24 +652,25 @@ class AbstractSuccessors(GraphEdgeMapping):
         )
         self.db._edges_cache.store(
             self.graph.name,
-            self.orig,
+            orig,
             dest,
             0,
             branch, turn, tick,
             True
         )
-        e = self[dest]
+        e = self[real_dest]
         e.clear()
         e.update(value)
         if created:
-            self.send(self, orig=self.orig, dest=dest, idx=0, exists=True)
+            self.send(self, orig=orig, dest=dest, idx=0, exists=True)
 
     def __delitem__(self, dest):
         """Remove the edge between my orig and the given dest"""
         branch, turn, tick = self.db.nbtt()
+        orig, dest = self._order_nodes(dest)
         self.db.query.exist_edge(
             self.graph.name,
-            self.orig,
+            orig,
             dest,
             0,
             branch, turn, tick,
@@ -666,13 +678,13 @@ class AbstractSuccessors(GraphEdgeMapping):
         )
         self.db._edges_cache.store(
             self.graph.name,
-            self.orig,
+            orig,
             dest,
             0,
             branch, turn, tick,
             None
         )
-        self.send(self, orig=self.orig, dest=dest, idx=0, exists=False)
+        self.send(self, orig=orig, dest=dest, idx=0, exists=False)
 
     def clear(self):
         """Delete every edge with origin at my orig"""
@@ -906,11 +918,15 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             self.send(self, key=orig, val=None)
 
 
-class MultiEdges(GraphEdgeMapping):
+class AbstractMultiEdges(GraphEdgeMapping):
     """Mapping of Edges between two nodes"""
     __slots__ = ('graph', 'orig', 'dest')
 
     db = getatt('graph.db')
+
+    def _order_nodes(self):
+        """Swap my orig and dest if desired"""
+        raise NotImplemented
 
     def __init__(self, graph, orig, dest):
         super().__init__(graph)
@@ -918,8 +934,9 @@ class MultiEdges(GraphEdgeMapping):
         self.dest = dest
 
     def __iter__(self):
+        orig, dest = self._order_nodes()
         return self.db._edges_cache.iter_keys(
-            self.graph.name, self.orig, self.dest,
+            self.graph.name, orig, dest,
             *self.db.btt()
         )
 
@@ -931,13 +948,15 @@ class MultiEdges(GraphEdgeMapping):
         return n
 
     def __contains__(self, i):
+        orig, dest = self._order_nodes()
         return self.db._edges_cache.contains_key(
-            self.graph.name, self.orig, self.dest, i,
+            self.graph.name, orig, dest, i,
             *self.db.btt()
         )
 
     def _getedge(self, idx):
-        return self.db._get_edge(self.graph, self.orig, self.dest, idx)
+        orig, dest = self._order_nodes()
+        return self.db._get_edge(self.graph, orig, dest, idx)
 
     def __getitem__(self, idx):
         """Get an Edge with a particular index, if it exists at the present
@@ -953,12 +972,17 @@ class MultiEdges(GraphEdgeMapping):
         Edge first, if necessary.
 
         """
-        branch, turn, tick = self.db.nbtt()
+        orig, dest = self._order_nodes()
         created = idx not in self
+        if orig not in self.graph.node:
+            self.graph.add_node(orig)
+        if dest not in self.graph.node:
+            self.graph.add_node(dest)
+        branch, turn, tick = self.db.nbtt()
         self.db.query.exist_edge(
             self.graph.name,
-            self.orig,
-            self.dest,
+            orig,
+            dest,
             idx,
             branch, turn, tick,
             True
@@ -967,27 +991,27 @@ class MultiEdges(GraphEdgeMapping):
         e.clear()
         e.update(val)
         self.db._edges_cache.store(
-            self.graph.name, self.orig, self.dest, idx,
+            self.graph.name, orig, dest, idx,
             branch, turn, tick, True
         )
         if created:
-            self.send(self, orig=self.orig, dest=self.dest, idx=idx, exists=True)
+            self.send(self, orig=orig, dest=dest, idx=idx, exists=True)
 
     def __delitem__(self, idx):
         """Delete the edge at a particular index"""
         branch, turn, tick = self.db.btt()
+        orig, dest = self._order_nodes()
         tick += 1
         e = self._getedge(idx)
-        if not e.exists:
-            raise KeyError("No edge at that index")
         e.clear()
-        del self._cache[idx]
+        if idx in self._cache:
+            del self._cache[idx]
         self.db._edges_cache.store(
-            self.graph.name, self.orig, self.dest, idx,
+            self.graph.name, orig, dest, idx,
             branch, turn, tick, None
         )
         self.db.tick = tick
-        self.send(self, orig=self.orig, dest=self.dest, idx=idx, exists=False)
+        self.send(self, orig=orig, dest=dest, idx=idx, exists=False)
 
     def clear(self):
         """Delete all edges between these nodes"""
@@ -1031,9 +1055,22 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
         """Edges succeeding a given node in a multigraph"""
         __slots__ = ('graph', 'container', 'orig', '_multedge')
 
+        class MultiEdges(AbstractMultiEdges):
+            def _order_nodes(self):
+                if self.dest < self.orig:
+                    return (self.dest, self.orig)
+                else:
+                    return (self.orig, self.dest)
+
         def __init__(self, container, orig):
             super().__init__(container, orig)
             self._multedge = {}
+
+        def __contains__(self, item):
+            orig, dest = self._order_nodes(item)
+            return self.db._edges_cache.has_successor(
+                self.graph.name, orig, dest, *self.db.btt()
+            )
 
         def _order_nodes(self, dest):
             if dest < self.orig:
@@ -1043,7 +1080,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
         def _get_multedge(self, dest):
             if dest not in self._multedge:
-                self._multedge[dest] = MultiEdges(
+                self._multedge[dest] = self.MultiEdges(
                     self.graph, *self._order_nodes(dest)
                 )
             return self._multedge[dest]
@@ -1059,7 +1096,10 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
             between my ``orig`` and the given ``dest``
 
             """
-            self[dest].update(val)
+            it = self[dest]
+            it.clear()
+            it.update(val)
+            assert dest in self
             self.send(self, key=dest, val=val)
 
         def __delitem__(self, dest):
@@ -1077,9 +1117,13 @@ class MultiDiGraphPredecessorsMapping(DiGraphPredecessorsMapping):
         """Predecessor edges from a given node"""
         __slots__ = ('graph', 'container', 'dest')
 
+        class MultiEdges(AbstractMultiEdges):
+            def _order_nodes(self):
+                return self.orig, self.dest
+
         def __getitem__(self, orig):
             """Get MultiEdges"""
-            return MultiEdges(self.graph, orig, self.dest)
+            return self.MultiEdges(self.graph, orig, self.dest)
 
         def __setitem__(self, orig, val):
             self[orig].update(val)
@@ -1095,6 +1139,11 @@ class MultiDiGraphSuccessorsMapping(MultiGraphSuccessorsMapping):
 
     class Successors(MultiGraphSuccessorsMapping.Successors):
         __slots__ = ('graph', 'container', 'orig', '_multedge')
+
+        class MultiEdges(AbstractMultiEdges):
+            def _order_nodes(self):
+                return self.orig, self.dest
+
         def _order_nodes(self, dest):
             return self.orig, dest
 
@@ -1274,12 +1323,16 @@ class DiGraph(AllegedGraph, networkx.DiGraph):
                 raise NetworkXError(
                     "The attr_dict argument must be a dictionary."
                 )
-        datadict = self.adj[u].get(v, {})
-        datadict.update(attr_dict)
         if u not in self.node:
             self.node[u] = {}
         if v not in self.node:
             self.node[v] = {}
+        if u in self.adj:
+            datadict = self.adj[u].get(v, {})
+        else:
+            self.adj[u] = {v: {}}
+            datadict = self.adj[u][v]
+        datadict.update(attr_dict)
         self.succ[u][v] = datadict
         assert u in self.succ, "Failed to add edge {u}->{v} ({u} not in successors)".format(u=u, v=v)
         assert v in self.succ[u], "Failed to add edge {u}->{v} ({v} not in succ[{u}])".format(u=u, v=v)
