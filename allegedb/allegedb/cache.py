@@ -524,6 +524,8 @@ class Cache(Signal):
             kc = self.keycache[entity_branch]
             if turn in kc:
                 kcturn = kc[turn]
+                if tick in kcturn:
+                    del kcturn[tick]
                 kcturn.truncate(tick)
                 if not kcturn:
                     del kc[turn]

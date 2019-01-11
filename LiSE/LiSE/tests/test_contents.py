@@ -87,11 +87,13 @@ def test_contents_in_plan(chara):
     there = chara.new_place('there')
     chara.thing[9].location = there
     assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
-    chara.engine.turn = 6
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
-    # but this does
-    chara.engine.turn = 4
-    place.new_thing(10)
+    chara.engine.turn = 5
     assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
     chara.engine.turn = 10
-    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
+    assert set(place.content) == correct_contents.union({15}).difference({9})
+    # but this does
+    chara.engine.turn = 5
+    place.new_thing(11)
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
+    chara.engine.turn = 10
+    assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
