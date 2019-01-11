@@ -48,7 +48,7 @@ import networkx as nx
 from allegedb.graph import (
     DiGraph,
     GraphNodeMapping,
-    GraphSuccessorsMapping,
+    DiGraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
 from allegedb.wrap import MutableMappingUnwrapper
@@ -1606,7 +1606,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 del self.character.place[k]
     node_map_cls = ThingPlaceMapping
 
-    class PortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
+    class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
         """Mapping of nodes that have at least one outgoing edge.
 
         Maps them to another mapping, keyed by the destination nodes,
@@ -1643,7 +1643,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             super().__delitem__(orig)
             self.send(self, key=orig, val=None)
 
-        class Successors(GraphSuccessorsMapping.Successors):
+        class Successors(DiGraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
 
             engine = getatt('graph.engine')
