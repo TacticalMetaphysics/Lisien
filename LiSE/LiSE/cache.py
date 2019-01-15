@@ -485,7 +485,15 @@ class ThingsCache(Cache):
                 # generate it from scratch
                 node_contents_cache.store(character, oldloc, branch, turn, tick+1, None)
             else:
-                node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+                try:
+                    node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+                except HistoryError:
+                    # For some reason there's a possibility for there to be future contents data
+                    # but not future location data.
+                    # I don't understand this but I can handle it this way
+                    node_contents_cache.truncate_loc(character, oldloc, branch, turn, tick)
+                    node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+                    node_contents_cache.store(character, oldloc, branch, turn, tick + 1, None)
         if location is not None:
             oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
             newconts_dest = oldconts_dest.union({thing})
@@ -494,7 +502,12 @@ class ThingsCache(Cache):
                 node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
                 node_contents_cache.store(character, location, branch, turn, tick+1, None)
             else:
-                node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+                try:
+                    node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+                except HistoryError:
+                    node_contents_cache.truncate_loc(character, location, branch, turn, tick)
+                    node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+                    node_contents_cache.store(character, location, branch, turn, tick+1, None)
 
     def turn_before(self, character, thing, branch, turn):
         try:
