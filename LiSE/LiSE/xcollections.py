@@ -223,7 +223,7 @@ class FunctionStore(Signal):
     def get_source(self, name):
         return unparse(self._ast.body[self._ast_idx[name]])
 
-    def truth(self):
+    def truth(self, *args):
         return True
 
 
