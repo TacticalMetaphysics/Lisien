@@ -21,6 +21,7 @@ from allegedb.cache import (
     HistoryError
 )
 from .util import singleton_get, sort_set
+from collections import OrderedDict
 
 
 class InitializedCache(Cache):
@@ -86,9 +87,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
+    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False):
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning)
+        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -463,30 +464,50 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def _store(self, *args, planning):
+    def _store(self, *args, planning, loading=False):
         character, thing, branch, turn, tick, location = args
         try:
             oldloc = self.retrieve(character, thing, branch, turn, tick)
         except KeyError:
             oldloc = None
-        super()._store(*args, planning=planning)
+        super()._store(*args, planning=planning, loading=loading)
+        node_contents_cache = self.db._node_contents_cache
+        setsbranch = self.settings[branch]
+        future_location_data = setsbranch.future(turn) or (turn in setsbranch and setsbranch[turn].future(tick))
+        # Cache the contents of nodes
         if oldloc is not None:
-            oldnodecont = self.db._node_contents_cache.retrieve(
-                character, oldloc, branch, turn, tick
-            )
-            self.db._node_contents_cache.store(
-                character, thing, branch, turn, tick, oldnodecont.difference((thing,))
-            )
-        try:
-            newnodecont = self.db._node_contents_cache.retrieve(
-                character, location, branch, turn, tick
-            )
-        except KeyError:
-            newnodecont = frozenset()
-        self.db._node_contents_cache.store(
-            character, location, branch, turn, tick,
-            newnodecont.union((thing,))
-        )
+            oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
+            newconts_orig = oldconts_orig.difference({thing})
+            if future_location_data:
+                node_contents_cache.truncate_loc(character, oldloc, branch, turn, tick)
+                node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+                # Indicate that, if you want a contents cache for anytime after this, you have to
+                # generate it from scratch
+                node_contents_cache.store(character, oldloc, branch, turn, tick+1, None)
+            else:
+                try:
+                    node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+                except HistoryError:
+                    # For some reason there's a possibility for there to be future contents data
+                    # but not future location data.
+                    # I don't understand this but I can handle it this way
+                    node_contents_cache.truncate_loc(character, oldloc, branch, turn, tick)
+                    node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
+                    node_contents_cache.store(character, oldloc, branch, turn, tick + 1, None)
+        if location is not None:
+            oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
+            newconts_dest = oldconts_dest.union({thing})
+            if future_location_data:
+                node_contents_cache.truncate_loc(character, location, branch, turn, tick)
+                node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+                node_contents_cache.store(character, location, branch, turn, tick+1, None)
+            else:
+                try:
+                    node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+                except HistoryError:
+                    node_contents_cache.truncate_loc(character, location, branch, turn, tick)
+                    node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
+                    node_contents_cache.store(character, location, branch, turn, tick+1, None)
 
     def turn_before(self, character, thing, branch, turn):
         try:
@@ -501,3 +522,180 @@ class ThingsCache(Cache):
         except KeyError:
             pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
+
+
+class NodeContentsCache(Cache):
+    def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
+        return self.db._things_cache._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
+
+    def slow_iter_contents(self, character, place, branch, turn, tick):
+        branch_now, turn_now, tick_now = self.db.btt()
+        self.db.time = branch, turn
+        self.db.tick = tick
+        for thing in self.db.character[character].thing.values():
+            if thing['location'] == place:
+                yield thing.name
+        self.db.time = branch_now, turn_now
+        self.db.tick = tick_now
+
+    def retrieve(self, *args):
+        try:
+            return super().retrieve(*args)
+        except (KeyError, HistoryError):
+            conts = frozenset(self.slow_iter_contents(*args))
+            stargs = args + (conts,)
+            self.store(*stargs, planning=True)
+            stnoneargs = args[:-1] + (args[-1]+1, None)
+            self.store(*stnoneargs, planning=True)
+            return conts
+
+    def remove(self, branch, turn, tick):
+        """Delete data on or after this tick
+
+        On the assumption that the future has been invalidated.
+
+        """
+        for parent, entitys in list(self.parents.items()):
+            for entity, keys in list(entitys.items()):
+                for key, branchs in list(keys.items()):
+                    if branch in branchs:
+                        branhc = branchs[branch]
+                        if turn in branhc:
+                            trun = branhc[turn]
+                            if tick in trun:
+                                del trun[tick]
+                            trun.truncate(tick)
+                            if not trun:
+                                del branhc[turn]
+                        branhc.truncate(turn)
+                        if not branhc:
+                            del branchs[branch]
+                    if not branchs:
+                        del keys[key]
+                if not keys:
+                    del entitys[entity]
+            if not entitys:
+                del self.parents[parent]
+        for branchkey, branches in list(self.branches.items()):
+            if branch in branches:
+                branhc = branches[branch]
+                if turn in branhc:
+                    trun = branhc[turn]
+                    if tick in trun:
+                        del trun[tick]
+                    trun.truncate(tick)
+                    if not trun:
+                        del branhc[turn]
+                branhc.truncate(turn)
+                if not branhc:
+                    del branches[branch]
+            if not branches:
+                del self.branches[branchkey]
+        for keykey, keys in list(self.keys.items()):
+            for key, branchs in list(keys.items()):
+                if branch in branchs:
+                    branhc = branchs[branch]
+                    if turn in branhc:
+                        trun = branhc[turn]
+                        if tick in trun:
+                            del trun[tick]
+                        trun.truncate(tick)
+                        if not trun:
+                            del branhc[turn]
+                    branhc.truncate(turn)
+                    if not branhc:
+                        del branches[branch]
+                if not branchs:
+                    del keys[key]
+            if not keys:
+                del self.keys[keykey]
+        sets = self.settings[branch]
+        if turn in sets:
+            setsturn = sets[turn]
+            if tick in setsturn:
+                del setsturn[tick]
+            setsturn.truncate(tick)
+            if not setsturn:
+                del sets[turn]
+        sets.truncate(turn)
+        if not sets:
+            del self.settings[branch]
+        presets = self.presettings[branch]
+        if turn in presets:
+            presetsturn = presets[turn]
+            if tick in presetsturn:
+                del presetsturn[tick]
+            presetsturn.truncate(tick)
+            if not presetsturn:
+                del presets[turn]
+        presets.truncate(turn)
+        if not presets:
+            del self.presettings[branch]
+        for entity, brnch in list(self.keycache):
+            if brnch == branch:
+                kc = self.keycache[entity, brnch]
+                if turn in kc:
+                    kcturn = kc[turn]
+                    if tick in kcturn:
+                        del kcturn[tick]
+                    kcturn.truncate(tick)
+                    if not kcturn:
+                        del kc[turn]
+                kc.truncate(turn)
+                if not kc:
+                    del self.keycache[entity, brnch]
+        self.shallowest = OrderedDict()
+        self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
+
+    def truncate_loc(self, character, location, branch, turn, tick):
+        """Remove future data about a particular location
+
+        Return True if I deleted anything, False otherwise.
+
+        """
+        r = False
+        branches_turns = self.branches[character, location][branch]
+        branches_turns.truncate(turn)
+        if turn in branches_turns:
+            bttrn = branches_turns[turn]
+            if bttrn.future(tick):
+                bttrn.truncate(tick)
+                r = True
+        keyses = self.keys[character, location]
+        for keysbranches in keyses.values():
+            if branch not in keysbranches:
+                continue
+            keysbranch = keysbranches[branch]
+            if keysbranch.future(turn):
+                keysbranch.truncate(turn)
+                r = True
+            if turn in keysbranch:
+                keysbranchturn = keysbranch[turn]
+                if keysbranchturn.future(tick):
+                    keysbranchturn.truncate(tick)
+                    r = True
+        if branch in self.settings:
+            for sets in (self.settings, self.presettings):
+                sets_branch = sets[branch]
+                if turn in sets_branch:
+                    sets_turn = sets_branch[turn]
+                    for tic, setting in list(sets_turn.future(tick).items()):
+                        if setting[:2] == (character, location):
+                            del sets_turn[tic]
+                            r = True
+                    if not sets_turn:
+                        del sets_branch[turn]
+                        assert r, "Found an empty cache when I didn't delete anything"
+                for trn, tics in list(sets_branch.future(turn).items()):
+                    for tic, setting in list(tics.future(tick).items()):
+                        if setting[:2] == (character, location):
+                            del tics[tic]
+                            r = True
+                    if not tics:
+                        del sets_branch[trn]
+                        assert r, "Found an empty cache when I didn't delete anything"
+                if not sets_branch:
+                    del sets[branch]
+                    assert r, "Found an empty cache when I didn't delete anything"
+        self.shallowest = OrderedDict()
+        return r

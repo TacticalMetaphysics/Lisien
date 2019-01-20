@@ -250,7 +250,7 @@ class Portal(Edge, RuleFollower):
             branch, turn, tick, False
         )
         try:
-            del self.engine._portal_objs[
+            del self.engine._edge_objs[
                 (self.graph.name, self.orig, self.dest)
             ]
         except KeyError:

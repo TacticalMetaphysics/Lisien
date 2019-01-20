@@ -774,6 +774,18 @@ class QueryEngine(allegedb.query.QueryEngine):
             ).fetchone()[0]
         )
 
+    def rulebook_set(self, rulebook, branch, turn, tick, rules):
+        # what if the rulebook has other values set afterward? wipe them out, right?
+        # should that happen in the query engine or elsewhere?
+        rulebook, rules = map(self.pack, (rulebook, rules))
+        try:
+            self.sql('rulebooks_insert', rulebook, branch, turn, tick, rules)
+        except IntegrityError:
+            self.sql('rulebooks_update', rules, rulebook, branch, turn, tick)
+
+    def rulebook_del_time(self, branch, turn, tick):
+        self.sql('rulebooks_del_time', branch, turn, tick)
+
     def branch_descendants(self, branch):
         for child in self.sql('branch_children', branch):
             yield child

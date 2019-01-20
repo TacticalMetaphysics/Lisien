@@ -213,6 +213,7 @@ class Thing(Node):
         if len(path) < 2:
             raise ValueError("Paths need at least 2 nodes")
         eng = self.character.engine
+        turn_now, tick_now = eng.time
         with eng.plan():
             prevplace = path.pop(0)
             if prevplace != self['location']:
@@ -245,7 +246,8 @@ class Thing(Node):
                 subsubpath.append(subplace)
                 prevsubplace = subplace
             self.location = subplace
-            return turns_total
+            eng.time = turn_now, tick_now
+        return turns_total
 
     def travel_to(self, dest, weight=None, graph=None):
         """Find the shortest path to the given :class:`Place` from where I am

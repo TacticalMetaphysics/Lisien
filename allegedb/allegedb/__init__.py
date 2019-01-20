@@ -52,24 +52,35 @@ class PlanningContext(ContextDecorator):
     of the plan, in which case the world will obey those, and cancel any
     future plan.
 
-    New branches cannot be started within plans.
+    New branches cannot be started within plans. The ``with orm.forward():``
+    optimization is disabled within a ``with orm.plan():`` block, so
+    consider another approach instead of making a very large plan.
 
     """
-    __slots__ = ['orm', 'time']
+    __slots__ = ['orm', 'id', 'forward']
 
     def __init__(self, orm):
         self.orm = orm
 
     def __enter__(self):
-        if self.orm._planning:
+        orm = self.orm
+        if orm._planning:
             raise ValueError("Already planning")
-        self.orm._planning = True
-        self.time = self.orm.btt()
+        orm._planning = True
+        branch, turn, tick = orm.btt()
+        self.id = myid = orm._last_plan = orm._last_plan + 1
+        self.forward = orm._forward
+        if orm._forward:
+            orm._forward = False
+        orm._plans[myid] = branch, turn, tick
+        orm._plans_uncommitted.append((myid, branch, turn, tick))
+        orm._branches_plans[branch].add(myid)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.orm._obranch, self.orm._oturn, self.orm._otick = self.time
         self.orm._planning = False
+        if self.forward:
+            self.orm._forward = True
 
 
 class TimeSignal(Signal):
@@ -157,7 +168,7 @@ class TimeSignalDescriptor:
             return
         e = real.engine
         # enforce the arrow of time, if it's in effect
-        if e._forward:
+        if e._forward and not e._planning:
             if branch_now != branch_then:
                 raise TimeError("Can't change branches in a forward context")
             if turn_now < turn_then:
@@ -487,6 +498,7 @@ class ORM(object):
     def _init_caches(self):
         from collections import defaultdict
         from .cache import Cache, NodesCache, EdgesCache
+        self._where_cached = defaultdict(list)
         self._global_cache = self.query._global_cache = {}
         self._node_objs = WeakValueDictionary()
         self._edge_objs = WeakValueDictionary()
@@ -510,11 +522,27 @@ class ORM(object):
         self._turn_end_plan = defaultdict(lambda: 0)
         """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
         self._graph_val_cache = Cache(self)
+        self._graph_val_cache.setdb = self.query.graph_val_set
+        self._graph_val_cache.deldb = self.query.graph_val_del_time
         self._nodes_cache = NodesCache(self)
+        self._nodes_cache.setdb = self.query.exist_node
+        self._nodes_cache.deldb = self.query.nodes_del_time
         self._edges_cache = EdgesCache(self)
+        self._edges_cache.setdb = self.query.exist_edge
+        self._edges_cache.deldb = self.query.edges_del_time
         self._node_val_cache = Cache(self)
+        self._node_val_cache.setdb = self.query.node_val_set
+        self._node_val_cache.deldb = self.query.node_val_del_time
         self._edge_val_cache = Cache(self)
+        self._edge_val_cache.setdb = self.query.edge_val_set
+        self._edge_val_cache.deldb = self.query.edge_val_del_time
         self._graph_objs = {}
+        self._plans = {}
+        self._branches_plans = defaultdict(set)
+        self._plan_ticks = defaultdict(lambda: defaultdict(list))
+        self._time_plan = {}
+        self._plans_uncommitted = []
+        self._plan_ticks_uncommitted = []
 
     def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
@@ -585,6 +613,20 @@ class ORM(object):
         self._graph_val_cache.load(self.query.graph_val_dump())
         self._node_val_cache.load(self.query.node_val_dump())
         self._edge_val_cache.load(self.query.edge_val_dump())
+        last_plan = -1
+        plans = self._plans
+        branches_plans = self._branches_plans
+        for plan, branch, turn, tick in self.query.plans_dump():
+            plans[plan] = branch, turn, tick
+            branches_plans[branch].add(plan)
+            if plan > last_plan:
+                last_plan = plan
+        self._last_plan = last_plan
+        plan_ticks = self._plan_ticks
+        time_plan = self._time_plan
+        for plan, turn, tick in self.query.plan_ticks_dump():
+            plan_ticks[plan][turn].append(tick)
+            time_plan[plans[plan][0], turn, tick] = plan
 
     def __enter__(self):
         """Enable the use of the ``with`` keyword"""
@@ -636,7 +678,8 @@ class ORM(object):
                         rv=parturn
                     )
                 )
-        if v not in self._branches:
+        branch_is_new = v not in self._branches
+        if branch_is_new:
             # assumes the present turn in the parent branch has
             # been finalized.
             self.query.new_branch(v, curbranch, curturn, curtick)
@@ -645,6 +688,72 @@ class ORM(object):
             self._turn_end_plan[v, curturn] = self._turn_end[v, curturn] = curtick
         self._obranch = v
         self._otick = self._turn_end_plan[v, curturn]
+        if branch_is_new:
+            self._copy_plans(curbranch, curturn, curtick)
+
+    def _copy_plans(self, branch_from, turn_from, tick_from):
+        """Collect all plans that are active at the given time and copy them to the current branch"""
+        plan_ticks = self._plan_ticks
+        plan_ticks_uncommitted = self._plan_ticks_uncommitted
+        time_plan = self._time_plan
+        plans = self._plans
+        branch = self.branch
+        where_cached = self._where_cached
+        last_plan = self._last_plan
+        turn_end_plan = self._turn_end_plan
+        for plan_id in self._branches_plans[branch_from]:
+            _, start_turn, start_tick = plans[plan_id]
+            if start_turn > turn_from or (start_turn == turn_from and start_tick > tick_from):
+                continue
+            incremented = False
+            for turn, ticks in list(plan_ticks[plan_id].items()):
+                if turn < turn_from:
+                    continue
+                for tick in ticks:
+                    if turn == turn_from and tick < tick_from:
+                        continue
+                    if not incremented:
+                        self._last_plan = last_plan = last_plan + 1
+                        incremented = True
+                        plans[last_plan] = branch, turn, tick
+                    for cache in where_cached[branch_from, turn, tick]:
+                        data = cache.settings[branch_from][turn][tick]
+                        value = data[-1]
+                        key = data[:-1]
+                        args = key + (branch, turn, tick, value)
+                        if hasattr(cache, 'setdb'):
+                            cache.setdb(*args)
+                        cache.store(*args, planning=True)
+                        plan_ticks[last_plan][turn].append(tick)
+                        plan_ticks_uncommitted.append((last_plan, turn, tick))
+                        time_plan[branch, turn, tick] = last_plan
+                        turn_end_plan[branch, turn] = tick
+
+    def _delete_plan(self, plan):
+        """The plan has been contradicted, so delete the rest of it"""
+        branch, turn, tick = self.btt()
+        to_delete = []
+        plan_ticks = self._plan_ticks[plan]
+        for trn, tcks in plan_ticks.items():  # might improve performance to use a WindowDict for plan_ticks
+            if turn == trn:
+                for tck in tcks:
+                    if tck >= tick:
+                        to_delete.append((trn, tck))
+            elif trn > turn:
+                to_delete.extend((trn, tck) for tck in tcks)
+        # Delete stuff that happened at contradicted times, and then delete the times from the plan
+        where_cached = self._where_cached
+        time_plan = self._time_plan
+        for trn, tck in to_delete:
+            for cache in where_cached[branch, trn, tck]:
+                cache.remove(branch, trn, tck)
+                if hasattr(cache, 'deldb'):
+                    cache.deldb(branch, trn, tck)
+            del where_cached[branch, trn, tck]
+            plan_ticks[trn].remove(tck)
+            if not plan_ticks[trn]:
+                del plan_ticks[trn]
+            del time_plan[branch, trn, tck]
 
     # easier to override things this way
     @property
@@ -678,8 +787,6 @@ class ORM(object):
                     "occurs before the start of "
                     "the branch {}".format(v, branch)
                 )
-        if not self._planning and v > turn_end:
-            self._branches[branch] = parent, turn_start, tick_start, v, tick
         self._otick = tick
         self._oturn = v
 
@@ -756,13 +863,14 @@ class ORM(object):
             raise HistoryError(
                 "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
             )
-        if not self._planning:
-            if turn_end != turn:
+        if self._planning:
+            if (turn, tick) in self._plan_ticks[self._last_plan]:
                 raise HistoryError(
-                    "When advancing time outside of a plan, you can't skip turns. Go to turn {}".format(turn_end)
+                    "Trying to make a plan at {}, but that time already happened".format((branch, turn, tick))
                 )
-            self._branches[branch] = parent, turn_start, tick_start, turn_end, tick
-            self._turn_end[branch, turn] = tick
+            self._plan_ticks[self._last_plan][turn].append(tick)
+            self._plan_ticks_uncommitted.append((self._last_plan, turn, tick))
+            self._time_plan[branch, turn, tick] = self._last_plan
         self._otick = tick
         return branch, turn, tick
 
@@ -782,7 +890,13 @@ class ORM(object):
         set_turn = self.query.set_turn
         for (branch, turn), plan_end_tick in self._turn_end_plan.items():
             set_turn(branch, turn, turn_end[branch], plan_end_tick)
+        if self._plans_uncommitted:
+            self.query.plans_insert_many(self._plans_uncommitted)
+        if self._plan_ticks_uncommitted:
+            self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
         self.query.commit()
+        self._plans_uncommitted = []
+        self._plan_ticks_uncommitted = []
 
     def close(self):
         """Write changes to database and close the connection"""

@@ -154,6 +154,23 @@ def tables_for_meta(meta):
             ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
         )
     )
+    Table(
+        'plans', meta,
+        Column('id', INT, primary_key=True),
+        Column('branch', TEXT),
+        Column('turn', INT),
+        Column('tick', INT)
+    )
+    Table(
+        'plan_ticks', meta,
+        Column('plan_id', INT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ('plan_id',),
+            ('plans.id',)
+        )
+    )
     return meta.tables
 
 
@@ -294,9 +311,15 @@ def queries_for_table_dict(table):
             tick = t.columns['tick']
             if branch in key and turn in key and tick in key:
                 key = [branch, turn, tick]
+                r[t.name + '_del_time'] = t.delete().where(and_(
+                    t.c.branch == bindparam('branch'),
+                    t.c.turn == bindparam('turn'),
+                    t.c.tick == bindparam('tick')
+                ))
         r[t.name + '_dump'] = select(list(t.c.values())).order_by(*key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT()]).select_from(t)
+        r[t.name + '_del'] = t.delete().where(and_(*[c == bindparam(c.name) for c in t.primary_key]))
     return r
 
 

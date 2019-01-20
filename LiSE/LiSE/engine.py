@@ -18,20 +18,17 @@ from .util import reify, sort_set
 from . import exc
 
 
-class NoPlanningAttrGetter:
-    __slots__ = ('_real',)
+class getnoplan:
+    """Attribute getter that raises an exception if in planning mode"""
+    __slots__ = ('_getter',)
 
     def __init__(self, attr, *attrs):
-        self._real = attrgetter(attr, *attrs)
+        self._getter = attrgetter(attr, *attrs)
 
-    def __call__(self, obj):
-        if obj._planning:
+    def __get__(self, instance, owner):
+        if instance._planning:
             raise exc.PlanError("Don't use randomization in a plan")
-        return self._real(obj)
-
-
-def getnoplan(attribute_name):
-    return property(NoPlanningAttrGetter(attribute_name))
+        return self._getter(instance)
 
 
 class InnerStopIteration(StopIteration):
@@ -848,6 +845,7 @@ class Engine(AbstractEngine, gORM):
         )
         from .cache import (
             Cache,
+            NodeContentsCache,
             InitializedCache,
             EntitylessCache,
             InitializedEntitylessCache,
@@ -865,10 +863,13 @@ class Engine(AbstractEngine, gORM):
 
         super()._init_caches()
         self._things_cache = ThingsCache(self)
-        self._node_contents_cache = Cache(self)
+        self._things_cache.setdb = self.query.set_thing_loc
+        self._node_contents_cache = NodeContentsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
+        self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache = InitializedEntitylessCache(self)
+        self._rulebooks_cache.setdb = self.query.rulebook_set
         self._characters_rulebooks_cache = InitializedEntitylessCache(self)
         self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
         self._characters_things_rulebooks_cache = InitializedEntitylessCache(self)
