@@ -62,7 +62,9 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                if hasattr(self._funcstore, 'get_source'):
+                if v == getattr(self._funcstore, v.__name__):
+                    return v.__name__
+                elif hasattr(self._funcstore, 'get_source'):
                     stored_source = self._funcstore.get_source(v.__name__)
                 else:
                     stored_source = getsource(getattr(self._funcstore, v.__name__))
@@ -310,12 +312,7 @@ class Rule(object):
 
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
-        if hasattr(self.engine.trigger, 'truth'):
-            truth = self.engine.trigger.truth
-        else:
-            def truth(*args):
-                return True
-        self.triggers = [truth]
+        self.triggers = [self.engine.trigger.truth]
 
 
 class RuleBook(MutableSequence, Signal):

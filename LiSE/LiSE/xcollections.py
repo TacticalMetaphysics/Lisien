@@ -223,6 +223,9 @@ class FunctionStore(Signal):
     def get_source(self, name):
         return unparse(self._ast.body[self._ast_idx[name]])
 
+    def truth(self):
+        return True
+
 
 class MethodStore(FunctionStore):
     def __init__(self, engine):
