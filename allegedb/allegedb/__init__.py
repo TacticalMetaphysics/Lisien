@@ -114,6 +114,7 @@ class TimeSignal(Signal):
             return self.engine.branch
         if i in ('turn', 1):
             return self.engine.turn
+        raise IndexError
 
     def __setitem__(self, i, v):
         branch_then, turn_then, tick_then = self.engine.btt()
