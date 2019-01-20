@@ -1435,3 +1435,8 @@ class Engine(AbstractEngine, gORM):
     def turns_when(self, qry):
         for branch, turn in qry.iter_turns():
             yield turn
+
+    def _node_contents(self, character, node):
+        return self._node_contents_cache.retrieve(
+                character, node, *self.btt()
+        )
