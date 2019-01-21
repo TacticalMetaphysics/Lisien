@@ -643,7 +643,7 @@ class FuturistWindowDict(WindowDict):
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
-        if not self._past or (
+        if not (self._past or self._future) or (
             self._past and (
                 not self._future and
                 rev > self._past[-1][0]
