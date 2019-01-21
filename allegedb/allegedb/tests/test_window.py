@@ -1,5 +1,6 @@
 from allegedb.cache import WindowDict
 from allegedb.cache import HistoryError
+from allegedb import ORM
 from itertools import cycle
 import pytest
 
@@ -111,3 +112,38 @@ def test_del(windd):
             windd[k]
     with pytest.raises(HistoryError):
         windd[1]
+
+
+def test_set():
+    wd = WindowDict()
+    assert 0 not in wd
+    wd[0] = 'foo'
+    assert 0 in wd
+    assert wd[0] == 'foo'
+    assert 1 not in wd
+    wd[1] = 'oof'
+    assert 1 in wd
+    assert wd[1] == 'oof'
+    assert 3 not in wd
+    wd[3] = 'ofo'
+    assert 3 in wd
+    assert wd[3] == 'ofo'
+    assert 2 not in wd
+    wd[2] = 'owo'
+    assert 2 in wd
+    assert wd[2] == 'owo'
+    wd[3] = 'fof'
+    assert wd[3] == 'fof'
+    wd[0] = 'off'
+    assert wd[0] == 'off'
+    assert 4 not in wd
+    wd[4] = WindowDict({'spam': 'eggs'})
+    assert 4 in wd
+    assert wd[4] == {'spam': 'eggs'}
+    assert 5 not in wd
+    with ORM('sqlite:///:memory:') as orm:
+        g = orm.new_graph('g')
+        g.node[5] = {'ham': 'beans'}
+        wd[5] = g.node[5]
+        assert wd[5] == {'ham': 'beans'}
+        assert wd[5] == g.node[5]
