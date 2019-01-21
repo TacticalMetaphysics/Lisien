@@ -1,5 +1,5 @@
 from allegedb.cache import WindowDict
-from allegedb.window import within_history
+from allegedb.cache import HistoryError
 from itertools import cycle
 import pytest
 
@@ -99,3 +99,15 @@ def test_slice(windd):
     assert list(reversed(windd[25:50])) == [windd[i] for i in reversed(range(25, 50))]
     assert list(windd[50:25]) == [windd[i] for i in range(50, 25, -1)]
     assert list(reversed(windd[50:25])) == [windd[i] for i in reversed(range(50, 25, -1))]
+
+
+def test_del(windd):
+    for k, v in testdata:
+        assert k in windd
+        assert windd[k] == v
+        del windd[k]
+        assert k not in windd
+        with pytest.raises(KeyError):
+            windd[k]
+    with pytest.raises(HistoryError):
+        windd[1]
