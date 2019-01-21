@@ -22,7 +22,7 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
-from operator import itemgetter
+from operator import itemgetter, lt, le
 from itertools import chain
 try:
     import cython
@@ -102,7 +102,7 @@ class WindowDictKeysView(KeysView):
         if past:
             yield from map(get0, past)
         if future:
-            yield from map(get0, future)
+            yield from map(get0, reversed(future))
 
 
 class WindowDictItemsView(ItemsView):
@@ -302,15 +302,29 @@ class WindowDictSlice:
             if slic.stop == slic.start:
                 yield dic[slic.stop]
                 return
-            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
-            dic.seek(right)
-            if not dic._past:
-                return
-            past = dic._past.copy()
-            popper = getattr(past, 'popleft', lambda: past.pop(0))
-            while past and past[0][0] < left:
-                popper()
-            yield from map(get1, past)
+            past = dic._past
+            future = dic._future
+            if slic.start < slic.stop:
+                left, right = slic.start, slic.stop
+                dic.seek(right)
+                if not past:
+                    return
+                if past[-1][0] == right:
+                    future.append(past.pop())
+                cmp = lt
+            else:
+                left, right = slic.stop, slic.start
+                dic.seek(right)
+                if not past:
+                    return
+                cmp = le
+            it = iter(past)
+            p0, p1 = next(it)
+            while cmp(p0, left):
+                p0, p1 = next(it)
+            else:
+                yield p1
+            yield from map(get1, it)
         elif slic.start is None:
             stac = dic._past + list(reversed(dic._future))
             while stac and stac[-1][0] > slic.stop:
@@ -357,10 +371,19 @@ class WindowDictReverseSlice:
             if slic.start == slic.stop:
                 yield dic[slic.stop]
                 return
-            left, right = (slic.start, slic.stop) if slic.start < slic.stop else (slic.stop, slic.start)
-            dic.seek(right)
-            for frev, fv in reversed(dic._past):
-                if frev <= left:
+            if slic.start < slic.stop:
+                left, right = slic.start, slic.stop
+                dic.seek(right)
+                it = reversed(dic._past)
+                next(it)
+                cmp = lt
+            else:
+                left, right = slic.stop, slic.start
+                dic.seek(right)
+                it = reversed(dic._past)
+                cmp = le
+            for frev, fv in it:
+                if cmp(frev, left):
                     return
                 yield fv
         elif slic.start is None:
