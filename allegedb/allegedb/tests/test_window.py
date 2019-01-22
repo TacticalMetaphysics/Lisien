@@ -157,7 +157,7 @@ def test_set():
     assert 5 not in wd
     with ORM('sqlite:///:memory:') as orm:
         g = orm.new_graph('g')
-        g.node[5] = {'ham': 'beans'}
-        wd[5] = g.node[5]
-        assert wd[5] == {'ham': 'beans'}
-        assert wd[5] == g.node[5]
+        g.node[5] = {'ham': {'spam':'beans'}}
+        wd[5] = g.node[5]['ham']
+        assert wd[5] == {'spam': 'beans'}
+        assert wd[5] == g.node[5]['ham']
