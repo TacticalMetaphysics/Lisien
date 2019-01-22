@@ -538,10 +538,11 @@ class WindowDict(MutableMapping):
         if not data:
             self._past = []
         elif hasattr(data, 'items'):
-            self._past = list(sorted(data.items()))
+            self._past = list(data.items())
         else:
             # assume it's an orderable sequence of pairs
-            self._past = list(sorted(data))
+            self._past = list(data)
+        self._past.sort()
         self._future = []
         self._keys = set(map(get0, self._past or ()))
 
