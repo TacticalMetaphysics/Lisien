@@ -1958,6 +1958,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         different :class:`Character`.
 
         """
+        if self.engine._planning:
+            raise NotImplementedError("Currently can't add avatars within a plan")
         if b is None:
             if not (
                     isinstance(a, Place) or
@@ -1997,6 +1999,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own."""
+        if self.engine._planning:
+            raise NotImplementedError("Currently can't remove avatars within a plan")
         if b is None:
             if not isinstance(a, Node):
                 raise TypeError(
