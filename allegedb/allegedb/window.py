@@ -137,7 +137,7 @@ class WindowDictPastFutureKeysView(KeysView):
         yield from map(get0, reversed(self._mapping.stack))
 
     def __contains__(self, item):
-        return item in self._mapping._keys
+        return item in self._mapping and item in map(get0, self._mapping.stack)
 
 
 class WindowDictPastFutureItemsView(ItemsView):
@@ -147,10 +147,15 @@ class WindowDictPastFutureItemsView(ItemsView):
         yield from reversed(self._mapping.stack)
 
     def __contains__(self, item):
-        stack = self._mapping.stack
-        if not stack or self._out_of_range(item, stack):
+        if self._out_of_range(item, self._mapping.stack):
             return False
-        return item in stack
+        i0, i1 = item
+        if i0 not in self._mapping:
+            return False
+        for j0, j1 in self._mapping.stack:
+            if i0 == j0:
+                return i1 == j1
+        return False
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
@@ -178,10 +183,7 @@ class WindowDictPastFutureValuesView(ValuesView):
         stack = self._mapping.stack
         if not stack:
             return False
-        for v in map(get1, stack):
-            if v == item:
-                return True
-        return False
+        return item in map(get1, stack)
 
 
 class WindowDictValuesView(ValuesView):

@@ -7,7 +7,17 @@ import pytest
 testvs = ['a', 99, ['spam', 'eggs', 'ham'], {'foo': 'bar', 0: 1, '💧': '🔑'}]
 testdata = []
 for k, v in zip(range(100), cycle(testvs)):
-    testdata.append((k, v))
+    if type(v) is str:
+        testdata.append((k, v + str(k)))
+    elif type(v) is list:
+        testdata.append((k, v + [k]))
+    elif type(v) is int:
+        testdata.append((k, v + 100 * k))
+    else:
+        assert type(v) is dict
+        vv = dict(v)
+        vv['k'] = k
+        testdata.append((k, vv))
 
 
 @pytest.fixture
@@ -35,17 +45,22 @@ def test_past(windd):
     assert list(reversed(range(100))) == list(windd.past())
     windd.seek(50)
     assert list(reversed(range(51))) == list(windd.past())
-    unseen = []
-    seen = []
-    for item in testdata:
-        if item not in windd.past().items():
-            unseen.append(item)
-        else:
-            seen.append(item)
+    unseen = testdata[51:]
+    seen = testdata[:51]
     seen.reverse()
     assert seen == list(windd.past().items())
     for item in seen:
+        assert item[0] in windd.past()
+        assert item[0] in windd.past().keys()
         assert item in windd.past().items()
+        assert item[1] in windd.past().values()
+    for item in windd.past().items():
+        assert item in seen
+    for item in unseen:
+        assert item[0] not in windd.past()
+        assert item[0] not in windd.past().keys()
+        assert item not in windd.past().items()
+        assert item[1] not in windd.past().values()
 
 
 def test_future(windd):
@@ -56,22 +71,21 @@ def test_future(windd):
         assert item in windd.future().items()
     windd.seek(50)
     assert list(range(51, 100)) == list(windd.future())
-    unseen = []
-    seen = []
-    for item in testdata:
-        if item not in windd.past().items():
-            unseen.append(item)
-        else:
-            seen.append(item)
+    unseen = testdata[51:]
+    seen = testdata[:51]
     assert unseen == list(windd.future().items())
     for item in unseen:
+        assert item[0] in windd.future()
+        assert item[0] in windd.future().keys()
         assert item in windd.future().items()
-        assert item in windd.items()
+        assert item[1] in windd.future().values()
     for item in windd.future().items():
         assert item in unseen
     for item in seen:
-        assert item in windd.past().items()
-        assert item in windd.items()
+        assert item[0] not in windd.future()
+        assert item[0] not in windd.future().keys()
+        assert item not in windd.future().items()
+        assert item[1] not in windd.future().values()
 
 
 def test_empty():
