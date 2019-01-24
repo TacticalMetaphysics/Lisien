@@ -43,8 +43,13 @@ def install(eng):
     @eng.rule
     def relocate(poly):
         """Move to a random unoccupied place"""
-        unoccupied = [place for place in poly.character.place.values() if not place.content]
-        poly.location = poly.engine.choice(unoccupied)
+        places = list(poly.character.place)
+        poly.engine.shuffle(places)
+        for place in places:
+            place = poly.character.place[place]
+            if not place.content:
+                poly.location = place
+                return
 
     @relocate.trigger
     def similar_neighbors(poly):
