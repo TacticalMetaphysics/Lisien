@@ -392,7 +392,10 @@ class AbstractEngine(object):
 
     def _pack_handler(self, obj):
         handlers = self._pack_handlers
-        typ = type(obj)
+        if isinstance(obj, Exception):
+            typ = Exception
+        else:
+            typ = type(obj)
         if typ in handlers:
             return handlers[typ](obj)
         raise TypeError("Can't pack {}".format(typ))
