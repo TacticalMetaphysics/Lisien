@@ -312,6 +312,7 @@ class MainScreen(Screen):
         self.next_turn()
 
     def _update_from_next_turn(self, command, branch, turn, tick, result):
+        del self._tmp_block
         todo, deltas = result
         if isinstance(todo, list):
             self.dialoglayout.todo = todo
@@ -323,6 +324,8 @@ class MainScreen(Screen):
         """Advance time by one turn, if it's not blocked.
 
         Block time by setting ``engine.universal['block'] = True``"""
+        if hasattr(self, '_tmp_block'):
+            return
         eng = self.app.engine
         dial = self.dialoglayout
         if eng.universal.get('block'):
@@ -331,6 +334,7 @@ class MainScreen(Screen):
         if dial.idx < len(dial.todo):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
+        self._tmp_block = True
         eng.next_turn(cb=self._update_from_next_turn)
 
 
