@@ -121,6 +121,7 @@ class TimePanel(BoxLayout):
     """
     screen = ObjectProperty()
     buttons_font_size = NumericProperty(18)
+    disable_one_turn = BooleanProperty()
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -191,6 +192,7 @@ class MainScreen(Screen):
     _touch = ObjectProperty(None, allownone=True)
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+    tmp_block = BooleanProperty(False)
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -312,19 +314,19 @@ class MainScreen(Screen):
         self.next_turn()
 
     def _update_from_next_turn(self, command, branch, turn, tick, result):
-        del self._tmp_block
         todo, deltas = result
         if isinstance(todo, list):
             self.dialoglayout.todo = todo
             self.dialoglayout.idx = 0
         self._update_from_delta(command, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
+        self.tmp_block = False
 
     def next_turn(self, *args):
         """Advance time by one turn, if it's not blocked.
 
         Block time by setting ``engine.universal['block'] = True``"""
-        if hasattr(self, '_tmp_block'):
+        if self.tmp_block:
             return
         eng = self.app.engine
         dial = self.dialoglayout
@@ -334,7 +336,7 @@ class MainScreen(Screen):
         if dial.idx < len(dial.todo):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
-        self._tmp_block = True
+        self.tmp_block = True
         eng.next_turn(cb=self._update_from_next_turn)
 
 
@@ -444,6 +446,7 @@ Builder.load_string(
             id: stepbut
             font_size: root.buttons_font_size
             on_release: root.screen.next_turn()
+            disabled: root.disable_one_turn
 <MainScreen>:
     name: 'main'
     app: app
@@ -479,6 +482,7 @@ Builder.load_string(
         screen: root
         pos_hint: {'bot': 0}
         size_hint: (0.25, 0.2)
+        disable_one_turn: root.tmp_block
     CharMenu:
         id: charmenu
         screen: root

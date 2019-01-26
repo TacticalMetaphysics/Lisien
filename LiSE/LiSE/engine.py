@@ -75,16 +75,11 @@ class NextTurn(Signal):
             # the latest in the new turn, which will be 0 if that turn has not
             # yet been simulated.
             engine.turn += 1
-            if engine.tick == 0:
-                engine.universal['rando_state'] = engine._rando.getstate()
-            else:
-                engine._rando.setstate(engine.universal['rando_state'])
         with engine.advancing():
             for res in iter(engine.advance, final_rule):
                 if res:
                     engine.universal['last_result'] = res
                     engine.universal['last_result_idx'] = 0
-                    engine.universal['rando_state'] = engine._rando.getstate()
                     branch, turn, tick = engine.btt()
                     self.send(
                         engine,
@@ -1077,6 +1072,10 @@ class Engine(AbstractEngine, gORM):
     def critical(self, msg):
         """Log a message at level 'critical'"""
         self.log('critical', msg)
+
+    def commit(self):
+        self.universal['rando_state'] = self._rando.getstate()
+        super().commit()
 
     def close(self):
         """Commit changes and close the database."""
