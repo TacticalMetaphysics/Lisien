@@ -330,7 +330,7 @@ class WindowDictSlice:
             yield from map(get1, it)
         elif slic.start is None:
             stac = dic._past + list(reversed(dic._future))
-            while stac and stac[-1][0] > slic.stop:
+            while stac and stac[-1][0] >= slic.stop:
                 stac.pop()
             yield from map(get1, stac)
             return
@@ -367,6 +367,7 @@ class WindowDictReverseSlice:
         if slic.step is not None:
             for i in range(slic.start or dic.end, slic.stop or dic.beginning, slic.step):
                 yield dic[i]
+            return
         if slic.start is None and slic.stop is None:
             yield from map(get1, dic._future)
             yield from map(get1, reversed(dic._past))
@@ -391,7 +392,7 @@ class WindowDictReverseSlice:
                 yield fv
         elif slic.start is None:
             stac = dic._past + list(reversed(dic._future))
-            while stac and stac[-1][0] > slic.stop:
+            while stac and stac[-1][0] >= slic.stop:
                 stac.pop()
             yield from map(get1, reversed(stac))
         else:  # slic.stop is None
