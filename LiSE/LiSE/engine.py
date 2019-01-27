@@ -1101,12 +1101,29 @@ class Engine(AbstractEngine, gORM):
         self.close()
 
     def _set_branch(self, v):
+        oldrando = self.universal.get('rando_state')
         super()._set_branch(v)
+        newrando = self.universal.get('rando_state')
+        if newrando and newrando != oldrando:
+            self._rando.setstate(newrando)
         self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
     def _set_turn(self, v):
+        oldrando = self.universal.get('rando_state')
+        oldturn = self._oturn
         super()._set_turn(v)
+        newrando = self.universal.get('rando_state')
+        if v > oldturn and newrando and newrando != oldrando:
+            self._rando.setstate(newrando)
         self.time.send(self.time, branch=self._obranch, turn=self._oturn)
+
+    def _set_tick(self, v):
+        oldrando = self.universal.get('rando_state')
+        oldtick = self._otick
+        super()._set_tick(v)
+        newrando = self.universal.get('rando_state')
+        if v > oldtick and newrando and newrando != oldrando:
+            self._rando.setstate(newrando)
 
     def _handled_char(self, charn, rulebook, rulen, branch, turn, tick):
         try:
