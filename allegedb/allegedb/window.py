@@ -54,7 +54,7 @@ def update_window(turn_from, tick_from, turn_to, tick_to, updfun, branchd):
             for past_state in branchd[midturn][:]:
                 updfun(*past_state)
     if turn_to in branchd:
-        for past_state in branchd[turn_to][:tick_to]:
+        for past_state in branchd[turn_to][:tick_to+1]:
             updfun(*past_state)
 
 
