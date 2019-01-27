@@ -13,6 +13,7 @@ from types import FunctionType, MethodType
 import msgpack
 from blinker import Signal
 from allegedb import ORM as gORM
+from allegedb.cache import HistoryError
 from .util import reify, sort_set
 
 from . import exc
@@ -1074,7 +1075,14 @@ class Engine(AbstractEngine, gORM):
         self.log('critical', msg)
 
     def commit(self):
-        self.universal['rando_state'] = self._rando.getstate()
+        try:
+            self.universal['rando_state'] = self._rando.getstate()
+        except HistoryError:
+            branch, turn, tick = self.branch, self.turn, self.tick
+            self.turn = self._branches[branch][3]
+            self.universal['rando_state'] = self._rando.getstate()
+            self.turn = turn
+            self.tick = tick
         super().commit()
 
     def close(self):
