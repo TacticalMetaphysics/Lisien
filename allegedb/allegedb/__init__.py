@@ -83,53 +83,41 @@ class PlanningContext(ContextDecorator):
             self.orm._forward = True
 
 
-class TimeSignal(Signal):
-    """Acts like a list of ``[branch, turn]`` for the most part.
+class TimeSignal:
+    """Acts like a tuple of ``(branch, turn)`` for the most part.
 
-    You can set these to new values, or even replace them with a whole new
-    ``[branch, turn]`` if you wish. It's even possible to use the strings
-    ``'branch'`` or ``'turn'`` in the place of indices, but at that point
-    you might prefer to set ``engine.branch`` or ``engine.turn`` directly.
-
-    This is a Signal, so pass a function to the connect(...) method and
-    it will be called whenever the time changes. Not when the tick
-    changes, though. If you really need something done whenever the
-    tick changes, override the _set_tick method of
-    :class:`allegedb.ORM`.
+    This wraps a ``Signal``. To set a function to be called whenever the branch
+    or turn changes, pass it to my ``connect`` method.
 
     """
-    def __init__(self, engine):
-        super().__init__()
+    def __init__(self, engine, sig):
         self.engine = engine
+        self.branch = self.engine.branch
+        self.turn = self.engine.turn
+        self.sig = sig
 
     def __iter__(self):
-        yield self.engine.branch
-        yield self.engine.turn
+        yield self.branch
+        yield self.turn
 
     def __len__(self):
         return 2
 
     def __getitem__(self, i):
         if i in ('branch', 0):
-            return self.engine.branch
+            return self.branch
         if i in ('turn', 1):
-            return self.engine.turn
+            return self.turn
         raise IndexError
 
-    def __setitem__(self, i, v):
-        branch_then, turn_then, tick_then = self.engine.btt()
-        if i in ('branch', 0):
-            self.engine.branch = v
-        if i in ('turn', 1):
-            self.engine.turn = v
-        branch_now, turn_now, tick_now = self.engine.btt()
-        self.send(
-            self, branch_then=branch_then, turn_then=turn_then, tick_then=tick_then,
-            branch_now=branch_now, turn_now=turn_now, tick_now=tick_now
-        )
+    def connect(self, *args, **kwargs):
+        self.sig.connect(*args, **kwargs)
+
+    def send(self, *args, **kwargs):
+        self.sig.send(*args, **kwargs)
 
     def __str__(self):
-        return str((self.engine.branch, self.engine.turn))
+        return str(tuple(self))
 
     def __eq__(self, other):
         return tuple(self) == other
@@ -156,18 +144,18 @@ class TimeSignalDescriptor:
 
     def __get__(self, inst, cls):
         if id(inst) not in self.signals:
-            self.signals[id(inst)] = TimeSignal(inst)
-        return self.signals[id(inst)]
+            self.signals[id(inst)] = Signal()
+        return TimeSignal(inst, self.signals[id(inst)])
 
     def __set__(self, inst, val):
         if id(inst) not in self.signals:
-            self.signals[id(inst)] = TimeSignal(inst)
-        real = self.signals[id(inst)]
-        branch_then, turn_then, tick_then = real.engine.btt()
+            self.signals[id(inst)] = Signal()
+        sig = self.signals[id(inst)]
+        branch_then, turn_then, tick_then = inst.btt()
         branch_now, turn_now = val
         if (branch_then, turn_then) == (branch_now, turn_now):
             return
-        e = real.engine
+        e = inst
         # enforce the arrow of time, if it's in effect
         if e._forward and not e._planning:
             if branch_now != branch_then:
@@ -219,7 +207,7 @@ class TimeSignalDescriptor:
             if tick_now > e._turn_end[val]:
                 e._turn_end[val] = tick_now
         e._otick = e._turn_end_plan[val] = tick_now
-        real.send(
+        sig.send(
             e,
             branch_then=branch_then,
             turn_then=turn_then,
