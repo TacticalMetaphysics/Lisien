@@ -426,7 +426,8 @@ class Cache(Signal):
         "history" that takes place after the last non-planning
         moment of time, without much regard to consistency.
         Otherwise, contradictions will be handled by deleting
-        everything after the present moment.
+        everything in the contradicted plan after the present moment,
+        unless you set ``contra=False``.
 
         ``loading=True`` prevents me from updating the ORM's records
         of the ends of branches and turns.
