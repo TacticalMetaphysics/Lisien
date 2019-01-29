@@ -486,7 +486,7 @@ class ThingsCache(Cache):
                         node_contents_cache.store(
                             character, oldloc, branch, trn, tck,
                             node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
-                            contra=False, loading=True
+                            planning=False, contra=False, loading=True
                         )
         if location is not None:
             try:
@@ -501,7 +501,7 @@ class ThingsCache(Cache):
                         node_contents_cache.store(
                             character, location, branch, trn, tck,
                             node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
-                            contra=False, loading=True
+                            planning=False, contra=False, loading=True
                         )
 
     def turn_before(self, character, thing, branch, turn):
