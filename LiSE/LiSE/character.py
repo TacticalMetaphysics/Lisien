@@ -1504,9 +1504,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         """:class:`Place` objects that are in a :class:`Character`"""
         _book = "character_place"
 
-        engine = getatt('character.engine')
-        name = getatt('character.name')
-
         def _get_rulebook_cache(self):
             return self.engine._characters_places_rulebooks_cache
 
@@ -1514,51 +1511,94 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             """Store the character."""
             super().__init__()
             self.character = character
+            self.engine = engine = character.engine
+            charn = character.name
+            nodes_cache = engine._nodes_cache
+            things_cache = engine._things_cache
+            iter_nodes = nodes_cache.iter_entities
+            nodes_contains = nodes_cache.contains_entity
+            things_contains = things_cache.contains_entity
+            btt = engine.btt
+            self._iter_stuff = (
+                iter_nodes,
+                things_contains,
+                charn,
+                btt
+            )
+            self._len_stuff = (
+                nodes_cache.count_entities,
+                things_cache.count_entities,
+                charn,
+                btt
+            )
+            self._contains_stuff = (
+                nodes_contains,
+                things_contains,
+                charn,
+                btt
+            )
+            self._get_stuff = (
+                engine._node_objs,
+                charn,
+                character
+            )
+            self._set_stuff = (
+                engine._node_exists,
+                engine._exist_node,
+                engine._get_node,
+                charn,
+                character
+            )
 
         def __iter__(self):
-            for node in self.engine._nodes_cache.iter_entities(
-                    self.character.name, *self.engine.btt()
+            iter_nodes, things_contains, charn, btt = self._iter_stuff
+            branch, turn, tick = btt()
+            for node in iter_nodes(
+                    charn, branch, turn, tick
             ):
-                if not self.engine._things_cache.contains_entity(
-                        self.character.name, node, *self.engine.btt()
+                if not things_contains(
+                        charn, node, branch, turn, tick
                 ):
                     yield node
 
         def __len__(self):
-            return self.engine._nodes_cache.count_entities(
-                self.character.name, *self.engine.btt()
-            ) - self.engine._things_cache.count_entities(
-                self.character.name, *self.engine.btt()
+            count_nodes, count_things, charn, btt = self._len_stuff
+            branch, turn, tick = btt()
+            return count_nodes(
+                charn, branch, turn, tick
+            ) - count_things(
+                charn, branch, turn, tick
             )
 
         def __contains__(self, place):
             # TODO: maybe a special cache just for places and not just
             # nodes in general
+            nodes_contains, things_contains, charn, btt = self._contains_stuff
+            branch, turn, tick = btt()
             return (
-                self.engine._nodes_cache.contains_entity(
-                    self.character.name, place, *self.engine.btt()
-                ) and not self.engine._things_cache.contains_entity(
-                    self.character.name, place, *self.engine.btt()
+                nodes_contains(
+                    charn, place, branch, turn, tick
+                ) and not things_contains(
+                    charn, place, branch, turn, tick
                 )
             )
 
         def __getitem__(self, place):
             if place not in self:
                 raise KeyError("No such place: {}".format(place))
-            cache = self.engine._node_objs
-            if (self.name, place) not in cache or not isinstance(
-                    cache[(self.name, place)], Place
+            cache, name, character = self._get_stuff
+            if (name, place) not in cache or not isinstance(
+                    cache[(name, place)], Place
             ):
-                ret = cache[(self.name, place)] = Place(self.character, place)
+                ret = cache[(name, place)] = Place(character, place)
                 return ret
-            return cache[(self.name, place)]
+            return cache[(name, place)]
 
         def __setitem__(self, place, v):
-            engine = self.engine
-            charn = self.character.name
-            if not engine._node_exists(charn, place):
-                self.engine._exist_node(charn, place, True)
-            pl = self.engine._get_node(self.character, place)
+            node_exists, exist_node, get_node, charn, character = self._set_stuff
+            if not node_exists(charn, place):
+                exist_node(charn, place, True)
+            pl = get_node(character, place)
             if not isinstance(pl, Place):
                 raise KeyError("{} is not a place".format(place))
             pl.clear()
@@ -1569,7 +1609,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self[place].delete()
 
         def __repr__(self):
-            return "{}.character[{}].place".format(repr(self.engine), repr(self.name))
+            return "{}.character[{}].place".format(repr(self.character.engine), repr(self.character.name))
 
     class ThingPlaceMapping(GraphNodeMapping, Signal):
         """GraphNodeMapping but for Place and Thing"""

@@ -30,6 +30,7 @@ from .util import getatt
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError
+from .reify import reify
 
 
 class RuleMapping(rule.RuleMapping):
@@ -62,16 +63,20 @@ class UserMapping(Mapping):
     engine = getatt('node.engine')
 
     def _user_names(self):
-        cache = self.engine._avatarness_cache.user_order
-        if self.node.character.name not in cache or \
-           self.node.name not in cache[self.node.character.name]:
+        node = self.node
+        engine = self.engine
+        charn = node.character.name
+        nn = node.name
+        cache = engine._avatarness_cache.user_order
+        if charn not in cache or \
+           nn not in cache[charn]:
             return
-        cache = cache[self.node.character.name][self.node.name]
+        cache = cache[charn][nn]
         seen = set()
         for user in cache:
             if user in seen:
                 continue
-            for (branch, turn, tick) in self.node.engine._iter_parent_btt():
+            for (branch, turn, tick) in engine._iter_parent_btt():
                 if branch in cache[user]:
                     branchd = cache[user][branch]
                     try:
@@ -97,6 +102,11 @@ class UserMapping(Mapping):
             n += 1
         return n
 
+    def __bool__(self):
+        for user in self._user_names():
+            return True
+        return False
+
     def __contains__(self, item):
         if item in self.engine.character:
             item = self.engine.character[item]
@@ -107,12 +117,16 @@ class UserMapping(Mapping):
         return False
 
     def __getitem__(self, k):
-        if k not in self:
+        ret = self.engine.character[k]
+        node = self.node
+        charn = node.character.name
+        nn = node.name
+        avatar = ret.avatar
+        if charn not in avatar or nn not in avatar[charn]:
             raise KeyError("{} not used by {}".format(
                 self.node.name, k
             ))
-        return self.engine.character[k]
-
+        return ret
 
 class NodeContentValues(ValuesView):
     def __iter__(self):
@@ -171,30 +185,38 @@ class DestsValues(ValuesView):
 
 
 class Dests(Mapping):
-    __slots__ = ('node',)
+    __slots__ = ('_ecnb', '_pn')
 
     def __init__(self, node):
-        self.node = node
+        name = node.name
+        character = node.character
+        engine = node.engine
+        self._pn = (character.portal, name)
+        self._ecnb = (engine._edges_cache, character.name, name, engine.btt)
 
     def __iter__(self):
-        yield from self.node.engine._edges_cache.iter_successors(
-            self.node.character.name, self.node.name, *self.node.engine.btt()
+        edges_cache, charname, name, btt = self._ecnb
+        yield from edges_cache.iter_successors(
+            charname, name, *btt()
         )
 
     def __len__(self):
-        return self.node.engine._edges_cache.count_successors(
-            self.node.character.name, self.node.name, *self.node.engine.btt()
+        edges_cache, charname, name, btt = self._ecnb
+        return edges_cache.count_successors(
+            charname, name, *btt()
         )
 
     def __contains__(self, item):
-        return self.node.engine._edges_cache.has_successor(
-            self.node.character.name, self.node.name, item, *self.node.engine.btt()
+        edges_cache, charname, name, btt = self._ecnb
+        return edges_cache.has_successor(
+            charname, name, item, *btt()
         )
 
     def __getitem__(self, item):
         if item not in self:
             raise KeyError
-        return self.node.character.portal[self.node.name][item]
+        portal, name = self._pn
+        return portal[name][item]
 
     def values(self):
         return DestsValues(self)
@@ -206,30 +228,38 @@ class OrigsValues(ValuesView):
 
 
 class Origs(Mapping):
-    __slots__ = ('node',)
+    __slots__ = ('_pn', '_ecnb')
 
     def __init__(self, node):
-        self.node = node
+        name = node.name
+        character = node.character
+        engine = node.engine
+        self._pn = (character.portal, name)
+        self._ecnb = (engine._edges_cache, character.name, name, engine.btt)
 
     def __iter__(self):
-        return self.node.engine._edges_cache.iter_predecessors(
-            self.node.character.name, self.node.name, *self.node.engine.btt()
+        edges_cache, charname, name, btt = self._ecnb
+        return edges_cache.iter_predecessors(
+            charname, name, *btt()
         )
 
     def __contains__(self, item):
-        return self.node.engine._edges_cache.has_predecessor(
-            self.node.character.name, self.node.name, item, *self.node.engine.btt()
+        edges_cache, charname, name, btt = self._ecnb
+        return edges_cache.has_predecessor(
+            charname, name, item, *btt()
         )
 
     def __len__(self):
-        return self.node.engine._edges_cache.count_predecessors(
-            self.node.character.name, self.node.name, *self.node.engine.btt()
+        edges_cache, charname, name, btt = self._ecnb
+        return edges_cache.count_predecessors(
+            charname, name, *btt()
         )
 
     def __getitem__(self, item):
         if item not in self:
             raise KeyError
-        return self.node.character.portal[item][self.node.name]
+        portal, name = self._pn
+        return portal[item][name]
 
     def values(self):
         return OrigsValues(self)
@@ -308,13 +338,13 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         cache.store(character, node, branch, turn, tick, rulebook)
         self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
 
-    @property
+    @reify
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
         return Dests(self)
     successor = adj = edge = portal
 
-    @property
+    @reify
     def preportal(self):
         return Origs(self)
     predecessor = pred = preportal
