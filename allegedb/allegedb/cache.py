@@ -412,7 +412,7 @@ class Cache(Signal):
                 break
         return added, deleted
 
-    def store(self, *args, planning=None, forward=None, loading=False):
+    def store(self, *args, planning=None, forward=None, loading=False, contra=True):
         """Put a value in various dictionaries for later .retrieve(...).
 
         Needs at least five arguments, of which the -1th is the value
@@ -437,7 +437,7 @@ class Cache(Signal):
             planning = db._planning
         if forward is None:
             forward = db._forward
-        self._store(*args, planning=planning, loading=loading)
+        self._store(*args, planning=planning, loading=loading, contra=contra)
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
         self.send(self, key=args[-5], branch=args[-4], turn=args[-3], tick=args[-2], value=args[-1], action='store')
@@ -591,7 +591,7 @@ class Cache(Signal):
                 if newval != value:
                     yield trn, tick
 
-    def _store(self, *args, planning, loading=False):
+    def _store(self, *args, planning, loading=False, contra=True):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         if parent:
@@ -619,14 +619,15 @@ class Cache(Signal):
                         tick, turn, branch
                     )
                 )
-        contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
         delete_plan = self.db._delete_plan
         time_plan = self.db._time_plan
-        if contras:
-            self.shallowest = OrderedDict()
-        for contra_turn, contra_tick in contras:
-            if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
-                delete_plan(time_plan[branch, contra_turn, contra_tick])
+        if contra:
+            contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
+            if contras:
+                self.shallowest = OrderedDict()
+            for contra_turn, contra_tick in contras:
+                if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
+                    delete_plan(time_plan[branch, contra_turn, contra_tick])
         if not turns:
             branches[branch] = turns
         if not loading and not planning:
@@ -792,10 +793,10 @@ class Cache(Signal):
 class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
 
-    def _store(self, graph, node, branch, turn, tick, ex, *, planning, loading=False):
+    def _store(self, graph, node, branch, turn, tick, ex, *, planning, loading=False, contra=True):
         if not ex:
             ex = None
-        return super()._store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading)
+        return super()._store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
 
     def _update_keycache(self, *args, forward):
         graph, node, branch, turn, tick, ex = args
@@ -929,12 +930,12 @@ class EdgesCache(Cache):
             forward = self.db._forward
         return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
-    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False):
+    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
         if not ex:
             ex = None
         if planning is None:
             planning = self.db.planning
-        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading)
+        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
         if ex:

@@ -87,9 +87,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False):
+    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False, contra=True):
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading)
+        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading, contra=contra)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -464,13 +464,13 @@ class ThingsCache(Cache):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
 
-    def _store(self, *args, planning, loading=False):
+    def _store(self, *args, planning, loading=False, contra=True):
         character, thing, branch, turn, tick, location = args
         try:
             oldloc = self.retrieve(character, thing, branch, turn, tick)
         except KeyError:
             oldloc = None
-        super()._store(*args, planning=planning, loading=loading)
+        super()._store(*args, planning=planning, loading=loading, contra=contra)
         node_contents_cache = self.db._node_contents_cache
         setsbranch = self.settings[branch]
         future_location_data = setsbranch.future(turn) or (turn in setsbranch and setsbranch[turn].future(tick))
@@ -478,36 +478,31 @@ class ThingsCache(Cache):
         if oldloc is not None:
             oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
             newconts_orig = oldconts_orig.difference({thing})
-            if future_location_data:
-                node_contents_cache.truncate_loc(character, oldloc, branch, turn, tick)
-                node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
-                # Indicate that, if you want a contents cache for anytime after this, you have to
-                # generate it from scratch
-                node_contents_cache.store(character, oldloc, branch, turn, tick+1, None)
-            else:
-                try:
-                    node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
-                except HistoryError:
-                    # For some reason there's a possibility for there to be future contents data
-                    # but not future location data.
-                    # I don't understand this but I can handle it this way
-                    node_contents_cache.truncate_loc(character, oldloc, branch, turn, tick)
-                    node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig)
-                    node_contents_cache.store(character, oldloc, branch, turn, tick + 1, None)
+            node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig, contra=False,
+                                      loading=True)
+            for trn in future_location_data:
+                for tck in future_location_data[trn]:
+                    if future_location_data[trn][tck][2] == oldloc:
+                        node_contents_cache.store(
+                            character, oldloc, branch, trn, tck,
+                            node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
+                            contra=False, loading=True
+                        )
         if location is not None:
-            oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
+            try:
+                oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
+            except KeyError:
+                oldconts_dest = frozenset()
             newconts_dest = oldconts_dest.union({thing})
-            if future_location_data:
-                node_contents_cache.truncate_loc(character, location, branch, turn, tick)
-                node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
-                node_contents_cache.store(character, location, branch, turn, tick+1, None)
-            else:
-                try:
-                    node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
-                except HistoryError:
-                    node_contents_cache.truncate_loc(character, location, branch, turn, tick)
-                    node_contents_cache.store(character, location, branch, turn, tick, newconts_dest)
-                    node_contents_cache.store(character, location, branch, turn, tick+1, None)
+            node_contents_cache.store(character, location, branch, turn, tick, newconts_dest, contra=False, loading=True)
+            for trn in future_location_data:
+                for tck in future_location_data[trn]:
+                    if future_location_data[trn][tck][2] == location:
+                        node_contents_cache.store(
+                            character, location, branch, trn, tck,
+                            node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
+                            contra=False, loading=True
+                        )
 
     def turn_before(self, character, thing, branch, turn):
         try:
@@ -537,17 +532,6 @@ class NodeContentsCache(Cache):
                 yield thing.name
         self.db.time = branch_now, turn_now
         self.db.tick = tick_now
-
-    def retrieve(self, *args):
-        try:
-            return super().retrieve(*args)
-        except (KeyError, HistoryError):
-            conts = frozenset(self.slow_iter_contents(*args))
-            stargs = args + (conts,)
-            self.store(*stargs, planning=True)
-            stnoneargs = args[:-1] + (args[-1]+1, None)
-            self.store(*stnoneargs, planning=True)
-            return conts
 
     def remove(self, branch, turn, tick):
         """Delete data on or after this tick
