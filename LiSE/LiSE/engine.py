@@ -340,7 +340,7 @@ class AbstractEngine(object):
             'CacheError': exc.CacheError,
             'TravelException': exc.TravelException
         }
-        data = msgpack.unpackb(ext, ext_hook=self._unpack_handlers, raw=False)
+        data = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
         if data[0] not in excs:
             return Exception(*data)
         return excs[data[0]](*data[1:])
