@@ -939,11 +939,11 @@ class EdgesCache(Cache):
         Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
-        if ex:
-            assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
-            assert self.has_successor(graph, orig, dest, branch, turn, tick)
-            assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
-        else:
-            assert self._base_retrieve((graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
-            assert not self.has_successor(graph, orig, dest, branch, turn, tick)
-            assert not self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        # if ex:
+        #     assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
+        #     assert self.has_successor(graph, orig, dest, branch, turn, tick)
+        #     assert self.has_predecessor(graph, dest, orig, branch, turn, tick)
+        # else:
+        #     assert self._base_retrieve((graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
+        #     assert not self.has_successor(graph, orig, dest, branch, turn, tick)
+        #     assert not self.has_predecessor(graph, dest, orig, branch, turn, tick)
