@@ -1537,9 +1537,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 charn,
                 btt
             )
-            self._get_stuff = (
+            self._get_stuff = self._contains_stuff + (
                 engine._node_objs,
-                charn,
                 character
             )
             self._set_stuff = (
@@ -1584,15 +1583,20 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             )
 
         def __getitem__(self, place):
-            if place not in self:
-                raise KeyError("No such place: {}".format(place))
-            cache, name, character = self._get_stuff
-            if (name, place) not in cache or not isinstance(
-                    cache[(name, place)], Place
+            nodes_contains, things_contains, charn, btt, cache, character = self._get_stuff
+            branch, turn, tick = btt()
+            if not nodes_contains(
+                charn, place, branch, turn, tick
+            ) or things_contains(
+                charn, place, branch, turn, tick
             ):
-                ret = cache[(name, place)] = Place(character, place)
+                raise KeyError("No such place: {}".format(place))
+            if (charn, place) not in cache or not isinstance(
+                    cache[(charn, place)], Place
+            ):
+                ret = cache[(charn, place)] = Place(character, place)
                 return ret
-            return cache[(name, place)]
+            return cache[(charn, place)]
 
         def __setitem__(self, place, v):
             node_exists, exist_node, get_node, charn, character = self._set_stuff
@@ -1623,27 +1627,38 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             """Store the character."""
             super().__init__(character)
             Signal.__init__(self)
+            engine = character.engine
+            charn = character.name
+            self._contains_stuff = contains_stuff = (engine._node_exists, charn)
+            self._getitem_stuff = contains_stuff + (
+                engine._get_node, character
+            )
+            self._delitem_stuff = contains_stuff + (
+                engine._is_thing, character.thing, character.place
+            )
+            self._placemap = character.place
 
         def __contains__(self, k):
-            return self.engine._node_exists(self.character.name, k)
+            node_exists, charn = self._contains_stuff
+            return node_exists(charn, k)
 
         def __getitem__(self, k):
-            if k not in self:
+            node_exists, charn, get_node, character = self._getitem_stuff
+            if not node_exists(charn, k):
                 raise KeyError
-            return self.engine._get_node(self.character, k)
+            return get_node(character, k)
 
         def __setitem__(self, k, v):
-            self.character.place[k] = v
+            self._placemap[k] = v
 
         def __delitem__(self, k):
-            if k not in self:
+            node_exists, charn, is_thing, thingmap, placemap = self._delitem_stuff
+            if not node_exists(charn, k):
                 raise KeyError
-            if self.engine._is_thing(
-                self.character.name, k
-            ):
-                del self.character.thing[k]
+            if is_thing(charn, k):
+                del thingmap[k]
             else:
-                del self.character.place[k]
+                del placemap[k]
     node_map_cls = ThingPlaceMapping
 
     class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
@@ -1658,23 +1673,30 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         character = getatt('graph')
         engine = getatt('graph.engine')
 
+        def __init__(self, graph):
+            super().__init__(graph)
+            engine = graph.engine
+            charn = graph.name
+            self._cporh = engine._characters_portals_rulebooks_cache
+            self._getitem_stuff = (engine._node_exists, charn, self._cache)
+            self._setitem_stuff = (self._cache, self.Successors)
+
         def _get_rulebook_cache(self):
-            return self.engine._characters_portals_rulebooks_cache
+            return self._cporh
 
         def __getitem__(self, orig):
-            if self.engine._node_exists(
-                    self.graph.name,
-                    orig
-            ):
-                if orig not in self._cache:
-                    self._cache[orig] = self.Successors(self, orig)
-                return self._cache[orig]
+            node_exists, charn, cache = self._getitem_stuff
+            if node_exists(charn, orig):
+                if orig not in cache:
+                    cache[orig] = self.Successors(self, orig)
+                return cache[orig]
             raise KeyError("No such node")
 
         def __setitem__(self, orig, val):
-            if orig not in self._cache:
-                self._cache[orig] = self.Successors(self, orig)
-            sucs = self._cache[orig]
+            cache, Successors = self._setitem_stuff
+            if orig not in cache:
+                cache[orig] = Successors(self, orig)
+            sucs = cache[orig]
             sucs.clear()
             sucs.update(val)
             self.send(self, key=orig, val=sucs)
@@ -1694,20 +1716,31 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 super().send(self, **kwargs)
                 self.container.send(self, **kwargs)
 
+            def __init__(self, container, orig):
+                super().__init__(container, orig)
+                graph = self.graph
+                engine = graph.engine
+                self._getitem_stuff = (engine._get_edge, graph, orig) 
+                self._setitem_stuff = (
+                    engine._exist_edge, graph.name, orig, engine._get_edge, graph
+                )
+                
             def __getitem__(self, dest):
+                get_edge, graph, orig = self._getitem_stuff
                 if dest in self:
-                    return self.engine._get_edge(self.graph, self.orig, dest, 0)
+                    return get_edge(graph, orig, dest, 0)
                 raise KeyError("No such portal: {}->{}".format(
-                    self.orig, dest
+                    orig, dest
                 ))
 
             def __setitem__(self, dest, value):
-                self.engine._exist_edge(
-                    self.graph.name,
-                    self.orig,
+                exist_edge, charn, orig, get_edge, graph = self._setitem_stuff
+                exist_edge(
+                    charn,
+                    orig,
                     dest
                 )
-                p = self.engine._get_edge(self.graph, self.orig, dest, 0)
+                p = get_edge(graph, orig, dest, 0)
                 p.clear()
                 p.update(value)
                 self.send(self, key=dest, val=p)
@@ -1730,23 +1763,34 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         """
         _book = "character_portal"
 
+        def __init__(self, graph):
+            super().__init__(graph)
+            self._cporc = graph.engine._characters_portals_rulebooks_cache
+
         def _get_rulebook_cache(self):
-            return self.engine._characters_portals_rulebooks_cache
+            return self._cporc
 
         class Predecessors(DiGraphPredecessorsMapping.Predecessors):
             """Mapping of possible origins from some destination."""
+
+            def __init__(self, container, dest):
+                super().__init__(container, dest)
+                graph = self.graph
+                self._setitem_stuff = (graph, graph.name, dest, self.db._edge_objs)
+
             def __setitem__(self, orig, value):
-                key = (self.graph.name, orig, self.dest)
-                if key not in self.db._portal_objs:
-                    self.db._portal_objs[key] = Portal(
-                        self.graph,
+                graph, graph_name, dest, portal_objs = self._setitem_stuff
+                key = (graph_name, orig, dest)
+                if key not in portal_objs:
+                    portal_objs[key] = Portal(
+                        graph,
                         orig,
-                        self.dest
+                        dest
                     )
-                p = self.db._portal_objs[key]
+                p = portal_objs[key]
                 p.clear()
                 p.update(value)
-                p.engine._exist_edge(self.graph.name, self.dest, orig)
+                p.engine._exist_edge(graph_name, dest, orig)
     pred_cls = PortalPredecessorsMapping
 
     class AvatarGraphMapping(Mapping, RuleFollower):
@@ -1766,38 +1810,54 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         name = getatt('character.name')
 
         def _get_rulebook_cache(self):
-            return self.engine._avatars_rulebooks_cache
+            return self._avrc
 
         def __init__(self, char):
             """Remember my character."""
             self.character = char
             self._char_av_cache = {}
+            engine = char.engine
+            self._avrc = engine._avatars_rulebooks_cache
+            self._add_av = char.add_avatar
+            avcache = engine._avatarness_cache
+            get_char_graphs = avcache.get_char_graphs
+            charn = char.name
+            btt = engine.btt
+            self._iter_stuff = (
+                get_char_graphs, charn, btt
+            )
+            self._node_stuff = (
+                self._get_char_av_cache,
+                avcache.get_char_only_graph,
+                charn, btt
+            )
+            self._only_stuff = (
+                avcache.get_char_only_av,
+                charn, btt, engine._get_node, engine.character
+            )
 
         def __call__(self, av):
             """Add the avatar. It must be an instance of Place or Thing."""
             if av.__class__ not in (Place, Thing):
                 raise TypeError("Only Things and Places may be avatars")
-            self.character.add_avatar(av.name, av.character.name)
+            self._add_av(av.name, av.character.name)
 
         def __iter__(self):
             """Iterate over every avatar graph that has at least one avatar node
             in it presently
 
             """
-            return iter(self.engine._avatarness_cache.get_char_graphs(
-                self.character.name, *self.engine.btt()
-            ))
+            get_char_graphs, charn, btt = self._iter_stuff
+            return iter(get_char_graphs(charn, *btt()))
 
         def __contains__(self, k):
-            return k in self.engine._avatarness_cache.get_char_graphs(
-                self.character.name, *self.engine.btt()
-            )
+            get_char_graphs, charn, btt = self._iter_stuff
+            return k in get_char_graphs(charn, *btt())
 
         def __len__(self):
             """Number of graphs in which I have an avatar."""
-            return len(self.engine._avatarness_cache.get_char_graphs(
-                self.character.name, *self.engine.btt()
-            ))
+            get_char_graphs, charn, btt = self._iter_stuff
+            return len(get_char_graphs(charn, *btt()))
 
         def _get_char_av_cache(self, g):
             if g not in self:
@@ -1816,10 +1876,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             Otherwise, raise AttributeError.
 
             """
+            get_char_av_cache, get_char_only_graph, charn, btt = self._node_stuff
             try:
-                return self._get_char_av_cache(
-                    self.engine._avatarness_cache.get_char_only_graph(
-                        self.character.name, *self.engine.btt()
+                return get_char_av_cache(
+                    get_char_only_graph(
+                        charn, *btt()
                     )
                 )
             except KeyError:
@@ -1834,11 +1895,12 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             Otherwise, raise AttributeError.
 
             """
+            get_char_only_av, charn, btt, get_node, charmap = self._only_stuff
             try:
-                charn, noden = self.engine._avatarness_cache.get_char_only_av(
-                    self.character.name, *self.engine.btt()
+                charn, noden = get_char_only_av(
+                    charn, *btt()
                 )
-                return self.engine._get_node(self.engine.character[charn], noden)
+                return get_node(charmap[charn], noden)
             except KeyError:
                 raise AttributeError(
                     "I have no avatar, or more than one avatar"
@@ -1851,35 +1913,47 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 character.
 
                 """
-                self.character = outer.character
-                self.engine = outer.engine
-                self.name = outer.name
+                self.character = character = outer.character
+                self.engine = engine = outer.engine
+                self.name = name = outer.name
                 self.graph = graphn
+                avcache = engine._avatarness_cache
+                btt = engine.btt
+                self._iter_stuff = iter_stuff = (
+                    avcache.get_char_graph_avs, name, graphn, btt
+                )
+                get_node = engine._get_node
+                self._getitem_stuff = iter_stuff + (get_node, graphn, engine.character)
+                self._only_stuff = (get_node, engine.character, graphn)
 
             def __iter__(self):
                 """Iterate over the names of all the presently existing nodes in the
                 graph that are avatars of the character
 
                 """
-                return iter(self.engine._avatarness_cache.get_char_graph_avs(
-                    self.name, self.graph, *self.engine.btt()
+                get_char_graph_avs, name, graphn, btt = self._iter_stuff
+                return iter(get_char_graph_avs(
+                    name, graphn, *btt()
                 ))
 
             def __contains__(self, av):
-                return av in self.engine._avatarness_cache.get_char_graph_avs(
-                    self.name, self.graph, *self.engine.btt()
+                get_char_graph_avs, name, graphn, btt = self._iter_stuff
+                return av in get_char_graph_avs(
+                    name, graphn, *btt()
                 )
 
             def __len__(self):
                 """Number of presently existing nodes in the graph that are avatars of
                 the character"""
-                return len(self.engine._avatarness_cache.get_char_graph_avs(
-                    self.name, self.graph, *self.engine.btt()
+                get_char_graph_avs, name, graphn, btt = self._iter_stuff
+                return len(get_char_graph_avs(
+                    name, graphn, *btt()
                 ))
 
             def __getitem__(self, av):
-                if av in self:
-                    return self.engine._get_node(self.engine.character[self.graph], av)
+                get_char_graph_avs, name, graphn, btt, get_node, graphn, charmap = self._getitem_stuff
+                if av in get_char_graph_avs(name, graphn, *btt()):
+                    return get_node(charmap[graphn], av)
                 raise KeyError("No avatar: {}".format(av))
 
             @property
@@ -1887,7 +1961,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 mykey = singleton_get(self.keys())
                 if mykey is None:
                     raise AttributeError("No avatar, or more than one")
-                return self.engine._get_node(self.engine.character[self.graph], mykey)
+                get_node, charmap, graphn = self._only_stuff
+                return get_node(charmap[graphn], mykey)
 
             def __repr__(self):
                 return "{}.character[{}].avatar".format(repr(self.engine), repr(self.name))

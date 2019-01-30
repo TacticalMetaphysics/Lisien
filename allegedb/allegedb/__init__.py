@@ -289,26 +289,30 @@ class ORM(object):
         return self.node_cls(graph, node)
 
     def _get_node(self, graph, node):
-        key = (graph.name, node)
-        if key in self._node_objs:
-            return self._node_objs[key]
-        if not self._node_exists(graph.name, node):
-            raise KeyError("No such node: {} in {}".format(node, graph.name))
-        ret = self._make_node(graph, node)
-        self._node_objs[key] = ret
+        node_objs, node_exists, make_node = self._get_node_stuff
+        graphn = graph.name
+        key = (graphn, node)
+        if key in node_objs:
+            return node_objs[key]
+        if not node_exists(graphn, node):
+            raise KeyError("No such node: {} in {}".format(node, graphn))
+        ret = make_node(graph, node)
+        node_objs[key] = ret
         return ret
 
     def _make_edge(self, graph, orig, dest, idx):
         return self.edge_cls(graph, orig, dest, idx)
 
     def _get_edge(self, graph, orig, dest, idx=0):
-        key = (graph.name, orig, dest, idx)
-        if key in self._edge_objs:
-            return self._edge_objs[key]
-        if not self._edge_exists(graph.name, orig, dest, idx):
-            self._exist_edge(graph.name, orig, dest, idx)
-        ret = self._make_edge(graph, orig, dest, idx)
-        self._edge_objs[key] = ret
+        edge_objs, edge_exists, make_edge = self._get_edge_stuff
+        graphn = graph.name
+        key = (graphn, orig, dest, idx)
+        if key in edge_objs:
+            return edge_objs[key]
+        if not edge_exists(graphn, orig, dest, idx):
+            raise KeyError("No such edge: {}->{}[{}] in {}".format(orig, dest, idx, graphn))
+        ret = make_edge(graph, orig, dest, idx)
+        edge_objs[key] = ret
         return ret
 
     def plan(self):
@@ -489,8 +493,10 @@ class ORM(object):
         from .cache import Cache, NodesCache, EdgesCache
         self._where_cached = defaultdict(list)
         self._global_cache = self.query._global_cache = {}
-        self._node_objs = WeakValueDictionary()
-        self._edge_objs = WeakValueDictionary()
+        self._node_objs = node_objs = WeakValueDictionary()
+        self._get_node_stuff = (node_objs, self._node_exists, self._make_node)
+        self._edge_objs = edge_objs = WeakValueDictionary()
+        self._get_edge_stuff = (edge_objs, self._edge_exists, self._make_edge)
         for k, v in self.query.global_items():
             if k == 'branch':
                 self._obranch = v

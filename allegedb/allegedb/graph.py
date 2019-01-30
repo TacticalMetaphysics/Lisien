@@ -987,13 +987,13 @@ class AbstractMultiEdges(GraphEdgeMapping):
             branch, turn, tick,
             True
         )
-        e = self._getedge(idx)
-        e.clear()
-        e.update(val)
         self.db._edges_cache.store(
             self.graph.name, orig, dest, idx,
             branch, turn, tick, True
         )
+        e = self._getedge(idx)
+        e.clear()
+        e.update(val)
         if created:
             self.send(self, orig=orig, dest=dest, idx=idx, exists=True)
 
