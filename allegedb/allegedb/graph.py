@@ -175,29 +175,41 @@ class AbstractEntityMapping(AllegedMapping):
 
 class GraphMapping(AbstractEntityMapping):
     """Mapping for graph attributes"""
-    __slots__ = ('graph',)
-
-    db = getatt('graph.db')
+    __slots__ = ('graph', 'db', '_iter_stuff', '_cache_contains_stuff',
+                 '_len_stuff', '_get_stuff', '_set_db_stuff',
+                 '_set_cache_stuff', '_del_db_stuff', '_get_cache_stuff')
 
     def __init__(self, graph):
         super().__init__()
         self.graph = graph
+        self.db = db = graph.db
+        btt = db.btt
+        graph_val_cache = db._graph_val_cache
+        graphn = graph.name
+        self._iter_stuff = (graph_val_cache.iter_entity_keys, graphn, btt)
+        self._cache_contains_stuff = (graph_val_cache.contains_key, graphn)
+        self._len_stuff = (graph_val_cache.count_entities, graphn, btt)
+        self._get_stuff = (self._get_cache, btt)
+        graph_val_set = db.query.graph_val_set
+        self._set_db_stuff = (graph_val_set, graphn)
+        self._set_cache_stuff = (graph_val_cache.store, graphn)
+        self._del_db_stuff = (graph_val_set, graphn)
+        self._get_cache_stuff = (graph_val_cache.retrieve, graphn)
 
     def __iter__(self):
+        iter_entity_keys, graphn, btt = self._iter_stuff
         yield 'name'
-        yield from self.db._graph_val_cache.iter_entity_keys(
-            self.graph.name, *self.db.btt()
-        )
+        yield from iter_entity_keys(graphn, *btt())
 
     def _cache_contains(self, key, branch, turn, tick):
-        return self.db._graph_val_cache.contains_key(
-            self.graph.name, key, branch, turn, tick
+        contains_key, graphn = self._cache_contains_stuff
+        return contains_key(
+            graphn, key, branch, turn, tick
         )
 
     def __len__(self):
-        return 1 + self.db._graph_val_cache.count_entities(
-            self.graph.name, *self.db.btt()
-        )
+        count_entities, graphn, btt = self._len_stuff
+        return 1 + count_entities(graphn, *btt())
 
     def __getitem__(self, item):
         if item == 'name':
@@ -210,29 +222,34 @@ class GraphMapping(AbstractEntityMapping):
         super().__setitem__(key, value)
 
     def _get_cache(self, key, branch, turn, tick):
-        return self.db._graph_val_cache.retrieve(
-            self.graph.name, key, branch, turn, tick
+        retrieve, graphn = self._get_cache_stuff
+        return retrieve(
+            graphn, key, branch, turn, tick
         )
 
     def _get(self, key):
-        return self._get_cache(key, *self.db.btt())
+        get_cache, btt = self._get_stuff
+        return get_cache(key, *btt())
 
     def _set_db(self, key, branch, turn, tick, value):
-        self.db.query.graph_val_set(
-            self.graph.name,
+        graph_val_set, graphn = self._set_db_stuff
+        graph_val_set(
+            graphn,
             key,
             branch, turn, tick,
             value
         )
 
     def _set_cache(self, key, branch, turn, tick, value):
-        self.db._graph_val_cache.store(
-            self.graph.name, key, branch, turn, tick, value
+        store, graphn = self._set_cache_stuff
+        store(
+            graphn, key, branch, turn, tick, value
         )
 
     def _del_db(self, key, branch, turn, tick):
-        self.db.query.graph_val_set(
-            self.graph.name,
+        graph_val_set, graphn = self._del_db_stuff
+        graph_val_set(
+            graphn,
             key,
             branch, turn, tick, None
         )
@@ -249,9 +266,9 @@ class GraphMapping(AbstractEntityMapping):
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
-    __slots__ = ('graph', 'node', '__weakref__')
-
-    db = getatt('graph.db')
+    __slots__ = ('graph', 'node', 'db', '__weakref__', '_iter_stuff',
+                 '_cache_contains_stuff', '_len_stuff', '_get_cache_stuff',
+                 '_set_db_stuff', '_set_cache_stuff')
 
     def __new__(cls, graph, node):
         if (graph.name, node) in graph.db._node_objs:
@@ -267,6 +284,16 @@ class Node(AbstractEntityMapping):
         super().__init__()
         self.graph = graph
         self.node = node
+        self.db = db = graph.db
+        node_val_cache = db._node_val_cache
+        graphn = graph.name
+        btt = db.btt
+        self._iter_stuff = (node_val_cache.iter_entity_keys, graphn, node, btt)
+        self._cache_contains_stuff = (node_val_cache.contains_key, graphn, node)
+        self._len_stuff = (node_val_cache.count_entity_keys, graphn, node, btt)
+        self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
+        self._set_db_stuff = (db.query.node_val_set, graphn, node)
+        self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
 
     def __repr__(self):
         return "{}(graph={}, node={})".format(self.__class__.__name__, self.graph, self.node)
@@ -275,38 +302,40 @@ class Node(AbstractEntityMapping):
         return "{}(graph={}, node={}, data={})".format(self.__class__.__name__, self.graph, self.node, repr(dict(self)))
 
     def __iter__(self):
-        return self.db._node_val_cache.iter_entity_keys(
-            self.graph.name, self.node, *self.db.btt()
-        )
+        iter_entity_keys, graphn, node, btt = self._iter_stuff
+        return iter_entity_keys(graphn, node, *btt())
 
     def _cache_contains(self, key, branch, turn, tick):
-        return self.db._node_val_cache.contains_key(
-            self.graph.name, self.node, key, branch, turn, tick
+        contains_key, graphn, node = self._cache_contains_stuff
+        return contains_key(
+            graphn, node, key, branch, turn, tick
         )
 
     def __len__(self):
-        return self.db._node_val_cache.count_entity_keys(
-            self.graph.name, self.node, *self.db.btt()
-        )
+        count_entity_keys, graphn, node, btt = self._len_stuff
+        return count_entity_keys(graphn, node, *btt())
 
     def _get_cache(self, key, branch, turn, tick):
-        return self.db._node_val_cache.retrieve(
-            self.graph.name, self.node, key, branch, turn, tick
+        retrieve, graphn, node = self._get_cache_stuff
+        return retrieve(
+            graphn, node, key, branch, turn, tick
         )
 
     def _set_db(self, key, branch, turn, tick, value):
-        self.db.query.node_val_set(
-            self.graph.name,
-            self.node,
+        node_val_set, graphn, node = self._set_db_stuff
+        node_val_set(
+            graphn,
+            node,
             key,
             branch, turn, tick,
             value
         )
 
     def _set_cache(self, key, branch, turn, tick, value):
-        self.db._node_val_cache.store(
-            self.graph.name,
-            self.node,
+        store, graphn, node = self._set_cache_stuff
+        store(
+            graphn,
+            node,
             key,
             branch, turn, tick,
             value
@@ -315,9 +344,9 @@ class Node(AbstractEntityMapping):
 
 class Edge(AbstractEntityMapping):
     """Mapping for edge attributes"""
-    __slots__ = ('graph', 'orig', 'dest', 'idx', '__weakref__')
-
-    db = getatt('graph.db')
+    __slots__ = ('graph', 'orig', 'dest', 'idx', 'db', '__weakref__',
+                 '_iter_stuff', '_cache_contains_stuff', '_len_stuff',
+                 '_get_cache_stuff', '_set_db_stuff', '_set_cache_stuff')
 
     def __new__(cls, graph, orig, dest, idx=0):
         if (graph.name, orig, dest, idx) in graph.db._edge_objs:
@@ -339,9 +368,19 @@ class Edge(AbstractEntityMapping):
         """
         super().__init__()
         self.graph = graph
+        self.db = db = graph.db
         self.orig = orig
         self.dest = dest
         self.idx = idx
+        edge_val_cache = db._edge_val_cache
+        graphn = graph.name
+        btt = db.btt
+        self._iter_stuff = (edge_val_cache.iter_entity_keys, graphn, orig, dest, idx, btt)
+        self._cache_contains_stuff = (edge_val_cache.contains_key, graphn, orig, dest, idx)
+        self._len_stuff = (edge_val_cache.count_entity_keys, graphn, orig, dest, idx, btt)
+        self._get_cache_stuff = (edge_val_cache.retrieve, graphn, orig, dest, idx)
+        self._set_db_stuff = (db.query.edge_val_set, graphn, orig, dest, idx)
+        self._set_cache_stuff = (edge_val_cache.store, graphn, orig, dest, idx)
 
     def __repr__(self):
         if self.idx == 0:
@@ -363,55 +402,40 @@ class Edge(AbstractEntityMapping):
         )
 
     def __iter__(self):
-        return self.db._edge_val_cache.iter_entity_keys(
-            self.graph.name,
-            self.orig,
-            self.dest,
-            self.idx,
-            *self.db.btt()
-        )
+        iter_entity_keys, graphn, orig, dest, idx, btt = self._iter_stuff
+        return iter_entity_keys(graphn, orig, dest, idx, *btt())
 
     def _cache_contains(self, key, branch, turn, tick):
-        return self.db._edge_val_cache.contains_key(
-            self.graph.name, self.orig, self.dest, self.idx, key, branch, turn, tick
-        )
+        contains_key, graphn, orig, dest, idx = self._cache_contains_stuff
+        return contains_key(graphn, orig, dest, idx, key, branch, turn, tick)
 
     def __len__(self):
-        return self.db._edge_val_cache.count_entity_keys(
-            self.graph.name,
-            self.orig,
-            self.dest,
-            self.idx,
-            *self.db.btt()
-        )
+        count_entity_keys, graphn, orig, dest, idx, btt = self._len_stuff
+        return count_entity_keys(graphn, orig, dest, idx, *btt())
 
     def _get_cache(self, key, branch, turn, tick):
-        return self.db._edge_val_cache.retrieve(
-            self.graph.name,
-            self.orig,
-            self.dest,
-            self.idx,
-            key,
-            branch, turn, tick
-        )
+        retrieve, graphn, orig, dest, idx = self._get_cache_stuff
+        return retrieve(graphn, orig, dest, idx, key, branch, turn, tick)
 
     def _set_db(self, key, branch, turn, tick, value):
-        self.db.query.edge_val_set(
-            self.graph.name,
-            self.orig,
-            self.dest,
-            self.idx,
+        edge_val_set, graphn, orig, dest, idx = self._set_db_stuff
+        edge_val_set(
+            graphn,
+            orig,
+            dest,
+            idx,
             key,
             branch, turn, tick,
             value
         )
 
     def _set_cache(self, key, branch, turn, tick, value):
-        self.db._edge_val_cache.store(
-            self.graph.name,
-            self.orig,
-            self.dest,
-            self.idx,
+        store, graphn, orig, dest, idx = self._set_cache_stuff
+        store(
+            graphn,
+            orig,
+            dest,
+            idx,
             key,
             branch, turn, tick,
             value
