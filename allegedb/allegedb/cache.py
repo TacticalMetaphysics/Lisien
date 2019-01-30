@@ -205,6 +205,12 @@ class Cache(Signal):
         """The values prior to ``entity[key] = value`` operations performed on some turn"""
         self.time_entity = {}
         self._kc_lru = OrderedDict()
+        self._store_stuff = (
+            self.parents, self.branches, self.keys, db._delete_plan,
+            db._time_plan, self._iter_future_contradictions,
+            db._branches, db._turn_end, self._store_journal,
+            self.time_entity, db._where_cached, self.keycache
+        )
 
     def load(self, data):
         """Add a bunch of data. Must be in chronological order.
@@ -595,23 +601,29 @@ class Cache(Signal):
     def _store(self, *args, planning, loading=False, contra=True):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
+        (
+            self_parents, self_branches, self_keys, delete_plan,
+            time_plan, self_iter_future_contradictions,
+            db_branches, db_turn_end, self_store_journal,
+            self_time_entity, db_where_cached, keycache
+        ) = self._store_stuff
         if parent:
-            parentity = self.parents[parent][entity]
+            parentity = self_parents[parent][entity]
             if key in parentity:
                 branches = parentity[key]
                 turns = branches[branch]
             else:
-                branches = self.branches[parent+(entity, key)] \
-                    = self.keys[parent+(entity,)][key] \
+                branches = self_branches[parent+(entity, key)] \
+                    = self_keys[parent+(entity,)][key] \
                     = parentity[key]
                 turns = branches[branch]
         else:
-            if (entity, key) in self.branches:
-                branches = self.branches[entity, key]
+            if (entity, key) in self_branches:
+                branches = self_branches[entity, key]
                 turns = branches[branch]
             else:
-                branches = self.branches[entity, key]
-                self.keys[entity,][key] = branches
+                branches = self_branches[entity, key]
+                self_keys[entity,][key] = branches
                 turns = branches[branch]
         if planning:
             if turn in turns and tick < turns[turn].end:
@@ -620,10 +632,8 @@ class Cache(Signal):
                         tick, turn, branch
                     )
                 )
-        delete_plan = self.db._delete_plan
-        time_plan = self.db._time_plan
         if contra:
-            contras = list(self._iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
+            contras = list(self_iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
             if contras:
                 self.shallowest = OrderedDict()
             for contra_turn, contra_tick in contras:
@@ -633,9 +643,9 @@ class Cache(Signal):
             branches[branch] = turns
         if not loading and not planning:
             parbranch, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
-            self.db._branches[branch] = parbranch, turn_start, tick_start, turn, tick
-            self.db._turn_end[branch, turn] = tick
-        self._store_journal(*args)
+            db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
+            db_turn_end[branch, turn] = tick
+        self_store_journal(*args)
         self.shallowest[parent + (entity, key, branch, turn, tick)] = value
         shallowest = self.shallowest
         while len(shallowest) > KEYCACHE_MAXSIZE:
@@ -648,13 +658,12 @@ class Cache(Signal):
             new = FuturistWindowDict()
             new[tick] = value
             turns[turn] = new
-        self.time_entity[branch, turn, tick] = parent, entity, key
-        where_cached = self.db._where_cached[args[-4:-1]]
+        self_time_entity[branch, turn, tick] = parent, entity, key
+        where_cached = db_where_cached[args[-4:-1]]
         if self not in where_cached:
             where_cached.append(self)
         # if we're editing the past, have to invalidate the keycache
         keycache_key = parent + (entity, branch)
-        keycache = self.keycache
         if keycache_key in keycache:
             thiskeycache = keycache[keycache_key]
             if turn in thiskeycache:

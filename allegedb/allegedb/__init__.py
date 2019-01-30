@@ -516,6 +516,13 @@ class ORM(object):
         """Tick on which a (branch, turn) ends"""
         self._turn_end_plan = defaultdict(lambda: 0)
         """Tick on which a (branch, turn) ends, even if it hasn't been simulated"""
+        self._graph_objs = {}
+        self._plans = {}
+        self._branches_plans = defaultdict(set)
+        self._plan_ticks = defaultdict(lambda: defaultdict(list))
+        self._time_plan = {}
+        self._plans_uncommitted = []
+        self._plan_ticks_uncommitted = []
         self._graph_val_cache = Cache(self)
         self._graph_val_cache.setdb = self.query.graph_val_set
         self._graph_val_cache.deldb = self.query.graph_val_del_time
@@ -531,13 +538,6 @@ class ORM(object):
         self._edge_val_cache = Cache(self)
         self._edge_val_cache.setdb = self.query.edge_val_set
         self._edge_val_cache.deldb = self.query.edge_val_del_time
-        self._graph_objs = {}
-        self._plans = {}
-        self._branches_plans = defaultdict(set)
-        self._plan_ticks = defaultdict(lambda: defaultdict(list))
-        self._time_plan = {}
-        self._plans_uncommitted = []
-        self._plan_ticks_uncommitted = []
 
     def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
