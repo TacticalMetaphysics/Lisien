@@ -641,8 +641,7 @@ class DeckBuilderLayout(Layout):
             touch.ud['card']._topdecked = InstructionGroup()
             touch.ud['card']._topdecked.add(touch.ud['card'].canvas)
             self.canvas.after.add(touch.ud['card']._topdecked)
-        i = 0
-        for deck in self.decks:
+        for i, deck in enumerate(self.decks):
             cards = [card for card in deck if not card.dragging]
             maxidx = max(card.idx for card in cards) if cards else 0
             if self.direction == 'descending':
@@ -686,17 +685,14 @@ class DeckBuilderLayout(Layout):
                     ):
                         self.insertion_card = cards[-1].idx
                 else:
-                    j = 0
-                    for found in self._foundations:
+                    for j, found in enumerate(self._foundations):
                         if (
                                 found is not None and
                                 found.collide_point(*touch.pos)
                         ):
                             self.insertion_deck = j
                             self.insertion_card = 0
-                        return
-                        j += 1
-            i += 1
+                            return
 
     def on_touch_up(self, touch):
         """If a card is being dragged, put it in the place it was just dropped
