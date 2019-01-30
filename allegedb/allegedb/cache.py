@@ -83,7 +83,7 @@ class StructuredDefaultDict(dict):
     to my constructor.
 
     """
-    __slots__ = ['layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key']
+    __slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key', '_stuff')
 
     def __init__(
             self, layers, type=object,
@@ -96,18 +96,20 @@ class StructuredDefaultDict(dict):
         self.type = type
         self.args_munger = args_munger
         self.kwargs_munger = kwargs_munger
+        self._stuff = (layers, type, args_munger, kwargs_munger)
 
     def __getitem__(self, k):
         if k in self:
             return dict.__getitem__(self, k)
-        if self.layer < 2:
+        layer, typ, args_munger, kwargs_munger = self._stuff
+        if layer < 2:
             ret = PickyDefaultDict(
-                self.type, self.args_munger, self.kwargs_munger
+                typ, args_munger, kwargs_munger
             )
         else:
             ret = StructuredDefaultDict(
-                self.layer-1, self.type,
-                self.args_munger, self.kwargs_munger
+                layer-1, typ,
+                args_munger, kwargs_munger
             )
         ret.parent = self
         ret.key = k
@@ -116,20 +118,22 @@ class StructuredDefaultDict(dict):
 
     def __setitem__(self, k, v):
         if type(v) is StructuredDefaultDict:
+            layer, typ, args_munger, kwargs_munger = self._stuff
             if (
-                    v.layer == self.layer - 1
-                    and v.type is self.type
-                    and v.args_munger is self.args_munger
-                    and v.kwargs_munger is self.kwargs_munger
+                    v.layer == layer - 1
+                    and v.type is typ
+                    and v.args_munger is args_munger
+                    and v.kwargs_munger is kwargs_munger
             ):
                 super().__setitem__(k, v)
                 return
         elif type(v) is PickyDefaultDict:
+            layer, typ, args_munger, kwargs_munger = self._stuff
             if (
-                self.layer < 2
-                and v.type is self.type
-                and v.args_munger is self.args_munger
-                and v.kwargs_munger is self.kwargs_munger
+                layer < 2
+                and v.type is typ
+                and v.args_munger is args_munger
+                and v.kwargs_munger is kwargs_munger
             ):
                 super().__setitem__(k, v)
                 return
@@ -152,12 +156,18 @@ def lru_append(kc, lru, kckey, maxsize):
         return
     while len(lru) >= maxsize:
         (peb, turn, tick), _ = lru.popitem(False)
-        if peb not in kc or turn not in kc[peb] or tick not in kc[peb][turn]:
+        if peb not in kc:
             continue
-        del kc[peb][turn][tick]
-        if not kc[peb][turn]:
-            del kc[peb][turn]
-        if not kc[peb]:
+        kcpeb = kc[peb]
+        if turn not in kcpeb:
+            continue
+        kcpebturn = kcpeb[turn]
+        if tick not in kcpebturn:
+            continue
+        del kcpebturn[tick]
+        if not kcpebturn:
+            del kcpeb[turn]
+        if not kcpeb:
             del kc[peb]
     lru[kckey] = True
 
@@ -210,6 +220,14 @@ class Cache(Signal):
             db._time_plan, self._iter_future_contradictions,
             db._branches, db._turn_end, self._store_journal,
             self.time_entity, db._where_cached, self.keycache
+        )
+        self._remove_stuff = (
+            self.time_entity, self.parents, self.branches, self.keys,
+            self.settings, self.presettings, self._remove_keycache, self.send
+        )
+        self._truncate_stuff = (
+            self.parents, self.branches, self.keys, self.settings, self.presettings,
+            self.keycache, self.send
         )
 
     def load(self, data):
@@ -273,21 +291,25 @@ class Cache(Signal):
 
         """
         keycache_key = parentity + (branch,)
-        if keycache_key in keycache and turn in keycache[keycache_key] and tick in keycache[keycache_key][turn]:
-            return keycache[keycache_key][turn][tick]
+        keycache2 = keycache3 = None
+        if keycache_key in keycache:
+            keycache2 = keycache[keycache_key]
+            if turn in keycache2:
+                keycache3 = keycache2[turn]
+                if tick in keycache3:
+                    return keycache3[tick]
         if forward:
             # Take valid values from the past of a keycache and copy them forward, into the present.
             # Assumes that time is only moving forward, never backward, never skipping any turns or ticks,
             # and any changes to the world state are happening through allegedb proper, meaning they'll all get cached.
             # In LiSE this means every change to the world state should happen inside of a call to
             # ``Engine.next_turn`` in a rule.
-            if keycache_key in keycache and keycache[keycache_key].rev_gettable(turn):
+            if keycache2 and keycache2.rev_gettable(turn):
                 # there's a keycache from a prior turn in this branch. Get it
-                kc = keycache[keycache_key]
-                if turn not in kc:
+                if turn not in keycache2:
                     # since it's not this *exact* turn there might be changes...
-                    old_turn = kc.rev_before(turn)
-                    old_turn_kc = kc[turn]
+                    old_turn = keycache2.rev_before(turn)
+                    old_turn_kc = keycache2[turn]
                     added, deleted = get_adds_dels(
                         keys[parentity], branch, turn, tick, stoptime=(
                             branch, old_turn, old_turn_kc.end
@@ -297,34 +319,35 @@ class Cache(Signal):
                     # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                     new_turn_kc = WindowDict()
                     new_turn_kc[tick] = ret
-                    kc[turn] = new_turn_kc
+                    keycache2[turn] = new_turn_kc
                     return ret
-                kcturn = kc[turn]
-                if tick not in kcturn:
-                    if kcturn.rev_gettable(tick):
+                if not keycache3:
+                    keycache3 = keycache2[turn]
+                if tick not in keycache3:
+                    if keycache3.rev_gettable(tick):
                         added, deleted = get_adds_dels(
                             keys[parentity], branch, turn, tick, stoptime=(
-                                branch, turn, kcturn.rev_before(tick)
+                                branch, turn, keycache3.rev_before(tick)
                             )
                         )
-                        ret = kcturn[tick].union(added).difference(deleted)
+                        ret = keycache3[tick].union(added).difference(deleted)
                         # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
-                        kcturn[tick] = ret
+                        keycache3[tick] = ret
                         return ret
                     else:
-                        turn_before = kc.rev_before(turn)
-                        tick_before = kc[turn_before].end
-                        keys_before = kc[turn_before][tick_before]
+                        turn_before = keycache2.rev_before(turn)
+                        tick_before = keycache2[turn_before].end
+                        keys_before = keycache2[turn_before][tick_before]
                         added, deleted = get_adds_dels(
                             keys[parentity], branch, turn, tick, stoptime=(
                                 branch, turn_before, tick_before
                             )
                         )
-                        ret = kcturn[tick] = keys_before.union(added).difference(deleted)
+                        ret = keycache3[tick] = keys_before.union(added).difference(deleted)
                         # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                         return ret
                 # assert kcturn[tick] == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
-                return kcturn[tick]
+                return keycache3[tick]
             else:
                 for (parbranch, parturn, partick) in self.db._iter_parent_btt(branch, turn, tick):
                     par_kc_key = parentity + (parbranch,)
@@ -339,23 +362,23 @@ class Cache(Signal):
                             break
                 else:
                     parkeys = frozenset()
-                kc = SettingsTurnDict()
+                keycache2 = SettingsTurnDict()
                 added, deleted = get_adds_dels(
                     keys[parentity], branch, turn, tick, stoptime=(
                         parbranch, parturn, partick
                     )
                 )
                 ret = parkeys.union(added).difference(deleted)
-                kc[turn] = {tick: ret}
-                keycache[keycache_key] = kc
+                keycache2[turn] = {tick: ret}
+                keycache[keycache_key] = keycache2
                 # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return ret
         ret = frozenset(get_adds_dels(keys[parentity], branch, turn, tick)[0])
-        if keycache_key in keycache:
-            if turn in keycache[keycache_key]:
-                keycache[keycache_key][turn][tick] = ret
+        if keycache2:
+            if keycache3:
+                keycache3[tick] = ret
             else:
-                keycache[keycache_key][turn] = {tick: ret}
+                keycache2[turn] = {tick: ret}
         else:
             kcc = SettingsTurnDict()
             kcc[turn] = {tick: ret}
@@ -451,11 +474,12 @@ class Cache(Signal):
 
     def remove(self, branch, turn, tick):
         """Delete all data from a specific tick"""
-        parent, entity, key = self.time_entity[branch, turn, tick]
+        time_entity, parents, branches, keys, settings, presettings, remove_keycache, send = self._remove_stuff
+        parent, entity, key = time_entity[branch, turn, tick]
         branchkey = parent + (entity, key)
         keykey = parent + (entity,)
-        if parent in self.parents:
-            parentt = self.parents[parent]
+        if parent in parents:
+            parentt = parents[parent]
             if entity in parentt:
                 entty = parentt[entity]
                 if key in entty:
@@ -474,9 +498,9 @@ class Cache(Signal):
                 if not entty:
                     del parentt[entity]
             if not parentt:
-                del self.parents[parent]
-        if branchkey in self.branches:
-            entty = self.branches[branchkey]
+                del parents[parent]
+        if branchkey in branches:
+            entty = branches[branchkey]
             if branch in entty:
                 branhc = entty[branch]
                 if turn in branhc:
@@ -488,9 +512,9 @@ class Cache(Signal):
                 if not branhc:
                     del entty[branch]
             if not entty:
-                del self.branches[branchkey]
-        if keykey in self.keys:
-            entty = self.keys[keykey]
+                del branches[branchkey]
+        if keykey in keys:
+            entty = keys[keykey]
             if key in entty:
                 kee = entty[key]
                 if branch in kee:
@@ -506,9 +530,9 @@ class Cache(Signal):
                 if not kee:
                     del entty[key]
             if not entty:
-                del self.keys[keykey]
-        branhc = self.settings[branch]
-        pbranhc = self.presettings[branch]
+                del keys[keykey]
+        branhc = settings[branch]
+        pbranhc = presettings[branch]
         trn = branhc[turn]
         ptrn = pbranhc[turn]
         if tick in trn:
@@ -519,16 +543,17 @@ class Cache(Signal):
             del pbranhc[turn]
             del branhc[turn]
         if not pbranhc:
-            del self.settings[branch]
-            del self.presettings[branch]
+            del settings[branch]
+            del presettings[branch]
         self.shallowest = OrderedDict()
-        self._remove_keycache(parent + (entity, branch), turn, tick)
-        self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
+        remove_keycache(parent + (entity, branch), turn, tick)
+        send(self, branch=branch, turn=turn, tick=tick, action='remove')
 
     def _remove_keycache(self, entity_branch, turn, tick):
         """Remove the future of a given entity from a branch in the keycache"""
-        if entity_branch in self.keycache:
-            kc = self.keycache[entity_branch]
+        keycache = self.keycache
+        if entity_branch in keycache:
+            kc = keycache[entity_branch]
             if turn in kc:
                 kcturn = kc[turn]
                 if tick in kcturn:
@@ -538,10 +563,11 @@ class Cache(Signal):
                     del kc[turn]
             kc.truncate(turn)
             if not kc:
-                del self.keycache[entity_branch]
+                del keycache[entity_branch]
 
     def truncate(self, branch, turn, tick):
         """Delete all data after (not on) a specific tick"""
+        parents, branches, keys, settings, presettings, keycache, send = self._truncate_stuff
         def truncate_branhc(branhc):
             if turn in branhc:
                 trn = branhc[turn]
@@ -551,29 +577,28 @@ class Cache(Signal):
                     del branhc[turn]
             else:
                 branhc.truncate(turn)
-        for entities in self.parents.values():
+        for entities in parents.values():
             for keys in entities.values():
                 for branches in keys.values():
                     if branch not in branches:
                         continue
                     truncate_branhc(branches[branch])
-        for branches in self.branches.values():
+        for branches in branches.values():
             if branch not in branches:
                 continue
             truncate_branhc(branches[branch])
-        for keys in self.keys.values():
+        for keys in keys.values():
             for branches in keys.values():
                 if branch not in branches:
                     continue
                 truncate_branhc(branches[branch])
-        truncate_branhc(self.settings[branch])
-        truncate_branhc(self.presettings[branch])
+        truncate_branhc(settings[branch])
+        truncate_branhc(presettings[branch])
         self.shallowest = OrderedDict()
-        keycache = self.keycache
         for entity_branch in keycache:
             if entity_branch[-1] == branch:
                 truncate_branhc(keycache[entity_branch])
-        self.send(self, branch=branch, turn=turn, tick=tick, action='truncate')
+        send(self, branch=branch, turn=turn, tick=tick, action='truncate')
 
     @staticmethod
     def _iter_future_contradictions(entity, key, turns, branch, turn, tick, value):
@@ -834,6 +859,14 @@ class EdgesCache(Cache):
         self.predecessors = StructuredDefaultDict(3, TurnDict)
         self._origcache_lru = OrderedDict()
         self._destcache_lru = OrderedDict()
+        self._get_destcache_stuff = (
+            self.destcache, self._destcache_lru, self._get_keycachelike,
+            self.successors, self._adds_dels_sucpred
+        )
+        self._get_origcache_stuff = (
+            self.origcache, self._origcache_lru, self._get_keycachelike,
+            self.predecessors, self._adds_dels_sucpred
+        )
 
     def _slow_iter_node_contradicted_times(self, branch, turn, tick, graph, node):
         # slow and bad.
@@ -870,17 +903,19 @@ class EdgesCache(Cache):
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
         """Return a set of destination nodes succeeding ``orig``"""
-        lru_append(self.destcache, self._destcache_lru, ((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
-        return self._get_keycachelike(
-            self.destcache, self.successors, self._adds_dels_sucpred, (graph, orig),
+        destcache, destcache_lru, get_keycachelike, successors, adds_dels_sucpred = self._get_destcache_stuff
+        lru_append(destcache, destcache_lru, ((graph, orig, branch), turn, tick), KEYCACHE_MAXSIZE)
+        return get_keycachelike(
+            destcache, successors, adds_dels_sucpred, (graph, orig),
             branch, turn, tick, forward=forward
         )
 
     def _get_origcache(self, graph, dest, branch, turn, tick, *, forward):
         """Return a set of origin nodes leading to ``dest``"""
-        lru_append(self.origcache, self._origcache_lru, ((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
-        return self._get_keycachelike(
-            self.origcache, self.predecessors, self._adds_dels_sucpred, (graph, dest),
+        origcache, origcache_lru, get_keycachelike, predecessors, adds_dels_sucpred = self._get_origcache_stuff
+        lru_append(origcache, origcache_lru, ((graph, dest, branch), turn, tick), KEYCACHE_MAXSIZE)
+        return get_keycachelike(
+            origcache, predecessors, adds_dels_sucpred, (graph, dest),
             branch, turn, tick, forward=forward
         )
 
