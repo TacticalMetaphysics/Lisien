@@ -292,23 +292,24 @@ class RulesHandledCache(object):
     def unhandled_rulebook_rules(self, *args):
         entity = args[:-4]
         rulebook, branch, turn, tick = args[-4:]
-        if (
-            entity in self.unhandled and
-            rulebook in self.unhandled[entity] and
-            branch in self.unhandled[entity][rulebook] and
-            turn in self.unhandled[entity][rulebook][branch]
-        ):
-            ret = self.unhandled[entity][rulebook][branch][turn]
-        else:
-            try:
-                return [
-                    rule for rule in
-                    self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
-                    if rule not in self.handled.setdefault(entity + (rulebook, branch, turn), set())
-                ]
-            except KeyError:
-                return []
-        return ret
+        unh = self.unhandled
+        if entity in unh:
+            ue = unh[entity]
+            if rulebook in ue:
+                uer = ue[rulebook]
+                if branch in uer:
+                    uerb = uer[branch]
+                    if turn in uerb:
+                        return uerb[turn]
+        try:
+            rulebook_rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
+        except KeyError:
+            return []
+        handled_rules = self.handled.setdefault(entity + (rulebook, branch, turn), set())
+        return [
+            rule for rule in rulebook_rules
+            if rule not in handled_rules
+        ]
 
 
 class CharacterRulesHandledCache(RulesHandledCache):
