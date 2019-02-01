@@ -97,7 +97,12 @@
     <span class="k">def</span> <span class="nf">_nominate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span><span class="p">):</span>
-                <span class="n">stored_source</span> <span class="o">=</span> <span class="n">getsource</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="s1">&#39;get_source&#39;</span><span class="p">):</span>
+                    <span class="n">stored_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="o">.</span><span class="n">get_source</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">stored_source</span> <span class="o">=</span> <span class="n">getsource</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
                 <span class="n">new_source</span> <span class="o">=</span> <span class="n">getsource</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">roundtrip_dedent</span><span class="p">(</span><span class="n">stored_source</span><span class="p">)</span> <span class="o">!=</span> <span class="n">roundtrip_dedent</span><span class="p">(</span><span class="n">new_source</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
@@ -342,12 +347,7 @@
 
 <div class="viewcode-block" id="Rule.always"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.Rule.always">[docs]</a>    <span class="k">def</span> <span class="nf">always</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Arrange to be triggered every tick, regardless of circumstance.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="p">,</span> <span class="s1">&#39;truth&#39;</span><span class="p">):</span>
-            <span class="n">truth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">truth</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">def</span> <span class="nf">truth</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-                <span class="k">return</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">triggers</span> <span class="o">=</span> <span class="p">[</span><span class="n">truth</span><span class="p">]</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">triggers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">truth</span><span class="p">]</span></div></div>
 
 
 <div class="viewcode-block" id="RuleBook"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook">[docs]</a><span class="k">class</span> <span class="nc">RuleBook</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
@@ -753,6 +753,9 @@
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
@@ -792,7 +795,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

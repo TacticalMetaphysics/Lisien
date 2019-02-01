@@ -128,10 +128,9 @@
     <span class="k">def</span> <span class="nf">finalize_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
             <span class="n">child</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">on_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">finalize_all</span><span class="p">)</span>
-        <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">finalize_all</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">children</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_finalize_all</span><span class="p">)</span>
+    
+    <span class="n">_trigger_finalize_all</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">finalize_all</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Board"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.board.Board">[docs]</a><span class="k">class</span> <span class="nc">Board</span><span class="p">(</span><span class="n">RelativeLayout</span><span class="p">):</span>
@@ -463,16 +462,20 @@
                 <span class="n">portal</span><span class="p">[</span><span class="s2">&quot;destination&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]]</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have an Arrow for this Portal&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_core_make_arrow</span><span class="p">(</span><span class="n">portal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_core_make_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">portal</span><span class="p">,</span> <span class="n">origspot</span><span class="p">,</span> <span class="n">destspot</span><span class="p">,</span> <span class="n">arrowmap</span><span class="p">):</span>
         <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_cls</span><span class="p">(</span>
             <span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">portal</span><span class="o">=</span><span class="n">portal</span><span class="p">,</span>
-            <span class="n">origspot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">]],</span>
-            <span class="n">destspot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]]</span>
+            <span class="n">origspot</span><span class="o">=</span><span class="n">origspot</span><span class="p">,</span>
+            <span class="n">destspot</span><span class="o">=</span><span class="n">destspot</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">portal</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">portal</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]][</span><span class="n">portal</span><span class="p">[</span><span class="s2">&quot;destination&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">r</span>
-        <span class="k">return</span> <span class="n">r</span></div>
+        <span class="n">orign</span> <span class="o">=</span> <span class="n">portal</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">orign</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">arrowmap</span><span class="p">:</span>
+            <span class="n">arrowmap</span><span class="p">[</span><span class="n">orign</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">arrowmap</span><span class="p">[</span><span class="n">orign</span><span class="p">][</span><span class="n">portal</span><span class="p">[</span><span class="s2">&quot;destination&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">r</span>
+        <span class="k">return</span> <span class="n">r</span>
 
     <span class="k">def</span> <span class="nf">rm_arrows_to_and_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="n">origs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -621,15 +624,18 @@
         <span class="n">places2add</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">spots_unposd</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">nodes_patch</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">place_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">place_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
-                <span class="n">place</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">place_name</span><span class="p">]</span>
+        <span class="n">placemap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span>
+        <span class="n">spotmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span>
+        <span class="n">default_image_paths</span> <span class="o">=</span> <span class="n">Spot</span><span class="o">.</span><span class="n">default_image_paths</span>
+        <span class="k">for</span> <span class="n">place_name</span> <span class="ow">in</span> <span class="n">placemap</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">place_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">spotmap</span><span class="p">:</span>
+                <span class="n">place</span> <span class="o">=</span> <span class="n">placemap</span><span class="p">[</span><span class="n">place_name</span><span class="p">]</span>
                 <span class="n">places2add</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
                 <span class="n">patch</span> <span class="o">=</span> <span class="p">{}</span>
                 <span class="k">if</span> <span class="s1">&#39;_image_paths&#39;</span> <span class="ow">in</span> <span class="n">place</span><span class="p">:</span>
                     <span class="n">zeroes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">place</span><span class="p">[</span><span class="s1">&#39;_image_paths&#39;</span><span class="p">])</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">patch</span><span class="p">[</span><span class="s1">&#39;_image_paths&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Spot</span><span class="o">.</span><span class="n">default_image_paths</span>
+                    <span class="n">patch</span><span class="p">[</span><span class="s1">&#39;_image_paths&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_image_paths</span>
                     <span class="n">zeroes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">if</span> <span class="s1">&#39;_offxs&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">place</span><span class="p">:</span>
                     <span class="n">patch</span><span class="p">[</span><span class="s1">&#39;_offxs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">zeroes</span>
@@ -639,9 +645,12 @@
                     <span class="n">nodes_patch</span><span class="p">[</span><span class="n">place_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">patch</span>
         <span class="k">if</span> <span class="n">nodes_patch</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">nodes_patch</span><span class="p">)</span>
+        <span class="n">make_spot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_spot</span>
+        <span class="n">spotlayout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spotlayout</span>
+        <span class="n">add_widget_to_spotlayout</span> <span class="o">=</span> <span class="n">spotlayout</span><span class="o">.</span><span class="n">add_widget</span>
         <span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">places2add</span><span class="p">:</span>
-            <span class="n">spot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_spot</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">spotlayout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">spot</span><span class="p">)</span>
+            <span class="n">spot</span> <span class="o">=</span> <span class="n">make_spot</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
+            <span class="n">add_widget_to_spotlayout</span><span class="p">(</span><span class="n">spot</span><span class="p">)</span>
             <span class="k">if</span> <span class="s1">&#39;_x&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">place</span> <span class="ow">or</span> <span class="s1">&#39;_y&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">place</span><span class="p">:</span>
                 <span class="n">spots_unposd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spot</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spots_unposd</span> <span class="o">=</span> <span class="n">spots_unposd</span>
@@ -674,16 +683,20 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">arrow_orig</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">arrow_dest</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">arrow_orig</span><span class="p">]:</span>
+        <span class="n">portmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span>
+        <span class="n">arrowmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span>
+        <span class="n">spotmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span>
+        <span class="n">arrowlayout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrowlayout</span>
+        <span class="n">add_widget_to_arrowlayout</span> <span class="o">=</span> <span class="n">arrowlayout</span><span class="o">.</span><span class="n">add_widget</span>
+        <span class="n">core_make_arrow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_core_make_arrow</span>
+        <span class="k">for</span> <span class="n">arrow_orig</span><span class="p">,</span> <span class="n">arrow_dests</span> <span class="ow">in</span> <span class="n">portmap</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">arrow_dest</span><span class="p">,</span> <span class="n">portal</span> <span class="ow">in</span> <span class="n">arrow_dests</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="p">(</span>
-                        <span class="n">arrow_orig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span> <span class="ow">or</span>
-                        <span class="n">arrow_dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">arrow_orig</span><span class="p">]</span>
+                        <span class="n">arrow_orig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">arrowmap</span> <span class="ow">or</span>
+                        <span class="n">arrow_dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">arrowmap</span><span class="p">[</span><span class="n">arrow_orig</span><span class="p">]</span>
                 <span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">arrowlayout</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">make_arrow</span><span class="p">(</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">arrow_orig</span><span class="p">][</span><span class="n">arrow_dest</span><span class="p">]</span>
-                        <span class="p">)</span>
+                    <span class="n">add_widget_to_arrowlayout</span><span class="p">(</span>
+                        <span class="n">core_make_arrow</span><span class="p">(</span><span class="n">portal</span><span class="p">,</span> <span class="n">spotmap</span><span class="p">[</span><span class="n">arrow_orig</span><span class="p">],</span> <span class="n">spotmap</span><span class="p">[</span><span class="n">arrow_dest</span><span class="p">],</span> <span class="n">arrowmap</span><span class="p">)</span>
                     <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">add_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thingn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -710,8 +723,9 @@
         <span class="n">nodes_patch</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">things2add</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">pawns_added</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pawnmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">thing_name</span><span class="p">,</span> <span class="n">thing</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">thing_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">thing_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pawnmap</span><span class="p">:</span>
                 <span class="n">things2add</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
                 <span class="n">patch</span> <span class="o">=</span> <span class="p">{}</span>
                 <span class="k">if</span> <span class="s1">&#39;_image_paths&#39;</span> <span class="ow">in</span> <span class="n">thing</span><span class="p">:</span>
@@ -729,10 +743,12 @@
                     <span class="n">nodes_patch</span><span class="p">[</span><span class="n">thing_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">patch</span>
         <span class="k">if</span> <span class="n">nodes_patch</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">nodes_patch</span><span class="p">)</span>
+        <span class="n">make_pawn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_pawn</span>
+        <span class="n">spotmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span>
         <span class="k">for</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">things2add</span><span class="p">:</span>
-            <span class="n">pwn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_pawn</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+            <span class="n">pwn</span> <span class="o">=</span> <span class="n">make_pawn</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
             <span class="n">pawns_added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pwn</span><span class="p">)</span>
-            <span class="n">whereat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]]</span>
+            <span class="n">whereat</span> <span class="o">=</span> <span class="n">spotmap</span><span class="p">[</span><span class="n">thing</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]]</span>
             <span class="n">whereat</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">pwn</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Board.update"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.board.Board.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -754,6 +770,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_cls</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_new_arrows</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_new_pawns</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spotlayout</span><span class="o">.</span><span class="n">finalize_all</span><span class="p">()</span>
         <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Board: updated&quot;</span><span class="p">)</span></div>
     <span class="n">trigger_update</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
 
@@ -1097,6 +1114,9 @@
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#programming-interface">Programming Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ELiDE/index.html">ELiDE</a></li>
@@ -1136,7 +1156,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

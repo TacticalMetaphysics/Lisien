@@ -809,6 +809,18 @@
             <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">rulebook_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+        <span class="c1"># what if the rulebook has other values set afterward? wipe them out, right?</span>
+        <span class="c1"># should that happen in the query engine or elsewhere?</span>
+        <span class="n">rulebook</span><span class="p">,</span> <span class="n">rules</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">rulebook</span><span class="p">,</span> <span class="n">rules</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks_insert&#39;</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks_update&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rulebook_del_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks_del_time&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">branch_descendants</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branch_children&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">child</span>
@@ -876,6 +888,9 @@
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
@@ -915,7 +930,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

@@ -10,6 +10,7 @@ Welcome to LiSE's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   manual
    allegedb/index
    LiSE/index
    ELiDE/index

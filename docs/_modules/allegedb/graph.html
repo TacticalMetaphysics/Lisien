@@ -210,29 +210,41 @@
 
 <div class="viewcode-block" id="GraphMapping"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.GraphMapping">[docs]</a><span class="k">class</span> <span class="nc">GraphMapping</span><span class="p">(</span><span class="n">AbstractEntityMapping</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Mapping for graph attributes&quot;&quot;&quot;</span>
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,)</span>
-
-    <span class="n">db</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph.db&#39;</span><span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;_iter_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_cache_contains_stuff&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;_len_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_get_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_set_db_stuff&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;_set_cache_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_del_db_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_get_cache_stuff&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">db</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span>
+        <span class="n">btt</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">btt</span>
+        <span class="n">graph_val_cache</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_graph_val_cache</span>
+        <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_contains_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">,</span> <span class="n">graphn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_cache</span><span class="o">.</span><span class="n">count_entities</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="n">graph_val_set</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">graph_val_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_db_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_set</span><span class="p">,</span> <span class="n">graphn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_cache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_cache</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">graphn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_del_db_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_set</span><span class="p">,</span> <span class="n">graphn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">graph_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">,</span> <span class="n">graphn</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">iter_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
         <span class="k">yield</span> <span class="s1">&#39;name&#39;</span>
-        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_graph_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">iter_entity_keys</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_cache_contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_graph_val_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+        <span class="n">contains_key</span><span class="p">,</span> <span class="n">graphn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_contains_stuff</span>
+        <span class="k">return</span> <span class="n">contains_key</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_graph_val_cache</span><span class="o">.</span><span class="n">count_entities</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">count_entities</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">count_entities</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">item</span> <span class="o">==</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span>
@@ -245,48 +257,53 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_graph_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+        <span class="n">retrieve</span><span class="p">,</span> <span class="n">graphn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_stuff</span>
+        <span class="k">return</span> <span class="n">retrieve</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span>
+        <span class="n">get_cache</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stuff</span>
+        <span class="k">return</span> <span class="n">get_cache</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_set_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">graph_val_set</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">graph_val_set</span><span class="p">,</span> <span class="n">graphn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_db_stuff</span>
+        <span class="n">graph_val_set</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span>
             <span class="n">key</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="n">value</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_graph_val_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span>
+        <span class="n">store</span><span class="p">,</span> <span class="n">graphn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_cache_stuff</span>
+        <span class="n">store</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_del_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">graph_val_del</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">graph_val_set</span><span class="p">,</span> <span class="n">graphn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_del_db_stuff</span>
+        <span class="n">graph_val_set</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span>
             <span class="n">key</span><span class="p">,</span>
-            <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+            <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="GraphMapping.clear"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.GraphMapping.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="n">keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
             <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="GraphMapping.unwrap"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.GraphMapping.unwrap">[docs]</a>    <span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span></div></div>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span></div></div>
 
 
 <div class="viewcode-block" id="Node"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.Node">[docs]</a><span class="k">class</span> <span class="nc">Node</span><span class="p">(</span><span class="n">AbstractEntityMapping</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Mapping for node attributes&quot;&quot;&quot;</span>
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;node&#39;</span><span class="p">,</span> <span class="s1">&#39;__weakref__&#39;</span><span class="p">)</span>
-
-    <span class="n">db</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph.db&#39;</span><span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;node&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;__weakref__&#39;</span><span class="p">,</span> <span class="s1">&#39;_iter_stuff&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;_cache_contains_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_len_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_get_cache_stuff&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;_set_db_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_set_cache_stuff&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">:</span>
@@ -302,6 +319,16 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">db</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span>
+        <span class="n">node_val_cache</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span>
+        <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">btt</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">btt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">node_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_contains_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">node_val_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">node_val_cache</span><span class="o">.</span><span class="n">count_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">node_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_db_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">node_val_set</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_cache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(graph=</span><span class="si">{}</span><span class="s2">, node=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
@@ -310,38 +337,40 @@
         <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(graph=</span><span class="si">{}</span><span class="s2">, node=</span><span class="si">{}</span><span class="s2">, data=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">iter_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
+        <span class="k">return</span> <span class="n">iter_entity_keys</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_cache_contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+        <span class="n">contains_key</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_contains_stuff</span>
+        <span class="k">return</span> <span class="n">contains_key</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">count_entity_keys</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">count_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span>
+        <span class="k">return</span> <span class="n">count_entity_keys</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_get_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+        <span class="n">retrieve</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_stuff</span>
+        <span class="k">return</span> <span class="n">retrieve</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">node_val_set</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span>
+        <span class="n">node_val_set</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_db_stuff</span>
+        <span class="n">node_val_set</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span>
+            <span class="n">node</span><span class="p">,</span>
             <span class="n">key</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="n">value</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_node_val_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span>
+        <span class="n">store</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_cache_stuff</span>
+        <span class="n">store</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span>
+            <span class="n">node</span><span class="p">,</span>
             <span class="n">key</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="n">value</span>
@@ -350,9 +379,9 @@
 
 <div class="viewcode-block" id="Edge"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.Edge">[docs]</a><span class="k">class</span> <span class="nc">Edge</span><span class="p">(</span><span class="n">AbstractEntityMapping</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Mapping for edge attributes&quot;&quot;&quot;</span>
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="s1">&#39;__weakref__&#39;</span><span class="p">)</span>
-
-    <span class="n">db</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph.db&#39;</span><span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;__weakref__&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;_iter_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_cache_contains_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_len_stuff&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;_get_cache_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_set_db_stuff&#39;</span><span class="p">,</span> <span class="s1">&#39;_set_cache_stuff&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_objs</span><span class="p">:</span>
@@ -374,9 +403,19 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">db</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">db</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">orig</span> <span class="o">=</span> <span class="n">orig</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dest</span> <span class="o">=</span> <span class="n">dest</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span>
+        <span class="n">edge_val_cache</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_edge_val_cache</span>
+        <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">btt</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">btt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_contains_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge_val_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge_val_cache</span><span class="o">.</span><span class="n">count_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_db_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">edge_val_set</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_cache_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge_val_cache</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -398,55 +437,40 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">iter_entity_keys</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span>
-            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">iter_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span>
+        <span class="k">return</span> <span class="n">iter_entity_keys</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_cache_contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
-        <span class="p">)</span>
+        <span class="n">contains_key</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_contains_stuff</span>
+        <span class="k">return</span> <span class="n">contains_key</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">count_entity_keys</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span>
-            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">count_entity_keys</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span>
+        <span class="k">return</span> <span class="n">count_entity_keys</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_get_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span>
-            <span class="n">key</span><span class="p">,</span>
-            <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
-        <span class="p">)</span>
+        <span class="n">retrieve</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_stuff</span>
+        <span class="k">return</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">edge_val_set</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span>
+        <span class="n">edge_val_set</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_db_stuff</span>
+        <span class="n">edge_val_set</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
+            <span class="n">dest</span><span class="p">,</span>
+            <span class="n">idx</span><span class="p">,</span>
             <span class="n">key</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="n">value</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edge_val_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span>
+        <span class="n">store</span><span class="p">,</span> <span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_cache_stuff</span>
+        <span class="n">store</span><span class="p">(</span>
+            <span class="n">graphn</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
+            <span class="n">dest</span><span class="p">,</span>
+            <span class="n">idx</span><span class="p">,</span>
             <span class="n">key</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="n">value</span>
@@ -478,9 +502,9 @@
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">me</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
             <span class="n">you</span> <span class="o">=</span> <span class="n">other</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">me</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">me</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">me</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">):</span>
                 <span class="n">me</span> <span class="o">=</span> <span class="n">me</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">you</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">you</span><span class="p">,</span> <span class="s1">&#39;unwrap&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">you</span><span class="p">,</span> <span class="s1">&#39;no_unwrap&#39;</span><span class="p">):</span>
                 <span class="n">you</span> <span class="o">=</span> <span class="n">you</span><span class="o">.</span><span class="n">unwrap</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">me</span> <span class="o">!=</span> <span class="n">you</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">False</span>
@@ -511,18 +535,17 @@
 <span class="sd">        is made with them, perhaps clearing out the one already there.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
-        <span class="n">created</span> <span class="o">=</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="n">created</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span>
+        <span class="n">gname</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">db</span><span class="o">.</span><span class="n">_node_exists</span><span class="p">(</span><span class="n">gname</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+            <span class="n">created</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">_exist_node</span><span class="p">(</span><span class="n">gname</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
         <span class="n">n</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="n">n</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dikt</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">created</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">exist_node</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="n">node</span><span class="p">,</span>
-                <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
-                <span class="kc">True</span>
-            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_name</span><span class="o">=</span><span class="n">node</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
@@ -616,6 +639,9 @@
     <span class="n">db</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph.db&#39;</span><span class="p">)</span>
     <span class="n">_metacache</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metacache</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
@@ -636,9 +662,10 @@
 
     <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Is there an edge leading to ``dest`` at the moment?&quot;&quot;&quot;</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">has_successor</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
             <span class="n">dest</span><span class="p">,</span>
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
         <span class="p">)</span>
@@ -652,24 +679,31 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_make_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">dest</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get the edge between my orig and the given node&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No edge </span><span class="si">{}</span><span class="s2">-&gt;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set the edge between my orig and the given dest to the given</span>
 <span class="sd">        value, a mapping.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">real_dest</span> <span class="o">=</span> <span class="n">dest</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
         <span class="n">created</span> <span class="o">=</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span>
+        <span class="k">if</span> <span class="n">orig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">orig</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
         <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">exist_edge</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
             <span class="n">dest</span><span class="p">,</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
@@ -677,24 +711,25 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
             <span class="n">dest</span><span class="p">,</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="kc">True</span>
         <span class="p">)</span>
-        <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">real_dest</span><span class="p">]</span>
         <span class="n">e</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="n">e</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">created</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Remove the edge between my orig and the given dest&quot;&quot;&quot;</span>
         <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">exist_edge</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
             <span class="n">dest</span><span class="p">,</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
@@ -702,13 +737,13 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
             <span class="n">dest</span><span class="p">,</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <div class="viewcode-block" id="AbstractSuccessors.clear"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.AbstractSuccessors.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete every edge with origin at my orig&quot;&quot;&quot;</span>
@@ -812,9 +847,9 @@
 
     <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete all edges ending at ``dest``&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">it</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -942,11 +977,15 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">orig</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="MultiEdges"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.MultiEdges">[docs]</a><span class="k">class</span> <span class="nc">MultiEdges</span><span class="p">(</span><span class="n">GraphEdgeMapping</span><span class="p">):</span>
+<div class="viewcode-block" id="AbstractMultiEdges"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.AbstractMultiEdges">[docs]</a><span class="k">class</span> <span class="nc">AbstractMultiEdges</span><span class="p">(</span><span class="n">GraphEdgeMapping</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Mapping of Edges between two nodes&quot;&quot;&quot;</span>
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">)</span>
 
     <span class="n">db</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph.db&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Swap my orig and dest if desired&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -954,8 +993,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dest</span> <span class="o">=</span> <span class="n">dest</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span>
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
         <span class="p">)</span>
 
@@ -967,13 +1007,15 @@
         <span class="k">return</span> <span class="n">n</span>
 
     <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span>
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_getedge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get an Edge with a particular index, if it exists at the present</span>
@@ -989,43 +1031,48 @@
 <span class="sd">        Edge first, if necessary.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">()</span>
         <span class="n">created</span> <span class="o">=</span> <span class="n">idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span>
+        <span class="k">if</span> <span class="n">orig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">orig</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">exist_edge</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
+            <span class="n">dest</span><span class="p">,</span>
             <span class="n">idx</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
             <span class="kc">True</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span>
+            <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="p">)</span>
         <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getedge</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
         <span class="n">e</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="n">e</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span>
-            <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">True</span>
-        <span class="p">)</span>
         <span class="k">if</span> <span class="n">created</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete the edge at a particular index&quot;&quot;&quot;</span>
         <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">()</span>
         <span class="n">tick</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getedge</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">e</span><span class="o">.</span><span class="n">exists</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No edge at that index&quot;</span><span class="p">)</span>
         <span class="n">e</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">None</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="o">=</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiEdges.clear"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.MultiEdges.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="AbstractMultiEdges.clear"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.AbstractMultiEdges.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete all edges between these nodes&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
             <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div></div>
@@ -1067,9 +1114,22 @@
         <span class="sd">&quot;&quot;&quot;Edges succeeding a given node in a multigraph&quot;&quot;&quot;</span>
         <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;container&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;_multedge&#39;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MultiGraphSuccessorsMapping.Successors.MultiEdges"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.MultiGraphSuccessorsMapping.Successors.MultiEdges">[docs]</a>        <span class="k">class</span> <span class="nc">MultiEdges</span><span class="p">(</span><span class="n">AbstractMultiEdges</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">)</span></div>
+
         <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">orig</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">orig</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_multedge</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+            <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">has_successor</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+            <span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">dest</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">:</span>
@@ -1079,7 +1139,7 @@
 
         <span class="k">def</span> <span class="nf">_get_multedge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_multedge</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_multedge</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="n">MultiEdges</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_multedge</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MultiEdges</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_order_nodes</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_multedge</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span>
@@ -1095,7 +1155,10 @@
 <span class="sd">            between my ``orig`` and the given ``dest``</span>
 
 <span class="sd">            &quot;&quot;&quot;</span>
-            <span class="bp">self</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="n">it</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span>
+            <span class="n">it</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="n">it</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">dest</span> <span class="ow">in</span> <span class="bp">self</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
@@ -1113,9 +1176,13 @@
         <span class="sd">&quot;&quot;&quot;Predecessor edges from a given node&quot;&quot;&quot;</span>
         <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;container&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MultiDiGraphPredecessorsMapping.Predecessors.MultiEdges"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.MultiDiGraphPredecessorsMapping.Predecessors.MultiEdges">[docs]</a>        <span class="k">class</span> <span class="nc">MultiEdges</span><span class="p">(</span><span class="n">AbstractMultiEdges</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span></div>
+
         <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot;Get MultiEdges&quot;&quot;&quot;</span>
-            <span class="k">return</span> <span class="n">MultiEdges</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">MultiEdges</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
             <span class="bp">self</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
@@ -1131,6 +1198,11 @@
 
 <div class="viewcode-block" id="MultiDiGraphSuccessorsMapping.Successors"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.MultiDiGraphSuccessorsMapping.Successors">[docs]</a>    <span class="k">class</span> <span class="nc">Successors</span><span class="p">(</span><span class="n">MultiGraphSuccessorsMapping</span><span class="o">.</span><span class="n">Successors</span><span class="p">):</span>
         <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;container&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;_multedge&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MultiDiGraphSuccessorsMapping.Successors.MultiEdges"><a class="viewcode-back" href="../../allegedb/index.html#allegedb.MultiDiGraphSuccessorsMapping.Successors.MultiEdges">[docs]</a>        <span class="k">class</span> <span class="nc">MultiEdges</span><span class="p">(</span><span class="n">AbstractMultiEdges</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span></div>
+
         <span class="k">def</span> <span class="nf">_order_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span></div></div>
 
@@ -1310,12 +1382,16 @@
                 <span class="k">raise</span> <span class="n">NetworkXError</span><span class="p">(</span>
                     <span class="s2">&quot;The attr_dict argument must be a dictionary.&quot;</span>
                 <span class="p">)</span>
-        <span class="n">datadict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">[</span><span class="n">u</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">datadict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attr_dict</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">u</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">:</span>
+            <span class="n">datadict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">[</span><span class="n">u</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="p">{}}</span>
+            <span class="n">datadict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">[</span><span class="n">u</span><span class="p">][</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">datadict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attr_dict</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">succ</span><span class="p">[</span><span class="n">u</span><span class="p">][</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">datadict</span>
         <span class="k">assert</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">succ</span><span class="p">,</span> <span class="s2">&quot;Failed to add edge </span><span class="si">{u}</span><span class="s2">-&gt;</span><span class="si">{v}</span><span class="s2"> (</span><span class="si">{u}</span><span class="s2"> not in successors)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">succ</span><span class="p">[</span><span class="n">u</span><span class="p">],</span> <span class="s2">&quot;Failed to add edge </span><span class="si">{u}</span><span class="s2">-&gt;</span><span class="si">{v}</span><span class="s2"> (</span><span class="si">{v}</span><span class="s2"> not in succ[</span><span class="si">{u}</span><span class="s2">])&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span></div>
@@ -1461,6 +1537,9 @@
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
@@ -1502,7 +1581,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

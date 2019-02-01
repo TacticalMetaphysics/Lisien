@@ -676,8 +676,7 @@
             <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span> <span class="o">=</span> <span class="n">InstructionGroup</span><span class="p">()</span>
             <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">after</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s1">&#39;card&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_topdecked</span><span class="p">)</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">deck</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">deck</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">):</span>
             <span class="n">cards</span> <span class="o">=</span> <span class="p">[</span><span class="n">card</span> <span class="k">for</span> <span class="n">card</span> <span class="ow">in</span> <span class="n">deck</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">card</span><span class="o">.</span><span class="n">dragging</span><span class="p">]</span>
             <span class="n">maxidx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">card</span><span class="o">.</span><span class="n">idx</span> <span class="k">for</span> <span class="n">card</span> <span class="ow">in</span> <span class="n">cards</span><span class="p">)</span> <span class="k">if</span> <span class="n">cards</span> <span class="k">else</span> <span class="mi">0</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="s1">&#39;descending&#39;</span><span class="p">:</span>
@@ -721,17 +720,14 @@
                     <span class="p">):</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="n">cards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">idx</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
-                    <span class="k">for</span> <span class="n">found</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_foundations</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">found</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_foundations</span><span class="p">):</span>
                         <span class="k">if</span> <span class="p">(</span>
                                 <span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
                                 <span class="n">found</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
                         <span class="p">):</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">insertion_deck</span> <span class="o">=</span> <span class="n">j</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="k">return</span>
-                        <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></div>
+                            <span class="k">return</span></div>
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_touch_up"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.card.DeckBuilderLayout.on_touch_up">[docs]</a>    <span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If a card is being dragged, put it in the place it was just dropped</span>
@@ -1260,6 +1256,9 @@
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
@@ -1299,7 +1298,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

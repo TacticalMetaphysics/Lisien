@@ -37,7 +37,11 @@ state of the world at some point in the past.
 When time moves forward in LiSE, it checks all its rules and allows
 them to change the state of the world. Then, LiSE sets its clock to
 the next turn, and is ready for time to move forward another
-turn. LiSE can keep track of multiple timelines, called "branches,"
+turn. LiSE remembers the entire history of the game, so that you can
+travel back to previous turns and try things a different way.
+This is also convenient for debugging simulation rules.
+
+LiSE can keep track of multiple timelines, called "branches,"
 which can split off from one another. Branches normally don't affect
 one another, though it's possible to write rules that change one
 branch when they are run in another.
@@ -58,9 +62,9 @@ World Modelling
 
 Start by calling the engine's ``new_character`` method with a string
 ``name``.  This will return a character object with the name you
-provided. Now draw a map by calling the method ``add_place`` with many
+provided. Now draw a map by calling the method ``new_place`` with many
 different string ``name`` s, then linking them together with the
-method ``add_portal(origin, destination)``.  To store data pertaining
+method ``new_portal(origin, destination)``.  To store data pertaining
 to some particular place, retrieve the place from the ``place``
 mapping of the character: if the character is ``world`` and the place
 name is ``'home'``, you might do it like
@@ -69,15 +73,16 @@ mapping, where you'll need the origin and the destination: if there's
 a portal from ``'home'`` to ``'narnia'``, you can get it like
 ``wardrobe = world.portal['home']['narnia']``, but if you haven't also
 made another portal going the other way,
-``world.portal['narnia']['home']`` will raise ``KeyError``. Things are
-created with the method ``add_thing(name, location)``, where
-``location`` must be the name of a place you've already
-created. Retrieve things from the ``thing`` mapping, which works much
-like the ``place`` mapping. If you need to access a character that you
-created previously, get it from the engine's ``character`` mapping,
-eg. ``world = engine.character['world']``.
+``world.portal['narnia']['home']`` will raise ``KeyError``.
 
-Characters are called that because, if you have 
+Things, usually being located in places (but possibly in other things),
+are most conveniently created by the ``new_thing`` method of Place objects:
+``alice = home.new_thing('alice')`` gets you a new Thing object
+located in ``home``. Things can be retrieved like ``alice = world.thing['alice']``.
+Ultimately, things and places are both just nodes, and both can be
+retrieved in a character's ``node`` mapping, but only things have
+methods like ``travel_to``, which finds a path to a destination
+and schedules movement along it.
 
 You can store data in things, places, and portals by treating them
 like dictionaries.  If you want to store data in a character, use its
@@ -140,15 +145,14 @@ then wakes her up after eight turns (presumably hour-long).::
     @alice.rule
     def sleep(character):
         character.stat['awake'] = False
-        with character.engine.plan:
+        start_turn = character.engine.turn
+        with character.engine.plan():
             character.engine.turn += 8
             character.stat['awake'] = True
+        character.engine.turn = start_turn
 
-At the end of a ``plan`` block, time will return to whenever it was
-at the start of the block.
-
-As of alpha 8, plans won't carry over to new branches created before
-the plan's completion. This is a planned feature.
+Remember to set the time back to when you started when you're done
+making all your plans.
 
 Input Prompts
 -------------
@@ -157,8 +161,8 @@ To ask the player to make a decision, first define a method for them to
 call, then return a menu description like this one.::
 
     @engine.method
-    def wake_alice(engine):
-        engine.character['alice'].stat['awake'] = True
+    def wake_alice(self):
+        self.character['alice'].stat['awake'] = True
 
     alice = engine.character['alice']
 
@@ -192,18 +196,15 @@ them elsewhere. If no Place, Thing, or Portal is selected, then the
 Character you are viewing is selected. There's a button in the
 top-right to view another Character.
 
-Below all this are some bits to let you manipulate time, mainly the
-Play and Next Turn buttons. Play will start moving time forward when
-you press it, and stop when you press it again. Next Tick will only
-move time forward by one tick. There are also text fields with which
-you can enter the Branch and Turn by hand. Note that rules are only
-run when you advance time using Play or Next Turn. The Tick field
-indicates how many changes have occurred in the current turn. It's
-not very useful to edit this, but you can, and ELiDE will show you
-the state of the world only partway through a turn if you wish.
+On the bottom left are some bits to let you manipulate time, mainly the
+Simulate and 1 Turn buttons. Simulate will start moving time forward when
+you press it, and stop when you press it again.
+There are also text fields with which you can enter the time by hand.
+Note that rules are only run when you advance time using Simulate or 1 Turn.
+The Tick field indicates how many changes have occurred in the current turn.
 
 It's possible to view turns that haven't been simulated yet.
-This is deliberate, but it's not a good idea to do this in alpha 8,
+This is deliberate, but it's not a good idea at the moment,
 because ELiDE doesn't know how to make plans yet.
 
 Stat Editor
@@ -251,6 +252,11 @@ to edit from the menu on the left, using the box at the bottom to add one if nee
 Then go through the trigger, prereq, and action tabs, and drag the functions from
 the right pile to the left to include them in the rule. You may also reorder them
 within the left pile.
+
+Rules made here will apply to the entity currently selected in the main screen.
+There is currently no graphical way to apply the same rulebook to many entities.
+You can, however, select nothing, in which case you get the option to edit
+rulebooks that apply to the current character overall,
 
 Strings Editor
 --------------

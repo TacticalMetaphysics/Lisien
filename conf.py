@@ -23,7 +23,7 @@ os.environ['KIVY_DOC'] = '1'
 # -- Project information -----------------------------------------------------
 
 project = 'LiSE'
-copyright = '2018, Zachary Spector'
+copyright = 'Zachary Spector'
 author = 'Zachary Spector'
 
 # The short X.Y version
