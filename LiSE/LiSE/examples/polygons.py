@@ -38,6 +38,8 @@ def install(eng):
                 continue
             if neighbor.user is poly.user:
                 similar += 1
+        if n == 0:  # You'd always want to move if you had *no* neighbors, I guess
+            return True
         return cmp(poly.character.stat[stat], similar / n)
 
     @eng.rule
