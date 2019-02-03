@@ -1,6 +1,58 @@
 Introduction
 ============
 
+Life sims all seem to have two problems in common:
+
+Too much world state
+--------------------
+
+The number of variables the game is tracking -- just for game logic, not
+graphics or physics or anything -- is very large. Like how The Sims
+tracks sims' opinions of one another, their likes and dislikes and so forth,
+even for the ones you never talk to and have shown no interest in. If you
+streamline a life sim to where it doesn't have extraneous detail
+complexity you lose a huge part of what makes it lifelike.
+
+This causes trouble for developers when even *they* don't really
+understand why sims hate each other, and even if they do, failures of
+bookkeeping can cause technical issues like how damn long it takes to
+save or load your game in The Sims 3.
+
+To address all those problems, LiSE provides a state container.
+Everything that ever happens in a game gets recorded, so that you can
+pick through the whole history and find out exactly when the butterfly
+flapped its wings to cause the cyclone. All of that history gets saved
+in a database, too, which is used in place of traditional save files.
+This means that if your testers discover something strange and want
+you to know about it, they can send you their database, and you'll
+know everything they did and everything that happened in their game.
+
+Too many rules
+--------------
+
+Fans of life sims tend to appreciate complexity. Developers are best
+served by reducing complexity as much as possible. So LiSE makes it
+easy to compartmentalize complexity and choose what of it you want to
+deal with and when.
+
+It is a rules engine, an old concept from business software that lets you
+determine what conditions cause what effects. Here, conditions are
+Triggers and effects are Actions, and they're both lists of Python
+functions. Actions make some change to the state of the world, while
+Triggers look at the world once-per-turn and return a Boolean to show
+whether their Actions should happen.
+
+The connection between Trigger and Action is arbitrary; you can mix and
+match when you want. If you're doing it in the graphical interface, they
+look sort of like trading cards, so constructing a rule is like deckbuilding.
+Triggers and Actions exist independent of the game world, and can
+therefore be moved from one game to another without much fuss. I
+intend to include a fair number of them with the release version of LiSE,
+so that you can throw together a toy sim without really writing any code.
+
+Architecture
+------------
+
 LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation

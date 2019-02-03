@@ -36,6 +36,50 @@
             
   <div class="section" id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>Life sims all seem to have two problems in common:</p>
+<div class="section" id="too-much-world-state">
+<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Permalink to this headline">¶</a></h2>
+<p>The number of variables the game is tracking – just for game logic, not
+graphics or physics or anything – is very large. Like how The Sims
+tracks sims’ opinions of one another, their likes and dislikes and so forth,
+even for the ones you never talk to and have shown no interest in. If you
+streamline a life sim to where it doesn’t have extraneous detail
+complexity you lose a huge part of what makes it lifelike.</p>
+<p>This causes trouble for developers when even <em>they</em> don’t really
+understand why sims hate each other, and even if they do, failures of
+bookkeeping can cause technical issues like how damn long it takes to
+save or load your game in The Sims 3.</p>
+<p>To address all those problems, LiSE provides a state container.
+Everything that ever happens in a game gets recorded, so that you can
+pick through the whole history and find out exactly when the butterfly
+flapped its wings to cause the cyclone. All of that history gets saved
+in a database, too, which is used in place of traditional save files.
+This means that if your testers discover something strange and want
+you to know about it, they can send you their database, and you’ll
+know everything they did and everything that happened in their game.</p>
+</div>
+<div class="section" id="too-many-rules">
+<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Permalink to this headline">¶</a></h2>
+<p>Fans of life sims tend to appreciate complexity. Developers are best
+served by reducing complexity as much as possible. So LiSE makes it
+easy to compartmentalize complexity and choose what of it you want to
+deal with and when.</p>
+<p>It is a rules engine, an old concept from business software that lets you
+determine what conditions cause what effects. Here, conditions are
+Triggers and effects are Actions, and they’re both lists of Python
+functions. Actions make some change to the state of the world, while
+Triggers look at the world once-per-turn and return a Boolean to show
+whether their Actions should happen.</p>
+<p>The connection between Trigger and Action is arbitrary; you can mix and
+match when you want. If you’re doing it in the graphical interface, they
+look sort of like trading cards, so constructing a rule is like deckbuilding.
+Triggers and Actions exist independent of the game world, and can
+therefore be moved from one game to another without much fuss. I
+intend to include a fair number of them with the release version of LiSE,
+so that you can throw together a toy sim without really writing any code.</p>
+</div>
+<div class="section" id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h2>
 <p>LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
@@ -74,6 +118,7 @@ This is also convenient for debugging simulation rules.</p>
 which can split off from one another. Branches normally don’t affect
 one another, though it’s possible to write rules that change one
 branch when they are run in another.</p>
+</div>
 </div>
 <div class="section" id="programming-interface">
 <h1>Programming Interface<a class="headerlink" href="#programming-interface" title="Permalink to this headline">¶</a></h1>
@@ -290,7 +335,12 @@ programmatically by setting <code class="docutils literal notranslate"><span cla
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="#programming-interface">Programming Interface</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
