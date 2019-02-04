@@ -20,6 +20,7 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Redshirt
+* Rimworld
 * Princess Maker
 * Monster Rancher
 * Dwarf Fortress
@@ -47,10 +48,9 @@ yourself, after all.
 
 ## Core
 
-* *Object relational mapper* for graph based world models.
-* *Journaling* to allow world state changes to be rewound and replayed.
+* *Journaling state container* for graph based world models, to allow world state changes to be rewound and replayed.
 * Integration with [NetworkX](http://networkx.github.io) for convenient access to various *graph algorithms*, particularly pathfinding.
-* *Rules engine*: define your game's behavior in terms of actions that are performed in response to triggers. Change the connection from trigger to action without effort. Copy triggers and actions between games easily.
+* *Rules engine* for game logic. Rules are written in plain Python. They are composable, and can be disabled or reassigned to different entities mid-game.
 * Can be run as a *web server*, so that you can control LiSE and query its world state from any other game engine you please.
 
 ## IDE
