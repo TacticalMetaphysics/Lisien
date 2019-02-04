@@ -98,13 +98,13 @@ Make a new Python script, let's say 'polygons.py', and write the following in it
 ```python
 from LiSE import Engine
 
-with Engine('polygons.db', clear_world=True, clear_code=True) as eng:
+with Engine('polygons.db', clear=True) as eng:
     phys = eng.new_character('physical').grid_2d_graph(20, 20)
     tri = eng.new_character('triangle')
     sq = eng.new_character('square')
 ```
 
-This starts a new game with its world state stored in 'polygons.db'. Because of ``clear_world`` and ``clear_code`` being
+This starts a new game with its world state stored in 'polygons.db'. Because of ``clear`` being
 ``True``, it will delete any existing world state and game code each time it's run, which is often useful when you're
 getting started. It creates three characters, one of which, named 'physical', has a 20x20 grid in it.
 The others are empty, and in fact we don't intend to put any graph in them; they're just for keeping track of things
