@@ -320,6 +320,11 @@ class MainScreen(Screen):
             self.dialoglayout.idx = 0
         self._update_from_delta(command, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
+        self.app.bind(
+            branch=self.app._push_time,
+            turn=self.app._push_time,
+            tick=self.app._push_time
+        )
         self.tmp_block = False
 
     def next_turn(self, *args):
@@ -337,6 +342,11 @@ class MainScreen(Screen):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
         self.tmp_block = True
+        self.app.unbind(
+            branch=self.app._push_time,
+            turn=self.app._push_time,
+            tick=self.app._push_time
+        )
         eng.next_turn(cb=self._update_from_next_turn)
 
 
