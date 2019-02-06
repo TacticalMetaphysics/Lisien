@@ -1662,7 +1662,7 @@ class GlobalVarProxy(MutableMapping, Signal):
     def __init__(self, engine_proxy):
         super().__init__()
         self.engine = engine_proxy
-        self._cache = self.engine.handle('universal_delta')
+        self._cache = {}
 
     def __iter__(self):
         return iter(self._cache)
