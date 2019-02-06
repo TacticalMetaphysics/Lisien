@@ -1758,14 +1758,14 @@ class FuncProxy(object):
         self.store = store
         self.func = func
 
-    def __call__(self, *args, silent=False, cb=None, **kwargs):
+    def __call__(self, *args, block=True, cb=None, **kwargs):
         return self.store.engine.handle(
             'call_stored_function',
             store=self.store._store,
             func=self.func,
             args=args,
             kwargs=kwargs,
-            silent=silent,
+            block=block,
             cb=cb
         )
 
