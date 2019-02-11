@@ -2199,7 +2199,7 @@ class EngineProxy(AbstractEngine):
                     cmd, command
                 )
             r = self.unpack(result)
-            if (branch, turn, tick) != self.btt():
+            if (branch, turn, tick) != self._btt():
                 self._branch = branch
                 self._turn = turn
                 self._tick = tick
@@ -2311,7 +2311,7 @@ class EngineProxy(AbstractEngine):
         for char in deleted:
             del self._char_cache[char]
 
-    def btt(self):
+    def _btt(self):
         return self._branch, self._turn, self._tick
 
     def _set_time(self, command, branch, turn, tick, result, **kwargs):
