@@ -16,7 +16,7 @@
 """allegedb's special implementations of the NetworkX graph objects"""
 import networkx
 from networkx.exception import NetworkXError
-from collections import defaultdict
+from collections import defaultdict, MutableMapping
 from .wrap import MutableMappingUnwrapper
 
 class EntityCollisionError(ValueError):
@@ -710,6 +710,9 @@ class AbstractSuccessors(GraphEdgeMapping):
         )
         self.send(self, orig=orig, dest=dest, idx=0, exists=False)
 
+    def __repr__(self):
+        return repr(dict(self))
+
     def clear(self):
         """Delete every edge with origin at my orig"""
         for dest in list(self):
@@ -766,6 +769,9 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 
     def __contains__(self, key):
         return key in self.graph.node
+
+    def __repr__(self):
+        return repr(dict(self))
 
 
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
@@ -1481,4 +1487,22 @@ class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
             self.succ[u][v] = keydict
         return key
 
-pass
+
+class GraphsMapping(MutableMapping):
+    def __init__(self, orm):
+        self.orm = orm
+
+    def __iter__(self):
+        return iter(self.orm._graph_objs)
+
+    def __len__(self):
+        return len(self.orm._graph_objs)
+
+    def __getitem__(self, item):
+        return self.orm._graph_objs[item]
+
+    def __setitem__(self, key, value):
+        self.orm.new_graph(key, data=value)
+
+    def __delitem__(self, key):
+        self.orm.del_graph(key)

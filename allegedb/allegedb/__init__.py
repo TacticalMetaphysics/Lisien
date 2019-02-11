@@ -26,7 +26,8 @@ from .graph import (
     MultiGraph,
     MultiDiGraph,
     Node,
-    Edge
+    Edge,
+    GraphsMapping
 )
 from .query import QueryEngine, TimeError
 from .window import HistoryError
@@ -592,7 +593,7 @@ class ORM(object):
 
     def _init_load(self, validate=False):
         if not hasattr(self, 'graph'):
-            self.graph = self._graph_objs
+            self.graph = GraphsMapping(self)
         noderows = [
             (graph, node, branch, turn, tick, ex if ex else None)
             for (graph, node, branch, turn, tick, ex)
