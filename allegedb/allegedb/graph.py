@@ -1499,7 +1499,7 @@ class GraphsMapping(MutableMapping):
         return len(self.orm._graph_objs)
 
     def __getitem__(self, item):
-        return self.orm._graph_objs[item]
+        return self.orm.get_graph(item)
 
     def __setitem__(self, key, value):
         self.orm.new_graph(key, data=value)
