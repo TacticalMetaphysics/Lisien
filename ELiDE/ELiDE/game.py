@@ -214,7 +214,7 @@ class GameApp(ELiDEApp):
         )
 
     def on_engine(self, *args):
-        self.branch, self.turn, self.tick = self.engine.btt()
+        self.branch, self.turn, self.tick = self.engine._btt()
         self.engine.time.connect(self._pull_time, weak=False)
 
     def _pull_time(self, *args, branch, turn, tick):

@@ -57,7 +57,7 @@ def set_delta(old, new):
 def timely(fun):
     def run_timely(self, *args, **kwargs):
         ret = fun(self, *args, **kwargs)
-        self.branch, self.turn, self.tick = self._real.btt()
+        self.branch, self.turn, self.tick = self._real._btt()
         return ret
 
     run_timely.timely = True
@@ -230,7 +230,7 @@ class EngineHandle(object):
 
     @timely
     def next_turn(self):
-        self.debug('calling next_turn at {}, {}, {}'.format(*self._real.btt()))
+        self.debug('calling next_turn at {}, {}, {}'.format(*self._real._btt()))
         ret, delta = self._real.next_turn()
         self._after_ret = partial(self._upd_local_caches, delta)
         return ret, delta
@@ -255,7 +255,7 @@ class EngineHandle(object):
 
     @timely
     def time_travel(self, branch, turn, tick=None, chars='all'):
-        branch_from, turn_from, tick_from = self._real.btt()
+        branch_from, turn_from, tick_from = self._real._btt()
         slow_delta = branch != branch_from
         self._real.time = (branch, turn)
         if tick is None:
@@ -1088,7 +1088,7 @@ class EngineHandle(object):
         self._real.rulebook[rulebook]
 
     def rulebook_copy(self, rulebook):
-        return list(self._real.rulebook[rulebook]._get_cache(*self._real.btt()))
+        return list(self._real.rulebook[rulebook]._get_cache(*self._real._btt()))
 
     def rulebook_delta(self, rulebook, *, store=True):
         old = self._rulebook_cache[rulebook]

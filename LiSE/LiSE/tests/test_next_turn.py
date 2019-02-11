@@ -30,13 +30,13 @@ def test_character_dot_rule(engy):
         char.stat['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert char.stat['run']
     engy.time = 'trunk', 0
     engy.tick = 0
     assert 'run' not in char.stat
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert char.stat['run']
 
 
@@ -53,13 +53,13 @@ def test_avatar_dot_rule(engy):
         av['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert av['run']
     engy.time = 'trunk', 0
     engy.tick = starttick
     assert 'run' not in av
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert av['run']
 
 
@@ -75,13 +75,13 @@ def test_thing_dot_rule(engy):
         thing['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert thing['run']
     engy.time = 'trunk', 0
     engy.tick = starttick
     assert 'run' not in thing
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert thing['run']
 
 
@@ -96,13 +96,13 @@ def test_place_dot_rule(engy):
         plac['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert place['run']
     engy.time = 'trunk', 0
     engy.tick = starttick
     assert 'run' not in place
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert place['run']
 
 
@@ -119,13 +119,13 @@ def test_portal_dot_rule(engy):
         portl['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert port['run']
     engy.time = 'trunk', 0
     engy.tick = starttick
     assert 'run' not in port
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert port['run']
 
 
@@ -145,7 +145,7 @@ def test_node_rule(engy):
         thig['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert place['run']
     assert thing['run']
     engy.time = 'trunk', 0
@@ -153,7 +153,7 @@ def test_node_rule(engy):
     assert 'run' not in place
     assert 'run' not in thing
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert place['run']
     assert thing['run']
 
@@ -171,11 +171,11 @@ def test_portal_rule(engy):
         portl['run'] = True
 
     engy.next_turn()
-    btt = engy.btt()
+    btt = engy._btt()
     assert port['run']
     engy.time = 'trunk', 0
     engy.tick = starttick
     assert 'run' not in port
     engy.next_turn()
-    assert btt == engy.btt()
+    assert btt == engy._btt()
     assert port['run']

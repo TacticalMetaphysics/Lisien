@@ -80,7 +80,7 @@ class Portal(Edge, RuleFollower):
     def _get_rulebook_name(self):
         try:
             return self.engine._portals_rulebooks_cache.retrieve(
-                self.character.name, self.orig, self.dest, *self.engine.btt()
+                self.character.name, self.orig, self.dest, *self.engine._btt()
             )
         except KeyError:
             return (self.character.name, self.orig, self.dest)
@@ -91,11 +91,11 @@ class Portal(Edge, RuleFollower):
         dest = self.dest
         cache = self.engine._portals_rulebooks_cache
         try:
-            if rulebook == cache.retrieve(character, orig, dest, *self.engine.btt()):
+            if rulebook == cache.retrieve(character, orig, dest, *self.engine._btt()):
                 return
         except KeyError:
             pass
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         cache.store(character, orig, dest, branch, turn, tick, rulebook)
         self.engine.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
 
@@ -211,6 +211,13 @@ class Portal(Edge, RuleFollower):
             raise KeyError("This portal has no reciprocal")
 
     def historical(self, stat):
+        """Return a reference to the values that a stat has had in the past.
+
+        You can use the reference in comparisons to make a history
+        query, and execute the query by calling it, or passing it to
+        ``self.engine.ticks_when``.
+
+        """
         return StatusAlias(
             entity=self,
             stat=stat
@@ -220,6 +227,8 @@ class Portal(Edge, RuleFollower):
         """Works like regular update, but only actually updates when the new
         value and the old value differ. This is necessary to prevent
         certain infinite loops.
+
+        :arg d: a dictionary
 
         """
         for (k, v) in d.items():
@@ -232,7 +241,7 @@ class Portal(Edge, RuleFollower):
         For symmetry with :class:`Thing` and :class`Place`.
 
         """
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         self.engine._edges_cache.store(
             self.character.name,
             self.origin.name,

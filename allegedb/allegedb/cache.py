@@ -216,7 +216,7 @@ class Cache(Signal):
         self.time_entity = {}
         self._kc_lru = OrderedDict()
         self._store_stuff = (
-            self.parents, self.branches, self.keys, db._delete_plan,
+            self.parents, self.branches, self.keys, db.delete_plan,
             db._time_plan, self._iter_future_contradictions,
             db._branches, db._turn_end, self._store_journal,
             self.time_entity, db._where_cached, self.keycache

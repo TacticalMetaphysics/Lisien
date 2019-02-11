@@ -525,7 +525,7 @@ class NodeContentsCache(Cache):
         return self.db._things_cache._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
 
     def slow_iter_contents(self, character, place, branch, turn, tick):
-        branch_now, turn_now, tick_now = self.db.btt()
+        branch_now, turn_now, tick_now = self.db._btt()
         self.db.time = branch, turn
         self.db.tick = tick
         for thing in self.db.character[character].thing.values():

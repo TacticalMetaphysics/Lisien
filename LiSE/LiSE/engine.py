@@ -52,7 +52,7 @@ class NextTurn(Signal):
 
     def __call__(self):
         engine = self.engine
-        start_branch, start_turn, start_tick = engine.btt()
+        start_branch, start_turn, start_tick = engine._btt()
         latest_turn = engine._turns_completed[start_branch]
         if start_turn < latest_turn:
             engine.turn += 1
@@ -81,7 +81,7 @@ class NextTurn(Signal):
                 if res:
                     engine.universal['last_result'] = res
                     engine.universal['last_result_idx'] = 0
-                    branch, turn, tick = engine.btt()
+                    branch, turn, tick = engine._btt()
                     self.send(
                         engine,
                         branch=branch,
@@ -711,6 +711,11 @@ class Engine(AbstractEngine, gORM):
         See the documentation for ``get_delta`` for a detailed description of the
         delta format.
 
+        :arg branch: branch of history, defaulting to the present branch
+        :arg turn: turn within the branch, defaulting to the present turn
+        :arg tick: tick at which to stop the delta, defaulting to the present tick
+        :arg start_tick: tick at which to start the delta, defaulting to 0
+
         """
         branch = branch or self.branch
         turn = turn or self.turn
@@ -937,6 +942,21 @@ class Engine(AbstractEngine, gORM):
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
+
+        :arg worlddb: Either a path to a SQLite database, or a rfc1738 URI for a database to connect to.
+        :arg string: path to a JSON file storing strings to be used in the game
+        :arg function: either a Python module or a path to a source file; should contain utility functions
+        :arg method: either a Python module or a path to a source file; should contain functions taking this engine as first arg
+        :arg trigger: either a Python module or a path to a source file; should contain trigger functions, taking a LiSE entity and returning a boolean for whether to run a rule
+        :arg prereq: either a Python module or a path to a source file; should contain prereq functions, taking a LiSE entity and returning a boolean for whether to permit a rule to run
+        :arg action: either a Python module or a path to a source file; should contain action functions, taking a LiSE entity and mutating it (and possibly the rest of the world)
+        :arg connect_args: dictionary of keyword arguments for the database connection
+        :arg alchemy: whether to use SQLAlchemy to connect to the database. If False, LiSE can only use SQLite
+        :arg commit_modulus: LiSE will commit changes to disk every ``commit_modulus`` turns
+        :arg random_seed: a number to initialize the randomizer
+        :arg logfun: an optional function taking arguments ``level, message`` and
+        :arg validate: whether to perform integrity tests while loading the game
+        :arg clear: whether to delete *any and all* existing data and code. Use with caution!
 
         """
         import os
@@ -1250,7 +1270,7 @@ class Engine(AbstractEngine, gORM):
         # TODO: roll back changes done by rules that raise an exception
         # TODO: if there's a paradox while following some rule, start a new branch, copying handled rules
         from collections import defaultdict
-        branch, turn, tick = self.btt()
+        branch, turn, tick = self._btt()
         charmap = self.character
         rulemap = self.rule
         todo = defaultdict(list)
@@ -1423,12 +1443,12 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        return self._things_cache.contains_entity(character, node, *self.btt())
+        return self._things_cache.contains_entity(character, node, *self._btt())
 
     def _set_thing_loc(
             self, character, node, loc
     ):
-        branch, turn, tick = self.nbtt()
+        branch, turn, tick = self._nbtt()
         self._things_cache.store(character, node, branch, turn, tick, loc)
         self.query.set_thing_loc(
             character,
@@ -1440,12 +1460,22 @@ class Engine(AbstractEngine, gORM):
         )
 
     def alias(self, v, stat='dummy'):
+        """Return a representation of a value suitable for use in historical queries.
+
+        It will behave much as if you assigned the value to some entity and then used its
+        ``historical`` method to get a reference to the set of its past values, which
+        happens to contain only the value you've provided here, ``v``.
+
+        :arg v: the value to represent
+        :arg stat: what name to pretend its stat has; usually irrelevant
+
+        """
         from .util import EntityStatAccessor
         r = DummyEntity(self)
         r[stat] = v
         return EntityStatAccessor(r, stat, engine=self)
 
-    def entityfy(self, v, stat='dummy'):
+    def _entityfy(self, v, stat='dummy'):
         from .query import Query
         from .util import EntityStatAccessor
         if (
@@ -1459,10 +1489,19 @@ class Engine(AbstractEngine, gORM):
         return self.alias(v, stat)
 
     def turns_when(self, qry):
+        """Iterate over the turns in this branch when the query held true
+
+        :arg qry: a Query, likely constructed by comparing the result of a call to an entity's
+        ``historical`` method with the output of ``self.alias(..)`` or another ``historical(..)``
+
+        """
+        # yeah, it's just a loop over the query's method...I'm planning on moving some
+        # iter_turns logic in here when I figure out what of it is truly independent
+        # of any given type of query
         for branch, turn in qry.iter_turns():
             yield turn
 
     def _node_contents(self, character, node):
         return self._node_contents_cache.retrieve(
-                character, node, *self.btt()
+                character, node, *self._btt()
         )

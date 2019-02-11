@@ -68,7 +68,7 @@ class PlanningContext(ContextDecorator):
         if orm._planning:
             raise ValueError("Already planning")
         orm._planning = True
-        branch, turn, tick = orm.btt()
+        branch, turn, tick = orm._btt()
         self.id = myid = orm._last_plan = orm._last_plan + 1
         self.forward = orm._forward
         if orm._forward:
@@ -152,7 +152,7 @@ class TimeSignalDescriptor:
         if id(inst) not in self.signals:
             self.signals[id(inst)] = Signal()
         sig = self.signals[id(inst)]
-        branch_then, turn_then, tick_then = inst.btt()
+        branch_then, turn_then, tick_then = inst._btt()
         branch_now, turn_now = val
         if (branch_then, turn_then) == (branch_now, turn_now):
             return
@@ -410,6 +410,10 @@ class ORM(object):
         to node and edge attributes, and 'nodes' and 'edges' full of booleans
         indicating whether a node or edge exists.
 
+        :arg branch: A branch of history; defaults to the current branch
+        :arg turn: The turn in the branch; defaults to the current turn
+        :arg tick_from: Starting tick; defaults to 0
+
         """
         branch = branch or self.branch
         turn = turn or self.turn
@@ -559,6 +563,14 @@ class ORM(object):
         """Make a SQLAlchemy engine if possible, else a sqlite3 connection. In
         either case, begin a transaction.
 
+        :arg dbstring: rfc1738 URL for a database connection. Unless it begins with
+        "sqlite:///", SQLAlchemy will be required.
+        :arg alchemy: Set to ``False`` to use the precompiled SQLite queries even if
+        SQLAlchemy is available.
+        :arg connect_args: Dictionary of keyword arguments to be used for the database
+        connection.
+        :arg validate: Whether to perform an integrity test on the data.
+
         """
         self._planning = False
         self._forward = False
@@ -657,7 +669,7 @@ class ORM(object):
     def _set_branch(self, v):
         if self._planning:
             raise ValueError("Don't change branches while planning")
-        curbranch, curturn, curtick = self.btt()
+        curbranch, curturn, curtick = self._btt()
         if curbranch == v:
             self._otick = self._turn_end_plan[curbranch, curturn]
             return
@@ -725,9 +737,13 @@ class ORM(object):
                         time_plan[branch, turn, tick] = last_plan
                         turn_end_plan[branch, turn] = tick
 
-    def _delete_plan(self, plan):
-        """The plan has been contradicted, so delete the rest of it"""
-        branch, turn, tick = self.btt()
+    def delete_plan(self, plan):
+        """Delete the portion of a plan that has yet to occur.
+
+        :arg plan: integer ID of a plan, as given by ``with self.plan() as plan:``
+
+        """
+        branch, turn, tick = self._btt()
         to_delete = []
         plan_ticks = self._plan_ticks[plan]
         for trn, tcks in plan_ticks.items():  # might improve performance to use a WindowDict for plan_ticks
@@ -824,11 +840,11 @@ class ORM(object):
     def tick(self, v):
         self._set_tick(v)
 
-    def btt(self):
+    def _btt(self):
         """Return the branch, turn, and tick."""
         return self._obranch, self._oturn, self._otick
 
-    def nbtt(self):
+    def _nbtt(self):
         """Increment the tick and return branch, turn, tick
 
         Unless we're viewing the past, in which case raise HistoryError.
@@ -838,7 +854,7 @@ class ORM(object):
 
         """
         from .cache import HistoryError
-        branch, turn, tick = self.btt()
+        branch, turn, tick = self._btt()
         tick += 1
         if (branch, turn) in self._turn_end_plan:
             if tick > self._turn_end_plan[branch, turn]:
@@ -899,10 +915,6 @@ class ORM(object):
         self.commit()
         self.query.close()
 
-    def initdb(self):
-        """Alias of ``self.query.initdb``"""
-        self.query.initdb()
-
     def _init_graph(self, name, type_s='Graph'):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
@@ -914,6 +926,9 @@ class ORM(object):
         """Return a new instance of type Graph, initialized with the given
         data if provided.
 
+        :arg name: a name for the graph
+        :arg data: dictionary or NetworkX graph object providing initial state
+
         """
         self._init_graph(name, 'Graph')
         g = Graph(self, name, data, **attr)
@@ -923,6 +938,9 @@ class ORM(object):
     def new_digraph(self, name, data=None, **attr):
         """Return a new instance of type DiGraph, initialized with the given
         data if provided.
+
+        :arg name: a name for the graph
+        :arg data: dictionary or NetworkX graph object providing initial state
 
         """
         self._init_graph(name, 'DiGraph')
@@ -934,6 +952,9 @@ class ORM(object):
         """Return a new instance of type MultiGraph, initialized with the given
         data if provided.
 
+        :arg name: a name for the graph
+        :arg data: dictionary or NetworkX graph object providing initial state
+
         """
         self._init_graph(name, 'MultiGraph')
         mg = MultiGraph(self, name, data, **attr)
@@ -943,6 +964,9 @@ class ORM(object):
     def new_multidigraph(self, name, data=None, **attr):
         """Return a new instance of type MultiDiGraph, initialized with the given
         data if provided.
+
+        :arg name: a name for the graph
+        :arg data: dictionary or NetworkX graph object providing initial state
 
         """
         self._init_graph(name, 'MultiDiGraph')
@@ -954,6 +978,8 @@ class ORM(object):
         """Return a graph previously created with ``new_graph``,
         ``new_digraph``, ``new_multigraph``, or
         ``new_multidigraph``
+
+        :arg name: name of an existing graph
 
         """
         if name in self._graph_objs:
@@ -974,7 +1000,11 @@ class ORM(object):
         return g
 
     def del_graph(self, name):
-        """Remove all traces of a graph's existence from the database"""
+        """Remove all traces of a graph's existence from the database
+
+        :arg name: name of an existing graph
+
+        """
         # make sure the graph exists before deleting anything
         self.get_graph(name)
         self.query.del_graph(name)
@@ -987,7 +1017,7 @@ class ORM(object):
         presently active and ending at 'trunk'), and the turn is the
         latest revision in the branch that matters.
 
-        Keyword ``stoptime`` may be a branch, in which case iteration will stop
+        :arg stoptime: This may be a branch, in which case iteration will stop
         instead of proceeding into that branch's parent; or it may be a triple,
         ``(branch, turn, tick)``, in which case iteration will stop instead of
         yielding any time before that. The tick may be ``None``, in which case
@@ -1033,10 +1063,10 @@ class ORM(object):
                 yield child
 
     def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self.btt())
+        return self._nodes_cache.contains_entity(character, node, *self._btt())
 
     def _exist_node(self, character, node, exist=True):
-        branch, turn, tick = self.nbtt()
+        branch, turn, tick = self._nbtt()
         self.query.exist_node(
             character,
             node,
@@ -1049,13 +1079,13 @@ class ORM(object):
 
     def _edge_exists(self, character, orig, dest, idx=0):
         return self._edges_cache.contains_entity(
-            character, orig, dest, idx, *self.btt()
+            character, orig, dest, idx, *self._btt()
         )
 
     def _exist_edge(
             self, character, orig, dest, idx=0, exist=True
     ):
-        branch, turn, tick = self.nbtt()
+        branch, turn, tick = self._nbtt()
         self.query.exist_edge(
             character,
             orig,

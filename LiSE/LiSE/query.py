@@ -179,22 +179,22 @@ class Query(object):
         raise NotImplementedError
 
     def __eq__(self, other):
-        return EqQuery(self.engine, self, self.engine.entityfy(other))
+        return EqQuery(self.engine, self, self.engine._entityfy(other))
 
     def __gt__(self, other):
-        return GtQuery(self.engine, self, self.engine.entityfy(other))
+        return GtQuery(self.engine, self, self.engine._entityfy(other))
 
     def __ge__(self, other):
-        return GeQuery(self.engine, self, self.engine.entityfy(other))
+        return GeQuery(self.engine, self, self.engine._entityfy(other))
 
     def __lt__(self, other):
-        return LtQuery(self.engine, self, self.engine.entityfy(other))
+        return LtQuery(self.engine, self, self.engine._entityfy(other))
 
     def __le__(self, other):
-        return LeQuery(self.engine, self, self.engine.entityfy(other))
+        return LeQuery(self.engine, self, self.engine._entityfy(other))
 
     def __ne__(self, other):
-        return NeQuery(self.engine, self, self.engine.entityfy(other))
+        return NeQuery(self.engine, self, self.engine._entityfy(other))
 
     def and_before(self, end):
         if self.windows:

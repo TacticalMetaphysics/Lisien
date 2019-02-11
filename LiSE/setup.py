@@ -25,10 +25,10 @@ from setuptools import setup
 
 setup(
     name="LiSE",
-    version="0.9.1",
+    version="0.10",
     description="Rules engine for life simulation games",
     author="Zachary Spector",
-    author_email="zacharyspector@gmail.com",
+    author_email="public@zacharyspector.com",
     license="AGPL3+",
     keywords="game simulation",
     url="https://github.com/LogicalDash/LiSE",
@@ -45,4 +45,7 @@ setup(
         "astunparse>=1.5.0",
         "msgpack>=0.5.6"
     ],
+    project_urls={
+        "Documentation": "https://logicaldash.github.io/LiSE"
+    }
 )

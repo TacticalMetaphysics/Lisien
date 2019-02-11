@@ -86,7 +86,7 @@ class ELiDEApp(App):
         if not self.engine:
             Clock.schedule_once(self._pull_time, 0)
             return
-        branch, turn, tick = self.engine.btt()
+        branch, turn, tick = self.engine._btt()
         self.branch = branch
         self.turn = turn
         self.tick = tick
@@ -94,7 +94,7 @@ class ELiDEApp(App):
 
     @trigger
     def _push_time(self, *args):
-        branch, turn, tick = self.engine.btt()
+        branch, turn, tick = self.engine._btt()
         if (self.branch, self.turn, self.tick) != (branch, turn, tick):
             self.engine.time_travel(
                 self.branch, self.turn, self.tick if self.tick != tick else None,

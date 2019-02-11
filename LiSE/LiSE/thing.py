@@ -61,7 +61,7 @@ class Thing(Node):
 
     def _getloc(self):
         return self.engine._things_cache.retrieve(
-            self.character.name, self.name, *self.engine.btt()
+            self.character.name, self.name, *self.engine._btt()
         )
 
     def _get_arrival_time(self):

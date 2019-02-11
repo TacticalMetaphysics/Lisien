@@ -106,7 +106,7 @@ class AbstractEntityMapping(AllegedMapping):
         raise NotImplementedError
 
     def _get_cache_now(self, key):
-        return self._get_cache(key, *self.db.btt())
+        return self._get_cache(key, *self.db._btt())
 
     def _cache_contains(self, key, branch, turn, tick):
         raise NotImplementedError
@@ -119,7 +119,7 @@ class AbstractEntityMapping(AllegedMapping):
         raise NotImplementedError
 
     def _set_cache_now(self, key, value):
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         self._set_cache(key, branch, turn, tick, value)
 
     def _del_db(self, key, branch, turn, tick):
@@ -149,7 +149,7 @@ class AbstractEntityMapping(AllegedMapping):
         return wrapval(self._get_cache_now(key))
 
     def __contains__(self, item):
-        return self._cache_contains(item, *self.db.btt())
+        return self._cache_contains(item, *self.db._btt())
 
     def __setitem__(self, key, value):
         """Set key=value at the present branch and revision"""
@@ -157,7 +157,7 @@ class AbstractEntityMapping(AllegedMapping):
             raise ValueError(
                 "allegedb uses None to indicate that a key's been deleted"
             )
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         try:
             if self._get_cache(key, branch, turn, tick) != value:
                 self._set_cache(key, branch, turn, tick, value)
@@ -167,7 +167,7 @@ class AbstractEntityMapping(AllegedMapping):
         self.send(self, key=key, value=value)
 
     def __delitem__(self, key):
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         self._del_cache(key, branch, turn, tick)
         self._del_db(key, branch, turn, tick)
         self.send(self, key=key, value=None)
@@ -183,7 +183,7 @@ class GraphMapping(AbstractEntityMapping):
         super().__init__()
         self.graph = graph
         self.db = db = graph.db
-        btt = db.btt
+        btt = db._btt
         graph_val_cache = db._graph_val_cache
         graphn = graph.name
         self._iter_stuff = (graph_val_cache.iter_entity_keys, graphn, btt)
@@ -287,7 +287,7 @@ class Node(AbstractEntityMapping):
         self.db = db = graph.db
         node_val_cache = db._node_val_cache
         graphn = graph.name
-        btt = db.btt
+        btt = db._btt
         self._iter_stuff = (node_val_cache.iter_entity_keys, graphn, node, btt)
         self._cache_contains_stuff = (node_val_cache.contains_key, graphn, node)
         self._len_stuff = (node_val_cache.count_entity_keys, graphn, node, btt)
@@ -374,7 +374,7 @@ class Edge(AbstractEntityMapping):
         self.idx = idx
         edge_val_cache = db._edge_val_cache
         graphn = graph.name
-        btt = db.btt
+        btt = db._btt
         self._iter_stuff = (edge_val_cache.iter_entity_keys, graphn, orig, dest, idx, btt)
         self._cache_contains_stuff = (edge_val_cache.contains_key, graphn, orig, dest, idx)
         self._len_stuff = (edge_val_cache.count_entity_keys, graphn, orig, dest, idx, btt)
@@ -455,7 +455,7 @@ class GraphNodeMapping(AllegedMapping):
     def __iter__(self):
         """Iterate over the names of the nodes"""
         return self.db._nodes_cache.iter_entities(
-            self.graph.name, *self.db.btt()
+            self.graph.name, *self.db._btt()
         )
 
     def __eq__(self, other):
@@ -479,13 +479,13 @@ class GraphNodeMapping(AllegedMapping):
     def __contains__(self, node):
         """Return whether the node exists presently"""
         return self.db._nodes_cache.contains_entity(
-            self.graph.name, node, *self.db.btt()
+            self.graph.name, node, *self.db._btt()
         )
 
     def __len__(self):
         """How many nodes exist right now?"""
         return self.db._nodes_cache.count_entities(
-            self.graph.name, *self.db.btt()
+            self.graph.name, *self.db._btt()
         )
 
     def __getitem__(self, node):
@@ -517,7 +517,7 @@ class GraphNodeMapping(AllegedMapping):
         """Indicate that the given node no longer exists"""
         if node not in self:
             raise KeyError("No such node")
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         self.db.query.exist_node(
             self.graph.name,
             node,
@@ -622,7 +622,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         return self.db._edges_cache.iter_successors(
             self.graph.name,
             self.orig,
-            *self.db.btt()
+            *self.db._btt()
         )
 
     def __contains__(self, dest):
@@ -632,7 +632,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             self.graph.name,
             orig,
             dest,
-            *self.db.btt()
+            *self.db._btt()
         )
 
     def __len__(self):
@@ -640,7 +640,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         return self.db._edges_cache.count_successors(
             self.graph.name,
             self.orig,
-            *self.db.btt()
+            *self.db._btt()
         )
 
     def _make_edge(self, dest):
@@ -665,7 +665,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             self.graph.add_node(orig)
         if dest not in self.graph.node:
             self.graph.add_node(dest)
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         self.db.query.exist_edge(
             self.graph.name,
             orig,
@@ -690,7 +690,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __delitem__(self, dest):
         """Remove the edge between my orig and the given dest"""
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         orig, dest = self._order_nodes(dest)
         self.db.query.exist_edge(
             self.graph.name,
@@ -711,7 +711,8 @@ class AbstractSuccessors(GraphEdgeMapping):
         self.send(self, orig=orig, dest=dest, idx=0, exists=False)
 
     def __repr__(self):
-        return repr(dict(self))
+        cls = self.__class__
+        return "<{}.{} object containing {}>".format(cls.__module__, cls.__name__, dict(self))
 
     def clear(self):
         """Delete every edge with origin at my orig"""
@@ -771,7 +772,11 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
         return key in self.graph.node
 
     def __repr__(self):
-        return repr(dict(self))
+        cls = self.__class__
+        return "<{}.{} object containing {}>".format(
+            cls.__module__, cls.__name__, {
+                k: dict(v) for (k, v) in self.items()
+        })
 
 
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
@@ -846,7 +851,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             return self.db._edges_cache.iter_predecessors(
                 self.graph.name,
                 self.dest,
-                *self.db.btt()
+                *self.db._btt()
             )
 
         def __contains__(self, orig):
@@ -855,7 +860,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
                 self.graph.name,
                 self.dest,
                 orig,
-                *self.db.btt()
+                *self.db._btt()
             )
 
         def __len__(self):
@@ -863,7 +868,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             return self.db._edges_cache.count_predecessors(
                 self.graph.name,
                 self.dest,
-                *self.db.btt()
+                *self.db._btt()
             )
 
         def _make_edge(self, orig):
@@ -878,7 +883,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
             given node to mine.
 
             """
-            branch, turn, tick = self.db.nbtt()
+            branch, turn, tick = self.db._nbtt()
             try:
                 e = self[orig]
                 e.clear()
@@ -906,7 +911,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
         def __delitem__(self, orig):
             """Unset the existence of the edge from the given node to mine"""
-            branch, turn, tick = self.db.nbtt()
+            branch, turn, tick = self.db._nbtt()
             if 'Multi' in self.graph.__class__.__name__:
                 for idx in self[orig]:
                     self.db.query.exist_edge(
@@ -967,7 +972,7 @@ class AbstractMultiEdges(GraphEdgeMapping):
         orig, dest = self._order_nodes()
         return self.db._edges_cache.iter_keys(
             self.graph.name, orig, dest,
-            *self.db.btt()
+            *self.db._btt()
         )
 
     def __len__(self):
@@ -981,7 +986,7 @@ class AbstractMultiEdges(GraphEdgeMapping):
         orig, dest = self._order_nodes()
         return self.db._edges_cache.contains_key(
             self.graph.name, orig, dest, i,
-            *self.db.btt()
+            *self.db._btt()
         )
 
     def _getedge(self, idx):
@@ -1008,7 +1013,7 @@ class AbstractMultiEdges(GraphEdgeMapping):
             self.graph.add_node(orig)
         if dest not in self.graph.node:
             self.graph.add_node(dest)
-        branch, turn, tick = self.db.nbtt()
+        branch, turn, tick = self.db._nbtt()
         self.db.query.exist_edge(
             self.graph.name,
             orig,
@@ -1029,7 +1034,7 @@ class AbstractMultiEdges(GraphEdgeMapping):
 
     def __delitem__(self, idx):
         """Delete the edge at a particular index"""
-        branch, turn, tick = self.db.btt()
+        branch, turn, tick = self.db._btt()
         orig, dest = self._order_nodes()
         tick += 1
         e = self._getedge(idx)
@@ -1099,7 +1104,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
         def __contains__(self, item):
             orig, dest = self._order_nodes(item)
             return self.db._edges_cache.has_successor(
-                self.graph.name, orig, dest, *self.db.btt()
+                self.graph.name, orig, dest, *self.db._btt()
             )
 
         def _order_nodes(self, dest):

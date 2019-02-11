@@ -151,7 +151,7 @@ class NodeContent(Mapping):
     def __iter__(self):
         try:
             yield from self.node.engine._node_contents_cache.retrieve(
-                self.node.character.name, self.node.name, *self.node.engine.btt()
+                self.node.character.name, self.node.name, *self.node.engine._btt()
             )
         except KeyError:
             return
@@ -159,7 +159,7 @@ class NodeContent(Mapping):
     def __len__(self):
         try:
             return len(self.node.engine._node_contents_cache.retrieve(
-                self.node.character.name, self.node.name, *self.node.engine.btt()
+                self.node.character.name, self.node.name, *self.node.engine._btt()
             ))
         except KeyError:
             return 0
@@ -192,7 +192,7 @@ class Dests(Mapping):
         character = node.character
         engine = node.engine
         self._pn = (character.portal, name)
-        self._ecnb = (engine._edges_cache, character.name, name, engine.btt)
+        self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
     def __iter__(self):
         edges_cache, charname, name, btt = self._ecnb
@@ -235,7 +235,7 @@ class Origs(Mapping):
         character = node.character
         engine = node.engine
         self._pn = (character.portal, name)
-        self._ecnb = (engine._edges_cache, character.name, name, engine.btt)
+        self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
     def __iter__(self):
         edges_cache, charname, name, btt = self._ecnb
@@ -314,7 +314,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     def _get_rulebook_name(self):
         try:
             return self.engine._nodes_rulebooks_cache.retrieve(
-                self.character.name, self.name, *self.engine.btt()
+                self.character.name, self.name, *self.engine._btt()
             )
         except KeyError:
             return self.character.name, self.name
@@ -330,11 +330,11 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         node = self.name
         cache = self.engine._nodes_rulebooks_cache
         try:
-            if rulebook == cache.retrieve(character, node, *self.engine.btt()):
+            if rulebook == cache.retrieve(character, node, *self.engine._btt()):
                 return
         except KeyError:
             pass
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         cache.store(character, node, branch, turn, tick, rulebook)
         self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
 
@@ -401,7 +401,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         for port in self.preportal.values():
             yield port.origin
 
-    def _sane_dest_name(self, dest):
+    def _plain_dest_name(self, dest):
         if isinstance(dest, Node):
             if dest.character != self.character:
                 raise ValueError(
@@ -422,7 +422,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         """
 
         return shortest_path_length(
-            self.character, self.name, self._sane_dest_name(dest), weight
+            self.character, self.name, self._plain_dest_name(dest), weight
         )
 
     def shortest_path(self, dest, weight=None):
@@ -433,7 +433,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
 
         """
         return shortest_path(
-            self.character, self.name, self._sane_dest_name(dest), weight
+            self.character, self.name, self._plain_dest_name(dest), weight
         )
 
     def path_exists(self, dest, weight=None):
@@ -474,7 +474,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             contained.delete()
         for user in list(self.users.values()):
             user.del_avatar(self.character.name, self.name)
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         self.engine._nodes_cache.store(
             self.character.name, self.name,
             branch, turn, tick, False
