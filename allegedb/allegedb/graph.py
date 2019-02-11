@@ -1502,7 +1502,14 @@ class GraphsMapping(MutableMapping):
         return self.orm.get_graph(item)
 
     def __setitem__(self, key, value):
-        self.orm.new_graph(key, data=value)
+        if isinstance(value, networkx.MultiDiGraph):
+            self.orm.new_multidigraph(key, data=value)
+        elif isinstance(value, networkx.DiGraph):
+            self.orm.new_digraph(key, data=value)
+        elif isinstance(value, networkx.MultiGraph):
+            self.orm.new_multigraph(key, data=value)
+        else:
+            self.orm.new_graph(key, data=value)
 
     def __delitem__(self, key):
         self.orm.del_graph(key)
