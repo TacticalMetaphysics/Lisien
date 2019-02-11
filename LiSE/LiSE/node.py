@@ -342,12 +342,12 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     def portal(self):
         """Return a mapping of portals connecting this node to its neighbors."""
         return Dests(self)
-    successor = adj = edge = portal
+    successor = adj = edge = getatt('portal')
 
     @reify
     def preportal(self):
         return Origs(self)
-    predecessor = pred = preportal
+    predecessor = pred = getatt('preportal')
 
     user = UserDescriptor()
 
