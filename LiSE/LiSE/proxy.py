@@ -32,6 +32,7 @@ from collections import (
 from functools import partial
 from threading import Thread, Lock
 from multiprocessing import Process, Pipe, Queue, ProcessError
+from concurrent.futures import ThreadPoolExecutor
 from queue import Empty
 
 from blinker import Signal
@@ -1954,8 +1955,12 @@ class EngineProxy(AbstractEngine):
 
     def __init__(
             self, handle_out, handle_in, logger,
-            do_game_start=False,  install_modules=[]
+            do_game_start=False,  install_modules=[],
+            threads=None
     ):
+        self._threadpool = ThreadPoolExecutor(threads)
+        self._callback_futures = {}
+        self._max_cb = 0
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
@@ -2170,6 +2175,10 @@ class EngineProxy(AbstractEngine):
         ``turn``, and ``tick``, possibly different than when you called
         ``handle``.
 
+        If any of ``branching``, ``cb``, or ``future`` are ``True``,
+        I will return a ``Future``. The ``Future``'s return value
+        is a tuple of ``(command, branch, turn, tick, result)``.
+
         """
         if 'command' in kwargs:
             cmd = kwargs['command']
@@ -2179,6 +2188,7 @@ class EngineProxy(AbstractEngine):
             raise TypeError("No command")
         branching = kwargs.get('branching', False)
         cb = kwargs.pop('cb', None)
+        future = kwargs.pop('future', False)
         self._handle_lock.acquire()
         if kwargs.pop('block', True):
             assert not kwargs.get('silent')
@@ -2202,23 +2212,26 @@ class EngineProxy(AbstractEngine):
             self._handle_lock.release()
             return r
         else:
-            kwargs['silent'] = not (branching or cb)
+            kwargs['silent'] = not (branching or cb or future)
             self.send(self.pack(kwargs))
             if branching:
-                self._branching_thread = Thread(
-                    target=self._branching, args=[cb], daemon=True
-                )
-                self._branching_thread.start()
-                return
+                # what happens if more than one branching call is happening at once?
+                return self._threadpool.submit(self._branching, cb)
             if cb:
-                self._callback_thread = Thread(
-                    target=self._callback, args=[cb], daemon=True
-                )
-                self._callback_thread.start()
-                return
+                myid = self._max_cb = self._max_cb + 1
+                callback_future = self._threadpool.submit(self._callback, cb, myid=myid)
+                self._callback_futures[myid] = callback_future
+                return callback_future
+            if future:
+                return self._threadpool.submit(self._unpack_recv)
         self._handle_lock.release()
 
-    def _callback(self, cb):
+    def _unpack_recv(self):
+        command, branch, turn, tick, result = self.recv()
+        self._handle_lock.release()
+        return command, branch, turn, tick, self.unpack(result)
+
+    def _callback(self, cb, myid):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         res = self.unpack(result)
@@ -2233,6 +2246,8 @@ class EngineProxy(AbstractEngine):
         if ex:
             self.warning("{} raised by command {}, trying to run callback {} with it".format(repr(ex), command, cb))
         cb(command=command, branch=branch, turn=turn, tick=tick, result=res)
+        del self._callback_futures[myid]
+        return command, branch, turn, tick, res
 
     def _branching(self, cb=None):
         command, branch, turn, tick, result = self.recv()
@@ -2247,6 +2262,7 @@ class EngineProxy(AbstractEngine):
                 self.branching_cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
         if cb:
             cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+        return command, branch, turn, tick, r
 
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
