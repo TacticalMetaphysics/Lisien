@@ -1956,9 +1956,13 @@ class EngineProxy(AbstractEngine):
     def __init__(
             self, handle_out, handle_in, logger,
             do_game_start=False,  install_modules=[],
-            threads=None
+            submit_func=None, threads=None
     ):
-        self._threadpool = ThreadPoolExecutor(threads)
+        if submit_func:
+            self._submit = submit_func
+        else:
+            self._threadpool = ThreadPoolExecutor(threads)
+            self._submit = self._threadpool.submit
         self._callback_futures = {}
         self._max_cb = 0
         self._handle_out = handle_out
@@ -2214,15 +2218,15 @@ class EngineProxy(AbstractEngine):
             self.send(self.pack(kwargs))
             if branching:
                 # what happens if more than one branching call is happening at once?
-                return self._threadpool.submit(self._branching, cb)
+                return self._submit(self._branching, cb)
             elif cb:
                 myid = self._max_cb = self._max_cb + 1
-                callback_future = self._threadpool.submit(self._callback, cb, myid=myid)
+                callback_future = self._submit(self._callback, cb, myid=myid)
                 self._callback_futures[myid] = callback_future
                 return callback_future
             else:
                 self._handle_lock.release()
-                return self._threadpool.submit(self._unpack_recv)
+                return self._submit(self._unpack_recv)
 
     def _unpack_recv(self):
         command, branch, turn, tick, result = self.recv()
