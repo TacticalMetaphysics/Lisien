@@ -2337,9 +2337,9 @@ class EngineProxy(AbstractEngine):
             cbs.append(cb)
         self._call_with_recv(cbs)
 
-    def pull(self, chars='all', cb=None, sync=True):
+    def pull(self, chars='all', cb=None, block=True):
         """Update the state of all my proxy objects from the real objects."""
-        if sync:
+        if block:
             deltas = self.handle('get_char_deltas', chars=chars)
             self._upd_caches(deltas)
             if cb:
