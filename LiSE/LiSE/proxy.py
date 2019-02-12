@@ -2179,8 +2179,9 @@ class EngineProxy(AbstractEngine):
         ``turn``, and ``tick``, possibly different than when you called
         ``handle``.
 
-        If ``block=False``, I will return a ``Future``. The ``Future``'s
-        return value is that of the command.
+        If any of ``branching``, ``cb``, or ``future`` are ``True``,
+        I will return a ``Future``. The ``Future``'s return value
+        is a tuple of ``(command, branch, turn, tick, result)``.
 
         """
         if 'command' in kwargs:
@@ -2191,6 +2192,7 @@ class EngineProxy(AbstractEngine):
             raise TypeError("No command")
         branching = kwargs.get('branching', False)
         cb = kwargs.pop('cb', None)
+        future = kwargs.pop('future', False)
         self._handle_lock.acquire()
         if kwargs.pop('block', True):
             assert not kwargs.get('silent')
@@ -2214,7 +2216,7 @@ class EngineProxy(AbstractEngine):
             self._handle_lock.release()
             return r
         else:
-            kwargs['silent'] = not (branching or cb)
+            kwargs['silent'] = not (branching or cb or future)
             self.send(self.pack(kwargs))
             if branching:
                 # what happens if more than one branching call is happening at once?
@@ -2224,13 +2226,14 @@ class EngineProxy(AbstractEngine):
                 callback_future = self._submit(self._callback, cb, myid=myid)
                 self._callback_futures[myid] = callback_future
                 return callback_future
-            else:
-                self._handle_lock.release()
+            if future:
                 return self._submit(self._unpack_recv)
+        self._handle_lock.release()
 
     def _unpack_recv(self):
         command, branch, turn, tick, result = self.recv()
-        return self.unpack(result)
+        self._handle_lock.release()
+        return command, branch, turn, tick, self.unpack(result)
 
     def _callback(self, cb, myid):
         command, branch, turn, tick, result = self.recv()
@@ -2248,7 +2251,7 @@ class EngineProxy(AbstractEngine):
             self.warning("{} raised by command {}, trying to run callback {} with it".format(repr(ex), command, cb))
         cb(command=command, branch=branch, turn=turn, tick=tick, result=res)
         del self._callback_futures[myid]
-        return res
+        return command, branch, turn, tick, res
 
     def _branching(self, cb=None):
         command, branch, turn, tick, result = self.recv()
@@ -2263,7 +2266,7 @@ class EngineProxy(AbstractEngine):
                 self.branching_cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
         if cb:
             cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
-        return r
+        return command, branch, turn, tick, r
 
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
@@ -2367,7 +2370,7 @@ class EngineProxy(AbstractEngine):
                 cbs.append(cb)
             return self._call_with_recv(*cbs)
         else:
-            return self.handle(command='next_turn', block=False, cb=partial(self._upd_and_cb, cb))
+            self.handle(command='next_turn', block=False, cb=partial(self._upd_and_cb, cb))
 
     def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         """Move to a different point in the timestream.
