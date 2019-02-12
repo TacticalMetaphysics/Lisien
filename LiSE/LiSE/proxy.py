@@ -2345,10 +2345,7 @@ class EngineProxy(AbstractEngine):
             if cb:
                 cb(deltas)
         else:
-            Thread(
-                target=self._pull_async,
-                args=(chars, cb)
-            ).start()
+            return self._submit(self._pull_async, chars, cb)
 
     def _upd_and_cb(self, cb, *args, **kwargs):
         self._upd_caches(*args, **kwargs, no_del=True)
