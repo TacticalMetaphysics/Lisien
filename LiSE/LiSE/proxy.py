@@ -1971,9 +1971,9 @@ class EngineProxy(AbstractEngine):
         self._handle_in_lock = Lock()
         self._handle_lock = Lock()
         self._commit_lock = Lock()
+        self.logger = logger
         self.send(self.pack({'command': 'get_watched_btt'}))
         self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
-        self.logger = logger
         self.method = FuncStoreProxy(self, 'method')
         self.eternal = EternalVarProxy(self)
         self.universal = GlobalVarProxy(self)
@@ -2196,6 +2196,7 @@ class EngineProxy(AbstractEngine):
         self._handle_lock.acquire()
         if kwargs.pop('block', True):
             assert not kwargs.get('silent')
+            self.debug('EngineProxy: sending {}'.format(kwargs))
             self.send(self.pack(kwargs))
             command, branch, turn, tick, result = self.recv()
             assert cmd == command, \
@@ -2203,6 +2204,7 @@ class EngineProxy(AbstractEngine):
                     cmd, command
                 )
             r = self.unpack(result)
+            self.debug('EngineProxy: received {}'.format((command, branch, turn, tick, r)))
             if (branch, turn, tick) != self._btt():
                 self._branch = branch
                 self._turn = turn
@@ -2217,6 +2219,7 @@ class EngineProxy(AbstractEngine):
             return r
         else:
             kwargs['silent'] = not (branching or cb or future)
+            self.debug('EngineProxy: asynchronously sending {}'.format(kwargs))
             self.send(self.pack(kwargs))
             if branching:
                 # what happens if more than one branching call is happening at once?
@@ -2239,6 +2242,9 @@ class EngineProxy(AbstractEngine):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         res = self.unpack(result)
+        self.debug('EngineProxy: received, with callback {}#{}, {}'.format(
+            cb, myid, (command, branch, turn, tick, res))
+        )
         ex = None
         if isinstance(res, Exception):
             ex = res
@@ -2257,6 +2263,7 @@ class EngineProxy(AbstractEngine):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         r = self.unpack(result)
+        self.debug('EngineProxy: received, with branching, {}'.format((command, branch, turn, tick, r)))
         if (branch, turn, tick) != (self._branch, self._turn, self._tick):
             self._branch = branch
             self._turn = turn
@@ -2271,6 +2278,7 @@ class EngineProxy(AbstractEngine):
     def _call_with_recv(self, *cbs, **kwargs):
         cmd, branch, turn, tick, res = self.recv()
         received = self.unpack(res)
+        self.debug('EngineProxy: received {}'.format((cmd, branch, turn, tick, received)))
         if isinstance(received, Exception):
             raise received
         for cb in cbs:
@@ -2549,7 +2557,6 @@ def subprocess(
                 data,
                 repr(type(data))
             )
-        logq.put(('debug', logs))
     engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
 
     while True:
@@ -2562,7 +2569,6 @@ def subprocess(
         instruction = engine_handle.unpack(inst)
         silent = instruction.pop('silent',  False)
         cmd = instruction.pop('command')
-        log('command', (cmd, instruction))
 
         branching = instruction.pop('branching', False)
         try:
@@ -2583,7 +2589,6 @@ def subprocess(
             continue
         if silent:
             continue
-        log('result', r)
         handle_in_pipe.send((
             cmd, engine_handle.branch, engine_handle.turn, engine_handle.tick,
             engine_handle.pack(r)
