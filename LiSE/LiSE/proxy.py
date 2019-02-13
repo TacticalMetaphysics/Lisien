@@ -1963,8 +1963,6 @@ class EngineProxy(AbstractEngine):
         else:
             self._threadpool = ThreadPoolExecutor(threads)
             self._submit = self._threadpool.submit
-        self._callback_futures = {}
-        self._max_cb = 0
         self._handle_out = handle_out
         self._handle_out_lock = Lock()
         self._handle_in = handle_in
@@ -2225,10 +2223,7 @@ class EngineProxy(AbstractEngine):
                 # what happens if more than one branching call is happening at once?
                 return self._submit(self._branching, cb)
             elif cb:
-                myid = self._max_cb = self._max_cb + 1
-                callback_future = self._submit(self._callback, cb, myid=myid)
-                self._callback_futures[myid] = callback_future
-                return callback_future
+                return self._submit(self._callback, cb)
             if future:
                 return self._submit(self._unpack_recv)
         self._handle_lock.release()
@@ -2238,12 +2233,12 @@ class EngineProxy(AbstractEngine):
         self._handle_lock.release()
         return command, branch, turn, tick, self.unpack(result)
 
-    def _callback(self, cb, myid):
+    def _callback(self, cb):
         command, branch, turn, tick, result = self.recv()
         self._handle_lock.release()
         res = self.unpack(result)
-        self.debug('EngineProxy: received, with callback {}#{}, {}'.format(
-            cb, myid, (command, branch, turn, tick, res))
+        self.debug('EngineProxy: received, with callback {}: {}'.format(
+            cb, (command, branch, turn, tick, res))
         )
         ex = None
         if isinstance(res, Exception):
@@ -2256,7 +2251,6 @@ class EngineProxy(AbstractEngine):
         if ex:
             self.warning("{} raised by command {}, trying to run callback {} with it".format(repr(ex), command, cb))
         cb(command=command, branch=branch, turn=turn, tick=tick, result=res)
-        del self._callback_futures[myid]
         return command, branch, turn, tick, res
 
     def _branching(self, cb=None):
