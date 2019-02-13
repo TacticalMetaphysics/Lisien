@@ -2368,17 +2368,11 @@ class EngineProxy(AbstractEngine):
     def next_turn(self, cb=None, block=False):
         if cb and not callable(cb):
             raise TypeError("Uncallable callback")
-        if block:
-            self.send(self.pack({
-                'silent': False,
-                'command': 'next_turn'
-            }))
-            cbs = [partial(self._upd_caches, no_del=True), self._set_time]
-            if cb:
-                cbs.append(cb)
-            return self._call_with_recv(*cbs)
-        else:
-            self.handle(command='next_turn', block=False, cb=partial(self._upd_and_cb, cb))
+        return self.handle(
+            'next_turn',
+            block=block,
+            cb=partial(self._upd_and_cb, cb)
+        )
 
     def time_travel(self, branch, turn, tick=None, chars='all', cb=None, block=True):
         """Move to a different point in the timestream.
@@ -2400,37 +2394,15 @@ class EngineProxy(AbstractEngine):
             raise TypeError("Callbacks require chars")
         if cb is not None and not callable(cb):
             raise TypeError("Uncallable callback")
-        if chars:
-            args = [self._set_time, self._upd_caches]
-            if cb:
-                args.append(cb)
-            self._time_travel_thread = Thread(
-                target=self._call_with_recv,
-                args=args,
-                kwargs={'no_del': True},
-                daemon=True
-            )
-            self._time_travel_thread.start()
-            self.send(self.pack({
-                'command': 'time_travel',
-                'silent': False,
-                'branch': branch,
-                'turn': turn,
-                'tick': tick,
-                'chars': chars
-            }))
-            if block:
-                self._time_travel_thread.join()
-        else:
-            self.handle(
-                command='time_travel',
-                branch=branch,
-                turn=turn,
-                tick=tick,
-                chars=[],
-                block=block
-            )
-            self._branch, self._turn, self._tick = branch, turn, tick
+        return self.handle(
+            'time_travel',
+            block=block,
+            branch=branch,
+            turn=turn,
+            tick=tick,
+            chars=chars,
+            cb=partial(self._upd_and_cb, cb)
+        )
 
     def add_character(self, char, data={}, block=False, **attr):
         if char in self._char_cache:
