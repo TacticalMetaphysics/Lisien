@@ -45,10 +45,15 @@ class Portal(Edge, RuleFollower):
     set it here instead.
 
     """
-    __slots__ = ('graph', 'orig', 'dest', 'idx')
+    __slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination')
     character = getatt('graph')
     engine = getatt('db')
     no_unwrap = True
+
+    def __init__(self, graph, orig, dest, idx=0):
+        super().__init__(graph, orig, dest, idx)
+        self.origin = graph.node[orig]
+        self.destination = graph.node[dest]
 
     @property
     def _cache(self):
@@ -187,16 +192,6 @@ class Portal(Edge, RuleFollower):
         """It means something that I exist, even if I have no data."""
         return self.orig in self.character.portal and \
                self.dest in self.character.portal[self.orig]
-
-    @property
-    def origin(self):
-        """Return the Place object that is where I begin"""
-        return self.character.place[self.orig]
-
-    @property
-    def destination(self):
-        """Return the Place object at which I end"""
-        return self.character.place[self.dest]
 
     @property
     def reciprocal(self):

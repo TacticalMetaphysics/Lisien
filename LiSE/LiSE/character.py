@@ -2009,7 +2009,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.name, name, location
         )
         if (self.name, name) in self.engine._node_objs:
-            del self.engine._node_objs[self.name, name]
+            obj = self.engine._node_objs[self.name, name]
+            thing = Thing(self, name)
+            for port in obj.portals():
+                port.origin = thing
+            for port in obj.preportals():
+                port.destination = thing
+            self.engine._node_objs[self.name, name] = thing
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
@@ -2017,7 +2023,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.name, name, None
         )
         if (self.name, name) in self.engine._node_objs:
-            del self.engine._node_objs[self.name, name]
+            thing = self.engine._node_objs[self.name, name]
+            place = Place(self, name)
+            for port in thing.portals():
+                port.origin = place
+            for port in thing.preportals():
+                port.destination = place
+            self.engine._node_objs[self.name, name] = place
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         """Connect the origin to the destination with a :class:`Portal`.
