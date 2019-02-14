@@ -544,7 +544,7 @@ class WindowDict(MutableMapping):
             self._past = list(data)
         self._past.sort()
         self._future = []
-        self._keys = set(map(get0, self._past or ()))
+        self._keys = set(map(get0, self._past))
 
     def __iter__(self):
         if not self:
@@ -558,7 +558,7 @@ class WindowDict(MutableMapping):
         return item in self._keys
 
     def __len__(self):
-        return len(self._past or ()) + len(self._future or ())
+        return len(self._past) + len(self._future)
 
     def __getitem__(self, rev):
         if not self:
