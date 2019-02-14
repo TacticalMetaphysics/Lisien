@@ -457,11 +457,10 @@ class WindowDict(MutableMapping):
             raise TypeError("rev must be int")
         past = self._past
         future = self._future
-        past_end = -1 if not past else past[-1][0]
-        future_start = -1 if not future else future[-1][0]
         if future:
             appender = past.append
             popper = future.pop
+            future_start = future[-1][0]
             while future_start <= rev:
                 appender(popper())
                 if future:
@@ -471,6 +470,7 @@ class WindowDict(MutableMapping):
         if past:
             popper = past.pop
             appender = future.append
+            past_end = past[-1][0]
             while past_end > rev:
                 appender(popper())
                 if past:
