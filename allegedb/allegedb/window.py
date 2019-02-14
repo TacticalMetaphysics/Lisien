@@ -459,10 +459,6 @@ class WindowDict(MutableMapping):
         future = self._future
         past_end = -1 if not past else past[-1][0]
         future_start = -1 if not future else future[-1][0]
-        if past and past_end <= rev and (
-                not future or future_start > rev
-        ):
-            return
         if future:
             appender = past.append
             popper = future.pop
