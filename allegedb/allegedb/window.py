@@ -579,42 +579,22 @@ class WindowDict(MutableMapping):
             )
         return past[-1][1]
 
-    @cython.locals(past_start=cython.int, past_end=cython.int, future_start=cython.int, have_past=cython.bint, have_future=cython.bint, rev=cython.int)
+    @cython.locals(past_end=cython.int, rev=cython.int)
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
             v = v.unwrap()
         past = self._past
-        future = self._future
-        have_past = bool(past)
-        have_future = bool(future)
-        past_start = -1 if not have_past else past[0][0]
-        past_end = -1 if not have_past else past[-1][0]
-        future_start = -1 if not have_future else future[-1][0]
-        if not have_past and not have_future:
-            past.append((rev, v))
-        elif have_past and rev < past_start:
-            past.insert(0, (rev, v))
-        elif have_past and rev == past_start:
-            past[0] = (rev, v)
-        elif have_past and rev == past_end:
-            past[-1] = (rev, v)
-        elif have_past and (
-            not have_future or
-            rev < future_start
-        ) and rev > past_end:
-            past.append((rev, v))
-        else:
+        if past or self._future:
             self.seek(rev)
-            past = self._past
-            future = self._future
             past_end = -1 if not past else past[-1][0]
             if not past:
                 past.append((rev, v))
             elif past_end == rev:
                 past[-1] = (rev, v)
             else:
-                assert past_end < rev
                 past.append((rev, v))
+        else:
+            past.append((rev, v))
         self._keys.add(rev)
 
     @cython.locals(rev=cython.int, past_end=cython.int)
