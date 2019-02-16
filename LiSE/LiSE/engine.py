@@ -1242,7 +1242,7 @@ class Engine(AbstractEngine, gORM):
             character, orig, dest, rulebook, rule, branch, turn, tick
         )
 
-    def _follow_rule(self, rule, handled_fun, branch, turn, *args):
+    def _follow_rule(self, rule, handled_fun, *args):
         self.debug("following rule: " + repr(rule))
         satisfied = True
         for prereq in rule.prereqs:
@@ -1282,43 +1282,36 @@ class Engine(AbstractEngine, gORM):
                 'character': lambda charactername, rulebook, rulename: self._follow_rule(
                     rulemap[rulename],
                     partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick),
-                    branch, turn,
                     charmap[charactername]
                 ) if charactername in charmap else None,
                 'avatar': lambda charn, rulebook, graphn, avn, rulen: self._follow_rule(
                     rulemap[rulen],
                     partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
-                    branch, turn,
                     charmap[graphn].node[avn]
                 ) if self._node_exists(graphn, avn) else None,
                 'character_thing': lambda charn, rulebook, rulen, thingn: self._follow_rule(
                     rulemap[rulen],
                     partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick),
-                    branch, turn,
                     charmap[charn].thing[thingn]
                 ) if charn in charmap and thingn in charmap[charn].thing else None,
                 'character_place': lambda charn, rulebook, rulen, placen: self._follow_rule(
                     rulemap[rulen],
                     partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick),
-                    branch, turn,
                     charmap[charn].place[placen]
                 ) if charn in charmap and placen in charmap[charn].place else None,
                 'character_portal': lambda charn, rulebook, rulen, orign, destn: self._follow_rule(
                     rulemap[rulen],
                     partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
-                    branch, turn,
                     charmap[charn].portal[orign][destn]
                 ) if self._edge_exists(charn, orign, destn) else None,
                 'node': lambda charn, noden, rulebook, rulen: self._follow_rule(
                     rulemap[rulen],
                     partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick),
-                    branch, turn,
                     charmap[charn].node[noden]
                 ) if self._node_exists(charn, noden) else None,
                 'portal': lambda charn, orign, destn, rulebook, rulen: self._follow_rule(
                     rulemap[rulen],
                     partial(self._handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick),
-                    branch, turn,
                     charmap[charn].portal[orign][destn]
                 ) if self._edge_exists(charn, orign, destn) else None
             }[tup[0]](*tup[1:])
