@@ -1297,74 +1297,84 @@ class Engine(AbstractEngine, gORM):
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
         avcache_retr = self._avatarness_cache._base_retrieve
+        node_exists = self._node_exists
+        get_node = self._get_node
         for (
             charn, graphn, avn, rulebook, rulen
         ) in self._avatar_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
-            if not self._node_exists(graphn, avn) or avcache_retr((charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
+            if not node_exists(graphn, avn) or avcache_retr((charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
                 continue
             rule = rulemap[rulen]
             handled = partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick)
-            entity = self._get_node(graphn, avn)
+            entity = get_node(graphn, avn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
+        is_thing = self._is_thing
+        handled_char_thing = self._handled_char_thing
         for (
             charn, thingn, rulebook, rulen
         ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            if not self._node_exists(charn, thingn) or not self._is_thing(charn, thingn):
+            if not node_exists(charn, thingn) or not is_thing(charn, thingn):
                 continue
             rule = rulemap[rulen]
-            handled = partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick)
-            entity = self._get_node(charn, thingn)
+            handled = partial(handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick)
+            entity = get_node(charn, thingn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
+        handled_char_place = self._handled_char_place
         for (
             charn, placen, rulebook, rulen
         ) in self._character_place_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
-            if not self._node_exists(charn, placen) or self._is_thing(charn, placen):
+            if not node_exists(charn, placen) or is_thing(charn, placen):
                 continue
             rule = rulemap[rulen]
-            handled = partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick)
-            entity = self._get_node(charn, placen)
+            handled = partial(handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick)
+            entity = get_node(charn, placen)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
+        edge_exists = self._edge_exists
+        get_edge = self._get_edge
+        handled_char_port = self._handled_char_port
         for (
             charn, orign, destn, rulebook, rulen
         ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
-            if not self._edge_exists(charn, orign, destn):
+            if not edge_exists(charn, orign, destn):
                 continue
             rule = rulemap[rulen]
-            handled = partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick)
-            entity = self._get_edge(charn, orign, destn)
+            handled = partial(handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick)
+            entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
+        handled_node = self._handled_node
         for (
                 charn, noden, rulebook, rulen
         ) in self._node_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
-            if not self._node_exists(charn, noden):
+            if not node_exists(charn, noden):
                 continue
             rule = rulemap[rulen]
-            handled = partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick)
-            entity = self._get_node(charn, noden)
+            handled = partial(handled_node, charn, noden, rulebook, rulen, branch, turn, tick)
+            entity = get_node(charn, noden)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
+        handled_portal = self._handled_portal
         for (
                 charn, orign, destn, rulebook, rulen
         ) in self._portal_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
-            if not self._edge_exists(charn, orign, destn):
+            if not edge_exists(charn, orign, destn):
                 continue
             rule = rulemap[rulen]
-            handled = partial(self._handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick)
-            entity = self._get_edge(charn, orign, destn)
+            handled = partial(handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick)
+            entity = get_edge(charn, orign, destn)
             if check_triggers(rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
 
