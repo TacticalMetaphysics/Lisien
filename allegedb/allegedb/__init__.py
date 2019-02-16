@@ -291,7 +291,11 @@ class ORM(object):
 
     def _get_node(self, graph, node):
         node_objs, node_exists, make_node = self._get_node_stuff
-        graphn = graph.name
+        if type(graph) is str:
+            graphn = graph
+            graph = self.graph[graphn]
+        else:
+            graphn = graph.name
         key = (graphn, node)
         if key in node_objs:
             return node_objs[key]
@@ -306,7 +310,11 @@ class ORM(object):
 
     def _get_edge(self, graph, orig, dest, idx=0):
         edge_objs, edge_exists, make_edge = self._get_edge_stuff
-        graphn = graph.name
+        if type(graph) is str:
+            graphn = graph
+            graph = self.graph[graphn]
+        else:
+            graphn = graph.name
         key = (graphn, orig, dest, idx)
         if key in edge_objs:
             return edge_objs[key]

@@ -1244,27 +1244,6 @@ class Engine(AbstractEngine, gORM):
 
     def _follow_rule(self, rule, handled_fun, *args):
         self.debug("following rule: " + repr(rule))
-        satisfied = True
-        for prereq in rule.prereqs:
-            res = prereq(*args)
-            if not res:
-                satisfied = False
-                break
-        if not satisfied:
-            return handled_fun()
-        for trigger in rule.triggers:
-            res = trigger(*args)
-            if res:
-                break
-        else:
-            return handled_fun()
-        actres = []
-        for action in rule.actions:
-            res = action(*args)
-            if res:
-                actres.append(res)
-        handled_fun()
-        return actres
 
     def _follow_rules(self):
         # TODO: roll back changes done by rules that raise an exception
@@ -1275,46 +1254,36 @@ class Engine(AbstractEngine, gORM):
         rulemap = self.rule
         todo = defaultdict(list)
 
-        def do_rule(tup):
-            # Returns None if the entity following the rule no longer exists.
-            # Better way to handle this?
-            return {
-                'character': lambda charactername, rulebook, rulename: self._follow_rule(
-                    rulemap[rulename],
-                    partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick),
-                    charmap[charactername]
-                ) if charactername in charmap else None,
-                'avatar': lambda charn, rulebook, graphn, avn, rulen: self._follow_rule(
-                    rulemap[rulen],
-                    partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick),
-                    charmap[graphn].node[avn]
-                ) if self._node_exists(graphn, avn) else None,
-                'character_thing': lambda charn, rulebook, rulen, thingn: self._follow_rule(
-                    rulemap[rulen],
-                    partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick),
-                    charmap[charn].thing[thingn]
-                ) if charn in charmap and thingn in charmap[charn].thing else None,
-                'character_place': lambda charn, rulebook, rulen, placen: self._follow_rule(
-                    rulemap[rulen],
-                    partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick),
-                    charmap[charn].place[placen]
-                ) if charn in charmap and placen in charmap[charn].place else None,
-                'character_portal': lambda charn, rulebook, rulen, orign, destn: self._follow_rule(
-                    rulemap[rulen],
-                    partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick),
-                    charmap[charn].portal[orign][destn]
-                ) if self._edge_exists(charn, orign, destn) else None,
-                'node': lambda charn, noden, rulebook, rulen: self._follow_rule(
-                    rulemap[rulen],
-                    partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick),
-                    charmap[charn].node[noden]
-                ) if self._node_exists(charn, noden) else None,
-                'portal': lambda charn, orign, destn, rulebook, rulen: self._follow_rule(
-                    rulemap[rulen],
-                    partial(self._handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick),
-                    charmap[charn].portal[orign][destn]
-                ) if self._edge_exists(charn, orign, destn) else None
-            }[tup[0]](*tup[1:])
+        def check_triggers(rule, handled_fun, entity):
+            for trigger in rule.triggers:
+                res = trigger(entity)
+                if res:
+                    return True
+            else:
+                handled_fun()
+                return False
+
+        def check_prereqs(rule, handled_fun, entity):
+            for prereq in rule.prereqs:
+                res = prereq(entity)
+                if not res:
+                    handled_fun()
+                    return False
+            return True
+
+        def do_actions(rule, handled_fun, entity):
+            actres = []
+            for action in rule.actions:
+                res = action(entity)
+                if res:
+                    actres.append(res)
+            handled_fun()
+            return actres
+
+        # TODO: triggers that don't mutate anything should be evaluated in parallel
+        # Ideally this would be implemented with a pool of "engines" that serve Facades
+        # mirroring the state of the world on turn start, kept in sync with deltas.
+        # I think I could do it with regular concurrent.futures pools though.
         for (
             charactername, rulebook, rulename
         ) in self._character_rules_handled_cache.iter_unhandled_rules(
@@ -1322,70 +1291,91 @@ class Engine(AbstractEngine, gORM):
         ):
             if charactername not in charmap:
                 continue
-            todo[rulebook].append(('character', charactername, rulebook, rulename))
+            rule = rulemap[rulename]
+            handled = partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick)
+            entity = charmap[charactername]
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        avcache_retr = self._avatarness_cache._base_retrieve
         for (
             charn, graphn, avn, rulebook, rulen
         ) in self._avatar_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
-            if charn not in charmap:
+            if not self._node_exists(graphn, avn) or avcache_retr((charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
                 continue
-            char = charmap[charn]
-            if graphn not in char.avatar or avn not in char.avatar[graphn]:
-                continue
-            todo[rulebook].append(('avatar', charn, rulebook, graphn, avn, rulen))
+            rule = rulemap[rulen]
+            handled = partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick)
+            entity = self._get_node(graphn, avn)
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
         for (
             charn, thingn, rulebook, rulen
         ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
-            if charn not in charmap or thingn not in charmap[charn].thing:
+            if not self._node_exists(charn, thingn) or not self._is_thing(charn, thingn):
                 continue
-            todo[rulebook].append(('character_thing', charn, rulebook, rulen, thingn))
+            rule = rulemap[rulen]
+            handled = partial(self._handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick)
+            entity = self._get_node(charn, thingn)
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
         for (
             charn, placen, rulebook, rulen
         ) in self._character_place_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
-            if charn not in charmap or placen not in charmap[charn].place:
+            if not self._node_exists(charn, placen) or self._is_thing(charn, placen):
                 continue
-            todo[rulebook].append(('character_place', charn, rulebook, rulen, placen))
+            rule = rulemap[rulen]
+            handled = partial(self._handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick)
+            entity = self._get_node(charn, placen)
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
         for (
             charn, orign, destn, rulebook, rulen
         ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
-            if charn not in charmap:
+            if not self._edge_exists(charn, orign, destn):
                 continue
-            char = charmap[charn]
-            if orign not in char.portal or destn not in char.portal[orign]:
-                continue
-            todo[rulebook].append(('character_portal', charn, rulebook, rulen, orign, destn))
+            rule = rulemap[rulen]
+            handled = partial(self._handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick)
+            entity = self._get_edge(charn, orign, destn)
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
         for (
                 charn, noden, rulebook, rulen
         ) in self._node_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
-            if charn not in charmap or noden not in charmap[charn]:
+            if not self._node_exists(charn, noden):
                 continue
-            todo[rulebook].append(('node', charn, noden, rulebook, rulen))
+            rule = rulemap[rulen]
+            handled = partial(self._handled_node, charn, noden, rulebook, rulen, branch, turn, tick)
+            entity = self._get_node(charn, noden)
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
         for (
                 charn, orign, destn, rulebook, rulen
         ) in self._portal_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
-            if charn not in charmap:
+            if not self._edge_exists(charn, orign, destn):
                 continue
-            char = charmap[charn]
-            if orign not in char.portal or destn not in char.portal[orign]:
-                continue
-            todo[rulebook].append(('portal', charn, orign, destn, rulebook, rulen))
+            rule = rulemap[rulen]
+            handled = partial(self._handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick)
+            entity = self._get_edge(charn, orign, destn)
+            if check_triggers(rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
 
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)
         for rulebook in sort_set(todo.keys()):
-            for rule in todo[rulebook]:
-                try:
-                    yield do_rule(rule)
-                except StopIteration:
-                    raise InnerStopIteration
+            for rule, handled, entity in todo[rulebook]:
+                if check_prereqs(rule, handled, entity):
+                    try:
+                        yield do_actions(rule, handled, entity)
+                    except StopIteration:
+                        raise InnerStopIteration
 
     def advance(self):
         """Follow the next rule if available.

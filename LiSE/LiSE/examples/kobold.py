@@ -161,15 +161,11 @@ def inittest(
         del thing.character.thing['kobold']
         del thing['kill']
 
-    kill_kobold.prereq(kobold_alive)
+    kill_kobold.trigger(kobold_alive)
 
     @kill_kobold.prereq
-    def flag_set(thing):
-        return 'kill' in thing
-
-    @kill_kobold.trigger
     def unmerciful(thing):
-        return thing['kill']
+        return thing.get('kill', False)
 
     @dwarf.rule
     def go2kobold(thing):
