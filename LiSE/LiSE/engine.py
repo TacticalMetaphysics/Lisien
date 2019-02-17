@@ -1106,9 +1106,14 @@ class Engine(AbstractEngine, gORM):
 
     def close(self):
         """Commit changes and close the database."""
+        import sys, os
         for store in self.stores:
             if hasattr(store, 'save'):
-                store.save()
+                store.save(reimport=False)
+            path, filename = os.path.split(store._filename)
+            modname = filename[:-3]
+            if modname in sys.modules:
+                del sys.modules[modname]
         super().close()
 
     def __enter__(self):
