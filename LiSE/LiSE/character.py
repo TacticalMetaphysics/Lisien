@@ -949,10 +949,9 @@ class CharacterSenseMapping(MutableMappingUnwrapper, Signal):
 class FacadeEntity(MutableMapping, Signal):
     def __init__(self, mapping, **kwargs):
         super().__init__()
-        self.facade = mapping.facade
+        self.facade = self.character = mapping.facade
         self._real = mapping
-        self._patch = kwargs
-        self._masked = set()
+        self._patch = {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in kwargs.items()}
 
     def __contains__(self, item):
         if item in self._masked:
@@ -962,12 +961,12 @@ class FacadeEntity(MutableMapping, Signal):
     def __iter__(self):
         seen = set()
         for k in self._real:
-            if k not in self._masked:
+            if k not in self._patch:
                 yield k
-            seen.add(k)
+                seen.add(k)
         for k in self._patch:
             if (
-                    k not in self._masked and
+                    self._patch[k] is not None and
                     k not in seen
             ):
                 yield k
@@ -979,9 +978,9 @@ class FacadeEntity(MutableMapping, Signal):
         return n
 
     def __getitem__(self, k):
-        if k in self._masked:
-            raise KeyError("{} has been masked.".format(k))
         if k in self._patch:
+            if self._patch[k] is None:
+                raise KeyError("{} has been masked.".format(k))
             return self._patch[k]
         ret = self._real[k]
         if hasattr(ret, 'unwrap'):  # a wrapped mutable object from the allegedb.wrap module
@@ -992,27 +991,35 @@ class FacadeEntity(MutableMapping, Signal):
     def __setitem__(self, k, v):
         if k == 'name':
             raise TypeError("Can't change names")
-        self._masked.discard(k)
+        if hasattr(v, 'unwrap'):
+            v = v.unwrap()
         self._patch[k] = v
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
-        self._masked.add(k)
+        self._patch[k] = None
         self.send(self, key=k, val=None)
 
 
-class FacadePlace(FacadeEntity):
-
-    """Lightweight analogue of Place for Facade use."""
-
+class FacadeNode(FacadeEntity):
     @property
     def name(self):
         return self['name']
 
+    @property
+    def portal(self):
+        return self.facade.portal[self['name']]
+
     def contents(self):
         for thing in self.facade.thing.values():
-            if thing.container is self:
+            # it seems like redundant FacadeNode are being created sometimes
+            if thing['location'] == self.name:
                 yield thing
+
+
+class FacadePlace(FacadeNode):
+
+    """Lightweight analogue of Place for Facade use."""
 
     def __init__(self, mapping, real_or_name, **kwargs):
         super().__init__(mapping, **kwargs)
@@ -1023,10 +1030,7 @@ class FacadePlace(FacadeEntity):
             self._real = {'name': real_or_name}
 
 
-class FacadeThing(FacadeEntity):
-    @property
-    def name(self):
-        return self._real['name']
+class FacadeThing(FacadeNode):
 
     def __init__(self, mapping, real_or_name, **kwargs):
         location = kwargs.pop('location', None)
@@ -1101,23 +1105,19 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
         super().__init__()
         self.facade = facade
         self._patch = {}
-        self._masked = set()
 
     def __contains__(self, k):
-        return (
-            k not in self._masked and (
-                k in self._patch or
-                k in self._get_inner_map()
-            )
-        )
+        if k in self._patch:
+            return self._patch[k] is not None
+        return k in self._get_inner_map()
 
     def __iter__(self):
         seen = set()
-        for k in self._get_inner_map():
-            if k not in self._masked:
+        for k in self._patch:
+            if k not in seen and self._patch[k] is not None:
                 yield k
             seen.add(k)
-        for k in self._patch:
+        for k in self._get_inner_map():
             if k not in seen:
                 yield k
 
@@ -1131,18 +1131,22 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
         if k not in self:
             raise KeyError
         if k not in self._patch:
-            self._patch[k] = self.facadecls(self, k, **self._get_inner_map()[k])
-        return self._patch[k]
+            self._patch[k] = self._make(k, self._get_inner_map()[k])
+        ret = self._patch[k]
+        if ret is None:
+            raise KeyError
+        if type(ret) is not self.facadecls:
+            ret = self._patch[k] = self._make(k, ret)
+        return ret
 
     def __setitem__(self, k, v):
         if not isinstance(v, self.facadecls):
             v = self._make(k, v)
-        self._masked.discard(k)
         self._patch[k] = v
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
-        self._masked.add(k)
+        self._patch[k] = None
         self.send(self, key=k, val=None)
 
 
@@ -1184,22 +1188,29 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 
 class FacadePortalMapping(FacadeEntityMapping):
     def __getitem__(self, node):
-        if node in self._masked:
-            raise KeyError("Node {} is in the inner Character, but has been masked".format(node))
         if node not in self:
             raise KeyError("No such node: {}".format(node))
         if node not in self._patch:
             self._patch[node] = self.cls(self.facade, node)
-        return self._patch[node]
+        ret = self._patch[node]
+        if ret is None:
+            raise KeyError("masked")
+        if type(ret) is not self.cls:
+            nuret = self.cls(self.facade, node)
+            if type(ret) is dict:
+                nuret._patch = ret
+            else:
+                nuret.update(ret)
+            ret = nuret
+        return ret
 
     def __setitem__(self, node, value):
-        self._masked.discard(node)
         v = self.cls(self.facade, node)
         v.update(value)
         self._patch[node] = v
 
     def __delitem__(self, node):
-        self._masked.add(node)
+        self._patch[node] = None
 
 
 class Facade(AbstractCharacter, nx.DiGraph):
@@ -1214,11 +1225,13 @@ class Facade(AbstractCharacter, nx.DiGraph):
                 ports[o][d] = dict(self.portal[o][d])
         things = {k: dict(v) for (k, v) in self.thing.items()}
         places = {k: dict(v) for (k, v) in self.place.items()}
-        return things, places, ports
+        stats = {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.graph.items()}
+        return things, places, ports, stats
 
     def __setstate__(self, state):
         self.character = None
-        self.thing, self.place, self.portal = state
+        self.graph = self.StatMapping(self)
+        self.thing._patch, self.place._patch, self.portal._patch, self.graph._patch = state
 
     def add_places_from(self, seq, **attrs):
         for place in seq:
@@ -1322,17 +1335,16 @@ class Facade(AbstractCharacter, nx.DiGraph):
             super().__init__()
             self.facade = facade
             self._patch = {}
-            self._masked = set()
 
         def __iter__(self):
             seen = set()
             if hasattr(self.facade.character, 'graph'):
                 for k in self.facade.character.graph:
-                    if k not in self._masked:
+                    if k not in self._patch:
                         yield k
-                    seen.add(k)
-            for k in self._patch:
-                if k not in seen:
+                        seen.add(k)
+            for (k, v) in self._patch.items():
+                if k not in seen and v is not None:
                     yield k
 
         def __len__(self):
@@ -1342,29 +1354,26 @@ class Facade(AbstractCharacter, nx.DiGraph):
             return n
 
         def __contains__(self, k):
-            if k in self._masked:
-                return False
             if hasattr(self.facade.character, 'graph') and k in self.facade.character.graph:
                 return True
-            return k in self._patch
+            return k in self._patch and self._patch[k] is not None
 
         def __getitem__(self, k):
-            if k in self._masked:
-                raise KeyError("masked")
             if k not in self._patch and hasattr(self.facade.character, 'graph'):
                 ret = self.facade.character.graph[k]
                 if not hasattr(ret, 'unwrap'):
                     return ret
                 self._patch[k] = ret.unwrap()
+            if self._patch[k] is None:
+                return KeyError
             return self._patch[k]
 
         def __setitem__(self, k, v):
-            self._masked.discard(k)
             self._patch[k] = v
             self.send(self, key=k, val=v)
 
         def __delitem__(self, k):
-            self._masked.add(k)
+            self._patch[k] = None
             self.send(self, key=k, val=None)
 
 
