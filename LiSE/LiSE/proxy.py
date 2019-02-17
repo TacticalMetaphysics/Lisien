@@ -2562,6 +2562,8 @@ def subprocess(
         if hasattr(engine_handle, '_after_ret'):
             engine_handle._after_ret()
             del engine_handle._after_ret
+        if cmd == 'close':
+            return
 
 
 class RedundantProcessError(ProcessError):
