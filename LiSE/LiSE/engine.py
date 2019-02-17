@@ -9,6 +9,7 @@ from functools import partial
 from collections import defaultdict
 from operator import attrgetter
 from types import FunctionType, MethodType
+from concurrent.futures import ProcessPoolExecutor, wait
 
 import msgpack
 from blinker import Signal
@@ -478,6 +479,18 @@ class AbstractEngine(object):
     uniform = getnoplan('_rando.uniform')
     vonmisesvariate = getnoplan('_rando.vonmisesvariate')
     weibullvariate = getnoplan('_rando.weibullvariate')
+
+
+def _check_char_trigger(trig, facade):
+    return trig(facade)
+
+
+def _check_node_trigger(trig, facade, node):
+    return trig(facade.node[node])
+
+
+def _check_portal_trigger(trig, facade, orig, dest):
+    return trig(facade.portal[orig][dest])
 
 
 class Engine(AbstractEngine, gORM):
@@ -1015,6 +1028,7 @@ class Engine(AbstractEngine, gORM):
         self.log = logfun
         self.commit_modulus = commit_modulus
         self.random_seed = random_seed
+        self.executor = ProcessPoolExecutor()
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         from random import Random
@@ -1257,9 +1271,11 @@ class Engine(AbstractEngine, gORM):
         branch, turn, tick = self._btt()
         charmap = self.character
         rulemap = self.rule
-        todo = defaultdict(list)
 
-        def check_triggers(rule, handled_fun, entity):
+        def check_triggers(rulebook, rule, handled_fun, entity):
+            key = (entity.character.name, entity.name, rulebook, rule.name)
+            if key in triggers_fired:
+                return triggers_fired[key]
             for trigger in rule.triggers:
                 res = trigger(entity)
                 if res:
@@ -1289,98 +1305,164 @@ class Engine(AbstractEngine, gORM):
         # Ideally this would be implemented with a pool of "engines" that serve Facades
         # mirroring the state of the world on turn start, kept in sync with deltas.
         # I think I could do it with regular concurrent.futures pools though.
-        for (
-            charactername, rulebook, rulename
-        ) in self._character_rules_handled_cache.iter_unhandled_rules(
+        executor = self.executor
+        triggers_fired = {}
+        futures = []
+        rule2futures = defaultdict(list)
+        valid_character_rules = []
+        valid_avatar_rules = []
+        valid_character_thing_rules = []
+        valid_character_place_rules = []
+        valid_character_portal_rules = []
+        valid_node_rules = []
+        valid_portal_rules = []
+        char_facade = {}
+
+        def trigger_handled(future):
+            if future.cancelled():
+                return
+            key = future.rulekey
+            if future.result():
+                for fut in rule2futures[key]:
+                    fut.cancel()
+                del rule2futures[key]
+                triggers_fired[key] = True
+            elif key not in triggers_fired:
+                triggers_fired[key] = False
+
+        def submit_trigs(rulebook, rule, func, entity, *args):
+            rulekey = (entity.character.name, entity.name, rulebook, rule.name)
+            charname = entity.character.name
+            for trig in rule.triggers:
+                if hasattr(trig, 'pure'):
+                    if charname in char_facade:
+                        facade = char_facade[charname]
+                    else:
+                        facade = char_facade[charname] = entity.character.facade()
+                    future = executor.submit(func, trig, facade, *args)
+                    future.rulekey = rulekey
+                    future.add_done_callback(trigger_handled)
+                    futures.append(future)
+                    rule2futures[rulekey].append(future)
+        # TODO: rules should be deactivated when their entity is deleted, instead of just not running
+        for rulekey in self._character_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
+            (charactername, rulebook, rulename) = rulekey
             if charactername not in charmap:
                 continue
             rule = rulemap[rulename]
-            handled = partial(self._handled_char, charactername, rulebook, rulename, branch, turn, tick)
             entity = charmap[charactername]
-            if check_triggers(rule, handled, entity):
-                todo[rulebook].append((rule, handled, entity))
+            valid_character_rules.append((rulekey, rule, entity))
+            submit_trigs(rulebook, rule, _check_char_trigger, entity)
         avcache_retr = self._avatarness_cache._base_retrieve
         node_exists = self._node_exists
         get_node = self._get_node
-        for (
-            charn, graphn, avn, rulebook, rulen
-        ) in self._avatar_rules_handled_cache.iter_unhandled_rules(
+        for rulekey in self._avatar_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
+            (charn, graphn, avn, rulebook, rulen) = rulekey
             if not node_exists(graphn, avn) or avcache_retr((charn, graphn, avn, branch, turn, tick)) in (KeyError, None):
                 continue
-            rule = rulemap[rulen]
-            handled = partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick)
             entity = get_node(graphn, avn)
-            if check_triggers(rule, handled, entity):
-                todo[rulebook].append((rule, handled, entity))
+            rule = rulemap[rulen]
+            valid_avatar_rules.append((rulekey, rule, entity))
+            submit_trigs(rulebook, rule, _check_node_trigger, entity, avn)
         is_thing = self._is_thing
-        handled_char_thing = self._handled_char_thing
-        for (
-            charn, thingn, rulebook, rulen
-        ) in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+        for rulekey in self._character_thing_rules_handled_cache.iter_unhandled_rules(branch, turn, tick):
+            (charn, thingn, rulebook, rulen) = rulekey
             if not node_exists(charn, thingn) or not is_thing(charn, thingn):
                 continue
             rule = rulemap[rulen]
-            handled = partial(handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick)
             entity = get_node(charn, thingn)
-            if check_triggers(rule, handled, entity):
-                todo[rulebook].append((rule, handled, entity))
-        handled_char_place = self._handled_char_place
-        for (
-            charn, placen, rulebook, rulen
-        ) in self._character_place_rules_handled_cache.iter_unhandled_rules(
+            valid_character_thing_rules.append((rulekey, rule, entity))
+            submit_trigs(rulebook, rule, _check_node_trigger, entity, thingn)
+        for rulekey in self._character_place_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
+            (charn, placen, rulebook, rulen) = rulekey
             if not node_exists(charn, placen) or is_thing(charn, placen):
                 continue
             rule = rulemap[rulen]
-            handled = partial(handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick)
             entity = get_node(charn, placen)
-            if check_triggers(rule, handled, entity):
-                todo[rulebook].append((rule, handled, entity))
+            valid_character_place_rules.append(rulekey)
+            submit_trigs(rulebook, rule, _check_node_trigger, entity, placen)
         edge_exists = self._edge_exists
         get_edge = self._get_edge
-        handled_char_port = self._handled_char_port
-        for (
-            charn, orign, destn, rulebook, rulen
-        ) in self._character_portal_rules_handled_cache.iter_unhandled_rules(
+        for rulekey in self._character_portal_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
+            (charn, orign, destn, rulebook, rulen) = rulekey
             if not edge_exists(charn, orign, destn):
                 continue
             rule = rulemap[rulen]
-            handled = partial(handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick)
             entity = get_edge(charn, orign, destn)
-            if check_triggers(rule, handled, entity):
-                todo[rulebook].append((rule, handled, entity))
-        handled_node = self._handled_node
-        for (
-                charn, noden, rulebook, rulen
-        ) in self._node_rules_handled_cache.iter_unhandled_rules(
+            valid_character_portal_rules.append(rulekey)
+            submit_trigs(rulebook, rule, _check_portal_trigger, entity, orign, destn)
+        for rulekey in self._node_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
         ):
+            (charn, noden, rulebook, rulen) = rulekey
             if not node_exists(charn, noden):
                 continue
             rule = rulemap[rulen]
-            handled = partial(handled_node, charn, noden, rulebook, rulen, branch, turn, tick)
             entity = get_node(charn, noden)
-            if check_triggers(rule, handled, entity):
-                todo[rulebook].append((rule, handled, entity))
-        handled_portal = self._handled_portal
-        for (
-                charn, orign, destn, rulebook, rulen
-        ) in self._portal_rules_handled_cache.iter_unhandled_rules(
+            valid_node_rules.append(rulekey)
+            submit_trigs(rulebook, rule, _check_node_trigger, entity, noden)
+        for rulekey in self._portal_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
         ):
+            (charn, orign, destn, rulebook, rulen) = rulekey
             if not edge_exists(charn, orign, destn):
                 continue
             rule = rulemap[rulen]
-            handled = partial(handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick)
             entity = get_edge(charn, orign, destn)
-            if check_triggers(rule, handled, entity):
+            valid_portal_rules.append(rulekey)
+            submit_trigs(rulebook, rule, _check_portal_trigger, entity, orign, destn)
+
+        wait(futures)
+
+        handled_char_thing = self._handled_char_thing
+        handled_char_place = self._handled_char_place
+        handled_char_port = self._handled_char_port
+        handled_node = self._handled_node
+        handled_portal = self._handled_portal
+        todo = defaultdict(list)
+
+        for (rulekey, rule, entity) in valid_character_rules:
+            (charn, rulebook, rulen) = rulekey
+            handled = partial(self._handled_char, charn, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        for (rulekey, rule, entity) in valid_avatar_rules:
+            (charn, graphn, avn, rulebook, rulen) = rulekey
+            handled = partial(self._handled_av, charn, graphn, avn, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        for (rulekey, rule, entity) in valid_character_thing_rules:
+            (charn, thingn, rulebook, rulen) = rulekey
+            handled = partial(handled_char_thing, charn, thingn, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        for (rulekey, rule, entity) in valid_character_place_rules:
+            (charn, placen, rulebook, rulen) = rulekey
+            handled = partial(handled_char_place, charn, placen, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        for (rulekey, rule, entity) in valid_character_portal_rules:
+            (charn, orign, destn, rulebook, rulen) = rulekey
+            handled = partial(handled_char_port, charn, orign, destn, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        for (rulekey, rule, entity) in valid_node_rules:
+            (charn, noden, rulebook, rulen) = rulekey
+            handled = partial(handled_node, charn, noden, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
+                todo[rulebook].append((rule, handled, entity))
+        for (rulekey, rule, entity) in valid_portal_rules:
+            (charn, orign, destn, rulebook, rulen) = rulekey
+            handled = partial(handled_portal, charn, orign, destn, rulebook, rulen, branch, turn, tick)
+            if check_triggers(rulebook, rule, handled, entity):
                 todo[rulebook].append((rule, handled, entity))
 
         # TODO: rulebook priorities (not individual rule priorities, just follow the order of the rulebook)

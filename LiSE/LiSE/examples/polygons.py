@@ -86,9 +86,9 @@ def install(eng):
     eng.shuffle(empty)
     # distribute 30 of each shape randomly among the empty places
     for i in range(1, 31):
-        square.add_avatar(empty.pop().new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square']))
+        square.add_avatar(empty.pop().new_thing('square%i' % i, _image_paths=['atlas://polygons/meh_square'], shape='square'))
     for i in range(1, 31):
-        triangle.add_avatar(empty.pop().new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle']))
+        triangle.add_avatar(empty.pop().new_thing('triangle%i' % i, _image_paths=['atlas://polygons/meh_triangle'], shape='triangle'))
 
 
 if __name__ == '__main__':

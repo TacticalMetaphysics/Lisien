@@ -142,7 +142,7 @@ class RulebookProxyDescriptor(object):
     def __set__(self, inst, val):
         if hasattr(val, 'name'):
             if not isinstance(val, RuleBookProxy):
-                raise TypeError
+                raise TypeError("RuleBookProxy only")
             rb = val
             val = val.name
         elif val in inst.engine._rulebooks_cache:
@@ -2633,7 +2633,6 @@ class EngineProcessManager(object):
                 loglevel
             )
         )
-        self._p.daemon = True
         self._p.start()
         self._logthread = Thread(
             target=self.sync_log_forever,
