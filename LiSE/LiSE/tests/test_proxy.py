@@ -72,6 +72,7 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
 ])
 def hand(request):
     from LiSE.handle import EngineHandle
+    from LiSE.engine import Engine
     tempdir = tempfile.mkdtemp(dir='.')
     for f in (
             'trigger.py', 'prereq.py', 'action.py', 'function.py',
@@ -79,7 +80,7 @@ def hand(request):
     ):
         if os.path.exists(f):
             os.rename(f, os.path.join(tempdir, f))
-    hand = EngineHandle((':memory:',), {'random_seed': 69105})
+    hand = EngineHandle(Engine(':memory:', random_seed=69105))
     with hand._real.advancing():
         request.param(hand._real)
     yield hand
@@ -112,6 +113,7 @@ def test_fast_delta(hand):
 
 def test_assignment():
     from LiSE.handle import EngineHandle
+    from LiSE.engine import Engine
     tempdir = tempfile.mkdtemp(dir='.')
     for f in (
             'trigger.py', 'prereq.py', 'action.py', 'function.py',
@@ -119,7 +121,7 @@ def test_assignment():
     ):
         if os.path.exists(f):
             os.rename(f, os.path.join(tempdir, f))
-    hand = EngineHandle((':memory:',), {'random_seed': 69105})
+    hand = EngineHandle(Engine(':memory:', random_seed=69105))
     eng = hand._real
     with eng.advancing():
         college.install(eng)

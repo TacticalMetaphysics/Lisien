@@ -17,6 +17,7 @@ import cherrypy
 import threading
 import logging
 from queue import Queue
+from ..engine import Engine
 from ..handle import EngineHandle
 
 
@@ -67,9 +68,11 @@ class LiSEHandleWebService(object):
             (level, data) = logq.get()
             getattr(logger, level)(data)
 
-        engine_handle = EngineHandle(args, kwargs, logq)
+        engine = Engine(*args, **kwargs)
+        engine_handle = EngineHandle(engine, logq)
+        engine.log = engine_handle.log
         if setup:
-            setup(engine_handle._real)
+            setup(engine)
         handle_log_thread = threading.Thread(
             target=get_log_forever, args=(logq,), daemon=True
         )

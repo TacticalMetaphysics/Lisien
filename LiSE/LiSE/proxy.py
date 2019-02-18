@@ -48,6 +48,7 @@ from .node import NodeContent, UserMapping, UserDescriptor
 from .place import Place
 from .thing import Thing
 from .portal import Portal
+from .engine import Engine
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -2523,7 +2524,9 @@ def subprocess(
                 data,
                 repr(type(data))
             )
-    engine_handle = EngineHandle(args, kwargs, logq, loglevel=loglevel)
+    engine = Engine(*args, **kwargs)
+    engine_handle = EngineHandle(engine, logq, loglevel=loglevel)
+    engine.log = engine_handle.log
 
     while True:
         inst = handle_out_pipe.recv()

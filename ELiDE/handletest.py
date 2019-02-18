@@ -1,6 +1,8 @@
 from LiSE.handle import EngineHandle
+from LiSE.engine import Engine
 
-hand = EngineHandle([':memory:'])
+eng = Engine(":memory:")
+hand = EngineHandle(eng)
 hand.add_character('physical', {}, {})
 hand.set_place('physical', 'a', {'evil': False})
 assert not hand._node_stat_cache['physical']['a']['evil']

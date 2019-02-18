@@ -73,7 +73,7 @@ class EngineHandle(object):
     developing your own API.
 
     """
-    def __init__(self, args, kwargs={}, logq=None, logfile=None, loglevel=None):
+    def __init__(self, engine, logq=None, logfile=None, loglevel=None):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
 
@@ -81,8 +81,7 @@ class EngineHandle(object):
         ``(loglevel, message)``.
 
         """
-        kwargs.setdefault('logfun', self.log)
-        self._real = Engine(*args, **kwargs)
+        self._real = engine
         self._logq = logq
         self._loglevel = loglevel
         self._muted_chars = set()
