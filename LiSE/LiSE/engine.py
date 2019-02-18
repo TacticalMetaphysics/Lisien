@@ -1273,7 +1273,12 @@ class Engine(AbstractEngine, gORM):
         rulemap = self.rule
 
         def check_triggers(rulebook, rule, handled_fun, entity):
-            key = (entity.character.name, entity.name, rulebook, rule.name)
+            if entity is entity.character:
+                key = (entity.character.name, rulebook, rule.name)
+            elif hasattr(entity, 'name'):
+                key = (entity.character.name, entity.name, rulebook, rule.name)
+            else:
+                key = (entity.character.name, entity.orig, entity.dest, rulebook, rule.name)
             if key in triggers_fired:
                 return triggers_fired[key]
             for trigger in rule.triggers:
@@ -1331,7 +1336,12 @@ class Engine(AbstractEngine, gORM):
                 triggers_fired[key] = False
 
         def submit_trigs(rulebook, rule, func, entity, *args):
-            rulekey = (entity.character.name, entity.name, rulebook, rule.name)
+            if entity is entity.character:
+                key = (entity.character.name, rulebook, rule.name)
+            elif hasattr(entity, 'name'):
+                key = (entity.character.name, entity.name, rulebook, rule.name)
+            else:
+                key = (entity.character.name, entity.orig, entity.dest, rulebook, rule.name)
             charname = entity.character.name
             for trig in rule.triggers:
                 if hasattr(trig, 'pure'):
@@ -1340,10 +1350,10 @@ class Engine(AbstractEngine, gORM):
                     else:
                         facade = char_facade[charname] = entity.character.facade()
                     future = executor.submit(func, trig, facade, *args)
-                    future.rulekey = rulekey
+                    future.rulekey = key
                     future.add_done_callback(trigger_handled)
                     futures.append(future)
-                    rule2futures[rulekey].append(future)
+                    rule2futures[key].append(future)
         # TODO: rules should be deactivated when their entity is deleted, instead of just not running
         for rulekey in self._character_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
@@ -1385,7 +1395,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             rule = rulemap[rulen]
             entity = get_node(charn, placen)
-            valid_character_place_rules.append(rulekey)
+            valid_character_place_rules.append((rulekey, rule, entity))
             submit_trigs(rulebook, rule, _check_node_trigger, entity, placen)
         edge_exists = self._edge_exists
         get_edge = self._get_edge
@@ -1397,7 +1407,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             rule = rulemap[rulen]
             entity = get_edge(charn, orign, destn)
-            valid_character_portal_rules.append(rulekey)
+            valid_character_portal_rules.append((rulekey, rule, entity))
             submit_trigs(rulebook, rule, _check_portal_trigger, entity, orign, destn)
         for rulekey in self._node_rules_handled_cache.iter_unhandled_rules(
             branch, turn, tick
@@ -1407,7 +1417,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             rule = rulemap[rulen]
             entity = get_node(charn, noden)
-            valid_node_rules.append(rulekey)
+            valid_node_rules.append((rulekey, rule, entity))
             submit_trigs(rulebook, rule, _check_node_trigger, entity, noden)
         for rulekey in self._portal_rules_handled_cache.iter_unhandled_rules(
                 branch, turn, tick
@@ -1417,7 +1427,7 @@ class Engine(AbstractEngine, gORM):
                 continue
             rule = rulemap[rulen]
             entity = get_edge(charn, orign, destn)
-            valid_portal_rules.append(rulekey)
+            valid_portal_rules.append((rulekey, rule, entity))
             submit_trigs(rulebook, rule, _check_portal_trigger, entity, orign, destn)
 
         wait(futures)
