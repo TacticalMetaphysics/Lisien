@@ -954,9 +954,8 @@ class FacadeEntity(MutableMapping, Signal):
         self._patch = {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in kwargs.items()}
 
     def __contains__(self, item):
-        if item in self._masked:
-            return False
-        return item in self._patch or item in self._real
+        patch = self._patch
+        return item in self._real or (item in patch and patch[item] is not None)
 
     def __iter__(self):
         seen = set()
