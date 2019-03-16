@@ -7,7 +7,7 @@ mindeps = get_deps_minimal(audio=None, video=None)
 mindeps['hiddenimports'].extend([
 	'ELiDE.kivygarden.texturestack',
 	'kivy.weakmethod',
-	'umsgpack'
+	'msgpack'
 ])
 
 a = Analysis(['main.py'],
@@ -42,4 +42,4 @@ coll = COLLECT(exe,
 			   *(Tree(p) for p in sdl2.dep_bins + glew.dep_bins),
                strip=False,
                upx=True,
-               name='ELiDE-windows-0.9.1')
+               name='ELiDE-windows-0.10.0')
