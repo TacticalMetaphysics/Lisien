@@ -16,12 +16,12 @@
 from setuptools import setup
 setup(
     name = "allegedb",
-    version = "0.14.0",
+    version = "0.15.0",
     packages = ["allegedb"],
     install_requires = ['networkx>=1.9', 'blinker'],
     author = "Zachary Spector",
     author_email = "zacharyspector@gmail.com",
-    description = "An object-relational mapper serving database-backed versions of the standard networkx graph classes.",
+    description = "A state container serving database-backed versions of the standard networkx graph classes.",
     license = "AGPL3+",
     keywords = "orm graph networkx sql database",
     url = "https://github.com/LogicalDash/LiSE",
