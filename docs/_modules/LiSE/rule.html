@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -123,10 +123,10 @@
         <span class="k">return</span> <span class="n">v</span>
 
     <span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_setter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
@@ -236,7 +236,7 @@
         <span class="n">flist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">)</span>
         <span class="n">namey_value</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">flist</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">)</span>
         <span class="n">flist</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">namey_value</span><span class="p">)</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="n">flist</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">namey_value</span><span class="p">)</span>
         <span class="n">flist</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">flist</span><span class="p">)</span>
 
@@ -272,7 +272,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">create</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
             <span class="n">tick</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
@@ -372,19 +372,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 
     <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()))</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()))</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()))</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">())[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="n">i</span><span class="p">]]</span>
 
     <span class="k">def</span> <span class="nf">_coerce_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Rule</span><span class="p">):</span>
@@ -396,7 +396,7 @@
 
     <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
             <span class="n">cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
@@ -412,7 +412,7 @@
 
 <div class="viewcode-block" id="RuleBook.insert"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
             <span class="n">cache</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
@@ -428,13 +428,13 @@
 <div class="viewcode-block" id="RuleBook.index"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.rule.RuleBook.index">[docs]</a>    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -625,13 +625,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">iter_entities</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">iter_entities</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">contains_entity</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">contains_entity</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
@@ -754,7 +754,6 @@
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
@@ -798,7 +797,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

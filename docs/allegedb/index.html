@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="LiSE" href="../LiSE/index.html" />
@@ -38,51 +38,49 @@
 <h1>allegedb<a class="headerlink" href="#allegedb" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<p>Object relational mapper for graphs with in-built revision control.</p>
+<p>State container and object-relational mapper for versioned graphs.</p>
 <p>allegedb serves its own special variants on the networkx graph classes:
 Graph, DiGraph, MultiGraph, and MultiDiGraph. Every change to them is
 stored in an SQL database.</p>
 <p>This means you can keep multiple versions of one set of graphs and
 switch between them without the need to save, load, or run git-checkout.
-Just point the ORM at the correct branch and revision, and all of the
+Just point the ORM at the correct branch and turn, and all of the
 graphs in the program will change. All the different branches and
 revisions remain in the database to be brought back when needed.</p>
 <div class="section" id="usage">
 <h2>usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">allegedb</span> <span class="k">import</span> <span class="n">ORM</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span> <span class="o">=</span> <span class="n">ORM</span><span class="p">(</span><span class="s1">&#39;sqlite:///test.db&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">initdb</span><span class="p">()</span>  <span class="c1"># only necessary the first time you use a particular database</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_graph</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>  <span class="c1"># also new_digraph, new_multigraph, new_multidigraph</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">([</span><span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="s1">&#39;ham&#39;</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">edge</span>  <span class="c1"># strings become unicode because that&#39;s the way sqlite3 rolls</span>
-<span class="go">{u&#39;eggs&#39;: {u&#39;ham&#39;: {}, u&#39;spam&#39;: {}}, u&#39;ham&#39;: {u&#39;eggs&#39;: {}}, u&#39;spam&#39;: {u&#39;eggs&#39;: {}}}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">{&#39;eggs&#39;: {&#39;spam&#39;: Edge(graph=test, orig=eggs, dest=spam)}, &#39;ham&#39;: {}, &#39;spam&#39;: {}}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">g</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">orm</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span> <span class="o">=</span> <span class="n">ORM</span><span class="p">(</span><span class="s1">&#39;sqlite:///test.db&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>  <span class="c1"># returns whatever graph type you stored by that name</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">edge</span>
-<span class="go">{u&#39;eggs&#39;: {u&#39;ham&#39;: {}, u&#39;spam&#39;: {}}, u&#39;ham&#39;: {u&#39;eggs&#39;: {}}, u&#39;spam&#39;: {u&#39;eggs&#39;: {}}}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span>  <span class="c1"># returns whatever graph type you stored by that name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">adj</span>
+<span class="go">{&#39;eggs&#39;: {&#39;spam&#39;: Edge(graph=test, orig=eggs, dest=spam)}, &#39;ham&#39;: {}, &#39;spam&#39;: {}}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">random_lobster</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mf">0.9</span><span class="p">,</span><span class="mf">0.9</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_graph</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">red</span><span class="p">)</span>  <span class="c1"># initialize with data from the given graph</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">random_lobster</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">new_digraph</span><span class="p">(</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">red</span><span class="p">)</span>  <span class="c1"># initialize with data from the given graph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
 <span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">blue</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">=</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
 <span class="go">False</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># undoing what I did when rev-1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># undoing what I did when turn=1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
 <span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="s1">&#39;test&#39;</span>    <span class="c1"># navigating to a branch for the first time creates that branch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">rev</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">orm</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="s1">&#39;trunk&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">edge</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">edge</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">red</span><span class="o">.</span><span class="n">adj</span> <span class="o">==</span> <span class="n">blue</span><span class="o">.</span><span class="n">adj</span>
 <span class="go">False</span>
 </pre></div>
 </div>
@@ -116,12 +114,6 @@ It changes how the caching works, making it more efficient.</p>
 <dd><p>A context manager for when you’re creating lots of state.</p>
 <p>Reads will be much slower in a batch, but writes will be faster.</p>
 <p>You <em>can</em> combine this with <code class="docutils literal notranslate"><span class="pre">advancing</span></code> but it isn’t any faster.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="allegedb.ORM.btt">
-<code class="descname">btt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.btt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.btt" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the branch, turn, and tick.</p>
 </dd></dl>
 
 <dl class="method">
@@ -181,6 +173,28 @@ try:</p>
 <dt id="allegedb.ORM.del_graph">
 <code class="descname">del_graph</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.del_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.del_graph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove all traces of a graph’s existence from the database</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of an existing graph</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="allegedb.ORM.delete_plan">
+<code class="descname">delete_plan</code><span class="sig-paren">(</span><em>plan</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.delete_plan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.delete_plan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the portion of a plan that has yet to occur.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>plan</strong> – integer ID of a plan, as given by <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">self.plan()</span> <span class="pre">as</span> <span class="pre">plan:</span></code></td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
@@ -206,6 +220,14 @@ indicating whether a node or edge exists.</p>
 <dd><p>Return a graph previously created with <code class="docutils literal notranslate"><span class="pre">new_graph</span></code>,
 <code class="docutils literal notranslate"><span class="pre">new_digraph</span></code>, <code class="docutils literal notranslate"><span class="pre">new_multigraph</span></code>, or
 <code class="docutils literal notranslate"><span class="pre">new_multidigraph</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of an existing graph</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -219,12 +241,19 @@ attributes’ new values, with <code class="docutils literal notranslate"><span 
 dictionaries are special keys ‘node_val’ and ‘edge_val’ describing changes
 to node and edge attributes, and ‘nodes’ and ‘edges’ full of booleans
 indicating whether a node or edge exists.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="allegedb.ORM.initdb">
-<code class="descname">initdb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.initdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.initdb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias of <code class="docutils literal notranslate"><span class="pre">self.query.initdb</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>branch</strong> – A branch of history; defaults to the current branch</li>
+<li><strong>turn</strong> – The turn in the branch; defaults to the current turn</li>
+<li><strong>tick_from</strong> – Starting tick; defaults to 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -235,19 +264,22 @@ any remove.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="allegedb.ORM.nbtt">
-<code class="descname">nbtt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.nbtt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.nbtt" title="Permalink to this definition">¶</a></dt>
-<dd><p>Increment the tick and return branch, turn, tick</p>
-<p>Unless we’re viewing the past, in which case raise HistoryError.</p>
-<p>Idea is you use this when you want to advance time, which you
-can only do once per branch, turn, tick.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="allegedb.ORM.new_digraph">
 <code class="descname">new_digraph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_digraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_digraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new instance of type DiGraph, initialized with the given
 data if provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> – a name for the graph</li>
+<li><strong>data</strong> – dictionary or NetworkX graph object providing initial state</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -255,6 +287,18 @@ data if provided.</p>
 <code class="descname">new_graph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_graph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new instance of type Graph, initialized with the given
 data if provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> – a name for the graph</li>
+<li><strong>data</strong> – dictionary or NetworkX graph object providing initial state</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -262,6 +306,18 @@ data if provided.</p>
 <code class="descname">new_multidigraph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_multidigraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_multidigraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new instance of type MultiDiGraph, initialized with the given
 data if provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> – a name for the graph</li>
+<li><strong>data</strong> – dictionary or NetworkX graph object providing initial state</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -269,6 +325,18 @@ data if provided.</p>
 <code class="descname">new_multigraph</code><span class="sig-paren">(</span><em>name</em>, <em>data=None</em>, <em>**attr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/allegedb.html#ORM.new_multigraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#allegedb.ORM.new_multigraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new instance of type MultiGraph, initialized with the given
 data if provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> – a name for the graph</li>
+<li><strong>data</strong> – dictionary or NetworkX graph object providing initial state</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
@@ -1429,7 +1497,6 @@ edge), for when the user stores a set in them.</p>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../manual.html#programming-interface">Programming Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html#ide">IDE</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">allegedb</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#usage">usage</a></li>
@@ -1481,7 +1548,7 @@ edge), for when the user stores a set in them.</p>
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

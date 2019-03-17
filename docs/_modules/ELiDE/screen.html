@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -355,6 +355,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_from_delta</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">deltas</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dialoglayout</span><span class="o">.</span><span class="n">advance_dialog</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
+            <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
+            <span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tmp_block</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="MainScreen.next_turn"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.screen.MainScreen.next_turn">[docs]</a>    <span class="k">def</span> <span class="nf">next_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -372,6 +377,11 @@
             <span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;MainScreen: not advancing time while there&#39;s a dialog&quot;</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tmp_block</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span>
+            <span class="n">branch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
+            <span class="n">turn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span><span class="p">,</span>
+            <span class="n">tick</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">_push_time</span>
+        <span class="p">)</span>
         <span class="n">eng</span><span class="o">.</span><span class="n">next_turn</span><span class="p">(</span><span class="n">cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_from_next_turn</span><span class="p">)</span></div></div>
 
 
@@ -554,7 +564,6 @@
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
@@ -598,7 +607,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

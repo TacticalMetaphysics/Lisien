@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -80,10 +80,15 @@
 <span class="sd">    set it here instead.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="s1">&#39;idx&#39;</span><span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="s1">&#39;destination&#39;</span><span class="p">)</span>
     <span class="n">character</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">)</span>
     <span class="n">engine</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s1">&#39;db&#39;</span><span class="p">)</span>
     <span class="n">no_unwrap</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -115,7 +120,7 @@
     <span class="k">def</span> <span class="nf">_get_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_portals_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">)</span>
@@ -126,11 +131,11 @@
         <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span>
         <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_portals_rulebooks_cache</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">rulebook</span> <span class="o">==</span> <span class="n">cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">btt</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">rulebook</span> <span class="o">==</span> <span class="n">cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()):</span>
                 <span class="k">return</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">pass</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_portal_rulebook</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">)</span>
 
@@ -224,16 +229,6 @@
                <span class="bp">self</span><span class="o">.</span><span class="n">dest</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">origin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return the Place object that is where I begin&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">]</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">destination</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return the Place object at which I end&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">]</span>
-
-    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If there&#39;s another Portal connecting the same origin and</span>
 <span class="sd">        destination that I do, but going the opposite way, return</span>
@@ -245,16 +240,25 @@
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;This portal has no reciprocal&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+<div class="viewcode-block" id="Portal.historical"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal.historical">[docs]</a>    <span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
+
+<span class="sd">        You can use the reference in comparisons to make a history</span>
+<span class="sd">        query, and execute the query by calling it, or passing it to</span>
+<span class="sd">        ``self.engine.ticks_when``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span>
             <span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">stat</span><span class="o">=</span><span class="n">stat</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Portal.update"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.Portal.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Works like regular update, but only actually updates when the new</span>
 <span class="sd">        value and the old value differ. This is necessary to prevent</span>
 <span class="sd">        certain infinite loops.</span>
+
+<span class="sd">        :arg d: a dictionary</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -267,7 +271,7 @@
 <span class="sd">        For symmetry with :class:`Thing` and :class`Place`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
@@ -321,7 +325,6 @@
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html#programming-interface">Programming Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
@@ -365,7 +368,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

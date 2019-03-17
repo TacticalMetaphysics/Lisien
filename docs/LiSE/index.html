@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="ELiDE" href="../ELiDE/index.html" />
@@ -37,6 +37,121 @@
   <div class="section" id="lise">
 <h1>LiSE<a class="headerlink" href="#lise" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
+</div>
+<p>The only LiSE class that you should ever instantiate yourself is
+Engine. All the other simulation objects should be
+created and accessed through it. Engine is instantiated
+with two arguments, which are file names of SQLite databases that will
+be created if needed; the first will hold the state of the simulation,
+including history, while the second will hold rules, including copies
+of the functions used in the rules.</p>
+<div class="section" id="world-modelling">
+<h2>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this headline">¶</a></h2>
+<p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
+<code class="docutils literal notranslate"><span class="pre">name</span></code>.  This will return a character object with the name you
+provided. Now draw a map by calling the method <code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many
+different string <code class="docutils literal notranslate"><span class="pre">name</span></code> s, then linking them together with the
+method <code class="docutils literal notranslate"><span class="pre">new_portal(origin,</span> <span class="pre">destination)</span></code>.  To store data pertaining
+to some particular place, retrieve the place from the <code class="docutils literal notranslate"><span class="pre">place</span></code>
+mapping of the character: if the character is <code class="docutils literal notranslate"><span class="pre">world</span></code> and the place
+name is <code class="docutils literal notranslate"><span class="pre">'home'</span></code>, you might do it like
+<code class="docutils literal notranslate"><span class="pre">home</span> <span class="pre">=</span> <span class="pre">world.place['home']</span></code>. Portals are retrieved from the <code class="docutils literal notranslate"><span class="pre">portal</span></code>
+mapping, where you’ll need the origin and the destination: if there’s
+a portal from <code class="docutils literal notranslate"><span class="pre">'home'</span></code> to <code class="docutils literal notranslate"><span class="pre">'narnia'</span></code>, you can get it like
+<code class="docutils literal notranslate"><span class="pre">wardrobe</span> <span class="pre">=</span> <span class="pre">world.portal['home']['narnia']</span></code>, but if you haven’t also
+made another portal going the other way,
+<code class="docutils literal notranslate"><span class="pre">world.portal['narnia']['home']</span></code> will raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>.</p>
+<p>Things, usually being located in places (but possibly in other things),
+are most conveniently created by the <code class="docutils literal notranslate"><span class="pre">new_thing</span></code> method of Place objects:
+<code class="docutils literal notranslate"><span class="pre">alice</span> <span class="pre">=</span> <span class="pre">home.new_thing('alice')</span></code> gets you a new Thing object
+located in <code class="docutils literal notranslate"><span class="pre">home</span></code>. Things can be retrieved like <code class="docutils literal notranslate"><span class="pre">alice</span> <span class="pre">=</span> <span class="pre">world.thing['alice']</span></code>.
+Ultimately, things and places are both just nodes, and both can be
+retrieved in a character’s <code class="docutils literal notranslate"><span class="pre">node</span></code> mapping, but only things have
+methods like <code class="docutils literal notranslate"><span class="pre">travel_to</span></code>, which finds a path to a destination
+and schedules movement along it.</p>
+<p>You can store data in things, places, and portals by treating them
+like dictionaries.  If you want to store data in a character, use its
+<code class="docutils literal notranslate"><span class="pre">stat</span></code> property as a dictionary instead. Data stored in these
+objects, and in the <code class="docutils literal notranslate"><span class="pre">universal</span></code> property of the engine, can vary
+over time. The engine’s <code class="docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive,
+and is mainly for storing settings, not simulation data.</p>
+</div>
+<div class="section" id="rule-creation">
+<h2>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this headline">¶</a></h2>
+<p>To create a rule, first decide what objects the rule should apply
+to. You can put a rule on a character, thing, place, or portal; and
+you can put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">portal</span></code> mappings, meaning the rule will be applied to <em>every</em> such
+entity within the character, even if it didn’t exist when the rule was
+declared.</p>
+<p>All these items have a property <code class="docutils literal notranslate"><span class="pre">rule</span></code> that can be used as a
+decorator. Use this to decorate a function that performs the rule’s
+action by making some change to the world state.  Functions decorated
+this way always get passed the engine as the first argument and the
+character as the second; if the function is more specific than that, a
+particular thing, place, or portal will be the third argument. This
+will get you a rule object of the same name as your action function.</p>
+<p>At first, the rule object will not have any triggers, meaning the action
+will never happen. If you want it to run on <em>every</em> tick, call its
+<code class="docutils literal notranslate"><span class="pre">always</span></code> method and think no more of it. But if you want to be
+more selective, use the rule’s <code class="docutils literal notranslate"><span class="pre">trigger</span></code> decorator on another
+function with the same signature, and have it return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the
+world is in such a state that the rule ought to run. There is nothing
+really stopping you from modifying the rule from inside a trigger, but
+it’s not recommended.</p>
+<p>If you like, you can also add prerequisites. These are like triggers,
+but use the <code class="docutils literal notranslate"><span class="pre">prereq</span></code> decorator, and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em>
+the action should <em>not</em> happen; if a single prerequisite returns
+<code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled.</p>
+</div>
+<div class="section" id="time-control">
+<h2>Time Control<a class="headerlink" href="#time-control" title="Permalink to this headline">¶</a></h2>
+<p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
+<code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
+forward one tick at a time, it should be done with the engine’s
+<code class="docutils literal notranslate"><span class="pre">next_turn</span></code> method, which polls all the game rules before going to
+the next tick; but you can also change the time whenever you want, as
+long as <code class="docutils literal notranslate"><span class="pre">branch</span></code> is a string and <code class="docutils literal notranslate"><span class="pre">turn</span></code> is an integer. The rules
+will never be followed in response to your changing the time “by
+hand”.</p>
+<p>It is possible–indeed, expected–to change the time as part of the
+action of a rule. This is how you would make something happen after a
+delay. Say you want a rule that puts the character <code class="docutils literal notranslate"><span class="pre">alice</span></code> to sleep,
+then wakes her up after eight turns (presumably hour-long).:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
+
+<span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
+<span class="k">def</span> <span class="nf">sleep</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
+    <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">start_turn</span> <span class="o">=</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span>
+    <span class="k">with</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">():</span>
+        <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="mi">8</span>
+        <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">=</span> <span class="n">start_turn</span>
+</pre></div>
+</div>
+<p>Remember to set the time back to when you started when you’re done
+making all your plans.</p>
+</div>
+<div class="section" id="input-prompts">
+<h2>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this headline">¶</a></h2>
+<p>LiSE itself doesn’t know what a player is or how to accept input from them,
+but does use some conventions for communicating with a user interface
+such as ELiDE.</p>
+<p>To ask the player to make a decision, first define a method for them to
+call, then return a menu description like this one.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@engine</span><span class="o">.</span><span class="n">method</span>
+<span class="k">def</span> <span class="nf">wake_alice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
+
+<span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
+<span class="k">def</span> <span class="nf">wakeup</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;Wake up?&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Yes&quot;</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">wake_alice</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;No&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> decorator may be used in a menu.</p>
 </div>
 <div class="section" id="module-LiSE.engine">
 <span id="engine"></span><h2>engine<a class="headerlink" href="#module-LiSE.engine" title="Permalink to this headline">¶</a></h2>
@@ -146,7 +261,7 @@ were 0 or 100, whichever is nearer.</p>
 
 <dl class="class">
 <dt id="LiSE.engine.Engine">
-<em class="property">class </em><code class="descclassname">LiSE.engine.</code><code class="descname">Engine</code><span class="sig-paren">(</span><em>worlddb</em>, <em>*</em>, <em>string='strings.json'</em>, <em>function='function.py'</em>, <em>method='method.py'</em>, <em>trigger='trigger.py'</em>, <em>prereq='prereq.py'</em>, <em>action='action.py'</em>, <em>connect_args={}</em>, <em>alchemy=False</em>, <em>commit_modulus=None</em>, <em>random_seed=None</em>, <em>logfun=None</em>, <em>validate=False</em>, <em>clear_code=False</em>, <em>clear_world=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">LiSE.engine.</code><code class="descname">Engine</code><span class="sig-paren">(</span><em>worlddb</em>, <em>*</em>, <em>string='strings.json'</em>, <em>function='function.py'</em>, <em>method='method.py'</em>, <em>trigger='trigger.py'</em>, <em>prereq='prereq.py'</em>, <em>action='action.py'</em>, <em>connect_args={}</em>, <em>alchemy=False</em>, <em>commit_modulus=None</em>, <em>random_seed=None</em>, <em>logfun=None</em>, <em>validate=False</em>, <em>clear=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine" title="Permalink to this definition">¶</a></dt>
 <dd><p>LiSE, the Life Simulator Engine.</p>
 <p>Each instance of LiSE maintains a connection to a database
 representing the state of a simulated world. Simulation rules
@@ -538,12 +653,6 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 </dd></dl>
 
 <dl class="attribute">
-<dt id="LiSE.engine.Engine.Portal.destination">
-<code class="descname">destination</code><a class="headerlink" href="#LiSE.engine.Engine.Portal.destination" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the Place object at which I end</p>
-</dd></dl>
-
-<dl class="attribute">
 <dt id="LiSE.engine.Engine.Portal.engine">
 <code class="descname">engine</code><a class="headerlink" href="#LiSE.engine.Engine.Portal.engine" title="Permalink to this definition">¶</a></dt>
 <dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
@@ -554,10 +663,13 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 (r.name.first, r.name.last).</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="LiSE.engine.Engine.Portal.origin">
-<code class="descname">origin</code><a class="headerlink" href="#LiSE.engine.Engine.Portal.origin" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the Place object that is where I begin</p>
+<dl class="method">
+<dt id="LiSE.engine.Engine.Portal.historical">
+<code class="descname">historical</code><span class="sig-paren">(</span><em>stat</em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.engine.Engine.Portal.historical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reference to the values that a stat has had in the past.</p>
+<p>You can use the reference in comparisons to make a history
+query, and execute the query by calling it, or passing it to
+<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -580,6 +692,14 @@ it. Else raise KeyError.</p>
 <dd><p>Works like regular update, but only actually updates when the new
 value and the old value differ. This is necessary to prevent
 certain infinite loops.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>d</strong> – a dictionary</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -587,7 +707,17 @@ certain infinite loops.</p>
 <dl class="class">
 <dt id="LiSE.engine.Engine.QueryEngine">
 <em class="property">class </em><code class="descname">QueryEngine</code><span class="sig-paren">(</span><em>dbstring</em>, <em>connect_args</em>, <em>alchemy</em>, <em>pack=None</em>, <em>unpack=None</em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><dl class="exception">
+<dt id="LiSE.engine.Engine.QueryEngine.IntegrityError">
+<em class="property">exception </em><code class="descname">IntegrityError</code><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine.IntegrityError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="LiSE.engine.Engine.QueryEngine.OperationalError">
+<em class="property">exception </em><code class="descname">OperationalError</code><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine.OperationalError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="LiSE.engine.Engine.QueryEngine.exist_edge">
 <code class="descname">exist_edge</code><span class="sig-paren">(</span><em>character</em>, <em>orig</em>, <em>dest</em>, <em>idx</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>extant=None</em><span class="sig-paren">)</span><a class="headerlink" href="#LiSE.engine.Engine.QueryEngine.exist_edge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declare whether or not this edge exists.</p>
@@ -702,6 +832,27 @@ object. Your new character will be a copy of it.</p>
 <p>If we’ve run out of rules, reset the rules iterator.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="LiSE.engine.Engine.alias">
+<code class="descname">alias</code><span class="sig-paren">(</span><em>v</em>, <em>stat='dummy'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.alias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine.alias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a representation of a value suitable for use in historical queries.</p>
+<p>It will behave much as if you assigned the value to some entity and then used its
+<code class="docutils literal notranslate"><span class="pre">historical</span></code> method to get a reference to the set of its past values, which
+happens to contain only the value you’ve provided here, <code class="docutils literal notranslate"><span class="pre">v</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>v</strong> – the value to represent</li>
+<li><strong>stat</strong> – what name to pretend its stat has; usually irrelevant</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="LiSE.engine.Engine.char_cls">
 <code class="descname">char_cls</code><a class="headerlink" href="#LiSE.engine.Engine.char_cls" title="Permalink to this definition">¶</a></dt>
@@ -789,6 +940,20 @@ of the lists ‘triggers’, ‘prereqs’, and ‘actions’</p>
 <p>Defaults to the present turn, and stops at the present tick unless specified.</p>
 <p>See the documentation for <code class="docutils literal notranslate"><span class="pre">get_delta</span></code> for a detailed description of the
 delta format.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>branch</strong> – branch of history, defaulting to the present branch</li>
+<li><strong>turn</strong> – turn within the branch, defaulting to the present turn</li>
+<li><strong>tick</strong> – tick at which to stop the delta, defaulting to the present tick</li>
+<li><strong>start_tick</strong> – tick at which to start the delta, defaulting to 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -831,6 +996,21 @@ delta format.</p>
 <dt id="LiSE.engine.Engine.thing_cls">
 <code class="descname">thing_cls</code><a class="headerlink" href="#LiSE.engine.Engine.thing_cls" title="Permalink to this definition">¶</a></dt>
 <dd><p>alias of <a class="reference internal" href="#LiSE.thing.Thing" title="LiSE.thing.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.thing.Thing</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="LiSE.engine.Engine.turns_when">
+<code class="descname">turns_when</code><span class="sig-paren">(</span><em>qry</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/engine.html#Engine.turns_when"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.engine.Engine.turns_when" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over the turns in this branch when the query held true</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>qry</strong> – a Query, likely constructed by comparing the result of a call to an entity’s</td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">historical</span></code> method with the output of <code class="docutils literal notranslate"><span class="pre">self.alias(..)</span></code> or another <code class="docutils literal notranslate"><span class="pre">historical(..)</span></code></p>
 </dd></dl>
 
 <dl class="method">
@@ -1545,6 +1725,11 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 </dd></dl>
 
 <dl class="class">
+<dt id="LiSE.character.FacadeNode">
+<em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadeNode</code><span class="sig-paren">(</span><em>mapping</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadeNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadeNode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
 <dt id="LiSE.character.FacadePlace">
 <em class="property">class </em><code class="descclassname">LiSE.character.</code><code class="descname">FacadePlace</code><span class="sig-paren">(</span><em>mapping</em>, <em>real_or_name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/character.html#FacadePlace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.character.FacadePlace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lightweight analogue of Place for Facade use.</p>
@@ -1641,7 +1826,12 @@ contain things.</p>
 <dl class="attribute">
 <dt id="LiSE.node.Node.adj">
 <code class="descname">adj</code><a class="headerlink" href="#LiSE.node.Node.adj" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a mapping of portals connecting this node to its neighbors.</p>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1673,7 +1863,12 @@ anymore.</p>
 <dl class="attribute">
 <dt id="LiSE.node.Node.edge">
 <code class="descname">edge</code><a class="headerlink" href="#LiSE.node.Node.edge" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a mapping of portals connecting this node to its neighbors.</p>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1747,6 +1942,28 @@ or the name of one.</p>
 <dd><p>Iterate over <code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code> objects that lead away from me</p>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="LiSE.node.Node.pred">
+<code class="descname">pred</code><a class="headerlink" href="#LiSE.node.Node.pred" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="LiSE.node.Node.predecessor">
+<code class="descname">predecessor</code><a class="headerlink" href="#LiSE.node.Node.predecessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="LiSE.node.Node.predecessors">
 <code class="descname">predecessors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/node.html#Node.predecessors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.node.Node.predecessors" title="Permalink to this definition">¶</a></dt>
@@ -1778,7 +1995,12 @@ or the name of one.</p>
 <dl class="attribute">
 <dt id="LiSE.node.Node.successor">
 <code class="descname">successor</code><a class="headerlink" href="#LiSE.node.Node.successor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a mapping of portals connecting this node to its neighbors.</p>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
 </dd></dl>
 
 <dl class="method">
@@ -1980,12 +2202,6 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 </dd></dl>
 
 <dl class="attribute">
-<dt id="LiSE.portal.Portal.destination">
-<code class="descname">destination</code><a class="headerlink" href="#LiSE.portal.Portal.destination" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the Place object at which I end</p>
-</dd></dl>
-
-<dl class="attribute">
 <dt id="LiSE.portal.Portal.engine">
 <code class="descname">engine</code><a class="headerlink" href="#LiSE.portal.Portal.engine" title="Permalink to this definition">¶</a></dt>
 <dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
@@ -1996,10 +2212,13 @@ After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
 (r.name.first, r.name.last).</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="LiSE.portal.Portal.origin">
-<code class="descname">origin</code><a class="headerlink" href="#LiSE.portal.Portal.origin" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the Place object that is where I begin</p>
+<dl class="method">
+<dt id="LiSE.portal.Portal.historical">
+<code class="descname">historical</code><span class="sig-paren">(</span><em>stat</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/portal.html#Portal.historical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.portal.Portal.historical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reference to the values that a stat has had in the past.</p>
+<p>You can use the reference in comparisons to make a history
+query, and execute the query by calling it, or passing it to
+<code class="docutils literal notranslate"><span class="pre">self.engine.ticks_when</span></code>.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -2022,6 +2241,14 @@ it. Else raise KeyError.</p>
 <dd><p>Works like regular update, but only actually updates when the new
 value and the old value differ. This is necessary to prevent
 certain infinite loops.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>d</strong> – a dictionary</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -2220,7 +2447,17 @@ turn numbers in which the comparison evaluated to <code class="docutils literal 
 <dl class="class">
 <dt id="LiSE.query.QueryEngine">
 <em class="property">class </em><code class="descclassname">LiSE.query.</code><code class="descname">QueryEngine</code><span class="sig-paren">(</span><em>dbstring</em>, <em>connect_args</em>, <em>alchemy</em>, <em>pack=None</em>, <em>unpack=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.QueryEngine" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><dl class="exception">
+<dt id="LiSE.query.QueryEngine.IntegrityError">
+<em class="property">exception </em><code class="descname">IntegrityError</code><a class="headerlink" href="#LiSE.query.QueryEngine.IntegrityError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="LiSE.query.QueryEngine.OperationalError">
+<em class="property">exception </em><code class="descname">OperationalError</code><a class="headerlink" href="#LiSE.query.QueryEngine.OperationalError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="LiSE.query.QueryEngine.exist_edge">
 <code class="descname">exist_edge</code><span class="sig-paren">(</span><em>character</em>, <em>orig</em>, <em>dest</em>, <em>idx</em>, <em>branch</em>, <em>turn</em>, <em>tick</em>, <em>extant=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/LiSE/query.html#QueryEngine.exist_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#LiSE.query.QueryEngine.exist_edge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declare whether or not this edge exists.</p>
@@ -2300,10 +2537,13 @@ extensions for LiSE</p>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../manual.html#programming-interface">Programming Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">LiSE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#world-modelling">World Modelling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#time-control">Time Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-prompts">Input Prompts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.engine">engine</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.character">character</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-LiSE.node">node</a></li>
@@ -2354,7 +2594,7 @@ extensions for LiSE</p>
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
