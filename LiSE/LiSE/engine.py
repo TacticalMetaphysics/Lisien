@@ -943,7 +943,7 @@ class Engine(AbstractEngine, gORM):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
-        :arg worlddb: Either a path to a SQLite database, or a rfc1738 URI for a database to connect to.
+        :arg worlddb: rfc1738 URI for a database to connect to.
         :arg string: path to a JSON file storing strings to be used in the game
         :arg function: either a Python module or a path to a source file; should contain utility functions
         :arg method: either a Python module or a path to a source file; should contain functions taking this engine as first arg
