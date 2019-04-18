@@ -1488,3 +1488,75 @@ class Engine(AbstractEngine, gORM):
         return self._node_contents_cache.retrieve(
                 character, node, *self._btt()
         )
+
+    def apply_choice(self, schema, entity, key, value):
+        assert schema.permit_entity(entity)
+        validator = schema.get_validator(entity)
+        val = validator(self.turn, entity, key, value)
+        if not val:
+            return val
+        if type(val) is tuple:
+            res, msg = val
+            if res:
+                entity[key] = value
+            return msg
+        entity[key] = value
+
+    def apply_choices(self, schema, choices, dry_run=False):
+        """Validate changes a player wants to make, and apply if acceptable.
+
+        Returns a pair of lists containing acceptance and rejection messages,
+        which the UI may present as it sees fit. They are always in a pair with
+        the change request as the zeroth item. The message may be None or a string.
+
+        Validator functions may return only a boolean indicating acceptance.
+        If they instead return a pair, the initial boolean indicates acceptance
+        and the following item is the message.
+
+        This function will not actually result in any simulation happening.
+        It creates a plan. See my ``plan`` context manager for the precise
+        meaning of this.
+
+        """
+        todo = defaultdict(list)
+        acceptances = []
+        rejections = []
+        for track in choices['tracks']:
+            entity = track['entity']
+            permissible = schema.entity_permitted(entity)
+            if not permissible:
+                msg = schema.get_not_permitted_entity_message(entity)
+            validator = schema.get_validator(entity)
+            changeses = track['changes']
+            for turn, changes in enumerate(changeses, start=self.turn):
+                for k, v in changes:
+                    ekv = (entity, k, v)
+                    parcel = (turn, entity, k, v)
+                    if not permissible:
+                        rejections.append((parcel, msg))
+                        continue
+                    val = validator(*parcel)
+                    if not val:
+                        rejections.append((parcel, None))
+                        continue
+                    if type(val) is tuple:
+                        accept, message = val
+                        if accept:
+                            todo[turn].append(ekv)
+                            l = acceptances
+                        else:
+                            l = rejections
+                        l.append((parcel, message))
+                    elif val:
+                        todo[turn].append(ekv)
+                        acceptances.append((parcel, None))
+        if dry_run:
+            return acceptances, rejections
+        now = self.turn
+        with self.plan():
+            for turn in sorted(todo):
+                self.turn = turn
+                for entity, key, value in todo[turn]:
+                    entity[key] = value
+        self.turn = now
+        return acceptances, rejections
