@@ -938,7 +938,7 @@ class Engine(AbstractEngine, gORM):
             random_seed=None,
             logfun=None,
             validate=False,
-            clear=False,
+            clear=False
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
