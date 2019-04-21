@@ -1541,9 +1541,6 @@ class Engine(AbstractEngine, gORM):
                     ekv = (entity, k, v)
                     parcel = (turn, entity, k, v)
                     val = validator(*parcel)
-                    if not val:
-                        rejections.append((parcel, None))
-                        continue
                     if type(val) is tuple:
                         accept, message = val
                         if accept:
@@ -1555,6 +1552,8 @@ class Engine(AbstractEngine, gORM):
                     elif val:
                         todo[turn].append(ekv)
                         acceptances.append((parcel, None))
+                    else:
+                        rejections.append((parcel, None))
         if dry_run or (perfectionist and rejections):
             return acceptances, rejections
         now = self.turn
