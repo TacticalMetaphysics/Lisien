@@ -1536,8 +1536,7 @@ class Engine(AbstractEngine, gORM):
                     )
                 continue
             validator = schema.get_validator(entity)
-            changeses = track['changes']
-            for turn, changes in enumerate(changeses, start=self.turn):
+            for turn, changes in enumerate(track['changes'], start=self.turn):
                 for k, v in changes:
                     ekv = (entity, k, v)
                     parcel = (turn, entity, k, v)
