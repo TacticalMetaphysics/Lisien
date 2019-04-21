@@ -1526,15 +1526,17 @@ class Engine(AbstractEngine, gORM):
             permissible = schema.entity_permitted(entity)
             if not permissible:
                 msg = schema.get_not_permitted_entity_message(entity)
+                for turn, changes in enumerate(track['changes'], start=self.turn):
+                    rejections.extend(
+                        ((turn, entity, k, v), msg) for (k, v) in changes
+                    )
+                continue
             validator = schema.get_validator(entity)
             changeses = track['changes']
             for turn, changes in enumerate(changeses, start=self.turn):
                 for k, v in changes:
                     ekv = (entity, k, v)
                     parcel = (turn, entity, k, v)
-                    if not permissible:
-                        rejections.append((parcel, msg))
-                        continue
                     val = validator(*parcel)
                     if not val:
                         rejections.append((parcel, None))
