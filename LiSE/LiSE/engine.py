@@ -1502,7 +1502,7 @@ class Engine(AbstractEngine, gORM):
             return msg
         entity[key] = value
 
-    def apply_choices(self, schema, choices, dry_run=False):
+    def apply_choices(self, schema, choices, dry_run=False, perfectionist=False):
         """Validate changes a player wants to make, and apply if acceptable.
 
         Returns a pair of lists containing acceptance and rejection messages,
@@ -1516,6 +1516,10 @@ class Engine(AbstractEngine, gORM):
         This function will not actually result in any simulation happening.
         It creates a plan. See my ``plan`` context manager for the precise
         meaning of this.
+
+        With ``dry_run=True`` just return the acceptances and rejections without
+        really planning anything. With ``perfectionist=True`` apply changes if
+        and only if all of them are accepted.
 
         """
         todo = defaultdict(list)
@@ -1552,7 +1556,7 @@ class Engine(AbstractEngine, gORM):
                     elif val:
                         todo[turn].append(ekv)
                         acceptances.append((parcel, None))
-        if dry_run:
+        if dry_run or (perfectionist and rejections):
             return acceptances, rejections
         now = self.turn
         with self.plan():
