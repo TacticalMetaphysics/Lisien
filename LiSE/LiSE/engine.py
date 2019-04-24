@@ -9,6 +9,7 @@ from functools import partial
 from collections import defaultdict
 from operator import attrgetter
 from types import FunctionType, MethodType
+from abc import ABC, abstractmethod
 
 import msgpack
 from blinker import Signal
@@ -480,6 +481,30 @@ class AbstractEngine(object):
     weibullvariate = getnoplan('_rando.weibullvariate')
 
 
+class AbstractSchema(ABC):
+    def __init__(self, engine):
+        self.engine = engine
+
+    @abstractmethod
+    def entity_permitted(self, entity):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_validator(self, entity):
+        raise NotImplementedError
+
+    def get_not_permitted_entity_message(self, entity):
+        return
+
+
+class NullSchema(AbstractSchema):
+    def entity_permitted(self, entity):
+        return True
+
+    def get_validator(self, entity):
+        return lambda k, v: True
+
+
 class Engine(AbstractEngine, gORM):
     """LiSE, the Life Simulator Engine.
 
@@ -678,6 +703,7 @@ class Engine(AbstractEngine, gORM):
             trigger='trigger.py',
             prereq='prereq.py',
             action='action.py',
+            schema=NullSchema,
             connect_args={},
             alchemy=False,
             commit_modulus=None,
@@ -745,6 +771,7 @@ class Engine(AbstractEngine, gORM):
                 os.remove(action)
         else:
             self.action = action
+        self.schema = schema
         super().__init__(
             worlddb,
             connect_args=connect_args,
@@ -1490,7 +1517,7 @@ class Engine(AbstractEngine, gORM):
         )
 
     def apply_choice(self, schema, entity, key, value):
-        assert schema.permit_entity(entity)
+        assert schema.entity_permitted(entity)
         validator = schema.get_validator(entity)
         val = validator(self.turn, entity, key, value)
         if not val:
