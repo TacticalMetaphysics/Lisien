@@ -1516,7 +1516,8 @@ class Engine(AbstractEngine, gORM):
                 character, node, *self._btt()
         )
 
-    def apply_choice(self, schema, entity, key, value):
+    def apply_choice(self, entity, key, value):
+        schema = self.schema
         assert schema.entity_permitted(entity)
         validator = schema.get_validator(entity)
         val = validator(self.turn, entity, key, value)
@@ -1529,7 +1530,7 @@ class Engine(AbstractEngine, gORM):
             return msg
         entity[key] = value
 
-    def apply_choices(self, schema, choices, dry_run=False, perfectionist=False):
+    def apply_choices(self, choices, dry_run=False, perfectionist=False):
         """Validate changes a player wants to make, and apply if acceptable.
 
         Returns a pair of lists containing acceptance and rejection messages,
@@ -1549,6 +1550,7 @@ class Engine(AbstractEngine, gORM):
         and only if all of them are accepted.
 
         """
+        schema = self.schema
         todo = defaultdict(list)
         acceptances = []
         rejections = []
