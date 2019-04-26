@@ -28,7 +28,7 @@ class CalendarWidget(Widget):
         self.parent.entity[self.key] = self.value
 
 
-class CalendarDropMenu(CalendarWidget, Button):
+class CalendarDropMenuButton(CalendarWidget, Button):
     options = ListProperty()
     modalview = ObjectProperty()
     columns = BoundedNumericProperty(min=1)
