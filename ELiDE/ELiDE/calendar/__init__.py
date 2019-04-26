@@ -1,15 +1,18 @@
 from kivy.properties import(
     ObjectProperty,
     ListProperty,
-    BooleanProperty
+    BooleanProperty,
+    BoundedNumericProperty
 )
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
+from kivy.uix.modalview import ModalView
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
+from kivy.clock import Clock
 
 
 class CalendarWidget(Widget):
@@ -17,6 +20,46 @@ class CalendarWidget(Widget):
     """The key to set in the entity"""
     value = ObjectProperty()
     """The value you want to set the key to"""
+
+    def on_value(self, *args):
+        # do I want to do some validation at this point?
+        # Maybe I should validate on the proxy objects and catch that in Calendar,
+        # display an error message?
+        self.parent.entity[self.key] = self.value
+
+
+class CalendarDropMenu(CalendarWidget, Button):
+    options = ListProperty()
+    modalview = ObjectProperty()
+    columns = BoundedNumericProperty(min=1)
+
+    def on_columns(self, *args):
+        if not self.modalview:
+            self.modalview = ModalView()
+        if self.modalview.children:
+            container = self.modalview.children[0]
+        else:
+            container = GridLayout(cols=self.columns)
+            self.modalview.add_widget(container)
+        container.size = container.minimum_size
+
+
+    def on_options(self, *args):
+        if not self.modalview:
+            Clock.schedule_once(self.on_options, 0)
+            return
+        if not self.modalview.children:
+            container = GridLayout(cols=self.columns)
+            self.modalview.add_widget(container)
+        else:
+            container = self.modalview.children[0]
+        for option in self.options:
+            if type(option) is tuple:
+                text, value = option
+                self.modalview.add_widget(Button(text=text, on_release=self.setter('value')))
+            else:
+                self.modalview.add_widget(Button(text=str(option), on_release=self.setter('value')))
+        container.size = container.minimum_size
 
 
 class Calendar(GridLayout):
