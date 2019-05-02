@@ -43,7 +43,6 @@ class CalendarDropMenuButton(CalendarWidget, Button):
             self.modalview.add_widget(container)
         container.size = container.minimum_size
 
-
     def on_options(self, *args):
         if not self.modalview:
             Clock.schedule_once(self.on_options, 0)
