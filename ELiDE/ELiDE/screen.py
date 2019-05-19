@@ -69,6 +69,7 @@ class StatListPanel(BoxLayout):
     engine = ObjectProperty()
     proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
+    toggle_calendar = ObjectProperty()
 
     def on_proxy(self, *args):
         if hasattr(self.proxy, 'name'):
@@ -363,7 +364,7 @@ Builder.load_string(
         text: root.selection_name
     StatListView:
         id: statlist
-        size_hint_y: 0.9
+        size_hint_y: 0.8
         engine: root.engine
         proxy: root.proxy
     Button:
@@ -371,6 +372,11 @@ Builder.load_string(
         size_hint_y: 0.1
         text: root.button_text
         on_release: root.toggle_stat_cfg()
+    Button:
+        id: calbut
+        size_hint_y: 0.1
+        text: "calendar"
+        on_release: root.toggle_calendar()
 <SimulateButton>:
     graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
     graphics_bot: self.y + self.font_size + 3
@@ -485,6 +491,7 @@ Builder.load_string(
         id: statpanel
         engine: app.engine
         toggle_stat_cfg: app.statcfg.toggle
+        toggle_calendar: app.calendar.toggle
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
     TimePanel:

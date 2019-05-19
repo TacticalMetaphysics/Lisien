@@ -12,6 +12,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
+from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 
 
@@ -31,7 +32,7 @@ class CalendarWidget(Widget):
 class CalendarDropMenuButton(CalendarWidget, Button):
     options = ListProperty()
     modalview = ObjectProperty()
-    columns = BoundedNumericProperty(min=1)
+    columns = BoundedNumericProperty(1, min=1)
 
     def on_columns(self, *args):
         if not self.modalview:
@@ -181,3 +182,55 @@ class CalendarToggleButton(RecycleDataViewBehavior, Button):
 
 class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
     pass
+
+
+class CalendarScreen(Screen):
+    calendar_cls = ObjectProperty(Calendar)
+    calendar = ObjectProperty()
+    entity = ObjectProperty()
+    toggle = ObjectProperty()
+    content = ListProperty()
+    """For each turn, a list of ``CalendarWidget``s to put in the row for that turn, or ``None``
+    
+    Everything else will get filled with the result of my ``make_fill_wid`` method.
+    
+    Instead of a list alone, each item may be a pair of an integer and then a list, in which case
+    the integer is the turn number. Turns in the past will be disabled. The items will be shown
+    in whatever order you give them.
+    
+    """
+    omit_empty = BooleanProperty(False)
+    """Whether to skip rows in which you have nothing to do"""
+    show_turn_labels = BooleanProperty(True)
+    """Whether to put some labels on the left showing what turn a row refers to"""
+    header = ListProperty()
+    """Stuff to show at the top of the calendar. Strings or widgets, as many as you've got columns
+    
+    Make sure to account for the turn labels' column if it's present.
+    
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._trigger_reinit = Clock.create_trigger(self._reinit)
+        self.bind(calendar_cls=self._trigger_reinit)
+        self._trigger_reinit()
+
+    def _reinit(self, *args):
+        self.clear_widgets()
+        cal = self.calendar = self.calendar_cls(
+            entity=self.entity,
+            content=self.content,
+            omit_empty=self.omit_empty,
+            show_turn_labels=self.show_turn_labels,
+            header=self.header
+        )
+        self.bind(
+            entity=cal.setter('entity'),
+            content=cal.setter('content'),
+            omit_empty=cal.setter('omit_empty'),
+            show_turn_labels=cal.setter('show_turn_labels'),
+            header=cal.setter('header')
+        )
+        self.add_widget(cal)
+        self.add_widget(Button(text='Close', on_release=self.toggle))

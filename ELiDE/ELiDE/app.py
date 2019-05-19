@@ -305,6 +305,14 @@ class ELiDEApp(App):
             selected_proxy=self.statcfg.setter('proxy')
         )
 
+        self.calendar = ELiDE.calendar.CalendarScreen(
+            toggle=toggler('calendar'),
+            name='calendar'
+        )
+        self.bind(
+            selected_proxy=self.calendar.setter('entity')
+        )
+
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
@@ -331,7 +339,8 @@ class ELiDEApp(App):
                 self.charrules,
                 self.chars,
                 self.strings,
-                self.funcs
+                self.funcs,
+                self.calendar
         ):
             self.manager.add_widget(wid)
 
