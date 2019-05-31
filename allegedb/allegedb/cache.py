@@ -16,6 +16,7 @@
 """Classes for in-memory storage and retrieval of historical graph data.
 """
 from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
+from .graph import unset
 from collections import OrderedDict, defaultdict, deque
 from blinker import Signal
 
@@ -403,7 +404,7 @@ class Cache(Signal):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         kc = self._get_keycache(parent + (entity,), branch, turn, tick, forward=forward)
-        if value is None:
+        if value is unset:
             kc = kc.difference((key,))
         else:
             kc = kc.union((key,))
@@ -424,7 +425,7 @@ class Cache(Signal):
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
-                        if turnd[trn][tck] is None:
+                        if turnd[trn][tck] is unset:
                             deleted.add(key)
                         else:
                             added.add(key)
@@ -434,7 +435,7 @@ class Cache(Signal):
                 if not turnd.rev_gettable(trn):
                     break
                 tickd = turnd[trn]
-                if tickd[tickd.end] is None:
+                if tickd[tickd.end] is unset:
                     deleted.add(key)
                 else:
                     added.add(key)
@@ -773,7 +774,7 @@ class Cache(Signal):
 
         """
         ret = self._base_retrieve(args)
-        if ret is None:
+        if ret is unset:
             raise HistoryError("Set, then deleted", deleted=True)
         elif ret is KeyError:
             raise ret
@@ -818,7 +819,7 @@ class Cache(Signal):
 
         """
         try:
-            return self.retrieve(*args) is not None
+            return self.retrieve(*args) is not unset
         except KeyError:
             return False
     contains_entity = contains_key = contains_entity_key \
@@ -830,13 +831,13 @@ class NodesCache(Cache):
 
     def _store(self, graph, node, branch, turn, tick, ex, *, planning, loading=False, contra=True):
         if not ex:
-            ex = None
+            ex = unset
         return super()._store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
 
     def _update_keycache(self, *args, forward):
         graph, node, branch, turn, tick, ex = args
         if not ex:
-            ex = None
+            ex = unset
         super()._update_keycache(graph, node, branch, turn, tick, ex, forward=forward)
 
     def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
@@ -977,7 +978,7 @@ class EdgesCache(Cache):
 
     def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
         if not ex:
-            ex = None
+            ex = unset
         if planning is None:
             planning = self.db.planning
         Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)

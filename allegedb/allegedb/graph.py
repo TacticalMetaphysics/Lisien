@@ -23,6 +23,9 @@ class EntityCollisionError(ValueError):
     """For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""
 
 
+unset = object()  # Value to indicate a key doesn't really have a value, not even None
+
+
 def getatt(attribute_name):
     """An easy way to make an alias"""
     from operator import attrgetter
@@ -124,10 +127,10 @@ class AbstractEntityMapping(AllegedMapping):
 
     def _del_db(self, key, branch, turn, tick):
         """Delete a key from the database (not the cache)."""
-        self._set_db(key, branch, turn, tick, None)
+        self._set_db(key, branch, turn, tick, unset)
 
     def _del_cache(self, key, branch, turn, tick):
-        self._set_cache(key, branch, turn, tick, None)
+        self._set_cache(key, branch, turn, tick, unset)
 
     def __getitem__(self, key):
         """If key is 'graph', return myself as a dict, else get the present
@@ -153,10 +156,6 @@ class AbstractEntityMapping(AllegedMapping):
 
     def __setitem__(self, key, value):
         """Set key=value at the present branch and revision"""
-        if value is None:
-            raise ValueError(
-                "allegedb uses None to indicate that a key's been deleted"
-            )
         branch, turn, tick = self.db._nbtt()
         try:
             if self._get_cache(key, branch, turn, tick) != value:
@@ -706,7 +705,7 @@ class AbstractSuccessors(GraphEdgeMapping):
             dest,
             0,
             branch, turn, tick,
-            None
+            unset
         )
         self.send(self, orig=orig, dest=dest, idx=0, exists=False)
 
@@ -1084,7 +1083,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
         succs = self._getsucc(orig)
         succs.clear()
         del self._cache[orig]
-        self.send(self, key=orig, val=None)
+        self.send(self, key=orig, val=unset)
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""

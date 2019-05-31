@@ -5,7 +5,7 @@ from copy import deepcopy
 import allegedb
 
 
-testkvs = [0, 1, 10, 10**10, 10**10**4, 'spam', 'eggs', 'ham',  '💧', '🔑', '𐦖',('spam', 'eggs', 'ham')]
+testkvs = [0, 1, 10, 10**10, 10**10**4, 'spam', 'eggs', 'ham',  '💧', '🔑', '𐦖',('spam', 'eggs', 'ham'), None]
 testvs = [['spam', 'eggs', 'ham'], {'foo': 'bar', 0: 1, '💧': '🔑'}]
 testdata = []
 for k in testkvs:
