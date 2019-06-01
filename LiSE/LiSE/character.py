@@ -49,7 +49,8 @@ from allegedb.graph import (
     DiGraph,
     GraphNodeMapping,
     DiGraphSuccessorsMapping,
-    DiGraphPredecessorsMapping
+    DiGraphPredecessorsMapping,
+    unset
 )
 from allegedb.wrap import MutableMappingUnwrapper
 
@@ -933,7 +934,7 @@ class CharacterSenseMapping(MutableMappingUnwrapper, Signal):
             tick,
             False
         )
-        self.send(self, key=k, val=None)
+        self.send(self, key=k, val=unset)
 
     def __call__(self, fun, name=None):
         """Decorate the function so it's mine now."""
@@ -955,7 +956,7 @@ class FacadeEntity(MutableMapping, Signal):
 
     def __contains__(self, item):
         patch = self._patch
-        return item in self._real or (item in patch and patch[item] is not None)
+        return item in self._real or (item in patch and patch[item] is not unset)
 
     def __iter__(self):
         seen = set()
@@ -965,7 +966,7 @@ class FacadeEntity(MutableMapping, Signal):
                 seen.add(k)
         for k in self._patch:
             if (
-                    self._patch[k] is not None and
+                    self._patch[k] is not unset and
                     k not in seen
             ):
                 yield k
@@ -978,7 +979,7 @@ class FacadeEntity(MutableMapping, Signal):
 
     def __getitem__(self, k):
         if k in self._patch:
-            if self._patch[k] is None:
+            if self._patch[k] is unset:
                 raise KeyError("{} has been masked.".format(k))
             return self._patch[k]
         ret = self._real[k]
@@ -996,8 +997,8 @@ class FacadeEntity(MutableMapping, Signal):
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
-        self._patch[k] = None
-        self.send(self, key=k, val=None)
+        self._patch[k] = unset
+        self.send(self, key=k, val=unset)
 
 
 class FacadeNode(FacadeEntity):
@@ -1107,13 +1108,13 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
 
     def __contains__(self, k):
         if k in self._patch:
-            return self._patch[k] is not None
+            return self._patch[k] is not unset
         return k in self._get_inner_map()
 
     def __iter__(self):
         seen = set()
         for k in self._patch:
-            if k not in seen and self._patch[k] is not None:
+            if k not in seen and self._patch[k] is not unset:
                 yield k
             seen.add(k)
         for k in self._get_inner_map():
@@ -1132,7 +1133,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
         if k not in self._patch:
             self._patch[k] = self._make(k, self._get_inner_map()[k])
         ret = self._patch[k]
-        if ret is None:
+        if ret is unset:
             raise KeyError
         if type(ret) is not self.facadecls:
             ret = self._patch[k] = self._make(k, ret)
@@ -1145,8 +1146,8 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
-        self._patch[k] = None
-        self.send(self, key=k, val=None)
+        self._patch[k] = unset
+        self.send(self, key=k, val=unset)
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
@@ -1192,7 +1193,7 @@ class FacadePortalMapping(FacadeEntityMapping):
         if node not in self._patch:
             self._patch[node] = self.cls(self.facade, node)
         ret = self._patch[node]
-        if ret is None:
+        if ret is unset:
             raise KeyError("masked")
         if type(ret) is not self.cls:
             nuret = self.cls(self.facade, node)
@@ -1209,7 +1210,7 @@ class FacadePortalMapping(FacadeEntityMapping):
         self._patch[node] = v
 
     def __delitem__(self, node):
-        self._patch[node] = None
+        self._patch[node] = unset
 
 
 class Facade(AbstractCharacter, nx.DiGraph):
@@ -1343,7 +1344,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
                         yield k
                         seen.add(k)
             for (k, v) in self._patch.items():
-                if k not in seen and v is not None:
+                if k not in seen and v is not unset:
                     yield k
 
         def __len__(self):
@@ -1355,7 +1356,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
         def __contains__(self, k):
             if hasattr(self.facade.character, 'graph') and k in self.facade.character.graph:
                 return True
-            return k in self._patch and self._patch[k] is not None
+            return k in self._patch and self._patch[k] is not unset
 
         def __getitem__(self, k):
             if k not in self._patch and hasattr(self.facade.character, 'graph'):
@@ -1363,7 +1364,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
                 if not hasattr(ret, 'unwrap'):
                     return ret
                 self._patch[k] = ret.unwrap()
-            if self._patch[k] is None:
+            if self._patch[k] is unset:
                 return KeyError
             return self._patch[k]
 
@@ -1372,8 +1373,8 @@ class Facade(AbstractCharacter, nx.DiGraph):
             self.send(self, key=k, val=v)
 
         def __delitem__(self, k):
-            self._patch[k] = None
-            self.send(self, key=k, val=None)
+            self._patch[k] = unset
+            self.send(self, key=k, val=unset)
 
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
@@ -1451,7 +1452,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             branch, turn, tick = self.engine._btt()
             for key in cache.iter_keys(char, branch, turn, tick):
                 try:
-                    if cache.retrieve(char, key, branch, turn, tick) is not None:
+                    if cache.retrieve(char, key, branch, turn, tick) is not unset:
                         yield key
                 except KeyError:
                     continue
@@ -1711,7 +1712,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         def __delitem__(self, orig):
             super().__delitem__(orig)
-            self.send(self, key=orig, val=None)
+            self.send(self, key=orig, val=unset)
 
         class Successors(DiGraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""

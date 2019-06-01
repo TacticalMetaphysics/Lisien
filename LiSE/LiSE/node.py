@@ -24,6 +24,7 @@ from collections import Mapping, ValuesView
 from networkx import shortest_path, shortest_path_length
 
 import allegedb.graph
+unset = allegedb.graph.unset
 from allegedb.cache import HistoryError
 
 from .util import getatt
@@ -483,7 +484,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
             self.character.name, self.name,
             branch, turn, tick, False
         )
-        self.character.node.send(self.character.node, key=self.name, val=None)
+        self.character.node.send(self.character.node, key=self.name, val=unset)
 
     def one_way_portal(self, other, **stats):
         """Connect a portal from here to another node, and return it."""

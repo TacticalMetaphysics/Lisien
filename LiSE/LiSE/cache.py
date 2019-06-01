@@ -20,6 +20,7 @@ from allegedb.cache import (
     TurnDict,
     HistoryError
 )
+from allegedb.graph import unset
 from .util import singleton_get, sort_set
 from collections import OrderedDict
 
@@ -88,7 +89,7 @@ class AvatarnessCache(Cache):
         self.users = StructuredDefaultDict(1, TurnDict)
 
     def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False, contra=True):
-        is_avatar = True if is_avatar else None
+        is_avatar = True if is_avatar else unset
         super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading, contra=contra)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:

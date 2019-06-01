@@ -1441,7 +1441,10 @@ class Engine(AbstractEngine, gORM):
         del self.character[name]
 
     def _is_thing(self, character, node):
-        return self._things_cache.contains_entity(character, node, *self._btt())
+        cache = self._things_cache
+        branch, turn, tick = self._btt()
+        return cache.contains_entity(character, node, branch, turn, tick) \
+            and cache.retrieve(character, node, branch, turn, tick) is not None
 
     def _set_thing_loc(
             self, character, node, loc
