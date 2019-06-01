@@ -45,6 +45,10 @@ class CharacterTest(allegedb.tests.test_all.AllegedTest):
         os.rmdir(self.tempdir)
 
 
+class CharacterStorageTest(CharacterTest, allegedb.tests.test_all.StorageTest):
+    pass
+
+
 class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):
     pass
 

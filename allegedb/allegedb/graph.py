@@ -759,7 +759,7 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
         """Wipe out edges emanating from orig"""
         self[key].clear()
         del self._cache[key]
-        self.send(self, key=key, val=None)
+        self.send(self, key=key, val=unset)
 
     def __iter__(self):
         return iter(self.graph.node)

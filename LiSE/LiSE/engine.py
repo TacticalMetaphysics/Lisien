@@ -14,6 +14,7 @@ import msgpack
 from blinker import Signal
 from allegedb import ORM as gORM
 from allegedb.cache import HistoryError
+from allegedb.graph import unset
 from .util import reify, sort_set
 
 from . import exc
@@ -136,6 +137,7 @@ MSGPACK_TUPLE = 0x00
 MSGPACK_FROZENSET = 0x01
 MSGPACK_SET = 0x02
 MSGPACK_EXCEPTION = 0x03
+MSGPACK_CONSTANT = 0x04
 MSGPACK_CHARACTER = 0x7f
 MSGPACK_PLACE = 0x7e
 MSGPACK_THING = 0x7d
@@ -204,6 +206,10 @@ class AbstractEngine(object):
         return msgpack.ExtType(MSGPACK_EXCEPTION, msgpack.packb(
             [exc.__class__.__name__] + list(exc.args), default=self._pack_handler, strict_types=True, use_bin_type=True
         ))
+
+    def _pack_constant(self, c):
+        # there is currently only one constant we need to pack, so it gets no data
+        return msgpack.ExtType(MSGPACK_CONSTANT, msgpack.packb(None))
 
     def _pack_func(self, func):
         return msgpack.ExtType({
@@ -345,6 +351,10 @@ class AbstractEngine(object):
             return Exception(*data)
         return excs[data[0]](*data[1:])
 
+    def _unpack_constant(self, ext):
+        # only one at the moment. Might do others
+        return unset
+
     @reify
     def _unpack_handlers(self):
         return {
@@ -361,7 +371,8 @@ class AbstractEngine(object):
             MSGPACK_ACTION: self._unpack_action,
             MSGPACK_FUNCTION: self._unpack_function,
             MSGPACK_METHOD: self._unpack_method,
-            MSGPACK_EXCEPTION: self._unpack_exception
+            MSGPACK_EXCEPTION: self._unpack_exception,
+            MSGPACK_CONSTANT: self._unpack_constant
         }
 
     def _unpack_handler(self, code, data):
@@ -386,7 +397,11 @@ class AbstractEngine(object):
             Exception: self._pack_exception
         }
 
+    _constants = (unset,)
+
     def _pack_handler(self, obj):
+        if obj in self._constants:
+            return self._pack_constant(obj)
         handlers = self._pack_handlers
         if isinstance(obj, Exception):
             typ = Exception
