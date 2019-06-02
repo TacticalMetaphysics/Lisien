@@ -350,14 +350,11 @@ class BaseStatListView(RecycleView):
         if self.engine is None or self.proxy is None:
             self._trigger_set_value(k, v)
             return
-        if v is None:
-            del self.proxy[k]
-        else:
-            try:
-                vv = literal_eval(v)
-            except (TypeError, ValueError):
-                vv = v
-            self.proxy[k] = vv
+        try:
+            vv = literal_eval(v)
+        except (TypeError, ValueError):
+            vv = v
+        self.proxy[k] = vv
 
     def _trigger_set_value(self, k, v, *args):
         todo = partial(self.set_value, k, v)
