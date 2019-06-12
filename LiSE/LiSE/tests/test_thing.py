@@ -44,3 +44,22 @@ def test_travel(engy):
     engy.turn = 14
     assert thing1.location == phys.place[7, 7]
     assert thing2.location == phys.place[0, 7]
+
+
+def test_attrs(something):
+    elsewhere = something.character.new_place('somewhere else')
+    elsewhere.two_way('somewhere')
+    assert not hasattr(something, 'next_location')
+    something.engine.turn = 1
+    something.location = elsewhere
+    something.engine.turn = 0
+    assert something.next_location == elsewhere
+    something.engine.branch = 'not elsewhere'
+    del something.next_location
+    assert not hasattr(something, 'next_location')
+    assert something.location == something.character.place['somewhere']
+    del something.location  # should probably cause the Thing specific attributes and methods to stop working
+    assert 'something' not in something.character.thing
+    assert 'something' in something.character.place
+    with pytest.raises(TypeError):
+        something.travel_to(elsewhere)
