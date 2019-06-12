@@ -34,6 +34,10 @@ def roerror(*args, **kwargs):
     raise ValueError("Read-only")
 
 
+class WrongNodeType(TypeError):
+    """What you thought was a Thing was really a Place"""
+
+
 class Thing(Node):
 
     """The sort of item that has a particular location at any given time.
@@ -158,7 +162,16 @@ class Thing(Node):
     @property
     def location(self):
         """The ``Thing`` or ``Place`` I'm in."""
-        return self.engine._get_node(self.character, self['location'])
+        try:
+            return self.engine._get_node(self.character, self['location'])
+        except KeyError:
+            raise AttributeError("This isn't really a Thing, give it a location to make it one")
+
+    def _thingness_check(self):
+        try:
+            return self.engine._get_node(self.character, self['location'])
+        except KeyError:
+            raise WrongNodeType()
 
     @location.setter
     def location(self, v):
@@ -168,13 +181,17 @@ class Thing(Node):
 
     @property
     def next_location(self):
+        self._thingness_check()
         branch = self.engine.branch
         turn = self.engine._things_cache.turn_after(self.character.name, self.name, *self.engine.time)
         if turn is None:
-            return None
-        return self.engine._get_node(self.character, self.engine._things_cache.retrieve(
-            self.character.name, self.name, branch, turn, self.engine._turn_end_plan[branch, turn]
-        ))
+            raise AttributeError("At present, I have no next_location")
+        try:
+            return self.engine._get_node(self.character, self.engine._things_cache.retrieve(
+                self.character.name, self.name, branch, turn, self.engine._turn_end_plan[branch, turn]
+            ))
+        except KeyError:
+            raise AttributeError("At present, I have no next_location")
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
@@ -186,6 +203,7 @@ class Thing(Node):
         Return the number of turns the travel will take.
 
         """
+        self._thingness_check()
         if hasattr(place, 'name'):
             placen = place.name
         else:
@@ -210,6 +228,7 @@ class Thing(Node):
         scheduled to be somewhere else.
 
         """
+        self._thingness_check()
         if len(path) < 2:
             raise ValueError("Paths need at least 2 nodes")
         eng = self.character.engine
@@ -270,6 +289,7 @@ class Thing(Node):
         Return value is the number of turns the travel will take.
 
         """
+        self._thingness_check()
         destn = dest.name if hasattr(dest, 'name') else dest
         if destn == self.location.name:
             raise ValueError("I'm already at {}".format(destn))
