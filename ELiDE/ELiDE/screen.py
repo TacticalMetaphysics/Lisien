@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """The big layout that you view all of ELiDE through.
 
@@ -8,9 +21,12 @@ grid, the time control panel, and the menu.
 
 """
 from functools import partial
-from importlib import import_module
+from ast import literal_eval
+
 from kivy.factory import Factory
 from kivy.lang import Builder
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
@@ -27,7 +43,6 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
-from .dialog import Dialog
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -42,13 +57,13 @@ class StatListPanel(BoxLayout):
     the selected entity, defaulting to those of the character being
     viewed.
 
-    Has a 'cfg' button on the bottom to open the StatWindow in which
+    Has a button on the bottom to open the StatWindow in which
     to add and delete stats, or to change the way they are displayed
     in the StatListPanel.
 
     """
     selection_name = StringProperty()
-    button_text = StringProperty('cfg')
+    button_text = StringProperty('Configure stats')
     cfgstatbut = ObjectProperty()
     statlist = ObjectProperty()
     engine = ObjectProperty()
@@ -64,27 +79,49 @@ class StatListPanel(BoxLayout):
             del self.proxy[k]
         else:
             try:
-                vv = self.engine.unpack(v)
+                vv = literal_eval(v)
             except (TypeError, ValueError):
                 vv = v
             self.proxy[k] = vv
+
+
+class SimulateButton(ToggleButton):
+    play_arrow_left = NumericProperty()
+    play_arrow_right = NumericProperty()
+    play_arrow_points = ListProperty([0] * 6)
+    graphics_top = NumericProperty()
+    graphics_bot = NumericProperty()
+    graphics_center_y = NumericProperty()
+
+
+class OneTurnButton(Button):
+    graphics_top = NumericProperty()
+    graphics_bot = NumericProperty()
+    graphics_center_y = NumericProperty()
+    step_arrow_left = NumericProperty()
+    step_center_x = NumericProperty()
+    step_bar_right = NumericProperty()
+    step_arrow_points = ListProperty([0] * 6)
+    step_rect_points = ListProperty([0] * 8)
 
 
 class TimePanel(BoxLayout):
     """A panel that lets you to start and stop the game, or browse through
     its history.
 
-    There's a "play" button, which is toggleable. When toggled on, the
+    There's a "simulate" button, which is toggleable. When toggled on, the
     simulation will continue to run until it's toggled off
-    again. Below this is a "Next turn" button, which will simulate
+    again. Next to this is a "1 turn" button, which will simulate
     exactly one turn and stop. And there are two text fields in which
     you can manually enter a Branch and Tick to go to. Moving through
     time this way doesn't simulate anything--you'll only see what
-    happened as a result of "play," "next turn," or some other input
-    that's been made to call the ``advance`` method of the LiSE core.
+    happened as a result of "simulate," "1 turn," or some other way
+    the LiSE rules engine has been made to run.
 
     """
     screen = ObjectProperty()
+    buttons_font_size = NumericProperty(18)
+    disable_one_turn = BooleanProperty()
 
     def set_branch(self, *args):
         branch = self.ids.branchfield.text
@@ -155,6 +192,7 @@ class MainScreen(Screen):
     _touch = ObjectProperty(None, allownone=True)
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
+    tmp_block = BooleanProperty(False)
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -282,11 +320,19 @@ class MainScreen(Screen):
             self.dialoglayout.idx = 0
         self._update_from_delta(command, branch, turn, tick, deltas)
         self.dialoglayout.advance_dialog()
+        self.app.bind(
+            branch=self.app._push_time,
+            turn=self.app._push_time,
+            tick=self.app._push_time
+        )
+        self.tmp_block = False
 
     def next_turn(self, *args):
         """Advance time by one turn, if it's not blocked.
 
         Block time by setting ``engine.universal['block'] = True``"""
+        if self.tmp_block:
+            return
         eng = self.app.engine
         dial = self.dialoglayout
         if eng.universal.get('block'):
@@ -295,6 +341,12 @@ class MainScreen(Screen):
         if dial.idx < len(dial.todo):
             Logger.info("MainScreen: not advancing time while there's a dialog")
             return
+        self.tmp_block = True
+        self.app.unbind(
+            branch=self.app._push_time,
+            turn=self.app._push_time,
+            tick=self.app._push_time
+        )
         eng.next_turn(cb=self._update_from_next_turn)
 
 
@@ -311,50 +363,100 @@ Builder.load_string(
         text: root.selection_name
     StatListView:
         id: statlist
-        size_hint_y: 0.95
+        size_hint_y: 0.9
         engine: root.engine
         proxy: root.proxy
     Button:
         id: cfgstatbut
-        size_hint_y: 0.05
+        size_hint_y: 0.1
         text: root.button_text
-        on_press: root.toggle_stat_cfg()
+        on_release: root.toggle_stat_cfg()
+<SimulateButton>:
+    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
+    graphics_bot: self.y + self.font_size + 3
+    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+    play_arrow_left: self.center_x - self.width / 6
+    play_arrow_right: self.center_x + self.width / 6
+    play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot
+    canvas:
+        Triangle:
+            points: root.play_arrow_points
+        SmoothLine:
+            points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
+    Label:
+        id: playlabel
+        font_size: root.font_size
+        center_x: root.center_x
+        y: root.y
+        size: self.texture_size
+        text: 'Simulate'
+<OneTurnButton>:
+    graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
+    graphics_bot: self.y + self.font_size + 3
+    graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
+    step_arrow_left: self.center_x - (self.width / 6)
+    step_center_x: self.center_x + self.width / 6
+    step_bar_right: self.center_x + self.width / 4
+    step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot
+    step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot
+    canvas:
+        Triangle:
+            points: root.step_arrow_points
+        Quad:
+            points: root.step_rect_points 
+        SmoothLine:
+            points: root.step_arrow_points
+        SmoothLine:
+            points: root.step_rect_points 
+    Label:
+        font_size: root.font_size
+        center_x: root.center_x
+        y: root.y
+        size: self.texture_size
+        text: '1 turn'
 <TimePanel>:
+    orientation: 'vertical'
     playbut: playbut
     BoxLayout:
-        orientation: 'vertical'
-        ToggleButton:
+        size_hint_y: 0.4
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                size_hint_y: 0.4
+                text: 'Branch'
+            MenuTextInput:
+                id: branchfield
+                setter: root.set_branch
+                hint_text: root.screen.app.branch if root.screen else ''
+        BoxLayout:
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: 0.4
+                    text: 'Turn'
+                MenuIntInput:
+                    id: turnfield
+                    setter: root.set_turn
+                    hint_text: str(root.screen.app.turn) if root.screen else ''
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: 0.4
+                    text: 'Tick'
+                MenuIntInput:
+                    id: tickfield
+                    setter: root.set_tick
+                    hint_text: str(root.screen.app.tick) if root.screen else ''
+    BoxLayout:
+        size_hint_y: 0.6
+        SimulateButton:
             id: playbut
-            font_size: 40
-            text: '>'
-        Button:
-            text: 'Next turn'
-            size_hint_y: 0.3
-            on_press: root.screen.next_turn()
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Branch'
-        MenuTextInput:
-            id: branchfield
-            setter: root.set_branch
-            hint_text: root.screen.app.branch if root.screen else ''
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Turn'
-        MenuIntInput:
-            id: turnfield
-            setter: root.set_turn
-            hint_text: str(root.screen.app.turn) if root.screen else ''
-    BoxLayout:
-        orientation: 'vertical'
-        Label:
-            text: 'Tick'
-        MenuIntInput:
-            id: tickfield
-            setter: root.set_tick
-            hint_text: str(root.screen.app.tick) if root.screen else ''
+            font_size: root.buttons_font_size
+        OneTurnButton:
+            id: stepbut
+            font_size: root.buttons_font_size
+            on_release: root.screen.next_turn()
+            disabled: root.disable_one_turn
 <MainScreen>:
     name: 'main'
     app: app
@@ -373,10 +475,10 @@ Builder.load_string(
         scale_min: 0.2
         scale_max: 4.0
         x: statpanel.right
-        y: timepanel.top
+        y: 0
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
-        height: root.height - timepanel.height
+        height: root.height
         board: root.boards[app.character_name]
         adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
@@ -384,17 +486,18 @@ Builder.load_string(
         engine: app.engine
         toggle_stat_cfg: app.statcfg.toggle
         pos_hint: {'left': 0, 'top': 1}
-        size_hint: (0.2, 0.9)
+        size_hint: (0.25, 0.8)
     TimePanel:
         id: timepanel
         screen: root
         pos_hint: {'bot': 0}
-        size_hint: (0.85, 0.1)
+        size_hint: (0.25, 0.2)
+        disable_one_turn: root.tmp_block
     CharMenu:
         id: charmenu
         screen: root
         pos_hint: {'right': 1, 'top': 1}
-        size_hint: (0.1, 0.9)
+        size_hint: (0.1, 1)
     DialogLayout:
         id: dialoglayout
         engine: app.engine

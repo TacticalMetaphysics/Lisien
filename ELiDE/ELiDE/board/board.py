@@ -1,5 +1,18 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The big widget that shows the graph of the selected Character."""
 from functools import partial
 from kivy.properties import (
@@ -21,7 +34,7 @@ from kivy.uix.scatter import ScatterPlane
 from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
 from .spot import Spot
-from .arrow import Arrow, ArrowWidget
+from .arrow import Arrow, ArrowWidget, ArrowLayout
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
@@ -80,10 +93,9 @@ class FinalLayout(FloatLayout):
     def finalize_all(self, *args):
         for child in self.children:
             child.finalize()
-
-    def on_children(self, *args):
-        Clock.unschedule(self.finalize_all)
-        Clock.schedule_once(self.finalize_all, -1)
+        self.bind(children=self._trigger_finalize_all)
+    
+    _trigger_finalize_all = trigger(finalize_all)
 
 
 class Board(RelativeLayout):
@@ -121,7 +133,7 @@ class Board(RelativeLayout):
     grabbed = ObjectProperty(None, allownone=True)
     spot_cls = ObjectProperty(Spot)
     pawn_cls = ObjectProperty(Pawn)
-    arrow_cls = ObjectProperty(Arrow)
+    arrow_cls = ObjectProperty(Arrow, allownone=True)
     proto_arrow_cls = ObjectProperty(ArrowWidget)
 
     @property
@@ -198,7 +210,6 @@ class Board(RelativeLayout):
             if not self.selection_candidates:
                 self.keep_selection = True
             ret = super().on_touch_move(touch)
-            Logger.debug('Board: dispatched touch to selection {}'.format(self.app.selection))
             return ret
         elif self.selection_candidates:
             for cand in self.selection_candidates:
@@ -207,10 +218,7 @@ class Board(RelativeLayout):
                     cand.selected = True
                     touch.grab(cand)
                     ret = super().on_touch_move(touch)
-                    Logger.debug('Board: dispatched touch to candidate {}'.format(cand))
                     return ret
-        else:
-            Logger.debug('Board: dispatched touch to nobody')
 
     def portal_touch_up(self, touch):
         """Try to create a portal between the spots the user chose."""
@@ -310,13 +318,16 @@ class Board(RelativeLayout):
         """Create some subwidgets and trigger the first update."""
         if not self.parent or hasattr(self, '_parented'):
             return
+        if not self.wallpaper_path:
+            Logger.debug("Board: waiting for wallpaper_path")
+            Clock.schedule_once(self.on_parent, 0)
+            return
         self._parented = True
         self.wallpaper = Image(source=self.wallpaper_path)
         self.bind(wallpaper_path=self._pull_image)
-        if self.wallpaper_path:
-            self._pull_size()
+        self._pull_size()
         self.kvlayoutback = KvLayoutBack(**self.widkwargs)
-        self.arrowlayout = FloatLayout(**self.widkwargs)
+        self.arrowlayout = ArrowLayout(**self.widkwargs)
         self.spotlayout = FinalLayout(**self.widkwargs)
         self.kvlayoutfront = KvLayoutFront(**self.widkwargs)
         for wid in self.wids:
@@ -325,7 +336,7 @@ class Board(RelativeLayout):
             wid.size = self.size
             if wid is not self.wallpaper:
                 self.bind(size=wid.setter('size'))
-        self.trigger_update()
+        self.update()
 
     def on_character(self, *args):
         if self.character is None:
@@ -416,13 +427,19 @@ class Board(RelativeLayout):
                 portal["destination"] in self.arrow[portal["origin"]]
         ):
             raise KeyError("Already have an Arrow for this Portal")
+        return self._core_make_arrow(portal, self.spot[portal['origin']], self.spot[portal['destination']], self.arrow)
+
+    def _core_make_arrow(self, portal, origspot, destspot, arrowmap):
         r = self.arrow_cls(
             board=self,
-            portal=portal
+            portal=portal,
+            origspot=origspot,
+            destspot=destspot
         )
-        if portal["origin"] not in self.arrow:
-            self.arrow[portal["origin"]] = {}
-        self.arrow[portal["origin"]][portal["destination"]] = r
+        orign = portal["origin"]
+        if orign not in arrowmap:
+            arrowmap[orign] = {}
+        arrowmap[orign][portal["destination"]] = r
         return r
 
     def rm_arrows_to_and_from(self, name):
@@ -572,24 +589,33 @@ class Board(RelativeLayout):
         places2add = []
         spots_unposd = []
         nodes_patch = {}
-        for place_name in self.character.place:
-            if place_name not in self.spot:
-                place = self.character.place[place_name]
+        placemap = self.character.place
+        spotmap = self.spot
+        default_image_paths = Spot.default_image_paths
+        for place_name in placemap:
+            if place_name not in spotmap:
+                place = placemap[place_name]
                 places2add.append(place)
                 patch = {}
                 if '_image_paths' in place:
                     zeroes = [0] * len(place['_image_paths'])
                 else:
-                    patch['_image_paths'] = Spot.default_image_paths
+                    patch['_image_paths'] = default_image_paths
                     zeroes = [0]
-                patch['_offxs'] = place.get('_offxs', zeroes)
-                patch['_offys'] = place.get('_offys', zeroes)
-                nodes_patch[place_name] = patch
+                if '_offxs' not in place:
+                    patch['_offxs'] = zeroes
+                if '_offys' not in place:
+                    patch['_offys'] = zeroes
+                if patch:
+                    nodes_patch[place_name] = patch
         if nodes_patch:
             self.character.node.patch(nodes_patch)
+        make_spot = self.make_spot
+        spotlayout = self.spotlayout
+        add_widget_to_spotlayout = spotlayout.add_widget
         for place in places2add:
-            spot = self.make_spot(place)
-            self.spotlayout.add_widget(spot)
+            spot = make_spot(place)
+            add_widget_to_spotlayout(spot)
             if '_x' not in place or '_y' not in place:
                 spots_unposd.append(spot)
         self.spots_unposd = spots_unposd
@@ -622,16 +648,20 @@ class Board(RelativeLayout):
                 self.character.name
             )
         )
-        for arrow_orig in self.character.portal:
-            for arrow_dest in self.character.portal[arrow_orig]:
+        portmap = self.character.portal
+        arrowmap = self.arrow
+        spotmap = self.spot
+        arrowlayout = self.arrowlayout
+        add_widget_to_arrowlayout = arrowlayout.add_widget
+        core_make_arrow = self._core_make_arrow
+        for arrow_orig, arrow_dests in portmap.items():
+            for arrow_dest, portal in arrow_dests.items():
                 if (
-                        arrow_orig not in self.arrow or
-                        arrow_dest not in self.arrow[arrow_orig]
+                        arrow_orig not in arrowmap or
+                        arrow_dest not in arrowmap[arrow_orig]
                 ):
-                    self.arrowlayout.add_widget(
-                        self.make_arrow(
-                            self.character.portal[arrow_orig][arrow_dest]
-                        )
+                    add_widget_to_arrowlayout(
+                        core_make_arrow(portal, spotmap[arrow_orig], spotmap[arrow_dest], arrowmap)
                     )
 
     def add_pawn(self, thingn, *args):
@@ -640,14 +670,7 @@ class Board(RelativeLayout):
             thingn not in self.pawn
         ):
             pwn = self.make_pawn(self.character.thing[thingn])
-            locn = pwn.thing['location']
-            nextlocn = pwn.thing['next_location']
-            if nextlocn is None:
-                self.add_spot(nextlocn)
-                whereat = self.spot[locn]
-            else:
-                self.add_arrow(locn, nextlocn)
-                whereat = self.arrow[locn][nextlocn]
+            whereat = self.spot[pwn.thing['location']]
             whereat.add_widget(pwn)
             self.pawn[thingn] = pwn
 
@@ -665,8 +688,9 @@ class Board(RelativeLayout):
         nodes_patch = {}
         things2add = []
         pawns_added = []
+        pawnmap = self.pawn
         for (thing_name, thing) in self.character.thing.items():
-            if thing_name not in self.pawn:
+            if thing_name not in pawnmap:
                 things2add.append(thing)
                 patch = {}
                 if '_image_paths' in thing:
@@ -684,21 +708,15 @@ class Board(RelativeLayout):
                     nodes_patch[thing_name] = patch
         if nodes_patch:
             self.character.node.patch(nodes_patch)
+        make_pawn = self.make_pawn
+        spotmap = self.spot
         for thing in things2add:
-            pwn = self.make_pawn(thing)
+            pwn = make_pawn(thing)
             pawns_added.append(pwn)
-            try:
-                whereat = self.arrow[
-                    thing['location']
-                ][
-                    thing['next_location']
-                ]
-            except KeyError:
-                whereat = self.spot[thing['location']]
+            whereat = spotmap[thing['location']]
             whereat.add_widget(pwn)
 
-    @trigger
-    def trigger_update(self, *args):
+    def update(self, *args):
         """Force an update to match the current state of my character.
 
         This polls every element of the character, and therefore
@@ -714,24 +732,31 @@ class Board(RelativeLayout):
         self.remove_absent_arrows()
         # add widgets to represent new stuff
         self.add_new_spots()
-        self.add_new_arrows()
+        if self.arrow_cls:
+            self.add_new_arrows()
         self.add_new_pawns()
+        self.spotlayout.finalize_all()
+        Logger.debug("Board: updated")
+    trigger_update = trigger(update)
 
     def update_from_delta(self, delta, *args):
         """Apply the changes described in the dict ``delta``."""
-        for (place, extant) in delta.get('places', {}).items():
-            if extant and place not in self.spot:
-                self.add_spot(place)
-                spot = self.spot[place]
-                if '_x' not in spot.place or '_y' not in spot.place:
-                    self.spots_unposd.append(spot)
-            elif not extant and place in self.spot:
-                self.rm_spot(place)
-        for (thing, extant) in delta.get('things', {}).items():
-            if extant and thing not in self.pawn:
-                self.add_pawn(thing)
-            elif not extant and thing in self.pawn:
-                self.rm_pawn(thing)
+        for (node, extant) in delta.get('nodes', {}).items():
+            if extant:
+                if node in delta.get('node_val', {}) \
+                        and 'location' in delta['node_val'][node]\
+                        and node not in self.pawn:
+                    self.add_pawn(node)
+                elif node not in self.spot:
+                    self.add_spot(node)
+                    spot = self.spot[node]
+                    if '_x' not in spot.place or '_y' not in spot.place:
+                        self.spots_unposd.append(spot)
+            else:
+                if node in self.pawn:
+                    self.rm_pawn(node)
+                if node in self.spot:
+                    self.rm_spot(node)
         for (node, stats) in delta.get('node_val', {}).items():
             if node in self.spot:
                 spot = self.spot[node]
@@ -747,8 +772,6 @@ class Board(RelativeLayout):
                 pawn = self.pawn[node]
                 if 'location' in stats:
                     pawn.loc_name = stats['location']
-                if 'next_location' in stats:
-                    pawn.next_loc_name = stats['next_location']
                 if '_image_paths' in stats:
                     pawn.paths = stats['_image_paths'] or pawn.default_image_paths
             else:
@@ -851,7 +874,7 @@ class BoardScatterPlane(ScatterPlane):
     keep_selection = BooleanProperty(False)
     board = ObjectProperty()
     adding_portal = BooleanProperty(False)
-    reciprocal_portal = BooleanProperty(False)
+    reciprocal_portal = BooleanProperty()
 
     def spot_from_dummy(self, dummy):
         """Make a real place and its spot from a dummy spot.
@@ -936,6 +959,8 @@ class BoardScatterPlane(ScatterPlane):
             )
         self.clear_widgets()
         self.add_widget(self.board)
+        self.board.adding_portal = self.adding_portal
+        self.board.reciprocal_portal = self.reciprocal_portal
         self.bind(
             adding_portal=self.board.setter('adding_portal'),
             reciprocal_portal=self.board.setter('reciprocal_portal')
@@ -984,7 +1009,7 @@ class BoardView(StencilView):
     board = ObjectProperty()
     plane = ObjectProperty()
     adding_portal = BooleanProperty()
-    reciprocal_portal = BooleanProperty()
+    reciprocal_portal = BooleanProperty(True)
     scale_min = NumericProperty(allownone=True)
     scale_max = NumericProperty(allownone=True)
 

@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Widget that looks like a trading card, and a layout within which it
 can be dragged and dropped to some particular position within stacks
 of other cards.
@@ -628,8 +641,7 @@ class DeckBuilderLayout(Layout):
             touch.ud['card']._topdecked = InstructionGroup()
             touch.ud['card']._topdecked.add(touch.ud['card'].canvas)
             self.canvas.after.add(touch.ud['card']._topdecked)
-        i = 0
-        for deck in self.decks:
+        for i, deck in enumerate(self.decks):
             cards = [card for card in deck if not card.dragging]
             maxidx = max(card.idx for card in cards) if cards else 0
             if self.direction == 'descending':
@@ -673,17 +685,14 @@ class DeckBuilderLayout(Layout):
                     ):
                         self.insertion_card = cards[-1].idx
                 else:
-                    j = 0
-                    for found in self._foundations:
+                    for j, found in enumerate(self._foundations):
                         if (
                                 found is not None and
                                 found.collide_point(*touch.pos)
                         ):
                             self.insertion_deck = j
                             self.insertion_card = 0
-                        return
-                        j += 1
-            i += 1
+                            return
 
     def on_touch_up(self, touch):
         """If a card is being dragged, put it in the place it was just dropped

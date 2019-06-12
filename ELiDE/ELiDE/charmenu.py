@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -11,11 +24,12 @@ from kivy.properties import (
 )
 from .board.arrow import ArrowWidget
 from .util import try_load, dummynum
+from LiSE.proxy import CharStatProxy
 
 
 class CharMenu(BoxLayout):
     screen = ObjectProperty()
-    reciprocal_portal = BooleanProperty()
+    reciprocal_portal = BooleanProperty(True)
     revarrow = ObjectProperty(None, allownone=True)
     dummyplace = ObjectProperty()
     dummything = ObjectProperty()
@@ -41,9 +55,17 @@ class CharMenu(BoxLayout):
         ):
             Clock.schedule_once(self.on_screen, 0)
             return
-        self.reciprocal_portal = self.screen.boardview.reciprocal_portal
-        self.screen.boardview.bind(
-            reciprocal_portal=self.setter('reciprocal_portal')
+        self.screen.boardview.reciprocal_portal = self.reciprocal_portal
+        if self.reciprocal_portal:
+            assert (self.revarrow is None)
+            self.revarrow = ArrowWidget(
+                board=self.screen.boardview.board,
+                origin=self.ids.emptyright,
+                destination=self.ids.emptyleft
+            )
+            self.ids.portaladdbut.add_widget(self.revarrow)
+        self.bind(
+            reciprocal_portal=self.screen.boardview.setter('reciprocal_portal')
         )
 
     def spot_from_dummy(self, dummy):
@@ -59,14 +81,14 @@ class CharMenu(BoxLayout):
 
     def toggle_rules(self, *args):
         """Display or hide the view for constructing rules out of cards."""
-        if self.app.manager.current != 'rules':
-            try:
-                rb = self.app.selected_proxy.rulebook
-            except AttributeError:
-                charn = self.app.selected_proxy.name
-                rb = self.app.engine.character[charn].rulebook
-            self.app.rules.rulebook = rb
-        self.app.rules.toggle()
+        if self.app.manager.current != 'rules' and not isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.rules.entity = self.app.selected_proxy
+            self.app.rules.rulebook = self.app.selected_proxy.rulebook
+        if isinstance(self.app.selected_proxy, CharStatProxy):
+            self.app.charrules.character = self.app.selected_proxy
+            self.app.charrules.toggle()
+        else:
+            self.app.rules.toggle()
 
     def toggle_funcs_editor(self):
         """Display or hide the text editing window for functions."""
@@ -164,19 +186,19 @@ Builder.load_string("""
     portaldirbut: portaldirbut
     Button:
         text: 'Characters'
-        on_press: root.toggle_chars_screen()
+        on_release: root.toggle_chars_screen()
     Button:
         text: 'Strings'
-        on_press: root.toggle_strings_editor()
+        on_release: root.toggle_strings_editor()
     Button:
         text: 'Python'
-        on_press: root.toggle_funcs_editor()
+        on_release: root.toggle_funcs_editor()
     Button:
         text: 'Rules'
-        on_press: root.toggle_rules()
+        on_release: root.toggle_rules()
     Button:
         text: 'Delete'
-        on_press: app.delete_selection()
+        on_release: app.delete_selection()
     BoxLayout:
         Widget:
             id: placetab
@@ -187,7 +209,7 @@ Builder.load_string("""
                 on_pos_up: root.spot_from_dummy(self)
         Button:
             text: 'cfg'
-            on_press: root.toggle_spot_cfg()
+            on_release: root.toggle_spot_cfg()
     BoxLayout:
         orientation: 'vertical'
         ToggleButton:
@@ -209,7 +231,7 @@ Builder.load_string("""
         Button:
             id: portaldirbut
             text: 'One-way' if root.reciprocal_portal else 'Two-way'
-            on_press: root.toggle_reciprocal()
+            on_release: root.toggle_reciprocal()
     BoxLayout:
         Widget:
             id: thingtab
@@ -220,5 +242,5 @@ Builder.load_string("""
                 on_pos_up: root.pawn_from_dummy(self)
         Button:
             text: 'cfg'
-            on_press: root.toggle_pawn_cfg()
+            on_release: root.toggle_pawn_cfg()
 """)

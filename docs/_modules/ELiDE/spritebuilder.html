@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>ELiDE.spritebuilder &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -27,11 +28,26 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for ELiDE.spritebuilder</h1><div class="highlight"><pre>
-<span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
-<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span></span><span class="c1"># This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">from</span> <span class="nn">.pallet</span> <span class="k">import</span> <span class="n">Pallet</span><span class="p">,</span> <span class="n">PalletBox</span>
 <span class="kn">from</span> <span class="nn">.kivygarden.texturestack</span> <span class="k">import</span> <span class="n">ImageStack</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
@@ -94,8 +110,8 @@
                             <span class="n">pallet</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
                             <span class="n">selected</span><span class="o">.</span><span class="n">name</span>
                         <span class="p">)</span>
-                    <span class="p">)</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span> <span class="o">=</span> <span class="n">imgpaths</span> <span class="k">if</span> <span class="n">imgpaths</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_imgpaths</span>
+                    <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span> <span class="o">=</span> <span class="n">imgpaths</span> <span class="k">if</span> <span class="n">imgpaths</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_imgpaths</span></div>
 
 
 <div class="viewcode-block" id="SpriteBuilder"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpriteBuilder">[docs]</a><span class="k">class</span> <span class="nc">SpriteBuilder</span><span class="p">(</span><span class="n">ScrollView</span><span class="p">):</span>
@@ -161,8 +177,8 @@
     <span class="k">def</span> <span class="nf">reheight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_palbox</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
             <span class="n">wid</span><span class="o">.</span><span class="n">height</span> <span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pallets</span>
-        <span class="p">)</span></div>
-    <span class="n">_trigger_reheight</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">reheight</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="n">_trigger_reheight</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">reheight</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SpriteDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpriteDialog">[docs]</a><span class="k">class</span> <span class="nc">SpriteDialog</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
@@ -175,28 +191,28 @@
 
     <span class="k">def</span> <span class="nf">pressed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">selector</span><span class="o">.</span><span class="n">prefix</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">selector</span><span class="o">.</span><span class="n">imgpaths</span></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpaths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">selector</span><span class="o">.</span><span class="n">imgpaths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="PawnConfigDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.PawnConfigDialog">[docs]</a><span class="k">class</span> <span class="nc">PawnConfigDialog</span><span class="p">(</span><span class="n">SpriteDialog</span><span class="p">):</span></div>
-    <span class="k">pass</span>
+<div class="viewcode-block" id="PawnConfigDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.PawnConfigDialog">[docs]</a><span class="k">class</span> <span class="nc">PawnConfigDialog</span><span class="p">(</span><span class="n">SpriteDialog</span><span class="p">):</span>
+    <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="SpotConfigDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpotConfigDialog">[docs]</a><span class="k">class</span> <span class="nc">SpotConfigDialog</span><span class="p">(</span><span class="n">SpriteDialog</span><span class="p">):</span></div>
-    <span class="k">pass</span>
+<div class="viewcode-block" id="SpotConfigDialog"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpotConfigDialog">[docs]</a><span class="k">class</span> <span class="nc">SpotConfigDialog</span><span class="p">(</span><span class="n">SpriteDialog</span><span class="p">):</span>
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="PawnConfigScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.PawnConfigScreen">[docs]</a><span class="k">class</span> <span class="nc">PawnConfigScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
     <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
-    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="SpotConfigScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.spritebuilder.SpotConfigScreen">[docs]</a><span class="k">class</span> <span class="nc">SpotConfigScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
     <span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
-    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">imgpaths</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span></div>
 
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
@@ -226,7 +242,7 @@
 <span class="s2">            id: preview</span>
 <span class="s2">        Button:</span>
 <span class="s2">            text: &#39;OK&#39;</span>
-<span class="s2">            on_press: root.pressed()</span>
+<span class="s2">            on_release: root.pressed()</span>
 <span class="s2">&lt;PawnConfigScreen&gt;:</span>
 <span class="s2">    name: &#39;pawncfg&#39;</span>
 <span class="s2">    imgpaths: dialog.imgpaths</span>
@@ -247,10 +263,31 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -271,16 +308,24 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

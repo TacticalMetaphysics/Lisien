@@ -4,15 +4,16 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>LiSE.query &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -27,11 +28,26 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for LiSE.query</h1><div class="highlight"><pre>
 <span></span><span class="c1"># This file is part of LiSE, a framework for life simulation games.</span>
-<span class="c1"># Copyright (c) Zachary Spector,  zacharyspector@gmail.com</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;The query engine provides Pythonic methods to access the database.</span>
 
 <span class="sd">This module also contains a notably unfinished implementation of a query</span>
@@ -101,8 +117,8 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="p">:</span>
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
             <span class="k">continue</span>
-        <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">fix_overlap</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(),</span> <span class="n">window</span><span class="p">))</span></div>
-    <span class="k">return</span> <span class="n">res</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">fix_overlap</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(),</span> <span class="n">window</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">res</span></div>
 
 
 <div class="viewcode-block" id="windows_intersection"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.windows_intersection">[docs]</a><span class="k">def</span> <span class="nf">windows_intersection</span><span class="p">(</span><span class="n">windows</span><span class="p">):</span>
@@ -173,8 +189,8 @@
             <span class="k">continue</span>
         <span class="n">res</span> <span class="o">=</span> <span class="n">intersect2</span><span class="p">(</span><span class="n">done</span><span class="o">.</span><span class="n">pop</span><span class="p">(),</span> <span class="n">window</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
-            <span class="n">done</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
-    <span class="k">return</span> <span class="n">done</span>
+            <span class="n">done</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">done</span></div>
 
 
 <span class="k">class</span> <span class="nc">Query</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -198,22 +214,22 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
     <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">EqQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">EqQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">GtQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">GtQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">GeQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">GeQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">LtQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">LtQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">LeQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">LeQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">NeQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">NeQuery</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_entityfy</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">and_before</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">windows</span><span class="p">:</span>
@@ -355,8 +371,8 @@
             <span class="k">return</span>
         <span class="n">parent</span><span class="p">,</span> <span class="n">turn_start</span><span class="p">,</span> <span class="n">tick_start</span><span class="p">,</span> <span class="n">turn_end</span><span class="p">,</span> <span class="n">tick_end</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_branches</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">turn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">turn_start</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">oper</span><span class="p">(</span><span class="n">leftside</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">),</span> <span class="n">rightside</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">)):</span></div>
-                <span class="k">yield</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span>
+            <span class="k">if</span> <span class="n">oper</span><span class="p">(</span><span class="n">leftside</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">),</span> <span class="n">rightside</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">)):</span>
+                <span class="k">yield</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span></div>
 
 
 <div class="viewcode-block" id="QueryEngine"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine">[docs]</a><span class="k">class</span> <span class="nc">QueryEngine</span><span class="p">(</span><span class="n">allegedb</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">QueryEngine</span><span class="p">):</span>
@@ -523,10 +539,10 @@
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">character</span><span class="p">),</span> <span class="n">sense</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">function</span>
 
     <span class="k">def</span> <span class="nf">things_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">next_location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;things_dump&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;things_dump&#39;</span><span class="p">):</span>
             <span class="k">yield</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">character</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">thing</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">location</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">next_location</span><span class="p">)</span> <span class="k">if</span> <span class="n">next_location</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">avatars_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -600,18 +616,14 @@
         <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks&#39;</span><span class="p">):</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">book</span><span class="p">)</span>
 
-<div class="viewcode-block" id="QueryEngine.exist_node"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine.exist_node">[docs]</a>    <span class="k">def</span> <span class="nf">exist_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">,</span> <span class="n">keep_rulebook</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exist_node</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">extant</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">keep_rulebook</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">set_node_rulebook</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">))</span>
+<div class="viewcode-block" id="QueryEngine.exist_node"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine.exist_node">[docs]</a>    <span class="k">def</span> <span class="nf">exist_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exist_node</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QueryEngine.exist_edge"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine.exist_edge">[docs]</a>    <span class="k">def</span> <span class="nf">exist_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">keep_rulebook</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="QueryEngine.exist_edge"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine.exist_edge">[docs]</a>    <span class="k">def</span> <span class="nf">exist_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">extant</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span> <span class="o">=</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exist_edge</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">extant</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">keep_rulebook</span><span class="p">:</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">set_portal_rulebook</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exist_edge</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">extant</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">set_node_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">):</span>
         <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">)</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
@@ -650,7 +662,7 @@
             <span class="n">tick</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">handled_avatar_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">handled_avatar_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span>  <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
         <span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">rulebook</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">)</span>
         <span class="p">)</span>
@@ -661,6 +673,52 @@
             <span class="n">rule</span><span class="p">,</span>
             <span class="n">graph</span><span class="p">,</span>
             <span class="n">av</span><span class="p">,</span>
+            <span class="n">branch</span><span class="p">,</span>
+            <span class="n">turn</span><span class="p">,</span>
+            <span class="n">tick</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">handled_character_thing_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">rulebook</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+            <span class="s1">&#39;character_thing_rules_handled_insert&#39;</span><span class="p">,</span>
+            <span class="n">character</span><span class="p">,</span>
+            <span class="n">rulebook</span><span class="p">,</span>
+            <span class="n">rule</span><span class="p">,</span>
+            <span class="n">thing</span><span class="p">,</span>
+            <span class="n">branch</span><span class="p">,</span>
+            <span class="n">turn</span><span class="p">,</span>
+            <span class="n">tick</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">handled_character_place_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">place</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">place</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">place</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+            <span class="s1">&#39;character_place_rules_handled_insert&#39;</span><span class="p">,</span>
+            <span class="n">character</span><span class="p">,</span>
+            <span class="n">rulebook</span><span class="p">,</span>
+            <span class="n">rule</span><span class="p">,</span>
+            <span class="n">place</span><span class="p">,</span>
+            <span class="n">branch</span><span class="p">,</span>
+            <span class="n">turn</span><span class="p">,</span>
+            <span class="n">tick</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">handled_character_portal_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+            <span class="s1">&#39;character_portal_rules_handled_insert&#39;</span><span class="p">,</span>
+            <span class="n">character</span><span class="p">,</span>
+            <span class="n">rulebook</span><span class="p">,</span>
+            <span class="n">rule</span><span class="p">,</span>
+            <span class="n">orig</span><span class="p">,</span>
+            <span class="n">dest</span><span class="p">,</span>
             <span class="n">branch</span><span class="p">,</span>
             <span class="n">turn</span><span class="p">,</span>
             <span class="n">tick</span>
@@ -709,15 +767,14 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">book</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No rulebook&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">thing_loc_and_next_set</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">nextloc</span>
+    <span class="k">def</span> <span class="nf">set_thing_loc</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">loc</span>
     <span class="p">):</span>
         <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">)</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span>
             <span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
-        <span class="n">nextloc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">nextloc</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;del_things_after&#39;</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">thing</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
             <span class="s1">&#39;things_insert&#39;</span><span class="p">,</span>
@@ -726,8 +783,7 @@
             <span class="n">branch</span><span class="p">,</span>
             <span class="n">turn</span><span class="p">,</span>
             <span class="n">tick</span><span class="p">,</span>
-            <span class="n">loc</span><span class="p">,</span>
-            <span class="n">nextloc</span>
+            <span class="n">loc</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">avatar_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">isav</span><span class="p">):</span>
@@ -753,10 +809,31 @@
             <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">rulebook_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+        <span class="c1"># what if the rulebook has other values set afterward? wipe them out, right?</span>
+        <span class="c1"># should that happen in the query engine or elsewhere?</span>
+        <span class="n">rulebook</span><span class="p">,</span> <span class="n">rules</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">,</span> <span class="p">(</span><span class="n">rulebook</span><span class="p">,</span> <span class="n">rules</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks_insert&#39;</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks_update&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rulebook_del_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;rulebooks_del_time&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">branch_descendants</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;branch_children&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">child</span>
             <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch_descendants</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">turns_completed_dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;turns_completed_dump&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">complete_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;turns_completed_insert&#39;</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s1">&#39;turns_completed_update&#39;</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">branch</span><span class="p">)</span>
 
 <div class="viewcode-block" id="QueryEngine.initdb"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.engine.QueryEngine.initdb">[docs]</a>    <span class="k">def</span> <span class="nf">initdb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set up the database schema, both for allegedb and the special</span>
@@ -787,16 +864,38 @@
             <span class="s1">&#39;portal_rules_handled&#39;</span><span class="p">,</span>
             <span class="s1">&#39;rule_triggers&#39;</span><span class="p">,</span>
             <span class="s1">&#39;rule_prereqs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;rule_actions&#39;</span>
-        <span class="p">):</span></div></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">init_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+            <span class="s1">&#39;rule_actions&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;turns_completed&#39;</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html#ide">IDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ELiDE/index.html">ELiDE</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -817,16 +916,24 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

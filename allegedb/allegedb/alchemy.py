@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """SQLAlchemy code to generate the SQL used by the allegedb ORM
 
 If SQLAlchemy is installed at runtime, this will use it to generate SQL on the fly;
@@ -141,6 +154,23 @@ def tables_for_meta(meta):
             ['edges.graph', 'edges.orig', 'edges.dest', 'edges.idx']
         )
     )
+    Table(
+        'plans', meta,
+        Column('id', INT, primary_key=True),
+        Column('branch', TEXT),
+        Column('turn', INT),
+        Column('tick', INT)
+    )
+    Table(
+        'plan_ticks', meta,
+        Column('plan_id', INT, primary_key=True),
+        Column('turn', INT, primary_key=True),
+        Column('tick', INT, primary_key=True),
+        ForeignKeyConstraint(
+            ('plan_id',),
+            ('plans.id',)
+        )
+    )
     return meta.tables
 
 
@@ -274,9 +304,22 @@ def queries_for_table_dict(table):
         ))
     }
     for t in table.values():
-        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
+        key = list(t.primary_key)
+        if 'branch' in t.columns and 'turn' in t.columns and 'tick' in t.columns:
+            branch = t.columns['branch']
+            turn = t.columns['turn']
+            tick = t.columns['tick']
+            if branch in key and turn in key and tick in key:
+                key = [branch, turn, tick]
+                r[t.name + '_del_time'] = t.delete().where(and_(
+                    t.c.branch == bindparam('branch'),
+                    t.c.turn == bindparam('turn'),
+                    t.c.tick == bindparam('tick')
+                ))
+        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT()]).select_from(t)
+        r[t.name + '_del'] = t.delete().where(and_(*[c == bindparam(c.name) for c in t.primary_key]))
     return r
 
 

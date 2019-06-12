@@ -10,7 +10,7 @@ allegedb
    :maxdepth: 2
    :caption: Contents:
 
-Object relational mapper for graphs with in-built revision control.
+State container and object-relational mapper for versioned graphs.
 
 allegedb serves its own special variants on the networkx graph classes:
 Graph, DiGraph, MultiGraph, and MultiDiGraph. Every change to them is
@@ -18,7 +18,7 @@ stored in an SQL database.
 
 This means you can keep multiple versions of one set of graphs and
 switch between them without the need to save, load, or run git-checkout.
-Just point the ORM at the correct branch and revision, and all of the
+Just point the ORM at the correct branch and turn, and all of the
 graphs in the program will change. All the different branches and
 revisions remain in the database to be brought back when needed.
 
@@ -29,38 +29,36 @@ usage
 
     >>> from allegedb import ORM
     >>> orm = ORM('sqlite:///test.db')
-    >>> orm.initdb()  # only necessary the first time you use a particular database
     >>> g = orm.new_graph('test')  # also new_digraph, new_multigraph, new_multidigraph
     >>> g.add_nodes_from(['spam', 'eggs', 'ham'])
     >>> g.add_edge('spam', 'eggs')
-    >>> g.edge  # strings become unicode because that's the way sqlite3 rolls
-    {u'eggs': {u'ham': {}, u'spam': {}}, u'ham': {u'eggs': {}}, u'spam': {u'eggs': {}}}
+    >>> g.adj
+    {'eggs': {'spam': Edge(graph=test, orig=eggs, dest=spam)}, 'ham': {}, 'spam': {}}
     >>> del g
     >>> orm.close()
     >>> del orm
     >>> orm = ORM('sqlite:///test.db')
-    >>> g = orm.get_graph('test')  # returns whatever graph type you stored by that name
-    >>> g.edge
-    {u'eggs': {u'ham': {}, u'spam': {}}, u'ham': {u'eggs': {}}, u'spam': {u'eggs': {}}}
+    >>> g = orm.graph['test']  # returns whatever graph type you stored by that name
+    >>> g.adj
+    {'eggs': {'spam': Edge(graph=test, orig=eggs, dest=spam)}, 'ham': {}, 'spam': {}}
     >>> import networkx as nx
-    >>> red = nx.random_lobster(10,0.9,0.9)
-    >>> blue = orm.new_graph('red', red)  # initialize with data from the given graph
-    >>> red.edge == blue.edge
+    >>> red = nx.random_lobster(10, 0.9, 0.9)
+    >>> blue = orm.new_digraph('blue', red)  # initialize with data from the given graph
+    >>> red.adj == blue.adj
     True
-    >>> orm.rev = 1
+    >>> orm.turn = 1
     >>> blue.add_edge(17, 15)
-    >>> red.edge = blue.edge
+    >>> red.adj == blue.adj
     False
-    >>> orm.rev = 0  # undoing what I did when rev-1
-    >>> red.edge == blue.edge
+    >>> orm.turn = 0  # undoing what I did when turn=1
+    >>> red.adj == blue.adj
     True
-    >>> orm.rev = 0
     >>> orm.branch = 'test'    # navigating to a branch for the first time creates that branch
-    >>> orm.rev = 1
-    >>> red.edge == blue.edge
+    >>> orm.turn = 1
+    >>> red.adj == blue.adj
     True
     >>> orm.branch = 'trunk'
-    >>> red.edge == blue.edge
+    >>> red.adj == blue.adj
     False
 
 ORM

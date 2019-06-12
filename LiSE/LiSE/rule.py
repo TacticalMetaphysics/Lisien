@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """ The fundamental unit of game logic, the Rule, and structures to
 store and organize them in.
 
@@ -17,7 +30,6 @@ need to change that.
 
 """
 from collections import (
-    Mapping,
     MutableMapping,
     MutableSequence,
     Hashable
@@ -26,11 +38,13 @@ from abc import ABC, abstractmethod
 from functools import partial
 from inspect import getsource
 from ast import parse
+
 from astunparse import unparse
 from blinker import Signal
 
 from .reify import reify
 from .util import dedent_source
+
 
 def roundtrip_dedent(source):
     """Reformat some lines of code into what unparse makes."""
@@ -48,7 +62,12 @@ class RuleFuncList(MutableSequence, Signal):
     def _nominate(self, v):
         if callable(v):
             if hasattr(self._funcstore, v.__name__):
-                stored_source = getsource(getattr(self._funcstore, v.__name__))
+                if v == getattr(self._funcstore, v.__name__):
+                    return v.__name__
+                elif hasattr(self._funcstore, 'get_source'):
+                    stored_source = self._funcstore.get_source(v.__name__)
+                else:
+                    stored_source = getsource(getattr(self._funcstore, v.__name__))
                 new_source = getsource(v)
                 if roundtrip_dedent(stored_source) != roundtrip_dedent(new_source):
                     raise KeyError(
@@ -69,10 +88,10 @@ class RuleFuncList(MutableSequence, Signal):
         return v
 
     def _get(self):
-        return self._cache.retrieve(self.rule.name, *self.rule.engine.btt())
+        return self._cache.retrieve(self.rule.name, *self.rule.engine._btt())
 
     def _set(self, v):
-        branch, turn, tick = self.rule.engine.nbtt()
+        branch, turn, tick = self.rule.engine._nbtt()
         self._cache.store(self.rule.name, branch, turn, tick, v)
         self._setter(self.rule.name, branch, turn, tick, v)
 
@@ -88,28 +107,31 @@ class RuleFuncList(MutableSequence, Signal):
 
     def __setitem__(self, i, v):
         v = self._nominate(v)
-        l = self._get()
+        l = list(self._get())
         l[i] = v
-        self._set(l)
+        self._set(tuple(l))
         self.send(self)
 
     def __delitem__(self, i):
-        l = self._get()
+        l = list(self._get())
         del l[i]
-        self._set(l)
+        self._set(tuple(l))
         self.send(self)
 
     def insert(self, i, v):
-        l = self._get()
+        l = list(self._get())
         l.insert(i, self._nominate(v))
-        self._set(l)
+        self._set(tuple(l))
         self.send(self)
 
     def append(self, v):
-        l = self._get()
-        l.append(self._nominate(v))
-        self._set(l)
+        self._set(self._get() + (self._nominate(v),))
         self.send(self)
+
+    def index(self, x, start=0, end=None):
+        if not callable(x):
+            x = getattr(self._funcstore, x)
+        return super().index(x, start, end)
 
 
 class TriggerList(RuleFuncList):
@@ -177,9 +199,9 @@ class RuleFuncListDescriptor(object):
         if not hasattr(obj, self.flid):
             setattr(obj, self.flid, self.cls(obj))
         flist = getattr(obj, self.flid)
-        namey_value = [flist._nominate(v) for v in value]
+        namey_value = tuple(flist._nominate(v) for v in value)
         flist._set(namey_value)
-        branch, turn, tick = obj.engine.nbtt()
+        branch, turn, tick = obj.engine._nbtt()
         flist._cache.store(obj.name, branch, turn, tick, namey_value)
         flist.send(flist)
 
@@ -215,13 +237,13 @@ class Rule(object):
         """
         self.engine = engine
         self.name = self.__name__ = name
-        branch, turn, tick = engine.btt()
+        branch, turn, tick = engine._btt()
         if create and not self.engine._triggers_cache.contains_key(name, branch, turn, tick):
             tick += 1
             self.engine.tick = tick
-            triggers = list(self._fun_names_iter('trigger', triggers or []))
-            prereqs = list(self._fun_names_iter('prereq', prereqs or []))
-            actions = list(self._fun_names_iter('action', actions or []))
+            triggers = tuple(self._fun_names_iter('trigger', triggers or []))
+            prereqs = tuple(self._fun_names_iter('prereq', prereqs or []))
+            actions = tuple(self._fun_names_iter('action', actions or []))
             self.engine.query.set_rule(
                 name, branch, turn, tick, triggers, prereqs, actions
             )
@@ -290,12 +312,7 @@ class Rule(object):
 
     def always(self):
         """Arrange to be triggered every tick, regardless of circumstance."""
-        if hasattr(self.engine.trigger, 'truth'):
-            truth = self.engine.trigger.truth
-        else:
-            def truth(*args):
-                return True
-        self.triggers = [truth]
+        self.triggers = [self.engine.trigger.truth]
 
 
 class RuleBook(MutableSequence, Signal):
@@ -304,9 +321,12 @@ class RuleBook(MutableSequence, Signal):
 
     """
     def _get_cache(self, branch, turn, tick):
-        return self.engine._rulebooks_cache.retrieve(
-            self.name, branch, turn, tick
-        )
+        try:
+            return self.engine._rulebooks_cache.retrieve(
+                self.name, branch, turn, tick
+            )
+        except KeyError:
+            return []
 
     def _set_cache(self, branch, turn, tick, v):
         self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
@@ -317,19 +337,19 @@ class RuleBook(MutableSequence, Signal):
         self.name = name
 
     def __contains__(self, v):
-        return getattr(v, 'name', v) in self._get_cache(*self.engine.btt())
+        return getattr(v, 'name', v) in self._get_cache(*self.engine._btt())
 
     def __iter__(self):
-        return iter(self._get_cache(*self.engine.btt()))
+        return iter(self._get_cache(*self.engine._btt()))
 
     def __len__(self):
         try:
-            return len(self._get_cache(*self.engine.btt()))
+            return len(self._get_cache(*self.engine._btt()))
         except KeyError:
             return 0
 
     def __getitem__(self, i):
-        return self.engine.rule[self._get_cache(*self.engine.btt())[i]]
+        return self.engine.rule[self._get_cache(*self.engine._btt())[i]]
 
     def _coerce_rule(self, v):
         if isinstance(v, Rule):
@@ -341,7 +361,7 @@ class RuleBook(MutableSequence, Signal):
 
     def __setitem__(self, i, v):
         v = getattr(v, 'name', v)
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         try:
             cache = self._get_cache(branch, turn, tick)
             cache[i] = v
@@ -357,7 +377,7 @@ class RuleBook(MutableSequence, Signal):
 
     def insert(self, i, v):
         v = getattr(v, 'name', v)
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         try:
             cache = self._get_cache(branch, turn, tick)
             cache.insert(i, v)
@@ -373,20 +393,20 @@ class RuleBook(MutableSequence, Signal):
     def index(self, v, start=0, stop=None):
         if isinstance(v, str):
             try:
-                return self._get_cache(*self.engine.btt()).index(v, start, stop)
+                return self._get_cache(*self.engine._btt()).index(v, start, stop)
             except KeyError:
                 raise ValueError
         return super().index(v)
 
     def __delitem__(self, i):
-        branch, turn, tick = self.engine.btt()
+        branch, turn, tick = self.engine._btt()
         try:
             cache = self._get_cache(branch, turn, tick)
         except KeyError:
             raise IndexError
         del cache[i]
-        self.engine.query.set_rulebook(self.name, branch, tick, cache)
-        self.engine._rulebooks_cache.store(self.name, branch, tick, cache)
+        self.engine.query.set_rulebook(self.name, branch, turn, tick, cache)
+        self.engine._rulebooks_cache.store(self.name, branch, turn, tick, cache)
         self.engine.rulebook.send(self, i=i, v=None)
         self.send(self, i=i, v=None)
 
@@ -490,6 +510,8 @@ class RuleFollower(ABC):
     get a :class:`RuleMapping` into
 
     """
+    __slots__ = ()
+
     @property
     def _rule_mapping(self):
         if id(self) not in rule_mappings:
@@ -568,13 +590,13 @@ class AllRuleBooks(MutableMapping, Signal):
         self._cache = {}
 
     def __iter__(self):
-        return self.engine._rulebooks_cache.iter_entities(*self.engine.btt())
+        return self.engine._rulebooks_cache.iter_entities(*self.engine._btt())
 
     def __len__(self):
         return len(list(self))
 
     def __contains__(self, k):
-        return self.engine._rulebooks_cache.contains_entity(k, *self.engine.btt())
+        return self.engine._rulebooks_cache.contains_entity(k, *self.engine._btt())
 
     def __getitem__(self, k):
         if k not in self._cache:
@@ -590,7 +612,7 @@ class AllRuleBooks(MutableMapping, Signal):
         rb.extend(value)
 
     def __delitem__(self, key):
-        raise NotImplementedError
+        self.engine._del_rulebook(key)
 
 
 class AllRules(MutableMapping, Signal):

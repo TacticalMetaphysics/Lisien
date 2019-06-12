@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A script to generate the SQL needed for LiSE's database backend,
 and output it in JSON form.
 
@@ -23,7 +36,7 @@ Column = partial(BaseColumn, nullable=False)
 
 from json import dumps
 
-from allegedb.alchemy import tables_for_meta, queries_for_table_dict
+import allegedb.alchemy
 
 
 def tables_for_meta(meta):
@@ -31,7 +44,7 @@ def tables_for_meta(meta):
     provided metadata object.
 
     """
-    tables_for_meta(meta)
+    allegedb.alchemy.tables_for_meta(meta)
 
     # Table for global variables that are not sensitive to sim-time.
     Table(
@@ -224,9 +237,7 @@ def tables_for_meta(meta):
     # locations.
     #
     # A Thing's location can be either a Place or another Thing, as long
-    # as it's in the same Character. Things also have a
-    # ``next_location``, defaulting to ``None``, which when set
-    # indicates that the thing is in transit to that location.
+    # as it's in the same Character.
     Table(
         'things', meta,
         Column('character', TEXT, primary_key=True),
@@ -238,17 +249,11 @@ def tables_for_meta(meta):
         Column('tick', INT, primary_key=True, default=0),
         # when location is null, this node is not a thing, but a place
         Column('location', TEXT),
-        # when next_location is not null, thing is en route between
-        # location and next_location
-        Column('next_location', TEXT, default='null'),
         ForeignKeyConstraint(
             ['character', 'thing'], ['nodes.graph', 'nodes.node']
         ),
         ForeignKeyConstraint(
             ['character', 'location'], ['nodes.graph', 'nodes.node']
-        ),
-        ForeignKeyConstraint(
-            ['character', 'next_location'], ['nodes.graph', 'nodes.node']
         )
     )
 
@@ -482,6 +487,12 @@ def tables_for_meta(meta):
         )
     )
 
+    Table(
+        'turns_completed', meta,
+        Column('branch', TEXT, primary_key=True),
+        Column('turn', INT)
+    )
+
     return meta.tables
 
 
@@ -511,10 +522,20 @@ def queries(table):
         tab = wherecols[0].table
         return tab.update().values(**vmap).where(and_(*wheres))
 
-    r = queries_for_table_dict(table)
+    r = allegedb.alchemy.queries_for_table_dict(table)
+
+    rulebooks = table['rulebooks']
+    r['rulebooks_update'] = update_where(['rules'], [rulebooks.c.rulebook, rulebooks.c.branch, rulebooks.c.turn, rulebooks.c.tick])
 
     for t in table.values():
-        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*t.primary_key)
+        key = list(t.primary_key)
+        if 'branch' in t.columns and 'turn' in t.columns and 'tick' in t.columns:
+            branch = t.columns['branch']
+            turn = t.columns['turn']
+            tick = t.columns['tick']
+            if branch in key and turn in key and tick in key:
+                key = [branch, turn, tick]
+        r[t.name + '_dump'] = select(list(t.c.values())).order_by(*key)
         r[t.name + '_insert'] = t.insert().values(tuple(bindparam(cname) for cname in t.c.keys()))
         r[t.name + '_count'] = select([func.COUNT('*')]).select_from(t)
 
@@ -560,6 +581,9 @@ def queries(table):
     ).where(
         branches.c.parent == bindparam('branch')
     )
+
+    tc = table['turns_completed']
+    r['turns_completed_update'] = update_where(['turn'], [tc.c.branch])
 
     return r
 

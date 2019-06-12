@@ -4,17 +4,20 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Introduction &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="allegedb" href="allegedb/index.html" />
+    <link rel="prev" title="Welcome to LiSE’s documentation!" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -27,10 +30,56 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>Life sims all seem to have two problems in common:</p>
+<div class="section" id="too-much-world-state">
+<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Permalink to this headline">¶</a></h2>
+<p>The number of variables the game is tracking – just for game logic, not
+graphics or physics or anything – is very large. Like how The Sims
+tracks sims’ opinions of one another, their likes and dislikes and so forth,
+even for the ones you never talk to and have shown no interest in. If you
+streamline a life sim to where it doesn’t have extraneous detail
+complexity you lose a huge part of what makes it lifelike.</p>
+<p>This causes trouble for developers when even <em>they</em> don’t really
+understand why sims hate each other, and even if they do, failures of
+bookkeeping can cause technical issues like how damn long it takes to
+save or load your game in The Sims 3.</p>
+<p>To address all those problems, LiSE provides a state container.
+Everything that ever happens in a game gets recorded, so that you can
+pick through the whole history and find out exactly when the butterfly
+flapped its wings to cause the cyclone. All of that history gets saved
+in a database, too, which is used in place of traditional save files.
+This means that if your testers discover something strange and want
+you to know about it, they can send you their database, and you’ll
+know everything they did and everything that happened in their game.</p>
+</div>
+<div class="section" id="too-many-rules">
+<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Permalink to this headline">¶</a></h2>
+<p>Fans of life sims tend to appreciate complexity. Developers are best
+served by reducing complexity as much as possible. So LiSE makes it
+easy to compartmentalize complexity and choose what of it you want to
+deal with and when.</p>
+<p>It is a rules engine, an old concept from business software that lets you
+determine what conditions cause what effects. Here, conditions are
+Triggers and effects are Actions, and they’re both lists of Python
+functions. Actions make some change to the state of the world, while
+Triggers look at the world once-per-turn and return a Boolean to show
+whether their Actions should happen.</p>
+<p>The connection between Trigger and Action is arbitrary; you can mix and
+match when you want. If you’re doing it in the graphical interface, they
+look sort of like trading cards, so constructing a rule is like deckbuilding.
+Triggers and Actions exist independent of the game world, and can
+therefore be moved from one game to another without much fuss. I
+intend to include a fair number of them with the release version of LiSE,
+so that you can throw together a toy sim without really writing any code.</p>
+</div>
+<div class="section" id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h2>
 <p>LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
@@ -62,123 +111,13 @@ state of the world at some point in the past.</p>
 <p>When time moves forward in LiSE, it checks all its rules and allows
 them to change the state of the world. Then, LiSE sets its clock to
 the next turn, and is ready for time to move forward another
-turn. LiSE can keep track of multiple timelines, called “branches,”
+turn. LiSE remembers the entire history of the game, so that you can
+travel back to previous turns and try things a different way.
+This is also convenient for debugging simulation rules.</p>
+<p>LiSE can keep track of multiple timelines, called “branches,”
 which can split off from one another. Branches normally don’t affect
 one another, though it’s possible to write rules that change one
 branch when they are run in another.</p>
-</div>
-<div class="section" id="programming-interface">
-<h1>Programming Interface<a class="headerlink" href="#programming-interface" title="Permalink to this headline">¶</a></h1>
-<p>The only LiSE class that you should ever instantiate yourself is
-Engine. All the other simulation objects should be
-created and accessed through it. Engine is instantiated
-with two arguments, which are file names of SQLite databases that will
-be created if needed; the first will hold the state of the simulation,
-including history, while the second will hold rules, including copies
-of the functions used in the rules.</p>
-<div class="section" id="world-modelling">
-<h2>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this headline">¶</a></h2>
-<p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
-<code class="docutils literal notranslate"><span class="pre">name</span></code>.  This will return a character object with the name you
-provided. Now draw a map by calling the method <code class="docutils literal notranslate"><span class="pre">add_place</span></code> with many
-different string <code class="docutils literal notranslate"><span class="pre">name</span></code> s, then linking them together with the
-method <code class="docutils literal notranslate"><span class="pre">add_portal(origin,</span> <span class="pre">destination)</span></code>.  To store data pertaining
-to some particular place, retrieve the place from the <code class="docutils literal notranslate"><span class="pre">place</span></code>
-mapping of the character: if the character is <code class="docutils literal notranslate"><span class="pre">world</span></code> and the place
-name is <code class="docutils literal notranslate"><span class="pre">'home'</span></code>, you might do it like
-<code class="docutils literal notranslate"><span class="pre">home</span> <span class="pre">=</span> <span class="pre">world.place['home']</span></code>. Portals are retrieved from the <code class="docutils literal notranslate"><span class="pre">portal</span></code>
-mapping, where you’ll need the origin and the destination: if there’s
-a portal from <code class="docutils literal notranslate"><span class="pre">'home'</span></code> to <code class="docutils literal notranslate"><span class="pre">'narnia'</span></code>, you can get it like
-<code class="docutils literal notranslate"><span class="pre">wardrobe</span> <span class="pre">=</span> <span class="pre">world.portal['home']['narnia']</span></code>, but if you haven’t also
-made another portal going the other way,
-<code class="docutils literal notranslate"><span class="pre">world.portal['narnia']['home']</span></code> will raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>. Things are
-created with the method <code class="docutils literal notranslate"><span class="pre">add_thing(name,</span> <span class="pre">location)</span></code>, where
-<code class="docutils literal notranslate"><span class="pre">location</span></code> must be the name of a place you’ve already
-created. Retrieve things from the <code class="docutils literal notranslate"><span class="pre">thing</span></code> mapping, which works much
-like the <code class="docutils literal notranslate"><span class="pre">place</span></code> mapping. If you need to access a character that you
-created previously, get it from the engine’s <code class="docutils literal notranslate"><span class="pre">character</span></code> mapping,
-eg. <code class="docutils literal notranslate"><span class="pre">world</span> <span class="pre">=</span> <span class="pre">engine.character['world']</span></code>.</p>
-<p>Characters are called that because, if you have</p>
-<p>You can store data in things, places, and portals by treating them
-like dictionaries.  If you want to store data in a character, use its
-<code class="docutils literal notranslate"><span class="pre">stat</span></code> property as a dictionary instead. Data stored in these
-objects, and in the <code class="docutils literal notranslate"><span class="pre">universal</span></code> property of the engine, can vary
-over time. The engine’s <code class="docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive,
-and is mainly for storing settings, not simulation data.</p>
-</div>
-<div class="section" id="rule-creation">
-<h2>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this headline">¶</a></h2>
-<p>To create a rule, first decide what objects the rule should apply
-to. You can put a rule on a character, thing, place, or portal; and
-you can put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and
-<code class="docutils literal notranslate"><span class="pre">portal</span></code> mappings, meaning the rule will be applied to <em>every</em> such
-entity within the character, even if it didn’t exist when the rule was
-declared.</p>
-<p>All these items have a property <code class="docutils literal notranslate"><span class="pre">rule</span></code> that can be used as a
-decorator. Use this to decorate a function that performs the rule’s
-action by making some change to the world state.  Functions decorated
-this way always get passed the engine as the first argument and the
-character as the second; if the function is more specific than that, a
-particular thing, place, or portal will be the third argument. This
-will get you a rule object of the same name as your action function.</p>
-<p>At first, the rule object will not have any triggers, meaning the action
-will never happen. If you want it to run on <em>every</em> tick, call its
-<code class="docutils literal notranslate"><span class="pre">always</span></code> method and think no more of it. But if you want to be
-more selective, use the rule’s <code class="docutils literal notranslate"><span class="pre">trigger</span></code> decorator on another
-function with the same signature, and have it return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the
-world is in such a state that the rule ought to run. There is nothing
-really stopping you from modifying the rule from inside a trigger, but
-it’s not recommended.</p>
-<p>If you like, you can also add prerequisites. These are like triggers,
-but use the <code class="docutils literal notranslate"><span class="pre">prereq</span></code> decorator, and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em>
-the action should <em>not</em> happen; if a single prerequisite returns
-<code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled.</p>
-</div>
-<div class="section" id="time-control">
-<h2>Time Control<a class="headerlink" href="#time-control" title="Permalink to this headline">¶</a></h2>
-<p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
-<code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
-forward one tick at a time, it should be done with the engine’s
-<code class="docutils literal notranslate"><span class="pre">next_turn</span></code> method, which polls all the game rules before going to
-the next tick; but you can also change the time whenever you want, as
-long as <code class="docutils literal notranslate"><span class="pre">branch</span></code> is a string and <code class="docutils literal notranslate"><span class="pre">turn</span></code> is an integer. The rules
-will never be followed in response to your changing the time “by
-hand”.</p>
-<p>It is possible–indeed, expected–to change the time as part of the
-action of a rule. This is how you would make something happen after a
-delay. Say you want a rule that puts the character <code class="docutils literal notranslate"><span class="pre">alice</span></code> to sleep,
-then wakes her up after eight turns (presumably hour-long).:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
-
-<span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
-<span class="k">def</span> <span class="nf">sleep</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
-    <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">with</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">:</span>
-        <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span> <span class="o">+=</span> <span class="mi">8</span>
-        <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-</pre></div>
-</div>
-<p>At the end of a <code class="docutils literal notranslate"><span class="pre">plan</span></code> block, time will return to whenever it was
-at the start of the block.</p>
-<p>As of alpha 8, plans won’t carry over to new branches created before
-the plan’s completion. This is a planned feature.</p>
-</div>
-<div class="section" id="input-prompts">
-<h2>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this headline">¶</a></h2>
-<p>To ask the player to make a decision, first define a method for them to
-call, then return a menu description like this one.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@engine</span><span class="o">.</span><span class="n">method</span>
-<span class="k">def</span> <span class="nf">wake_alice</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
-    <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-
-<span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
-
-<span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
-<span class="k">def</span> <span class="nf">wakeup</span><span class="p">(</span><span class="n">character</span><span class="p">):</span>
-    <span class="k">return</span> <span class="s2">&quot;Wake up?&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Yes&quot;</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">wake_alice</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;No&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span>
-</pre></div>
-</div>
-<p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> decorator may be used in a menu.</p>
 </div>
 </div>
 <div class="section" id="ide">
@@ -202,17 +141,14 @@ Portals by clicking them–and once you’ve selected them, you can drag
 them elsewhere. If no Place, Thing, or Portal is selected, then the
 Character you are viewing is selected. There’s a button in the
 top-right to view another Character.</p>
-<p>Below all this are some bits to let you manipulate time, mainly the
-Play and Next Turn buttons. Play will start moving time forward when
-you press it, and stop when you press it again. Next Tick will only
-move time forward by one tick. There are also text fields with which
-you can enter the Branch and Turn by hand. Note that rules are only
-run when you advance time using Play or Next Turn. The Tick field
-indicates how many changes have occurred in the current turn. It’s
-not very useful to edit this, but you can, and ELiDE will show you
-the state of the world only partway through a turn if you wish.</p>
+<p>On the bottom left are some bits to let you manipulate time, mainly the
+Simulate and 1 Turn buttons. Simulate will start moving time forward when
+you press it, and stop when you press it again.
+There are also text fields with which you can enter the time by hand.
+Note that rules are only run when you advance time using Simulate or 1 Turn.
+The Tick field indicates how many changes have occurred in the current turn.</p>
 <p>It’s possible to view turns that haven’t been simulated yet.
-This is deliberate, but it’s not a good idea to do this in alpha 8,
+This is deliberate, but it’s not a good idea at the moment,
 because ELiDE doesn’t know how to make plans yet.</p>
 <div class="section" id="stat-editor">
 <h2>Stat Editor<a class="headerlink" href="#stat-editor" title="Permalink to this headline">¶</a></h2>
@@ -251,6 +187,10 @@ to edit from the menu on the left, using the box at the bottom to add one if nee
 Then go through the trigger, prereq, and action tabs, and drag the functions from
 the right pile to the left to include them in the rule. You may also reorder them
 within the left pile.</p>
+<p>Rules made here will apply to the entity currently selected in the main screen.
+There is currently no graphical way to apply the same rulebook to many entities.
+You can, however, select nothing, in which case you get the option to edit
+rulebooks that apply to the current character overall,</p>
 </div>
 <div class="section" id="strings-editor">
 <h2>Strings Editor<a class="headerlink" href="#strings-editor" title="Permalink to this headline">¶</a></h2>
@@ -263,42 +203,50 @@ programmatically by setting <code class="docutils literal notranslate"><span cla
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Introduction</a></li>
-<li><a class="reference internal" href="#programming-interface">Programming Interface</a><ul>
-<li><a class="reference internal" href="#world-modelling">World Modelling</a></li>
-<li><a class="reference internal" href="#rule-creation">Rule Creation</a></li>
-<li><a class="reference internal" href="#time-control">Time Control</a></li>
-<li><a class="reference internal" href="#input-prompts">Input Prompts</a></li>
+<h1 class="logo"><a href="index.html">LiSE</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#too-much-world-state">Too much world state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#too-many-rules">Too many rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#ide">IDE</a><ul>
-<li><a class="reference internal" href="#stat-editor">Stat Editor</a></li>
-<li><a class="reference internal" href="#python-editor">Python Editor</a></li>
-<li><a class="reference internal" href="#rules-editor">Rules Editor</a></li>
-<li><a class="reference internal" href="#strings-editor">Strings Editor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#ide">IDE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#stat-editor">Stat Editor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-editor">Python Editor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rules-editor">Rules Editor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#strings-editor">Strings Editor</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="allegedb/index.html">allegedb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">LiSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ELiDE/index.html">ELiDE</a></li>
 </ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to LiSE’s documentation!</a></li>
+      <li>Next: <a href="allegedb/index.html" title="next chapter">allegedb</a></li>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/manual.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <div class="searchformwrapper">
@@ -311,16 +259,24 @@ programmatically by setting <code class="docutils literal notranslate"><span cla
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="_sources/manual.rst.txt"

@@ -1,6 +1,20 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Directed edges, as used by LiSE."""
+from collections import Mapping, ValuesView
 
 from allegedb.graph import Edge
 from allegedb.cache import HistoryError
@@ -31,9 +45,15 @@ class Portal(Edge, RuleFollower):
     set it here instead.
 
     """
+    __slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination')
     character = getatt('graph')
     engine = getatt('db')
     no_unwrap = True
+
+    def __init__(self, graph, orig, dest, idx=0):
+        super().__init__(graph, orig, dest, idx)
+        self.origin = graph.node[orig]
+        self.destination = graph.node[dest]
 
     @property
     def _cache(self):
@@ -63,12 +83,26 @@ class Portal(Edge, RuleFollower):
         ))
 
     def _get_rulebook_name(self):
-        return self.engine._portals_rulebooks_cache.retrieve(
-            self.character.name, self.orig, self.dest, *self.engine.btt()
-        )
+        try:
+            return self.engine._portals_rulebooks_cache.retrieve(
+                self.character.name, self.orig, self.dest, *self.engine._btt()
+            )
+        except KeyError:
+            return (self.character.name, self.orig, self.dest)
 
-    def _set_rulebook_name(self, n):
-        self.engine._set_portal_rulebook(self.character.name, self.orig, self.dest, n)
+    def _set_rulebook_name(self, rulebook):
+        character = self.character
+        orig = self.orig
+        dest = self.dest
+        cache = self.engine._portals_rulebooks_cache
+        try:
+            if rulebook == cache.retrieve(character, orig, dest, *self.engine._btt()):
+                return
+        except KeyError:
+            pass
+        branch, turn, tick = self.engine._nbtt()
+        cache.store(character, orig, dest, branch, turn, tick, rulebook)
+        self.engine.query.set_portal_rulebook(character, orig, dest, branch, turn, tick, rulebook)
 
     def _get_rule_mapping(self):
         return RuleMapping(self)
@@ -160,16 +194,6 @@ class Portal(Edge, RuleFollower):
                self.dest in self.character.portal[self.orig]
 
     @property
-    def origin(self):
-        """Return the Place object that is where I begin"""
-        return self.character.place[self.orig]
-
-    @property
-    def destination(self):
-        """Return the Place object at which I end"""
-        return self.character.place[self.dest]
-
-    @property
     def reciprocal(self):
         """If there's another Portal connecting the same origin and
         destination that I do, but going the opposite way, return
@@ -182,31 +206,24 @@ class Portal(Edge, RuleFollower):
             raise KeyError("This portal has no reciprocal")
 
     def historical(self, stat):
+        """Return a reference to the values that a stat has had in the past.
+
+        You can use the reference in comparisons to make a history
+        query, and execute the query by calling it, or passing it to
+        ``self.engine.ticks_when``.
+
+        """
         return StatusAlias(
             entity=self,
             stat=stat
-        )
-
-    def contents(self):
-        """Iterate over Thing instances that are presently travelling through
-        me.
-
-        """
-        for thing in self.character.thing.values():
-            if thing['locations'] == (self.orig, self.dest):
-                yield thing
-
-    def new_thing(self, name, statdict={}, **kwargs):
-        """Create and return a thing located in my origin and travelling to my
-        destination."""
-        return self.character.new_thing(
-            name, self.orig, self.dest, statdict, **kwargs
         )
 
     def update(self, d):
         """Works like regular update, but only actually updates when the new
         value and the old value differ. This is necessary to prevent
         certain infinite loops.
+
+        :arg d: a dictionary
 
         """
         for (k, v) in d.items():
@@ -219,7 +236,7 @@ class Portal(Edge, RuleFollower):
         For symmetry with :class:`Thing` and :class`Place`.
 
         """
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         self.engine._edges_cache.store(
             self.character.name,
             self.origin.name,
@@ -237,7 +254,7 @@ class Portal(Edge, RuleFollower):
             branch, turn, tick, False
         )
         try:
-            del self.engine._portal_objs[
+            del self.engine._edge_objs[
                 (self.graph.name, self.orig, self.dest)
             ]
         except KeyError:
@@ -248,4 +265,7 @@ class Portal(Edge, RuleFollower):
         )
 
     def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
+        return {
+            k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap')
+            else v for (k, v) in self.items()
+        }

@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A dwarf hunting a kobold that hides in the bushes.
 
 This script will initialize LiSEworld.db and the code libraries to run the
@@ -98,9 +111,11 @@ def inittest(
 
     @shrubsprint.prereq
     def not_traveling(thing):
-        if thing['next_location'] is not None:
-            thing.engine.info("kobold already travelling to {}".format(thing['next_location']))
-        return thing['next_location'] is None
+        if thing.next_location is not None:
+            thing.engine.info("kobold already travelling to {}".format(thing.next_location))
+            return False
+        else:
+            return True
 
     @engine.method
     def set_kill_flag(eng):
@@ -146,15 +161,11 @@ def inittest(
         del thing.character.thing['kobold']
         del thing['kill']
 
-    kill_kobold.prereq(kobold_alive)
+    kill_kobold.trigger(kobold_alive)
 
     @kill_kobold.prereq
-    def flag_set(thing):
-        return 'kill' in thing
-
-    @kill_kobold.trigger
     def unmerciful(thing):
-        return thing['kill']
+        return thing.get('kill', False)
 
     @dwarf.rule
     def go2kobold(thing):
@@ -176,7 +187,7 @@ def inittest(
 
     @wander.trigger
     def standing_still(thing):
-        return thing['next_location'] is None
+        return thing.next_location is None
 
 
 if __name__ == '__main__':

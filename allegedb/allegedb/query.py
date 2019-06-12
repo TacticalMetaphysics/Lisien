@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for graphs.
 # Copyright (c) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Wrapper to run SQL queries in a lightly abstracted way, such that
 code that's more to do with the queries than with the data per se
 doesn't pollute the other files so much.
@@ -307,9 +320,10 @@ class QueryEngine(object):
         graph, key, value = map(self.pack, (graph, key, value))
         self._graphvals2set.append((graph, key, branch, turn, tick, value))
 
-    def graph_val_del(self, graph, key, branch, turn, tick):
-        """Indicate that the key is unset."""
-        self.graph_val_set(graph, key, branch, turn, tick, None)
+    def graph_val_del_time(self, branch, turn, tick):
+        self._flush_graph_val()
+        self.sql('graph_val_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
@@ -341,6 +355,11 @@ class QueryEngine(object):
             raise TimeError
         self._btts.add((branch, turn, tick))
         self._nodes2set.append((self.pack(graph), self.pack(node), branch, turn, tick, extant))
+
+    def nodes_del_time(self, branch, turn, tick):
+        self._flush_nodes()
+        self.sql('nodes_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
@@ -401,9 +420,10 @@ class QueryEngine(object):
         graph, node, key, value = map(self.pack, (graph, node, key, value))
         self._nodevals2set.append((graph, node, key, branch, turn, tick, value))
 
-    def node_val_del(self, graph, node, key, branch, turn, tick):
-        """Delete a key from a node at a specific branch and revision"""
-        self.node_val_set(graph, node, key, branch, turn, tick, None)
+    def node_val_del_time(self, branch, turn, tick):
+        self._flush_node_val()
+        self.sql('node_val_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
@@ -452,6 +472,11 @@ class QueryEngine(object):
         self._btts.add((branch, turn, tick))
         graph, orig, dest = map(self.pack, (graph, orig, dest))
         self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
+
+    def edges_del_time(self, branch, turn, tick):
+        self._flush_edges()
+        self.sql('edges_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
@@ -502,12 +527,28 @@ class QueryEngine(object):
             (graph, orig, dest, idx, key, branch, turn, tick, value)
         )
 
-    def edge_val_del(self, graph, orig, dest, idx, key, branch, turn, tick):
-        """Declare that the key no longer applies to this edge, as of this
-        branch and revision.
+    def edge_val_del_time(self, branch, turn, tick):
+        self._flush_edge_val()
+        self.sql('edge_val_del_time', branch, turn, tick)
+        self._btts.discard((branch, turn, tick))
 
-        """
-        self.edge_val_set(graph, orig, dest, idx, key, branch, turn, tick, None)
+    def plans_dump(self):
+        return self.sql('plans_dump')
+
+    def plans_insert(self, plan_id, branch, turn, tick):
+        return self.sql('plans_insert', plan_id, branch, turn, tick)
+
+    def plans_insert_many(self, many):
+        return self.sqlmany('plans_insert', *many)
+
+    def plan_ticks_insert(self, plan_id, turn, tick):
+        return self.sql('plan_ticks_insert', plan_id, turn, tick)
+
+    def plan_ticks_insert_many(self, many):
+        return self.sqlmany('plan_ticks_insert', *many)
+
+    def plan_ticks_dump(self):
+        return self.sql('plan_ticks_dump')
 
     def initdb(self):
         """Create tables and indices as needed."""
@@ -530,39 +571,22 @@ class QueryEngine(object):
             self.globl['turn'] = 0
         if 'tick' not in self.globl:
             self.globl['tick'] = 0
-        try:
-            cursor.execute('SELECT * FROM branches;')
-        except OperationalError:
-            cursor.execute(self.strings['create_branches'])
-        try:
-            cursor.execute('SELECT * FROM turns;')
-        except OperationalError:
-            cursor.execute(self.strings['create_turns'])
-        try:
-            cursor.execute('SELECT * FROM graphs;')
-        except OperationalError:
-            cursor.execute(self.strings['create_graphs'])
-        try:
-            cursor.execute('SELECT * FROM graph_val;')
-        except OperationalError:
-            cursor.execute(self.strings['create_graph_val'])
-        try:
-            cursor.execute('SELECT * FROM nodes;')
-        except OperationalError:
-            cursor.execute(self.strings['create_nodes'])
-
-        try:
-            cursor.execute('SELECT * FROM node_val;')
-        except OperationalError:
-            cursor.execute(self.strings['create_node_val'])
-        try:
-            cursor.execute('SELECT * FROM edges;')
-        except OperationalError:
-            cursor.execute(self.strings['create_edges'])
-        try:
-            cursor.execute('SELECT * FROM edge_val;')
-        except OperationalError:
-            cursor.execute(self.strings['create_edge_val'])
+        for table in (
+            'branches',
+            'turns',
+            'graphs',
+            'graph_val',
+            'nodes',
+            'node_val',
+            'edges',
+            'edge_val',
+            'plans',
+            'plan_ticks'
+        ):
+            try:
+                cursor.execute('SELECT * FROM ' + table + ';')
+            except OperationalError:
+                cursor.execute(self.strings['create_' + table])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""
@@ -575,9 +599,9 @@ class QueryEngine(object):
     def commit(self):
         """Commit the transaction"""
         self.flush()
-        if hasattr(self, 'transaction'):
+        if hasattr(self, 'transaction') and self.transaction.is_active:
             self.transaction.commit()
-        else:
+        elif hasattr(self, 'connection'):
             self.connection.commit()
 
     def close(self):

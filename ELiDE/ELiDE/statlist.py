@@ -1,5 +1,18 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Grid of current values for some entity. Can be changed by the
 user. Autoupdates when there's a change for any reason.
 
@@ -8,10 +21,7 @@ from functools import partial
 from kivy.properties import (
     BooleanProperty,
     DictProperty,
-    NumericProperty,
     ObjectProperty,
-    OptionProperty,
-    ReferenceListProperty,
     StringProperty,
 )
 from kivy.logger import Logger
@@ -68,6 +78,11 @@ class StatRowListItem(Widget):
             self.value = self.gett(self.key)
         except KeyError:
             Logger.info('StatRowListItem: {} deleted'.format(self.key))
+        except TypeError:
+            value = self.gett(self.key)
+            Logger.warning("StatRowListItem: couldn't set value {} because it is type {}".format(
+                value, type(value)
+            ))
         self.bind(value=self._push)
 
     def _pull(self, *args, **kwargs):
@@ -80,6 +95,7 @@ class StatRowLabel(StatRowListItem, Label):
 
 
 class StatRowTextInput(StatRowListItem, TextInput):
+    """Display the current value of a stat and accept text input to change it."""
     def __init__(self, **kwargs):
         kwargs['multiline'] = False
         super().__init__(**kwargs)
@@ -102,6 +118,12 @@ class StatRowTextInput(StatRowListItem, TextInput):
 
 
 class StatRowToggleButton(StatRowListItem, ToggleButton):
+    """Display the current value of a stat, 0 or 1, and let the user press a button to flip it."""
+    true_text = StringProperty('1')
+    """String to display when the stat is true."""
+    false_text = StringProperty('0')
+    """String to display when the stat is false."""
+
     def on_touch_up(self, *args):
         if self.parent is None:
             return
@@ -112,12 +134,29 @@ class StatRowToggleButton(StatRowListItem, ToggleButton):
 
 
 class StatRowSlider(StatRowListItem, Slider):
+    """Display the current value of a numeric stat and let the user slide it."""
     need_set = BooleanProperty(False)
+    """Internal. Usually False, becomes True briefly when the value has changed."""
 
     def __init__(self, **kwargs):
-        if 'text' in kwargs:
-            del kwargs['text']
+        self.value = kwargs['value']
+        self.min = kwargs['min']
+        self.max = kwargs['max']
         super().__init__(**kwargs)
+
+    def _bind_value(self, *args):
+        pass
+
+    def _really_pull(self, *args):
+        try:
+            self.value = self.gett(self.key)
+        except KeyError:
+            Logger.info('StatRowListItem: {} deleted'.format(self.key))
+        except TypeError:
+            value = self.gett(self.key)
+            Logger.warning("StatRowListItem: couldn't set value {} because it is type {}".format(
+                value, type(value)
+            ))
 
     def on_listen(self, *args):
         self.listen(self._pull)
@@ -133,38 +172,77 @@ class StatRowSlider(StatRowListItem, Slider):
 
 
 class StatRowListItemContainer(BoxLayout):
+    """The name of a stat followed by a widget representing its value.
+
+    The widget can be
+
+    * :class:`StatRowLabel`
+    * :class:`StatRowTextInput`
+    * :class:`StatRowToggleButton`
+    * :class:`StatRowSlider`
+
+    """
     key = ObjectProperty()
+    """The name of the stat"""
     reg = ObjectProperty()
     unreg = ObjectProperty()
     gett = ObjectProperty()
+    """Function to get the current value of stats, taking the stat name as its argument"""
     sett = ObjectProperty()
+    """Function to set the current value of stats, taking args (key, value)"""
     listen = ObjectProperty()
+    """Function to register a listener to a LiSE entity"""
     unlisten = ObjectProperty()
+    """Function to unregister a listener from a LiSE entity"""
     config = DictProperty()
-    control = OptionProperty(
-        'readout', options=['readout', 'textinput', 'togglebutton', 'slider']
-    )
-    licls = {
-        'readout': StatRowLabel,
-        'textinput': StatRowTextInput,
-        'togglebutton': StatRowToggleButton,
-        'slider': StatRowSlider
-    }
+    """Dictionary describing the configuration of this stat's widget.
+    
+    The key 'control' has the widget type as its value, which may be
+    
+    * 'readout'
+    * 'textinput'
+    * 'togglebutton'
+    * 'slider'
+    
+    Other keys are specific to one widget type or another.
+    
+    """
 
     def set_value(self, *args):
+        """Use my ``sett`` function to set my stat (``key``) to my new ``value``.
+
+        This doesn't need arguments, but accepts any positional arguments provided,
+        so that you can use this in kvlang
+
+        """
         self.sett(self.key, self.value)
 
     def __init__(self, **kwargs):
+        kwargs.setdefault('orientation', 'vertical')
         super().__init__(**kwargs)
-        self.bind(
-            key=self.remake,
-            control=self.remake,
-            config=self.remake,
-            parent=self.remake
-        )
+        self.remake()
 
-    @trigger
+    def on_key(self, *args):
+        self.remake()
+
+    def on_config(self, *args):
+        self.remake()
+
+    def on_parent(self, *args):
+        self.remake()
+
     def remake(self, *args):
+        """Replace any existing child widget with the one described by my ``config``.
+
+        This doesn't need arguments, but accepts any positional arguments provided,
+        so that you can use this in kvlang
+
+        """
+        if not self.config:
+            return
+        if not all((self.key, self.gett, self.sett, self.listen, self.unlisten)):
+            Clock.schedule_once(self.remake, 0)
+            return
         if not hasattr(self, 'label'):
             self.label = Label(text=str(self.key))
 
@@ -175,27 +253,65 @@ class StatRowListItemContainer(BoxLayout):
         if hasattr(self, 'wid'):
             self.remove_widget(self.wid)
             del self.wid
-        cls = self.licls[self.control]
-        self.wid = cls(
-            key=self.key,
-            gett=self.gett,
-            sett=self.sett,
-            config=self.config,
-            listen=self.listen,
-            unlisten=self.unlisten
-        )
+        control = self.config['control']
+        widkwargs = {
+            'key': self.key,
+            'gett': self.gett,
+            'sett': self.sett,
+            'listen': self.listen,
+            'unlisten': self.unlisten
+        }
+        if control == 'slider':
+            cls = StatRowSlider
+            try:
+               widkwargs['value'] = float(self.gett(self.key))
+               widkwargs['min'] = float(self.config['min'])
+               widkwargs['max'] = float(self.config['max'])
+            except (KeyError, ValueError):
+                return
+        elif control == 'togglebutton':
+            cls = StatRowToggleButton
+            try:
+                widkwargs['true_text'] = self.config['true_text']
+                widkwargs['false_text'] = self.config['false_text']
+            except KeyError:
+                return
+        elif control == 'textinput':
+            cls = StatRowTextInput
+        else:
+            cls = StatRowLabel
+        self.wid = cls(**widkwargs)
         self.bind(
             key=self.wid.setter('key'),
             gett=self.wid.setter('gett'),
             sett=self.wid.setter('sett'),
-            config=self.wid.setter('config'),
             listen=self.wid.setter('listen'),
             unlisten=self.wid.setter('unlisten')
         )
+        if control == 'slider':
+            self.unbind(config=self._toggle_update_config)
+            self.bind(config=self._slider_update_config)
+        elif control == 'togglebutton':
+            self.unbind(config=self._slider_update_config)
+            self.bind(config=self._toggle_update_config)
+        else:
+            self.unbind(config=self._slider_update_config)
+            self.unbind(config=self._toggle_update_config)
         self.add_widget(self.wid)
+
+    @trigger
+    def _slider_update_config(self, *args):
+        self.wid.min = self.config['min']
+        self.wid.max = self.config['max']
+
+    @trigger
+    def _toggle_update_config(self, *args):
+        self.wid.true_text = self.config['true_text']
+        self.wid.false_text = self.config['false_text']
 
 
 default_cfg = {
+    'control': 'readout',
     'true_text': '1',
     'false_text': '0',
     'min': 0.0,
@@ -204,135 +320,94 @@ default_cfg = {
 
 
 class BaseStatListView(RecycleView):
-    control = DictProperty({})
-    config = DictProperty({})
-    mirror = DictProperty({})
+    """Base class for widgets showing lists of stats and their values"""
     proxy = ObjectProperty()
+    """A proxy object representing a LiSE entity"""
     engine = ObjectProperty()
+    """A :class:`LiSE.proxy.EngineProxy` object"""
     app = ObjectProperty()
+    """The Kivy app object"""
 
     def __init__(self, **kwargs):
         self._listeners = {}
-        self.bind(
-            proxy=self.refresh_mirror,
-            mirror=self._trigger_upd_data
-        )
         super().__init__(**kwargs)
 
-    def on_app(self, *args):
-        self.app.bind(
-            branch=self.refresh_mirror,
-            turn=self.refresh_mirror,
-            tick=self.refresh_mirror
-        )
+    def on_proxy(self, *args):
+        self.proxy.connect(self._trigger_upd_data, weak=False)
+        self._trigger_upd_data()
 
     def del_key(self, k):
+        """Delete the key and any configuration for it"""
         if k not in self.mirror:
             raise KeyError
         del self.proxy[k]
-        del self.mirror[k]
-        if k in self.control:
-            del self.proxy['_control'][k]
-            del self.control[k]
-        if k in self.config:
+        if '_config' in self.proxy and k in self.proxy['_config']:
             del self.proxy['_config'][k]
-            del self.config[k]
 
     def set_value(self, k, v):
+        """Set a value on the proxy, parsing it to a useful datatype if possible"""
+        from ast import literal_eval
         if self.engine is None or self.proxy is None:
             self._trigger_set_value(k, v)
             return
         if v is None:
             del self.proxy[k]
-            del self.mirror[k]
         else:
             try:
-                vv = self.engine.unpack(v)
+                vv = literal_eval(v)
             except (TypeError, ValueError):
                 vv = v
-            self.proxy[k] = self.mirror[k] = vv
+            self.proxy[k] = vv
 
     def _trigger_set_value(self, k, v, *args):
         todo = partial(self.set_value, k, v)
         Clock.unschedule(todo)
         Clock.schedule_once(todo, 0)
 
-    def init_control_config(self, key):
-        if key not in self.control:
-            self.set_control(key, 'readout')
-        if key not in self.config:
-            cfgd = dict(self.config)
-            cfgd[key] = default_cfg
-            self.proxy['_config'] = cfgd
-        else:
-            cfgd = dict(self.config)
-            for option in default_cfg:
-                if option not in cfgd[key]:
-                    cfgd[key][option] = default_cfg[option]
-            self.proxy['_config'] = cfgd
-
-    def set_control(self, key, control):
-        if '_control' not in self.mirror:
-            ctrld = {key: control}
-        else:
-            ctrld = dict(self.control)
-            ctrld[key] = control
-        self.proxy['_control'] \
-            = self.mirror['_control'] \
-            = self.control \
-            = ctrld
+    def init_config(self, key):
+        """Set the configuration for the key to something that will always work"""
+        self.proxy['_config'].setdefault(key, default_cfg)
 
     def set_config(self, key, option, value):
-        if '_config' not in self.mirror:
-            self.proxy['_config'] \
-                = self.config \
-                = {key: {option: value}}
-        elif key in self.config:
-            newcfg = dict(self.config)
-            newcfg[key][option] = value
-            self.proxy['_config'] = self.config = newcfg
+        """Set a configuration option for a key"""
+        if '_config' not in self.proxy:
+            newopt = dict(default_cfg)
+            newopt[option] = value
+            self.proxy['_config'] = {key: newopt}
         else:
-            newcfg = dict(default_cfg)
-            newcfg[option] = value
-            self.proxy['_config'][key] = self.config = newcfg
+            if key in self.proxy['_config']:
+                self.proxy['_config'][key][option] = value
+            else:
+                newopt = dict(default_cfg)
+                newopt[option] = value
+                self.proxy['_config'][key] = newopt
 
     def set_configs(self, key, d):
-        if '_config' in self.mirror:
-            self.mirror['_config'][key] = self.proxy['_config'][key] = d
+        """Set the whole configuration for a key"""
+        if '_config' in self.proxy:
+            self.proxy['_config'][key] = d
         else:
-            self.mirror['_config'] = self.proxy['_config'] = {key: d}
-        self.config[key] = d
+            self.proxy['_config'] = {key: d}
 
     def iter_data(self):
-        for (k, v) in self.mirror.items():
+        """Iterate over key-value pairs that are really meant to be displayed"""
+        for (k, v) in self.proxy.items():
             if (
                 not (isinstance(k, str) and k[0] == '_') and
                 k not in (
                     'character',
                     'name',
-                    'location',
-                    'next_location',
-                    'locations',
-                    'arrival_time',
-                    'next_arrival_time'
+                    'location'
                 )
             ):
                 yield k, v
 
-    @trigger
-    def refresh_mirror(self, *args):
-        Logger.debug('{}: refreshing mirror'.format(type(self)))
-        if self.proxy is None:
-            return
-        new = dict(self.proxy)
-        if '_control' in new and new['_control'] != self.control:
-            self.control = new['_control']
-        if '_config' in new and new['_config'] != self.config:
-            self.config = new['_config']
-        if self.mirror != new:
-            self.mirror = new
-
     def munge(self, k, v):
+        """Turn a key and value into a dictionary describing a widget to show"""
+        if '_config' in self.proxy and k in self.proxy['_config']:
+            config = self.proxy['_config'][k].unwrap()
+        else:
+            config = default_cfg
         return {
             'key': k,
             'reg': self._reg_widget,
@@ -341,34 +416,38 @@ class BaseStatListView(RecycleView):
             'sett': self.set_value,
             'listen': self.proxy.connect,
             'unlisten': self.proxy.disconnect,
-            'control': self.control.get(k, 'readout'),
-            'config': self.config.get(k, default_cfg)
+            'config': config
         }
 
     def upd_data(self, *args):
-        self.data = [self.munge(k, v) for k, v in self.iter_data()]
-    _trigger_upd_data = trigger(upd_data)
+        """Update to match new entity data"""
+        data = [self.munge(k, v) for k, v in self.iter_data()]
+        self.data = sorted(data, key=lambda d: d['key'])
+
+    def _trigger_upd_data(self, *args, **kwargs):
+        Clock.unschedule(self.upd_data)
+        Clock.schedule_once(self.upd_data, 0)
 
     def _reg_widget(self, w, *args):
-        if not self.mirror:
+        if not self.proxy:
             Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
 
         def listen(*args):
-            if w.key not in self.mirror:
+            if w.key not in self.proxy:
                 return
-            if w.value != self.mirror[w.key]:
-                w.value = self.mirror[w.key]
+            if w.value != self.proxy[w.key]:
+                w.value = self.proxy[w.key]
         self._listeners[w.key] = listen
-        self.bind(mirror=listen)
+        self.proxy.connect(listen)
 
     def _unreg_widget(self, w):
         if w.key in self._listeners:
-            self.unbind(mirror=self._listeners[w.key])
+            self.proxy.disconnect(self._listeners[w.key])
 
 
 class StatListView(BaseStatListView):
-    pass
+    """The type of StatListView that shows only stats and their values"""
 
 
 Builder.load_string(
@@ -381,11 +460,14 @@ Builder.load_string(
     hint_text: str(self.value)
     multiline: False
 <StatRowToggleButton>:
-    text: self.config['true_text'] if self.value else self.config['false_text']
+    text: self.true_text if self.value else self.false_text
     state: 'down' if self.value else 'normal'
 <StatRowSlider>:
-    min: self.config['min']
-    max: self.config['max']
+    Label:
+        center_x: root.center_x
+        y: root.center_y
+        text: str(root.value)
+        size: self.texture_size
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
     app: app

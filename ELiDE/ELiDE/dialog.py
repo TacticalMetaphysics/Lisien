@@ -1,10 +1,22 @@
 # This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Generic dialog boxes and menus, for in front of a Board
 
 """
 from functools import partial
-from importlib import import_module
 from kivy.properties import (
     DictProperty, ListProperty, ObjectProperty, StringProperty, NumericProperty, VariableListProperty
 )
@@ -20,19 +32,19 @@ from kivy.logger import Logger
 
 
 class Box(Widget):
-    padding = VariableListProperty([6, 6, 6, 6])
-    border = ListProperty([4, 4, 4, 4])
+    padding = VariableListProperty(6)
+    border = VariableListProperty(4)
     font_size = StringProperty('15sp')
     font_name = StringProperty(DEFAULT_FONT)
     background = StringProperty()
-    background_color = ListProperty([1, 1, 1, 1])
-    foreground_color = ListProperty([0, 0, 0, 1])
+    background_color = VariableListProperty([1, 1, 1, 1])
+    foreground_color = VariableListProperty([0, 0, 0, 1])
 
 
 class ScrollableLabel(ScrollView):
     font_size = StringProperty('15sp')
     font_name = StringProperty(DEFAULT_FONT)
-    color = ListProperty([0, 0, 0, 1])
+    color = VariableListProperty([0, 0, 0, 1])
     line_spacing = NumericProperty(0)
     text = StringProperty()
 
@@ -76,7 +88,7 @@ class DialogMenu(Box):
         for txt, part in self.options:
             if not callable(part):
                 raise TypeError("Menu options must be callable")
-            layout.add_widget(Button(text=txt, on_press=part, font_name=self.font_name, font_size=self.font_size))
+            layout.add_widget(Button(text=txt, on_release=part, font_name=self.font_name, font_size=self.font_size))
         self.add_widget(self._sv)
 
 
@@ -162,15 +174,17 @@ class DialogLayout(FloatLayout):
 
     def _pull(self, *args, key, value):
         if key == 'last_result':
-            self.todo = value or []
+            self.todo = value if value and isinstance(value, list) else []
         elif key == 'last_result_idx':
-            self.idx = value
+            self.idx = value if value and isinstance(value, int) else 0
 
     def on_idx(self, *args):
-        if self.engine.universal.get('last_result_idx') != self.idx:
+        lidx = self.engine.universal.get('last_result_idx')
+        if lidx is not None and lidx != self.idx:
             self.engine.universal['last_result_idx'] = self.idx
 
     def advance_dialog(self, *args):
+        """Try to display the next dialog described in my ``todo``."""
         self.clear_widgets()
         try:
             self._update_dialog(self.todo[self.idx])
@@ -230,6 +244,7 @@ class DialogLayout(FloatLayout):
         Clock.schedule_once(part)
 
     def _lookup_func(self, funcname):
+        from importlib import import_module
         if not hasattr(self, '_usermod'):
             self._usermod = import_module(self.usermod, self.userpkg)
         return getattr(self.usermod, funcname)

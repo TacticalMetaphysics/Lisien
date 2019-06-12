@@ -29,3 +29,6 @@ method.py
 strings.json
 ELiDE.ini
 .coverage
+.pytest_cache
+breakage.diff
+ELiDE/ELiDE/kivygarden/texturestack

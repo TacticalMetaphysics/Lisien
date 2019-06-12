@@ -1,6 +1,58 @@
 Introduction
 ============
 
+Life sims all seem to have two problems in common:
+
+Too much world state
+--------------------
+
+The number of variables the game is tracking -- just for game logic, not
+graphics or physics or anything -- is very large. Like how The Sims
+tracks sims' opinions of one another, their likes and dislikes and so forth,
+even for the ones you never talk to and have shown no interest in. If you
+streamline a life sim to where it doesn't have extraneous detail
+complexity you lose a huge part of what makes it lifelike.
+
+This causes trouble for developers when even *they* don't really
+understand why sims hate each other, and even if they do, failures of
+bookkeeping can cause technical issues like how damn long it takes to
+save or load your game in The Sims 3.
+
+To address all those problems, LiSE provides a state container.
+Everything that ever happens in a game gets recorded, so that you can
+pick through the whole history and find out exactly when the butterfly
+flapped its wings to cause the cyclone. All of that history gets saved
+in a database, too, which is used in place of traditional save files.
+This means that if your testers discover something strange and want
+you to know about it, they can send you their database, and you'll
+know everything they did and everything that happened in their game.
+
+Too many rules
+--------------
+
+Fans of life sims tend to appreciate complexity. Developers are best
+served by reducing complexity as much as possible. So LiSE makes it
+easy to compartmentalize complexity and choose what of it you want to
+deal with and when.
+
+It is a rules engine, an old concept from business software that lets you
+determine what conditions cause what effects. Here, conditions are
+Triggers and effects are Actions, and they're both lists of Python
+functions. Actions make some change to the state of the world, while
+Triggers look at the world once-per-turn and return a Boolean to show
+whether their Actions should happen.
+
+The connection between Trigger and Action is arbitrary; you can mix and
+match when you want. If you're doing it in the graphical interface, they
+look sort of like trading cards, so constructing a rule is like deckbuilding.
+Triggers and Actions exist independent of the game world, and can
+therefore be moved from one game to another without much fuss. I
+intend to include a fair number of them with the release version of LiSE,
+so that you can throw together a toy sim without really writing any code.
+
+Architecture
+------------
+
 LiSE is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
@@ -37,136 +89,14 @@ state of the world at some point in the past.
 When time moves forward in LiSE, it checks all its rules and allows
 them to change the state of the world. Then, LiSE sets its clock to
 the next turn, and is ready for time to move forward another
-turn. LiSE can keep track of multiple timelines, called "branches,"
+turn. LiSE remembers the entire history of the game, so that you can
+travel back to previous turns and try things a different way.
+This is also convenient for debugging simulation rules.
+
+LiSE can keep track of multiple timelines, called "branches,"
 which can split off from one another. Branches normally don't affect
 one another, though it's possible to write rules that change one
 branch when they are run in another.
-
-Programming Interface
-=====================
-
-The only LiSE class that you should ever instantiate yourself is
-Engine. All the other simulation objects should be
-created and accessed through it. Engine is instantiated
-with two arguments, which are file names of SQLite databases that will
-be created if needed; the first will hold the state of the simulation,
-including history, while the second will hold rules, including copies
-of the functions used in the rules.
-
-World Modelling
----------------
-
-Start by calling the engine's ``new_character`` method with a string
-``name``.  This will return a character object with the name you
-provided. Now draw a map by calling the method ``add_place`` with many
-different string ``name`` s, then linking them together with the
-method ``add_portal(origin, destination)``.  To store data pertaining
-to some particular place, retrieve the place from the ``place``
-mapping of the character: if the character is ``world`` and the place
-name is ``'home'``, you might do it like
-``home = world.place['home']``. Portals are retrieved from the ``portal``
-mapping, where you'll need the origin and the destination: if there's
-a portal from ``'home'`` to ``'narnia'``, you can get it like
-``wardrobe = world.portal['home']['narnia']``, but if you haven't also
-made another portal going the other way,
-``world.portal['narnia']['home']`` will raise ``KeyError``. Things are
-created with the method ``add_thing(name, location)``, where
-``location`` must be the name of a place you've already
-created. Retrieve things from the ``thing`` mapping, which works much
-like the ``place`` mapping. If you need to access a character that you
-created previously, get it from the engine's ``character`` mapping,
-eg. ``world = engine.character['world']``.
-
-Characters are called that because, if you have 
-
-You can store data in things, places, and portals by treating them
-like dictionaries.  If you want to store data in a character, use its
-``stat`` property as a dictionary instead. Data stored in these
-objects, and in the ``universal`` property of the engine, can vary
-over time. The engine's ``eternal`` property is not time-sensitive,
-and is mainly for storing settings, not simulation data.
-
-Rule Creation
--------------
-
-To create a rule, first decide what objects the rule should apply
-to. You can put a rule on a character, thing, place, or portal; and
-you can put a rule on a character's ``thing``, ``place``, and
-``portal`` mappings, meaning the rule will be applied to *every* such
-entity within the character, even if it didn't exist when the rule was
-declared.
-
-All these items have a property ``rule`` that can be used as a
-decorator. Use this to decorate a function that performs the rule's
-action by making some change to the world state.  Functions decorated
-this way always get passed the engine as the first argument and the
-character as the second; if the function is more specific than that, a
-particular thing, place, or portal will be the third argument. This
-will get you a rule object of the same name as your action function.
-
-At first, the rule object will not have any triggers, meaning the action
-will never happen. If you want it to run on *every* tick, call its
-``always`` method and think no more of it. But if you want to be
-more selective, use the rule's ``trigger`` decorator on another
-function with the same signature, and have it return ``True`` if the
-world is in such a state that the rule ought to run. There is nothing
-really stopping you from modifying the rule from inside a trigger, but
-it's not recommended.
-
-If you like, you can also add prerequisites. These are like triggers,
-but use the ``prereq`` decorator, and should return ``True`` *unless*
-the action should *not* happen; if a single prerequisite returns
-``False``, the action is cancelled.
-
-Time Control
-------------
-
-The current time is always accessible from the engine's ``branch`` and
-``turn`` properties. In the common case where time is advancing
-forward one tick at a time, it should be done with the engine's
-``next_turn`` method, which polls all the game rules before going to
-the next tick; but you can also change the time whenever you want, as
-long as ``branch`` is a string and ``turn`` is an integer. The rules
-will never be followed in response to your changing the time "by
-hand".
-
-It is possible--indeed, expected--to change the time as part of the
-action of a rule. This is how you would make something happen after a
-delay. Say you want a rule that puts the character ``alice`` to sleep,
-then wakes her up after eight turns (presumably hour-long).::
-
-    alice = engine.character['alice']
-
-    @alice.rule
-    def sleep(character):
-        character.stat['awake'] = False
-        with character.engine.plan:
-            character.engine.turn += 8
-            character.stat['awake'] = True
-
-At the end of a ``plan`` block, time will return to whenever it was
-at the start of the block.
-
-As of alpha 8, plans won't carry over to new branches created before
-the plan's completion. This is a planned feature.
-
-Input Prompts
--------------
-
-To ask the player to make a decision, first define a method for them to
-call, then return a menu description like this one.::
-
-    @engine.method
-    def wake_alice(engine):
-        engine.character['alice'].stat['awake'] = True
-
-    alice = engine.character['alice']
-
-    @alice.rule
-    def wakeup(character):
-        return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
-
-Only methods defined with the ``@engine.method`` decorator may be used in a menu.
 
 IDE
 ===
@@ -192,18 +122,15 @@ them elsewhere. If no Place, Thing, or Portal is selected, then the
 Character you are viewing is selected. There's a button in the
 top-right to view another Character.
 
-Below all this are some bits to let you manipulate time, mainly the
-Play and Next Turn buttons. Play will start moving time forward when
-you press it, and stop when you press it again. Next Tick will only
-move time forward by one tick. There are also text fields with which
-you can enter the Branch and Turn by hand. Note that rules are only
-run when you advance time using Play or Next Turn. The Tick field
-indicates how many changes have occurred in the current turn. It's
-not very useful to edit this, but you can, and ELiDE will show you
-the state of the world only partway through a turn if you wish.
+On the bottom left are some bits to let you manipulate time, mainly the
+Simulate and 1 Turn buttons. Simulate will start moving time forward when
+you press it, and stop when you press it again.
+There are also text fields with which you can enter the time by hand.
+Note that rules are only run when you advance time using Simulate or 1 Turn.
+The Tick field indicates how many changes have occurred in the current turn.
 
 It's possible to view turns that haven't been simulated yet.
-This is deliberate, but it's not a good idea to do this in alpha 8,
+This is deliberate, but it's not a good idea at the moment,
 because ELiDE doesn't know how to make plans yet.
 
 Stat Editor
@@ -251,6 +178,11 @@ to edit from the menu on the left, using the box at the bottom to add one if nee
 Then go through the trigger, prereq, and action tabs, and drag the functions from
 the right pile to the left to include them in the rule. You may also reorder them
 within the left pile.
+
+Rules made here will apply to the entity currently selected in the main screen.
+There is currently no graphical way to apply the same rulebook to many entities.
+You can, however, select nothing, in which case you get the option to edit
+rulebooks that apply to the current character overall,
 
 Strings Editor
 --------------

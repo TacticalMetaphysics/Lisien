@@ -1,44 +1,31 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
 from types import MethodType
-from blinker import Signal
-from astunparse import Unparser
-from ast import parse, Expr, Module
 from inspect import getsource
+from ast import parse, Expr, Module
 import json
+import importlib
+import sys, os
+
+from blinker import Signal
+from astunparse import unparse, Unparser
 
 from .util import dedent_source
-
-
-class NotThatMap(Mapping):
-    """Wraps another mapping and conceals exactly one of its keys."""
-    __slots__ = ['inner', 'k']
-
-    def __init__(self, inner, k):
-        """Store the inner mapping and the key to hide."""
-        self.inner = inner
-        self.k = k
-
-    def __iter__(self):
-        """Iterate over every key except the one I'm hiding."""
-        for key in self.inner:
-            if key != self.k:
-                yield key
-
-    def __len__(self):
-        """Return the length of my inner mapping minus one, on the assumption
-        that at least that one key is present in the inner mapping.
-
-        """
-        return len(self.inner) - 1
-
-    def __getitem__(self, key):
-        """Raise ``KeyError`` if you're trying to get the hidden key."""
-        if key == self.k:
-            raise KeyError("masked")
-        return self.inner[key]
 
 
 class Language(str):
@@ -123,54 +110,66 @@ class StringStore(MutableMapping, Signal):
         del self.cache[self.language][k]
         self.send(self, key=k, val=None)
 
-    def format(self, k):
-        """Return a stored string with other strings substituted into it."""
-        return self[k].format_map(NotThatMap(self, k))
-
     def lang_items(self, lang=None):
         """Yield pairs of (id, string) for the given language."""
         if lang is None:
             lang = self.language
         yield from self.cache.setdefault(lang, {}).items()
 
-    def save(self):
+    def save(self, reimport=False):
         with open(self._filename, 'w') as outf:
             json.dump(self.cache, outf, indent=4, sort_keys=True)
 
 
 class FunctionStore(Signal):
+    """A module-like object that lets you alter its code and save your changes.
+
+    Instantiate it with a path to a file that you want to keep the code in.
+    Assign functions to its attributes, then call its ``save()`` method,
+    and they'll be unparsed and written to the file.
+
+    This is a ``Signal``, so you can pass a function to its ``connect`` method,
+    and it will be called when a function is added, changed, or deleted.
+    The keyword arguments will be ``attr``, the name of the function, and ``val``,
+    the function itself.
+
+    """
     def __init__(self, filename):
+        if not filename.endswith(".py"):
+            raise ValueError("FunctionStore can only work with pure Python source code with .py extension")
         super().__init__()
-        self._filename = filename
+        self._filename = fullname = os.path.abspath(os.path.realpath(filename))
+        path, filename = os.path.split(fullname)
+        modname = filename[:-3]
+        if modname in sys.modules:
+            raise ValueError("already imported " + modname + ", can't make FunctionStore")
+        if sys.path[0] != path:
+            if path in sys.path:
+                sys.path.remove(path)
+            sys.path.insert(0, path)
         try:
-            with open(filename, 'r') as inf:
-                self._ast = parse(inf.read(), filename)
-                self._ast_idx = {}
-                for i, node in enumerate(self._ast.body):
-                    self._ast_idx[node.name] = i
-                self._globl = {}
-                self._locl = {}
-                self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
-                for thing in self._locl.values():
-                    thing.__module__ = self._filename.rstrip('.py')
-        except FileNotFoundError:
+            self._module = importlib.import_module(modname)
+            self._ast = parse(self._module.__loader__.get_data(fullname))
+            self._ast_idx = {}
+            for i, node in enumerate(self._ast.body):
+                self._ast_idx[node.name] = i
+        except (FileNotFoundError, ModuleNotFoundError):
+            self._module = None
             self._ast = Module(body=[])
             self._ast_idx = {}
-            self._globl = {}
-            self._locl = {}
+        self._need_save = False
 
     def __getattr__(self, k):
-        try:
-            return self._locl[k]
-        except KeyError:
-            raise AttributeError
+        if self._need_save:
+            self.save()
+        return getattr(self._module, k)
 
     def __setattr__(self, k, v):
         if not callable(v):
             super().__setattr__(k, v)
             return
-        v.__module__ = self._filename.rstrip('.py')
-        self._locl[k] = v
+        if self._module is not None:
+            setattr(self._module, k, v)
         source = getsource(v)
         outdented = dedent_source(source)
         expr = Expr(parse(outdented))
@@ -180,6 +179,7 @@ class FunctionStore(Signal):
         else:
             self._ast_idx[k] = len(self._ast.body)
             self._ast.body.append(expr)
+        self._need_save = True
         self.send(self, attr=k, val=v)
 
     def __call__(self, v):
@@ -189,17 +189,30 @@ class FunctionStore(Signal):
         del self._locl[k]
         del self._ast.body[self._ast_idx[k]]
         del self._ast_idx[k]
+        for name in list(self._ast_idx):
+            if name > k:
+                self._ast_idx[name] -= 1
+        self._need_save = True
         self.send(self, attr=k, val=None)
 
-    def save(self):
+    def save(self, reimport=True):
         with open(self._filename, 'w') as outf:
             Unparser(self._ast, outf)
+        if reimport:
+            importlib.invalidate_caches()
+            path, filename = os.path.split(self._filename)
+            modname = filename[:-3]
+            if modname in sys.modules:
+                del sys.modules[modname]
+            self._module = importlib.import_module(filename[:-3])
+        self._need_save = False
 
     def iterplain(self):
-        for name, func in self._locl.items():
-            yield name, getsource(func)
+        for funcdef in self._ast.body:
+            yield funcdef.name, unparse(funcdef)
 
     def store_source(self, v, name=None):
+        self._need_save = True
         outdented = dedent_source(v)
         mod = parse(outdented)
         expr = Expr(mod)
@@ -215,12 +228,15 @@ class FunctionStore(Signal):
             self._ast_idx[name] = len(self._ast.body)
             self._ast.body.append(expr)
         locl = {}
-        exec(compile(mod, '<LiSE>', 'exec'), {}, locl)
+        exec(compile(mod, self._filename, 'exec'), {}, locl)
         self._locl.update(locl)
         self.send(self, attr=name, val=locl[name])
 
     def get_source(self, name):
-        return getsource(getattr(self, name))
+        return unparse(self._ast.body[self._ast_idx[name]])
+
+    def truth(self, *args):
+        return True
 
 
 class MethodStore(FunctionStore):
@@ -245,18 +261,18 @@ class UniversalMapping(MutableMapping, Signal):
         self.engine = engine
 
     def __iter__(self):
-        return self.engine._universal_cache.iter_keys(*self.engine.btt())
+        return self.engine._universal_cache.iter_keys(*self.engine._btt())
 
     def __len__(self):
-        return self.engine._universal_cache.count_keys(*self.engine.btt())
+        return self.engine._universal_cache.count_keys(*self.engine._btt())
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        return self.engine._universal_cache.retrieve(k, *self.engine.btt())
+        return self.engine._universal_cache.retrieve(k, *self.engine._btt())
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         self.engine._universal_cache.store(k, branch, turn, tick, v)
         self.engine.query.universal_set(k, branch, turn, tick, v)
         self.engine.tick = tick
@@ -264,7 +280,7 @@ class UniversalMapping(MutableMapping, Signal):
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        branch, turn, tick = self.engine.nbtt()
+        branch, turn, tick = self.engine._nbtt()
         self.engine._universal_cache.store(k, branch, turn, tick, None)
         self.engine.query.universal_del(k, branch, turn, tick)
         self.send(self, key=k, val=None)

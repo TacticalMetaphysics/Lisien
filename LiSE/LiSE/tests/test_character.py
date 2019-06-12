@@ -1,5 +1,20 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
+import tempfile
 import pytest
 import allegedb.tests.test_all
 from LiSE.engine import Engine
@@ -9,9 +24,25 @@ class CharacterTest(allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.engine = Engine("sqlite:///:memory:")
         self.graphmakers = (self.engine.new_character,)
+        self.tempdir = tempfile.mkdtemp(dir='.')
+        for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.rename(f, os.path.join(self.tempdir, f))
 
     def tearDown(self):
         self.engine.close()
+        for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+        ):
+            if os.path.exists(f):
+                os.remove(f)
+            if os.path.exists(os.path.join(self.tempdir, f)):
+                os.rename(os.path.join(self.tempdir, f), f)
+        os.rmdir(self.tempdir)
 
 
 class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):
@@ -27,6 +58,7 @@ class CharacterSetStorageTest(CharacterTest, allegedb.tests.test_all.SetStorageT
 
 
 def set_in_mapping(mapp, stat, v):
+    """Sync a value in ``mapp``, having key ``stat``, with ``v``."""
     # Mutate the stuff in-place instead of simply replacing it,
     # because this could trigger side effects
     if stat == 'name':
@@ -57,6 +89,7 @@ def set_in_mapping(mapp, stat, v):
 
 
 def update_char(char, *, stat=(), node=(), portal=()):
+    """Make a bunch of changes to a character-like object"""
     def update(d, dd):
         for k, v in dd.items():
             if v is None and k in d:
@@ -160,15 +193,32 @@ def update_char(char, *, stat=(), node=(), portal=()):
      )
 ])
 def character_updates(request):
+    tempdir = tempfile.mkdtemp(dir='.')
+    for f in (
+            'trigger.py', 'prereq.py', 'action.py', 'function.py',
+            'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.rename(f, os.path.join(tempdir, f))
     name, data, stat, nodestat, statup, nodeup, edgeup = request.param
     engine = Engine("sqlite:///:memory:")
     char = engine.new_character(name, data, **stat)
     update_char(char, node=nodestat)
     yield char, statup, nodeup, edgeup
     engine.close()
+    for f in (
+        'trigger.py', 'prereq.py', 'action.py', 'function.py',
+        'method.py', 'strings.json'
+    ):
+        if os.path.exists(f):
+            os.remove(f)
+        if os.path.exists(os.path.join(tempdir, f)):
+            os.rename(os.path.join(tempdir, f), f)
+    os.rmdir(tempdir)
 
 
 def test_facade(character_updates):
+    """Make sure you can alter a facade independent of the character it's from"""
     character, statup, nodeup, edgeup = character_updates
     start_stat = character.stat.unwrap()
     start_place = character.place.unwrap()

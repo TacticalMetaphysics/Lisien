@@ -5,15 +5,13 @@ block_cipher = None
 
 mindeps = get_deps_minimal(audio=None, video=None)
 mindeps['hiddenimports'].extend([
-	'ELiDE.kivygarden.collider',
-	'ELiDE.kivygarden.stiffscroll',
 	'ELiDE.kivygarden.texturestack',
-	'kivy.weakmethod'
+	'kivy.weakmethod',
+	'msgpack'
 ])
 
 a = Analysis(['main.py'],
              pathex=['LiSE', 'ELiDE', 'allegedb'],
-             binaries=[('ELiDE//ELiDE/kivygarden/collider/build/lib.win32-3.5/collider.cp35-win32.pyd', '.')],  # produced by python3 setup.py build_ext in the collider/ directory
              datas=[
                  ('ELiDE/ELiDE/assets', 'ELiDE/assets'),
                  ('LiSE/LiSE/sqlite.json', 'LiSE')
@@ -44,4 +42,4 @@ coll = COLLECT(exe,
 			   *(Tree(p) for p in sdl2.dep_bins + glew.dep_bins),
                strip=False,
                upx=True,
-               name='ELiDEa7')
+               name='ELiDE-windows-0.10.0')

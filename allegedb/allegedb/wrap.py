@@ -1,5 +1,18 @@
 # This file is part of allegedb, an object relational mapper for versioned graphs.
 # Copyright (C) Zachary Spector. public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Wrapper classes to let you store mutable data types in the allegedb ORM"""
 from functools import partial
 from itertools import zip_longest
@@ -79,7 +92,11 @@ class MutableWrapperDictList(MutableWrapper):
 
 
 class MutableMappingUnwrapper(MutableMapping):
+    __slots__ = ()
+
     def __eq__(self, other):
+        if self is other:
+            return True
         if not isinstance(other, Mapping):
             return NotImplemented
         if self.keys() != other.keys():
@@ -97,17 +114,22 @@ class MutableMappingUnwrapper(MutableMapping):
             return True
 
     def unwrap(self):
+        """Return a deep copy of myself as a dict, and unwrap any wrapper objects in me."""
         return {
             k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v
             for (k, v) in self.items()
         }
 
 
-class MutableMappingWrapper(MutableWrapper, MutableMappingUnwrapper):
-    pass
+class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
+    def __eq__(self, other):
+        return MutableMappingUnwrapper.__eq__(self, other)
+
+    def unwrap(self):
+        return MutableMappingUnwrapper.unwrap(self)
 
 
-class SubDictWrapper(MutableWrapperDictList, MutableMappingWrapper, dict):
+class SubDictWrapper(MutableMappingWrapper, dict):
     __slots__ = ('_getter', '_set')
 
     def __init__(self, getter, setter):
@@ -123,8 +145,10 @@ class SubDictWrapper(MutableWrapperDictList, MutableMappingWrapper, dict):
         self._set(new)
 
 
-class MutableSequenceWrapper(MutableSequence):
+class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence):
     def __eq__(self, other):
+        if self is other:
+            return True
         if not isinstance(other, Sequence):
             return NotImplemented
         for me, you in zip_longest(self, other):
@@ -138,13 +162,14 @@ class MutableSequenceWrapper(MutableSequence):
             return True
 
     def unwrap(self):
+        """Return a deep copy of myself as a list, and unwrap any wrapper objects in me."""
         return [
             v.unwrap() if hasattr(v, 'unwrap') else v
             for v in self
         ]
 
 
-class SubListWrapper(MutableWrapperDictList, MutableSequenceWrapper, list):
+class SubListWrapper(MutableSequenceWrapper, list):
     __slots__ = ('_getter', '_set')
 
     def __init__(self, getter, setter):
@@ -193,7 +218,8 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
         self._set(me)
 
     def unwrap(self):
-        return {v.unwrap() if hasattr(v, 'unwrap') else v for v in self}
+        """Return a deep copy of myself as a set, and unwrap any wrapper objects in me."""
+        return {v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for v in self}
 
 
 class SubSetWrapper(MutableWrapperSet, set):
@@ -207,7 +233,7 @@ class SubSetWrapper(MutableWrapperSet, set):
         return set(self._getter())
 
 
-class DictWrapper(MutableWrapperDictList, MutableMapping, dict):
+class DictWrapper(MutableMappingWrapper, dict):
     """A dictionary synchronized with a serialized field.
 
     This is meant to be used in allegedb entities (graph, node, or
@@ -222,32 +248,12 @@ class DictWrapper(MutableWrapperDictList, MutableMapping, dict):
         self._outer = outer
         self._key = key
 
-    def __eq__(self, other):
-        if not isinstance(other, Mapping):
-            return NotImplemented
-        if self.keys() != other.keys():
-            return False
-        for k in self.keys():
-            me = self[k]
-            you = other[k]
-            if hasattr(me, 'unwrap'):
-                me = me.unwrap()
-            if hasattr(you, 'unwrap'):
-                you = you.unwrap()
-            if me != you:
-                return False
-        else:
-            return True
-
     def _copy(self):
         return dict(self._getter())
 
     def _set(self, v):
         self._setter(v)
         self._outer[self._key] = v
-
-    def unwrap(self):
-        return {k: v.unwrap() if hasattr(v, 'unwrap') else v for (k, v) in self.items()}
 
 
 class ListWrapper(MutableWrapperDictList, MutableSequence, list):
@@ -267,6 +273,8 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         self._setter = setter
 
     def __eq__(self, other):
+        if self is other:
+            return True
         if not isinstance(other, Sequence):
             return NotImplemented
         for me, you in zip_longest(self, other):
@@ -297,7 +305,8 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
         self._set(new)
 
     def unwrap(self):
-        return [v.unwrap() if hasattr(v, 'unwrap') else v for v in self]
+        """Return a deep copy of myself as a list, and unwrap any wrapper objects in me."""
+        return [v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for v in self]
 
 
 class SetWrapper(MutableWrapperSet, set):

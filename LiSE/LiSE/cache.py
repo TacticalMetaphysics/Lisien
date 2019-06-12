@@ -1,5 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from allegedb.cache import (
     Cache,
     PickyDefaultDict,
@@ -8,6 +21,7 @@ from allegedb.cache import (
     HistoryError
 )
 from .util import singleton_get, sort_set
+from collections import OrderedDict
 
 
 class InitializedCache(Cache):
@@ -20,6 +34,8 @@ class InitializedCache(Cache):
             prev = self.retrieve(*args[:-1])
         except KeyError:
             return  # because you can't rewind past this
+        if prev == value:
+            return  # not much point reporting on a non-change in a diff
         if turn in settings_turns or turn in settings_turns.future():
             assert turn in presettings_turns or turn in presettings_turns.future()
             setticks = settings_turns[turn]
@@ -32,11 +48,11 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
-    def store(self, key, branch, turn, tick, value, *, planning=None, forward=None):
-        super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward)
+    def store(self, key, branch, turn, tick, value, *, planning=None):
+        super().store(None, key, branch, turn, tick, value, planning=planning)
 
-    def load(self, data, validate=False):
-        return super().load(((None,) + row for row in data), validate)
+    def load(self, data):
+        return super().load(((None,) + row for row in data))
 
     def retrieve(self, key, branch, turn, tick):
         return super().retrieve(None, key, branch, turn, tick)
@@ -45,8 +61,8 @@ class EntitylessCache(Cache):
         return super().iter_entities_or_keys(None, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entities_or_keys
 
-    def contains_entity_or_key(self, ke, branch, turn, tick, *, forward=None):
-        return super().contains_entity_or_key(None, ke, branch, turn, tick, forward=forward)
+    def contains_entity_or_key(self, ke, branch, turn, tick):
+        return super().contains_entity_or_key(None, ke, branch, turn, tick)
     contains_entity = contains_key = contains_entity_or_key
 
     def retrieve(self, *args):
@@ -71,9 +87,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning):
+    def _store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning, loading=False, contra=True):
         is_avatar = True if is_avatar else None
-        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning)
+        super()._store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading, contra=contra)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
@@ -276,23 +292,24 @@ class RulesHandledCache(object):
     def unhandled_rulebook_rules(self, *args):
         entity = args[:-4]
         rulebook, branch, turn, tick = args[-4:]
-        if (
-            entity in self.unhandled and
-            rulebook in self.unhandled[entity] and
-            branch in self.unhandled[entity][rulebook] and
-            turn in self.unhandled[entity][rulebook][branch]
-        ):
-            ret = self.unhandled[entity][rulebook][branch][turn]
-        else:
-            try:
-                return [
-                    rule for rule in
-                    self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
-                    if rule not in self.handled.setdefault(entity + (rulebook, branch, turn), set())
-                ]
-            except KeyError:
-                return []
-        return ret
+        unh = self.unhandled
+        if entity in unh:
+            ue = unh[entity]
+            if rulebook in ue:
+                uer = ue[rulebook]
+                if branch in uer:
+                    uerb = uer[branch]
+                    if turn in uerb:
+                        return uerb[turn]
+        try:
+            rulebook_rules = self.engine._rulebooks_cache.retrieve(rulebook, branch, turn, tick)
+        except KeyError:
+            return []
+        handled_rules = self.handled.setdefault(entity + (rulebook, branch, turn), set())
+        return [
+            rule for rule in rulebook_rules
+            if rule not in handled_rules
+        ]
 
 
 class CharacterRulesHandledCache(RulesHandledCache):
@@ -326,11 +343,11 @@ class AvatarRulesHandledCache(RulesHandledCache):
             for graph in sort_set(charavm.keys()):
                 for avatar in sort_set(charavm[graph].keys()):
                     try:
-                        rules = self.unhandled_rulebook_rules((graph, avatar), rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(character, graph, avatar, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
-                        yield character, rulebook, graph, avatar, rule
+                        yield character, graph, avatar, rulebook, rule
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
@@ -344,9 +361,11 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
         charm = self.engine.character
         for character in sort_set(charm.keys()):
             rulebook = self.get_rulebook(character, branch, turn, tick)
-            for thing in sort_set(charm[character].thing.keys()):
+            things = sort_set(charm[character].thing.keys())
+            pass
+            for thing in things:
                 try:
-                    rules = self.unhandled_rulebook_rules((character, thing), rulebook, branch, turn, tick)
+                    rules = self.unhandled_rulebook_rules(character, thing, rulebook, branch, turn, tick)
                 except KeyError:
                     continue
                 for rule in rules:
@@ -366,7 +385,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
             rulebook = self.get_rulebook(character, branch, turn, tick)
             for place in sort_set(charm[character].place.keys()):
                 try:
-                    rules = self.unhandled_rulebook_rules((character, place), rulebook, branch, turn, tick)
+                    rules = self.unhandled_rulebook_rules(character, place, rulebook, branch, turn, tick)
                 except KeyError:
                     continue
                 for rule in rules:
@@ -391,7 +410,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
             for orig in sort_set(charp.keys()):
                 for dest in sort_set(charp[orig].keys()):
                     try:
-                        rules = self.unhandled_rulebook_rules((character, orig, dest), rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(character, orig, dest, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
@@ -411,7 +430,7 @@ class NodeRulesHandledCache(RulesHandledCache):
             for node in sort_set(charm[character].node.keys()):
                 try:
                     rulebook = self.get_rulebook(character, node, branch, turn, tick)
-                    rules = self.unhandled_rulebook_rules((character, node), rulebook, branch, turn, tick)
+                    rules = self.unhandled_rulebook_rules(character, node, rulebook, branch, turn, tick)
                 except KeyError:
                     continue
                 for rule in rules:
@@ -434,7 +453,7 @@ class PortalRulesHandledCache(RulesHandledCache):
                 for dest in sort_set(dests.keys()):
                     try:
                         rulebook = self.get_rulebook(character, orig, dest, branch, turn, tick)
-                        rules = self.unhandled_rulebook_rules((character, orig, dest), rulebook, branch, turn, tick)
+                        rules = self.unhandled_rulebook_rules(character, orig, dest, rulebook, branch, turn, tick)
                     except KeyError:
                         continue
                     for rule in rules:
@@ -445,6 +464,46 @@ class ThingsCache(Cache):
     def __init__(self, db):
         Cache.__init__(self, db)
         self._make_node = db.thing_cls
+
+    def _store(self, *args, planning, loading=False, contra=True):
+        character, thing, branch, turn, tick, location = args
+        try:
+            oldloc = self.retrieve(character, thing, branch, turn, tick)
+        except KeyError:
+            oldloc = None
+        super()._store(*args, planning=planning, loading=loading, contra=contra)
+        node_contents_cache = self.db._node_contents_cache
+        setsbranch = self.settings[branch]
+        future_location_data = setsbranch.future(turn) or (turn in setsbranch and setsbranch[turn].future(tick))
+        # Cache the contents of nodes
+        if oldloc is not None:
+            oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
+            newconts_orig = oldconts_orig.difference({thing})
+            node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig, contra=False,
+                                      loading=True)
+            for trn in future_location_data:
+                for tck in future_location_data[trn]:
+                    if future_location_data[trn][tck][2] == oldloc:
+                        node_contents_cache.store(
+                            character, oldloc, branch, trn, tck,
+                            node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
+                            planning=False, contra=False, loading=True
+                        )
+        if location is not None:
+            try:
+                oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
+            except KeyError:
+                oldconts_dest = frozenset()
+            newconts_dest = oldconts_dest.union({thing})
+            node_contents_cache.store(character, location, branch, turn, tick, newconts_dest, contra=False, loading=True)
+            for trn in future_location_data:
+                for tck in future_location_data[trn]:
+                    if future_location_data[trn][tck][2] == location:
+                        node_contents_cache.store(
+                            character, location, branch, trn, tck,
+                            node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
+                            planning=False, contra=False, loading=True
+                        )
 
     def turn_before(self, character, thing, branch, turn):
         try:
@@ -459,3 +518,169 @@ class ThingsCache(Cache):
         except KeyError:
             pass
         return self.keys[(character,)][thing][branch].rev_after(turn)
+
+
+class NodeContentsCache(Cache):
+    def _iter_future_contradictions(self, entity, key, turns, branch, turn, tick, value):
+        return self.db._things_cache._iter_future_contradictions(entity, key, turns, branch, turn, tick, value)
+
+    def slow_iter_contents(self, character, place, branch, turn, tick):
+        branch_now, turn_now, tick_now = self.db._btt()
+        self.db.time = branch, turn
+        self.db.tick = tick
+        for thing in self.db.character[character].thing.values():
+            if thing['location'] == place:
+                yield thing.name
+        self.db.time = branch_now, turn_now
+        self.db.tick = tick_now
+
+    def remove(self, branch, turn, tick):
+        """Delete data on or after this tick
+
+        On the assumption that the future has been invalidated.
+
+        """
+        for parent, entitys in list(self.parents.items()):
+            for entity, keys in list(entitys.items()):
+                for key, branchs in list(keys.items()):
+                    if branch in branchs:
+                        branhc = branchs[branch]
+                        if turn in branhc:
+                            trun = branhc[turn]
+                            if tick in trun:
+                                del trun[tick]
+                            trun.truncate(tick)
+                            if not trun:
+                                del branhc[turn]
+                        branhc.truncate(turn)
+                        if not branhc:
+                            del branchs[branch]
+                    if not branchs:
+                        del keys[key]
+                if not keys:
+                    del entitys[entity]
+            if not entitys:
+                del self.parents[parent]
+        for branchkey, branches in list(self.branches.items()):
+            if branch in branches:
+                branhc = branches[branch]
+                if turn in branhc:
+                    trun = branhc[turn]
+                    if tick in trun:
+                        del trun[tick]
+                    trun.truncate(tick)
+                    if not trun:
+                        del branhc[turn]
+                branhc.truncate(turn)
+                if not branhc:
+                    del branches[branch]
+            if not branches:
+                del self.branches[branchkey]
+        for keykey, keys in list(self.keys.items()):
+            for key, branchs in list(keys.items()):
+                if branch in branchs:
+                    branhc = branchs[branch]
+                    if turn in branhc:
+                        trun = branhc[turn]
+                        if tick in trun:
+                            del trun[tick]
+                        trun.truncate(tick)
+                        if not trun:
+                            del branhc[turn]
+                    branhc.truncate(turn)
+                    if not branhc:
+                        del branches[branch]
+                if not branchs:
+                    del keys[key]
+            if not keys:
+                del self.keys[keykey]
+        sets = self.settings[branch]
+        if turn in sets:
+            setsturn = sets[turn]
+            if tick in setsturn:
+                del setsturn[tick]
+            setsturn.truncate(tick)
+            if not setsturn:
+                del sets[turn]
+        sets.truncate(turn)
+        if not sets:
+            del self.settings[branch]
+        presets = self.presettings[branch]
+        if turn in presets:
+            presetsturn = presets[turn]
+            if tick in presetsturn:
+                del presetsturn[tick]
+            presetsturn.truncate(tick)
+            if not presetsturn:
+                del presets[turn]
+        presets.truncate(turn)
+        if not presets:
+            del self.presettings[branch]
+        for entity, brnch in list(self.keycache):
+            if brnch == branch:
+                kc = self.keycache[entity, brnch]
+                if turn in kc:
+                    kcturn = kc[turn]
+                    if tick in kcturn:
+                        del kcturn[tick]
+                    kcturn.truncate(tick)
+                    if not kcturn:
+                        del kc[turn]
+                kc.truncate(turn)
+                if not kc:
+                    del self.keycache[entity, brnch]
+        self.shallowest = OrderedDict()
+        self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
+
+    def truncate_loc(self, character, location, branch, turn, tick):
+        """Remove future data about a particular location
+
+        Return True if I deleted anything, False otherwise.
+
+        """
+        r = False
+        branches_turns = self.branches[character, location][branch]
+        branches_turns.truncate(turn)
+        if turn in branches_turns:
+            bttrn = branches_turns[turn]
+            if bttrn.future(tick):
+                bttrn.truncate(tick)
+                r = True
+        keyses = self.keys[character, location]
+        for keysbranches in keyses.values():
+            if branch not in keysbranches:
+                continue
+            keysbranch = keysbranches[branch]
+            if keysbranch.future(turn):
+                keysbranch.truncate(turn)
+                r = True
+            if turn in keysbranch:
+                keysbranchturn = keysbranch[turn]
+                if keysbranchturn.future(tick):
+                    keysbranchturn.truncate(tick)
+                    r = True
+        if branch in self.settings:
+            for sets in (self.settings, self.presettings):
+                sets_branch = sets[branch]
+                if turn in sets_branch:
+                    sets_turn = sets_branch[turn]
+                    for tic, setting in list(sets_turn.future(tick).items()):
+                        if setting[:2] == (character, location):
+                            del sets_turn[tic]
+                            r = True
+                    if not sets_turn:
+                        del sets_branch[turn]
+                        assert r, "Found an empty cache when I didn't delete anything"
+                for trn, tics in list(sets_branch.future(turn).items()):
+                    for tic, setting in list(tics.future(tick).items()):
+                        if setting[:2] == (character, location):
+                            del tics[tic]
+                            r = True
+                    if not tics:
+                        del sets_branch[trn]
+                        assert r, "Found an empty cache when I didn't delete anything"
+                if not sets_branch:
+                    del sets[branch]
+                    assert r, "Found an empty cache when I didn't delete anything"
+        self.shallowest = OrderedDict()
+        return r

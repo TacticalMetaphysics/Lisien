@@ -1,15 +1,34 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector,  public@zacharyspector.com
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from functools import reduce
 from collections import defaultdict
 from LiSE.engine import Engine
 import pytest
 import os
+import tempfile
 
 
 @pytest.fixture
 def college24_premade():
+    codefiles = ('trigger.py', 'prereq.py', 'action.py', 'method.py', 'function.py', 'strings.json')
+    tempdir = tempfile.mkdtemp(dir='.')
+    for codefile in codefiles:
+        if os.path.exists(codefile):
+            os.rename(codefile, os.path.join(tempdir, codefile))
     if not os.path.exists("college24_premade.db"):
         print("generating test data for query")
         from LiSE.examples.college import install
@@ -21,6 +40,10 @@ def college24_premade():
     eng = Engine("college24_premade.db")
     yield eng
     eng.close()
+    for codefile in codefiles:
+        if os.path.exists(os.path.join(tempdir, codefile)):
+            os.rename(os.path.join(tempdir, codefile), codefile)
+    os.rmdir(tempdir)
 
 
 def roommate_collisions(engine):
