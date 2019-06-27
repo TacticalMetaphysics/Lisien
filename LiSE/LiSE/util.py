@@ -145,6 +145,21 @@ class EntityStatAccessor(object):
     def __getitem__(self, k):
         return self.munge(lambda x: x[k])
 
+    def iter_history(self, beginning, end):
+        """Iterate over all the values this stat has had in the given window, inclusive.
+
+        """
+        # It might be useful to do this in a way that doesn't change the engine's time, perhaps for thread safety
+        engine = self.engine
+        entity = self.entity
+        oldturn = engine.turn
+        oldtick = engine.tick
+        for turn in range(beginning, end+1):
+            engine.turn = turn
+            yield entity[turn]
+        engine.turn = oldturn
+        engine.tick = oldtick
+
 
 def dedent_source(source):
     nlidx = source.index('\n')

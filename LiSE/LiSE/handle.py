@@ -1253,3 +1253,10 @@ class EngineHandle(object):
 
     def apply_choices(self, choices, dry_run=False, perfectionist=False):
         return self.engine.apply_choices(choices, dry_run, perfectionist)
+
+    @staticmethod
+    def get_calendar_data(entity, stats, beginning, end):
+        ret = {}
+        for stat in stats:
+            ret[stat] = list(entity.historical(stat).iter_history(beginning, end))
+        return ret

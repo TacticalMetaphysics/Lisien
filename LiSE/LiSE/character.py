@@ -62,6 +62,7 @@ from .place import Place
 from .portal import Portal
 from .util import getatt, singleton_get
 from .exc import AmbiguousAvatarError, WorldIntegrityError
+from .query import StatusAlias
 
 
 class SpecialMappingDescriptor:
@@ -2173,3 +2174,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     yield makenode(charmap[graph], node)
                 except KeyError:
                     continue
+
+    def historical(self, stat):
+        """Get a historical view on the given stat
+
+        This functions like the value of the stat, but changes
+        when you time travel. Comparisons performed on the
+        historical view can be passed to ``engine.turns_when``
+        to find out when the comparison held true.
+
+        """
+        return StatusAlias(entity=self, stat=stat)
