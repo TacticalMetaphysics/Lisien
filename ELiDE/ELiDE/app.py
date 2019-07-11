@@ -344,6 +344,23 @@ class ELiDEApp(App):
         ):
             self.manager.add_widget(wid)
 
+    def _toggle_calendar(self):
+        if self.manager.current == 'calendar':
+            self.manager.current = 'main'
+        else:
+            proxy = self.proxy
+            content = []
+            for trn in range(self.turn - 1, self.turn + 5):  # make configurable.
+                row = []
+                config = proxy.get('_config', {})
+                for stat in proxy:
+                    if stat.startswith('_'):
+                        continue
+                    if stat in config:
+                        control = config[stat]['control']
+
+            self.manager.current = 'calendar'
+
     def _set_language(self, lang):
         self.engine.string.language = lang
 

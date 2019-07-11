@@ -1,22 +1,26 @@
 from kivy.properties import(
+    DictProperty,
     ObjectProperty,
     ListProperty,
     BooleanProperty,
-    BoundedNumericProperty
+    BoundedNumericProperty,
+    NumericProperty
 )
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.uix.modalview import ModalView
-from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
+from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
+from kivy.lang import Builder
 
 
-class CalendarWidget(Widget):
+class CalendarWidget(RecycleDataViewBehavior, Widget):
+    turn = NumericProperty()
     key = ObjectProperty()
     """The key to set in the entity"""
     value = ObjectProperty()
@@ -26,7 +30,16 @@ class CalendarWidget(Widget):
         # do I want to do some validation at this point?
         # Maybe I should validate on the proxy objects and catch that in Calendar,
         # display an error message?
-        self.parent.entity[self.key] = self.value
+        calendar = self.parent.parent
+        my_dict = calendar.idx[(self.key, self.value)]
+        if my_dict[self.key] != self.value:
+            my_dict[self.key] = self.value
+        if calendar.entity[self.key] != self.value:
+            calendar.entity[self.key] = self.value
+
+    def on_parent(self, *args):
+        turn = self.parent.parent.entity.engine.turn
+        self.disabled = self.turn >= turn
 
 
 class CalendarDropMenuButton(CalendarWidget, Button):
@@ -62,112 +75,6 @@ class CalendarDropMenuButton(CalendarWidget, Button):
         container.size = container.minimum_size
 
 
-class Calendar(GridLayout):
-    entity = ObjectProperty()
-    content = ListProperty()
-    """For each turn, a list of ``CalendarWidget``s to put in the row for that turn, or ``None``
-    
-    Everything else will get filled with the result of my ``make_fill_wid`` method.
-    
-    Instead of a list alone, each item may be a pair of an integer and then a list, in which case
-    the integer is the turn number. Turns in the past will be disabled. The items will be shown
-    in whatever order you give them.
-    
-    """
-    omit_empty = BooleanProperty(False)
-    """Whether to skip rows in which you have nothing to do"""
-    show_turn_labels = BooleanProperty(True)
-    """Whether to put some labels on the left showing what turn a row refers to"""
-    header = ListProperty()
-    """Stuff to show at the top of the calendar. Strings or widgets, as many as you've got columns
-    
-    Make sure to account for the turn labels' column if it's present.
-    
-    """
-
-    def make_turn_label(self, turn):
-        return Label(text=str(turn))
-
-    def make_fill_wid(self, turn, row, col):
-        return Widget()
-
-    def on_content(self, *args):
-        self.clear_widgets()  # TODO: Incremental updates for Calendar
-        add_widget = self.add_widget
-        label = self.make_turn_label
-        columns = self.cols
-        if self.header:
-            if len(self.header) != columns:
-                raise ValueError("Header has {} cols, should be {}".format(len(self.header), columns))
-            for i, something in enumerate(self.header):
-                if isinstance(something, Widget):
-                    add_widget(something)
-                else:
-                    add_widget(label(something))
-        data_iter = iter(self.content)
-        datum = next(data_iter)
-        past = type(datum) is tuple
-        turn = datum[0] if past else self.entity.engine.turn
-        make_fill_wid = self.make_fill_wid
-        for i, something in enumerate(datum):
-            if something is None:
-                add_widget(make_fill_wid(turn, 0, i))
-            else:
-                add_widget(something)
-
-        omit_empty = self.omit_empty
-        show_turn_labels = self.show_turn_labels
-        wids_per_row = columns
-        if show_turn_labels:
-            wids_per_row -= 1
-        for j, (trn, datum) in enumerate((data_iter if past else enumerate(data_iter, start=turn))):
-            if not datum:
-                if not omit_empty:
-                    if show_turn_labels:
-                        add_widget(label(trn))
-                    for k in range(columns):
-                        add_widget(make_fill_wid(trn, j, k))
-                continue
-            if show_turn_labels:
-                add_widget(label(trn))
-            if len(datum) != wids_per_row:
-                raise ValueError("Need {} widgets, got {}".format(wids_per_row, len(datum)))
-            for k, something in enumerate(datum):
-                if something is None:
-                    add_widget(make_fill_wid(trn, j, k))
-                else:
-                    if turn > trn:
-                        something.disabled = True
-                    add_widget(something)
-
-    def get_track(self):
-        """Get a dictionary that can be used to submit my changes to ``LiSE.Engine.apply_choices``
-
-        You'll need to at least put the result in a list in a dictionary under the key ``'tracks'``.
-        This is to support the possibility of multiple calendars, even multiple simultaneous players,
-        and the payload might have to contain credentials or something like that.
-
-        """
-        changes = []
-        track = {'entity': self.entity, 'changes': changes}
-        data_iter = iter(self.content)
-        datum = next(data_iter)
-        past = type(datum) is tuple
-        turn = self.entity.engine.turn
-        if past:
-            last = datum[0]
-            for (i, row) in sorted(self.content):
-                if i < turn:
-                    continue
-                if i > last + 1:
-                    changes.extend([[]] * (i - last - 1))
-                changes.append([(wid.key, wid.value) for wid in row])
-                last = i
-        else:
-            changes.append([(wid.key, wid.value) for wid in datum])
-            changes.extend([(wid.key, wid.value) for wid in row] for row in data_iter)
-        return track
-
 
 class CalendarToggleButton(RecycleDataViewBehavior, Button):
     index = None
@@ -184,21 +91,47 @@ class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
     pass
 
 
+class Calendar(RecycleView):
+    entity = ObjectProperty()
+    idx = DictProperty()
+
+    def get_track(self):
+        """Get a dictionary that can be used to submit my changes to ``LiSE.Engine.apply_choices``
+
+        You'll need to at least put the result in a list in a dictionary under the key ``'tracks'``.
+        This is to support the possibility of multiple calendars, even multiple simultaneous players,
+        and the payload might have to contain credentials or something like that.
+
+        """
+        changes = []
+        track = {'entity': self.entity, 'changes': changes}
+        if not self.data:
+            return track
+        turn = self.entity.engine.turn
+        last = self.data[0]
+        accumulator = []
+        for datum in self.data:
+            if 'turn' not in datum:
+                continue
+            trn = datum['turn']
+            if trn < turn:
+                continue
+            if trn > last:
+                if trn > last + 1:
+                    changes.extend([[]] * (trn - last - 1))
+                changes.append(accumulator)
+                accumulator = []
+                last = trn
+            accumulator.append((datum['key'], datum['value']))
+        return track
+
+
 class CalendarScreen(Screen):
     calendar_cls = ObjectProperty(Calendar)
     calendar = ObjectProperty()
     entity = ObjectProperty()
     toggle = ObjectProperty()
-    content = ListProperty()
-    """For each turn, a list of ``CalendarWidget``s to put in the row for that turn, or ``None``
-    
-    Everything else will get filled with the result of my ``make_fill_wid`` method.
-    
-    Instead of a list alone, each item may be a pair of an integer and then a list, in which case
-    the integer is the turn number. Turns in the past will be disabled. The items will be shown
-    in whatever order you give them.
-    
-    """
+    data = ListProperty()
     omit_empty = BooleanProperty(False)
     """Whether to skip rows in which you have nothing to do"""
     show_turn_labels = BooleanProperty(True)
@@ -234,3 +167,34 @@ class CalendarScreen(Screen):
         )
         self.add_widget(cal)
         self.add_widget(Button(text='Close', on_release=self.toggle))
+
+
+Builder.load_string("""
+<Calendar>:
+    key_viewclass: 'widget'
+    RecycleGridLayout:
+        cols: 3
+        size_hint_y: None
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        height: self.minimum_height
+        orientation: 'horizontal'
+""")
+
+
+if __name__ == '__main__':
+    from kivy.app import App
+    class CalendarTestApp(App):
+        def build(self):
+            self.wid = Calendar()
+            return self.wid
+
+        def on_start(self):
+            # it seems like the calendar blanks out its data sometime after initialization
+            data = []
+            for i in range(7):
+                for j in range(3):
+                    data.append({'widget': 'Button', 'text': f'row{i} col{j}'})
+            self.wid.data = data
+
+    CalendarTestApp().run()
