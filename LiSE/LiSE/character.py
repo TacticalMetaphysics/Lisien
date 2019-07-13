@@ -2184,4 +2184,4 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         to find out when the comparison held true.
 
         """
-        return StatusAlias(entity=self, stat=stat)
+        return StatusAlias(entity=self.stat, stat=stat, engine=self.engine)

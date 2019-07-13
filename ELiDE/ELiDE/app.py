@@ -31,7 +31,7 @@ from kivy.properties import (
     StringProperty
 )
 import LiSE
-from LiSE.proxy import EngineProcessManager
+from LiSE.proxy import EngineProcessManager, CharStatProxy
 import ELiDE
 import ELiDE.dialog
 import ELiDE.screen
@@ -306,7 +306,7 @@ class ELiDEApp(App):
         )
 
         self.calendar = ELiDE.calendar.CalendarScreen(
-            toggle=toggler('calendar'),
+            toggle=self._toggle_calendar,
             name='calendar'
         )
         self.bind(
@@ -344,21 +344,29 @@ class ELiDEApp(App):
         ):
             self.manager.add_widget(wid)
 
-    def _toggle_calendar(self):
+    def _toggle_calendar(self, *args):
         if self.manager.current == 'calendar':
             self.manager.current = 'main'
         else:
-            proxy = self.proxy
-            content = []
-            for trn in range(self.turn - 1, self.turn + 5):  # make configurable.
-                row = []
-                config = proxy.get('_config', {})
-                for stat in proxy:
-                    if stat.startswith('_'):
-                        continue
-                    if stat in config:
-                        control = config[stat]['control']
-
+            # TODO: make the turn range configurable
+            startturn = self.turn - 1
+            endturn = self.turn + 5
+            stats = ['_config'] + [
+                stat for stat in self.selected_proxy if not stat.startswith('_')
+                and stat not in ('character', 'name')
+            ]
+            if isinstance(self.selected_proxy, CharStatProxy):
+                entity = self.engine.character[self.selected_proxy.name]
+            else:
+                entity = self.selected_proxy
+            self.calendar.entity = entity
+            self.calendar.from_history(
+                self.engine.handle(
+                    'get_calendar_data', entity=entity,
+                    stats=stats, beginning=startturn, end=endturn
+                ),
+                start_turn=startturn
+            )
             self.manager.current = 'calendar'
 
     def _set_language(self, lang):

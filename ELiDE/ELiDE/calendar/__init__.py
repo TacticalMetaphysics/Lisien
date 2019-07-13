@@ -8,6 +8,10 @@ from kivy.properties import(
 )
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.label import Label
+from kivy.uix.slider import Slider
+from kivy.uix.textinput import TextInput
 from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
@@ -26,10 +30,19 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     value = ObjectProperty()
     """The value you want to set the key to"""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._trigger_update_disabledness = Clock.create_trigger(self._update_disabledness)
+
+    def _update_disabledness(self, *args):
+        self.disabled = self.turn > self.parent.parent.entity.engine.turn
+
     def on_value(self, *args):
         # do I want to do some validation at this point?
         # Maybe I should validate on the proxy objects and catch that in Calendar,
         # display an error message?
+        if not self.parent:
+            return
         calendar = self.parent.parent
         my_dict = calendar.idx[(self.key, self.value)]
         if my_dict[self.key] != self.value:
@@ -38,8 +51,30 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
             calendar.entity[self.key] = self.value
 
     def on_parent(self, *args):
-        turn = self.parent.parent.entity.engine.turn
-        self.disabled = self.turn >= turn
+        if not self.parent:
+            return
+        self._trigger_update_disabledness()
+        self.parent.parent.entity.engine.time.connect(self._trigger_update_disabledness, weak=False)
+
+
+class CalendarLabel(CalendarWidget, Label):
+
+    def __init__(self, **kwargs):
+        if 'text' not in kwargs or not kwargs['text']:
+            kwargs['text'] = ''
+        super().__init__(**kwargs)
+
+
+class CalendarSlider(Slider, CalendarWidget):
+    pass
+
+
+class CalendarTextInput(CalendarWidget, TextInput):
+    pass
+
+
+class CalendarToggleButton(CalendarWidget, ToggleButton):
+    pass
 
 
 class CalendarDropMenuButton(CalendarWidget, Button):
@@ -92,6 +127,12 @@ class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
 
 
 class Calendar(RecycleView):
+    _control2wid = {
+        'slider': 'CalendarSlider',
+        'toggle': 'CalendarToggleButton',
+        'textinput': 'CalendarTextInput'
+    }
+    cols = NumericProperty()
     entity = ObjectProperty()
     idx = DictProperty()
 
@@ -101,6 +142,9 @@ class Calendar(RecycleView):
         You'll need to at least put the result in a list in a dictionary under the key ``'tracks'``.
         This is to support the possibility of multiple calendars, even multiple simultaneous players,
         and the payload might have to contain credentials or something like that.
+
+        If a data dictionary does not have the key 'turn', it will not be included in the track.
+        You can use this to add labels and other non-input widgets to the calendar.
 
         """
         changes = []
@@ -125,60 +169,84 @@ class Calendar(RecycleView):
             accumulator.append((datum['key'], datum['value']))
         return track
 
+    def from_history(self, history, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
+        # It should be convenient to style the calendar using data from the core;
+        # not sure what the API should be like
+        control2wid = self._control2wid
+        if start_turn is None:
+            start_turn = self.entity.engine.turn
+        curturn = start_turn
+        endturn = curturn + len(next(iter(history.values())))
+        data = []
+        if headers:
+            if turn_labels:
+                data.append({'widget': 'CalendarLabel', 'text': ''})
+            for stat in history:
+                if stat.startswith('_'):
+                    continue
+                data.append({'widget': 'CalendarLabel', 'text': str(stat)})
+        cols = len(data)
+        iters = {stat: iter(values) for (stat, values) in history.items()}
+        stats = sorted((stat for stat in history if not stat.startswith('_')), key=key)
+        for turn in range(curturn, endturn):
+            if turn_labels:
+                data.append({'widget': 'CalendarLabel', 'text': str(turn)})
+            if '_config' in iters:
+                config = next(iters['_config'])
+            else:
+                config = None
+            for stat in stats:
+                datum = {'key': stat, 'value': next(iters[stat])}
+                if config and stat in config and 'control' in config[stat]:
+                    configstat = config[stat]
+                    datum['widget'] = control2wid.get(configstat['control'], 'CalendarLabel')
+                    if 'min' in configstat:
+                        datum['min'] = configstat['min']
+                    if 'max' in configstat:
+                        datum['max'] = configstat['max']
+                else:
+                    datum['widget'] = 'CalendarLabel'
+                data.append(datum)
+        (self.cols, self.data) = (cols, data)
+
 
 class CalendarScreen(Screen):
-    calendar_cls = ObjectProperty(Calendar)
     calendar = ObjectProperty()
     entity = ObjectProperty()
     toggle = ObjectProperty()
     data = ListProperty()
-    omit_empty = BooleanProperty(False)
-    """Whether to skip rows in which you have nothing to do"""
-    show_turn_labels = BooleanProperty(True)
-    """Whether to put some labels on the left showing what turn a row refers to"""
-    header = ListProperty()
-    """Stuff to show at the top of the calendar. Strings or widgets, as many as you've got columns
-    
-    Make sure to account for the turn labels' column if it's present.
-    
-    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._trigger_reinit = Clock.create_trigger(self._reinit)
-        self.bind(calendar_cls=self._trigger_reinit)
-        self._trigger_reinit()
-
-    def _reinit(self, *args):
-        self.clear_widgets()
-        cal = self.calendar = self.calendar_cls(
+        self.calendar = Calendar(
             entity=self.entity,
-            content=self.content,
-            omit_empty=self.omit_empty,
-            show_turn_labels=self.show_turn_labels,
-            header=self.header
+            data=self.data
         )
-        self.bind(
-            entity=cal.setter('entity'),
-            content=cal.setter('content'),
-            omit_empty=cal.setter('omit_empty'),
-            show_turn_labels=cal.setter('show_turn_labels'),
-            header=cal.setter('header')
-        )
-        self.add_widget(cal)
-        self.add_widget(Button(text='Close', on_release=self.toggle))
-
+        self.from_history = self.calendar.from_history
+        self.add_widget(self.calendar)
+        self.add_widget(Button(text='Close', on_release=self.toggle, size_hint_y=0.1))
+        self.bind(data=self.calendar.setter('data'))
+        self.bind(entity=self.calendar.setter('entity'))
 
 Builder.load_string("""
 <Calendar>:
     key_viewclass: 'widget'
     RecycleGridLayout:
-        cols: 3
+        cols: root.cols
         size_hint_y: None
         default_size: None, dp(56)
         default_size_hint: 1, None
         height: self.minimum_height
         orientation: 'horizontal'
+<CalendarLabel>:
+    text: str(self.value)
+<CalendarSlider>:
+    padding: 25
+    Label:
+        center_x: root.center_x
+        y: root.center_y
+        text: str(root.value)
+        size: self.texture_size
 """)
 
 

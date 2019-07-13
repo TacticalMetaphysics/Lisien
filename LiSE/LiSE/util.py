@@ -154,9 +154,13 @@ class EntityStatAccessor(object):
         entity = self.entity
         oldturn = engine.turn
         oldtick = engine.tick
+        stat = self.stat
         for turn in range(beginning, end+1):
             engine.turn = turn
-            yield entity[turn]
+            y = entity[stat]
+            if hasattr(y, 'unwrap'):
+                y = y.unwrap()
+            yield y
         engine.turn = oldturn
         engine.tick = oldtick
 
