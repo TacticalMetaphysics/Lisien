@@ -178,16 +178,16 @@ class Calendar(RecycleView):
         curturn = start_turn
         endturn = curturn + len(next(iter(history.values())))
         data = []
+        stats = sorted((stat for stat in history if not stat.startswith('_')), key=key)
         if headers:
             if turn_labels:
                 data.append({'widget': 'CalendarLabel', 'text': ''})
-            for stat in history:
+            for stat in stats:
                 if stat.startswith('_'):
                     continue
                 data.append({'widget': 'CalendarLabel', 'text': str(stat)})
         cols = len(data)
         iters = {stat: iter(values) for (stat, values) in history.items()}
-        stats = sorted((stat for stat in history if not stat.startswith('_')), key=key)
         for turn in range(curturn, endturn):
             if turn_labels:
                 data.append({'widget': 'CalendarLabel', 'text': str(turn)})
