@@ -30,12 +30,12 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     value = ObjectProperty()
     """The value you want to set the key to"""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._trigger_update_disabledness = Clock.create_trigger(self._update_disabledness)
-
-    def _update_disabledness(self, *args):
+    def _update_disabledness(self, *args, **kwargs):
         self.disabled = self.turn > self.parent.parent.entity.engine.turn
+
+    def _trigger_update_disabledness(self, *args, **kwargs):
+        Clock.unschedule(self._update_disabledness)
+        Clock.schedule_once(self._update_disabledness)
 
     def on_value(self, *args):
         # do I want to do some validation at this point?
@@ -54,7 +54,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         if not self.parent:
             return
         self._trigger_update_disabledness()
-        self.parent.parent.entity.engine.time.connect(self._trigger_update_disabledness, weak=False)
+        self.parent.parent.entity.engine.time.connect(self._trigger_update_disabledness)
 
 
 class CalendarLabel(CalendarWidget, Label):
