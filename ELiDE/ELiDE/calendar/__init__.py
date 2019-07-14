@@ -152,7 +152,13 @@ class Calendar(RecycleView):
         if not self.data:
             return track
         turn = self.entity.engine.turn
-        last = self.data[0]
+        for last in self.data:
+            if 'turn' in last:
+                break
+        else:
+            # I don't know *why* the calendar has no actionable data in it but here u go
+            return track
+        last = last['turn'] - 1
         accumulator = []
         for datum in self.data:
             if 'turn' not in datum:
