@@ -175,16 +175,16 @@ class Calendar(RecycleView):
             accumulator.append((datum['key'], datum['value']))
         return track
 
-    def from_history(self, history, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
+    def from_schedule(self, schedule, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
         # It should be convenient to style the calendar using data from the core;
         # not sure what the API should be like
         control2wid = self._control2wid
         if start_turn is None:
             start_turn = self.entity.engine.turn
         curturn = start_turn
-        endturn = curturn + len(next(iter(history.values())))
+        endturn = curturn + len(next(iter(schedule.values())))
         data = []
-        stats = sorted((stat for stat in history if not stat.startswith('_')), key=key)
+        stats = sorted((stat for stat in schedule if not stat.startswith('_')), key=key)
         if headers:
             if turn_labels:
                 data.append({'widget': 'CalendarLabel', 'text': ''})
@@ -193,7 +193,7 @@ class Calendar(RecycleView):
                     continue
                 data.append({'widget': 'CalendarLabel', 'text': str(stat)})
         cols = len(data)
-        iters = {stat: iter(values) for (stat, values) in history.items()}
+        iters = {stat: iter(values) for (stat, values) in schedule.items()}
         for turn in range(curturn, endturn):
             if turn_labels:
                 data.append({'widget': 'CalendarLabel', 'text': str(turn)})
@@ -228,7 +228,7 @@ class CalendarScreen(Screen):
             entity=self.entity,
             data=self.data
         )
-        self.from_history = self.calendar.from_history
+        self.from_schedule = self.calendar.from_schedule
         self.add_widget(self.calendar)
         self.add_widget(Button(text='Close', on_release=self.toggle, size_hint_y=0.1))
         self.bind(data=self.calendar.setter('data'))

@@ -1255,7 +1255,7 @@ class EngineHandle(object):
         return self.engine.apply_choices(choices, dry_run, perfectionist)
 
     @staticmethod
-    def get_calendar_data(entity, stats, beginning, end):
+    def get_schedule(entity, stats, beginning, end):
         ret = {}
         for stat in stats:
             ret[stat] = list(entity.historical(stat).iter_history(beginning, end))

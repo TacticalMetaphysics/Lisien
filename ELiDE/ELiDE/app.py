@@ -360,9 +360,9 @@ class ELiDEApp(App):
             else:
                 entity = self.selected_proxy
             self.calendar.entity = entity
-            self.calendar.from_history(
+            self.calendar.from_schedule(
                 self.engine.handle(
-                    'get_calendar_data', entity=entity,
+                    'get_schedule', entity=entity,
                     stats=stats, beginning=startturn, end=endturn
                 ),
                 start_turn=startturn
