@@ -31,7 +31,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     """The value you want to set the key to"""
 
     def _update_disabledness(self, *args, **kwargs):
-        self.disabled = self.turn > self.parent.parent.entity.engine.turn
+        self.disabled = self.turn < self.parent.parent.entity.engine.turn
 
     def _trigger_update_disabledness(self, *args, **kwargs):
         Clock.unschedule(self._update_disabledness)
@@ -44,11 +44,9 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         if not self.parent:
             return
         calendar = self.parent.parent
-        my_dict = calendar.idx[(self.key, self.value)]
-        if my_dict[self.key] != self.value:
-            my_dict[self.key] = self.value
-        if calendar.entity[self.key] != self.value:
-            calendar.entity[self.key] = self.value
+        my_dict = calendar.idx[(self.turn, self.key)]
+        if my_dict['value'] != self.value:
+            my_dict['value'] = self.value
 
     def on_parent(self, *args):
         if not self.parent:
@@ -136,12 +134,14 @@ class Calendar(RecycleView):
     entity = ObjectProperty()
     idx = DictProperty()
 
+    def on_data(self, *args):
+        idx = self.idx
+        for item in self.data:
+            if 'key' in item and 'turn' in item:
+                idx[(item['turn'], item['key'])] = item
+
     def get_track(self):
         """Get a dictionary that can be used to submit my changes to ``LiSE.Engine.apply_choices``
-
-        You'll need to at least put the result in a list in a dictionary under the key ``'tracks'``.
-        This is to support the possibility of multiple calendars, even multiple simultaneous players,
-        and the payload might have to contain credentials or something like that.
 
         If a data dictionary does not have the key 'turn', it will not be included in the track.
         You can use this to add labels and other non-input widgets to the calendar.
@@ -151,20 +151,19 @@ class Calendar(RecycleView):
         track = {'entity': self.entity, 'changes': changes}
         if not self.data:
             return track
-        turn = self.entity.engine.turn
-        for last in self.data:
-            if 'turn' in last:
+        for datum in self.data:
+            if 'turn' in datum:
                 break
         else:
             # I don't know *why* the calendar has no actionable data in it but here u go
             return track
-        last = last['turn'] - 1
+        last = self.entity.engine.turn
         accumulator = []
         for datum in self.data:
             if 'turn' not in datum:
                 continue
             trn = datum['turn']
-            if trn < turn:
+            if trn < last:
                 continue
             if trn > last:
                 if trn > last + 1:
@@ -173,6 +172,7 @@ class Calendar(RecycleView):
                 accumulator = []
                 last = trn
             accumulator.append((datum['key'], datum['value']))
+        changes.append(accumulator)
         return track
 
     def from_schedule(self, schedule, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
@@ -202,7 +202,7 @@ class Calendar(RecycleView):
             else:
                 config = None
             for stat in stats:
-                datum = {'key': stat, 'value': next(iters[stat])}
+                datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
                     configstat = config[stat]
                     datum['widget'] = control2wid.get(configstat['control'], 'CalendarLabel')
@@ -229,6 +229,7 @@ class CalendarScreen(Screen):
             data=self.data
         )
         self.from_schedule = self.calendar.from_schedule
+        self.get_track = self.calendar.get_track
         self.add_widget(self.calendar)
         self.add_widget(Button(text='Close', on_release=self.toggle, size_hint_y=0.1))
         self.bind(data=self.calendar.setter('data'))

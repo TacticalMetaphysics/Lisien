@@ -490,7 +490,7 @@ class AbstractSchema(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_validator(self, entity):
+    def validate(self, turn, entity, key, value):
         raise NotImplementedError
 
     def get_not_permitted_entity_message(self, entity):
@@ -501,8 +501,8 @@ class NullSchema(AbstractSchema):
     def entity_permitted(self, entity):
         return True
 
-    def get_validator(self, entity):
-        return lambda k, v: True
+    def validate(self, turn, entity, key, value):
+        return True
 
 
 class Engine(AbstractEngine, gORM):
@@ -703,7 +703,7 @@ class Engine(AbstractEngine, gORM):
             trigger='trigger.py',
             prereq='prereq.py',
             action='action.py',
-            schema=NullSchema,
+            schema=None,
             connect_args={},
             alchemy=False,
             commit_modulus=None,
@@ -771,6 +771,8 @@ class Engine(AbstractEngine, gORM):
                 os.remove(action)
         else:
             self.action = action
+        if schema is None:
+            schema = NullSchema(self)
         self.schema = schema
         super().__init__(
             worlddb,
@@ -1519,8 +1521,7 @@ class Engine(AbstractEngine, gORM):
     def apply_choice(self, entity, key, value, dry_run=False):
         schema = self.schema
         assert schema.entity_permitted(entity)
-        validator = schema.get_validator(entity)
-        val = validator(self.turn, entity, key, value)
+        val = schema.validate(self.turn, entity, key, value)
         if not val:
             return val
         if type(val) is tuple:
@@ -1555,8 +1556,10 @@ class Engine(AbstractEngine, gORM):
         todo = defaultdict(list)
         acceptances = []
         rejections = []
-        for track in choices['tracks']:
+        for track in choices:
             entity = track['entity']
+            if isinstance(entity, self.char_cls):
+                entity = entity.stat
             permissible = schema.entity_permitted(entity)
             if not permissible:
                 msg = schema.get_not_permitted_entity_message(entity)
@@ -1565,12 +1568,11 @@ class Engine(AbstractEngine, gORM):
                         ((turn, entity, k, v), msg) for (k, v) in changes
                     )
                 continue
-            validator = schema.get_validator(entity)
             for turn, changes in enumerate(track['changes'], start=self.turn):
                 for k, v in changes:
                     ekv = (entity, k, v)
                     parcel = (turn, entity, k, v)
-                    val = validator(*parcel)
+                    val = schema.validate(*parcel)
                     if type(val) is tuple:
                         accept, message = val
                         if accept:

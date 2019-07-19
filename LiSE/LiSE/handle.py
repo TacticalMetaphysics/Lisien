@@ -1249,10 +1249,10 @@ class EngineHandle(object):
         return self._real.is_parent_of(parent, child)
 
     def apply_choice(self, entity, key, value, dry_run=False):
-        return self.engine.apply_choice(entity, key, value, dry_run)
+        return self._real.apply_choice(entity, key, value, dry_run)
 
     def apply_choices(self, choices, dry_run=False, perfectionist=False):
-        return self.engine.apply_choices(choices, dry_run, perfectionist)
+        return self._real.apply_choices(choices, dry_run, perfectionist)
 
     @staticmethod
     def get_schedule(entity, stats, beginning, end):

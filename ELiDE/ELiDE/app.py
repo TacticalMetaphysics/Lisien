@@ -346,6 +346,9 @@ class ELiDEApp(App):
 
     def _toggle_calendar(self, *args):
         if self.manager.current == 'calendar':
+            self.engine.handle(
+                'apply_choices', choices=[self.calendar.get_track()]
+            )
             self.manager.current = 'main'
         else:
             # TODO: make the turn range configurable
@@ -356,13 +359,13 @@ class ELiDEApp(App):
                 and stat not in ('character', 'name')
             ]
             if isinstance(self.selected_proxy, CharStatProxy):
-                entity = self.engine.character[self.selected_proxy.name]
+                sched_entity = self.engine.character[self.selected_proxy.name]
             else:
-                entity = self.selected_proxy
-            self.calendar.entity = entity
+                sched_entity = self.selected_proxy
+            self.calendar.entity = sched_entity
             self.calendar.from_schedule(
                 self.engine.handle(
-                    'get_schedule', entity=entity,
+                    'get_schedule', entity=sched_entity,
                     stats=stats, beginning=startturn, end=endturn
                 ),
                 start_turn=startturn
