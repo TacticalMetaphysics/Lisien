@@ -15,7 +15,8 @@ import msgpack
 from blinker import Signal
 from allegedb import ORM as gORM
 from allegedb.cache import HistoryError
-from .util import reify, sort_set
+from .reify import reify
+from .util import sort_set
 
 from . import exc
 

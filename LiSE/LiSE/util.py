@@ -20,7 +20,6 @@ from collections.abc import Set
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
 from textwrap import dedent
-from .reify import reify
 
 
 def getatt(attribute_name):

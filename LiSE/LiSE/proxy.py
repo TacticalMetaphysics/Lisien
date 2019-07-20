@@ -41,7 +41,8 @@ from allegedb.cache import HistoryError, PickyDefaultDict, StructuredDefaultDict
 from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .engine import AbstractEngine
 from .character import Facade, AbstractCharacter
-from .util import reify, getatt
+from .reify import reify
+from .util import getatt
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
 from .node import NodeContent, UserMapping, UserDescriptor
