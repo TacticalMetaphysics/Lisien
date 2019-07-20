@@ -158,7 +158,7 @@ class FunctionStore(Signal):
         try:
             return self._locl[k]
         except KeyError:
-            raise AttributeError
+            raise AttributeError(f"No function {k} in {self._filename}")
 
     def __setattr__(self, k, v):
         if not callable(v):

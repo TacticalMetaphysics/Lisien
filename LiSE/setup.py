@@ -16,9 +16,9 @@
 import sys
 if sys.version_info[0] < 3 or (
         sys.version_info[0] == 3 and
-        sys.version_info[1] < 3
+        sys.version_info[1] < 5
 ):
-    raise RuntimeError("LiSE requires Python 3.3 or later")
+    raise RuntimeError("LiSE requires Python 3.5 or later")
 
 from setuptools import setup
 
