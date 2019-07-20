@@ -1558,8 +1558,6 @@ class Engine(AbstractEngine, gORM):
         rejections = []
         for track in choices:
             entity = track['entity']
-            if isinstance(entity, self.char_cls):
-                entity = entity.stat
             permissible = schema.entity_permitted(entity)
             if not permissible:
                 msg = schema.get_not_permitted_entity_message(entity)
@@ -1593,6 +1591,9 @@ class Engine(AbstractEngine, gORM):
             for turn in sorted(todo):
                 self.turn = turn
                 for entity, key, value in todo[turn]:
-                    entity[key] = value
+                    if isinstance(entity, self.char_cls):
+                        entity.stat[key] = value
+                    else:
+                        entity[key] = value
         self.turn = now
         return acceptances, rejections
