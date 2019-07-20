@@ -157,7 +157,11 @@ class EntityStatAccessor(object):
         stat = self.stat
         for turn in range(beginning, end+1):
             engine.turn = turn
-            y = entity[stat]
+            try:
+                y = entity[stat]
+            except KeyError:
+                yield None
+                continue
             if hasattr(y, 'unwrap'):
                 y = y.unwrap()
             yield y
