@@ -187,16 +187,16 @@ class Calendar(RecycleView):
         stats = sorted((stat for stat in schedule if not stat.startswith('_')), key=key)
         if headers:
             if turn_labels:
-                data.append({'widget': 'CalendarLabel', 'text': ''})
+                data.append({'widget': 'Label', 'text': ''})
             for stat in stats:
                 if stat.startswith('_'):
                     continue
-                data.append({'widget': 'CalendarLabel', 'text': str(stat)})
+                data.append({'widget': 'Label', 'text': str(stat)})
         cols = len(data)
         iters = {stat: iter(values) for (stat, values) in schedule.items()}
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'CalendarLabel', 'text': str(turn)})
+                data.append({'widget': 'Label', 'text': str(turn)})
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
@@ -246,7 +246,7 @@ Builder.load_string("""
         height: self.minimum_height
         orientation: 'horizontal'
 <CalendarLabel>:
-    text: str(self.value)
+    text: str(self.value) if self.value is not None else ''
 <CalendarSlider>:
     padding: 25
     Label:
