@@ -111,7 +111,7 @@ def inittest(
 
     @shrubsprint.prereq
     def not_traveling(thing):
-        if thing.next_location is not None:
+        if hasattr(thing, 'next_location'):
             thing.engine.info("kobold already travelling to {}".format(thing.next_location))
             return False
         else:
@@ -146,8 +146,8 @@ def inittest(
             bold = thing.character.thing['kobold']
         except KeyError:
             return False
-        (dx, dy) = bold['location']
-        (ox, oy) = thing['location']
+        (dx, dy) = bold.location.name
+        (ox, oy) = thing.location.name
         xdist = abs(dx - ox)
         ydist = abs(dy - oy)
         dist = hypot(xdist, ydist)
@@ -169,7 +169,7 @@ def inittest(
 
     @dwarf.rule
     def go2kobold(thing):
-        thing.travel_to(thing.character.thing['kobold']['location'])
+        thing.travel_to(thing.character.thing['kobold'].location)
 
     go2kobold.trigger(aware)
 
@@ -182,12 +182,12 @@ def inittest(
     @dwarf.rule
     def wander(thing):
         dests = sorted(list(thing.character.place.keys()))
-        dests.remove(thing['location'])
+        dests.remove(thing.location.name)
         thing.travel_to(thing.engine.choice(dests))
 
     @wander.trigger
     def standing_still(thing):
-        return thing.next_location is None
+        return not hasattr(thing, 'next_location')
 
 
 if __name__ == '__main__':
@@ -197,7 +197,7 @@ if __name__ == '__main__':
         remove('LiSEworld.db')
     except FileNotFoundError:
         pass
-    with Engine('LiSEworld.db', random_seed=69105) as engine:
+    with Engine('LiSEworld.db', random_seed=69105, clear=True) as engine:
         inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(
