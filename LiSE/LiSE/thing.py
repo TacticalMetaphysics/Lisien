@@ -233,6 +233,7 @@ class Thing(Node):
             raise ValueError("Paths need at least 2 nodes")
         eng = self.character.engine
         turn_now, tick_now = eng.time
+        path = [getattr(pl, 'name', pl) for pl in path]
         with eng.plan():
             prevplace = path.pop(0)
             if prevplace != self['location']:
