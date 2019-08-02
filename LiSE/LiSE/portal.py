@@ -114,18 +114,7 @@ class Portal(Edge, RuleFollower):
         Portal instead.
 
         """
-        if key == 'origin':
-            return self.orig
-        elif key == 'destination':
-            return self.dest
-        elif key == 'character':
-            return self.character.name
-        elif key == 'is_mirror':
-            try:
-                return super().__getitem__(key)
-            except KeyError:
-                return False
-        elif 'is_mirror' in self and self['is_mirror']:
+        if 'is_mirror' in self and self['is_mirror']:
             return self.character.preportal[
                 self.orig
             ][
@@ -143,9 +132,7 @@ class Portal(Edge, RuleFollower):
         that Portal instead.
 
         """
-        if key in ('origin', 'destination', 'character'):
-            raise KeyError("Can't change " + key)
-        elif 'is_mirror' in self and self['is_mirror']:
+        if 'is_mirror' in self and self['is_mirror']:
             self.reciprocal[key] = value
             return
         elif key == 'symmetrical' and value:
@@ -183,9 +170,9 @@ class Portal(Edge, RuleFollower):
         """Describe character, origin, and destination"""
         return "{}.character[{}].portal[{}][{}]".format(
             repr(self.engine),
-            repr(self['character']),
-            repr(self['origin']),
-            repr(self['destination'])
+            repr(self.character.name),
+            repr(self.origin.name),
+            repr(self.destination.name)
         )
 
     def __bool__(self):

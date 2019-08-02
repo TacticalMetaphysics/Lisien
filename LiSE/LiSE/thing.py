@@ -27,15 +27,7 @@ contained by Places, or possibly other Things.
 import networkx as nx
 from .node import Node
 from .exc import TravelException
-from allegedb.cache import HistoryError
-
-
-def roerror(*args, **kwargs):
-    raise ValueError("Read-only")
-
-
-class WrongNodeType(TypeError):
-    """What you thought was a Thing was really a Place"""
+from allegedb.graph import unset
 
 
 class Thing(Node):
@@ -51,22 +43,36 @@ class Thing(Node):
     """
     __slots__ = ('graph', 'db', 'node')
 
-    extrakeys = {
-        'name',
-        'character',
-        'location'
-    }
-
     def _getname(self):
         return self.name
 
     def _getcharname(self):
         return self.character.name
 
-    def _getloc(self):
-        return self.engine._things_cache.retrieve(
+    @property
+    def loc(self):
+        ret = self.engine._things_cache.retrieve(
             self.character.name, self.name, *self.engine._btt()
         )
+        if ret is unset:
+            raise AttributeError("This isn't really a Thing, give it a location to make it one")
+        return ret
+
+    @loc.setter
+    def loc(self, loc):
+        self.engine._set_thing_loc(
+            self.graph,
+            self.name,
+            loc
+        )
+        self.send(self, key='loc', val=loc)
+
+    @loc.deleter
+    def loc(self):
+        self.engine._set_thing_loc(
+            self.graph, self.name, unset
+        )
+        self.send(self, key='loc', val=unset)
 
     def _get_arrival_time(self):
         charn = self.character.name
@@ -82,65 +88,6 @@ class Thing(Node):
         else:
             raise ValueError("Couldn't find arrival time")
 
-    def _set_loc(self, loc):
-        self.engine._set_thing_loc(
-            self.character.name,
-            self.name,
-            loc
-        )
-        self.send(self, key='location', val=loc)
-
-    _getitem_dispatch = {
-        'name': _getname,
-        'character': _getcharname,
-        'location': _getloc
-    }
-
-    _setitem_dispatch = {
-        'name': roerror,
-        'character': roerror,
-        'arrival_time': roerror,
-        'next_arrival_time': roerror,
-        'location': _set_loc
-    }
-
-    def __contains__(self, key):
-        if key in self.extrakeys:
-            return True
-        return super().__contains__(key)
-
-    def __getitem__(self, key):
-        """Return one of my stats stored in the database, or a few
-        special cases:
-
-        ``name``: return the name that uniquely identifies me within
-        my Character
-
-        ``character``: return the name of my character
-
-        ``location``: return the name of my location
-
-        """
-        try:
-            return self._getitem_dispatch[key](self)
-        except KeyError:
-            return super().__getitem__(key)
-
-    def __setitem__(self, key, value):
-        """Set ``key``=``value`` for the present game-time."""
-        try:
-            self._setitem_dispatch[key](self, value)
-        except HistoryError as ex:
-            raise ex
-        except KeyError:
-            super().__setitem__(key, value)
-
-    def __delitem__(self, key):
-        """As of now, this key isn't mine."""
-        if key in self.extrakeys:
-            raise ValueError("Can't delete {}".format(key))
-        super().__delitem__(key)
-
     def __repr__(self):
         return "{}.character['{}'].thing['{}']".format(
             self.engine,
@@ -150,34 +97,13 @@ class Thing(Node):
 
     def delete(self):
         super().delete()
-        self._set_loc(None)
-        self.character.thing.send(self.character.thing, key=self.name, val=None)
+        del self.loc
+        self.character.thing.send(self.character.thing, key=self.name, val=unset)
 
     def clear(self):
         """Unset everything."""
         for k in list(self.keys()):
-            if k not in self.extrakeys:
-                del self[k]
-
-    @property
-    def location(self):
-        """The ``Thing`` or ``Place`` I'm in."""
-        try:
-            return self.engine._get_node(self.character, self['location'])
-        except KeyError:
-            raise AttributeError("This isn't really a Thing, give it a location to make it one")
-
-    def _thingness_check(self):
-        try:
-            return self.engine._get_node(self.character, self['location'])
-        except KeyError:
-            raise WrongNodeType()
-
-    @location.setter
-    def location(self, v):
-        if hasattr(v, 'name'):
-            v = v.name
-        self['location'] = v
+            del self[k]
 
     @property
     def next_location(self):
@@ -208,7 +134,7 @@ class Thing(Node):
             placen = place.name
         else:
             placen = place
-        curloc = self["location"]
+        curloc = self.loc
         orm = self.character.engine
         turns = self.engine._portal_objs[
             (self.character.name, curloc, place)].get(weight, 1)
@@ -236,7 +162,7 @@ class Thing(Node):
         path = [getattr(pl, 'name', pl) for pl in path]
         with eng.plan():
             prevplace = path.pop(0)
-            if prevplace != self['location']:
+            if prevplace != self.loc:
                 raise ValueError("Path does not start at my present location")
             subpath = [prevplace]
             for place in path:
@@ -261,11 +187,11 @@ class Thing(Node):
                 portal = self.character.portal[prevsubplace][subplace]
                 turn_inc = portal.get(weight, 1)
                 eng.turn += turn_inc
-                self.location = subplace
+                self.loc = subplace
                 turns_total += turn_inc
                 subsubpath.append(subplace)
                 prevsubplace = subplace
-            self.location = subplace
+            self.loc = subplace
             eng.time = turn_now, tick_now
         return turns_total
 
@@ -292,8 +218,8 @@ class Thing(Node):
         """
         self._thingness_check()
         destn = dest.name if hasattr(dest, 'name') else dest
-        if destn == self.location.name:
+        if destn == self.loc:
             raise ValueError("I'm already at {}".format(destn))
         graph = self.character if graph is None else graph
-        path = nx.shortest_path(graph, self["location"], destn, weight)
+        path = nx.shortest_path(graph, self.loc, destn, weight)
         return self.follow_path(path, weight)

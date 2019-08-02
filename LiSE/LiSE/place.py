@@ -28,22 +28,11 @@ class Place(Node):
     """The kind of node where a thing might ultimately be located."""
     __slots__ = ('graph', 'db', 'node')
 
-    extrakeys = {
-        'name',
-        'character'
-    }
-
-    def __getitem__(self, key):
-        try:
-            return super().__getitem__(key)
-        except KeyError:
-            return {'name': self.name, 'character': self.character.name}[key]
-
     def __repr__(self):
         return "{}.character[{}].place[{}]".format(
-            repr(self.engine),
-            repr(self['character']),
-            repr(self['name'])
+            repr(self.db),
+            repr(self.graph),
+            repr(self.node)
         )
 
     def delete(self):

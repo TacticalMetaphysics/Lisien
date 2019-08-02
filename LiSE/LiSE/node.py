@@ -294,6 +294,10 @@ class UserDescriptor:
             raise
 
 
+class WrongNodeType(TypeError):
+    """What you thought was a Thing was really a Place"""
+
+
 class Node(allegedb.graph.Node, rule.RuleFollower):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
@@ -308,6 +312,30 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     character = getatt('graph')
     name = getatt('node')
     no_unwrap = True
+
+    @property
+    def location(self):
+        """The ``Thing`` or ``Place`` I'm in."""
+        try:
+            return self.engine._get_node(self.character, self.loc)
+        except KeyError:
+            raise AttributeError("This isn't a Thing, give it a location to make it one")
+
+    def _thingness_check(self):
+        try:
+            return self.engine._get_node(self.character, self.loc)
+        except KeyError:
+            raise WrongNodeType()
+
+    @location.setter
+    def location(self, v):
+        if hasattr(v, 'name'):
+            v = v.name
+        self.loc = v
+
+    @location.deleter
+    def location(self):
+        del self.loc
 
     def _get_rule_mapping(self):
         return RuleMapping(self)

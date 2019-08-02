@@ -1383,6 +1383,7 @@ class Engine(AbstractEngine, gORM):
             handled = partial(handled_node, charn, noden, rulebook, rulen, branch, turn, tick)
             entity = get_node(charn, noden)
             if check_triggers(rule, handled, entity):
+                self.debug(f"rule {rule} triggered on entity {entity}")
                 todo[rulebook].append((rule, handled, entity))
         handled_portal = self._handled_portal
         for (
