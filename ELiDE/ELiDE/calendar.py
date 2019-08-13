@@ -270,6 +270,8 @@ Builder.load_string("""
         y: root.center_y
         text: str(root.value)
         size: self.texture_size
+<CalendarOptionButton>:
+    text: str(self.value)
 """)
 
 
