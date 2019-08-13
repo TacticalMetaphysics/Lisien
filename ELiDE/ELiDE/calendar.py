@@ -124,7 +124,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 
     def _set_value_and_close(self, val, *args):
         self.value = val
-        self.modalview.close()
+        self.modalview.dismiss()
 
 
 
@@ -224,7 +224,7 @@ class Calendar(RecycleView):
             for stat in stats:
                 datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
-                    datum = config[stat].copy()
+                    datum.update(config[stat])
                     datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
                 else:
                     datum['widget'] = 'CalendarLabel'
