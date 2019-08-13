@@ -1,3 +1,4 @@
+from functools import partial
 from kivy.properties import(
     DictProperty,
     ObjectProperty,
@@ -75,12 +76,20 @@ class CalendarToggleButton(CalendarWidget, ToggleButton):
     pass
 
 
-class CalendarDropMenuButton(CalendarWidget, Button):
+class CalendarOptionButton(CalendarWidget, Button):
     options = ListProperty()
     modalview = ObjectProperty()
     columns = BoundedNumericProperty(1, min=1)
 
-    def on_columns(self, *args):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._make_modalview()
+        self._update_modalview()
+        self.bind(columns=self._make_modalview)
+        self.bind(options=self._update_modalview)
+        self.bind(on_release=self.modalview.open)
+
+    def _make_modalview(self, *args):
         if not self.modalview:
             self.modalview = ModalView()
         if self.modalview.children:
@@ -89,8 +98,9 @@ class CalendarDropMenuButton(CalendarWidget, Button):
             container = GridLayout(cols=self.columns)
             self.modalview.add_widget(container)
         container.size = container.minimum_size
+        self._update_modalview()
 
-    def on_options(self, *args):
+    def _update_modalview(self, *args):
         if not self.modalview:
             Clock.schedule_once(self.on_options, 0)
             return
@@ -102,10 +112,19 @@ class CalendarDropMenuButton(CalendarWidget, Button):
         for option in self.options:
             if type(option) is tuple:
                 text, value = option
-                self.modalview.add_widget(Button(text=text, on_release=self.setter('value')))
+                container.add_widget(Button(
+                    size_hint_y=None, height=30,
+                    text=text, on_release=partial(self._set_value_and_close, text)))
             else:
-                self.modalview.add_widget(Button(text=str(option), on_release=self.setter('value')))
+                container.add_widget(Button(
+                    text=str(option), on_release=partial(
+                    self._set_value_and_close, str(option)),
+                    size_hint_y=None, height=30))
         container.size = container.minimum_size
+
+    def _set_value_and_close(self, val, *args):
+        self.value = val
+        self.modalview.close()
 
 
 
@@ -128,7 +147,8 @@ class Calendar(RecycleView):
     _control2wid = {
         'slider': 'CalendarSlider',
         'toggle': 'CalendarToggleButton',
-        'textinput': 'CalendarTextInput'
+        'textinput': 'CalendarTextInput',
+        'option': 'CalendarOptionButton'
     }
     cols = NumericProperty()
     entity = ObjectProperty()
@@ -204,12 +224,8 @@ class Calendar(RecycleView):
             for stat in stats:
                 datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
-                    configstat = config[stat]
-                    datum['widget'] = control2wid.get(configstat['control'], 'CalendarLabel')
-                    if 'min' in configstat:
-                        datum['min'] = configstat['min']
-                    if 'max' in configstat:
-                        datum['max'] = configstat['max']
+                    datum = config[stat].copy()
+                    datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
                 else:
                     datum['widget'] = 'CalendarLabel'
                 data.append(datum)
