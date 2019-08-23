@@ -279,7 +279,7 @@ class MainScreen(Screen):
                 return True
         if self.dialoglayout.dispatch('on_touch_down', touch):
             return True
-        return self.boardview.dispatch('on_touch_down', touch)
+        return self.mainview.dispatch('on_touch_down', touch)
 
     def on_touch_up(self, touch):
         if self.timepanel.collide_point(*touch.pos):
