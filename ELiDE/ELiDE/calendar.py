@@ -28,7 +28,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     turn = NumericProperty()
     key = ObjectProperty()
     """The key to set in the entity"""
-    value = ObjectProperty()
+    value = ObjectProperty(allownone=True)
     """The value you want to set the key to"""
 
     def _update_disabledness(self, *args, **kwargs):
