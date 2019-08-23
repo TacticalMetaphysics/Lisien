@@ -305,14 +305,6 @@ class ELiDEApp(App):
             selected_proxy=self.statcfg.setter('proxy')
         )
 
-        self.calendar = ELiDE.calendar.CalendarScreen(
-            toggle=self._toggle_calendar,
-            name='calendar'
-        )
-        self.bind(
-            selected_proxy=self.calendar.setter('entity')
-        )
-
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
@@ -339,38 +331,30 @@ class ELiDEApp(App):
                 self.charrules,
                 self.chars,
                 self.strings,
-                self.funcs,
-                self.calendar
+                self.funcs
         ):
             self.manager.add_widget(wid)
 
-    def _toggle_calendar(self, *args):
-        if self.manager.current == 'calendar':
-            self.engine.handle(
-                'apply_choices', choices=[self.calendar.get_track()]
-            )
-            self.manager.current = 'main'
+    def update_calendar(self, calendar):
+        # TODO: make the turn range configurable
+        startturn = self.turn - 1
+        endturn = self.turn + 5
+        stats = ['_config'] + [
+            stat for stat in self.selected_proxy if not stat.startswith('_')
+            and stat not in ('character', 'name')
+        ]
+        if isinstance(self.selected_proxy, CharStatProxy):
+            sched_entity = self.engine.character[self.selected_proxy.name]
         else:
-            # TODO: make the turn range configurable
-            startturn = self.turn - 1
-            endturn = self.turn + 5
-            stats = ['_config'] + [
-                stat for stat in self.selected_proxy if not stat.startswith('_')
-                and stat not in ('character', 'name')
-            ]
-            if isinstance(self.selected_proxy, CharStatProxy):
-                sched_entity = self.engine.character[self.selected_proxy.name]
-            else:
-                sched_entity = self.selected_proxy
-            self.calendar.entity = sched_entity
-            self.calendar.from_schedule(
-                self.engine.handle(
-                    'get_schedule', entity=sched_entity,
-                    stats=stats, beginning=startturn, end=endturn
-                ),
-                start_turn=startturn
-            )
-            self.manager.current = 'calendar'
+            sched_entity = self.selected_proxy
+        calendar.entity = sched_entity
+        calendar.from_schedule(
+            self.engine.handle(
+                'get_schedule', entity=sched_entity,
+                stats=stats, beginning=startturn, end=endturn
+            ),
+            start_turn=startturn
+        )
 
     def _set_language(self, lang):
         self.engine.string.language = lang

@@ -43,6 +43,8 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
+from .board.board import BoardView
+from .calendar import Calendar
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -175,6 +177,7 @@ class MainScreen(Screen):
     manager = ObjectProperty()
     boards = DictProperty()
     boardview = ObjectProperty()
+    mainview = ObjectProperty()
     charmenu = ObjectProperty()
     statlist = ObjectProperty()
     statpanel = ObjectProperty()
@@ -194,6 +197,38 @@ class MainScreen(Screen):
     rules_per_frame = BoundedNumericProperty(10, min=1)
     app = ObjectProperty()
     tmp_block = BooleanProperty(False)
+
+    def on_mainview(self, *args):
+        if not all((self.statpanel, self.charmenu, self.app)) or not self.charmenu.portaladdbut:
+            Clock.schedule_once(self.on_mainview, 0)
+            return
+        self.boardview = BoardView(
+            scale_min=0.2,
+            scale_max=4.0,
+            size=self.mainview.size,
+            pos=self.mainview.pos,
+            board=self.boards[self.app.character_name],
+            adding_portal=self.charmenu.portaladdbut.state == 'down'
+        )
+        def update_adding_portal(*args):
+            self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
+        def update_board(*args):
+            self.boardview.board = self.boards(self.app.character_name)
+        self.mainview.bind(
+            size=self.boardview.setter('size'),
+            pos=self.boardview.setter('pos')
+        )
+        self.charmenu.portaladdbut.bind(state=update_adding_portal)
+        self.app.bind(character_name=update_board)
+        self.calendar = Calendar(
+            size=self.mainview.size,
+            pos=self.mainview.pos
+        )
+        self.mainview.bind(
+            size=self.calendar.setter('size'),
+            pos=self.calendar.setter('pos')
+        )
+        self.mainview.add_widget(self.boardview)
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -350,6 +385,22 @@ class MainScreen(Screen):
         )
         eng.next_turn(cb=self._update_from_next_turn)
 
+    def switch_to_calendar(self, *args):
+        self.app.update_calendar(self.calendar)
+        self.mainview.clear_widgets()
+        self.mainview.add_widget(self.calendar)
+
+    def switch_to_boardview(self, *args):
+        self.mainview.clear_widgets()
+        self.mainview.add_widget(self.boardview)
+
+    def toggle_mainview(self, *args):
+        # TODO decide how to handle switching between >2 view types
+        if self.boardview in self.mainview.children:
+            self.switch_to_calendar()
+        else:
+            self.switch_to_boardview()
+
 
 Builder.load_string(
     """
@@ -375,7 +426,7 @@ Builder.load_string(
     Button:
         id: calbut
         size_hint_y: 0.1
-        text: "calendar"
+        text: "board/cal"
         on_release: root.toggle_calendar()
 <SimulateButton>:
     graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
@@ -468,7 +519,7 @@ Builder.load_string(
     app: app
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
-    boardview: boardview
+    mainview: mainview
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
     charmenu: charmenu
@@ -476,22 +527,18 @@ Builder.load_string(
     statpanel: statpanel
     timepanel: timepanel
     dialoglayout: dialoglayout
-    BoardView:
-        id: boardview
-        scale_min: 0.2
-        scale_max: 4.0
+    Widget:
+        id: mainview
         x: statpanel.right
         y: 0
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
         height: root.height
-        board: root.boards[app.character_name]
-        adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
         engine: app.engine
         toggle_stat_cfg: app.statcfg.toggle
-        toggle_calendar: app.calendar.toggle
+        toggle_calendar: root.toggle_mainview
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
     TimePanel:

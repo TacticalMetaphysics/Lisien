@@ -231,26 +231,6 @@ class Calendar(RecycleView):
                 data.append(datum)
         (self.cols, self.data) = (cols, data)
 
-
-class CalendarScreen(Screen):
-    calendar = ObjectProperty()
-    entity = ObjectProperty()
-    toggle = ObjectProperty()
-    data = ListProperty()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.calendar = Calendar(
-            entity=self.entity,
-            data=self.data
-        )
-        self.from_schedule = self.calendar.from_schedule
-        self.get_track = self.calendar.get_track
-        self.add_widget(self.calendar)
-        self.add_widget(Button(text='Close', on_release=self.toggle, size_hint_y=0.1))
-        self.bind(data=self.calendar.setter('data'))
-        self.bind(entity=self.calendar.setter('entity'))
-
 Builder.load_string("""
 <Calendar>:
     key_viewclass: 'widget'
