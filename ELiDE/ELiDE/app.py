@@ -345,9 +345,10 @@ class ELiDEApp(App):
         ]
         if isinstance(self.selected_proxy, CharStatProxy):
             sched_entity = self.engine.character[self.selected_proxy.name]
+            calendar.entity = sched_entity.stat
         else:
             sched_entity = self.selected_proxy
-        calendar.entity = sched_entity
+            calendar.entity = sched_entity
         calendar.from_schedule(
             self.engine.handle(
                 'get_schedule', entity=sched_entity,

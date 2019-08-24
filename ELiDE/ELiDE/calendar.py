@@ -30,6 +30,7 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     """The key to set in the entity"""
     value = ObjectProperty(allownone=True)
     """The value you want to set the key to"""
+    entity = ObjectProperty()
 
     def _update_disabledness(self, *args, **kwargs):
         self.disabled = self.turn < self.parent.parent.entity.engine.turn
@@ -48,6 +49,8 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         my_dict = calendar.idx[(self.turn, self.key)]
         if my_dict['value'] != self.value:
             my_dict['value'] = self.value
+            if self.turn == self.parent.parent.entity.engine.turn:
+                self.entity[self.key] = self.value
 
     def on_parent(self, *args):
         if not self.parent:
@@ -222,7 +225,7 @@ class Calendar(RecycleView):
             else:
                 config = None
             for stat in stats:
-                datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
+                datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn, 'entity': self.entity}
                 if config and stat in config and 'control' in config[stat]:
                     datum.update(config[stat])
                     datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
