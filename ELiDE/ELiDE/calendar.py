@@ -2,6 +2,7 @@ from functools import partial
 from kivy.properties import(
     DictProperty,
     ObjectProperty,
+    OptionProperty,
     ListProperty,
     BooleanProperty,
     BoundedNumericProperty,
@@ -30,7 +31,6 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     """The key to set in the entity"""
     value = ObjectProperty(allownone=True)
     """The value you want to set the key to"""
-    entity = ObjectProperty()
 
     def _update_disabledness(self, *args, **kwargs):
         self.disabled = self.turn < self.parent.parent.entity.engine.turn
@@ -47,10 +47,26 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
             return
         calendar = self.parent.parent
         my_dict = calendar.idx[(self.turn, self.key)]
+        entity = calendar.entity
+        update_mode = calendar.update_mode
         if my_dict['value'] != self.value:
             my_dict['value'] = self.value
-            if self.turn == self.parent.parent.entity.engine.turn:
-                self.entity[self.key] = self.value
+            if update_mode == 'batch':
+                calendar.changed = True
+            elif update_mode == 'present':
+                if self.turn == entity.engine.turn:
+                    entity[self.key] = self.value
+                else:
+                    calendar.changed = True
+            else:
+                eng = entity.engine
+                now = eng.turn
+                if now == self.turn:
+                    entity[self.key] = self.value
+                else:
+                    eng.turn = self.turn
+                    entity[self.key] = self.value
+                    eng.turn = now
 
     def on_parent(self, *args):
         if not self.parent:
@@ -156,6 +172,23 @@ class Calendar(RecycleView):
     cols = NumericProperty()
     entity = ObjectProperty()
     idx = DictProperty()
+    changed = BooleanProperty(False)
+    """Whether there are changes yet to be committed to the LiSE core"""
+    update_mode = OptionProperty('batch', options=['batch', 'present', 'all'])
+    """How to go about submitting changes to the LiSE core. Options:
+    
+    * ``'batch'``: don't submit changes automatically. You have to call
+    ``get_track`` and apply the changes using the ``LiSE.handle`` method
+    ``apply_choices``. This is the default.
+    * ``'present'``: immediately apply changes that affect the current turn,
+    possibly wiping out anything in the future -- so you still have to use
+    ``get_track`` and ``apply_choices``. However, if you're using a calendar
+    in the same interface as another control widget for the same stat,
+    ``'present'`` will ensure that the two widgets always display the same value.
+    * ``'all'``: apply every change immediately to the LiSE core. Should only be
+    used when the LiSE core is in planning mode.
+    
+    """
 
     def on_data(self, *args):
         idx = self.idx
@@ -225,14 +258,14 @@ class Calendar(RecycleView):
             else:
                 config = None
             for stat in stats:
-                datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn, 'entity': self.entity}
+                datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
                     datum.update(config[stat])
                     datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
                 else:
                     datum['widget'] = 'CalendarLabel'
                 data.append(datum)
-        (self.cols, self.data) = (cols, data)
+        (self.cols, self.data, self.changed) = (cols, data, False)
 
 Builder.load_string("""
 <Calendar>:
