@@ -392,6 +392,7 @@ class MainScreen(Screen):
 
     def switch_to_boardview(self, *args):
         self.mainview.clear_widgets()
+        self.app.engine.handle('apply_choices', choices=[self.calendar.get_track()])
         self.mainview.add_widget(self.boardview)
 
     def toggle_mainview(self, *args):
