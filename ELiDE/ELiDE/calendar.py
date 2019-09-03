@@ -39,6 +39,11 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
         Clock.unschedule(self._update_disabledness)
         Clock.schedule_once(self._update_disabledness)
 
+    def _set_value(self):
+        entity = self.parent.parent.entity
+        entity = getattr(entity, 'stat', entity)
+        entity[self.key] = self.value
+
     def on_value(self, *args):
         # do I want to do some validation at this point?
         # Maybe I should validate on the proxy objects and catch that in Calendar,
@@ -55,17 +60,17 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
                 calendar.changed = True
             elif update_mode == 'present':
                 if self.turn == entity.engine.turn:
-                    entity[self.key] = self.value
+                    self._set_value()
                 else:
                     calendar.changed = True
             else:
                 eng = entity.engine
                 now = eng.turn
                 if now == self.turn:
-                    entity[self.key] = self.value
+                    self._set_value()
                 else:
                     eng.turn = self.turn
-                    entity[self.key] = self.value
+                    self._set_value()
                     eng.turn = now
 
     def on_parent(self, *args):
