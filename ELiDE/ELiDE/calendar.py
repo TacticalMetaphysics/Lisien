@@ -92,7 +92,8 @@ class CalendarTextInput(CalendarWidget, TextInput):
 
 
 class CalendarToggleButton(CalendarWidget, ToggleButton):
-    pass
+    def on_state(self, *args):
+        self.value = self.state == 'down'
 
 
 class CalendarOptionButton(CalendarWidget, Button):

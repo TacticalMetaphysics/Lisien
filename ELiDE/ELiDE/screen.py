@@ -222,7 +222,8 @@ class MainScreen(Screen):
         self.app.bind(character_name=update_board)
         self.calendar = Calendar(
             size=self.mainview.size,
-            pos=self.mainview.pos
+            pos=self.mainview.pos,
+            update_mode='present'
         )
         self.mainview.bind(
             size=self.calendar.setter('size'),
