@@ -165,7 +165,7 @@ class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
 class Calendar(RecycleView):
     _control2wid = {
         'slider': 'CalendarSlider',
-        'toggle': 'CalendarToggleButton',
+        'togglebutton': 'CalendarToggleButton',
         'textinput': 'CalendarTextInput',
         'option': 'CalendarOptionButton'
     }
@@ -262,6 +262,13 @@ class Calendar(RecycleView):
                 if config and stat in config and 'control' in config[stat]:
                     datum.update(config[stat])
                     datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
+                    if datum['widget'] == 'CalendarToggleButton':
+                        if datum['value']:
+                            datum['text'] = config[stat].get('true_text', 'True')
+                            datum['state'] = 'down'
+                        else:
+                            datum['text'] = config[stat].get('false_text', 'False')
+                            datum['state'] = 'normal'
                 else:
                     datum['widget'] = 'CalendarLabel'
                 data.append(datum)
