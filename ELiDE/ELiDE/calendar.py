@@ -94,7 +94,20 @@ class CalendarSlider(Slider, CalendarWidget):
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
-    pass
+    def on_focus(self, *args):
+        if not self.focus:
+            self._parse_text()
+
+    def _parse_text(self, *args):
+        print('_parse_text')
+        from ast import literal_eval
+        try:
+            v = literal_eval(self.text)
+        except (TypeError, ValueError, SyntaxError):
+            v = self.text
+        self.value = v
+        self.hint_text = self.text
+        self.text = ''
 
 
 class CalendarOptionButton(CalendarWidget, Button):
@@ -269,6 +282,8 @@ class Calendar(RecycleView):
                         else:
                             datum['text'] = config[stat].get('false_text', 'False')
                             datum['state'] = 'normal'
+                    elif datum['widget'] == 'CalendarTextInput':
+                        datum['hint_text'] = str(datum['value'])
                 else:
                     datum['widget'] = 'CalendarLabel'
                 data.append(datum)
@@ -295,6 +310,9 @@ Builder.load_string("""
         size: self.texture_size
 <CalendarOptionButton>:
     text: str(self.value)
+<CalendarTextInput>:
+    multiline: False
+    on_text_validate: self._parse_text()
 """)
 
 
