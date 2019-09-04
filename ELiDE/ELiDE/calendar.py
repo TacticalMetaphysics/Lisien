@@ -6,7 +6,8 @@ from kivy.properties import(
     ListProperty,
     BooleanProperty,
     BoundedNumericProperty,
-    NumericProperty
+    NumericProperty,
+    StringProperty
 )
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
@@ -96,11 +97,6 @@ class CalendarTextInput(CalendarWidget, TextInput):
     pass
 
 
-class CalendarToggleButton(CalendarWidget, ToggleButton):
-    def on_state(self, *args):
-        self.value = self.state == 'down'
-
-
 class CalendarOptionButton(CalendarWidget, Button):
     options = ListProperty()
     modalview = ObjectProperty()
@@ -152,16 +148,14 @@ class CalendarOptionButton(CalendarWidget, Button):
         self.modalview.dismiss()
 
 
-
-class CalendarToggleButton(RecycleDataViewBehavior, Button):
+class CalendarToggleButton(CalendarWidget, ToggleButton):
     index = None
+    true_text = StringProperty('True')
+    false_text = StringProperty('False')
 
-    def on_touch_up(self, touch):
-        if super().on_touch_up(touch):
-            return self.parent.select_with_touch(self.index, touch)
-
-    def apply_selection(self, rv, index, is_selected):
-        self.state = 'down' if is_selected else 'normal'
+    def on_state(self, *args):
+        self.value = self.state == 'down'
+        self.text = self.true_text if self.value else self.false_text
 
 
 class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
