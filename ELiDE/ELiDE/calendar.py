@@ -113,7 +113,7 @@ class CalendarTextInput(CalendarWidget, TextInput):
 class CalendarOptionButton(CalendarWidget, Button):
     options = ListProperty()
     modalview = ObjectProperty()
-    columns = BoundedNumericProperty(1, min=1)
+    cols = BoundedNumericProperty(1, min=1)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -129,7 +129,7 @@ class CalendarOptionButton(CalendarWidget, Button):
         if self.modalview.children:
             container = self.modalview.children[0]
         else:
-            container = GridLayout(cols=self.columns)
+            container = GridLayout(cols=self.cols)
             self.modalview.add_widget(container)
         container.size = container.minimum_size
         self._update_modalview()
@@ -139,7 +139,7 @@ class CalendarOptionButton(CalendarWidget, Button):
             Clock.schedule_once(self.on_options, 0)
             return
         if not self.modalview.children:
-            container = GridLayout(cols=self.columns)
+            container = GridLayout(cols=self.cols)
             self.modalview.add_widget(container)
         else:
             container = self.modalview.children[0]
