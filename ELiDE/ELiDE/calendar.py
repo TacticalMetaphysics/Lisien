@@ -295,8 +295,8 @@ Builder.load_string("""
     RecycleGridLayout:
         cols: root.cols
         size_hint_y: None
-        default_size: None, dp(56)
-        default_size_hint: 1, None
+        default_size: dp(84), dp(56)
+        default_size_hint: None, None
         height: self.minimum_height
         orientation: 'horizontal'
 <CalendarLabel>:

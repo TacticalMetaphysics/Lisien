@@ -29,6 +29,8 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -221,14 +223,17 @@ class MainScreen(Screen):
         self.charmenu.portaladdbut.bind(state=update_adding_portal)
         self.app.bind(character_name=update_board)
         self.calendar = Calendar(
-            size=self.mainview.size,
-            pos=self.mainview.pos,
             update_mode='present'
         )
-        self.mainview.bind(
-            size=self.calendar.setter('size'),
-            pos=self.calendar.setter('pos')
+        self.calendar_view = ScrollView(
+            size=self.mainview.size,
+            pos=self.mainview.pos
         )
+        self.mainview.bind(
+            size=self.calendar_view.setter('size'),
+            pos=self.calendar_view.setter('pos')
+        )
+        self.calendar_view.add_widget(self.calendar)
         self.mainview.add_widget(self.boardview)
 
     def on_statpanel(self, *args):
@@ -389,7 +394,7 @@ class MainScreen(Screen):
     def switch_to_calendar(self, *args):
         self.app.update_calendar(self.calendar)
         self.mainview.clear_widgets()
-        self.mainview.add_widget(self.calendar)
+        self.mainview.add_widget(self.calendar_view)
 
     def switch_to_boardview(self, *args):
         self.mainview.clear_widgets()
