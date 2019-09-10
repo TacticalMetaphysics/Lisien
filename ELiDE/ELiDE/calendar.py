@@ -295,14 +295,14 @@ Builder.load_string("""
     RecycleGridLayout:
         cols: root.cols
         size_hint_y: None
-        default_size: dp(84), dp(56)
+        default_size: dp(84), dp(36)
         default_size_hint: None, None
         height: self.minimum_height
         orientation: 'horizontal'
 <CalendarLabel>:
     text: str(self.value) if self.value is not None else ''
 <CalendarSlider>:
-    padding: 25
+    padding: 5
     Label:
         center_x: root.center_x
         y: root.center_y
