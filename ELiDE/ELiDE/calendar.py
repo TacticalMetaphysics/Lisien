@@ -34,6 +34,8 @@ class CalendarWidget(RecycleDataViewBehavior, Widget):
     """The value you want to set the key to"""
 
     def _update_disabledness(self, *args, **kwargs):
+        if not self.parent:
+            return
         self.disabled = self.turn < self.parent.parent.entity.engine.turn
 
     def _trigger_update_disabledness(self, *args, **kwargs):
@@ -294,10 +296,10 @@ Builder.load_string("""
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: root.cols
-        size_hint_y: None
+        size_hint: None, None
         default_size: dp(84), dp(36)
         default_size_hint: None, None
-        height: self.minimum_height
+        size: self.minimum_size
         orientation: 'horizontal'
 <CalendarLabel>:
     text: str(self.value) if self.value is not None else ''
