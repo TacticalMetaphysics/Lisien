@@ -184,7 +184,7 @@ class Calendar(RecycleView):
         'textinput': 'CalendarTextInput',
         'option': 'CalendarOptionButton'
     }
-    cols = NumericProperty()
+    cols = NumericProperty(1)
     entity = ObjectProperty()
     idx = DictProperty()
     changed = BooleanProperty(False)
@@ -291,6 +291,48 @@ class Calendar(RecycleView):
                 data.append(datum)
         (self.cols, self.data, self.changed) = (cols, data, False)
 
+
+class Agenda(Calendar):
+    multicol = BooleanProperty(False)
+
+    def from_schedule(self, schedule, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
+        control2wid = self._control2wid
+        if start_turn is None:
+            start_turn = self.entity.engine.turn
+        curturn = start_turn
+        endturn = curturn + len(next(iter(schedule.values())))
+        data = []
+        stats = sorted((stat for stat in schedule if not stat.startswith('_')), key=key)
+        iters = {stat: iter(values) for (stat, values) in schedule.items()}
+        for turn in range(curturn, endturn):
+            if turn_labels:
+                data.append({'widget': 'Label', 'text': str(turn)})
+            if '_config' in iters:
+                config = next(iters['_config'])
+            else:
+                config = None
+            for stat in stats:
+                if headers:
+                    data.append({'widget': 'Label', 'text': str(stat)})
+                datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
+                if config and stat in config and 'control' in config[stat]:
+                    datum.update(config[stat])
+                    datum['widget'] = control2wid.get(datum.pop('control', None), 'CalendarLabel')
+                    if datum['widget'] == 'CalendarToggleButton':
+                        if datum['value']:
+                            datum['text'] = config[stat].get('true_text', 'True')
+                            datum['state'] = 'down'
+                        else:
+                            datum['text'] = config[stat].get('false_text', 'False')
+                            datum['state'] = 'normal'
+                    elif datum['widget'] == 'CalendarTextInput':
+                        datum['hint_text'] = str(datum['value'])
+                else:
+                    datum['widget'] = 'CalendarLabel'
+        if self.multicol:
+            self.cols = endturn - curturn
+
+
 Builder.load_string("""
 <Calendar>:
     key_viewclass: 'widget'
@@ -301,6 +343,16 @@ Builder.load_string("""
         default_size_hint: None, None
         size: self.minimum_size
         orientation: 'horizontal'
+<Agenda>:
+    key_viewclass: 'widget'
+    RecycleGridLayout:
+        cols: 1
+        rows: root.rows
+        size_hint: None, None
+        default_size: dp(84), dp(36)
+        default_size_hint: None, None
+        size: self.minimum_size
+        orientation: 'vertical'
 <CalendarLabel>:
     text: str(self.value) if self.value is not None else ''
 <CalendarSlider>:
