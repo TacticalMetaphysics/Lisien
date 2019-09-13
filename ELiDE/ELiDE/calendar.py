@@ -177,7 +177,7 @@ class CalendarMenuLayout(LayoutSelectionBehavior, RecycleBoxLayout):
     pass
 
 
-class Calendar(RecycleView):
+class AbstractCalendar(RecycleView):
     _control2wid = {
         'slider': 'CalendarSlider',
         'togglebutton': 'CalendarToggleButton',
@@ -246,6 +246,8 @@ class Calendar(RecycleView):
         changes.append(accumulator)
         return track
 
+
+class Calendar(AbstractCalendar):
     def from_schedule(self, schedule, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
         # It should be convenient to style the calendar using data from the core;
         # not sure what the API should be like
@@ -292,7 +294,7 @@ class Calendar(RecycleView):
         (self.cols, self.data, self.changed) = (cols, data, False)
 
 
-class Agenda(Calendar):
+class Agenda(AbstractCalendar):
     multicol = BooleanProperty(False)
 
     def from_schedule(self, schedule, start_turn=None, headers=True, turn_labels=True, key=lambda x: str(x)):
@@ -329,8 +331,10 @@ class Agenda(Calendar):
                         datum['hint_text'] = str(datum['value'])
                 else:
                     datum['widget'] = 'CalendarLabel'
+                data.append(datum)
         if self.multicol:
             self.cols = endturn - curturn
+        self.data = data
 
 
 Builder.load_string("""
@@ -347,7 +351,6 @@ Builder.load_string("""
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: 1
-        rows: root.rows
         size_hint: None, None
         default_size: dp(84), dp(36)
         default_size_hint: None, None

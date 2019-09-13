@@ -335,10 +335,10 @@ class ELiDEApp(App):
         ):
             self.manager.add_widget(wid)
 
-    def update_calendar(self, calendar):
+    def update_calendar(self, calendar, past_turns=1, future_turns=5):
         # TODO: make the turn range configurable
-        startturn = self.turn - 1
-        endturn = self.turn + 5
+        startturn = self.turn - past_turns
+        endturn = self.turn + future_turns
         stats = ['_config'] + [
             stat for stat in self.selected_proxy if not stat.startswith('_')
             and stat not in ('character', 'name')

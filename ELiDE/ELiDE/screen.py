@@ -240,7 +240,12 @@ class MainScreen(Screen):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
             return
-        self.app.bind(selected_proxy=self.statpanel.setter('proxy'))
+        self._update_statlist()
+        self.app.bind(selected_proxy=self._update_statlist)
+
+    @trigger
+    def _update_statlist(self, *args):
+        self.app.update_calendar(self.statpanel.statlist, past_turns=0, future_turns=0)
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -420,11 +425,10 @@ Builder.load_string(
     Label:
         size_hint_y: 0.05
         text: root.selection_name
-    StatListView:
+    Agenda:
         id: statlist
         size_hint_y: 0.8
-        engine: root.engine
-        proxy: root.proxy
+        entity: root.proxy
     Button:
         id: cfgstatbut
         size_hint_y: 0.1
