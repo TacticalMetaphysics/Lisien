@@ -121,7 +121,7 @@ class CalendarOptionButton(CalendarWidget, Button):
         super().__init__(**kwargs)
         self._make_modalview()
         self._update_modalview()
-        self.bind(columns=self._make_modalview)
+        self.bind(cols=self._make_modalview)
         self.bind(options=self._update_modalview)
         self.bind(on_release=self.modalview.open)
 
