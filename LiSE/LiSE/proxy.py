@@ -1620,9 +1620,12 @@ class StringStoreProxy(Signal):
 
 
 class EternalVarProxy(MutableMapping):
+    @property
+    def _cache(self):
+        return self.engine._eternal_cache
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('eternal_delta')
 
     def __contains__(self, k):
         return k in self._cache
@@ -1661,10 +1664,13 @@ class EternalVarProxy(MutableMapping):
 
 
 class GlobalVarProxy(MutableMapping, Signal):
+    @property
+    def _cache(self):
+        return self.engine._universal_cache
+
     def __init__(self, engine_proxy):
         super().__init__()
         self.engine = engine_proxy
-        self._cache = {}
 
     def __iter__(self):
         return iter(self._cache)
@@ -2026,6 +2032,8 @@ class EngineProxy(AbstractEngine):
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
         with self.loading():
+            self._eternal_cache = self.handle('eternal_delta')
+            self._universal_cache = self.handle('universal_delta')
             deltas = self.handle('get_char_deltas', chars='all')
             for char in deltas:
                 self._char_cache[char] = character = CharacterProxy(self, char)

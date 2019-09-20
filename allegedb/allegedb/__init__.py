@@ -505,20 +505,22 @@ class ORM(object):
         from collections import defaultdict
         from .cache import Cache, NodesCache, EdgesCache
         self._where_cached = defaultdict(list)
-        self._global_cache = self.query._global_cache = {}
         self._node_objs = node_objs = WeakValueDictionary()
         self._get_node_stuff = (node_objs, self._node_exists, self._make_node)
         self._edge_objs = edge_objs = WeakValueDictionary()
         self._get_edge_stuff = (edge_objs, self._edge_exists, self._make_edge)
-        for k, v in self.query.global_items():
-            if k == 'branch':
-                self._obranch = v
-            elif k == 'turn':
-                self._oturn = int(v)
-            elif k == 'tick':
-                self._otick = int(v)
-            else:
-                self._global_cache[k] = v
+        try:
+            self._obranch = self.query.global_get('branch')
+        except KeyError:
+            self._obranch = 'trunk'
+        try:
+            self._oturn = int(self.query.global_get('turn'))
+        except KeyError:
+            self._oturn = 0
+        try:
+            self._otick = int(self.query.global_get('tick'))
+        except KeyError:
+            self._otick = 0
         self._childbranch = defaultdict(set)
         """Immediate children of a branch"""
         self._branches = {}

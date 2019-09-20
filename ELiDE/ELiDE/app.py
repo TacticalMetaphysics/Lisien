@@ -134,7 +134,6 @@ class ELiDEApp(App):
         config.setdefaults(
             'ELiDE',
             {
-                'boardchar': 'physical',
                 'debugger': 'no',
                 'inspector': 'no',
                 'user_kv': 'yes',
@@ -225,9 +224,11 @@ class ELiDEApp(App):
             tick=self._push_time
         )
 
-        char = config['ELiDE']['boardchar']
-        if char not in self.engine.character:
-            self.engine.add_character(char)
+        if 'boardchar' not in self.engine.eternal:
+            if 'physical' in self.engine.character:
+                self.engine.eternal['boardchar'] = self.engine.character['physical']
+            else:
+                self.engine.eternal['boardchar'] = self.engine.new_character('physical')
         self._started = True
 
     def _add_screens(self, *args):
@@ -291,11 +292,7 @@ class ELiDEApp(App):
             toggle=toggler('funcs')
         )
 
-        self.select_character(
-            self.engine.character[
-                config['ELiDE']['boardchar']
-            ]
-        )
+        self.select_character(self.engine.eternal['boardchar'])
 
         self.statcfg = ELiDE.statcfg.StatScreen(
             toggle=toggler('statcfg'),
@@ -376,8 +373,7 @@ class ELiDEApp(App):
         self.selected_proxy = self._get_selected_proxy()
 
     def on_character_name(self, *args):
-        if self.config['ELiDE']['boardchar'] != self.character_name:
-            self.config['ELiDE']['boardchar'] = self.character_name
+        self.engine.eternal['boardchar'] = self.engine.character[self.character_name]
 
     def on_character(self, *args):
         if not hasattr(self, 'mainscreen'):
