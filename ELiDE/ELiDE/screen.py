@@ -552,6 +552,7 @@ Builder.load_string(
         toggle_calendar: root.toggle_mainview
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
+        selection_name: str(app.selected_proxy.name) if app.selected_proxy else ''
     TimePanel:
         id: timepanel
         screen: root
