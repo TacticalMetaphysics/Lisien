@@ -215,7 +215,7 @@ class MainScreen(Screen):
         def update_adding_portal(*args):
             self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
         def update_board(*args):
-            self.boardview.board = self.boards(self.app.character_name)
+            self.boardview.board = self.boards[self.app.character_name]
         self.mainview.bind(
             size=self.boardview.setter('size'),
             pos=self.boardview.setter('pos')
