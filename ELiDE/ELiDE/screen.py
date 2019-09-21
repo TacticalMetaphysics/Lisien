@@ -241,7 +241,12 @@ class MainScreen(Screen):
             Clock.schedule_once(self.on_statpanel, 0)
             return
         self._update_statlist()
-        self.app.bind(selected_proxy=self._update_statlist)
+        self.app.bind(
+            selected_proxy=self._update_statlist,
+            branch=self._update_statlist,
+            turn=self._update_statlist,
+            tick=self._update_statlist
+        )
 
     @trigger
     def _update_statlist(self, *args):
