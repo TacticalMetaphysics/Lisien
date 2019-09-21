@@ -192,9 +192,10 @@ class AbstractCalendar(RecycleView):
     update_mode = OptionProperty('batch', options=['batch', 'present', 'all'])
     """How to go about submitting changes to the LiSE core. Options:
     
-    * ``'batch'``: don't submit changes automatically. You have to call
+    * ``'batch'`` (default): don't submit changes automatically. You have to call
     ``get_track`` and apply the changes using the ``LiSE.handle`` method
-    ``apply_choices``. This is the default.
+    ``apply_choices``, eg.
+        ``engine_proxy.handle('apply_choices', choices=calendar.get_track())``
     * ``'present'``: immediately apply changes that affect the current turn,
     possibly wiping out anything in the future -- so you still have to use
     ``get_track`` and ``apply_choices``. However, if you're using a calendar
