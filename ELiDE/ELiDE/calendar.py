@@ -367,7 +367,7 @@ Builder.load_string("""
 <CalendarSlider>:
     padding: 5
     Label:
-        center_x: root.center_x
+        x: root.center_x - (self.width / 2)
         y: root.center_y
         text: str(root.value)
         size: self.texture_size
