@@ -46,7 +46,7 @@ from kivy.properties import (
 )
 from .charmenu import CharMenu
 from .board.board import BoardView
-from .calendar import Calendar
+from .calendar import Agenda
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -222,7 +222,7 @@ class MainScreen(Screen):
         )
         self.charmenu.portaladdbut.bind(state=update_adding_portal)
         self.app.bind(character_name=update_board)
-        self.calendar = Calendar(
+        self.calendar = Agenda(
             update_mode='present'
         )
         self.calendar_view = ScrollView(

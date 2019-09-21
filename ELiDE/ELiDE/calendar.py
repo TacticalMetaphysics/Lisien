@@ -249,7 +249,7 @@ class AbstractCalendar(RecycleView):
         return track
 
 
-class Calendar(AbstractCalendar):
+class Agenda(AbstractCalendar):
     def from_schedule(self, schedule, start_turn=None, key=lambda x: str(x)):
         # It should be convenient to style the calendar using data from the core;
         # not sure what the API should be like
@@ -298,7 +298,7 @@ class Calendar(AbstractCalendar):
         (self.cols, self.data, self.changed) = (cols, data, False)
 
 
-class Agenda(AbstractCalendar):
+class Calendar(AbstractCalendar):
     multicol = BooleanProperty(False)
 
     def from_schedule(self, schedule, start_turn=None, key=lambda x: str(x)):
@@ -344,7 +344,7 @@ class Agenda(AbstractCalendar):
 
 
 Builder.load_string("""
-<Calendar>:
+<Agenda>:
     key_viewclass: 'widget'
     RecycleGridLayout:
         cols: root.cols
@@ -353,7 +353,7 @@ Builder.load_string("""
         default_size_hint: None, None
         size: self.minimum_size
         orientation: 'horizontal'
-<Agenda>:
+<Calendar>:
     turn_labels: False
     key_viewclass: 'widget'
     RecycleGridLayout:
@@ -383,7 +383,7 @@ if __name__ == '__main__':
     from kivy.app import App
     class CalendarTestApp(App):
         def build(self):
-            self.wid = Calendar()
+            self.wid = Agenda()
             return self.wid
 
         def on_start(self):
