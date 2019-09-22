@@ -430,7 +430,7 @@ Builder.load_string(
     Label:
         size_hint_y: 0.05
         text: root.selection_name
-    Agenda:
+    Calendar:
         id: statlist
         size_hint_y: 0.8
         entity: root.proxy
