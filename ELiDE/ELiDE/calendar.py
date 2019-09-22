@@ -269,12 +269,12 @@ class Agenda(AbstractCalendar):
             for stat in stats:
                 if stat.startswith('_'):
                     continue
-                data.append({'widget': 'Label', 'text': str(stat)})
+                data.append({'widget': 'Label', 'text': str(stat), 'bold': True})
         cols = len(data)
         iters = {stat: iter(values) for (stat, values) in schedule.items()}
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'Label', 'text': str(turn)})
+                data.append({'widget': 'Label', 'text': str(turn), 'bold': True})
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
@@ -315,14 +315,14 @@ class Calendar(AbstractCalendar):
         turn_labels = self.turn_labels
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'Label', 'text': str(turn)})
+                data.append({'widget': 'Label', 'text': str(turn), 'bold': True})
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
                 config = None
             for stat in stats:
                 if headers:
-                    data.append({'widget': 'Label', 'text': str(stat)})
+                    data.append({'widget': 'Label', 'text': str(stat), 'bold': True})
                 datum = {'key': stat, 'value': next(iters[stat]), 'turn': turn}
                 if config and stat in config and 'control' in config[stat]:
                     datum.update(config[stat])

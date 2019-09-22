@@ -430,6 +430,7 @@ Builder.load_string(
     Label:
         size_hint_y: 0.05
         text: root.selection_name
+        bold: True
     Calendar:
         id: statlist
         size_hint_y: 0.8
