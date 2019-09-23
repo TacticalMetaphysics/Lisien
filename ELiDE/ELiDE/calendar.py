@@ -27,7 +27,14 @@ from kivy.lang import Builder
 
 
 class CalendarWidget(RecycleDataViewBehavior, Widget):
+    """Base class for widgets within a Calendar
+
+    Shows the value of its ``key`` at a particular ``turn``, and sets
+    it at that turn if the value changes.
+
+    """
     turn = NumericProperty()
+    """What turn I'm displaying the stat's value for"""
     key = ObjectProperty()
     """The key to set in the entity"""
     value = ObjectProperty(allownone=True)
@@ -186,7 +193,9 @@ class AbstractCalendar(RecycleView):
     }
     cols = NumericProperty(1)
     entity = ObjectProperty()
+    """The LiSE proxy object to display the stats of"""
     idx = DictProperty()
+    """Dictionary mapping ``key, turn`` pairs to their widgets"""
     changed = BooleanProperty(False)
     """Whether there are changes yet to be committed to the LiSE core"""
     update_mode = OptionProperty('batch', options=['batch', 'present', 'all'])
