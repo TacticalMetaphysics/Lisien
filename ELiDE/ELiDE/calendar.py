@@ -21,7 +21,6 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from kivy.lang import Builder
 
