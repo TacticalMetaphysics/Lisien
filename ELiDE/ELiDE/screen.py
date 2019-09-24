@@ -443,7 +443,7 @@ Builder.load_string(
     Button:
         id: calbut
         size_hint_y: 0.1
-        text: "board/cal"
+        text: "toggle agenda"
         on_release: root.toggle_calendar()
 <SimulateButton>:
     graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
