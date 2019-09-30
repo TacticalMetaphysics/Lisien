@@ -215,6 +215,7 @@ class AbstractCalendar(RecycleView):
     """
     headers = BooleanProperty(True)
     turn_labels = BooleanProperty(True)
+    turn_label_transformer = ObjectProperty(lambda x: str(x))
 
     def on_data(self, *args):
         idx = self.idx
@@ -282,7 +283,7 @@ class Agenda(AbstractCalendar):
         iters = {stat: iter(values) for (stat, values) in schedule.items()}
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'Label', 'text': str(turn), 'bold': True})
+                data.append({'widget': 'Label', 'text': self.turn_label_transformer(turn), 'bold': True})
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
@@ -323,7 +324,7 @@ class Calendar(AbstractCalendar):
         turn_labels = self.turn_labels
         for turn in range(curturn, endturn):
             if turn_labels:
-                data.append({'widget': 'Label', 'text': str(turn), 'bold': True})
+                data.append({'widget': 'Label', 'text': self.turn_label_transformer(turn), 'bold': True})
             if '_config' in iters:
                 config = next(iters['_config'])
             else:
