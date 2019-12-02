@@ -24,7 +24,9 @@ from math import cos, sin, atan, pi
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.fbo import Fbo
-from kivy.graphics import Translate, Rectangle
+from kivy.graphics import (
+    Translate, Rectangle, Quad, Color
+)
 from kivy.properties import (
     ReferenceListProperty,
     AliasProperty,
@@ -36,6 +38,8 @@ from kivy.properties import (
 )
 from kivy.lang import Builder
 from kivy.clock import Clock
+
+from ..util import trigger
 
 try:
     from kivy.garden.collider import Collide2DPoly
@@ -280,10 +284,10 @@ class ArrowWidget(Widget):
     bg_scale_unselected = NumericProperty(4)
     bg_scale_selected = NumericProperty(5)
     selected = BooleanProperty(False)
-    bg_color_unselected = ListProperty()
-    bg_color_selected = ListProperty()
-    fg_color_unselected = ListProperty()
-    fg_color_selected = ListProperty()
+    bg_color_unselected = ListProperty([0.5, 0.5, 0.5, 0.5])
+    bg_color_selected = ListProperty([0.0, 1.0, 1.0, 1.0])
+    fg_color_unselected = ListProperty([1.0, 1.0, 1.0, 1.0])
+    fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
     bg_color_unselected_head = ListProperty()
     bg_color_selected_head = ListProperty()
     fg_color_unselected_head = ListProperty()
@@ -524,6 +528,90 @@ class ArrowWidget(Widget):
         self.y_intercept = self._get_b()
         self.repointed = True
 
+    @trigger
+    def _pull_bg_color0(self, *args):
+        self._color0.rgba = self.bg_color_selected if self.selected else self.bg_color_unselected
+
+    @trigger
+    def _pull_points_quad0(self, *args):
+        self._quad0.points = self.trunk_quad_vertices_bg
+
+    def on_parent(self, *args):
+        if not self.canvas:
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        self._repoint()
+        with self.canvas:
+            self._color0 = Color(rgba=self.bg_color_selected if self.selected else self.bg_color_unselected)
+            self.bind(
+                bg_color_selected=self._pull_bg_color0,
+                bg_color_unselected=self._pull_bg_color0,
+                selected=self._pull_bg_color0
+            )
+            self._quad0 = Quad(points=self.trunk_quad_vertices_bg)
+            self.bind(
+                trunk_quad_vertices_bg=self._pull_points_quad0
+            )
+            self._color1 = Color(rgba=(self.bg_color_selected_head or self.bg_color_selected) if self.selected else (self.bg_color_unselected_head or self.bg_color_unselected))
+            def pull_head_bg_color1(*args):
+                if self.selected:
+                    self._color1.rgba = self.bg_color_selected_head or self.bg_color_selected
+                else:
+                    self._color1.rgba = self.bg_color_unselected_head or self.bg_color_unselected
+            self.bind(**{att: pull_head_bg_color1 for att in (
+                'bg_color_selected_head',
+                'bg_color_selected',
+                'bg_color_unselected_head',
+                'bg_color_unselected',
+                'selected'
+            )})
+            self._quad1_0 = Quad(points=self.left_head_quad_vertices_bg)
+            def pull_bg_left_head_points_quad1_0(*args):
+                self._quad1_0.points = self.left_head_quad_vertices_bg
+            self.bind(left_head_quad_vertices_bg=pull_bg_left_head_points_quad1_0)
+            self._quad1_1 = Quad(points=self.right_head_quad_vertices_bg)
+            def pull_bg_right_head_points_quad1_1(*args):
+                self._quad1_1.points = self.right_head_quad_vertices_bg
+            self.bind(right_head_quad_vertices_bg=pull_bg_right_head_points_quad1_1)
+            self._color2 = Color(rgba=self.fg_color_selected if self.selected else self.fg_color_unselected)
+            def pull_color2(*args):
+                if self.selected:
+                    self._color2.rgba = self.fg_color_selected
+                else:
+                    self._color2.rgba = self.fg_color_unselected
+            self.bind(**{att: pull_color2 for att in (
+                'fg_color_selected',
+                'fg_color_unselected',
+                'selected'
+            )})
+            self._quad2 = Quad(points=self.trunk_quad_vertices_fg)
+            def pull_quad2_points(*args):
+                self._quad2.points = self.trunk_quad_vertices_fg
+            self.bind(
+                trunk_quad_vertices_fg=pull_quad2_points
+            )
+            self._color3 = Color(rgba=(self.fg_color_selected_head or self.fg_color_selected) if self.selected else (self.fg_color_unselected_head or self.fg_color_unselected))
+            def pull_color3(*args):
+                if self.selected:
+                    self._color3.rgba = self.fg_color_selected_head or self.fg_color_selected
+                else:
+                    self._color3.rgba = self.fg_color_unselected_head or self.fg_color_unselected
+            self.bind(**{att: pull_color3 for att in (
+                'selected',
+                'fg_color_selected_head',
+                'fg_color_selected',
+                'fg_color_unselected_head',
+                'fg_color_unselected'
+            )})
+            self._quad3_0 = Quad(points=self.left_head_quad_vertices_fg)
+            def pull_points_quad3_0(*args):
+                self._quad3_0.points = self.left_head_quad_vertices_fg
+            self.bind(left_head_quad_vertices_fg=pull_points_quad3_0)
+            self._quad3_1 = Quad(points=self.right_head_quad_vertices_fg)
+            def pull_points_quad3_1(*args):
+                self._quad3_1.points = self.right_head_quad_vertices_fg
+            self.bind(right_head_quad_vertices_fg=pull_points_quad3_1)
+
 
 class Arrow(ArrowWidget):
     """An :class:`ArrowWidget` that represents a LiSE :class:`Portal` object.
@@ -625,32 +713,6 @@ class ArrowLayout(FloatLayout):
 Builder.load_string(
 """
 #: import Dummy ELiDE.dummy.Dummy
-<ArrowWidget>:
-    bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
-    bg_color_selected: [0.0, 1.0, 1.0, 1.0]
-    fg_color_unselected: [1.0, 1.0, 1.0, 1.0]
-    fg_color_selected: [1.0, 1.0, 1.0, 1.0]
-    canvas:
-        Color:
-            rgba: root.bg_color_selected if root.selected else root.bg_color_unselected
-        Quad:
-            points: root.trunk_quad_vertices_bg
-        Color:
-            rgba: (root.bg_color_selected_head or root.bg_color_selected) if root.selected else (root.bg_color_unselected_head or root.bg_color_unselected) 
-        Quad:
-            points: root.left_head_quad_vertices_bg
-        Quad:
-            points: root.right_head_quad_vertices_bg
-        Color:
-            rgba: root.fg_color_selected if root.selected else root.fg_color_unselected
-        Quad:
-            points: root.trunk_quad_vertices_fg
-        Color:
-            rgba: (root.fg_color_selected_head or root.fg_color_selected) if root.selected else (root.fg_color_unselected_head or root.fg_color_unselected)
-        Quad:
-            points: root.left_head_quad_vertices_fg
-        Quad:
-            points: root.right_head_quad_vertices_fg
 <Arrow>:
     origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
     destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
