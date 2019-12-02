@@ -56,12 +56,14 @@ def up_and_down(orig, dest, taillen):
         orig, dest = dest, orig
     x = int(orig.center_x)
     dy = int(dest.y)
+    dest_collide_point = dest.collide_point
     for dy in range(dy, int(dest.center_y)+1):
-        if dest.collide_point(x, dy):
+        if dest_collide_point(x, dy):
             break
     oy = int(orig.top)
+    orig_collide_point = orig.collide_point
     for oy in range(oy, int(orig.center_y)-1, -1):
-        if orig.collide_point(x, oy):
+        if orig_collide_point(x, oy):
             break
     if flipped:
         oy, dy = dy, oy
@@ -88,12 +90,14 @@ def left_and_right(orig, dest, taillen):
         orig, dest = dest, orig
     y = int(orig.center_y)
     dx = int(dest.x)
+    dest_collide_point = dest.collide_point
     for dx in range(dx, int(dest.center_x)+1):
-        if dest.collide_point(dx, y):
+        if dest_collide_point(dx, y):
             break
     ox = int(orig.right)
+    orig_collide_point = orig.collide_point
     for ox in range(ox, int(orig.center_x)-1, -1):
-        if orig.collide_point(ox, y):
+        if orig_collide_point(ox, y):
             break
     if flipped:
         ox, dx = dx, ox
@@ -153,18 +157,20 @@ def get_points(orig, dest, taillen):
     # start from the earliest point that intersects the bounding box.
     # work toward the center to find a non-transparent pixel
     # y - boty = ((topy-boty)/(rightx-leftx))*(x - leftx)
+    dest_collide_point = dest.collide_point
+    orig_collide_point = orig.collide_point
     if slope <= 1:
         for rightx in range(
                 int(rightx - dw / 2),
                 int(rightx)+1
         ):
             topy = slope * (rightx - leftx) + boty
-            if dest.collide_point(rightx * xco, topy * yco):
+            if dest_collide_point(rightx * xco, topy * yco):
                 rightx = float(rightx - 1)
                 for pip in range(10):
                     rightx += 0.1 * pip
                     topy = slope * (rightx - leftx) + boty
-                    if dest.collide_point(rightx * xco, topy * yco):
+                    if dest_collide_point(rightx * xco, topy * yco):
                         break
                 break
         for leftx in range(
@@ -173,12 +179,12 @@ def get_points(orig, dest, taillen):
                 -1
         ):
             boty = slope * (leftx - rightx) + topy
-            if orig.collide_point(leftx * xco, boty * yco):
+            if orig_collide_point(leftx * xco, boty * yco):
                 leftx = float(leftx + 1)
                 for pip in range(10):
                     leftx -= 0.1 * pip
                     boty = slope * (leftx - rightx) + topy
-                    if orig.collide_point(leftx * xco, boty * yco):
+                    if orig_collide_point(leftx * xco, boty * yco):
                         break
                 break
     else:
@@ -188,12 +194,12 @@ def get_points(orig, dest, taillen):
             int(topy) + 1
         ):
             rightx = leftx + (topy - boty) / slope
-            if dest.collide_point(rightx * xco, topy * yco):
+            if dest_collide_point(rightx * xco, topy * yco):
                 topy = float(topy - 1)
                 for pip in range(10):
                     topy += 0.1 * pip
                     rightx = leftx + (topy - boty) / slope
-                    if dest.collide_point(rightx * xco, topy * yco):
+                    if dest_collide_point(rightx * xco, topy * yco):
                         break
                 break
         for boty in range(
@@ -202,12 +208,12 @@ def get_points(orig, dest, taillen):
             -1
         ):
             leftx = (boty - topy) / slope + rightx
-            if orig.collide_point(leftx * xco, boty * yco):
+            if orig_collide_point(leftx * xco, boty * yco):
                 boty = float(boty + 1)
                 for pip in range(10):
                     boty -= 0.1 * pip
                     leftx = (boty - topy) / slope + rightx
-                    if orig.collide_point(leftx * xco, boty * yco):
+                    if orig_collide_point(leftx * xco, boty * yco):
                         break
                 break
 
