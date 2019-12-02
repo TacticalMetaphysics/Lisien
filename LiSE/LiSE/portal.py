@@ -45,7 +45,7 @@ class Portal(Edge, RuleFollower):
     set it here instead.
 
     """
-    __slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination')
+    __slots__ = ('graph', 'orig', 'dest', 'idx', 'origin', 'destination', '_rulebook')
     character = getatt('graph')
     engine = getatt('db')
     no_unwrap = True
