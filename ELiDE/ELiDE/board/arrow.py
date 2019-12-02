@@ -536,11 +536,54 @@ class ArrowWidget(Widget):
     def _pull_points_quad0(self, *args):
         self._quad0.points = self.trunk_quad_vertices_bg
 
+    @trigger
+    def _pull_head_bg_color1(self, *args):
+        if self.selected:
+            self._color1.rgba = self.bg_color_selected_head or self.bg_color_selected
+        else:
+            self._color1.rgba = self.bg_color_unselected_head or self.bg_color_unselected
+
+    @trigger
+    def _pull_bg_left_head_points_quad1_0(self, *args):
+        self._quad1_0.points = self.left_head_quad_vertices_bg
+
+    @trigger
+    def _pull_bg_right_head_points_quad1_1(self, *args):
+        self._quad1_1.points = self.right_head_quad_vertices_bg
+
+    @trigger
+    def _pull_color2(self, *args):
+        if self.selected:
+            self._color2.rgba = self.fg_color_selected
+        else:
+            self._color2.rgba = self.fg_color_unselected
+
+    @trigger
+    def _pull_color3(self, *args):
+        if self.selected:
+            self._color3.rgba = self.fg_color_selected_head or self.fg_color_selected
+        else:
+            self._color3.rgba = self.fg_color_unselected_head or self.fg_color_unselected
+
+    @trigger
+    def _pull_quad2_points(self, *args):
+        self._quad2.points = self.trunk_quad_vertices_fg
+
+    @trigger
+    def _pull_points_quad3_0(self, *args):
+        self._quad3_0.points = self.left_head_quad_vertices_fg
+
+    @trigger
+    def _pull_points_quad3_1(self, *args):
+        self._quad3_1.points = self.right_head_quad_vertices_fg
+
     def on_parent(self, *args):
         if not self.canvas:
             Clock.schedule_once(self.on_parent, 0)
             return
         self._repoint()
+        if hasattr(self, '_color0'):
+            return
         with self.canvas:
             self._color0 = Color(rgba=self.bg_color_selected if self.selected else self.bg_color_unselected)
             self.bind(
@@ -553,12 +596,7 @@ class ArrowWidget(Widget):
                 trunk_quad_vertices_bg=self._pull_points_quad0
             )
             self._color1 = Color(rgba=(self.bg_color_selected_head or self.bg_color_selected) if self.selected else (self.bg_color_unselected_head or self.bg_color_unselected))
-            def pull_head_bg_color1(*args):
-                if self.selected:
-                    self._color1.rgba = self.bg_color_selected_head or self.bg_color_selected
-                else:
-                    self._color1.rgba = self.bg_color_unselected_head or self.bg_color_unselected
-            self.bind(**{att: pull_head_bg_color1 for att in (
+            self.bind(**{att: self._pull_head_bg_color1 for att in (
                 'bg_color_selected_head',
                 'bg_color_selected',
                 'bg_color_unselected_head',
@@ -566,37 +604,21 @@ class ArrowWidget(Widget):
                 'selected'
             )})
             self._quad1_0 = Quad(points=self.left_head_quad_vertices_bg)
-            def pull_bg_left_head_points_quad1_0(*args):
-                self._quad1_0.points = self.left_head_quad_vertices_bg
-            self.bind(left_head_quad_vertices_bg=pull_bg_left_head_points_quad1_0)
+            self.bind(left_head_quad_vertices_bg=self._pull_bg_left_head_points_quad1_0)
             self._quad1_1 = Quad(points=self.right_head_quad_vertices_bg)
-            def pull_bg_right_head_points_quad1_1(*args):
-                self._quad1_1.points = self.right_head_quad_vertices_bg
-            self.bind(right_head_quad_vertices_bg=pull_bg_right_head_points_quad1_1)
+            self.bind(right_head_quad_vertices_bg=self._pull_bg_right_head_points_quad1_1)
             self._color2 = Color(rgba=self.fg_color_selected if self.selected else self.fg_color_unselected)
-            def pull_color2(*args):
-                if self.selected:
-                    self._color2.rgba = self.fg_color_selected
-                else:
-                    self._color2.rgba = self.fg_color_unselected
-            self.bind(**{att: pull_color2 for att in (
+            self.bind(**{att: self._pull_color2 for att in (
                 'fg_color_selected',
                 'fg_color_unselected',
                 'selected'
             )})
             self._quad2 = Quad(points=self.trunk_quad_vertices_fg)
-            def pull_quad2_points(*args):
-                self._quad2.points = self.trunk_quad_vertices_fg
             self.bind(
-                trunk_quad_vertices_fg=pull_quad2_points
+                trunk_quad_vertices_fg=self._pull_quad2_points
             )
             self._color3 = Color(rgba=(self.fg_color_selected_head or self.fg_color_selected) if self.selected else (self.fg_color_unselected_head or self.fg_color_unselected))
-            def pull_color3(*args):
-                if self.selected:
-                    self._color3.rgba = self.fg_color_selected_head or self.fg_color_selected
-                else:
-                    self._color3.rgba = self.fg_color_unselected_head or self.fg_color_unselected
-            self.bind(**{att: pull_color3 for att in (
+            self.bind(**{att: self._pull_color3 for att in (
                 'selected',
                 'fg_color_selected_head',
                 'fg_color_selected',
@@ -604,13 +626,9 @@ class ArrowWidget(Widget):
                 'fg_color_unselected'
             )})
             self._quad3_0 = Quad(points=self.left_head_quad_vertices_fg)
-            def pull_points_quad3_0(*args):
-                self._quad3_0.points = self.left_head_quad_vertices_fg
-            self.bind(left_head_quad_vertices_fg=pull_points_quad3_0)
+            self.bind(left_head_quad_vertices_fg=self._pull_points_quad3_0)
             self._quad3_1 = Quad(points=self.right_head_quad_vertices_fg)
-            def pull_points_quad3_1(*args):
-                self._quad3_1.points = self.right_head_quad_vertices_fg
-            self.bind(right_head_quad_vertices_fg=pull_points_quad3_1)
+            self.bind(right_head_quad_vertices_fg=self._pull_points_quad3_1)
 
 
 class Arrow(ArrowWidget):
