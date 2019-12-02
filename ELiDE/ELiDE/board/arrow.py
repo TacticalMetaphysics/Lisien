@@ -39,6 +39,7 @@ from kivy.properties import (
 from kivy.lang import Builder
 from kivy.clock import Clock
 
+from ..dummy import Dummy
 from ..util import trigger
 
 try:
@@ -667,6 +668,13 @@ class Arrow(ArrowWidget):
         else:
             return None
 
+    def on_portal(self, *args):
+        orig = self.portal['origin']
+        dest = self.portal['destination']
+        spot = self.board.spot
+        self.origin = spot[orig] if orig in spot else Dummy()
+        self.destination = spot[dest] if dest in spot else Dummy()
+
 
 class ArrowLayout(FloatLayout):
     def __init__(self, **kwargs):
@@ -727,13 +735,3 @@ class ArrowLayout(FloatLayout):
         self.children.remove(widget)
         widget.parent = None
 
-
-Builder.load_string(
-"""
-#: import Dummy ELiDE.dummy.Dummy
-<Arrow>:
-    origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
-    destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
-    _turn: app.turn
-"""
-)
