@@ -36,7 +36,6 @@ from kivy.properties import (
     BooleanProperty,
     StringProperty
 )
-from kivy.lang import Builder
 from kivy.clock import Clock
 
 from ..dummy import Dummy
