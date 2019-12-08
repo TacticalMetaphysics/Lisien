@@ -344,20 +344,30 @@ class ArrowWidget(Widget):
         if self.origin is None:
             Clock.schedule_once(self.on_origin, 0)
             return
-        self.origin.bind(
-            pos=self._trigger_repoint,
-            size=self._trigger_repoint
-        )
+        if hasattr(self, '_origin') and hasattr(self._origin, '_bound'):
+            for uid in self._origin._bound:
+                self._origin.unbind_uid(uid)
+            del self._origin._bound
+        origin = self._origin = self.origin
+        origin._bound = [
+            origin.fbind('pos', self._trigger_repoint),
+            origin.fbind('size', self._trigger_repoint)
+        ]
 
     def on_destination(self, *args):
         """Make sure to redraw whenever the destination moves."""
         if self.destination is None:
             Clock.schedule_once(self.on_destination, 0)
             return
-        self.destination.bind(
-            pos=self._trigger_repoint,
-            size=self._trigger_repoint
-        )
+        if hasattr(self, '_destination') and hasattr(self._destination, '_bound'):
+            for uid in self._destination._bound:
+                self._destination.unbind_uid(uid)
+            del self._destination._bound
+        destination = self._destination = self.destination
+        destination._bound = [
+            destination.fbind('pos', self._trigger_repoint),
+            destination.fbind('size', self._trigger_repoint)
+        ]
 
     def on_board(self, *args):
         """Draw myself for the first time as soon as I have the properties I
