@@ -637,11 +637,6 @@ class Board(RelativeLayout):
             )
         assert self.arrow[orign][destn] in self.arrowlayout.children
 
-    def _trigger_add_arrow(self, orign, destn):
-        part = partial(self.add_arrow, orign, destn)
-        Clock.unschedule(part)
-        Clock.schedule_once(part, 0)
-
     def add_new_arrows(self, *args):
         Logger.debug(
             "Board: adding new arrows to {}".format(
