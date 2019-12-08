@@ -119,7 +119,7 @@ class Pallet(StackLayout):
         if self.atlas is None:
             return
         self.upd_textures()
-        self.atlas.bind(textures=self.upd_textures)
+        self.atlas.bind(textures=self._trigger_upd_textures)
 
     def upd_textures(self, *args):
         """Create one :class:`SwatchButton` for each texture"""
@@ -147,6 +147,9 @@ class Pallet(StackLayout):
                 )
                 add_widget(swatches[name])
 
+    def _trigger_upd_textures(self, *args):
+        Clock.unschedule(self.upd_textures)
+        Clock.schedule_once(self._trigger_upd_textures)
 
 kv = """
 <Pallet>:
