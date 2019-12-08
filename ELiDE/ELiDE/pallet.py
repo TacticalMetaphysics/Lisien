@@ -126,21 +126,26 @@ class Pallet(StackLayout):
         if self.canvas is None:
             Clock.schedule_once(self.upd_textures, 0)
             return
-        for name in list(self.swatches.keys()):
-            if name not in self.atlas.textures:
-                self.remove_widget(self.swatches[name])
-                del self.swatches[name]
-        for (name, tex) in self.atlas.textures.items():
-            if name in self.swatches and self.swatches[name] != tex:
-                self.remove_widget(self.swatches[name])
-            if name not in self.swatches or self.swatches[name] != tex:
-                self.swatches[name] = SwatchButton(
+        swatches = self.swatches
+        atlas_textures = self.atlas.textures
+        remove_widget = self.remove_widget
+        add_widget = self.add_widget
+        swatch_size = self.swatch_size
+        for name, swatch in list(swatches.items()):
+            if name not in atlas_textures:
+                remove_widget(swatch)
+                del swatches[name]
+        for (name, tex) in atlas_textures.items():
+            if name in swatches and swatches[name] != tex:
+                remove_widget(swatches[name])
+            if name not in swatches or swatches[name] != tex:
+                swatches[name] = SwatchButton(
                     name=name,
                     tex=tex,
                     size_hint=(None, None),
-                    size=self.swatch_size
+                    size=swatch_size
                 )
-                self.add_widget(self.swatches[name])
+                add_widget(swatches[name])
 
 
 kv = """
