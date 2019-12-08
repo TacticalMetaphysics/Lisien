@@ -344,30 +344,32 @@ class ArrowWidget(Widget):
         if self.origin is None:
             Clock.schedule_once(self.on_origin, 0)
             return
-        if hasattr(self, '_origin') and hasattr(self._origin, '_bound'):
-            for uid in self._origin._bound:
-                self._origin.unbind_uid(uid)
-            del self._origin._bound
+        if hasattr(self, '_origin'):
+            if hasattr(self._origin, '_bound_pos_repoint'):
+                self._origin.unbind_uid('pos', self._origin._bound_pos_repoint)
+                del self._origin._bound_pos_repoint
+            if hasattr(self._origin, '_bound_size_repoint'):
+                self._origin_unbind_uid('size', self._origin._bound_size_repoint)
+                del self._origin._bound_size
         origin = self._origin = self.origin
-        origin._bound = [
-            origin.fbind('pos', self._trigger_repoint),
-            origin.fbind('size', self._trigger_repoint)
-        ]
+        origin._bound_pos_repoint = origin.fbind('pos', self._trigger_repoint)
+        origin._bound_size_repoint = origin.fbind('size', self._trigger_repoint)
 
     def on_destination(self, *args):
         """Make sure to redraw whenever the destination moves."""
         if self.destination is None:
             Clock.schedule_once(self.on_destination, 0)
             return
-        if hasattr(self, '_destination') and hasattr(self._destination, '_bound'):
-            for uid in self._destination._bound:
-                self._destination.unbind_uid(uid)
-            del self._destination._bound
+        if hasattr(self, '_destination'):
+            if hasattr(self._destination, '_bound_pos_repoint'):
+                self._destination.unbind_uid('pos', self._destination._bound_pos_repoint)
+                del self._destination._bound_pos_repoint
+            if hasattr(self._destination, '_bound_size_repoint'):
+                self.destination.unbind_uid('size', self._destination._bound_size_repoint)
+                del self._destination._bound_size_repoint
         destination = self._destination = self.destination
-        destination._bound = [
-            destination.fbind('pos', self._trigger_repoint),
-            destination.fbind('size', self._trigger_repoint)
-        ]
+        destination._bound_pos_repoint = destination.fbind('pos', self._trigger_repoint)
+        destination._bound_size_repoint = destination.fbind('size', self._trigger_repoint)
 
     def on_board(self, *args):
         """Draw myself for the first time as soon as I have the properties I
@@ -716,11 +718,18 @@ class ArrowLayout(FloatLayout):
         fbo.clear_buffer()
         fbo.release()
         trigger_redraw = self._trigger_redraw
+        redraw_bound = '_redraw_bound_' + str(id(self))
         for child in self.children:
+            if hasattr(child, redraw_bound):
+                child.unbind_uid('selected', getattr(child, redraw_bound))
             fbo.add(child.canvas)
-            child.bind(selected=trigger_redraw)
-            child.origspot.bind(pos=trigger_redraw)
-            child.destspot.bind(pos=trigger_redraw)
+            setattr(child, redraw_bound, child.fbind('selected', trigger_redraw))
+            if hasattr(child.origspot, redraw_bound):
+                child.origspot.unbind_uid('pos',getattr(child.origspot, redraw_bound))
+            setattr(child.origspot, redraw_bound, child.origspot.fbind('pos', trigger_redraw))
+            if hasattr(child.destspot, redraw_bound):
+                child.destspot.unbind_uid('pos', getattr(child.destspot, redraw_bound))
+            setattr(child.destspot, redraw_bound, child.destspot.fbind('pos', trigger_redraw))
 
     def on_pos(self, *args):
         if not hasattr(self, '_translate'):
