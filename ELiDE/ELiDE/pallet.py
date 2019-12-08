@@ -35,6 +35,8 @@ from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
+from kivy.graphics import Rectangle
+from .util import trigger
 
 
 class SwatchButton(ToggleButton):
@@ -42,8 +44,6 @@ class SwatchButton(ToggleButton):
     toggled, will report the fact to the :class:`Pallet` it's in.
 
     """
-    name = StringProperty()
-    """A name, either from a filename or a key into an atlas"""
     tex = ObjectProperty()
     """Texture to display here"""
 
@@ -61,24 +61,39 @@ class SwatchButton(ToggleButton):
             if self in self.parent.selection:
                 self.parent.selection.remove(self)
 
+    def on_parent(self, *args):
+        if not self.canvas or not self.tex:
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        self.canvas.after.clear()
+        with self.canvas.after:
+            self._img_rect = Rectangle(
+                pos=self._get_img_rect_pos(),
+                size=self.tex.size,
+                texture=self.tex
+            )
+        self.fbind('pos', self._upd_img_rect_pos)
+        self.fbind('tex', self._upd_img_rect_tex)
 
-kv = """
-<SwatchButton>:
-    Image:
-        id: theimg
-        center: root.center
-        texture: root.tex
-        size: self.texture_size if root.tex else (1, 1)
-        size_hint: (None, None)
-        pos_hint: {'x': None, 'y': None}
-    Label:
-        text: root.name
-        size: self.texture_size
-        pos_hint: {'x': None, 'y': None}
-        x: root.x + 5
-        y: theimg.y - self.height
-"""
-Builder.load_string(kv)
+    def _get_img_rect_pos(self):
+        x, y = self.pos
+        width, height = self.size
+        tw, th = self.tex.size
+        return (x + (width / 2 - tw / 2),
+                y + height - th)
+
+    @trigger
+    def _upd_img_rect_pos(self, *args):
+        self._img_rect.pos = self._get_img_rect_pos()
+
+    @trigger
+    def _upd_img_rect_tex(self, *args):
+        self._img_rect.texture = self.tex
+        self._img_rect.size = self.tex.size
+        self._img_rect.pos = self._get_img_rect_pos()
+
+    def on_size(self, *args):
+        self.text_size = self.size
 
 
 class Pallet(StackLayout):
@@ -140,7 +155,7 @@ class Pallet(StackLayout):
                 remove_widget(swatches[name])
             if name not in swatches or swatches[name] != tex:
                 swatches[name] = SwatchButton(
-                    name=name,
+                    text=name,
                     tex=tex,
                     size_hint=(None, None),
                     size=swatch_size
