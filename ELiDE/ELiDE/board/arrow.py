@@ -21,6 +21,7 @@ screen they are at the moment.
 
 """
 from math import cos, sin, atan, pi
+import numpy as np
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.fbo import Fbo
@@ -48,6 +49,10 @@ except (KeyError, ImportError):
 from ..util import get_thin_rect_vertices, fortyfive
 
 
+cos45 = cos(45)
+sin45 = sin(45)
+
+
 def up_and_down(orig, dest, taillen):
     if orig.center_y == dest.center_y:
         raise ValueError("Can't draw an arrow at a point")
@@ -59,8 +64,8 @@ def up_and_down(orig, dest, taillen):
     oy = int(orig.top)
     if flipped:
         oy, dy = dy, oy
-    off1 = cos(fortyfive) * taillen
-    off2 = sin(fortyfive) * taillen
+    off1 = cos45 * taillen
+    off2 = sin45 * taillen
     x0 = x
     y0 = oy
     endx = x
@@ -85,8 +90,8 @@ def left_and_right(orig, dest, taillen):
     ox = int(orig.right)
     if flipped:
         ox, dx = dx, ox
-    off1 = cos(fortyfive) * taillen
-    off2 = sin(fortyfive) * taillen
+    off1 = cos45 * taillen
+    off2 = sin45 * taillen
     x0 = ox
     y0 = y
     endx = dx
@@ -100,17 +105,7 @@ def left_and_right(orig, dest, taillen):
     )
 
 
-def get_points(orig, dest, taillen):
-    """Return a pair of lists of points for use making an arrow.
-
-    The first list is the beginning and end point of the trunk of the arrow.
-
-    The second list is the arrowhead.
-
-    """
-    # Adjust the start and end points so they're on the first non-transparent pixel.
-    # y = slope(x-ox) + oy
-    # x = (y - oy) / slope + ox
+def get_points_first_part(orig, dest, taillen):
     ox, oy = orig.center
     ow, oh = orig.size
     dx, dy = dest.center
@@ -137,18 +132,15 @@ def get_points(orig, dest, taillen):
     else:
         # straight left and right arrow
         return left_and_right(orig, dest, taillen)
-    rise = topy - boty
-    run = rightx - leftx
-
-    try:
-        start_theta = atan(rise / run)
-    except ZeroDivisionError:
+    if topy == boty:
         return up_and_down(orig, dest, taillen)
-    try:
-        end_theta = atan(run / rise)
-    except ZeroDivisionError:
+    if rightx == leftx:
         return left_and_right(orig, dest, taillen)
-    slope = rise / run
+    return ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty
+
+
+def get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
+                           slope, start_theta, end_theta):
     if slope > 1:
         topy -= dh / 2
         boty += oh / 2
@@ -159,10 +151,17 @@ def get_points(orig, dest, taillen):
     # arrow's pointing, and flip it all back around to the way it was
     top_theta = start_theta - fortyfive
     bot_theta = pi - fortyfive - end_theta
-    xoff1 = cos(top_theta) * taillen
-    yoff1 = sin(top_theta) * taillen
-    xoff2 = cos(bot_theta) * taillen
-    yoff2 = sin(bot_theta) * taillen
+    return xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta
+
+
+def get_points_third_part(
+        cos_top_theta, sin_top_theta, cos_bot_theta, sin_bot_theta,
+        taillen, xco, leftx, rightx, yco, topy, boty
+):
+    xoff1 = cos_top_theta * taillen
+    yoff1 = sin_top_theta * taillen
+    xoff2 = cos_bot_theta * taillen
+    yoff2 = sin_bot_theta * taillen
     x1 = (rightx - xoff1) * xco
     x2 = (rightx - xoff2) * xco
     y1 = (topy - yoff1) * yco
@@ -174,6 +173,76 @@ def get_points(orig, dest, taillen):
     return (
         [startx, starty, endx, endy],
         [x1, y1, endx, endy, x2, y2]
+    )
+
+def get_points_multi(args):
+    ret = {}
+    todo = {}
+    keys = []
+    topys = []
+    botys = []
+    leftxs = []
+    rightxs = []
+    args = list(args)
+    for (orig, dest, taillen) in args:
+        p1 = get_points_first_part(orig, dest, taillen)
+        if len(p1) == 2:
+            ret[orig, dest] = p1
+            continue
+        ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty = p1
+        keys.append((orig, dest))
+        leftxs.append(leftx)
+        rightxs.append(rightx)
+        topys.append(topy)
+        botys.append(boty)
+        todo[orig, dest] = p1 + (taillen,)
+    rises = np.subtract(topys, botys)
+    runs = np.subtract(rightxs, leftxs)
+    slopes = np.divide(rises, runs)
+    unslopes = np.divide(runs, rises)
+    start_thetas = np.arctan(slopes)
+    end_thetas = np.arctan(unslopes)
+    top_thetas = np.subtract(start_thetas, fortyfive)
+    bot_thetas = np.subtract(pi - fortyfive, end_thetas)
+    topsins = np.sin(top_thetas)
+    topcoss = np.cos(top_thetas)
+    botsins = np.sin(bot_thetas)
+    botcoss = np.cos(bot_thetas)
+    for key, topth, botth, topsin, topcos, botsin, botcos in zip(
+            keys, top_thetas, bot_thetas, topsins, topcoss, botsins, botcoss):
+        ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty, taillen = todo[key]
+        ret[key] = get_points_third_part(
+            topcos, topsin, botcos, botsin,
+            taillen, xco, leftx, rightx, yco, topy, boty
+        )
+    return ret
+
+
+def get_points(orig, dest, taillen):
+    """Return a pair of lists of points for use making an arrow.
+
+    The first list is the beginning and end point of the trunk of the arrow.
+
+    The second list is the arrowhead.
+
+    """
+    p1 = get_points_first_part(orig, dest, taillen)
+    if isinstance(p1, list):
+        return p1
+    ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty = p1
+    rise = topy - boty
+    run = rightx - leftx
+    slope = rise / run
+    unslope = run / rise
+    start_theta = atan(slope)
+    end_theta = atan(unslope)
+    xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta = get_points_second_part(
+        ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
+        slope, start_theta, end_theta
+    )
+    return get_points_third_part(
+        cos(top_theta), sin(top_theta), cos(bot_theta), sin(bot_theta),
+        taillen, xco, leftx, rightx, yco, topy, boty
     )
 
 
@@ -309,7 +378,6 @@ class ArrowWidget(Widget):
         ):
             Clock.schedule_once(self.on_board, 0)
             return
-        self._trigger_repoint()
 
     def add_widget(self, wid, index=0, canvas=None):
         """Put the :class:`Pawn` at a point along my length proportionate to

@@ -34,7 +34,7 @@ from kivy.uix.scatter import ScatterPlane
 from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
 from .spot import Spot
-from .arrow import Arrow, ArrowWidget, ArrowLayout
+from .arrow import Arrow, ArrowWidget, ArrowLayout, get_points, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
@@ -429,13 +429,16 @@ class Board(RelativeLayout):
             raise KeyError("Already have an Arrow for this Portal")
         return self._core_make_arrow(portal, self.spot[portal['origin']], self.spot[portal['destination']], self.arrow)
 
-    def _core_make_arrow(self, portal, origspot, destspot, arrowmap):
+    def _core_make_arrow(self, portal, origspot, destspot, arrowmap, points=None):
         r = self.arrow_cls(
             board=self,
             portal=portal,
             origspot=origspot,
-            destspot=destspot
+            destspot=destspot,
+            points=points
         )
+        if points is None:
+            r._trigger_repoint()
         orign = portal["origin"]
         if orign not in arrowmap:
             arrowmap[orign] = {}
@@ -649,15 +652,19 @@ class Board(RelativeLayout):
         arrowlayout = self.arrowlayout
         add_widget_to_arrowlayout = arrowlayout.add_widget
         core_make_arrow = self._core_make_arrow
+        todo = []
         for arrow_orig, arrow_dests in portmap.items():
             for arrow_dest, portal in arrow_dests.items():
                 if (
                         arrow_orig not in arrowmap or
                         arrow_dest not in arrowmap[arrow_orig]
                 ):
-                    add_widget_to_arrowlayout(
-                        core_make_arrow(portal, spotmap[arrow_orig], spotmap[arrow_dest], arrowmap)
-                    )
+                    todo.append((portal, spotmap[arrow_orig], spotmap[arrow_dest]))
+        points = get_points_multi((origspot, destspot, 10) for (portal, origspot, destspot) in todo)
+        for portal, origspot, destspot in todo:
+            add_widget_to_arrowlayout(
+                core_make_arrow(portal, origspot, destspot, arrowmap, points[origspot, destspot])
+            )
 
     def add_pawn(self, thingn, *args):
         if (
