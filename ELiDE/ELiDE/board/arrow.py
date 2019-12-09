@@ -49,8 +49,8 @@ except (KeyError, ImportError):
 from ..util import get_thin_rect_vertices, fortyfive
 
 
-cos45 = cos(45)
-sin45 = sin(45)
+cos45 = cos(fortyfive)
+sin45 = sin(fortyfive)
 
 
 def up_and_down(orig, dest, taillen):
