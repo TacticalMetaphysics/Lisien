@@ -105,7 +105,7 @@ def left_and_right(orig, dest, taillen):
     )
 
 
-def get_points_first_part(orig, dest, taillen):
+def _get_points_first_part(orig, dest, taillen):
     ox, oy = orig.center
     ow, oh = orig.size
     dx, dy = dest.center
@@ -139,8 +139,8 @@ def get_points_first_part(orig, dest, taillen):
     return ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty
 
 
-def get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
-                           slope, start_theta, end_theta):
+def _get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
+                            slope, start_theta, end_theta):
     if slope > 1:
         topy -= dh / 2
         boty += oh / 2
@@ -154,7 +154,7 @@ def get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
     return xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta
 
 
-def get_points_third_part(
+def _get_points_third_part(
         cos_top_theta, sin_top_theta, cos_bot_theta, sin_bot_theta,
         taillen, xco, leftx, rightx, yco, topy, boty
 ):
@@ -185,7 +185,7 @@ def get_points_multi(args):
     rightxs = []
     args = list(args)
     for (orig, dest, taillen) in args:
-        p1 = get_points_first_part(orig, dest, taillen)
+        p1 = _get_points_first_part(orig, dest, taillen)
         if len(p1) == 2:
             ret[orig, dest] = p1
             continue
@@ -211,7 +211,7 @@ def get_points_multi(args):
     for key, topth, botth, topsin, topcos, botsin, botcos in zip(
             keys, top_thetas, bot_thetas, topsins, topcoss, botsins, botcoss):
         ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty, taillen = todo[key]
-        ret[key] = get_points_third_part(
+        ret[key] = _get_points_third_part(
             topcos, topsin, botcos, botsin,
             taillen, xco, leftx, rightx, yco, topy, boty
         )
@@ -226,7 +226,7 @@ def get_points(orig, dest, taillen):
     The second list is the arrowhead.
 
     """
-    p1 = get_points_first_part(orig, dest, taillen)
+    p1 = _get_points_first_part(orig, dest, taillen)
     if isinstance(p1, list):
         return p1
     ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty = p1
@@ -236,11 +236,11 @@ def get_points(orig, dest, taillen):
     unslope = run / rise
     start_theta = atan(slope)
     end_theta = atan(unslope)
-    xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta = get_points_second_part(
+    xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta = _get_points_second_part(
         ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
         slope, start_theta, end_theta
     )
-    return get_points_third_part(
+    return _get_points_third_part(
         cos(top_theta), sin(top_theta), cos(bot_theta), sin(bot_theta),
         taillen, xco, leftx, rightx, yco, topy, boty
     )
