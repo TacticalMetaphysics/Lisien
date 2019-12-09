@@ -366,19 +366,6 @@ class ArrowWidget(Widget):
         destination._bound_pos_repoint = destination.fbind('pos', self._trigger_repoint)
         destination._bound_size_repoint = destination.fbind('size', self._trigger_repoint)
 
-    def on_board(self, *args):
-        """Draw myself for the first time as soon as I have the properties I
-        need to do so.
-
-        """
-        if None in (
-                self.board,
-                self.origin,
-                self.destination
-        ):
-            Clock.schedule_once(self.on_board, 0)
-            return
-
     def add_widget(self, wid, index=0, canvas=None):
         """Put the :class:`Pawn` at a point along my length proportionate to
         how close it is to finishing its travel through me.
