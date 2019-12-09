@@ -227,7 +227,7 @@ def get_points(orig, dest, taillen):
 
     """
     p1 = _get_points_first_part(orig, dest, taillen)
-    if isinstance(p1, list):
+    if len(p1) == 2:
         return p1
     ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty = p1
     rise = topy - boty
