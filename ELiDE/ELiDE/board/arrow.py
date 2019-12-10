@@ -222,7 +222,7 @@ def get_points_multi(args):
     xoff1s = np.multiply(topcoss, taillens)
     yoff1s = np.multiply(topsins, taillens)
     xoff2s = np.multiply(botcoss, taillens)
-    yoff2s = np.multiply(botsins, taillen)
+    yoff2s = np.multiply(botsins, taillens)
     xcos = np.array(xcos)
     ycos = np.array(ycos)
     x1s = np.multiply(np.subtract(rightxs, xoff1s), xcos)
