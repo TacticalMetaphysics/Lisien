@@ -177,7 +177,6 @@ def _get_points_third_part(
 
 def get_points_multi(args):
     ret = {}
-    todo = {}
     keys = []
     topys = []
     botys = []
@@ -198,7 +197,6 @@ def get_points_multi(args):
         rightxs.append(rightx)
         topys.append(topy)
         botys.append(boty)
-        todo[orig, dest] = p1 + (taillen,)
         taillens.append(taillen)
         xcos.append(xco)
         ycos.append(yco)
