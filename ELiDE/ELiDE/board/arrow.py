@@ -232,7 +232,7 @@ def get_points_multi(args):
     startxs = np.multiply(leftxs, xcos)
     startys = np.multiply(botys, ycos)
     endxs = np.multiply(rightxs, xcos)
-    endys = np.multiply(topys, yco)
+    endys = np.multiply(topys, ycos)
     for key, startx, starty, endx, endy, x1, y1, endx, endy, x2, y2 in zip(
         keys, startxs, startys, endxs, endys, x1s, y1s, endxs, endys, x2s, y2s
     ):
