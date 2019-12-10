@@ -183,6 +183,9 @@ def get_points_multi(args):
     botys = []
     leftxs = []
     rightxs = []
+    taillens = []
+    xcos = []
+    ycos = []
     args = list(args)
     for (orig, dest, taillen) in args:
         p1 = _get_points_first_part(orig, dest, taillen)
@@ -196,6 +199,13 @@ def get_points_multi(args):
         topys.append(topy)
         botys.append(boty)
         todo[orig, dest] = p1 + (taillen,)
+        taillens.append(taillen)
+        xcos.append(xco)
+        ycos.append(yco)
+    topys = np.array(topys)
+    botys = np.array(botys)
+    rightxs = np.array(rightxs)
+    leftxs = np.array(leftxs)
     rises = np.subtract(topys, botys)
     runs = np.subtract(rightxs, leftxs)
     slopes = np.divide(rises, runs)
@@ -208,12 +218,27 @@ def get_points_multi(args):
     topcoss = np.cos(top_thetas)
     botsins = np.sin(bot_thetas)
     botcoss = np.cos(bot_thetas)
-    for key, topth, botth, topsin, topcos, botsin, botcos in zip(
-            keys, top_thetas, bot_thetas, topsins, topcoss, botsins, botcoss):
-        ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty, taillen = todo[key]
-        ret[key] = _get_points_third_part(
-            topcos, topsin, botcos, botsin,
-            taillen, xco, leftx, rightx, yco, topy, boty
+    taillens = np.array(taillens)
+    xoff1s = np.multiply(topcoss, taillens)
+    yoff1s = np.multiply(topsins, taillens)
+    xoff2s = np.multiply(botcoss, taillens)
+    yoff2s = np.multiply(botsins, taillen)
+    xcos = np.array(xcos)
+    ycos = np.array(ycos)
+    x1s = np.multiply(np.subtract(rightxs, xoff1s), xcos)
+    x2s = np.multiply(np.subtract(rightxs, xoff2s), xcos)
+    y1s = np.multiply(np.subtract(topys, yoff1s), ycos)
+    y2s = np.multiply(np.subtract(topys, yoff2s), ycos)
+    startxs = np.multiply(leftxs, xcos)
+    startys = np.multiply(botys, ycos)
+    endxs = np.multiply(rightxs, xcos)
+    endys = np.multiply(topys, yco)
+    for key, startx, starty, endx, endy, x1, y1, endx, endy, x2, y2 in zip(
+        keys, startxs, startys, endxs, endys, x1s, y1s, endxs, endys, x2s, y2s
+    ):
+        ret[key] = (
+            [startx, starty, endx, endy],
+            [x1, y1, endx, endy, x2, y2]
         )
     return ret
 
