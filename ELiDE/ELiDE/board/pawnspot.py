@@ -32,8 +32,6 @@ from kivy.graphics import (
 )
 from kivy.uix.layout import Layout
 from kivy.clock import Clock
-from kivy.logger import Logger
-from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
 from ..util import trigger
 
@@ -48,6 +46,8 @@ class PawnSpot(ImageStack, Layout):
     engine = ObjectProperty()
     selected = BooleanProperty(False)
     linecolor = ListProperty()
+    selected_outline_color = ListProperty([0, 1, 1, 1])
+    unselected_outline_color = ListProperty([0, 0, 0, 0])
     name = ObjectProperty()
     use_boardspace = True
     positions = DictProperty()
@@ -270,9 +270,8 @@ class PawnSpot(ImageStack, Layout):
         for member_id, (offx, offy) in self.positions.items():
             self._childs[member_id].pos = x + offx, y + offy
 
-
-kv = """
-<PawnSpot>:
-    linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
-"""
-Builder.load_string(kv)
+    def on_selected(self, *args):
+        if self.selected:
+            self.linecolor = self.selected_outline_color
+        else:
+            self.linecolor = self.unselected_outline_color

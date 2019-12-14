@@ -63,7 +63,7 @@ class SpriteSelector(BoxLayout):
 
     def on_pallets(self, *args):
         for pallet in self.pallets:
-            pallet.bind(selection=self._upd_imgpaths)
+            pallet.fbind('selection', self._upd_imgpaths)
 
     def _upd_imgpaths(self, *args):
         imgpaths = []
@@ -107,7 +107,18 @@ class SpriteBuilder(ScrollView):
             self.add_widget(self._palbox)
         else:
             self._palbox.clear_widgets()
+        if hasattr(self._palbox, '_bound_width'):
+            for uid in self._palbox._bound_width:
+                self._palbox.unbind_uid('width', uid)
+            del self._palbox._bound_width
         self.labels = []
+        for pallet in self.pallets:
+            if hasattr(pallet, '_bound_minimum_height'):
+                pallet.unbind_uid('minimum_height', pallet._bound_minimum_height)
+                del pallet._bound_minimum_height
+            if hasattr(pallet, '_bound_height'):
+                pallet.unbind_uid('height', pallet._bound_height)
+                del pallet._bound_height
         self.pallets = []
         for (text, filename) in self.data:
             label = Label(
@@ -118,18 +129,18 @@ class SpriteBuilder(ScrollView):
             label.texture_update()
             label.height = label.texture.height
             label.width = self._palbox.width
-            self._palbox.bind(width=label.setter('width'))
             pallet = Pallet(
                 filename=filename,
                 size_hint=(None, None)
             )
             pallet.width = self._palbox.width
-            self._palbox.bind(width=pallet.setter('width'))
+            self._palbox._bound_width = [
+                self._palbox.fbind('width', label.setter('width')),
+                self._palbox.fbind('width', pallet.setter('width'))
+            ]
             pallet.height = pallet.minimum_height
-            pallet.bind(
-                minimum_height=pallet.setter('height'),
-                height=self._trigger_reheight
-            )
+            pallet._bound_minimum_height = pallet.fbind('minimum_height', pallet.setter('height')),
+            pallet._bound_height = pallet.fbind('height', self._trigger_reheight)
             self.labels.append(label)
             self.pallets.append(pallet)
         n = len(self.labels)
