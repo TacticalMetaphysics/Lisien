@@ -140,7 +140,7 @@ def _get_points_first_part(orig, dest, taillen):
 
 
 def _get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
-                            slope, start_theta, end_theta):
+                            slope, start_theta, end_theta, taillen):
     if slope > 1:
         topy -= dh / 2
         boty += oh / 2
@@ -151,17 +151,10 @@ def _get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
     # arrow's pointing, and flip it all back around to the way it was
     top_theta = start_theta - fortyfive
     bot_theta = pi - fortyfive - end_theta
-    return xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta
-
-
-def _get_points_third_part(
-        cos_top_theta, sin_top_theta, cos_bot_theta, sin_bot_theta,
-        taillen, xco, leftx, rightx, yco, topy, boty
-):
-    xoff1 = cos_top_theta * taillen
-    yoff1 = sin_top_theta * taillen
-    xoff2 = cos_bot_theta * taillen
-    yoff2 = sin_bot_theta * taillen
+    xoff1 = cos(top_theta) * taillen
+    yoff1 = sin(top_theta) * taillen
+    xoff2 = cos(bot_theta) * taillen
+    yoff2 = sin(bot_theta) * taillen
     x1 = (rightx - xoff1) * xco
     x2 = (rightx - xoff2) * xco
     y1 = (topy - yoff1) * yco
@@ -259,13 +252,9 @@ def get_points(orig, dest, taillen):
     unslope = run / rise
     start_theta = atan(slope)
     end_theta = atan(unslope)
-    xco, leftx, rightx, yco, topy, boty, top_theta, bot_theta = _get_points_second_part(
+    return _get_points_second_part(
         ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
-        slope, start_theta, end_theta
-    )
-    return _get_points_third_part(
-        cos(top_theta), sin(top_theta), cos(bot_theta), sin(bot_theta),
-        taillen, xco, leftx, rightx, yco, topy, boty
+        slope, start_theta, end_theta, taillen
     )
 
 
