@@ -645,7 +645,8 @@ class ArrowWidget(Widget):
         if not self.canvas:
             Clock.schedule_once(self.on_parent, 0)
             return
-        self._repoint()
+        if not self.trunk_points or not self.head_points:
+            self._repoint()
         if hasattr(self, '_color0'):
             return
         with self.canvas:
