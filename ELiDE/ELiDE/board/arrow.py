@@ -626,7 +626,7 @@ class ArrowWidget(Widget):
             ):
                 self.fbind(att, self._pull_head_bg_color1)
             self._quad1_0 = Quad(points=self.left_head_quad_vertices_bg)
-            self.fbind('left_head_quad_vertices_bd', self._pull_bg_left_head_points_quad1_0)
+            self.fbind('left_head_quad_vertices_bg', self._pull_bg_left_head_points_quad1_0)
             self._quad1_1 = Quad(points=self.right_head_quad_vertices_bg)
             self.fbind('right_head_quad_vertices_bg', self._pull_bg_right_head_points_quad1_1)
             self._color2 = Color(rgba=self.fg_color_selected if self.selected else self.fg_color_unselected)
