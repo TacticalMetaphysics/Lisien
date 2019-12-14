@@ -59,28 +59,6 @@ class PawnSpot(ImageStack, Layout):
         super().__init__(**kwargs)
         self.bind(pos=self._position, positions=self._position)
 
-    def collide_point(self, x, y):
-        if not super().collide_point(x, y):
-            return False
-        x, y = self.to_local(x, y, relative=True)
-        for path in reversed(self.paths):
-            img = self.pathimgs[path]
-            if not img._image:
-                from kivy.core.image import Image, ImageData
-                img._image = _image = Image(img._texture)
-                _image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
-            if not hasattr(img._image, '_data') or not img._image._data:
-                # it's in an atlas
-                from kivy.core.image import ImageData
-                img._image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
-            try:
-                r, g, b, a = img.read_pixel(x, y)
-            except IndexError:
-                return False
-            if a:
-                return True
-        return False
-
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
         if touch.grab_current is not self:
