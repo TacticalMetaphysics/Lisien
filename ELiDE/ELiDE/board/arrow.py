@@ -112,61 +112,97 @@ def _get_points_first_part(orig, dest, taillen):
     dw, dh = dest.size
     if ox < dx:
         leftx = ox
+        lw = ow
         rightx = dx
+        rw = dw
         xco = 1
     elif ox > dx:
         leftx = ox * -1
+        lw = dw
         rightx = dx * -1
+        rw = ow
         xco = -1
     else:
         # straight up and down arrow
         return up_and_down(orig, dest, taillen)
     if oy < dy:
-        boty = oy
         topy = dy
+        th = dh
+        boty = oy
+        bh = oh
         yco = 1
     elif oy > dy:
-        boty = oy * -1
         topy = dy * -1
+        th = oh
+        boty = oy * -1
+        bh = dh
         yco = -1
     else:
         # straight left and right arrow
         return left_and_right(orig, dest, taillen)
-    if topy == boty:
-        return up_and_down(orig, dest, taillen)
+    slope = (topy - boty) / (rightx - leftx)
+    if slope <= 1:
+        for rightx in range(
+                int(rightx - rw / 2),
+                int(rightx)+1
+        ):
+            topy = slope * (rightx - leftx) + boty
+            if dest.collide_point(rightx * xco, topy * yco):
+                rightx = float(rightx - 1)
+                for pip in range(10):
+                    rightx += 0.1 * pip
+                    topy = slope * (rightx - leftx) + boty
+                    if dest.collide_point(rightx * xco, topy * yco):
+                        break
+                break
+        for leftx in range(
+                int(leftx + lw / 2),
+                int(leftx)-1,
+                -1
+        ):
+            boty = slope * (leftx - rightx) + topy
+            if orig.collide_point(leftx * xco, boty * yco):
+                leftx = float(leftx + 1)
+                for pip in range(10):
+                    leftx -= 0.1 * pip
+                    boty = slope * (leftx - rightx) + topy
+                    if orig.collide_point(leftx * xco, boty * yco):
+                        break
+                break
+    else:
+        # x = leftx + ((rightx-leftx)(y - boty))/(topy-boty)
+        for topy in range(
+            int(topy - th / 2),
+            int(topy) + 1
+        ):
+            rightx = leftx + (topy - boty) / slope
+            if dest.collide_point(rightx * xco, topy * yco):
+                topy = float(topy - 1)
+                for pip in range(10):
+                    topy += 0.1 * pip
+                    rightx = leftx + (topy - boty) / slope
+                    if dest.collide_point(rightx * xco, topy * yco):
+                        break
+                break
+        for boty in range(
+            int(boty + bh / 2),
+            int(boty) - 1,
+            -1
+        ):
+            leftx = (boty - topy) / slope + rightx
+            if orig.collide_point(leftx * xco, boty * yco):
+                boty = float(boty + 1)
+                for pip in range(10):
+                    boty -= 0.1 * pip
+                    leftx = (boty - topy) / slope + rightx
+                    if orig.collide_point(leftx * xco, boty * yco):
+                        break
+                break
     if rightx == leftx:
+        return up_and_down(orig, dest, taillen)
+    if topy == boty:
         return left_and_right(orig, dest, taillen)
     return ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty
-
-
-def _get_points_second_part(ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
-                            slope, start_theta, end_theta, taillen):
-    if slope > 1:
-        topy -= dh / 2
-        boty += oh / 2
-    else:
-        rightx -= dw / 2
-        leftx += ow / 2
-    # make the little wedge at the end so you can tell which way the
-    # arrow's pointing, and flip it all back around to the way it was
-    top_theta = start_theta - fortyfive
-    bot_theta = pi - fortyfive - end_theta
-    xoff1 = cos(top_theta) * taillen
-    yoff1 = sin(top_theta) * taillen
-    xoff2 = cos(bot_theta) * taillen
-    yoff2 = sin(bot_theta) * taillen
-    x1 = (rightx - xoff1) * xco
-    x2 = (rightx - xoff2) * xco
-    y1 = (topy - yoff1) * yco
-    y2 = (topy - yoff2) * yco
-    startx = leftx * xco
-    starty = boty * yco
-    endx = rightx * xco
-    endy = topy * yco
-    return (
-        [startx, starty, endx, endy],
-        [x1, y1, endx, endy, x2, y2]
-    )
 
 def get_points_multi(args):
     ret = {}
@@ -252,9 +288,26 @@ def get_points(orig, dest, taillen):
     unslope = run / rise
     start_theta = atan(slope)
     end_theta = atan(unslope)
-    return _get_points_second_part(
-        ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty,
-        slope, start_theta, end_theta, taillen
+
+    # make the little wedge at the end so you can tell which way the
+    # arrow's pointing, and flip it all back around to the way it was
+    top_theta = start_theta - fortyfive
+    bot_theta = pi - fortyfive - end_theta
+    xoff1 = cos(top_theta) * taillen
+    yoff1 = sin(top_theta) * taillen
+    xoff2 = cos(bot_theta) * taillen
+    yoff2 = sin(bot_theta) * taillen
+    x1 = (rightx - xoff1) * xco
+    x2 = (rightx - xoff2) * xco
+    y1 = (topy - yoff1) * yco
+    y2 = (topy - yoff2) * yco
+    startx = leftx * xco
+    starty = boty * yco
+    endx = rightx * xco
+    endy = topy * yco
+    return (
+        [startx, starty, endx, endy],
+        [x1, y1, endx, endy, x2, y2]
     )
 
 
