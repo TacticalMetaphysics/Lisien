@@ -110,94 +110,22 @@ def _get_points_first_part(orig, dest, taillen):
     ow, oh = orig.size
     dx, dy = dest.center
     dw, dh = dest.size
-    if ox < dx:
+    xco = 1 if ox < dx else -1
+    yco = 1 if oy < dy else -1
+    ox *= xco
+    dx *= xco
+    oy *= yco
+    dy *= yco
+    if dy - oy > dx - ox:
+        topy = dy - dh / 2
+        boty = oy + oh / 2
         leftx = ox
-        lw = ow
         rightx = dx
-        rw = dw
-        xco = 1
-    elif ox > dx:
-        leftx = ox * -1
-        lw = dw
-        rightx = dx * -1
-        rw = ow
-        xco = -1
     else:
-        # straight up and down arrow
-        return up_and_down(orig, dest, taillen)
-    if oy < dy:
+        leftx = ox + ow / 2
+        rightx = dx - dw / 2
         topy = dy
-        th = dh
         boty = oy
-        bh = oh
-        yco = 1
-    elif oy > dy:
-        topy = dy * -1
-        th = oh
-        boty = oy * -1
-        bh = dh
-        yco = -1
-    else:
-        # straight left and right arrow
-        return left_and_right(orig, dest, taillen)
-    slope = (topy - boty) / (rightx - leftx)
-    if slope <= 1:
-        for rightx in range(
-                int(rightx - rw / 2),
-                int(rightx)+1
-        ):
-            topy = slope * (rightx - leftx) + boty
-            if dest.collide_point(rightx * xco, topy * yco):
-                rightx = float(rightx - 1)
-                for pip in range(10):
-                    rightx += 0.1 * pip
-                    topy = slope * (rightx - leftx) + boty
-                    if dest.collide_point(rightx * xco, topy * yco):
-                        break
-                break
-        for leftx in range(
-                int(leftx + lw / 2),
-                int(leftx)-1,
-                -1
-        ):
-            boty = slope * (leftx - rightx) + topy
-            if orig.collide_point(leftx * xco, boty * yco):
-                leftx = float(leftx + 1)
-                for pip in range(10):
-                    leftx -= 0.1 * pip
-                    boty = slope * (leftx - rightx) + topy
-                    if orig.collide_point(leftx * xco, boty * yco):
-                        break
-                break
-    else:
-        # x = leftx + ((rightx-leftx)(y - boty))/(topy-boty)
-        for topy in range(
-            int(topy - th / 2),
-            int(topy) + 1
-        ):
-            rightx = leftx + (topy - boty) / slope
-            if dest.collide_point(rightx * xco, topy * yco):
-                topy = float(topy - 1)
-                for pip in range(10):
-                    topy += 0.1 * pip
-                    rightx = leftx + (topy - boty) / slope
-                    if dest.collide_point(rightx * xco, topy * yco):
-                        break
-                break
-        for boty in range(
-            int(boty + bh / 2),
-            int(boty) - 1,
-            -1
-        ):
-            leftx = (boty - topy) / slope + rightx
-            if orig.collide_point(leftx * xco, boty * yco):
-                boty = float(boty + 1)
-                for pip in range(10):
-                    boty -= 0.1 * pip
-                    leftx = (boty - topy) / slope + rightx
-                    if orig.collide_point(leftx * xco, boty * yco):
-                        break
-                break
     if rightx == leftx:
         return up_and_down(orig, dest, taillen)
     if topy == boty:
