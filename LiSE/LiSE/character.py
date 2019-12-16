@@ -364,7 +364,7 @@ class AbstractCharacter(MutableMapping):
                     k = ok + (n,) if isinstance(ok, tuple) else (ok, n)
                     n += 1
             renamed[ok] = k
-            self.place[k] = g[k]
+            self.place[k] = g.nodes[k]
         if type(g) is nx.MultiDiGraph:
             g = nx.DiGraph(g)
         elif type(g) is nx.MultiGraph:
