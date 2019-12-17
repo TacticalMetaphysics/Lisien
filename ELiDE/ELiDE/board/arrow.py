@@ -110,12 +110,16 @@ def _get_points_first_part(orig, dest, taillen):
     ow, oh = orig.size
     dx, dy = dest.center
     dw, dh = dest.size
+    # Flip the endpoints around so that the arrow faces up and right.
+    # We'll flip it back at the end as needed.
     xco = 1 if ox < dx else -1
     yco = 1 if oy < dy else -1
     ox *= xco
     dx *= xco
     oy *= yco
     dy *= yco
+    # Nudge my endpoints so that I start and end at the edge of
+    # a Spot.
     if dy - oy > dx - ox:
         topy = dy - dh / 2
         boty = oy + oh / 2
@@ -126,6 +130,9 @@ def _get_points_first_part(orig, dest, taillen):
         rightx = dx - dw / 2
         topy = dy
         boty = oy
+    # Degenerate cases.
+    # Also, these need to be handled specially to avoid
+    # division by zero later on.
     if rightx == leftx:
         return up_and_down(orig, dest, taillen)
     if topy == boty:
