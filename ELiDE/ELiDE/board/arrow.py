@@ -149,7 +149,6 @@ def get_points_multi(args):
     taillens = []
     xcos = []
     ycos = []
-    args = list(args)
     for (orig, dest, taillen) in args:
         p1 = _get_points_first_part(orig, dest, taillen)
         if len(p1) == 2:
