@@ -140,5 +140,5 @@ def install(engine):
 
 if __name__ == '__main__':
     import LiSE
-    engine = LiSE.Engine('LiSEworld.db', 'LiSEcode.db')
+    engine = LiSE.Engine()
     install(engine)
