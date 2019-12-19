@@ -924,7 +924,7 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            worlddb,
+            worlddb='world.db',
             *,
             string='strings.json',
             function='function.py',
