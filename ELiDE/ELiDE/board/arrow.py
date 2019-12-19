@@ -139,7 +139,15 @@ def _get_points_first_part(orig, dest, taillen):
         return left_and_right(orig, dest, taillen)
     return ow, oh, dw, dh, xco, leftx, rightx, yco, topy, boty
 
+
 def get_points_multi(args):
+    """Return a dictionary mapping (orig, dest) to pairs of point lists for arrows
+
+    Takes an iterable of (orig, dest, taillen) where orig and dest are Spot instances
+
+    taillen is an integer specifying how long the arrowhead should be.
+
+    """
     ret = {}
     keys = []
     topys = []
