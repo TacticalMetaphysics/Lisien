@@ -1306,6 +1306,13 @@ class AllegedGraph(object):
         self.node.clear()
         self.graph.clear()
 
+    def add_node(self, node_for_adding, **attr):
+        if node_for_adding not in self._succ:
+            self._succ[node_for_adding] = self.adjlist_inner_dict_factory()
+            self._pred[node_for_adding] = self.adjlist_inner_dict_factory()
+            self._node[node_for_adding] = self.node_attr_dict_factory()
+        self._node[node_for_adding].update(attr)
+
 
 class Graph(AllegedGraph, networkx.Graph):
     """A version of the networkx.Graph class that stores its state in a

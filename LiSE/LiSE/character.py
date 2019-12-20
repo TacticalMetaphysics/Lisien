@@ -1978,8 +1978,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def facade(self):
         return Facade(self)
 
-    def add_place(self, n, **kwargs):
-        super().add_node(n, **kwargs)
+    def add_place(self, node_for_adding, **attr):
+        self.add_node(node_for_adding, **attr)
 
     def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""
