@@ -46,7 +46,7 @@ def db():
 def test_basic_load(db):
     for graph in testgraphs:
         alleged = db.graph[graph.name]
-        assert set(graph.node.keys()) == set(alleged.node.keys()), "{}'s nodes are not the same after load".format(
+        assert set(graph.nodes.keys()) == set(alleged.nodes.keys()), "{}'s nodes are not the same after load".format(
             graph.name
         )
         assert set(graph.edges) == set(alleged.edges), "{}'s edges are not the same after load".format(graph.name)
