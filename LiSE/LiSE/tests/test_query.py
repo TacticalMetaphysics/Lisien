@@ -66,8 +66,8 @@ def roommate_collisions(engine):
         ]
 
         same_loc_turns = list(engine.turns_when(
-            student.avatar.only.historical('location')
-            == other_student.avatar.only.historical('location')
+            student.avatar.only.location
+            == other_student.avatar.only.location
         ))
         assert same_loc_turns, "{} and {} don't seem to share a room".format(
                 student.name, other_student.name
@@ -100,17 +100,17 @@ def sober_collisions(engine):
     def sameClasstime(stu0, stu1):
         assert list(
             engine.turns_when(
-                stu0.avatar.only.historical('location') ==
-                stu1.avatar.only.historical('location') ==
-                engine.alias('classroom')
+                stu0.avatar.only.name ==
+                stu1.avatar.only.name ==
+                'classroom'
             )), """{stu0} seems not to have been in the classroom 
                 at the same time as {stu1}.
                 {stu0} was there at turns {turns0}
                 {stu1} was there at turns {turns1}""".format(
                 stu0=stu0.name,
                 stu1=stu1.name,
-                turns0=list(engine.turns_when(stu0.avatar.only.historical('location') == engine.alias('classroom'))),
-                turns1=list(engine.turns_when(stu1.avatar.only.historical('location') == engine.alias('classroom')))
+                turns0=list(engine.turns_when(stu0.avatar.only.location.name == 'classroom')),
+                turns1=list(engine.turns_when(stu1.avatar.only.location.name == 'classroom'))
             )
         return stu1
 
@@ -138,9 +138,9 @@ def noncollision(engine):
                 for rr in other_rooms:
                     for stu1 in dorm[d][rr].values():
                         assert not list(engine.turns_when(
-                                stu0.avatar.only.historical('location') ==
-                                stu1.avatar.only.historical('location') ==
-                                engine.alias('dorm{}room{}'.format(d, r))
+                                stu0.avatar.only.location.name ==
+                                stu1.avatar.only.location.name ==
+                                'dorm{}room{}'.format(d, r)
                         )), "{} seems to share a room with {}".format(
                             stu0.name, stu1.name
                         )
@@ -149,9 +149,9 @@ def noncollision(engine):
                     for rr in dorm[dd]:
                         for stu1 in dorm[dd][rr].values():
                             assert not list(engine.turns_when(
-                                    stu0.avatar.only.historical('location') ==
-                                    stu1.avatar.only.historical('location') ==
-                                    engine.alias(common)
+                                    stu0.avatar.only.location.name ==
+                                    stu1.avatar.only.location.name ==
+                                    common
                             )), "{} seems to have been in the same common room  as {}".format(
                                 stu0.name, stu1.name
                             )
