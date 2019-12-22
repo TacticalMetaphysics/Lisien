@@ -326,7 +326,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
         elif isinstance(side, EntityStatAccessor):
             return side
         else:
-            return lambda: side
+            return lambda x, y: side
     leftside = mungeside(qry.leftside)
     rightside = mungeside(qry.rightside)
     engine = engine or leftside.engine or rightside.engine
