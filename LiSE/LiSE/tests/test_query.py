@@ -46,13 +46,13 @@ def college24_premade():
     os.rmdir(tempdir)
 
 
-def roommate_collisions(engine):
+def test_roomie_collisions(college24_premade):
     """Test queries' ability to tell that all of the students that share
     rooms have been in the same place.
 
     """
     done = set()
-    for chara in engine.character.values():
+    for chara in college24_premade.character.values():
         if chara.name in done:
             continue
         match = re.match('dorm(\d)room(\d)student(\d)', chara.name)
@@ -61,11 +61,11 @@ def roommate_collisions(engine):
         dorm, room, student = match.groups()
         other_student = '1' if student == '0' else '0'
         student = chara
-        other_student = engine.character[
+        other_student = college24_premade.character[
             'dorm{}room{}student{}'.format(dorm, room, other_student)
         ]
 
-        same_loc_turns = list(engine.turns_when(
+        same_loc_turns = list(college24_premade.turns_when(
             student.avatar.only.location
             == other_student.avatar.only.location
         ))
@@ -80,18 +80,14 @@ def roommate_collisions(engine):
         done.add(other_student.name)
 
 
-def test_roomie_collisions_premade(college24_premade):
-    roommate_collisions(college24_premade)
-
-
-def sober_collisions(engine):
+def test_sober_collisions(college24_premade):
     """Students that are neither lazy nor drunkards should all have been
     in class together at least once.
 
     """
     students = [
         stu for stu in
-        engine.character['student_body'].stat['characters']
+        college24_premade.character['student_body'].stat['characters']
         if not (stu.stat['drunkard'] or stu.stat['lazy'])
     ]
 
@@ -99,7 +95,7 @@ def sober_collisions(engine):
 
     def sameClasstime(stu0, stu1):
         assert list(
-            engine.turns_when(
+            college24_premade.turns_when(
                 stu0.avatar.only.name ==
                 stu1.avatar.only.name ==
                 'classroom'
@@ -109,22 +105,18 @@ def sober_collisions(engine):
                 {stu1} was there at turns {turns1}""".format(
                 stu0=stu0.name,
                 stu1=stu1.name,
-                turns0=list(engine.turns_when(stu0.avatar.only.location.name == 'classroom')),
-                turns1=list(engine.turns_when(stu1.avatar.only.location.name == 'classroom'))
+                turns0=list(college24_premade.turns_when(stu0.avatar.only.location.name == 'classroom')),
+                turns1=list(college24_premade.turns_when(stu1.avatar.only.location.name == 'classroom'))
             )
         return stu1
 
     reduce(sameClasstime, students)
 
 
-def test_sober_collisions_premade(college24_premade):
-    sober_collisions(college24_premade)
-
-
-def noncollision(engine):
+def test_noncollision(college24_premade):
     """Make sure students *not* from the same room never go there together"""
     dorm = defaultdict(lambda: defaultdict(dict))
-    for character in engine.character.values():
+    for character in college24_premade.character.values():
         match = re.match('dorm(\d)room(\d)student(\d)', character.name)
         if not match:
             continue
@@ -137,7 +129,7 @@ def noncollision(engine):
             for stu0 in dorm[d][r].values():
                 for rr in other_rooms:
                     for stu1 in dorm[d][rr].values():
-                        assert not list(engine.turns_when(
+                        assert not list(college24_premade.turns_when(
                                 stu0.avatar.only.location.name ==
                                 stu1.avatar.only.location.name ==
                                 'dorm{}room{}'.format(d, r)
@@ -148,14 +140,10 @@ def noncollision(engine):
                 for dd in other_dorms:
                     for rr in dorm[dd]:
                         for stu1 in dorm[dd][rr].values():
-                            assert not list(engine.turns_when(
+                            assert not list(college24_premade.turns_when(
                                     stu0.avatar.only.location.name ==
                                     stu1.avatar.only.location.name ==
                                     common
                             )), "{} seems to have been in the same common room  as {}".format(
                                 stu0.name, stu1.name
                             )
-
-
-def test_noncollision_premade(college24_premade):
-    noncollision(college24_premade)
