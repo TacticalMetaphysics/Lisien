@@ -1045,10 +1045,6 @@ class Engine(AbstractEngine, gORM):
         self._triggers_cache.load(q.rule_triggers_dump())
         self._prereqs_cache.load(q.rule_prereqs_dump())
         self._actions_cache.load(q.rule_actions_dump())
-        # TODO: a table and cache for turns that are over and never need to be simulated again
-        # This means the more granular information about which rules have and have not
-        # run can be deleted and not loaded again, resulting in faster startup
-        # and smaller database
         for branch, turn in q.turns_completed_dump():
             self._turns_completed[branch] = turn
         for row in q.character_rules_handled_dump():
