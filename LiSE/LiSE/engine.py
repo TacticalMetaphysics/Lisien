@@ -1049,6 +1049,8 @@ class Engine(AbstractEngine, gORM):
         # This means the more granular information about which rules have and have not
         # run can be deleted and not loaded again, resulting in faster startup
         # and smaller database
+        for branch, turn in q.turns_completed_dump():
+            self._turns_completed[branch] = turn
         for row in q.character_rules_handled_dump():
             self._character_rules_handled_cache.store(*row, loading=True)
         for row in q.avatar_rules_handled_dump():
@@ -1402,6 +1404,7 @@ class Engine(AbstractEngine, gORM):
         If we've run out of rules, reset the rules iterator.
 
         """
+        assert self.turn > self._turns_completed[self.branch]
         try:
             return next(self._rules_iter)
         except InnerStopIteration:

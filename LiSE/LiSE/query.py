@@ -816,6 +816,11 @@ class QueryEngine(allegedb.query.QueryEngine):
             self.sql('turns_completed_insert', branch, turn)
         except IntegrityError:
             self.sql('turns_completed_update', turn, branch)
+        self.sql('del_character_rules_handled_turn', branch, turn)
+        self.sql('del_avatar_rules_handled_turn', branch, turn)
+        self.sql('del_character_thing_rules_handled_turn', branch, turn)
+        self.sql('del_character_place_rules_handled_turn', branch, turn)
+        self.sql('del_character_portal_rules_handled_turn', branch, turn)
 
     def initdb(self):
         """Set up the database schema, both for allegedb and the special
