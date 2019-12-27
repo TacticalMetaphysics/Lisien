@@ -1045,22 +1045,27 @@ class Engine(AbstractEngine, gORM):
         self._triggers_cache.load(q.rule_triggers_dump())
         self._prereqs_cache.load(q.rule_prereqs_dump())
         self._actions_cache.load(q.rule_actions_dump())
-        for branch, turn in q.turns_completed_dump():
-            self._turns_completed[branch] = turn
+        store_crh = self._character_rules_handled_cache.store
         for row in q.character_rules_handled_dump():
-            self._character_rules_handled_cache.store(*row, loading=True)
+            store_crh(*row, loading=True)
+        store_arh = self._avatar_rules_handled_cache.store
         for row in q.avatar_rules_handled_dump():
-            self._avatar_rules_handled_cache.store(*row, loading=True)
+            store_arh(*row, loading=True)
+        store_ctrh = self._character_thing_rules_handled_cache.store
         for row in q.character_thing_rules_handled_dump():
-            self._character_thing_rules_handled_cache.store(*row, loading=True)
+            store_ctrh(*row, loading=True)
+        store_cprh = self._character_place_rules_handled_cache.store
         for row in q.character_place_rules_handled_dump():
-            self._character_place_rules_handled_cache.store(*row, loading=True)
+            store_cprh(*row, loading=True)
+        store_cporh = self._character_portal_rules_handled_cache.store
         for row in q.character_portal_rules_handled_dump():
-            self._character_portal_rules_handled_cache.store(*row, loading=True)
+            store_cporh(*row, loading=True)
+        store_cnrh = self._node_rules_handled_cache.store
         for row in q.node_rules_handled_dump():
-            self._node_rules_handled_cache.store(*row, loading=True)
+            store_cnrh(*row, loading=True)
+        store_porh = self._portal_rules_handled_cache.store
         for row in q.portal_rules_handled_dump():
-            self._portal_rules_handled_cache.store(*row, loading=True)
+            store_porh(*row, loading=True)
         self._turns_completed.update(q.turns_completed_dump())
         self._rules_cache = {name: Rule(self, name, create=False) for name in q.rules_dump()}
 
