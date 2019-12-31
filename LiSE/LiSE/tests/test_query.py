@@ -147,3 +147,34 @@ def test_noncollision(college24_premade):
                             )), "{} seems to have been in the same common room  as {}".format(
                                 stu0.name, stu1.name
                             )
+
+
+def test_history_comparators(college24_premade):
+    """ Test basic comparison operators in history queries
+
+    Students who are neither drunk nor lazy should attend class for 6 hours and learn a lot
+
+    """
+    classroom = college24_premade.character['physical'].place['classroom']
+    for student in college24_premade.character['student_body'].avatars():
+        if student.character.stat['drunk'] or student.character.stat['lazy']:
+            continue
+        assert student.character.stat['xp'] == 8
+        assert len(college24_premade.turns_when(
+            student.location == classroom
+        )) == 8
+        assert len(college24_premade.turns_when(
+            student.character.stat['xp'] < 6
+        )) == 15
+        assert len(college24_premade.turns_when(
+            student.character.stat['xp'] > 1
+        )) == 16
+        assert len(college24_premade.turns_when(
+            student.character.stat['xp'] == 5
+        )) == 1
+        assert len(college24_premade.turns_when(
+            student.character.stat['xp'] >= 5
+        )) == 12
+        assert len(college24_premade.turns_when(
+            student.character.stat['xp'] <= 5
+        )) == 13
