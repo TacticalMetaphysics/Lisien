@@ -178,3 +178,13 @@ def test_history_comparators(college24_premade):
         assert len(college24_premade.turns_when(
             student.character.stat['xp'] <= 5
         )) == 13
+
+
+def test_history_compound(college24_premade):
+    classroom = college24_premade.character['physical'].place['classroom']
+    for student in college24_premade.character['student_body'].avatars():
+        if not student.character.stat['drunk'] and not student.character.stat['lazy']:
+            assert len(college24_premade.turns_when(
+                student.location == classroom &
+                student.character.stat['xp'] == 0
+            )) == 1
