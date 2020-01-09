@@ -447,6 +447,7 @@ class GraphNodeMapping(AllegedMapping):
     __slots__ = ('graph',)
 
     db = getatt('graph.db')
+    """Alias to ``self.graph.db``"""
 
     def __init__(self, graph):
         super().__init__()
@@ -570,6 +571,7 @@ class GraphEdgeMapping(AllegedMapping):
         return self._metacache[id(self)]
 
     db = getatt('graph.db')
+    """Alias to ``self.graph.db``"""
 
     def __init__(self, graph):
         super().__init__()
@@ -602,6 +604,7 @@ class AbstractSuccessors(GraphEdgeMapping):
     __slots__ = ('graph', 'container', 'orig')
 
     db = getatt('graph.db')
+    """Alias to ``self.graph.db``"""
     _metacache = defaultdict(dict)
 
     def _order_nodes(self, node):
@@ -958,6 +961,7 @@ class AbstractMultiEdges(GraphEdgeMapping):
     __slots__ = ('graph', 'orig', 'dest')
 
     db = getatt('graph.db')
+    """Alias to ``self.graph.db``"""
 
     def _order_nodes(self):
         """Swap my orig and dest if desired"""
