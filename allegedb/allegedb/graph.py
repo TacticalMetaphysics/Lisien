@@ -31,7 +31,7 @@ def getatt(attribute_name):
 
 def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
     """Convert an AllegedGraph to the corresponding NetworkX graph type."""
-    if isinstance(data, AllegedGraph):
+    if isinstance(data, Graph):
         result = networkx.convert.from_dict_of_dicts(
             data.adj,
             create_using=create_using,
@@ -1187,15 +1187,16 @@ class MultiDiGraphSuccessorsMapping(MultiGraphSuccessorsMapping):
             return self.orig, dest
 
 
-class AllegedGraph(object):
-    """Class giving the graphs those methods they share in
-    common.
+class Graph(networkx.Graph):
+    """A version of the networkx.Graph class that stores its state in a
+    database.
 
     """
     _succs = {}
     _statmaps = {}
     graph_map_cls = GraphMapping
     node_map_cls = GraphNodeMapping
+    adj_cls = GraphSuccessorsMapping
 
     def __new__(cls, db, name, data=None, **attr):
         if name in db._graph_objs:
@@ -1205,7 +1206,7 @@ class AllegedGraph(object):
                     name, type(ret)
                 ))
             return ret
-        return super(AllegedGraph, cls).__new__(cls)
+        return super(Graph, cls).__new__(cls)
 
     def __init__(self, db, name, data=None, **attr):
         self._name = name
@@ -1315,19 +1316,11 @@ class AllegedGraph(object):
             self._succ[node_for_adding] = self.adjlist_inner_dict_factory()
             if hasattr(self, 'pred_cls'):
                 self._pred[node_for_adding] = self.adjlist_inner_dict_factory()
-            self._node[node_for_adding] = self.node_attr_dict_factory()
+            self._node[node_for_adding] = self.node_dict_factory()
         self._node[node_for_adding].update(attr)
 
 
-class Graph(AllegedGraph, networkx.Graph):
-    """A version of the networkx.Graph class that stores its state in a
-    database.
-
-    """
-    adj_cls = GraphSuccessorsMapping
-
-
-class DiGraph(AllegedGraph, networkx.DiGraph):
+class DiGraph(Graph, networkx.DiGraph):
     """A version of the networkx.DiGraph class that stores its state in a
     database.
 
@@ -1419,7 +1412,7 @@ class DiGraph(AllegedGraph, networkx.DiGraph):
             assert(v in self.succ[u])
 
 
-class MultiGraph(AllegedGraph, networkx.MultiGraph):
+class MultiGraph(Graph, networkx.MultiGraph):
     """A version of the networkx.MultiGraph class that stores its state in a
     database.
 
@@ -1427,7 +1420,7 @@ class MultiGraph(AllegedGraph, networkx.MultiGraph):
     adj_cls = MultiGraphSuccessorsMapping
 
 
-class MultiDiGraph(AllegedGraph, networkx.MultiDiGraph):
+class MultiDiGraph(Graph, networkx.MultiDiGraph):
     """A version of the networkx.MultiDiGraph class that stores its state in a
     database.
 
