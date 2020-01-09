@@ -229,8 +229,9 @@ class QueryEngine(object):
 
     def global_items(self):
         """Iterate over (key, value) pairs in the ``globals`` table."""
+        unpack = self.unpack
         for (k, v) in self.sql('global_dump'):
-            yield (self.unpack(k), self.unpack(v))
+            yield (unpack(k), unpack(v))
 
     def global_set(self, key, value):
         """Set ``key`` to ``value`` globally (not at any particular branch or
@@ -282,14 +283,15 @@ class QueryEngine(object):
     def graph_val_dump(self):
         """Yield the entire contents of the graph_val table."""
         self._flush_graph_val()
+        unpack = self.unpack
         for (graph, key, branch, turn, tick, value) in self.sql('graph_val_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(key),
+                unpack(graph),
+                unpack(key),
                 branch,
                 turn,
                 tick,
-                self.unpack(value)
+                unpack(value)
             )
 
     def _flush_graph_val(self):
@@ -364,10 +366,11 @@ class QueryEngine(object):
     def nodes_dump(self):
         """Dump the entire contents of the nodes table."""
         self._flush_nodes()
+        unpack = self.unpack
         for (graph, node, branch, turn,tick, extant) in self.sql('nodes_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(node),
+                unpack(graph),
+                unpack(node),
                 branch,
                 turn,
                 tick,
@@ -377,17 +380,18 @@ class QueryEngine(object):
     def node_val_dump(self):
         """Yield the entire contents of the node_val table."""
         self._flush_node_val()
+        unpack = self.unpack
         for (
                 graph, node, key, branch, turn, tick, value
         ) in self.sql('node_val_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(node),
-                self.unpack(key),
+                unpack(graph),
+                unpack(node),
+                unpack(key),
                 branch,
                 turn,
                 tick,
-                self.unpack(value)
+                unpack(value)
             )
 
     def _flush_node_val(self):
@@ -428,13 +432,14 @@ class QueryEngine(object):
     def edges_dump(self):
         """Dump the entire contents of the edges table."""
         self._flush_edges()
+        unpack = self.unpack
         for (
                 graph, orig, dest, idx, branch, turn, tick, extant
         ) in self.sql('edges_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(orig),
-                self.unpack(dest),
+                unpack(graph),
+                unpack(orig),
+                unpack(dest),
                 idx,
                 branch,
                 turn,
@@ -481,19 +486,20 @@ class QueryEngine(object):
     def edge_val_dump(self):
         """Yield the entire contents of the edge_val table."""
         self._flush_edge_val()
+        unpack = self.unpack
         for (
                 graph, orig, dest, idx, key, branch, turn, tick, value
         ) in self.sql('edge_val_dump'):
             yield (
-                self.unpack(graph),
-                self.unpack(orig),
-                self.unpack(dest),
+                unpack(graph),
+                unpack(orig),
+                unpack(dest),
                 idx,
-                self.unpack(key),
+                unpack(key),
                 branch,
                 turn,
                 tick,
-                self.unpack(value)
+                unpack(value)
             )
 
     def _flush_edge_val(self):
@@ -571,6 +577,7 @@ class QueryEngine(object):
             self.globl['turn'] = 0
         if 'tick' not in self.globl:
             self.globl['tick'] = 0
+        strings = self.strings
         for table in (
             'branches',
             'turns',
@@ -586,7 +593,7 @@ class QueryEngine(object):
             try:
                 cursor.execute('SELECT * FROM ' + table + ';')
             except OperationalError:
-                cursor.execute(self.strings['create_' + table])
+                cursor.execute(strings['create_' + table])
 
     def flush(self):
         """Put all pending changes into the SQL transaction."""

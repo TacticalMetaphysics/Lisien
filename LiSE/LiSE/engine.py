@@ -924,7 +924,7 @@ class Engine(AbstractEngine, gORM):
 
     def __init__(
             self,
-            worlddb,
+            worlddb='world.db',
             *,
             string='strings.json',
             function='function.py',
@@ -1045,6 +1045,8 @@ class Engine(AbstractEngine, gORM):
         self._triggers_cache.load(q.rule_triggers_dump())
         self._prereqs_cache.load(q.rule_prereqs_dump())
         self._actions_cache.load(q.rule_actions_dump())
+        for branch, turn in q.turns_completed_dump():
+            self._turns_completed[branch] = turn
         for row in q.character_rules_handled_dump():
             self._character_rules_handled_cache.store(*row, loading=True)
         for row in q.avatar_rules_handled_dump():
@@ -1398,6 +1400,7 @@ class Engine(AbstractEngine, gORM):
         If we've run out of rules, reset the rules iterator.
 
         """
+        assert self.turn > self._turns_completed[self.branch]
         try:
             return next(self._rules_iter)
         except InnerStopIteration:

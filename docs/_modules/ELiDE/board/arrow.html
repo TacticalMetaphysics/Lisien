@@ -1,11 +1,9 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
     <title>ELiDE.board.arrow &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -56,10 +54,13 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">atan</span><span class="p">,</span> <span class="n">pi</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="k">import</span> <span class="n">Widget</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="k">import</span> <span class="n">FloatLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.graphics.fbo</span> <span class="k">import</span> <span class="n">Fbo</span>
-<span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="k">import</span> <span class="n">Translate</span><span class="p">,</span> <span class="n">Rectangle</span>
+<span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Translate</span><span class="p">,</span> <span class="n">Rectangle</span><span class="p">,</span> <span class="n">Quad</span><span class="p">,</span> <span class="n">Color</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">ReferenceListProperty</span><span class="p">,</span>
     <span class="n">AliasProperty</span><span class="p">,</span>
@@ -69,14 +70,20 @@
     <span class="n">BooleanProperty</span><span class="p">,</span>
     <span class="n">StringProperty</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="k">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="k">import</span> <span class="n">Clock</span>
+
+<span class="kn">from</span> <span class="nn">..dummy</span> <span class="k">import</span> <span class="n">Dummy</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="k">import</span> <span class="n">trigger</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">kivy.garden.collider</span> <span class="k">import</span> <span class="n">Collide2DPoly</span>
 <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">..collide</span> <span class="k">import</span> <span class="n">Collide2DPoly</span>
 <span class="kn">from</span> <span class="nn">..util</span> <span class="k">import</span> <span class="n">get_thin_rect_vertices</span><span class="p">,</span> <span class="n">fortyfive</span>
+
+
+<span class="n">cos45</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
+<span class="n">sin45</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">up_and_down</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
@@ -87,17 +94,11 @@
         <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="n">dest</span><span class="p">,</span> <span class="n">orig</span>
     <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">center_x</span><span class="p">)</span>
     <span class="n">dy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">dy</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dy</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">center_y</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dy</span><span class="p">):</span>
-            <span class="k">break</span>
     <span class="n">oy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">oy</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">oy</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">center_y</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">oy</span><span class="p">):</span>
-            <span class="k">break</span>
     <span class="k">if</span> <span class="n">flipped</span><span class="p">:</span>
         <span class="n">oy</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">dy</span><span class="p">,</span> <span class="n">oy</span>
-    <span class="n">off1</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
-    <span class="n">off2</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
+    <span class="n">off1</span> <span class="o">=</span> <span class="n">cos45</span> <span class="o">*</span> <span class="n">taillen</span>
+    <span class="n">off2</span> <span class="o">=</span> <span class="n">sin45</span> <span class="o">*</span> <span class="n">taillen</span>
     <span class="n">x0</span> <span class="o">=</span> <span class="n">x</span>
     <span class="n">y0</span> <span class="o">=</span> <span class="n">oy</span>
     <span class="n">endx</span> <span class="o">=</span> <span class="n">x</span>
@@ -119,17 +120,11 @@
         <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="n">dest</span><span class="p">,</span> <span class="n">orig</span>
     <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">center_y</span><span class="p">)</span>
     <span class="n">dx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">dx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">center_x</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-            <span class="k">break</span>
     <span class="n">ox</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">right</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">ox</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">center_x</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">ox</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-            <span class="k">break</span>
     <span class="k">if</span> <span class="n">flipped</span><span class="p">:</span>
         <span class="n">ox</span><span class="p">,</span> <span class="n">dx</span> <span class="o">=</span> <span class="n">dx</span><span class="p">,</span> <span class="n">ox</span>
-    <span class="n">off1</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
-    <span class="n">off2</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">fortyfive</span><span class="p">)</span> <span class="o">*</span> <span class="n">taillen</span>
+    <span class="n">off1</span> <span class="o">=</span> <span class="n">cos45</span> <span class="o">*</span> <span class="n">taillen</span>
+    <span class="n">off2</span> <span class="o">=</span> <span class="n">sin45</span> <span class="o">*</span> <span class="n">taillen</span>
     <span class="n">x0</span> <span class="o">=</span> <span class="n">ox</span>
     <span class="n">y0</span> <span class="o">=</span> <span class="n">y</span>
     <span class="n">endx</span> <span class="o">=</span> <span class="n">dx</span>
@@ -143,6 +138,113 @@
     <span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
+    <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">center</span>
+    <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">center</span>
+    <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">size</span>
+    <span class="c1"># Flip the endpoints around so that the arrow faces up and right.</span>
+    <span class="c1"># We&#39;ll flip it back at the end as needed.</span>
+    <span class="n">xco</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">yco</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">ox</span> <span class="o">*=</span> <span class="n">xco</span>
+    <span class="n">dx</span> <span class="o">*=</span> <span class="n">xco</span>
+    <span class="n">oy</span> <span class="o">*=</span> <span class="n">yco</span>
+    <span class="n">dy</span> <span class="o">*=</span> <span class="n">yco</span>
+    <span class="c1"># Nudge my endpoints so that I start and end at the edge of</span>
+    <span class="c1"># a Spot.</span>
+    <span class="k">if</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">oy</span> <span class="o">&gt;</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">ox</span><span class="p">:</span>
+        <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">dh</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span> <span class="o">+</span> <span class="n">oh</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
+        <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span> <span class="o">+</span> <span class="n">ow</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">dw</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span>
+        <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span>
+    <span class="c1"># Degenerate cases.</span>
+    <span class="c1"># Also, these need to be handled specially to avoid</span>
+    <span class="c1"># division by zero later on.</span>
+    <span class="k">if</span> <span class="n">rightx</span> <span class="o">==</span> <span class="n">leftx</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">up_and_down</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">topy</span> <span class="o">==</span> <span class="n">boty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">left_and_right</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span>
+
+
+<div class="viewcode-block" id="get_points_multi"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.get_points_multi">[docs]</a><span class="k">def</span> <span class="nf">get_points_multi</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary mapping (orig, dest) to pairs of point lists for arrows</span>
+
+<span class="sd">    Takes an iterable of (orig, dest, taillen) where orig and dest are Spot instances</span>
+
+<span class="sd">    taillen is an integer specifying how long the arrowhead should be.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">topys</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">botys</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">leftxs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rightxs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">taillens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">xcos</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ycos</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span> <span class="o">=</span> <span class="n">p1</span>
+            <span class="k">continue</span>
+        <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span> <span class="o">=</span> <span class="n">p1</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span>
+        <span class="n">leftxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">leftx</span><span class="p">)</span>
+        <span class="n">rightxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rightx</span><span class="p">)</span>
+        <span class="n">topys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">topy</span><span class="p">)</span>
+        <span class="n">botys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">boty</span><span class="p">)</span>
+        <span class="n">taillens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">taillen</span><span class="p">)</span>
+        <span class="n">xcos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xco</span><span class="p">)</span>
+        <span class="n">ycos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yco</span><span class="p">)</span>
+    <span class="n">topys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">topys</span><span class="p">)</span>
+    <span class="n">botys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">botys</span><span class="p">)</span>
+    <span class="n">rightxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rightxs</span><span class="p">)</span>
+    <span class="n">leftxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">leftxs</span><span class="p">)</span>
+    <span class="n">rises</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">botys</span><span class="p">)</span>
+    <span class="n">runs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">leftxs</span><span class="p">)</span>
+    <span class="n">slopes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">rises</span><span class="p">,</span> <span class="n">runs</span><span class="p">)</span>
+    <span class="n">unslopes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">runs</span><span class="p">,</span> <span class="n">rises</span><span class="p">)</span>
+    <span class="n">start_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">slopes</span><span class="p">)</span>
+    <span class="n">end_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">unslopes</span><span class="p">)</span>
+    <span class="n">top_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">start_thetas</span><span class="p">,</span> <span class="n">fortyfive</span><span class="p">)</span>
+    <span class="n">bot_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">pi</span> <span class="o">-</span> <span class="n">fortyfive</span><span class="p">,</span> <span class="n">end_thetas</span><span class="p">)</span>
+    <span class="n">topsins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">top_thetas</span><span class="p">)</span>
+    <span class="n">topcoss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">top_thetas</span><span class="p">)</span>
+    <span class="n">botsins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">bot_thetas</span><span class="p">)</span>
+    <span class="n">botcoss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">bot_thetas</span><span class="p">)</span>
+    <span class="n">taillens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">taillens</span><span class="p">)</span>
+    <span class="n">xoff1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topcoss</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+    <span class="n">yoff1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topsins</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+    <span class="n">xoff2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">botcoss</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+    <span class="n">yoff2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">botsins</span><span class="p">,</span> <span class="n">taillens</span><span class="p">)</span>
+    <span class="n">xcos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xcos</span><span class="p">)</span>
+    <span class="n">ycos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ycos</span><span class="p">)</span>
+    <span class="n">x1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xoff1s</span><span class="p">),</span> <span class="n">xcos</span><span class="p">)</span>
+    <span class="n">x2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xoff2s</span><span class="p">),</span> <span class="n">xcos</span><span class="p">)</span>
+    <span class="n">y1s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">yoff1s</span><span class="p">),</span> <span class="n">ycos</span><span class="p">)</span>
+    <span class="n">y2s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">yoff2s</span><span class="p">),</span> <span class="n">ycos</span><span class="p">)</span>
+    <span class="n">startxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">leftxs</span><span class="p">,</span> <span class="n">xcos</span><span class="p">)</span>
+    <span class="n">startys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">botys</span><span class="p">,</span> <span class="n">ycos</span><span class="p">)</span>
+    <span class="n">endxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">rightxs</span><span class="p">,</span> <span class="n">xcos</span><span class="p">)</span>
+    <span class="n">endys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">topys</span><span class="p">,</span> <span class="n">ycos</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="n">keys</span><span class="p">,</span> <span class="n">startxs</span><span class="p">,</span> <span class="n">startys</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x1s</span><span class="p">,</span> <span class="n">y1s</span><span class="p">,</span> <span class="n">endxs</span><span class="p">,</span> <span class="n">endys</span><span class="p">,</span> <span class="n">x2s</span><span class="p">,</span> <span class="n">y2s</span>
+    <span class="p">):</span>
+        <span class="n">ret</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span><span class="n">startx</span><span class="p">,</span> <span class="n">starty</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">endx</span><span class="p">,</span> <span class="n">endy</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
 <div class="viewcode-block" id="get_points"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.get_points">[docs]</a><span class="k">def</span> <span class="nf">get_points</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return a pair of lists of points for use making an arrow.</span>
 
@@ -151,108 +253,16 @@
 <span class="sd">    The second list is the arrowhead.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Adjust the start and end points so they&#39;re on the first non-transparent pixel.</span>
-    <span class="c1"># y = slope(x-ox) + oy</span>
-    <span class="c1"># x = (y - oy) / slope + ox</span>
-    <span class="n">ox</span><span class="p">,</span> <span class="n">oy</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">center</span>
-    <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">size</span>
-    <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">center</span>
-    <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">size</span>
-    <span class="k">if</span> <span class="n">ox</span> <span class="o">&lt;</span> <span class="n">dx</span><span class="p">:</span>
-        <span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span>
-        <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span>
-        <span class="n">xco</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="k">elif</span> <span class="n">ox</span> <span class="o">&gt;</span> <span class="n">dx</span><span class="p">:</span>
-        <span class="n">leftx</span> <span class="o">=</span> <span class="n">ox</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="n">rightx</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="n">xco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># straight up and down arrow</span>
-        <span class="k">return</span> <span class="n">up_and_down</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">oy</span> <span class="o">&lt;</span> <span class="n">dy</span><span class="p">:</span>
-        <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span>
-        <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span>
-        <span class="n">yco</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="k">elif</span> <span class="n">oy</span> <span class="o">&gt;</span> <span class="n">dy</span><span class="p">:</span>
-        <span class="n">boty</span> <span class="o">=</span> <span class="n">oy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="n">topy</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="n">yco</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># straight left and right arrow</span>
-        <span class="k">return</span> <span class="n">left_and_right</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
-    <span class="n">slope</span> <span class="o">=</span> <span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span><span class="p">)</span>
-    <span class="c1"># start from the earliest point that intersects the bounding box.</span>
-    <span class="c1"># work toward the center to find a non-transparent pixel</span>
-    <span class="c1"># y - boty = ((topy-boty)/(rightx-leftx))*(x - leftx)</span>
-    <span class="k">if</span> <span class="n">slope</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">rightx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                <span class="nb">int</span><span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="n">dw</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
-                <span class="nb">int</span><span class="p">(</span><span class="n">rightx</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span>
-        <span class="p">):</span>
-            <span class="n">topy</span> <span class="o">=</span> <span class="n">slope</span> <span class="o">*</span> <span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span><span class="p">)</span> <span class="o">+</span> <span class="n">boty</span>
-            <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">rightx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">topy</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                <span class="n">rightx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-                    <span class="n">rightx</span> <span class="o">+=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">pip</span>
-                    <span class="n">topy</span> <span class="o">=</span> <span class="n">slope</span> <span class="o">*</span> <span class="p">(</span><span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span><span class="p">)</span> <span class="o">+</span> <span class="n">boty</span>
-                    <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">rightx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">topy</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                        <span class="k">break</span>
-                <span class="k">break</span>
-        <span class="k">for</span> <span class="n">leftx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                <span class="nb">int</span><span class="p">(</span><span class="n">leftx</span> <span class="o">+</span> <span class="n">ow</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
-                <span class="nb">int</span><span class="p">(</span><span class="n">leftx</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                <span class="o">-</span><span class="mi">1</span>
-        <span class="p">):</span>
-            <span class="n">boty</span> <span class="o">=</span> <span class="n">slope</span> <span class="o">*</span> <span class="p">(</span><span class="n">leftx</span> <span class="o">-</span> <span class="n">rightx</span><span class="p">)</span> <span class="o">+</span> <span class="n">topy</span>
-            <span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">leftx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">boty</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                <span class="n">leftx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">leftx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-                    <span class="n">leftx</span> <span class="o">-=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">pip</span>
-                    <span class="n">boty</span> <span class="o">=</span> <span class="n">slope</span> <span class="o">*</span> <span class="p">(</span><span class="n">leftx</span> <span class="o">-</span> <span class="n">rightx</span><span class="p">)</span> <span class="o">+</span> <span class="n">topy</span>
-                    <span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">leftx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">boty</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                        <span class="k">break</span>
-                <span class="k">break</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># x = leftx + ((rightx-leftx)(y - boty))/(topy-boty)</span>
-        <span class="k">for</span> <span class="n">topy</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="n">dh</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">topy</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="p">):</span>
-            <span class="n">rightx</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">+</span> <span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span><span class="p">)</span> <span class="o">/</span> <span class="n">slope</span>
-            <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">rightx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">topy</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                <span class="n">topy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-                    <span class="n">topy</span> <span class="o">+=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">pip</span>
-                    <span class="n">rightx</span> <span class="o">=</span> <span class="n">leftx</span> <span class="o">+</span> <span class="p">(</span><span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span><span class="p">)</span> <span class="o">/</span> <span class="n">slope</span>
-                    <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">rightx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">topy</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                        <span class="k">break</span>
-                <span class="k">break</span>
-        <span class="k">for</span> <span class="n">boty</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">boty</span> <span class="o">+</span> <span class="n">oh</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">boty</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="o">-</span><span class="mi">1</span>
-        <span class="p">):</span>
-            <span class="n">leftx</span> <span class="o">=</span> <span class="p">(</span><span class="n">boty</span> <span class="o">-</span> <span class="n">topy</span><span class="p">)</span> <span class="o">/</span> <span class="n">slope</span> <span class="o">+</span> <span class="n">rightx</span>
-            <span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">leftx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">boty</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                <span class="n">boty</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">boty</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-                    <span class="n">boty</span> <span class="o">-=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">pip</span>
-                    <span class="n">leftx</span> <span class="o">=</span> <span class="p">(</span><span class="n">boty</span> <span class="o">-</span> <span class="n">topy</span><span class="p">)</span> <span class="o">/</span> <span class="n">slope</span> <span class="o">+</span> <span class="n">rightx</span>
-                    <span class="k">if</span> <span class="n">orig</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="n">leftx</span> <span class="o">*</span> <span class="n">xco</span><span class="p">,</span> <span class="n">boty</span> <span class="o">*</span> <span class="n">yco</span><span class="p">):</span>
-                        <span class="k">break</span>
-                <span class="k">break</span>
-
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">_get_points_first_part</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p1</span>
+    <span class="n">ow</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">xco</span><span class="p">,</span> <span class="n">leftx</span><span class="p">,</span> <span class="n">rightx</span><span class="p">,</span> <span class="n">yco</span><span class="p">,</span> <span class="n">topy</span><span class="p">,</span> <span class="n">boty</span> <span class="o">=</span> <span class="n">p1</span>
     <span class="n">rise</span> <span class="o">=</span> <span class="n">topy</span> <span class="o">-</span> <span class="n">boty</span>
     <span class="n">run</span> <span class="o">=</span> <span class="n">rightx</span> <span class="o">-</span> <span class="n">leftx</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">start_theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">rise</span><span class="o">/</span><span class="n">run</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">up_and_down</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">end_theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">run</span><span class="o">/</span><span class="n">rise</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">left_and_right</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">taillen</span><span class="p">)</span>
+    <span class="n">slope</span> <span class="o">=</span> <span class="n">rise</span> <span class="o">/</span> <span class="n">run</span>
+    <span class="n">unslope</span> <span class="o">=</span> <span class="n">run</span> <span class="o">/</span> <span class="n">rise</span>
+    <span class="n">start_theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">slope</span><span class="p">)</span>
+    <span class="n">end_theta</span> <span class="o">=</span> <span class="n">atan</span><span class="p">(</span><span class="n">unslope</span><span class="p">)</span>
 
     <span class="c1"># make the little wedge at the end so you can tell which way the</span>
     <span class="c1"># arrow&#39;s pointing, and flip it all back around to the way it was</span>
@@ -315,10 +325,10 @@
     <span class="n">bg_scale_unselected</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
     <span class="n">bg_scale_selected</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
     <span class="n">selected</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">bg_color_unselected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
-    <span class="n">bg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
-    <span class="n">fg_color_unselected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
-    <span class="n">fg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+    <span class="n">bg_color_unselected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">])</span>
+    <span class="n">bg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+    <span class="n">fg_color_unselected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+    <span class="n">fg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
     <span class="n">bg_color_unselected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
     <span class="n">bg_color_selected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
     <span class="n">fg_color_unselected_head</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
@@ -369,34 +379,32 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_origin</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">,</span>
-            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span>
-        <span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_origin&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">,</span> <span class="s1">&#39;_bound_pos_repoint&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_pos_repoint</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_pos_repoint</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="p">,</span> <span class="s1">&#39;_bound_size_repoint&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_origin_unbind_uid</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_size_repoint</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span><span class="o">.</span><span class="n">_bound_size</span>
+        <span class="n">origin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span>
+        <span class="n">origin</span><span class="o">.</span><span class="n">_bound_pos_repoint</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+        <span class="n">origin</span><span class="o">.</span><span class="n">_bound_size_repoint</span> <span class="o">=</span> <span class="n">origin</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ArrowWidget.on_destination"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.ArrowWidget.on_destination">[docs]</a>    <span class="k">def</span> <span class="nf">on_destination</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Make sure to redraw whenever the destination moves.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_destination</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-            <span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">,</span>
-            <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span>
-        <span class="p">)</span></div>
-
-<div class="viewcode-block" id="ArrowWidget.on_board"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.ArrowWidget.on_board">[docs]</a>    <span class="k">def</span> <span class="nf">on_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Draw myself for the first time as soon as I have the properties I</span>
-<span class="sd">        need to do so.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">destination</span>
-        <span class="p">):</span>
-            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_board</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">()</span></div>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_destination&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="p">,</span> <span class="s1">&#39;_bound_pos_repoint&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_pos_repoint</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_pos_repoint</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="p">,</span> <span class="s1">&#39;_bound_size_repoint&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_size_repoint</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span><span class="o">.</span><span class="n">_bound_size_repoint</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_destination</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">destination</span>
+        <span class="n">destination</span><span class="o">.</span><span class="n">_bound_pos_repoint</span> <span class="o">=</span> <span class="n">destination</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+        <span class="n">destination</span><span class="o">.</span><span class="n">_bound_size_repoint</span> <span class="o">=</span> <span class="n">destination</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ArrowWidget.add_widget"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.ArrowWidget.add_widget">[docs]</a>    <span class="k">def</span> <span class="nf">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wid</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Put the :class:`Pawn` at a point along my length proportionate to</span>
@@ -557,7 +565,110 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">slope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_slope</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">y_intercept</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_b</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">repointed</span> <span class="o">=</span> <span class="kc">True</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repointed</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_bg_color0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color0</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_points_quad0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quad0</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_head_bg_color1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color1</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color1</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_bg_left_head_points_quad1_0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quad1_0</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_bg</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_bg_right_head_points_quad1_1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quad1_1</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_bg</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_color2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color2</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color2</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_color3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color3</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color3</span><span class="o">.</span><span class="n">rgba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_quad2_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quad2</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_fg</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_points_quad3_0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quad3_0</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_fg</span>
+
+    <span class="nd">@trigger</span>
+    <span class="k">def</span> <span class="nf">_pull_points_quad3_1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quad3_1</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_fg</span>
+
+    <span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+            <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_parent</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk_points</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_points</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repoint</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_color0&#39;</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color0</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s1">&#39;bg_color_selected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;bg_color_unselected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;selected&#39;</span><span class="p">,</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_bg_color0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quad0</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_bg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;trunk_quad_vertices_bg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_points_quad0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color1</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_selected</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_color_unselected</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s1">&#39;bg_color_selected_head&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;bg_color_selected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;bg_color_unselected_head&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;bg_color_unselected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;selected&#39;</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_head_bg_color1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quad1_0</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_bg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;left_head_quad_vertices_bg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_bg_left_head_points_quad1_0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quad1_1</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_bg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;right_head_quad_vertices_bg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_bg_right_head_points_quad1_1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color2</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s1">&#39;fg_color_selected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;fg_color_unselected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;selected&#39;</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_color2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quad2</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk_quad_vertices_fg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;trunk_quad_vertices_fg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_quad2_points</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_color3</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="n">rgba</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_selected</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="k">else</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected_head</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fg_color_unselected</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s1">&#39;selected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;fg_color_selected_head&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;fg_color_selected&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;fg_color_unselected_head&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;fg_color_unselected&#39;</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="n">att</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_color3</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quad3_0</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">left_head_quad_vertices_fg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;left_head_quad_vertices_fg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_points_quad3_0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quad3_1</span> <span class="o">=</span> <span class="n">Quad</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">right_head_quad_vertices_fg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;right_head_quad_vertices_fg&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_points_quad3_1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Arrow"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.Arrow">[docs]</a><span class="k">class</span> <span class="nc">Arrow</span><span class="p">(</span><span class="n">ArrowWidget</span><span class="p">):</span>
@@ -594,7 +705,14 @@
         <span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">destn</span><span class="p">][</span><span class="n">orign</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span></div>
+            <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Arrow.on_portal"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.Arrow.on_portal">[docs]</a>    <span class="k">def</span> <span class="nf">on_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">]</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]</span>
+        <span class="n">spot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">spot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">spot</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span> <span class="k">if</span> <span class="n">orig</span> <span class="ow">in</span> <span class="n">spot</span> <span class="k">else</span> <span class="n">Dummy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">spot</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span> <span class="k">if</span> <span class="n">dest</span> <span class="ow">in</span> <span class="n">spot</span> <span class="k">else</span> <span class="n">Dummy</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="ArrowLayout"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.board.arrow.ArrowLayout">[docs]</a><span class="k">class</span> <span class="nc">ArrowLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
@@ -622,11 +740,18 @@
         <span class="n">fbo</span><span class="o">.</span><span class="n">clear_buffer</span><span class="p">()</span>
         <span class="n">fbo</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
         <span class="n">trigger_redraw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span>
+        <span class="n">redraw_bound</span> <span class="o">=</span> <span class="s1">&#39;_redraw_bound_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">):</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">))</span>
             <span class="n">fbo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
-            <span class="n">child</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selected</span><span class="o">=</span><span class="n">trigger_redraw</span><span class="p">)</span>
-            <span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="n">trigger_redraw</span><span class="p">)</span>
-            <span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="n">trigger_redraw</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span> <span class="n">trigger_redraw</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">):</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span><span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">))</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">origspot</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">trigger_redraw</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">):</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">))</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="p">,</span> <span class="n">redraw_bound</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">destspot</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">trigger_redraw</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">on_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_translate&#39;</span><span class="p">):</span>
@@ -656,42 +781,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
         <span class="n">widget</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span></div></div>
 
-
-<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">#: import Dummy ELiDE.dummy.Dummy</span>
-<span class="sd">&lt;ArrowWidget&gt;:</span>
-<span class="sd">    bg_color_unselected: [0.5, 0.5, 0.5, 0.5]</span>
-<span class="sd">    bg_color_selected: [0.0, 1.0, 1.0, 1.0]</span>
-<span class="sd">    fg_color_unselected: [1.0, 1.0, 1.0, 1.0]</span>
-<span class="sd">    fg_color_selected: [1.0, 1.0, 1.0, 1.0]</span>
-<span class="sd">    canvas:</span>
-<span class="sd">        Color:</span>
-<span class="sd">            rgba: root.bg_color_selected if root.selected else root.bg_color_unselected</span>
-<span class="sd">        Quad:</span>
-<span class="sd">            points: root.trunk_quad_vertices_bg</span>
-<span class="sd">        Color:</span>
-<span class="sd">            rgba: (root.bg_color_selected_head or root.bg_color_selected) if root.selected else (root.bg_color_unselected_head or root.bg_color_unselected) </span>
-<span class="sd">        Quad:</span>
-<span class="sd">            points: root.left_head_quad_vertices_bg</span>
-<span class="sd">        Quad:</span>
-<span class="sd">            points: root.right_head_quad_vertices_bg</span>
-<span class="sd">        Color:</span>
-<span class="sd">            rgba: root.fg_color_selected if root.selected else root.fg_color_unselected</span>
-<span class="sd">        Quad:</span>
-<span class="sd">            points: root.trunk_quad_vertices_fg</span>
-<span class="sd">        Color:</span>
-<span class="sd">            rgba: (root.fg_color_selected_head or root.fg_color_selected) if root.selected else (root.fg_color_unselected_head or root.fg_color_unselected)</span>
-<span class="sd">        Quad:</span>
-<span class="sd">            points: root.left_head_quad_vertices_fg</span>
-<span class="sd">        Quad:</span>
-<span class="sd">            points: root.right_head_quad_vertices_fg</span>
-<span class="sd">&lt;Arrow&gt;:</span>
-<span class="sd">    origin: self.board.spot[self.portal[&#39;origin&#39;]] if self.portal[&#39;origin&#39;] in self.board.spot else Dummy()</span>
-<span class="sd">    destination: self.board.spot[self.portal[&#39;destination&#39;]] if self.portal[&#39;destination&#39;] in self.board.spot else Dummy()</span>
-<span class="sd">    _turn: app.turn</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="p">)</span>
 </pre></div>
 
           </div>
@@ -729,13 +818,11 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
@@ -756,7 +843,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.3.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

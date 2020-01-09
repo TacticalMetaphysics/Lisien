@@ -35,8 +35,9 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         ):
             if os.path.exists(f):
                 os.rename(f, os.path.join(self.tempdir, f))
+        self.addCleanup(self._do_cleanup)
 
-    def tearDown(self):
+    def _do_cleanup(self):
         self.manager.shutdown()
         for f in (
             'trigger.py', 'prereq.py', 'action.py', 'function.py',
@@ -66,9 +67,9 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
 
 
 @pytest.fixture(scope='function', params=[
-    lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
+    # lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
     college.install,
-    sickle.install
+    # sickle.install
 ])
 def hand(request):
     from LiSE.handle import EngineHandle
