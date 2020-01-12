@@ -338,7 +338,7 @@ class BaseStatListView(RecycleView):
 
     def del_key(self, k):
         """Delete the key and any configuration for it"""
-        if k not in self.mirror:
+        if k not in self.proxy:
             raise KeyError
         del self.proxy[k]
         if '_config' in self.proxy and k in self.proxy['_config']:
