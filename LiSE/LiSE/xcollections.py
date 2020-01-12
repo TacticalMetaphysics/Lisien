@@ -19,6 +19,8 @@ from types import MethodType
 from inspect import getsource
 from ast import parse, Expr, Module
 import json
+import importlib
+import sys, os
 
 from blinker import Signal
 from astunparse import unparse, Unparser
@@ -114,7 +116,7 @@ class StringStore(MutableMapping, Signal):
             lang = self.language
         yield from self.cache.setdefault(lang, {}).items()
 
-    def save(self):
+    def save(self, reimport=False):
         with open(self._filename, 'w') as outf:
             json.dump(self.cache, outf, indent=4, sort_keys=True)
 
@@ -133,42 +135,41 @@ class FunctionStore(Signal):
 
     """
     def __init__(self, filename):
+        if not filename.endswith(".py"):
+            raise ValueError("FunctionStore can only work with pure Python source code with .py extension")
         super().__init__()
-        self._filename = filename
-        if filename.endswith(".py"):
-            filename = filename[:-3]
+        self._filename = fullname = os.path.abspath(os.path.realpath(filename))
+        path, filename = os.path.split(fullname)
+        modname = filename[:-3]
+        if modname in sys.modules:
+            raise ValueError("already imported " + modname + ", can't make FunctionStore")
+        if sys.path[0] != path:
+            if path in sys.path:
+                sys.path.remove(path)
+            sys.path.insert(0, path)
         try:
-            with open(self._filename, 'r') as inf:
-                self._ast = parse(inf.read(), filename)
-                self._ast_idx = {}
-                for i, node in enumerate(self._ast.body):
-                    self._ast_idx[node.name] = i
-                self._globl = {}
-                self._locl = {}
-                self._code = exec(compile(self._ast, filename, 'exec'), self._globl, self._locl)
-                for thing in self._locl.values():
-                    thing.__module__ = filename
-        except FileNotFoundError:
+            self._module = importlib.import_module(modname)
+            self._ast = parse(self._module.__loader__.get_data(fullname))
+            self._ast_idx = {}
+            for i, node in enumerate(self._ast.body):
+                self._ast_idx[node.name] = i
+        except (FileNotFoundError, ModuleNotFoundError):
+            self._module = None
             self._ast = Module(body=[])
             self._ast_idx = {}
-            self._globl = {}
-            self._locl = {}
+        self._need_save = False
 
     def __getattr__(self, k):
-        try:
-            return self._locl[k]
-        except KeyError:
-            raise AttributeError(f"No function {k} in {self._filename}")
+        if self._need_save:
+            self.save()
+        return getattr(self._module, k)
 
     def __setattr__(self, k, v):
         if not callable(v):
             super().__setattr__(k, v)
             return
-        filename = self._filename
-        if filename.endswith(".py"):
-            filename = filename[:-3]
-        v.__module__ = filename
-        self._locl[k] = v
+        if self._module is not None:
+            setattr(self._module, k, v)
         source = getsource(v)
         outdented = dedent_source(source)
         expr = Expr(parse(outdented))
@@ -178,6 +179,7 @@ class FunctionStore(Signal):
         else:
             self._ast_idx[k] = len(self._ast.body)
             self._ast.body.append(expr)
+        self._need_save = True
         self.send(self, attr=k, val=v)
 
     def __call__(self, v):
@@ -190,17 +192,27 @@ class FunctionStore(Signal):
         for name in list(self._ast_idx):
             if name > k:
                 self._ast_idx[name] -= 1
+        self._need_save = True
         self.send(self, attr=k, val=None)
 
-    def save(self):
+    def save(self, reimport=True):
         with open(self._filename, 'w') as outf:
             Unparser(self._ast, outf)
+        if reimport:
+            importlib.invalidate_caches()
+            path, filename = os.path.split(self._filename)
+            modname = filename[:-3]
+            if modname in sys.modules:
+                del sys.modules[modname]
+            self._module = importlib.import_module(filename[:-3])
+        self._need_save = False
 
     def iterplain(self):
         for funcdef in self._ast.body:
             yield funcdef.name, unparse(funcdef)
 
     def store_source(self, v, name=None):
+        self._need_save = True
         outdented = dedent_source(v)
         mod = parse(outdented)
         expr = Expr(mod)

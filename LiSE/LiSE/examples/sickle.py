@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Sickle cell anemia vs. malaria, a classic example of population genetics.
 
-This script will initialize LiSEworld.db and the game code libraries to run the
+This script will initialize world.db and the game code libraries to run the
 simulation described. To view it, run ELiDE from the same directory
 as you ran this script from.
 
@@ -221,8 +221,8 @@ def sickle_cell_test(
 
 if __name__ == '__main__':
     try:
-        remove('LiSEworld.db')
+        remove('world.db')
     except OSError:
         pass
-    with Engine('LiSEworld.db', random_seed=69105) as engine:
+    with Engine('world.db', random_seed=69105) as engine:
         sickle_cell_test(engine)

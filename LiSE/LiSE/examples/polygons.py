@@ -94,10 +94,10 @@ def install(eng):
 if __name__ == '__main__':
     import os
     from LiSE import Engine
-    for stale in ('LiSEworld.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
+    for stale in ('world.db', 'trigger.py', 'prereq.py', 'action.py', 'function.py', 'method.py'):
         if os.path.exists(stale):
             os.remove(stale)
-    with Engine('LiSEworld.db') as eng:
+    with Engine() as eng:
         with eng.batch():
             install(eng)
     import sys

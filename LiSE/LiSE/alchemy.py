@@ -574,6 +574,22 @@ def queries(table):
         )
     ))
 
+    for handledtab in (
+        'character_rules_handled',
+        'avatar_rules_handled',
+        'character_thing_rules_handled',
+        'character_place_rules_handled',
+        'character_portal_rules_handled',
+        'node_rules_handled',
+        'portal_rules_handled'
+    ):
+        ht = table[handledtab]
+        r['del_{}_turn'.format(handledtab)] = ht.delete().where(and_(
+            ht.c.branch == bindparam('branch'),
+            ht.c.turn == bindparam('turn')
+        ))
+
+
     branches = table['branches']
 
     r['branch_children'] = select(

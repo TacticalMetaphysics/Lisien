@@ -1,8 +1,18 @@
-== 0.10 | DATE HERE ==
+== 0.10.1 | 2020-01-08 ==
+* Compatibility with networkx 2.4
+* Smaller database
+* Performance improvements
+* Default database filename is now 'world.db', and you can instantiate Engine with no arguments
+
+
+== 0.10 | 2019-03-16 ==
 * Improved documentation.
 * Improved performance.
 * Prevented the user from trying to start the rules engine while it's already running.
 * Minor API changes. clear_world and clear_code are now one option, clear
+* Any trigger that's going to run in a given turn is now guaranteed to run prior to any prereq or action. This is mostly to prepare for experiments in parallelism.
+* If you branch the timeline while stuff is planned for the future, the plan will be copied to the new branch, unless the plan has not yet started.
+* Made facades act more like regular characters. They still aren't very useful... I'm planning to add some new API to them that lets you munge and filter their data lazily
 
 
 == 0.9 | 2018-10-29 ==

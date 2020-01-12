@@ -1,11 +1,9 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
     <title>allegedb &#8212; LiSE 0.9dev documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -13,7 +11,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
    
@@ -49,7 +47,7 @@
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;The main interface to the allegedb ORM, and some supporting functions and classes&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">ContextDecorator</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">ContextDecorator</span><span class="p">,</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">weakref</span> <span class="k">import</span> <span class="n">WeakValueDictionary</span>
 
 <span class="kn">from</span> <span class="nn">blinker</span> <span class="k">import</span> <span class="n">Signal</span>
@@ -61,7 +59,8 @@
     <span class="n">MultiGraph</span><span class="p">,</span>
     <span class="n">MultiDiGraph</span><span class="p">,</span>
     <span class="n">Node</span><span class="p">,</span>
-    <span class="n">Edge</span>
+    <span class="n">Edge</span><span class="p">,</span>
+    <span class="n">GraphsMapping</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.query</span> <span class="k">import</span> <span class="n">QueryEngine</span><span class="p">,</span> <span class="n">TimeError</span>
 <span class="kn">from</span> <span class="nn">.window</span> <span class="k">import</span> <span class="n">HistoryError</span>
@@ -102,7 +101,7 @@
         <span class="k">if</span> <span class="n">orm</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Already planning&quot;</span><span class="p">)</span>
         <span class="n">orm</span><span class="o">.</span><span class="n">_planning</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">myid</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">_last_plan</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">_last_plan</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">forward</span> <span class="o">=</span> <span class="n">orm</span><span class="o">.</span><span class="n">_forward</span>
         <span class="k">if</span> <span class="n">orm</span><span class="o">.</span><span class="n">_forward</span><span class="p">:</span>
@@ -186,7 +185,7 @@
         <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="n">inst</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">inst</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">()</span>
         <span class="n">sig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">inst</span><span class="p">)]</span>
-        <span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">,</span> <span class="n">tick_then</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">,</span> <span class="n">tick_then</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span> <span class="o">=</span> <span class="n">val</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">):</span>
             <span class="k">return</span>
@@ -325,7 +324,11 @@
 
     <span class="k">def</span> <span class="nf">_get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
         <span class="n">node_objs</span><span class="p">,</span> <span class="n">node_exists</span><span class="p">,</span> <span class="n">make_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node_stuff</span>
-        <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span>
+            <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">graphn</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
         <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">node_objs</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">node_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -340,7 +343,11 @@
 
     <span class="k">def</span> <span class="nf">_get_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="n">edge_objs</span><span class="p">,</span> <span class="n">edge_exists</span><span class="p">,</span> <span class="n">make_edge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_edge_stuff</span>
-        <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span>
+            <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">graphn</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graphn</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">name</span>
         <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">graphn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">edge_objs</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">edge_objs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -353,8 +360,6 @@
 <div class="viewcode-block" id="ORM.plan"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.plan">[docs]</a>    <span class="k">def</span> <span class="nf">plan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">PlanningContext</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
     <span class="n">plan</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">PlanningContext</span><span class="o">.</span><span class="vm">__doc__</span>
-
-    <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
 
 <div class="viewcode-block" id="ORM.advancing"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.advancing">[docs]</a>    <span class="nd">@contextmanager</span>
     <span class="k">def</span> <span class="nf">advancing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -443,6 +448,10 @@
 <span class="sd">        dictionaries are special keys &#39;node_val&#39; and &#39;edge_val&#39; describing changes</span>
 <span class="sd">        to node and edge attributes, and &#39;nodes&#39; and &#39;edges&#39; full of booleans</span>
 <span class="sd">        indicating whether a node or edge exists.</span>
+
+<span class="sd">        :arg branch: A branch of history; defaults to the current branch</span>
+<span class="sd">        :arg turn: The turn in the branch; defaults to the current turn</span>
+<span class="sd">        :arg tick_from: Starting tick; defaults to 0</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">branch</span> <span class="o">=</span> <span class="n">branch</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span>
@@ -593,6 +602,14 @@
         <span class="sd">&quot;&quot;&quot;Make a SQLAlchemy engine if possible, else a sqlite3 connection. In</span>
 <span class="sd">        either case, begin a transaction.</span>
 
+<span class="sd">        :arg dbstring: rfc1738 URL for a database connection. Unless it begins with</span>
+<span class="sd">        &quot;sqlite:///&quot;, SQLAlchemy will be required.</span>
+<span class="sd">        :arg alchemy: Set to ``False`` to use the precompiled SQLite queries even if</span>
+<span class="sd">        SQLAlchemy is available.</span>
+<span class="sd">        :arg connect_args: Dictionary of keyword arguments to be used for the database</span>
+<span class="sd">        connection.</span>
+<span class="sd">        :arg validate: Whether to perform an integrity test on the data.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_planning</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="kc">False</span>
@@ -627,7 +644,7 @@
 
     <span class="k">def</span> <span class="nf">_init_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;graph&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">GraphsMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">noderows</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">ex</span> <span class="k">if</span> <span class="n">ex</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">for</span> <span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
@@ -691,7 +708,7 @@
     <span class="k">def</span> <span class="nf">_set_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Don&#39;t change branches while planning&quot;</span><span class="p">)</span>
-        <span class="n">curbranch</span><span class="p">,</span> <span class="n">curturn</span><span class="p">,</span> <span class="n">curtick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">curbranch</span><span class="p">,</span> <span class="n">curturn</span><span class="p">,</span> <span class="n">curtick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">curbranch</span> <span class="o">==</span> <span class="n">v</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_otick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn_end_plan</span><span class="p">[</span><span class="n">curbranch</span><span class="p">,</span> <span class="n">curturn</span><span class="p">]</span>
             <span class="k">return</span>
@@ -759,9 +776,13 @@
                         <span class="n">time_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_plan</span>
                         <span class="n">turn_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">]</span> <span class="o">=</span> <span class="n">tick</span>
 
-    <span class="k">def</span> <span class="nf">_delete_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plan</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The plan has been contradicted, so delete the rest of it&quot;&quot;&quot;</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+<div class="viewcode-block" id="ORM.delete_plan"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.delete_plan">[docs]</a>    <span class="k">def</span> <span class="nf">delete_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plan</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete the portion of a plan that has yet to occur.</span>
+
+<span class="sd">        :arg plan: integer ID of a plan, as given by ``with self.plan() as plan:``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="n">to_delete</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">plan_ticks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plan_ticks</span><span class="p">[</span><span class="n">plan</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tcks</span> <span class="ow">in</span> <span class="n">plan_ticks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># might improve performance to use a WindowDict for plan_ticks</span>
@@ -783,7 +804,7 @@
             <span class="n">plan_ticks</span><span class="p">[</span><span class="n">trn</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tck</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">plan_ticks</span><span class="p">[</span><span class="n">trn</span><span class="p">]:</span>
                 <span class="k">del</span> <span class="n">plan_ticks</span><span class="p">[</span><span class="n">trn</span><span class="p">]</span>
-            <span class="k">del</span> <span class="n">time_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tck</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">time_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">trn</span><span class="p">,</span> <span class="n">tck</span><span class="p">]</span></div>
 
     <span class="c1"># easier to override things this way</span>
     <span class="nd">@property</span>
@@ -858,11 +879,11 @@
     <span class="k">def</span> <span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_tick</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ORM.btt"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.btt">[docs]</a>    <span class="k">def</span> <span class="nf">btt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_btt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the branch, turn, and tick.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obranch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_oturn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_otick</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obranch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_oturn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_otick</span>
 
-<div class="viewcode-block" id="ORM.nbtt"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.nbtt">[docs]</a>    <span class="k">def</span> <span class="nf">nbtt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_nbtt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Increment the tick and return branch, turn, tick</span>
 
 <span class="sd">        Unless we&#39;re viewing the past, in which case raise HistoryError.</span>
@@ -872,7 +893,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">.cache</span> <span class="k">import</span> <span class="n">HistoryError</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="n">tick</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn_end_plan</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">tick</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn_end_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">]:</span>
@@ -902,7 +923,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_plan_ticks_uncommitted</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_plan</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_time_plan</span><span class="p">[</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_plan</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_otick</span> <span class="o">=</span> <span class="n">tick</span>
-        <span class="k">return</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span></div>
+        <span class="k">return</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 
 <div class="viewcode-block" id="ORM.commit"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.commit">[docs]</a>    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Write the state of all graphs to the database and commit the transaction.</span>
@@ -933,10 +954,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="ORM.initdb"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.initdb">[docs]</a>    <span class="k">def</span> <span class="nf">initdb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Alias of ``self.query.initdb``&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">initdb</span><span class="p">()</span></div>
-
     <span class="k">def</span> <span class="nf">_init_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">type_s</span><span class="o">=</span><span class="s1">&#39;Graph&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">have_graph</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">GraphNameError</span><span class="p">(</span><span class="s2">&quot;Already have a graph by that name&quot;</span><span class="p">)</span>
@@ -948,6 +965,9 @@
         <span class="sd">&quot;&quot;&quot;Return a new instance of type Graph, initialized with the given</span>
 <span class="sd">        data if provided.</span>
 
+<span class="sd">        :arg name: a name for the graph</span>
+<span class="sd">        :arg data: dictionary or NetworkX graph object providing initial state</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;Graph&#39;</span><span class="p">)</span>
         <span class="n">g</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span>
@@ -957,6 +977,9 @@
 <div class="viewcode-block" id="ORM.new_digraph"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.new_digraph">[docs]</a>    <span class="k">def</span> <span class="nf">new_digraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a new instance of type DiGraph, initialized with the given</span>
 <span class="sd">        data if provided.</span>
+
+<span class="sd">        :arg name: a name for the graph</span>
+<span class="sd">        :arg data: dictionary or NetworkX graph object providing initial state</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;DiGraph&#39;</span><span class="p">)</span>
@@ -968,6 +991,9 @@
         <span class="sd">&quot;&quot;&quot;Return a new instance of type MultiGraph, initialized with the given</span>
 <span class="sd">        data if provided.</span>
 
+<span class="sd">        :arg name: a name for the graph</span>
+<span class="sd">        :arg data: dictionary or NetworkX graph object providing initial state</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;MultiGraph&#39;</span><span class="p">)</span>
         <span class="n">mg</span> <span class="o">=</span> <span class="n">MultiGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span>
@@ -977,6 +1003,9 @@
 <div class="viewcode-block" id="ORM.new_multidigraph"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.new_multidigraph">[docs]</a>    <span class="k">def</span> <span class="nf">new_multidigraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a new instance of type MultiDiGraph, initialized with the given</span>
 <span class="sd">        data if provided.</span>
+
+<span class="sd">        :arg name: a name for the graph</span>
+<span class="sd">        :arg data: dictionary or NetworkX graph object providing initial state</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init_graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;MultiDiGraph&#39;</span><span class="p">)</span>
@@ -988,6 +1017,8 @@
         <span class="sd">&quot;&quot;&quot;Return a graph previously created with ``new_graph``,</span>
 <span class="sd">        ``new_digraph``, ``new_multigraph``, or</span>
 <span class="sd">        ``new_multidigraph``</span>
+
+<span class="sd">        :arg name: name of an existing graph</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_objs</span><span class="p">:</span>
@@ -1008,7 +1039,11 @@
         <span class="k">return</span> <span class="n">g</span></div>
 
 <div class="viewcode-block" id="ORM.del_graph"><a class="viewcode-back" href="../allegedb/index.html#allegedb.ORM.del_graph">[docs]</a>    <span class="k">def</span> <span class="nf">del_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Remove all traces of a graph&#39;s existence from the database&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Remove all traces of a graph&#39;s existence from the database</span>
+
+<span class="sd">        :arg name: name of an existing graph</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># make sure the graph exists before deleting anything</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">del_graph</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -1021,7 +1056,7 @@
 <span class="sd">        presently active and ending at &#39;trunk&#39;), and the turn is the</span>
 <span class="sd">        latest revision in the branch that matters.</span>
 
-<span class="sd">        Keyword ``stoptime`` may be a branch, in which case iteration will stop</span>
+<span class="sd">        :arg stoptime: This may be a branch, in which case iteration will stop</span>
 <span class="sd">        instead of proceeding into that branch&#39;s parent; or it may be a triple,</span>
 <span class="sd">        ``(branch, turn, tick)``, in which case iteration will stop instead of</span>
 <span class="sd">        yielding any time before that. The tick may be ``None``, in which case</span>
@@ -1067,10 +1102,10 @@
                 <span class="k">yield</span> <span class="n">child</span>
 
     <span class="k">def</span> <span class="nf">_node_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes_cache</span><span class="o">.</span><span class="n">contains_entity</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">btt</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes_cache</span><span class="o">.</span><span class="n">contains_entity</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_exist_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">exist</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">exist_node</span><span class="p">(</span>
             <span class="n">character</span><span class="p">,</span>
             <span class="n">node</span><span class="p">,</span>
@@ -1083,13 +1118,13 @@
 
     <span class="k">def</span> <span class="nf">_edge_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges_cache</span><span class="o">.</span><span class="n">contains_entity</span><span class="p">(</span>
-            <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">btt</span><span class="p">()</span>
+            <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_exist_edge</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">character</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exist</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">):</span>
-        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbtt</span><span class="p">()</span>
+        <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">exist_edge</span><span class="p">(</span>
             <span class="n">character</span><span class="p">,</span>
             <span class="n">orig</span><span class="p">,</span>
@@ -1124,7 +1159,6 @@
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../manual.html#programming-interface">Programming Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html#ide">IDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../allegedb/index.html">allegedb</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../LiSE/index.html">LiSE</a></li>
@@ -1141,13 +1175,11 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
@@ -1168,7 +1200,7 @@
       &copy;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.3.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
