@@ -24,6 +24,8 @@ from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.clock import Clock
 from kivy.lang import Builder
 
+from .util import trigger
+
 
 class CalendarWidget(RecycleDataViewBehavior, Widget):
     """Base class for widgets within a Calendar
@@ -102,9 +104,6 @@ class CalendarSlider(Slider, CalendarWidget):
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
-    def on_focus(self, *args):
-        if not self.focus:
-            self._parse_text()
 
     def _parse_text(self, *args):
         print('_parse_text')
@@ -113,9 +112,9 @@ class CalendarTextInput(CalendarWidget, TextInput):
             v = literal_eval(self.text)
         except (TypeError, ValueError, SyntaxError):
             v = self.text
-        self.value = v
-        self.hint_text = self.text
+        self.value = self.hint_text = v
         self.text = ''
+    _trigger_parse_text = trigger(_parse_text)
 
 
 class CalendarOptionButton(CalendarWidget, Button):
@@ -385,7 +384,7 @@ Builder.load_string("""
     text: str(self.value)
 <CalendarTextInput>:
     multiline: False
-    on_text_validate: self._parse_text()
+    on_text_validate: self._trigger_parse_text()
 """)
 
 
