@@ -190,6 +190,7 @@ class AbstractCalendar(RecycleView):
         'option': 'CalendarOptionButton'
     }
     cols = NumericProperty(1)
+    """Number of columns to display, default 1"""
     entity = ObjectProperty()
     """The LiSE proxy object to display the stats of"""
     idx = DictProperty()
@@ -213,8 +214,16 @@ class AbstractCalendar(RecycleView):
     
     """
     headers = BooleanProperty(True)
+    """Whether to display the name of the stat above its column, default ``True``"""
     turn_labels = BooleanProperty(True)
+    """Whether to display the turn of the value before its row, default ``True``"""
     turn_label_transformer = ObjectProperty(str)
+    """A function taking the turn number and returning a string to represent it
+    
+    Defaults to ``str``, but you might use this to display eg. the day of the
+    week instead.
+    
+    """
 
     def on_data(self, *args):
         idx = self.idx
