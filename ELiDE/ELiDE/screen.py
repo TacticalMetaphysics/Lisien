@@ -435,6 +435,7 @@ Builder.load_string(
         id: statlist
         size_hint_y: 0.8
         entity: root.proxy
+        update_mode: 'present'
     Button:
         id: cfgstatbut
         size_hint_y: 0.1
