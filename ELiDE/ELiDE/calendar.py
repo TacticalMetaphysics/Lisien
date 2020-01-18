@@ -214,7 +214,7 @@ class AbstractCalendar(RecycleView):
     """
     headers = BooleanProperty(True)
     turn_labels = BooleanProperty(True)
-    turn_label_transformer = ObjectProperty(lambda x: str(x))
+    turn_label_transformer = ObjectProperty(str)
 
     def on_data(self, *args):
         idx = self.idx
