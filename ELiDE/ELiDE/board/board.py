@@ -291,12 +291,10 @@ class Board(RelativeLayout):
                             candidate.reciprocal.selected = True
                     candidate.selected = True
                 if hasattr(self.app.selection, 'selected'):
-                    if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal:
-                        if candidate is not self.app.selection:
-                            self.app.selection.selected = False
-                            self.app.selection.reciprocal.selected = False
-                    else:
-                        self.app.selection.selected = False
+                    self.app.selection.selected = False
+                    if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal\
+                            and candidate is not self.app.selection.reciprocal:
+                        self.app.selection.reciprocal.selected = False
                 self.app.selection = candidate
                 self.keep_selection = True
                 parent = candidate.parent
