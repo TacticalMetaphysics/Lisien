@@ -1972,18 +1972,6 @@ class EngineProxy(AbstractEngine):
         self.logger = logger
         self.send(self.pack({'command': 'get_watched_btt'}))
         self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
-        self.method = FuncStoreProxy(self, 'method')
-        self.eternal = EternalVarProxy(self)
-        self.universal = GlobalVarProxy(self)
-        self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
-        self.rulebook = AllRuleBooksProxy(self)
-        self.rule = AllRulesProxy(self)
-        self.action = FuncStoreProxy(self, 'action')
-        self.prereq = FuncStoreProxy(self, 'prereq')
-        self.trigger = FuncStoreProxy(self, 'trigger')
-        self.function = FuncStoreProxy(self, 'function')
-        self.rando = RandoProxy(self)
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -2083,6 +2071,18 @@ class EngineProxy(AbstractEngine):
                                 char, orig, dest, PortalProxy(character, orig, dest)
                             )
                 self._char_stat_cache[char] = deltas[char]
+        self.method = FuncStoreProxy(self, 'method')
+        self.character = CharacterMapProxy(self)
+        self.string = StringStoreProxy(self)
+        self.eternal = EternalVarProxy(self)
+        self.universal = GlobalVarProxy(self)
+        self.rulebook = AllRuleBooksProxy(self)
+        self.rule = AllRulesProxy(self)
+        self.action = FuncStoreProxy(self, 'action')
+        self.prereq = FuncStoreProxy(self, 'prereq')
+        self.trigger = FuncStoreProxy(self, 'trigger')
+        self.function = FuncStoreProxy(self, 'function')
+        self.rando = RandoProxy(self)
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
