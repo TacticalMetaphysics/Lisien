@@ -731,20 +731,3 @@ class ArrowLayout(FloatLayout):
         self._rectangle.size = self._fbo.size = self.size
         self.redraw()
 
-    def add_widget(self, widget, index=0, canvas=None):
-        if index == 0 or len(self.children) == 0:
-            self.children.insert(0, widget)
-        else:
-            children = self.children
-            if index >= len(children):
-                index = len(children)
-
-            children.insert(index, widget)
-        widget.parent = self
-
-    def remove_widget(self, widget):
-        if widget not in self.children:
-            return
-        self.children.remove(widget)
-        widget.parent = None
-

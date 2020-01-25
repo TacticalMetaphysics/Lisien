@@ -944,34 +944,6 @@ class BoardScatterPlane(ScatterPlane):
         )
         dummy.num += 1
 
-    def arrow_from_wid(self, wid):
-        """Make a real portal and its arrow from a dummy arrow.
-
-        This doesn't handle touch events. It takes a widget as its
-        argument: the one the user has been dragging to indicate where
-        they want the arrow to go. Said widget ought to be invisible.
-        It checks if the dummy arrow connects two real spots first,
-        and does nothing if it doesn't.
-
-        """
-        for spot in self.board.spotlayout.children:
-            if spot.collide_widget(wid):
-                whereto = spot
-                break
-        else:
-            return
-        origname = self.board.grabbed.place.name
-        destname = whereto.place.name
-        if origname in self.board.arrow and destname in self.board.arrow[origname]:
-            arrow = self.board.arrow[origname][destname]
-        else:
-            arrow = self.board.make_arrow(
-                self.board.character.new_portal(
-                    origname, destname, symmetrical=self.reciprocal_portal
-                )
-            )
-        self.board.arrowlayout.add_widget(arrow)
-
     def on_board(self, *args):
         if hasattr(self, '_oldboard'):
             self.unbind(
@@ -1060,10 +1032,6 @@ class BoardView(StencilView):
     def pawn_from_dummy(self, dummy):
         self.plane.pawn_from_dummy(dummy)
     pawn_from_dummy.__doc__ = BoardScatterPlane.pawn_from_dummy.__doc__
-
-    def arrow_from_wid(self, wid):
-        self.plane.arrow_from_wid(wid)
-    arrow_from_wid.__doc__ = BoardScatterPlane.arrow_from_wid.__doc__
 
 
 Builder.load_string("""
