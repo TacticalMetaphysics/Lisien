@@ -287,7 +287,7 @@ class Board(RelativeLayout):
                         if candidate.portal.get('is_mirror', False):
                             candidate.selected = True
                             candidate = candidate.reciprocal
-                        elif candidate.reciprocal and candidate.reciprocal.portal['is_mirror']:
+                        elif candidate.reciprocal and candidate.reciprocal.portal.get('is_mirror', False):
                             candidate.reciprocal.selected = True
                     candidate.selected = True
                 if hasattr(self.app.selection, 'selected'):
@@ -441,6 +441,8 @@ class Board(RelativeLayout):
         return self._core_make_arrow(portal, self.spot[portal['origin']], self.spot[portal['destination']], self.arrow)
 
     def _core_make_arrow(self, portal, origspot, destspot, arrowmap, points=None):
+        if points is None:
+            points = get_points(origspot, destspot, portal.get('_taillen', 10))
         r = self.arrow_cls(
             board=self,
             portal=portal,
@@ -448,8 +450,6 @@ class Board(RelativeLayout):
             destspot=destspot,
             points=points
         )
-        if points is None:
-            r._trigger_repoint()
         orign = portal["origin"]
         if orign not in arrowmap:
             arrowmap[orign] = {}
@@ -959,7 +959,7 @@ class BoardScatterPlane(ScatterPlane):
                 self.board.character.new_portal(
                     self.board.grabbed.place.name,
                     whereto.place.name,
-                    reciprocal=self.reciprocal_portal
+                    symmetrical=self.reciprocal_portal
                 )
             )
         )
