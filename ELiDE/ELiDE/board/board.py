@@ -280,14 +280,23 @@ class Board(RelativeLayout):
         if self.app.selection and hasattr(self.app.selection, 'on_touch_up'):
             self.app.selection.dispatch('on_touch_up', touch)
         for candidate in self.selection_candidates:
-            if candidate == self.app.selection:
-                continue
             if candidate.collide_point(*touch.pos):
-                Logger.debug("Board: selecting " + repr(candidate))
                 if hasattr(candidate, 'selected'):
+                    if isinstance(candidate, Arrow) and candidate.reciprocal:
+                        # mirror arrows can't be selected directly, you have to work with the one they mirror
+                        if candidate.portal.get('is_mirror', False):
+                            candidate.selected = True
+                            candidate = candidate.reciprocal
+                        elif candidate.reciprocal and candidate.reciprocal.portal['is_mirror']:
+                            candidate.reciprocal.selected = True
                     candidate.selected = True
                 if hasattr(self.app.selection, 'selected'):
-                    self.app.selection.selected = False
+                    if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal:
+                        if candidate is not self.app.selection:
+                            self.app.selection.selected = False
+                            self.app.selection.reciprocal.selected = False
+                    else:
+                        self.app.selection.selected = False
                 self.app.selection = candidate
                 self.keep_selection = True
                 parent = candidate.parent
@@ -298,6 +307,8 @@ class Board(RelativeLayout):
             Logger.debug("Board: deselecting " + repr(self.app.selection))
             if hasattr(self.app.selection, 'selected'):
                 self.app.selection.selected = False
+                if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal:
+                    self.app.selection.reciprocal.selected = False
             self.app.selection = None
         self.keep_selection = False
         touch.ungrab(self)
