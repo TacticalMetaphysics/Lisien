@@ -250,7 +250,7 @@ class Board(RelativeLayout):
                     deport = self.character.new_portal(
                         dest.name,
                         orig.name,
-                        symmettrical=True
+                        symmetrical=True
                     )
                     self.arrowlayout.add_widget(
                         self.make_arrow(deport)
