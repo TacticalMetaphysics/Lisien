@@ -249,7 +249,8 @@ class Board(RelativeLayout):
                 ):
                     deport = self.character.new_portal(
                         dest.name,
-                        orig.name
+                        orig.name,
+                        symmettrical=True
                     )
                     self.arrowlayout.add_widget(
                         self.make_arrow(deport)
@@ -440,14 +441,21 @@ class Board(RelativeLayout):
 
     def _core_make_arrow(self, portal, origspot, destspot, arrowmap, points=None):
         if points is None:
-            points = get_points(origspot, destspot, portal.get('_taillen', 10))
-        r = self.arrow_cls(
-            board=self,
-            portal=portal,
-            origspot=origspot,
-            destspot=destspot,
-            points=points
-        )
+            r = self.arrow_cls(
+                board=self,
+                portal=portal,
+                origspot=origspot,
+                destspot=destspot,
+            )
+            r._trigger_repoint()
+        else:
+            r = self.arrow_cls(
+                board=self,
+                portal=portal,
+                origspot=origspot,
+                destspot=destspot,
+                points=points
+            )
         orign = portal["origin"]
         if orign not in arrowmap:
             arrowmap[orign] = {}
@@ -952,15 +960,17 @@ class BoardScatterPlane(ScatterPlane):
                 break
         else:
             return
-        self.board.arrowlayout.add_widget(
-            self.board.make_arrow(
+        origname = self.board.grabbed.place.name
+        destname = whereto.place.name
+        if origname in self.board.arrow and destname in self.board.arrow[origname]:
+            arrow = self.board.arrow[origname][destname]
+        else:
+            arrow = self.board.make_arrow(
                 self.board.character.new_portal(
-                    self.board.grabbed.place.name,
-                    whereto.place.name,
-                    symmetrical=self.reciprocal_portal
+                    origname, destname, symmetrical=self.reciprocal_portal
                 )
             )
-        )
+        self.board.arrowlayout.add_widget(arrow)
 
     def on_board(self, *args):
         if hasattr(self, '_oldboard'):
