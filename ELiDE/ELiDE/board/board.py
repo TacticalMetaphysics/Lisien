@@ -196,6 +196,8 @@ class Board(RelativeLayout):
             self.selection_candidates = arrows
             if self.app.selection in self.selection_candidates:
                 self.selection_candidates.remove(self.app.selection)
+            if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal in self.selection_candidates:
+                self.selection_candidates.remove(self.app.selection.reciprocal)
             touch.pop()
             return True
         touch.pop()
@@ -233,27 +235,21 @@ class Board(RelativeLayout):
                 orig.name in self.character.portal and
                 dest.name in self.character.portal[orig.name]
             ):
+                symmetrical = hasattr(self, 'protoportal2') and not (
+                        orig.name in self.character.preportal and
+                        dest.name in self.character.preportal[orig.name]
+                )
                 port = self.character.new_portal(
                     orig.name,
-                    dest.name
+                    dest.name,
+                    symmetrical=symmetrical
                 )
                 self.arrowlayout.add_widget(
                     self.make_arrow(port)
                 )
-            # And another in the opposite direction if needed
-                if (
-                    hasattr(self, 'protoportal2') and not(
-                            orig.name in self.character.preportal and
-                            dest.name in self.character.preportal[orig.name]
-                        )
-                ):
-                    deport = self.character.new_portal(
-                        dest.name,
-                        orig.name,
-                        symmetrical=True
-                    )
+                if symmetrical:
                     self.arrowlayout.add_widget(
-                        self.make_arrow(deport)
+                        self.make_arrow(self.character.portal[dest.name][orig.name])
                     )
         except StopIteration:
             pass
