@@ -213,8 +213,6 @@ class Dests(Mapping):
         )
 
     def __getitem__(self, item):
-        if item not in self:
-            raise KeyError
         portal, name = self._pn
         return portal[name][item]
 

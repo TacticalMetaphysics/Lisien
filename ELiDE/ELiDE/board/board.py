@@ -196,6 +196,8 @@ class Board(RelativeLayout):
             self.selection_candidates = arrows
             if self.app.selection in self.selection_candidates:
                 self.selection_candidates.remove(self.app.selection)
+            if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal in self.selection_candidates:
+                self.selection_candidates.remove(self.app.selection.reciprocal)
             touch.pop()
             return True
         touch.pop()
@@ -233,26 +235,21 @@ class Board(RelativeLayout):
                 orig.name in self.character.portal and
                 dest.name in self.character.portal[orig.name]
             ):
+                symmetrical = hasattr(self, 'protoportal2') and not (
+                        orig.name in self.character.preportal and
+                        dest.name in self.character.preportal[orig.name]
+                )
                 port = self.character.new_portal(
                     orig.name,
-                    dest.name
+                    dest.name,
+                    symmetrical=symmetrical
                 )
                 self.arrowlayout.add_widget(
                     self.make_arrow(port)
                 )
-            # And another in the opposite direction if needed
-                if (
-                    hasattr(self, 'protoportal2') and not(
-                            orig.name in self.character.preportal and
-                            dest.name in self.character.preportal[orig.name]
-                        )
-                ):
-                    deport = self.character.new_portal(
-                        dest.name,
-                        orig.name
-                    )
+                if symmetrical:
                     self.arrowlayout.add_widget(
-                        self.make_arrow(deport)
+                        self.make_arrow(self.character.portal[dest.name][orig.name])
                     )
         except StopIteration:
             pass
@@ -280,14 +277,21 @@ class Board(RelativeLayout):
         if self.app.selection and hasattr(self.app.selection, 'on_touch_up'):
             self.app.selection.dispatch('on_touch_up', touch)
         for candidate in self.selection_candidates:
-            if candidate == self.app.selection:
-                continue
             if candidate.collide_point(*touch.pos):
-                Logger.debug("Board: selecting " + repr(candidate))
                 if hasattr(candidate, 'selected'):
+                    if isinstance(candidate, Arrow) and candidate.reciprocal:
+                        # mirror arrows can't be selected directly, you have to work with the one they mirror
+                        if candidate.portal.get('is_mirror', False):
+                            candidate.selected = True
+                            candidate = candidate.reciprocal
+                        elif candidate.reciprocal and candidate.reciprocal.portal.get('is_mirror', False):
+                            candidate.reciprocal.selected = True
                     candidate.selected = True
                 if hasattr(self.app.selection, 'selected'):
                     self.app.selection.selected = False
+                    if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal\
+                            and candidate is not self.app.selection.reciprocal:
+                        self.app.selection.reciprocal.selected = False
                 self.app.selection = candidate
                 self.keep_selection = True
                 parent = candidate.parent
@@ -298,6 +302,8 @@ class Board(RelativeLayout):
             Logger.debug("Board: deselecting " + repr(self.app.selection))
             if hasattr(self.app.selection, 'selected'):
                 self.app.selection.selected = False
+                if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal:
+                    self.app.selection.reciprocal.selected = False
             self.app.selection = None
         self.keep_selection = False
         touch.ungrab(self)
@@ -430,15 +436,22 @@ class Board(RelativeLayout):
         return self._core_make_arrow(portal, self.spot[portal['origin']], self.spot[portal['destination']], self.arrow)
 
     def _core_make_arrow(self, portal, origspot, destspot, arrowmap, points=None):
-        r = self.arrow_cls(
-            board=self,
-            portal=portal,
-            origspot=origspot,
-            destspot=destspot,
-            points=points
-        )
         if points is None:
+            r = self.arrow_cls(
+                board=self,
+                portal=portal,
+                origspot=origspot,
+                destspot=destspot,
+            )
             r._trigger_repoint()
+        else:
+            r = self.arrow_cls(
+                board=self,
+                portal=portal,
+                origspot=origspot,
+                destspot=destspot,
+                points=points
+            )
         orign = portal["origin"]
         if orign not in arrowmap:
             arrowmap[orign] = {}
@@ -927,32 +940,6 @@ class BoardScatterPlane(ScatterPlane):
         )
         dummy.num += 1
 
-    def arrow_from_wid(self, wid):
-        """Make a real portal and its arrow from a dummy arrow.
-
-        This doesn't handle touch events. It takes a widget as its
-        argument: the one the user has been dragging to indicate where
-        they want the arrow to go. Said widget ought to be invisible.
-        It checks if the dummy arrow connects two real spots first,
-        and does nothing if it doesn't.
-
-        """
-        for spot in self.board.spotlayout.children:
-            if spot.collide_widget(wid):
-                whereto = spot
-                break
-        else:
-            return
-        self.board.arrowlayout.add_widget(
-            self.board.make_arrow(
-                self.board.character.new_portal(
-                    self.board.grabbed.place.name,
-                    whereto.place.name,
-                    reciprocal=self.reciprocal_portal
-                )
-            )
-        )
-
     def on_board(self, *args):
         if hasattr(self, '_oldboard'):
             self.unbind(
@@ -1041,10 +1028,6 @@ class BoardView(StencilView):
     def pawn_from_dummy(self, dummy):
         self.plane.pawn_from_dummy(dummy)
     pawn_from_dummy.__doc__ = BoardScatterPlane.pawn_from_dummy.__doc__
-
-    def arrow_from_wid(self, wid):
-        self.plane.arrow_from_wid(wid)
-    arrow_from_wid.__doc__ = BoardScatterPlane.arrow_from_wid.__doc__
 
 
 Builder.load_string("""

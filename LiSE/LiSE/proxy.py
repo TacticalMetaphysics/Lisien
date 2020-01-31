@@ -1454,6 +1454,14 @@ class CharacterProxy(AbstractCharacter):
             destination,
             PortalProxy(self, origin, destination)
         )
+        if symmetrical:
+            self.engine._character_portals_cache.store(
+                self.name,
+                destination,
+                origin,
+                PortalProxy(self, destination, origin)
+            )
+            self.engine._portal_stat_cache[self.name][destination][origin]['is_mirror'] = True
 
     def add_portals_from(self, seq, symmetrical=False):
         l = list(seq)
