@@ -16,9 +16,9 @@
 from setuptools import setup
 setup(
     name = "allegedb",
-    version = "0.15.0",
+    version = "0.15.1",
     packages = ["allegedb"],
-    install_requires = ['networkx>=1.9', 'blinker'],
+    install_requires = ['networkx>=1.9<=2.4', 'blinker'],
     author = "Zachary Spector",
     author_email = "zacharyspector@gmail.com",
     description = "A state container serving database-backed versions of the standard networkx graph classes.",

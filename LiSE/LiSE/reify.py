@@ -45,6 +45,7 @@ class reify(object):
     def __get__(self, inst, cls):
         if inst is None:
             return self
-        retval = self.func(inst)
-        setattr(inst, self.func.__name__, retval)
+        if hasattr(self, 'real'):
+            return self.real
+        retval = self.real = self.func(inst)
         return retval

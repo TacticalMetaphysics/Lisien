@@ -73,7 +73,7 @@ class SpriteSelector(BoxLayout):
                     imgpaths.append(
                         'atlas://{}/{}'.format(
                             pallet.filename,
-                            selected.name
+                            selected.text
                         )
                     )
         self.imgpaths = imgpaths if imgpaths else self.default_imgpaths

@@ -1,3 +1,10 @@
+== 0.10.1 | 2020-01-08 ==
+* Compatibility with networkx 2.4
+* Smaller database
+* Performance improvements
+* Default database filename is now 'world.db', and you can instantiate Engine with no arguments
+
+
 == 0.10 | 2019-03-16 ==
 * Improved documentation.
 * Improved performance.
