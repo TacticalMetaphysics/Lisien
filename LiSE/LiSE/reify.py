@@ -15,11 +15,13 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Modified by Zachary Spector on Feb 1, 2020
-
 
 class reify(object):
     '''
+    Put the result of a method which uses this (non-data) descriptor decorator
+    in the instance dict after the first call, effectively replacing the
+    decorator with an instance variable.
+
     It acts like @property, except that the function is only ever called once;
     after that, the value is cached as a regular attribute. This gives you lazy
     attribute creation on objects that are meant to be immutable.
@@ -43,9 +45,6 @@ class reify(object):
     def __get__(self, inst, cls):
         if inst is None:
             return self
-        instid = str(id(inst))
-        if hasattr(self, instid):
-            return getattr(self, instid)
         retval = self.func(inst)
-        setattr(self, instid, retval)
+        setattr(inst, self.func.__name__, retval)
         return retval

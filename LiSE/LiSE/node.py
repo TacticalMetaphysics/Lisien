@@ -30,7 +30,6 @@ from .util import getatt
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError
-from .reify import reify
 
 
 class RuleMapping(rule.RuleMapping):
@@ -300,7 +299,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ()
+    __slots__ = ('portal', 'preportal')
     engine = getatt('db')
     character = getatt('graph')
     name = getatt('node')
@@ -336,15 +335,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         cache.store(character, node, branch, turn, tick, rulebook)
         self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
 
-    @reify
-    def portal(self):
-        """Return a mapping of portals connecting this node to its neighbors."""
-        return Dests(self)
     successor = adj = edge = getatt('portal')
-
-    @reify
-    def preportal(self):
-        return Origs(self)
     predecessor = pred = getatt('preportal')
 
     user = UserDescriptor()
@@ -357,6 +348,8 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         """Store character and name, and initialize caches"""
         super().__init__(character, name)
         self.db = character.engine
+        self.portal = Dests(self)
+        self.preportal = Origs(self)
 
     def __iter__(self):
         yield from super().__iter__()
