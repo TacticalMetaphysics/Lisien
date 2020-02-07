@@ -35,8 +35,9 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         ):
             if os.path.exists(f):
                 os.rename(f, os.path.join(self.tempdir, f))
+        self.addCleanup(self._do_cleanup)
 
-    def tearDown(self):
+    def _do_cleanup(self):
         self.manager.shutdown()
         for f in (
             'trigger.py', 'prereq.py', 'action.py', 'function.py',
@@ -66,31 +67,17 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
 
 
 @pytest.fixture(scope='function', params=[
-    lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
+    # lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
     college.install,
-    sickle.install
+    # sickle.install
 ])
-def hand(request):
+def hand(request, clean):
     from LiSE.handle import EngineHandle
-    tempdir = tempfile.mkdtemp(dir='.')
-    for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-    ):
-        if os.path.exists(f):
-            os.rename(f, os.path.join(tempdir, f))
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     with hand._real.advancing():
         request.param(hand._real)
     yield hand
     hand.close()
-    for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-    ):
-        if os.path.exists(os.path.join(tempdir, f)):
-            os.rename(os.path.join(tempdir, f), f)
-    os.rmdir(tempdir)
 
 
 def test_fast_delta(hand):
@@ -110,15 +97,8 @@ def test_fast_delta(hand):
     assert diff4 == slowd4, "Fast delta differs from slow delta"
 
 
-def test_assignment():
+def test_assignment(clean):
     from LiSE.handle import EngineHandle
-    tempdir = tempfile.mkdtemp(dir='.')
-    for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-    ):
-        if os.path.exists(f):
-            os.rename(f, os.path.join(tempdir, f))
     hand = EngineHandle((':memory:',), {'random_seed': 69105})
     eng = hand._real
     with eng.advancing():
@@ -384,10 +364,3 @@ def test_assignment():
             'cell72': {'rulebook': ('dorm0room0student0', 'cell72'), 'drunk': 0, 'slow': 0}}}
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
     hand.close()
-    for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-    ):
-        if os.path.exists(os.path.join(tempdir, f)):
-            os.rename(os.path.join(tempdir, f), f)
-    os.rmdir(tempdir)

@@ -32,3 +32,6 @@ ELiDE.ini
 .pytest_cache
 breakage.diff
 ELiDE/ELiDE/kivygarden/texturestack
+.venv
+flame.svg
+test.py

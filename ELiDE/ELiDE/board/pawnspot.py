@@ -32,8 +32,6 @@ from kivy.graphics import (
 )
 from kivy.uix.layout import Layout
 from kivy.clock import Clock
-from kivy.logger import Logger
-from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
 from ..util import trigger
 
@@ -48,6 +46,8 @@ class PawnSpot(ImageStack, Layout):
     engine = ObjectProperty()
     selected = BooleanProperty(False)
     linecolor = ListProperty()
+    selected_outline_color = ListProperty([0, 1, 1, 1])
+    unselected_outline_color = ListProperty([0, 0, 0, 0])
     name = ObjectProperty()
     use_boardspace = True
     positions = DictProperty()
@@ -58,28 +58,6 @@ class PawnSpot(ImageStack, Layout):
             kwargs['name'] = kwargs['proxy'].name
         super().__init__(**kwargs)
         self.bind(pos=self._position, positions=self._position)
-
-    def collide_point(self, x, y):
-        if not super().collide_point(x, y):
-            return False
-        x, y = self.to_local(x, y, relative=True)
-        for path in reversed(self.paths):
-            img = self.pathimgs[path]
-            if not img._image:
-                from kivy.core.image import Image, ImageData
-                img._image = _image = Image(img._texture)
-                _image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
-            if not hasattr(img._image, '_data') or not img._image._data:
-                # it's in an atlas
-                from kivy.core.image import ImageData
-                img._image._data = [ImageData(img.texture.width, img.texture.height, 'rgba', img.texture.pixels)]
-            try:
-                r, g, b, a = img.read_pixel(x, y)
-            except IndexError:
-                return False
-            if a:
-                return True
-        return False
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
@@ -292,9 +270,8 @@ class PawnSpot(ImageStack, Layout):
         for member_id, (offx, offy) in self.positions.items():
             self._childs[member_id].pos = x + offx, y + offy
 
-
-kv = """
-<PawnSpot>:
-    linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
-"""
-Builder.load_string(kv)
+    def on_selected(self, *args):
+        if self.selected:
+            self.linecolor = self.selected_outline_color
+        else:
+            self.linecolor = self.unselected_outline_color

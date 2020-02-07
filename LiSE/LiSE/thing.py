@@ -45,7 +45,7 @@ class Thing(Node):
     same.
 
     """
-    __slots__ = ('graph', 'db', 'node')
+    __slots__ = ('graph', 'db', 'node', 'portal', 'preportal', '_rulebook')
 
     extrakeys = {
         'name',

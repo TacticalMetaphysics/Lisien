@@ -356,7 +356,7 @@ class AbstractCharacter(MutableMapping):
 
         """
         renamed = {}
-        for k, v in g.node.items():
+        for k in g.nodes:
             ok = k
             if k in self.place:
                 n = 0
@@ -364,7 +364,7 @@ class AbstractCharacter(MutableMapping):
                     k = ok + (n,) if isinstance(ok, tuple) else (ok, n)
                     n += 1
             renamed[ok] = k
-            self.place[k] = v
+            self.place[k] = g.nodes[k]
         if type(g) is nx.MultiDiGraph:
             g = nx.DiGraph(g)
         elif type(g) is nx.MultiGraph:
@@ -413,7 +413,7 @@ class AbstractCharacter(MutableMapping):
     def grid_2d_8graph(self, m, n):
         """Make a 2d graph that's connected 8 ways, enabling diagonal movement"""
         me = nx.Graph()
-        node = me.node
+        nodes = me.nodes
         add_node = me.add_node
         add_edge = me.add_edge
         for i in range(m):
@@ -425,7 +425,7 @@ class AbstractCharacter(MutableMapping):
                         add_edge((i, j), (i-1, j-1))
                 if j > 0:
                     add_edge((i, j), (i, j-1))
-                if (i - 1, j + 1) in node:
+                if (i - 1, j + 1) in nodes:
                     add_edge((i, j), (i-1, j+1))
         return self.copy_from(me)
 
@@ -1978,8 +1978,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def facade(self):
         return Facade(self)
 
-    def add_place(self, n, **kwargs):
-        super().add_node(n, **kwargs)
+    def add_place(self, node_for_adding, **attr):
+        self.add_node(node_for_adding, **attr)
 
     def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""

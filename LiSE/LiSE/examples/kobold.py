@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A dwarf hunting a kobold that hides in the bushes.
 
-This script will initialize LiSEworld.db and the code libraries to run the
+This script will initialize world.db and the code libraries to run the
 simulation described. To view it, run ELiDE from the same directory
 as you ran this script from.
 
@@ -194,10 +194,10 @@ if __name__ == '__main__':
     from LiSE.engine import Engine
     from os import remove
     try:
-        remove('LiSEworld.db')
+        remove('world.db')
     except FileNotFoundError:
         pass
-    with Engine('LiSEworld.db', random_seed=69105) as engine:
+    with Engine('world.db', random_seed=69105) as engine:
         inittest(engine, shrubberies=20, kobold_sprint_chance=.9)
         engine.commit()
         print('shrub_places beginning: {}'.format(

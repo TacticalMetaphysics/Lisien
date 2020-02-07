@@ -34,7 +34,7 @@ def db():
                 nx.MultiGraph: orm.new_multigraph,
                 nx.MultiDiGraph: orm.new_multidigraph
             }[type(graph)](graph.name, graph)
-            assert set(graph.node.keys()) == set(orm.graph[graph.name].node.keys()), \
+            assert set(graph.nodes.keys()) == set(orm.graph[graph.name].nodes.keys()), \
                 "{}'s nodes changed during instantiation".format(graph.name)
             assert set(graph.edges) == set(orm.graph[graph.name].edges), \
                 "{}'s edges changed during instantiation".format(graph.name)
@@ -46,7 +46,7 @@ def db():
 def test_basic_load(db):
     for graph in testgraphs:
         alleged = db.graph[graph.name]
-        assert set(graph.node.keys()) == set(alleged.node.keys()), "{}'s nodes are not the same after load".format(
+        assert set(graph.nodes.keys()) == set(alleged.nodes.keys()), "{}'s nodes are not the same after load".format(
             graph.name
         )
         assert set(graph.edges) == set(alleged.edges), "{}'s edges are not the same after load".format(graph.name)

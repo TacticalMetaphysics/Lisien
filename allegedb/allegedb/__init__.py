@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
-from contextlib import ContextDecorator
+from contextlib import ContextDecorator, contextmanager
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -327,8 +327,6 @@ class ORM(object):
     def plan(self):
         return PlanningContext(self)
     plan.__doc__ = PlanningContext.__doc__
-
-    from contextlib import contextmanager
 
     @contextmanager
     def advancing(self):
