@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pytest
+from LiSE.exc import AmbiguousUserError
 
 
 @pytest.fixture(scope="function")
@@ -29,3 +30,38 @@ def test_contents(someplace):
         assert someplace.content[i] == stuff[i]
     for that in stuff:
         assert that in someplace.contents()
+
+
+def test_portal(someplace):
+    assert not someplace.portal
+    assert 'there' not in someplace.portal
+    there = someplace.character.new_place('there')
+    assert not there.preportal
+    assert 'someplace' not in there.preportal
+    someplace.character.new_portal('someplace', 'there')
+    assert someplace.portal
+    assert 'there' in someplace.portal
+    assert 'there' not in someplace.preportal
+    assert there.preportal
+    assert 'someplace' in there.preportal
+    assert 'someplace' not in there.portal
+    someplace.character.remove_edge('someplace', 'there')
+    assert 'there' not in someplace.portal
+    assert 'someplace' not in there.preportal
+
+
+def test_user(someplace):
+    with pytest.raises(AmbiguousUserError):
+        someplace.user
+    someone = someplace.engine.new_character('someone')
+    someone.add_avatar(someplace)
+    assert someplace.user is someone
+    assert 'someone' in someplace.users
+    assert someplace.users['someone'] is someone
+    noone = someplace.engine.new_character('noone')
+    assert 'noone' not in someplace.users
+    noone.add_avatar(someplace)
+    with pytest.raises(AmbiguousUserError):
+        someplace.user
+    assert 'noone' in someplace.users
+    assert someplace.users['noone'] is noone
