@@ -731,3 +731,13 @@ class ArrowLayout(FloatLayout):
         self._rectangle.size = self._fbo.size = self.size
         self.redraw()
 
+    def add_widget(self, widget, index=0, canvas=None):
+        ret = super().add_widget(widget, index, canvas)
+        if canvas is None:
+            self.canvas.children.remove(widget.canvas)
+        self._trigger_redraw()
+        return ret
+
+    def remove_widget(self, widget):
+        super().remove_widget(widget)
+        self._trigger_redraw()
