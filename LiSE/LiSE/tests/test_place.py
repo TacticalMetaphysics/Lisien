@@ -30,6 +30,10 @@ def test_contents(someplace):
         assert someplace.content[i] == stuff[i]
     for that in stuff:
         assert that in someplace.contents()
+    fust = someplace.new_thing(11)
+    assert fust not in someplace.contents()
+    with pytest.raises(KeyError):
+        someplace.content[11]
 
 
 def test_portal(someplace):
