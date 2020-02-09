@@ -30,7 +30,8 @@ def test_contents(someplace):
         assert someplace.content[i] == stuff[i]
     for that in stuff:
         assert that in someplace.contents()
-    fust = someplace.new_thing(11)
+    elsewhere = someplace.character.new_place('elsewhere')
+    fust = elsewhere.new_thing(11)
     assert fust not in someplace.contents()
     assert 11 not in someplace.content
     with pytest.raises(KeyError):
