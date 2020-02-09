@@ -288,7 +288,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     contain things.
 
     """
-    __slots__ = ('portal', 'preportal')
+    __slots__ = ()
     engine = getatt('db')
     character = getatt('graph')
     name = getatt('node')
@@ -337,8 +337,14 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         """Store character and name, and initialize caches"""
         super().__init__(character, name)
         self.db = character.engine
-        self.portal = Dests(self)
-        self.preportal = Origs(self)
+
+    @property
+    def portal(self):
+        return Dests(self)
+
+    @property
+    def preportal(self):
+        return Origs(self)
 
     def __iter__(self):
         yield from super().__iter__()
