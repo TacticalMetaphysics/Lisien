@@ -71,3 +71,9 @@ def test_user(someplace):
         someplace.user
     assert 'noone' in someplace.users
     assert someplace.users['noone'] is noone
+
+
+def test_rulebook(someplace):
+    assert someplace.rulebook.name == ('physical', 'someplace')
+    someplace.rulebook = 'imadeitup'
+    assert someplace.rulebook.name == 'imadeitup'
