@@ -32,6 +32,7 @@ def test_contents(someplace):
         assert that in someplace.contents()
     fust = someplace.new_thing(11)
     assert fust not in someplace.contents()
+    assert 11 not in someplace.content
     with pytest.raises(KeyError):
         someplace.content[11]
 
