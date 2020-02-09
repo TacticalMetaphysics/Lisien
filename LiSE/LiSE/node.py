@@ -32,17 +32,6 @@ from . import rule
 from .exc import AmbiguousUserError
 
 
-class RuleMapping(rule.RuleMapping):
-    """Version of :class:`LiSE.rule.RuleMapping` that works more easily
-    with a node.
-
-    """
-    def __init__(self, node):
-        """Initialize with node's engine, character, and rulebook."""
-        super().__init__(node.engine, node.rulebook)
-        self.node = node
-
-
 class UserMapping(Mapping):
     """A mapping of the characters that have a particular node as an avatar.
 
@@ -306,7 +295,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     no_unwrap = True
 
     def _get_rule_mapping(self):
-        return RuleMapping(self)
+        return rule.RuleMapping(self.db, self.rulebook)
 
     def _get_rulebook_name(self):
         try:
