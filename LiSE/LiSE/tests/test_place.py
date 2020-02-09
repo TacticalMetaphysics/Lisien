@@ -24,12 +24,15 @@ def someplace(engy):
 
 def test_contents(someplace):
     stuff = [someplace.new_thing(i) for i in range(10)]
-    assert len(someplace.content) == 10
+    assert len(someplace.content) == len(stuff)
+    assert len(someplace.contents()) == len(stuff)
     for i in range(10):
         assert i in someplace.content
         assert someplace.content[i] == stuff[i]
     for that in stuff:
         assert that in someplace.contents()
+    for that in someplace.contents():
+        assert that in stuff
     elsewhere = someplace.character.new_place('elsewhere')
     fust = elsewhere.new_thing(11)
     assert fust not in someplace.contents()
