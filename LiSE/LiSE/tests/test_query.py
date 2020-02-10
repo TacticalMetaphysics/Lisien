@@ -22,19 +22,15 @@ import os
 import tempfile
 
 
-@pytest.fixture
-def college24_premade(clean):
-    if not os.path.exists("college24_premade.db"):
-        print("generating test data for query")
-        from LiSE.examples.college import install
-        with Engine('college24_premade.db', random_seed=69105) as eng:
-            install(eng)
-            for i in range(24):
-                print(i)
-                eng.next_turn()
-    eng = Engine("college24_premade.db")
-    yield eng
-    eng.close()
+@pytest.fixture(scope='module')
+def college24_premade(clean_module):
+    from LiSE.examples.college import install
+    with Engine(':memory:', random_seed=69105) as eng:
+        install(eng)
+        for i in range(24):
+            print(i)
+            eng.next_turn()
+        yield eng
 
 
 def roommate_collisions(engine):
