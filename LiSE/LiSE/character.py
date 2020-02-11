@@ -1457,7 +1457,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     continue
 
         def __contains__(self, thing):
-            args = self.character.name, thing, *self.engine._btt()
+            branch, turn, tick = self.engine._btt()
+            args = self.character.name, thing, branch, turn, tick
             cache = self.engine._things_cache
             return cache.contains_key(*args) and cache.retrieve(*args) is not None
 

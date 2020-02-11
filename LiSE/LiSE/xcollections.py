@@ -28,6 +28,10 @@ from astunparse import unparse, Unparser
 from .util import dedent_source
 
 
+if sys.version_info.minor < 6:
+    ModuleNotFoundError = ImportError
+
+
 class Language(str):
     sigs = {}
 
