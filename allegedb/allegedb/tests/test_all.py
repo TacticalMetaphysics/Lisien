@@ -23,8 +23,7 @@ class AllegedTest(unittest.TestCase):
 
 
 class AbstractGraphTest:
-    def setUp(self):
-        super().setUp()
+    def test_graph_objects_create_delete(self):
         for graphmaker in self.graphmakers:
             self.engine.time = graphmaker.__name__, 0
             g = graphmaker(graphmaker.__name__)
@@ -317,6 +316,7 @@ class SetStorageTest(AllegedTest):
                 self.assertEqual(entity[0], set(range(10)))
             self.engine.del_graph('testgraph')
 
+@unittest.skip
 class CompiledQueriesTest(AllegedTest):
     def runTest(self):
         """Make sure that the queries generated in SQLAlchemy are the same as
