@@ -1454,6 +1454,13 @@ class CharacterProxy(AbstractCharacter):
             destination,
             PortalProxy(self, origin, destination)
         )
+        node = self._node
+        placecache = self.place._cache
+
+        if origin not in node:
+            placecache[origin] = PlaceProxy(self, origin)
+        if destination not in node:
+            placecache[destination] = PlaceProxy(self, destination)
         if symmetrical:
             self.engine._character_portals_cache.store(
                 self.name,
