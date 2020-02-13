@@ -972,8 +972,8 @@ class CharPredecessorsMappingProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
-        for v in self[k]:
-            self.engine.del_portal(self.name, k, v)
+        for v in list(self[k]):
+            self.engine.del_portal(self.name, v, k)
         if k in self._cache:
             del self._cache[k]
 
@@ -1838,10 +1838,12 @@ class PortalObjCache(object):
         self.predecessors = StructuredDefaultDict(2, PortalProxy)
 
     def store(self, char, u, v, obj):
+        print('storing {}->{}'.format(u, v))
         self.successors[char][u][v] = obj
         self.predecessors[char][v][u] = obj
 
     def delete(self, char, u, v):
+        print('deleting {}->{}'.format(u, v))
         del self.successors[char][u][v]
         del self.predecessors[char][v][u]
 
