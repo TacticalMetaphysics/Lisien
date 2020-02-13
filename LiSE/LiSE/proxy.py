@@ -838,8 +838,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
         }
 
     def __getitem__(self, k):
-        if k not in self:
-            raise KeyError("No portals from {}".format(k))
         return SuccessorsProxy(
             self.engine,
             self.name,
