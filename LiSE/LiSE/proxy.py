@@ -1427,6 +1427,32 @@ class CharacterProxy(AbstractCharacter):
         self.add_thing(name, location, **kwargs)
         return self.thing[name]
 
+    def remove_node(self, node):
+        if node not in self.node:
+            raise KeyError("No such node: {}".format(node))
+        name = self.name
+        self.engine.handle('del_node', char=name, node=node, block=False, branching=True)
+        placecache = self.place._cache
+        thingcache = self.thing._cache
+        if node in placecache:
+            del placecache[node]
+        else:
+            del thingcache[node]
+
+    def remove_place(self, place):
+        placemap = self.place
+        if place not in placemap:
+            raise KeyError("No such place: {}".format(place))
+        self.engine.handle('del_node', char=self.name, node=place, block=False, branching=True)
+        del placemap._cache[place]
+
+    def remove_thing(self, thing):
+        thingmap = self.thing
+        if thing not in thingmap:
+            raise KeyError("No such thing: {}".format(thing))
+        self.engine.handle('del_node', char=self.name, node=thing, block=False, branching=True)
+        del thingmap._cache[thing]
+
     def place2thing(self, node, location):
         self.engine.handle(
             command='place2thing',
@@ -1469,6 +1495,19 @@ class CharacterProxy(AbstractCharacter):
                 PortalProxy(self, destination, origin)
             )
             self.engine._portal_stat_cache[self.name][destination][origin]['is_mirror'] = True
+
+    def remove_portal(self, origin, destination):
+        char_port_cache = self.engine._character_portals_cache
+        cache = char_port_cache.successors[self.name]
+        if origin not in cache or destination not in cache[origin]:
+            raise KeyError("No portal from {} to {}".format(origin, destination))
+        self.engine.handle(
+            'del_portal', char=self.name, orig=origin, dest=destination,
+            block=False, branching=True
+        )
+        char_port_cache.delete(self.name, origin, destination)
+
+    remove_edge = remove_portal
 
     def add_portals_from(self, seq, symmetrical=False):
         l = list(seq)

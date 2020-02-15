@@ -169,12 +169,36 @@ class AbstractCharacter(MutableMapping):
     def add_edges_from(self, seq, **attrs):
         self.add_portals_from(seq, **attrs)
 
+    @abstractmethod
+    def remove_portal(self, origin, destination): pass
+
     def remove_portals_from(self, seq):
         for orig, dest in seq:
             del self.portal[orig][dest]
 
     def remove_edges_from(self, seq):
         self.remove_portals_from(seq)
+
+    @abstractmethod
+    def remove_place(self, place): pass
+
+    def remove_places_from(self, seq):
+        for place in seq:
+            self.remove_place(place)
+
+    @abstractmethod
+    def remove_thing(self, thing): pass
+
+    def remove_things_from(self, seq):
+        for thing in seq:
+            self.remove_thing(thing)
+
+    @abstractmethod
+    def remove_node(self, node): pass
+
+    def remove_nodes_from(self, seq):
+        for node in seq:
+            self.remove_node(node)
 
     @abstractmethod
     def add_avatar(self, a, b=None): pass
@@ -1395,6 +1419,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     """
     _book = "character"
+    remove_portal = getatt('remove_edge')
 
     @property
     def character(self):
@@ -1985,6 +2010,16 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""
         super().add_nodes_from(seq, **attrs)
+
+    def remove_place(self, place):
+        if place in self.place:
+            self.remove_node(place)
+        raise KeyError("No such place: {}".format(place))
+
+    def remove_thing(self, thing):
+        if thing in self.thing:
+            self.remove_node(thing)
+        raise KeyError("No such thing: {}".format(thing))
 
     def add_thing(self, name, location, **kwargs):
         """Create a Thing, set its location,
