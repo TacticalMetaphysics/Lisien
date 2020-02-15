@@ -1246,6 +1246,8 @@ class AvatarMapProxy(Mapping):
 
 class CharacterProxy(AbstractCharacter):
     rulebook = RulebookProxyDescriptor()
+    adj_cls = CharSuccessorsMappingProxy
+    pred_cls = CharPredecessorsMappingProxy
 
     def thing2place(self, name):
         # TODO

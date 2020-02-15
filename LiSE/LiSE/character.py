@@ -99,7 +99,6 @@ class AbstractCharacter(MutableMapping):
     """
     engine = getatt('db')
     no_unwrap = True
-    pred_cls = None  # just makes the right test run
 
     @abstractmethod
     def add_place(self, name, **kwargs): pass
