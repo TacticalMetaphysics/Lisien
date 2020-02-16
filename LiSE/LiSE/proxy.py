@@ -1438,20 +1438,31 @@ class CharacterProxy(AbstractCharacter):
             del placecache[node]
         else:
             del thingcache[node]
+        portscache = self.engine._character_portals_cache
+        del portscache.successors[name][node]
+        del portscache.predecessors[name][node]
 
     def remove_place(self, place):
         placemap = self.place
         if place not in placemap:
             raise KeyError("No such place: {}".format(place))
-        self.engine.handle('del_node', char=self.name, node=place, block=False, branching=True)
+        name = self.name
+        self.engine.handle('del_node', char=name, node=place, block=False, branching=True)
         del placemap._cache[place]
+        portscache = self.engine._character_portals_cache
+        del portscache.successors[name][place]
+        del portscache.predecessors[name][place]
 
     def remove_thing(self, thing):
         thingmap = self.thing
         if thing not in thingmap:
             raise KeyError("No such thing: {}".format(thing))
-        self.engine.handle('del_node', char=self.name, node=thing, block=False, branching=True)
+        name = self.name
+        self.engine.handle('del_node', char=name, node=thing, block=False, branching=True)
         del thingmap._cache[thing]
+        portscache = self.engine._character_portals_cache
+        del portscache.successors[name][thing]
+        del portscache.predecessors[name][thing]
 
     def place2thing(self, node, location):
         self.engine.handle(
