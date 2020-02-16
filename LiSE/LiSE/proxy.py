@@ -1465,6 +1465,7 @@ class CharacterProxy(AbstractCharacter):
         del portscache.predecessors[name][thing]
 
     def place2thing(self, node, location):
+        # TODO: cache
         self.engine.handle(
             command='place2thing',
             char=self.name,
@@ -1555,6 +1556,7 @@ class CharacterProxy(AbstractCharacter):
         )
 
     def add_avatar(self, graph, node):
+        # TODO: cache
         self.engine.handle(
             command='add_avatar',
             char=self.name,
@@ -1565,6 +1567,7 @@ class CharacterProxy(AbstractCharacter):
         )
 
     def del_avatar(self, graph, node):
+        # TODO: cache
         self.engine.handle(
             command='del_avatar',
             char=self.name,
