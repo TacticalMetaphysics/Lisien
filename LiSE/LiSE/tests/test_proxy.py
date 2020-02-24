@@ -30,13 +30,13 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         self.engine = self.manager.start('sqlite:///:memory:')
         self.graphmakers = (self.engine.new_character,)
         self.tempdir = tempfile.mkdtemp(dir='.')
+        self.addCleanup(self._do_cleanup)
         for f in (
                 'trigger.py', 'prereq.py', 'action.py', 'function.py',
                 'method.py', 'strings.json'
         ):
             if os.path.exists(f):
                 os.rename(f, os.path.join(self.tempdir, f))
-        self.addCleanup(self._do_cleanup)
 
     def _do_cleanup(self):
         self.manager.shutdown()
