@@ -158,7 +158,10 @@ def get_points_multi(args):
     xcos = []
     ycos = []
     for (orig, dest, taillen) in args:
-        p1 = _get_points_first_part(orig, dest, taillen)
+        try:
+            p1 = _get_points_first_part(orig, dest, taillen)
+        except ValueError:
+            p1 = 2, 2, 2, 2, 1, 0, 1, 1, 0, 1
         if len(p1) == 2:
             ret[orig, dest] = p1
             continue
