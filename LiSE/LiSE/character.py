@@ -1096,6 +1096,13 @@ class FacadePortal(FacadeEntity):
         except (KeyError, AttributeError):
             self._real = {}
 
+    def __getitem__(self, item):
+        if item == 'origin':
+            return self.orig
+        if item == 'destination':
+            return self.dest
+        return super().__getitem__(item)
+
     def __setitem__(self, k, v):
         if k in ('origin', 'destination'):
             raise TypeError("Portals have fixed origin and destination")
