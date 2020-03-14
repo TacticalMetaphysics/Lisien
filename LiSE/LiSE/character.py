@@ -1285,6 +1285,18 @@ class Facade(AbstractCharacter, nx.DiGraph):
     def add_node(self, name, **kwargs):
         self.place[name] = kwargs
 
+    def remove_node(self, node):
+        if node in self.thing:
+            del self.thing[node]
+        else:
+            del self.place[node]
+
+    def remove_place(self, place):
+        del self.place[place]
+
+    def remove_thing(self, thing):
+        del self.thing[thing]
+
     def add_thing(self, name, **kwargs):
         self.thing[name] = kwargs
 
@@ -1294,6 +1306,9 @@ class Facade(AbstractCharacter, nx.DiGraph):
             mirror = dict(kwargs)
             mirror['is_mirror'] = True
             self.portal[dest][orig] = mirror
+
+    def remove_portal(self, origin, destination):
+        del self.portal[origin][destination]
 
     def add_edge(self, orig, dest, **kwargs):
         self.add_portal(orig, dest, **kwargs)
