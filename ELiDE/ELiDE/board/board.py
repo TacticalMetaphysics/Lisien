@@ -351,7 +351,7 @@ class Board(RelativeLayout):
             Clock.schedule_once(self.on_character, 0)
             return
 
-        self.engine = self.character.engine
+        self.engine = getattr(self.character, 'engine', None)
         self.wallpaper_path = self.character.stat.setdefault('wallpaper', 'wallpape.jpg')
         if '_control' not in self.character.stat or 'wallpaper' not in self.character.stat['_control']:
             control = self.character.stat.setdefault('_control', {})
@@ -625,7 +625,12 @@ class Board(RelativeLayout):
                 if patch:
                     nodes_patch[place_name] = patch
         if nodes_patch:
-            self.character.node.patch(nodes_patch)
+            if hasattr(self.character.node, 'patch'):
+                self.character.node.patch(nodes_patch)
+            else:
+                nodemap = self.character.node
+                for k, v in nodes_patch.items():
+                    nodemap[k].update(v)
         make_spot = self.make_spot
         spotlayout = self.spotlayout
         add_widget_to_spotlayout = spotlayout.add_widget
