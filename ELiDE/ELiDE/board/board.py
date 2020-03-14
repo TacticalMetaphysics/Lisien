@@ -1002,7 +1002,7 @@ class BoardView(StencilView):
     Put the ``Board`` object in my ``board`` property."""
     board = ObjectProperty()
     plane = ObjectProperty()
-    adding_portal = BooleanProperty()
+    adding_portal = BooleanProperty(False)
     reciprocal_portal = BooleanProperty(True)
     scale_min = NumericProperty(allownone=True)
     scale_max = NumericProperty(allownone=True)
