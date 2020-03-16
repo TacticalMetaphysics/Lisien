@@ -971,6 +971,8 @@ class CharacterSenseMapping(MutableMappingUnwrapper, Signal):
 
 
 class FacadeEntity(MutableMapping, Signal):
+    exists = True
+
     def __init__(self, mapping, **kwargs):
         super().__init__()
         self.facade = self.character = mapping.facade
