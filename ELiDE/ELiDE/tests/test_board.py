@@ -8,7 +8,8 @@ from .util import TestTouch
 
 
 class BoardTest(GraphicUnitTest):
-    def test_select_arrow(self):
+    @staticmethod
+    def test_select_arrow():
         char = Facade()
         char.add_place(0, _x=0.1, _y=0.1)
         char.add_place(1, _x=0.2, _y=0.1)
