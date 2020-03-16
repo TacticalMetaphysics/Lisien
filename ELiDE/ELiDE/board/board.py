@@ -727,7 +727,15 @@ class Board(RelativeLayout):
                 if patch:
                     nodes_patch[thing_name] = patch
         if nodes_patch:
-            self.character.node.patch(nodes_patch)
+            nodemap = self.character.node
+            if hasattr(nodemap, 'patch'):
+                self.character.node.patch(nodes_patch)
+            else:
+                for name, node in nodes_patch.items():
+                    if name in nodemap:
+                        nodemap[name].update(node)
+                    else:
+                        nodemap[name] = node
         make_pawn = self.make_pawn
         spotmap = self.spot
         for thing in things2add:
