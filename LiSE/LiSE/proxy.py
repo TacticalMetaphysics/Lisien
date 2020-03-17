@@ -2423,9 +2423,8 @@ class EngineProxy(AbstractEngine):
             return self._submit(self._pull_async, chars, cb)
 
     def _upd_and_cb(self, cb, *args, **kwargs):
-        kwargs['no_del'] = True
-        self._upd_caches(*args, **kwargs)
-        self._set_time(*args, **kwargs)
+        self._upd_caches(*args, no_del=True, **kwargs)
+        self._set_time(*args, no_del=True, **kwargs)
         if cb:
             cb(*args, **kwargs)
 
