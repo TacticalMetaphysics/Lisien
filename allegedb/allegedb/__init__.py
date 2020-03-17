@@ -508,15 +508,6 @@ class ORM(object):
         self._get_node_stuff = (node_objs, self._node_exists, self._make_node)
         self._edge_objs = edge_objs = WeakValueDictionary()
         self._get_edge_stuff = (edge_objs, self._edge_exists, self._make_edge)
-        for k, v in self.query.global_items():
-            if k == 'branch':
-                self._obranch = v
-            elif k == 'turn':
-                self._oturn = int(v)
-            elif k == 'tick':
-                self._otick = int(v)
-            else:
-                self._global_cache[k] = v
         self._childbranch = defaultdict(set)
         """Immediate children of a branch"""
         self._branches = {}
@@ -591,9 +582,15 @@ class ORM(object):
         self._obranch = 'trunk'
         self._otick = self._oturn = 0
         self._init_caches()
+        self._obranch = self.query.get_branch()
+        self._oturn = self.query.get_turn()
+        self._otick = self.query.get_tick()
         for (branch, parent, parent_turn, parent_tick, end_turn, end_tick) in self.query.all_branches():
             self._branches[branch] = (parent, parent_turn, parent_tick, end_turn, end_tick)
             self._upd_branch_parentage(parent, branch)
+        for k, v in self.query.global_items():
+            if k not in {'branch', 'turn', 'tick'}:
+                self._global_cache[k] = v
         for (branch, turn, end_tick, plan_end_tick) in self.query.turns_dump():
             self._turn_end[branch, turn] = end_tick
             self._turn_end_plan[branch, turn] = plan_end_tick
