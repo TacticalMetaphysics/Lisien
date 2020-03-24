@@ -471,7 +471,6 @@ Builder.load_string(
 <StatListView>:
     viewclass: 'StatRowListItemContainer'
     app: app
-    proxy: app.selected_proxy
     RecycleBoxLayout:
         default_size: None, dp(56)
         default_size_hint: 1, None

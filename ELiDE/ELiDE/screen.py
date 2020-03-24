@@ -198,7 +198,6 @@ class MainScreen(Screen):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
             return
-        self.app.bind(selected_proxy=self.statpanel.setter('proxy'))
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -358,6 +357,7 @@ Builder.load_string(
     cfgstatbut: cfgstatbut
     statlist: statlist
     id: statpanel
+    proxy: app.proxy
     Label:
         size_hint_y: 0.05
         text: root.selection_name
