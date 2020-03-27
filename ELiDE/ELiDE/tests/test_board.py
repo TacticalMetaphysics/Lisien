@@ -4,7 +4,7 @@ from kivy.tests.common import GraphicUnitTest
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
 from ELiDE.board.board import Board, BoardView
-from .util import TestTouch
+from .util import MockTouch
 
 
 class BoardTest(GraphicUnitTest):
@@ -29,7 +29,7 @@ class BoardTest(GraphicUnitTest):
             EventLoop.idle()
         ox, oy = board.spot[0].center
         dx, dy = board.spot[1].center
-        motion = TestTouch("unittest", 1, {
+        motion = MockTouch("unittest", 1, {
             'sx': (ox + ((dx - ox) / 2)) / win.width,
             'sy': dy / win.height})
         EventLoop.post_dispatch_input("begin", motion)
@@ -53,7 +53,7 @@ class BoardTest(GraphicUnitTest):
                 or board.spot[0] not in board.spotlayout.children:
             EventLoop.idle()
         x, y = board.spot[0].center
-        motion = TestTouch("unittest", 1, {
+        motion = MockTouch("unittest", 1, {
             'sx': x / win.width,
             'sy': y / win.height})
         EventLoop.post_dispatch_input("begin", motion)
@@ -79,7 +79,7 @@ class BoardTest(GraphicUnitTest):
                 or board.pawn['that'] not in board.spot[0].children:
             EventLoop.idle()
         x, y = board.pawn['that'].center
-        motion = TestTouch("unittest", 1, {
+        motion = MockTouch("unittest", 1, {
             'sx': x / win.width,
             'sy': y / win.height})
         EventLoop.post_dispatch_input("begin", motion)

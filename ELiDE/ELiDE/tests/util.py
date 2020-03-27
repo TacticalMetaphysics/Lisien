@@ -2,7 +2,7 @@ from blinker import Signal
 from kivy.input.motionevent import MotionEvent
 
 
-class TestTouch(MotionEvent):
+class MockTouch(MotionEvent):
     def depack(self, args):
         self.is_touch = True
         self.sx = args['sx']

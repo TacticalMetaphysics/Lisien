@@ -9,7 +9,7 @@ from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from ELiDE.statcfg import StatScreen
 from ELiDE.board.board import Board
-from .util import TestTouch, ListenableDict, MockEngine
+from .util import MockTouch, ListenableDict, MockEngine
 
 
 class ScreenTest(GraphicUnitTest):
@@ -41,7 +41,7 @@ class ScreenTest(GraphicUnitTest):
         x, y = stepbut.center
         sx = x / win.width
         sy = y / win.height
-        motion = TestTouch("unittest", 1, {'sx': sx, 'sy': sy})
+        motion = MockTouch("unittest", 1, {'sx': sx, 'sy': sy})
         EventLoop.post_dispatch_input("begin", motion)
         EventLoop.post_dispatch_input("end", motion)
         EventLoop.idle()
