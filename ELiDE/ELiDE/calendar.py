@@ -24,7 +24,7 @@ from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.clock import Clock
 from kivy.lang import Builder
 
-from .util import trigger
+from ELiDE.util import trigger
 
 
 class CalendarWidget(RecycleDataViewBehavior, Widget):
@@ -401,7 +401,7 @@ if __name__ == '__main__':
     from kivy.app import App
     class CalendarTestApp(App):
         def build(self):
-            self.wid = Agenda()
+            self.wid = Calendar()
             return self.wid
 
         def on_start(self):

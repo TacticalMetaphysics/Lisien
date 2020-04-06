@@ -2089,6 +2089,18 @@ class EngineProxy(AbstractEngine):
         self._rulebook_obj_cache = {}
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
+        self.method = FuncStoreProxy(self, 'method')
+        self.character = CharacterMapProxy(self)
+        self.string = StringStoreProxy(self)
+        self.eternal = EternalVarProxy(self)
+        self.universal = GlobalVarProxy(self)
+        self.rulebook = AllRuleBooksProxy(self)
+        self.rule = AllRulesProxy(self)
+        self.action = FuncStoreProxy(self, 'action')
+        self.prereq = FuncStoreProxy(self, 'prereq')
+        self.trigger = FuncStoreProxy(self, 'trigger')
+        self.function = FuncStoreProxy(self, 'function')
+        self.rando = RandoProxy(self)
         with self.loading():
             self._eternal_cache = self.handle('eternal_delta')
             self._universal_cache = self.handle('universal_delta')
@@ -2150,18 +2162,6 @@ class EngineProxy(AbstractEngine):
                                 char, orig, dest, PortalProxy(character, orig, dest)
                             )
                 self._char_stat_cache[char] = deltas[char]
-        self.method = FuncStoreProxy(self, 'method')
-        self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
-        self.eternal = EternalVarProxy(self)
-        self.universal = GlobalVarProxy(self)
-        self.rulebook = AllRuleBooksProxy(self)
-        self.rule = AllRulesProxy(self)
-        self.action = FuncStoreProxy(self, 'action')
-        self.prereq = FuncStoreProxy(self, 'prereq')
-        self.trigger = FuncStoreProxy(self, 'trigger')
-        self.function = FuncStoreProxy(self, 'function')
-        self.rando = RandoProxy(self)
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
