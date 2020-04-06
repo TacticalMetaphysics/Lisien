@@ -373,6 +373,9 @@ class ELiDEApp(App):
         self.selected_proxy = self._get_selected_proxy()
 
     def on_character_name(self, *args):
+        if not self.engine:
+            Clock.schedule_once(self.on_character_name, 0)
+            return
         self.engine.eternal['boardchar'] = self.engine.character[self.character_name]
 
     def on_character(self, *args):

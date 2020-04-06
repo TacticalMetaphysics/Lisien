@@ -25,8 +25,12 @@ class ScreenTest(GraphicUnitTest):
         app.character = char
         app.engine = app.statcfg.engine = MockEngine()
         char.character = SimpleNamespace(engine=app.engine)
-        app.selected_proxy = app.proxy = app.statcfg.proxy = ListenableDict()
-        screen = MainScreen(app=app, boards={'foo': Board(character=char, app=app)})
+        app.engine.character['foo'] = char
+        entity = ListenableDict()
+        entity.engine = app.engine
+        app.selected_proxy = app.proxy = app.statcfg.proxy = entity
+        screen = MainScreen(app=app, boards={'foo': Board(
+            character=char, app=app)})
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(screen)

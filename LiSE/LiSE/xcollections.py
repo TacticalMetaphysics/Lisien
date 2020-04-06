@@ -163,11 +163,17 @@ class FunctionStore(Signal):
             self._ast = Module(body=[])
             self._ast_idx = {}
         self._need_save = False
+        self._locl = {}
 
     def __getattr__(self, k):
         if self._need_save:
             self.save()
-        return getattr(self._module, k)
+        if self._module:
+            return getattr(self._module, k)
+        elif k in self._locl:
+            return self._locl[k]
+        else:
+            raise AttributeError("No attribute " + repr(k))
 
     def __setattr__(self, k, v):
         if not callable(v):

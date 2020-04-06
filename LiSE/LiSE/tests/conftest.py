@@ -13,7 +13,8 @@ def preclear(tempdir):
 
 def cleanup(tempdir):
     for file in codefiles:
-        os.remove(file)
+        if os.path.exists(file):
+            os.remove(file)
         if os.path.exists(os.path.join(tempdir, file)):
             os.rename(os.path.join(tempdir, file), file)
     os.rmdir(tempdir)
