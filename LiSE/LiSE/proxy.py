@@ -839,8 +839,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
         }
 
     def __getitem__(self, k):
-        if k not in self:
-            raise KeyError("No portals from {}".format(k))
         return SuccessorsProxy(
             self.engine,
             self.name,
@@ -973,8 +971,8 @@ class CharPredecessorsMappingProxy(MutableMapping):
         )
 
     def __delitem__(self, k):
-        for v in self[k]:
-            self.engine.del_portal(self.name, k, v)
+        for v in list(self[k]):
+            self.engine.del_portal(self.name, v, k)
         if k in self._cache:
             del self._cache[k]
 
@@ -1249,6 +1247,8 @@ class AvatarMapProxy(Mapping):
 
 class CharacterProxy(AbstractCharacter):
     rulebook = RulebookProxyDescriptor()
+    adj_cls = CharSuccessorsMappingProxy
+    pred_cls = CharPredecessorsMappingProxy
 
     def thing2place(self, name):
         # TODO
@@ -1428,7 +1428,45 @@ class CharacterProxy(AbstractCharacter):
         self.add_thing(name, location, **kwargs)
         return self.thing[name]
 
+    def remove_node(self, node):
+        if node not in self.node:
+            raise KeyError("No such node: {}".format(node))
+        name = self.name
+        self.engine.handle('del_node', char=name, node=node, block=False, branching=True)
+        placecache = self.place._cache
+        thingcache = self.thing._cache
+        if node in placecache:
+            del placecache[node]
+        else:
+            del thingcache[node]
+        portscache = self.engine._character_portals_cache
+        del portscache.successors[name][node]
+        del portscache.predecessors[name][node]
+
+    def remove_place(self, place):
+        placemap = self.place
+        if place not in placemap:
+            raise KeyError("No such place: {}".format(place))
+        name = self.name
+        self.engine.handle('del_node', char=name, node=place, block=False, branching=True)
+        del placemap._cache[place]
+        portscache = self.engine._character_portals_cache
+        del portscache.successors[name][place]
+        del portscache.predecessors[name][place]
+
+    def remove_thing(self, thing):
+        thingmap = self.thing
+        if thing not in thingmap:
+            raise KeyError("No such thing: {}".format(thing))
+        name = self.name
+        self.engine.handle('del_node', char=name, node=thing, block=False, branching=True)
+        del thingmap._cache[thing]
+        portscache = self.engine._character_portals_cache
+        del portscache.successors[name][thing]
+        del portscache.predecessors[name][thing]
+
     def place2thing(self, node, location):
+        # TODO: cache
         self.engine.handle(
             command='place2thing',
             char=self.name,
@@ -1455,6 +1493,34 @@ class CharacterProxy(AbstractCharacter):
             destination,
             PortalProxy(self, origin, destination)
         )
+        node = self._node
+        placecache = self.place._cache
+
+        if origin not in node:
+            placecache[origin] = PlaceProxy(self, origin)
+        if destination not in node:
+            placecache[destination] = PlaceProxy(self, destination)
+        if symmetrical:
+            self.engine._character_portals_cache.store(
+                self.name,
+                destination,
+                origin,
+                PortalProxy(self, destination, origin)
+            )
+            self.engine._portal_stat_cache[self.name][destination][origin]['is_mirror'] = True
+
+    def remove_portal(self, origin, destination):
+        char_port_cache = self.engine._character_portals_cache
+        cache = char_port_cache.successors[self.name]
+        if origin not in cache or destination not in cache[origin]:
+            raise KeyError("No portal from {} to {}".format(origin, destination))
+        self.engine.handle(
+            'del_portal', char=self.name, orig=origin, dest=destination,
+            block=False, branching=True
+        )
+        char_port_cache.delete(self.name, origin, destination)
+
+    remove_edge = remove_portal
 
     def add_portals_from(self, seq, symmetrical=False):
         l = list(seq)
@@ -1491,6 +1557,7 @@ class CharacterProxy(AbstractCharacter):
         )
 
     def add_avatar(self, graph, node):
+        # TODO: cache
         self.engine.handle(
             command='add_avatar',
             char=self.name,
@@ -1501,6 +1568,7 @@ class CharacterProxy(AbstractCharacter):
         )
 
     def del_avatar(self, graph, node):
+        # TODO: cache
         self.engine.handle(
             command='del_avatar',
             char=self.name,
@@ -1830,10 +1898,12 @@ class PortalObjCache(object):
         self.predecessors = StructuredDefaultDict(2, PortalProxy)
 
     def store(self, char, u, v, obj):
+        print('storing {}->{}'.format(u, v))
         self.successors[char][u][v] = obj
         self.predecessors[char][v][u] = obj
 
     def delete(self, char, u, v):
+        print('deleting {}->{}'.format(u, v))
         del self.successors[char][u][v]
         del self.predecessors[char][v][u]
 
@@ -1979,18 +2049,6 @@ class EngineProxy(AbstractEngine):
         self.logger = logger
         self.send(self.pack({'command': 'get_watched_btt'}))
         self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
-        self.method = FuncStoreProxy(self, 'method')
-        self.eternal = EternalVarProxy(self)
-        self.universal = GlobalVarProxy(self)
-        self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
-        self.rulebook = AllRuleBooksProxy(self)
-        self.rule = AllRulesProxy(self)
-        self.action = FuncStoreProxy(self, 'action')
-        self.prereq = FuncStoreProxy(self, 'prereq')
-        self.trigger = FuncStoreProxy(self, 'trigger')
-        self.function = FuncStoreProxy(self, 'function')
-        self.rando = RandoProxy(self)
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -2092,6 +2150,18 @@ class EngineProxy(AbstractEngine):
                                 char, orig, dest, PortalProxy(character, orig, dest)
                             )
                 self._char_stat_cache[char] = deltas[char]
+        self.method = FuncStoreProxy(self, 'method')
+        self.character = CharacterMapProxy(self)
+        self.string = StringStoreProxy(self)
+        self.eternal = EternalVarProxy(self)
+        self.universal = GlobalVarProxy(self)
+        self.rulebook = AllRuleBooksProxy(self)
+        self.rule = AllRulesProxy(self)
+        self.action = FuncStoreProxy(self, 'action')
+        self.prereq = FuncStoreProxy(self, 'prereq')
+        self.trigger = FuncStoreProxy(self, 'trigger')
+        self.function = FuncStoreProxy(self, 'function')
+        self.rando = RandoProxy(self)
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):
@@ -2362,8 +2432,8 @@ class EngineProxy(AbstractEngine):
             return self._submit(self._pull_async, chars, cb)
 
     def _upd_and_cb(self, cb, *args, **kwargs):
-        self._upd_caches(*args, **kwargs, no_del=True)
-        self._set_time(*args, **kwargs)
+        self._upd_caches(*args, no_del=True, **kwargs)
+        self._set_time(*args, no_del=True, **kwargs)
         if cb:
             cb(*args, **kwargs)
 

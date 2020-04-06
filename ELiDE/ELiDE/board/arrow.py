@@ -158,7 +158,10 @@ def get_points_multi(args):
     xcos = []
     ycos = []
     for (orig, dest, taillen) in args:
-        p1 = _get_points_first_part(orig, dest, taillen)
+        try:
+            p1 = _get_points_first_part(orig, dest, taillen)
+        except ValueError:
+            p1 = 2, 2, 2, 2, 1, 0, 1, 1, 0, 1
         if len(p1) == 2:
             ret[orig, dest] = p1
             continue
@@ -732,19 +735,12 @@ class ArrowLayout(FloatLayout):
         self.redraw()
 
     def add_widget(self, widget, index=0, canvas=None):
-        if index == 0 or len(self.children) == 0:
-            self.children.insert(0, widget)
-        else:
-            children = self.children
-            if index >= len(children):
-                index = len(children)
-
-            children.insert(index, widget)
-        widget.parent = self
+        ret = super().add_widget(widget, index, canvas)
+        if canvas is None:
+            self.canvas.children.remove(widget.canvas)
+        self._trigger_redraw()
+        return ret
 
     def remove_widget(self, widget):
-        if widget not in self.children:
-            return
-        self.children.remove(widget)
-        widget.parent = None
-
+        super().remove_widget(widget)
+        self._trigger_redraw()

@@ -170,12 +170,36 @@ class AbstractCharacter(MutableMapping):
     def add_edges_from(self, seq, **attrs):
         self.add_portals_from(seq, **attrs)
 
+    @abstractmethod
+    def remove_portal(self, origin, destination): pass
+
     def remove_portals_from(self, seq):
         for orig, dest in seq:
             del self.portal[orig][dest]
 
     def remove_edges_from(self, seq):
         self.remove_portals_from(seq)
+
+    @abstractmethod
+    def remove_place(self, place): pass
+
+    def remove_places_from(self, seq):
+        for place in seq:
+            self.remove_place(place)
+
+    @abstractmethod
+    def remove_thing(self, thing): pass
+
+    def remove_things_from(self, seq):
+        for thing in seq:
+            self.remove_thing(thing)
+
+    @abstractmethod
+    def remove_node(self, node): pass
+
+    def remove_nodes_from(self, seq):
+        for node in seq:
+            self.remove_node(node)
 
     @abstractmethod
     def add_avatar(self, a, b=None): pass
@@ -948,6 +972,8 @@ class CharacterSenseMapping(MutableMappingUnwrapper, Signal):
 
 
 class FacadeEntity(MutableMapping, Signal):
+    exists = True
+
     def __init__(self, mapping, **kwargs):
         super().__init__()
         self.facade = self.character = mapping.facade
@@ -1072,6 +1098,13 @@ class FacadePortal(FacadeEntity):
             self._real = self.facade.character.portal[self.orig][self.dest]
         except (KeyError, AttributeError):
             self._real = {}
+
+    def __getitem__(self, item):
+        if item == 'origin':
+            return self.orig
+        if item == 'destination':
+            return self.dest
+        return super().__getitem__(item)
 
     def __setitem__(self, k, v):
         if k in ('origin', 'destination'):
@@ -1262,6 +1295,18 @@ class Facade(AbstractCharacter, nx.DiGraph):
     def add_node(self, name, **kwargs):
         self.place[name] = kwargs
 
+    def remove_node(self, node):
+        if node in self.thing:
+            del self.thing[node]
+        else:
+            del self.place[node]
+
+    def remove_place(self, place):
+        del self.place[place]
+
+    def remove_thing(self, thing):
+        del self.thing[thing]
+
     def add_thing(self, name, **kwargs):
         self.thing[name] = kwargs
 
@@ -1271,6 +1316,9 @@ class Facade(AbstractCharacter, nx.DiGraph):
             mirror = dict(kwargs)
             mirror['is_mirror'] = True
             self.portal[dest][orig] = mirror
+
+    def remove_portal(self, origin, destination):
+        del self.portal[origin][destination]
 
     def add_edge(self, orig, dest, **kwargs):
         self.add_portal(orig, dest, **kwargs)
@@ -1396,6 +1444,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     """
     _book = "character"
+    remove_portal = getatt('remove_edge')
 
     @property
     def character(self):
@@ -1458,7 +1507,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     continue
 
         def __contains__(self, thing):
-            args = self.character.name, thing, *self.engine._btt()
+            branch, turn, tick = self.engine._btt()
+            args = self.character.name, thing, branch, turn, tick
             cache = self.engine._things_cache
             return cache.contains_key(*args) and cache.retrieve(*args) is not None
 
@@ -1985,6 +2035,16 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def add_places_from(self, seq, **attrs):
         """Take a series of place names and add the lot."""
         super().add_nodes_from(seq, **attrs)
+
+    def remove_place(self, place):
+        if place in self.place:
+            self.remove_node(place)
+        raise KeyError("No such place: {}".format(place))
+
+    def remove_thing(self, thing):
+        if thing in self.thing:
+            self.remove_node(thing)
+        raise KeyError("No such thing: {}".format(thing))
 
     def add_thing(self, name, location, **kwargs):
         """Create a Thing, set its location,

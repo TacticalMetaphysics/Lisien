@@ -21,7 +21,8 @@ you asked for (and thus, keys must be orderable). It is optimized for retrieval
 of the same key and neighboring ones repeatedly and in sequence.
 
 """
-from collections import deque, Mapping, MutableMapping, KeysView, ItemsView, ValuesView
+from collections import deque
+from collections.abc import Mapping, MutableMapping, KeysView, ItemsView, ValuesView
 from operator import itemgetter, lt, le
 from itertools import chain
 try:

@@ -1,0 +1,20 @@
+Manual tests to perform on ELiDE before making a release.
+
+* Open and close the app with all the example scenarios, make sure they look right.
+* Create Places with various graphics.
+* Create Things with various graphics.
+* Place Things on Places of various graphics (big ones, little ones)
+* Move Things between Places.
+* Move Places about (with and without Things in them)
+* Create Portals, one-way and two way
+* Move Places about when there are Portals between them
+* Delete Places with and without Things in, with and without Portals going to/from them
+* Delete Things
+* On all the entity types, create, alter, and delete stats of all types
+* Travel through time and make sure it's as you remember, after a variety of changes, forwards, backwards, and between branches
+* Make new branches by creating or deleting stuff in the past
+* Create and delete Characters
+* Switch between Characters
+* Edit some strings
+* Edit some code
+* Actually run a simulation with the edited code, before and after closing and reopening the app

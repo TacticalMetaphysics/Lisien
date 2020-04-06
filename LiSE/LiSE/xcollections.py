@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in LiSE, of which most can be bound to."""
 from collections import Mapping, MutableMapping
+from copy import deepcopy
 from types import MethodType
 from inspect import getsource
 from ast import parse, Expr, Module
@@ -26,6 +27,10 @@ from blinker import Signal
 from astunparse import unparse, Unparser
 
 from .util import dedent_source
+
+
+if sys.version_info.minor < 6:
+    ModuleNotFoundError = ImportError
 
 
 class Language(str):
@@ -370,13 +375,7 @@ class CharacterMapping(MutableMapping, Signal):
         self.send(self, key=name, val=None)
 
 
-class CompositeDict(Mapping):
-    """Read-only mapping that looks up values in a first dict if
-    available, then a second dict if possible.
-
-    Assumes the dicts have no overlap.
-
-    """
+class CompositeDict(MutableMapping):
     __slots__ = ['d1', 'd2']
 
     def __init__(self, d1, d2):
@@ -401,3 +400,24 @@ class CompositeDict(Mapping):
             return self.d1[k]
         except KeyError:
             return self.d2[k]
+
+    def __setitem__(self, key, value):
+        self.d1[key] = value
+
+    def __delitem__(self, key):
+        deleted = False
+        if key in self.d2:
+            deleted = True
+            del self.d2[key]
+        if key in self.d1:
+            deleted = True
+            del self.d1[key]
+        if not deleted:
+            raise KeyError("{} is in neither of my wrapped dicts".format(key))
+
+    def patch(self, d):
+        for k, v in d.items():
+            if k in self:
+                self[k].update(v)
+            else:
+                self[k] = deepcopy(v)

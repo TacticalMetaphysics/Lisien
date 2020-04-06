@@ -405,6 +405,12 @@ class ELiDEApp(App):
         if selection is None:
             return
         if isinstance(selection, ArrowWidget):
+            if selection.reciprocal and selection.reciprocal.portal.get('is_mirror', False):
+                selection.reciprocal.portal.delete()
+                self.mainscreen.boardview.board.rm_arrow(
+                    selection.destination.name,
+                    selection.origin.name
+                )
             self.mainscreen.boardview.board.rm_arrow(
                 selection.origin.name,
                 selection.destination.name

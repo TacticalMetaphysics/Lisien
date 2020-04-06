@@ -233,6 +233,24 @@ class QueryEngine(object):
         for (k, v) in self.sql('global_dump'):
             yield (unpack(k), unpack(v))
 
+    def get_branch(self):
+        v = self.sql('global_get', self.pack('branch')).fetchone()
+        if v is None:
+            return 'trunk'
+        return self.unpack(v[0])
+
+    def get_turn(self):
+        v = self.sql('global_get', self.pack('turn')).fetchone()
+        if v is None:
+            return 0
+        return self.unpack(v[0])
+
+    def get_tick(self):
+        v = self.sql('global_get', self.pack('tick')).fetchone()
+        if v is None:
+            return 0
+        return self.unpack(v[0])
+
     def global_set(self, key, value):
         """Set ``key`` to ``value`` globally (not at any particular branch or
         revision)

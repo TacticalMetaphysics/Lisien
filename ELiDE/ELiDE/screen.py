@@ -427,6 +427,7 @@ Builder.load_string(
     cfgstatbut: cfgstatbut
     statlist: statlist
     id: statpanel
+    proxy: app.proxy
     Label:
         size_hint_y: 0.05
         text: root.selection_name

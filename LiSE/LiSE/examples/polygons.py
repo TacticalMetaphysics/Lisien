@@ -105,7 +105,7 @@ if __name__ == '__main__':
         import cProfile
 
         def test():
-            with Engine('LiSEworld.db') as eng:
+            with Engine() as eng:
                 for n in range(10):
                     eng.next_turn()
 

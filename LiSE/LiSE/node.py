@@ -30,18 +30,6 @@ from .util import getatt
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError
-from .reify import reify
-
-
-class RuleMapping(rule.RuleMapping):
-    """Version of :class:`LiSE.rule.RuleMapping` that works more easily
-    with a node.
-
-    """
-    def __init__(self, node):
-        """Initialize with node's engine, character, and rulebook."""
-        super().__init__(node.engine, node.rulebook)
-        self.node = node
 
 
 class UserMapping(Mapping):
@@ -213,8 +201,6 @@ class Dests(Mapping):
         )
 
     def __getitem__(self, item):
-        if item not in self:
-            raise KeyError
         portal, name = self._pn
         return portal[name][item]
 
@@ -309,7 +295,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
     no_unwrap = True
 
     def _get_rule_mapping(self):
-        return RuleMapping(self)
+        return rule.RuleMapping(self.db, self.rulebook)
 
     def _get_rulebook_name(self):
         try:
@@ -338,15 +324,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         cache.store(character, node, branch, turn, tick, rulebook)
         self.engine.query.set_node_rulebook(character, node, branch, turn, tick, rulebook)
 
-    @reify
-    def portal(self):
-        """Return a mapping of portals connecting this node to its neighbors."""
-        return Dests(self)
     successor = adj = edge = getatt('portal')
-
-    @reify
-    def preportal(self):
-        return Origs(self)
     predecessor = pred = getatt('preportal')
 
     user = UserDescriptor()
@@ -359,6 +337,14 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         """Store character and name, and initialize caches"""
         super().__init__(character, name)
         self.db = character.engine
+
+    @property
+    def portal(self):
+        return Dests(self)
+
+    @property
+    def preportal(self):
+        return Origs(self)
 
     def __iter__(self):
         yield from super().__iter__()
