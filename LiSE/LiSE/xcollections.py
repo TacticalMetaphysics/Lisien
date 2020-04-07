@@ -146,14 +146,15 @@ class FunctionStore(Signal):
         self._filename = fullname = os.path.abspath(os.path.realpath(filename))
         path, filename = os.path.split(fullname)
         modname = filename[:-3]
-        if modname in sys.modules:
-            raise ValueError("already imported " + modname + ", can't make FunctionStore")
         if sys.path[0] != path:
             if path in sys.path:
                 sys.path.remove(path)
             sys.path.insert(0, path)
         try:
-            self._module = importlib.import_module(modname)
+            if modname in sys.modules:
+                self._module = sys.modules[modname]
+            else:
+                self._module = importlib.import_module(modname)
             self._ast = parse(self._module.__loader__.get_data(fullname))
             self._ast_idx = {}
             for i, node in enumerate(self._ast.body):
@@ -163,11 +164,17 @@ class FunctionStore(Signal):
             self._ast = Module(body=[])
             self._ast_idx = {}
         self._need_save = False
+        self._locl = {}
 
     def __getattr__(self, k):
         if self._need_save:
             self.save()
-        return getattr(self._module, k)
+        if self._module:
+            return getattr(self._module, k)
+        elif k in self._locl:
+            return self._locl[k]
+        else:
+            raise AttributeError("No attribute " + repr(k))
 
     def __setattr__(self, k, v):
         if not callable(v):
