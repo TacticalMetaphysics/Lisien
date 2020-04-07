@@ -151,6 +151,30 @@ MSGPACK_PREREQ = 0x77
 MSGPACK_ACTION = 0x76
 
 
+class AbstractSchema(ABC):
+    def __init__(self, engine):
+        self.engine = engine
+
+    @abstractmethod
+    def entity_permitted(self, entity):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_validator(self, entity):
+        raise NotImplementedError
+
+    def get_not_permitted_entity_message(self, entity):
+        return
+
+
+class NullSchema(AbstractSchema):
+    def entity_permitted(self, entity):
+        return True
+
+    def get_validator(self, entity):
+        return lambda k, v: True
+
+
 class AbstractEngine(object):
     """Parent class to the real Engine as well as EngineProxy.
 
@@ -1054,6 +1078,7 @@ class Engine(AbstractEngine, gORM):
             prereq='prereq.py',
             action='action.py',
             connect_args={},
+            schema_cls=NullSchema,
             alchemy=False,
             commit_modulus=None,
             random_seed=None,
@@ -1137,6 +1162,7 @@ class Engine(AbstractEngine, gORM):
                 os.remove(action)
         else:
             self.action = action
+        self.schema = schema_cls(self)
         super().__init__(
             worlddb,
             connect_args=connect_args,
