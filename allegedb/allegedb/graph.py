@@ -271,8 +271,10 @@ class Node(AbstractEntityMapping):
                  '_set_db_stuff', '_set_cache_stuff')
 
     def __new__(cls, graph, node):
-        if (graph.name, node) in graph.db._node_objs:
-            ret = graph.db._node_objs[graph.name, node]
+        gnn = (graph.name, node)
+        nobjs = graph.db._node_objs
+        if gnn in nobjs:
+            ret = nobjs[gnn]
             if not isinstance(ret, cls):
                 raise EntityCollisionError("Already have node {} in graph {}, but it's of class {}".format(
                     node, graph.name, type(ret)))
