@@ -351,8 +351,10 @@ class Edge(AbstractEntityMapping):
                  '_get_cache_stuff', '_set_db_stuff', '_set_cache_stuff')
 
     def __new__(cls, graph, orig, dest, idx=0):
-        if (graph.name, orig, dest, idx) in graph.db._edge_objs:
-            ret = graph.db._edge_objs[graph.name, orig, dest, idx]
+        gnodi = (graph.name, orig, dest, idx)
+        edgeobjs = graph.db._edge_objs
+        if gnodi in edgeobjs:
+            ret = edgeobjs[gnodi]
             if not isinstance(ret, cls):
                 raise EntityCollisionError(
                     "Already have an edge {}->{}[{}] in graph {}, but of class {}".format(
