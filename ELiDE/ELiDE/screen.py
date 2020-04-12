@@ -442,11 +442,6 @@ Builder.load_string(
         size_hint_y: 0.1
         text: root.button_text
         on_release: root.toggle_stat_cfg()
-    Button:
-        id: calbut
-        size_hint_y: 0.1
-        text: "toggle agenda"
-        on_release: root.toggle_calendar()
 <SimulateButton>:
     graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
     graphics_bot: self.y + self.font_size + 3
