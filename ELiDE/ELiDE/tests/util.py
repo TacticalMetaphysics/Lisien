@@ -15,8 +15,15 @@ class ListenableDict(dict, Signal):
         Signal.__init__(self)
 
 
+class MockTime(Signal):
+    pass
+
+
 class MockEngine(Signal):
+    eternal = ListenableDict()
     universal = ListenableDict()
+    character = ListenableDict()
+    time = MockTime()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,3 +40,6 @@ class MockEngine(Signal):
     def next_turn(self, *args, **kwargs):
         self.turn += 1
         kwargs['cb']('next_turn', 'master', self.turn, 0, ([], {}))
+
+    def handle(self, *args, **kwargs):
+        return {'a': 'b'}

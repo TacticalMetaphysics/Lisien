@@ -1247,3 +1247,16 @@ class EngineHandle(object):
 
     def is_parent_of(self, parent, child):
         return self._real.is_parent_of(parent, child)
+
+    def apply_choice(self, entity, key, value, dry_run=False):
+        return self._real.apply_choice(entity, key, value, dry_run)
+
+    def apply_choices(self, choices, dry_run=False, perfectionist=False):
+        return self._real.apply_choices(choices, dry_run, perfectionist)
+
+    @staticmethod
+    def get_schedule(entity, stats, beginning, end):
+        ret = {}
+        for stat in stats:
+            ret[stat] = list(entity.historical(stat).iter_history(beginning, end))
+        return ret

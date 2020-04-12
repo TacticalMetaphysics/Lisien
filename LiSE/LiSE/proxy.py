@@ -41,7 +41,8 @@ from allegedb.cache import HistoryError, PickyDefaultDict, StructuredDefaultDict
 from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .engine import AbstractEngine
 from .character import Facade, AbstractCharacter
-from .util import reify, getatt
+from .reify import reify
+from .util import getatt
 from .handle import EngineHandle
 from .xcollections import AbstractLanguageDescriptor
 from .node import NodeContent, UserMapping, UserDescriptor
@@ -1687,9 +1688,12 @@ class StringStoreProxy(Signal):
 
 
 class EternalVarProxy(MutableMapping):
+    @property
+    def _cache(self):
+        return self.engine._eternal_cache
+
     def __init__(self, engine_proxy):
         self.engine = engine_proxy
-        self._cache = self.engine.handle('eternal_delta')
 
     def __contains__(self, k):
         return k in self._cache
@@ -1728,10 +1732,13 @@ class EternalVarProxy(MutableMapping):
 
 
 class GlobalVarProxy(MutableMapping, Signal):
+    @property
+    def _cache(self):
+        return self.engine._universal_cache
+
     def __init__(self, engine_proxy):
         super().__init__()
         self.engine = engine_proxy
-        self._cache = {}
 
     def __iter__(self):
         return iter(self._cache)
@@ -2082,7 +2089,21 @@ class EngineProxy(AbstractEngine):
         self._rulebook_obj_cache = {}
         self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
+        self.method = FuncStoreProxy(self, 'method')
+        self.character = CharacterMapProxy(self)
+        self.string = StringStoreProxy(self)
+        self.eternal = EternalVarProxy(self)
+        self.universal = GlobalVarProxy(self)
+        self.rulebook = AllRuleBooksProxy(self)
+        self.rule = AllRulesProxy(self)
+        self.action = FuncStoreProxy(self, 'action')
+        self.prereq = FuncStoreProxy(self, 'prereq')
+        self.trigger = FuncStoreProxy(self, 'trigger')
+        self.function = FuncStoreProxy(self, 'function')
+        self.rando = RandoProxy(self)
         with self.loading():
+            self._eternal_cache = self.handle('eternal_delta')
+            self._universal_cache = self.handle('universal_delta')
             deltas = self.handle('get_char_deltas', chars='all')
             for char in deltas:
                 self._char_cache[char] = character = CharacterProxy(self, char)
@@ -2141,18 +2162,6 @@ class EngineProxy(AbstractEngine):
                                 char, orig, dest, PortalProxy(character, orig, dest)
                             )
                 self._char_stat_cache[char] = deltas[char]
-        self.method = FuncStoreProxy(self, 'method')
-        self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
-        self.eternal = EternalVarProxy(self)
-        self.universal = GlobalVarProxy(self)
-        self.rulebook = AllRuleBooksProxy(self)
-        self.rule = AllRulesProxy(self)
-        self.action = FuncStoreProxy(self, 'action')
-        self.prereq = FuncStoreProxy(self, 'prereq')
-        self.trigger = FuncStoreProxy(self, 'trigger')
-        self.function = FuncStoreProxy(self, 'function')
-        self.rando = RandoProxy(self)
 
     def delistify(self, obj):
         if not (isinstance(obj, list) or isinstance(obj, tuple)):

@@ -31,7 +31,7 @@ from kivy.properties import (
     StringProperty
 )
 import LiSE
-from LiSE.proxy import EngineProcessManager
+from LiSE.proxy import EngineProcessManager, CharStatProxy
 import ELiDE
 import ELiDE.dialog
 import ELiDE.screen
@@ -134,7 +134,6 @@ class ELiDEApp(App):
         config.setdefaults(
             'ELiDE',
             {
-                'boardchar': 'physical',
                 'debugger': 'no',
                 'inspector': 'no',
                 'user_kv': 'yes',
@@ -225,9 +224,11 @@ class ELiDEApp(App):
             tick=self._push_time
         )
 
-        char = config['ELiDE']['boardchar']
-        if char not in self.engine.character:
-            self.engine.add_character(char)
+        if 'boardchar' not in self.engine.eternal:
+            if 'physical' in self.engine.character:
+                self.engine.eternal['boardchar'] = self.engine.character['physical']
+            else:
+                self.engine.eternal['boardchar'] = self.engine.new_character('physical')
         self._started = True
 
     def _add_screens(self, *args):
@@ -291,11 +292,7 @@ class ELiDEApp(App):
             toggle=toggler('funcs')
         )
 
-        self.select_character(
-            self.engine.character[
-                config['ELiDE']['boardchar']
-            ]
-        )
+        self.select_character(self.engine.eternal['boardchar'])
 
         self.statcfg = ELiDE.statcfg.StatScreen(
             toggle=toggler('statcfg'),
@@ -335,6 +332,27 @@ class ELiDEApp(App):
         ):
             self.manager.add_widget(wid)
 
+    def update_calendar(self, calendar, past_turns=1, future_turns=5):
+        # TODO: make the turn range configurable
+        startturn = self.turn - past_turns
+        endturn = self.turn + future_turns
+        stats = ['_config'] + [
+            stat for stat in self.selected_proxy if not stat.startswith('_')
+            and stat not in ('character', 'name')
+        ]
+        if isinstance(self.selected_proxy, CharStatProxy):
+            sched_entity = self.engine.character[self.selected_proxy.name]
+        else:
+            sched_entity = self.selected_proxy
+        calendar.entity = sched_entity
+        calendar.from_schedule(
+            self.engine.handle(
+                'get_schedule', entity=sched_entity,
+                stats=stats, beginning=startturn, end=endturn
+            ),
+            start_turn=startturn
+        )
+
     def _set_language(self, lang):
         self.engine.string.language = lang
 
@@ -355,8 +373,10 @@ class ELiDEApp(App):
         self.selected_proxy = self._get_selected_proxy()
 
     def on_character_name(self, *args):
-        if self.config['ELiDE']['boardchar'] != self.character_name:
-            self.config['ELiDE']['boardchar'] = self.character_name
+        if not self.engine:
+            Clock.schedule_once(self.on_character_name, 0)
+            return
+        self.engine.eternal['boardchar'] = self.engine.character[self.character_name]
 
     def on_character(self, *args):
         if not hasattr(self, 'mainscreen'):

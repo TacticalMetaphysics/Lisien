@@ -9,12 +9,14 @@ from functools import partial
 from collections import defaultdict
 from operator import attrgetter
 from types import FunctionType, MethodType
+from abc import ABC, abstractmethod
 
 import msgpack
 from blinker import Signal
 from allegedb import ORM as gORM
 from allegedb.cache import HistoryError
-from .util import reify, sort_set
+from .reify import reify
+from .util import sort_set
 
 from . import exc
 
@@ -498,6 +500,30 @@ class AbstractEngine(object):
     weibullvariate = getnoplan('_rando.weibullvariate')
 
 
+class AbstractSchema(ABC):
+    def __init__(self, engine):
+        self.engine = engine
+
+    @abstractmethod
+    def entity_permitted(self, entity):
+        raise NotImplementedError
+
+    @abstractmethod
+    def validate(self, turn, entity, key, value):
+        raise NotImplementedError
+
+    def get_not_permitted_entity_message(self, entity):
+        return
+
+
+class NullSchema(AbstractSchema):
+    def entity_permitted(self, entity):
+        return True
+
+    def validate(self, turn, entity, key, value):
+        return True
+
+
 class Engine(AbstractEngine, gORM):
     """LiSE, the Life Simulator Engine.
 
@@ -569,6 +595,10 @@ class Engine(AbstractEngine, gORM):
 
     def _make_edge(self, graph, orig, dest, idx=0):
         return self.portal_cls(graph, orig, dest)
+
+    def _load_graphs(self):
+        for charn in self.query.characters():
+            self._graph_objs[charn] = self.char_cls(self, charn, init_rulebooks=False)
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to the world.
@@ -1024,6 +1054,7 @@ class Engine(AbstractEngine, gORM):
             prereq='prereq.py',
             action='action.py',
             connect_args={},
+            schema_cls=NullSchema,
             alchemy=False,
             commit_modulus=None,
             random_seed=None,
@@ -1107,6 +1138,7 @@ class Engine(AbstractEngine, gORM):
                 os.remove(action)
         else:
             self.action = action
+        self.schema = schema_cls(self)
         super().__init__(
             worlddb,
             connect_args=connect_args,
@@ -1655,3 +1687,83 @@ class Engine(AbstractEngine, gORM):
         return self._node_contents_cache.retrieve(
                 character, node, *self._btt()
         )
+
+    def apply_choice(self, entity, key, value, dry_run=False):
+        schema = self.schema
+        assert schema.entity_permitted(entity)
+        val = schema.validate(self.turn, entity, key, value)
+        if not val:
+            return val
+        if type(val) is tuple:
+            res, msg = val
+            if res and not dry_run:
+                entity[key] = value
+            return msg
+        if not dry_run:
+            entity[key] = value
+
+    def apply_choices(self, choices, dry_run=False, perfectionist=False):
+        """Validate changes a player wants to make, and apply if acceptable.
+
+        Returns a pair of lists containing acceptance and rejection messages,
+        which the UI may present as it sees fit. They are always in a pair with
+        the change request as the zeroth item. The message may be None or a string.
+
+        Validator functions may return only a boolean indicating acceptance.
+        If they instead return a pair, the initial boolean indicates acceptance
+        and the following item is the message.
+
+        This function will not actually result in any simulation happening.
+        It creates a plan. See my ``plan`` context manager for the precise
+        meaning of this.
+
+        With ``dry_run=True`` just return the acceptances and rejections without
+        really planning anything. With ``perfectionist=True`` apply changes if
+        and only if all of them are accepted.
+
+        """
+        schema = self.schema
+        todo = defaultdict(list)
+        acceptances = []
+        rejections = []
+        for track in choices:
+            entity = track['entity']
+            permissible = schema.entity_permitted(entity)
+            if not permissible:
+                msg = schema.get_not_permitted_entity_message(entity)
+                for turn, changes in enumerate(track['changes'], start=self.turn):
+                    rejections.extend(
+                        ((turn, entity, k, v), msg) for (k, v) in changes
+                    )
+                continue
+            for turn, changes in enumerate(track['changes'], start=self.turn):
+                for k, v in changes:
+                    ekv = (entity, k, v)
+                    parcel = (turn, entity, k, v)
+                    val = schema.validate(*parcel)
+                    if type(val) is tuple:
+                        accept, message = val
+                        if accept:
+                            todo[turn].append(ekv)
+                            l = acceptances
+                        else:
+                            l = rejections
+                        l.append((parcel, message))
+                    elif val:
+                        todo[turn].append(ekv)
+                        acceptances.append((parcel, None))
+                    else:
+                        rejections.append((parcel, None))
+        if dry_run or (perfectionist and rejections):
+            return acceptances, rejections
+        now = self.turn
+        with self.plan():
+            for turn in sorted(todo):
+                self.turn = turn
+                for entity, key, value in todo[turn]:
+                    if isinstance(entity, self.char_cls):
+                        entity.stat[key] = value
+                    else:
+                        entity[key] = value
+        self.turn = now
+        return acceptances, rejections

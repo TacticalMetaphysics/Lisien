@@ -225,7 +225,7 @@ Builder.load_string("""
                 center_y: portaladdbut.center_y
                 size: (0, 0)
             ArrowWidget:
-                board: root.screen.boardview.board if root.screen else None
+                board: root.screen.boardview.board if root.screen and root.screen.boardview else None
                 origin: emptyleft
                 destination: emptyright
         Button:

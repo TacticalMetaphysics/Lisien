@@ -29,6 +29,8 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -43,6 +45,8 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
+from .board.board import BoardView
+from .calendar import Agenda
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -69,6 +73,7 @@ class StatListPanel(BoxLayout):
     engine = ObjectProperty()
     proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
+    toggle_calendar = ObjectProperty()
 
     def on_proxy(self, *args):
         if hasattr(self.proxy, 'name'):
@@ -174,6 +179,7 @@ class MainScreen(Screen):
     manager = ObjectProperty()
     boards = DictProperty()
     boardview = ObjectProperty()
+    mainview = ObjectProperty()
     charmenu = ObjectProperty()
     statlist = ObjectProperty()
     statpanel = ObjectProperty()
@@ -194,10 +200,57 @@ class MainScreen(Screen):
     app = ObjectProperty()
     tmp_block = BooleanProperty(False)
 
+    def on_mainview(self, *args):
+        if not all((self.statpanel, self.charmenu, self.app)) or not self.charmenu.portaladdbut:
+            Clock.schedule_once(self.on_mainview, 0)
+            return
+        self.boardview = BoardView(
+            scale_min=0.2,
+            scale_max=4.0,
+            size=self.mainview.size,
+            pos=self.mainview.pos,
+            board=self.boards[self.app.character_name],
+            adding_portal=self.charmenu.portaladdbut.state == 'down'
+        )
+        def update_adding_portal(*args):
+            self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
+        def update_board(*args):
+            self.boardview.board = self.boards[self.app.character_name]
+        self.mainview.bind(
+            size=self.boardview.setter('size'),
+            pos=self.boardview.setter('pos')
+        )
+        self.charmenu.portaladdbut.bind(state=update_adding_portal)
+        self.app.bind(character_name=update_board)
+        self.calendar = Agenda(
+            update_mode='present'
+        )
+        self.calendar_view = ScrollView(
+            size=self.mainview.size,
+            pos=self.mainview.pos
+        )
+        self.mainview.bind(
+            size=self.calendar_view.setter('size'),
+            pos=self.calendar_view.setter('pos')
+        )
+        self.calendar_view.add_widget(self.calendar)
+        self.mainview.add_widget(self.boardview)
+
     def on_statpanel(self, *args):
         if not self.app:
             Clock.schedule_once(self.on_statpanel, 0)
             return
+        self._update_statlist()
+        self.app.bind(
+            selected_proxy=self._update_statlist,
+            branch=self._update_statlist,
+            turn=self._update_statlist,
+            tick=self._update_statlist
+        )
+
+    @trigger
+    def _update_statlist(self, *args):
+        self.app.update_calendar(self.statpanel.statlist, past_turns=0, future_turns=0)
 
     def pull_visibility(self, *args):
         self.visible = self.manager.current == 'main'
@@ -242,7 +295,7 @@ class MainScreen(Screen):
                 return True
         if self.dialoglayout.dispatch('on_touch_down', touch):
             return True
-        return self.boardview.dispatch('on_touch_down', touch)
+        return self.mainview.dispatch('on_touch_down', touch)
 
     def on_touch_up(self, touch):
         if self.timepanel.collide_point(*touch.pos):
@@ -348,6 +401,23 @@ class MainScreen(Screen):
         )
         eng.next_turn(cb=self._update_from_next_turn)
 
+    def switch_to_calendar(self, *args):
+        self.app.update_calendar(self.calendar)
+        self.mainview.clear_widgets()
+        self.mainview.add_widget(self.calendar_view)
+
+    def switch_to_boardview(self, *args):
+        self.mainview.clear_widgets()
+        self.app.engine.handle('apply_choices', choices=[self.calendar.get_track()])
+        self.mainview.add_widget(self.boardview)
+
+    def toggle_mainview(self, *args):
+        # TODO decide how to handle switching between >2 view types
+        if self.boardview in self.mainview.children:
+            self.switch_to_calendar()
+        else:
+            self.switch_to_boardview()
+
 
 Builder.load_string(
     """
@@ -357,15 +427,16 @@ Builder.load_string(
     cfgstatbut: cfgstatbut
     statlist: statlist
     id: statpanel
-    proxy: app.proxy
+    proxy: app.selected_proxy
     Label:
         size_hint_y: 0.05
         text: root.selection_name
-    StatListView:
+        bold: True
+    Calendar:
         id: statlist
-        size_hint_y: 0.9
-        engine: root.engine
-        proxy: root.proxy
+        size_hint_y: 0.8
+        entity: root.proxy
+        update_mode: 'present'
     Button:
         id: cfgstatbut
         size_hint_y: 0.1
@@ -462,7 +533,7 @@ Builder.load_string(
     app: app
     dummyplace: charmenu.dummyplace
     dummything: charmenu.dummything
-    boardview: boardview
+    mainview: mainview
     playbut: timepanel.playbut
     portaladdbut: charmenu.portaladdbut
     charmenu: charmenu
@@ -470,23 +541,21 @@ Builder.load_string(
     statpanel: statpanel
     timepanel: timepanel
     dialoglayout: dialoglayout
-    BoardView:
-        id: boardview
-        scale_min: 0.2
-        scale_max: 4.0
+    Widget:
+        id: mainview
         x: statpanel.right
         y: 0
         size_hint: (None, None)
         width: charmenu.x - statpanel.right
         height: root.height
-        board: root.boards[app.character_name]
-        adding_portal: charmenu.portaladdbut.state == 'down'
     StatListPanel:
         id: statpanel
         engine: app.engine
         toggle_stat_cfg: app.statcfg.toggle
+        toggle_calendar: root.toggle_mainview
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
+        selection_name: str(app.selected_proxy.name) if app.selected_proxy else ''
     TimePanel:
         id: timepanel
         screen: root

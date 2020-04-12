@@ -92,6 +92,24 @@ statcfg
 
 statlist
 --------
+A two-column table of an entity's stats and their values.
+
+By default, stats' values are displayed as read-only text, but an entity
+with a dictionary stat named `"_config"` may display them other ways by
+setting a key with the same name as the stat to a dictionary value,
+with its key `"control"` set to one of:
+
+* `"readout"` for the default read-only text display.
+* `"textinput"` for editable text, to be parsed as a Python dictionary,
+   list, tuple, or string. If the content cannot be parsed, it will be
+   treated as a string. Surround the content with quotation marks if you
+   want to be sure it is a string.
+* `"slider"` for picking a number within a range. Set the keys `"min"`
+   and `"max"` to specify the range.
+* `"togglebutton"` for switching between `True` and `False`. To display
+   a different string for each, set the keys `"true_text"` and
+   `"false_text"`.
+
 .. automodule:: ELiDE.statlist
     :members:
 

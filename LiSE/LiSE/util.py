@@ -20,7 +20,6 @@ from collections.abc import Set
 from operator import attrgetter, add, sub, mul, pow, truediv, floordiv, mod
 from functools import partial
 from textwrap import dedent
-from .reify import reify
 
 
 def getatt(attribute_name):
@@ -144,6 +143,29 @@ class EntityStatAccessor(object):
 
     def __getitem__(self, k):
         return self.munge(lambda x: x[k])
+
+    def iter_history(self, beginning, end):
+        """Iterate over all the values this stat has had in the given window, inclusive.
+
+        """
+        # It might be useful to do this in a way that doesn't change the engine's time, perhaps for thread safety
+        engine = self.engine
+        entity = self.entity
+        oldturn = engine.turn
+        oldtick = engine.tick
+        stat = self.stat
+        for turn in range(beginning, end+1):
+            engine.turn = turn
+            try:
+                y = entity[stat]
+            except KeyError:
+                yield None
+                continue
+            if hasattr(y, 'unwrap'):
+                y = y.unwrap()
+            yield y
+        engine.turn = oldturn
+        engine.tick = oldtick
 
 
 def dedent_source(source):
