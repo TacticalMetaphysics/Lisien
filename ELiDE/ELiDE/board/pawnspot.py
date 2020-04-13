@@ -32,23 +32,21 @@ from kivy.graphics import (
 )
 from kivy.uix.layout import Layout
 from kivy.clock import Clock
-from ELiDE.kivygarden.texturestack import ImageStack
 from ..util import trigger
+from ..imagestackproxy import ImageStackProxy
 
 
-class PawnSpot(ImageStack, Layout):
+class PawnSpot(ImageStackProxy, Layout):
     """The kind of ImageStack that represents a :class:`Thing` or
     :class:`Place`.
 
     """
     board = ObjectProperty()
-    proxy = ObjectProperty()
     engine = ObjectProperty()
     selected = BooleanProperty(False)
     linecolor = ListProperty()
     selected_outline_color = ListProperty([0, 1, 1, 1])
     unselected_outline_color = ListProperty([0, 0, 0, 0])
-    name = ObjectProperty()
     use_boardspace = True
     positions = DictProperty()
     _childs = DictProperty()
@@ -65,73 +63,6 @@ class PawnSpot(ImageStack, Layout):
             return False
         self.center = touch.pos
         return True
-
-    def finalize(self, initial=True):
-        """Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
-        if getattr(self, '_finalized', False):
-            return
-        if (
-                self.proxy is None or
-                not hasattr(self.proxy, 'name')
-        ):
-            Clock.schedule_once(self.finalize, 0)
-            return
-        if initial:
-            self.name = self.proxy.name
-            self.paths = self.proxy.setdefault(
-                '_image_paths', self.default_image_paths
-            )
-            zeroes = [0] * len(self.paths)
-            self.offxs = self.proxy.setdefault('_offxs', zeroes)
-            self.offys = self.proxy.setdefault('_offys', zeroes)
-            self.proxy.connect(self._trigger_pull_from_proxy)
-        self.bind(
-            paths=self._trigger_push_image_paths,
-            offxs=self._trigger_push_offxs,
-            offys=self._trigger_push_offys
-        )
-        self._finalized = True
-        self.finalize_children()
-
-    def unfinalize(self):
-        self.unbind(
-            paths=self._trigger_push_image_paths,
-            offxs=self._trigger_push_offxs,
-            offys=self._trigger_push_offys
-        )
-        self._finalized = False
-
-    def pull_from_proxy(self, *args):
-        initial = not hasattr(self, '_finalized')
-        self.unfinalize()
-        for key, att in [
-                ('_image_paths', 'paths'),
-                ('_offxs', 'offxs'),
-                ('_offys', 'offys')
-        ]:
-            if key in self.proxy and self.proxy[key] != getattr(self, att):
-                setattr(self, att, self.proxy[key])
-        self.finalize(initial)
-
-    def _trigger_pull_from_proxy(self, *args, **kwargs):
-        Clock.unschedule(self.pull_from_proxy)
-        Clock.schedule_once(self.pull_from_proxy, 0)
-
-    @trigger
-    def _trigger_push_image_paths(self, *args):
-        self.proxy['_image_paths'] = list(self.paths)
-
-    @trigger
-    def _trigger_push_offxs(self, *args):
-        self.proxy['_offxs'] = list(self.offxs)
-
-    @trigger
-    def _trigger_push_offys(self, *args):
-        self.proxy['_offys'] = list(self.offys)
-
-    @trigger
-    def _trigger_push_stackhs(self, *args):
-        self.proxy['_stackhs'] = list(self.stackhs)
 
     def on_linecolor(self, *args):
         """If I don't yet have the instructions for drawing the selection box
@@ -171,14 +102,6 @@ class PawnSpot(ImageStack, Layout):
             return
         self.canvas.add(self.group)
         self.canvas.add(self.boxgrp)
-
-    @trigger
-    def restack(self, *args):
-        childs = sorted(list(self.children), key=lambda child: child.priority, reverse=True)
-        self.clear_widgets()
-        for child in childs:
-            self.add_widget(child)
-        self.do_layout()
 
     def finalize_children(self, *args):
         for child in self.children:
