@@ -20,10 +20,10 @@ from kivy.properties import (
     NumericProperty
 )
 from .pawnspot import PawnSpot
-from ..util import trigger
+from ..pawn import PawnBehavior
 
 
-class Pawn(PawnSpot):
+class Pawn(PawnSpot, PawnBehavior):
     """A token to represent a :class:`Thing`.
 
     :class:`Thing` is the LiSE class to represent items that are
@@ -39,78 +39,13 @@ class Pawn(PawnSpot):
     through.
 
     """
-    loc_name = ObjectProperty()
-    thing = AliasProperty(
-        lambda self: self.proxy,
-        lambda self, v: self.proxy.setter()(v),
-        bind=('proxy',)
-    )
-    default_image_paths = ['atlas://rltiles/base.atlas/unseen']
-    priority = NumericProperty()
-
-    def __init__(self, **kwargs):
-        if 'thing' in kwargs:
-            kwargs['proxy'] = kwargs['thing']
-            del kwargs['thing']
-        if 'proxy' in kwargs:
-            kwargs['loc_name'] = kwargs['proxy']['location']
-        super().__init__(**kwargs)
-        self.register_event_type('on_drop')
+    def _get_location_wid(self):
+        return self.board.spot[self.loc_name]
 
     def on_parent(self, *args):
+        super().on_parent(*args)
         if self.parent:
             self.board = self.parent.board
-            self.bind(
-                loc_name=self._trigger_relocate
-            )
-            if self.proxy:
-                self._trigger_relocate()
-
-    def relocate(self, *args):
-        if not self.proxy.exists:
-            return
-        location = self.board.spot[self.loc_name]
-        if location != self.parent:
-            if self.parent:
-                self.parent.remove_widget(self)
-            location.add_widget(self)
-    _trigger_relocate = trigger(relocate)
-
-    def finalize(self, initial=True):
-        if initial:
-            self.loc_name = self.proxy['location']
-            self.priority = self.proxy.get('_priority', 0.0)
-        self.bind(
-            loc_name=self._trigger_push_location
-        )
-        super().finalize(initial)
-
-    def unfinalize(self):
-        self.unbind(
-            loc_name=self._trigger_push_location
-        )
-        super().unfinalize()
-
-    def pull_from_proxy(self, *args):
-        super().pull_from_proxy(*args)
-        relocate = False
-        if self.loc_name != self.proxy['location']:
-            self.loc_name = self.proxy['location']  # aliasing? could be trouble
-            relocate = True
-        if '_priority' in self.proxy:
-            self.priority = self.proxy['_priority']
-        if relocate:
-            self.relocate()
-
-    def on_priority(self, *args):
-        if self.proxy['_priority'] != self.priority:
-            self.proxy['_priority'] = self.priority
-        self.parent.restack()
-
-    def push_location(self, *args):
-        if self.proxy['location'] != self.loc_name:
-            self.proxy['location'] = self.loc_name
-    _trigger_push_location = trigger(push_location)
 
     def on_touch_up(self, touch):
         if touch.grab_current is not self:

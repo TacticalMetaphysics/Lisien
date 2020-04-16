@@ -391,7 +391,7 @@ class Board(RelativeLayout):
             raise KeyError("Already have a Pawn for this Thing")
         r = self.pawn_cls(
             board=self,
-            thing=thing
+            proxy=thing
         )
         self.pawn[thing["name"]] = r
         return r
