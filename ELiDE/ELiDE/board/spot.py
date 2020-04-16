@@ -37,13 +37,6 @@ class Spot(PawnSpot):
     the window the :class:`Board` is in.
 
     """
-    offset = NumericProperty(3)
-    collider = ObjectProperty()
-    place = AliasProperty(
-        lambda self: self.proxy,
-        lambda self, v: self.setter('proxy')(v),
-        bind=('proxy',)
-    )
     default_image_paths = ['orb.png']
     default_pos = (0.5, 0.5)
 
