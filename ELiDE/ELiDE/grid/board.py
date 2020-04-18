@@ -8,8 +8,8 @@ from kivy.properties import (
     ReferenceListProperty
 )
 from kivy.uix.relativelayout import RelativeLayout
-from .spot import Spot
-from .pawn import Pawn
+from .spot import GridSpot
+from .pawn import GridPawn
 
 
 class Grid(RelativeLayout):
@@ -44,7 +44,7 @@ class Grid(RelativeLayout):
     def add_new_tiles(self, *args):
         placemap = self.character.place
         tilemap = self.spot
-        default_image_paths = Spot.default_image_paths
+        default_image_paths = GridSpot.default_image_paths
         default_zeroes = [0] * len(default_image_paths)
         places2add = []
         nodes_patch = {}
@@ -90,7 +90,7 @@ class Grid(RelativeLayout):
         things2add = []
         pawns_added = []
         pawnmap = self.pawn
-        default_image_paths = Pawn.default_image_paths
+        default_image_paths = GridPawn.default_image_paths
         default_zeroes = [0] * len(default_image_paths)
         for thingn, thing in self.character.thing.items():
             if thingn not in pawnmap:

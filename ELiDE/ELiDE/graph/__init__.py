@@ -13,9 +13,9 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from .arrow import Arrow
+from .arrow import GraphArrow
 from .board import Board
 from .pawn import Pawn
-from .spot import Spot
+from .spot import GraphSpot
 
-__all__ = ['Arrow', 'Board', 'Pawn', 'Spot']
+__all__ = ['GraphArrow', 'Board', 'Pawn', 'GraphSpot']

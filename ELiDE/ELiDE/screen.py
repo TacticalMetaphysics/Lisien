@@ -45,7 +45,7 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
-from .graph.board import BoardView
+from .graph.board import GraphBoardView
 from .calendar import Agenda
 from .util import dummynum, trigger
 
@@ -204,7 +204,7 @@ class MainScreen(Screen):
         if not all((self.statpanel, self.charmenu, self.app)) or not self.charmenu.portaladdbut:
             Clock.schedule_once(self.on_mainview, 0)
             return
-        self.boardview = BoardView(
+        self.boardview = GraphBoardView(
             scale_min=0.2,
             scale_max=4.0,
             size=self.mainview.size,

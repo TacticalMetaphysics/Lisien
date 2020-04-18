@@ -24,11 +24,11 @@ from kivy.properties import (
     ObjectProperty,
     NumericProperty
 )
-from .pawnspot import PawnSpot
+from .pawnspot import GraphPawnSpot
 from ..util import trigger
 
 
-class Spot(PawnSpot):
+class GraphSpot(GraphPawnSpot):
     """The icon that represents a :class:`Place`.
 
     Each :class:`Spot` is located on the Board that represents the

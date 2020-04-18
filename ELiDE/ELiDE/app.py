@@ -41,8 +41,8 @@ import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
 from ELiDE.graph.board import Board
-from ELiDE.graph.arrow import ArrowWidget
-from ELiDE.graph.spot import Spot
+from ELiDE.graph.arrow import GraphArrowWidget
+from ELiDE.graph.spot import GraphSpot
 from ELiDE.graph.pawn import Pawn
 from .util import trigger
 
@@ -409,7 +409,7 @@ class ELiDEApp(App):
         selection = self.selection
         if selection is None:
             return
-        if isinstance(selection, ArrowWidget):
+        if isinstance(selection, GraphArrowWidget):
             if selection.reciprocal and selection.reciprocal.portal.get('is_mirror', False):
                 selection.reciprocal.portal.delete()
                 self.mainscreen.boardview.board.rm_arrow(
@@ -421,7 +421,7 @@ class ELiDEApp(App):
                 selection.destination.name
             )
             selection.portal.delete()
-        elif isinstance(selection, Spot):
+        elif isinstance(selection, GraphSpot):
             self.mainscreen.boardview.board.rm_spot(selection.name)
             selection.proxy.delete()
         else:

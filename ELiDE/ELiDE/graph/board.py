@@ -33,8 +33,8 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import ScatterPlane
 from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
-from .spot import Spot
-from .arrow import Arrow, ArrowWidget, ArrowLayout, get_points, get_points_multi
+from .spot import GraphSpot
+from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
@@ -131,10 +131,10 @@ class Board(RelativeLayout):
     reciprocal_portal = BooleanProperty(False)
     grabbing = BooleanProperty(True)
     grabbed = ObjectProperty(None, allownone=True)
-    spot_cls = ObjectProperty(Spot)
+    spot_cls = ObjectProperty(GraphSpot)
     pawn_cls = ObjectProperty(Pawn)
-    arrow_cls = ObjectProperty(Arrow, allownone=True)
-    proto_arrow_cls = ObjectProperty(ArrowWidget)
+    arrow_cls = ObjectProperty(GraphArrow, allownone=True)
+    proto_arrow_cls = ObjectProperty(GraphArrowWidget)
 
     @property
     def widkwargs(self):
@@ -196,7 +196,7 @@ class Board(RelativeLayout):
             self.selection_candidates = arrows
             if self.app.selection in self.selection_candidates:
                 self.selection_candidates.remove(self.app.selection)
-            if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal in self.selection_candidates:
+            if isinstance(self.app.selection, GraphArrow) and self.app.selection.reciprocal in self.selection_candidates:
                 self.selection_candidates.remove(self.app.selection.reciprocal)
             touch.pop()
             return True
@@ -279,7 +279,7 @@ class Board(RelativeLayout):
         for candidate in self.selection_candidates:
             if candidate.collide_point(*touch.pos):
                 if hasattr(candidate, 'selected'):
-                    if isinstance(candidate, Arrow) and candidate.reciprocal:
+                    if isinstance(candidate, GraphArrow) and candidate.reciprocal:
                         # mirror arrows can't be selected directly, you have to work with the one they mirror
                         if candidate.portal.get('is_mirror', False):
                             candidate.selected = True
@@ -289,7 +289,7 @@ class Board(RelativeLayout):
                     candidate.selected = True
                 if hasattr(self.app.selection, 'selected'):
                     self.app.selection.selected = False
-                    if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal\
+                    if isinstance(self.app.selection, GraphArrow) and self.app.selection.reciprocal\
                             and candidate is not self.app.selection.reciprocal:
                         self.app.selection.reciprocal.selected = False
                 self.app.selection = candidate
@@ -302,7 +302,7 @@ class Board(RelativeLayout):
             Logger.debug("Board: deselecting " + repr(self.app.selection))
             if hasattr(self.app.selection, 'selected'):
                 self.app.selection.selected = False
-                if isinstance(self.app.selection, Arrow) and self.app.selection.reciprocal:
+                if isinstance(self.app.selection, GraphArrow) and self.app.selection.reciprocal:
                     self.app.selection.reciprocal.selected = False
             self.app.selection = None
         self.keep_selection = False
@@ -607,7 +607,7 @@ class Board(RelativeLayout):
         nodes_patch = {}
         placemap = self.character.place
         spotmap = self.spot
-        default_image_paths = Spot.default_image_paths
+        default_image_paths = GraphSpot.default_image_paths
         for place_name in placemap:
             if place_name not in spotmap:
                 place = placemap[place_name]
@@ -991,7 +991,7 @@ class BoardScatterPlane(ScatterPlane):
             self.y = self.parent.top - h
 
 
-class BoardView(StencilView):
+class GraphBoardView(StencilView):
     """A view onto a ``Board`` that lets you scroll and zoom.
 
     Put the ``Board`` object in my ``graph`` property."""
@@ -1031,10 +1031,10 @@ class BoardView(StencilView):
 
 
 Builder.load_string("""
-<Board>:
+<GraphBoard>:
     app: app
     size_hint: None, None
-<BoardView>:
+<GraphBoardView>:
     plane: boardplane
     BoardScatterPlane:
         id: boardplane

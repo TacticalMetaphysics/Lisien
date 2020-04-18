@@ -3,7 +3,7 @@ from kivy.tests.common import GraphicUnitTest
 
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
-from ELiDE.graph.board import Board, BoardView
+from ELiDE.graph.board import Board, GraphBoardView
 from ELiDE.tests.util import MockTouch
 
 
@@ -19,7 +19,7 @@ class BoardTest(GraphicUnitTest):
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)
@@ -45,7 +45,7 @@ class BoardTest(GraphicUnitTest):
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)
@@ -70,7 +70,7 @@ class BoardTest(GraphicUnitTest):
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)

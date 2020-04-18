@@ -36,7 +36,7 @@ from ..util import trigger
 from ..imagestackproxy import ImageStackProxy
 
 
-class PawnSpot(ImageStackProxy, Layout):
+class GraphPawnSpot(ImageStackProxy, Layout):
     """The kind of ImageStack that represents a :class:`Thing` or
     :class:`Place`.
 

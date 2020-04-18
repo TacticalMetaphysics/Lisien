@@ -9,9 +9,8 @@ from ..imagestackproxy import ImageStackProxy
 from ..pawn import PawnBehavior
 
 
-class Pawn(ImageStackProxy, PawnBehavior):
+class GridPawn(ImageStackProxy, PawnBehavior):
     board = ObjectProperty()
-
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""

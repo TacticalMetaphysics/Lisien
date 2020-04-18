@@ -19,11 +19,11 @@ from kivy.properties import (
     ObjectProperty,
     NumericProperty
 )
-from .pawnspot import PawnSpot
+from .pawnspot import GraphPawnSpot
 from ..pawn import PawnBehavior
 
 
-class Pawn(PawnSpot, PawnBehavior):
+class Pawn(GraphPawnSpot, PawnBehavior):
     """A token to represent a :class:`Thing`.
 
     :class:`Thing` is the LiSE class to represent items that are

@@ -259,7 +259,7 @@ def get_points(orig, dest, taillen):
 eight0s = tuple([0] * 8)
 
 
-class ArrowWidget(Widget):
+class GraphArrowWidget(Widget):
     """A widget that points from one :class:`~LiSE.gui.graph.Spot` to
     another.
 
@@ -641,10 +641,10 @@ class ArrowWidget(Widget):
             self.fbind('right_head_quad_vertices_fg', self._pull_points_quad3_1)
 
 
-class Arrow(ArrowWidget):
-    """An :class:`ArrowWidget` that represents a LiSE :class:`Portal` object.
+class GraphArrow(GraphArrowWidget):
+    """A :class:`GraphArrowWidget` that represents a :class:`Portal` object.
 
-    This subclass is much more often used than :class:`ArrowWidget`,
+    This subclass is much more often used than :class:`GraphArrowWidget`,
     which is only seen on its own when the user is in the process of
     creating a new :class:`Portal`.
 

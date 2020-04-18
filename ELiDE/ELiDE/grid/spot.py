@@ -8,5 +8,5 @@ from kivy.properties import (
 from ..imagestackproxy import ImageStackProxy
 
 
-class Spot(ImageStackProxy):
+class GridSpot(ImageStackProxy):
     board = ObjectProperty()
