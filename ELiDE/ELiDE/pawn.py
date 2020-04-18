@@ -76,3 +76,34 @@ class PawnBehavior:
         if self.proxy['location'] != self.loc_name:
             self.proxy['location'] = self.loc_name
     _trigger_push_location = trigger(push_location)
+
+    def _get_location_wid(self):
+        return self.board.spot[self.loc_name]
+
+    def on_parent(self, *args):
+        if self.parent:
+            self.board = self.parent.board
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is not self:
+            return False
+        for spot in self.board.spot.values():
+            if self.collide_widget(spot) and spot.name != self.loc_name:
+                new_spot = spot
+                break
+        else:
+            new_spot = None
+
+        self.dispatch('on_drop', new_spot)
+        touch.ungrab(self)
+        return True
+
+    def on_drop(self, spot):
+        parent = self.parent
+        if spot:
+            self.loc_name = self.proxy['location'] = spot.name
+            parent.remove_widget(self)
+            spot.add_widget(self)
+        else:
+            x, y = parent.positions[self.uid]
+            self.pos = parent.x + x, parent.y + y

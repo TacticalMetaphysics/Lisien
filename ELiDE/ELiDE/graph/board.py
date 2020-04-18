@@ -100,7 +100,7 @@ class FinalLayout(FloatLayout):
 
 class Board(RelativeLayout):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
-    board.
+    graph.
 
     """
     app = ObjectProperty()
@@ -894,7 +894,7 @@ class BoardScatterPlane(ScatterPlane):
     def spot_from_dummy(self, dummy):
         """Make a real place and its spot from a dummy spot.
 
-        Create a new :class:`board.Spot` instance, along with the
+        Create a new :class:`graph.Spot` instance, along with the
         underlying :class:`LiSE.Place` instance, and give it the name,
         position, and imagery of the provided dummy.
 
@@ -917,7 +917,7 @@ class BoardScatterPlane(ScatterPlane):
     def pawn_from_dummy(self, dummy):
         """Make a real thing and its pawn from a dummy pawn.
 
-        Create a new :class:`board.Pawn` instance, along with the
+        Create a new :class:`graph.Pawn` instance, along with the
         underlying :class:`LiSE.Place` instance, and give it the name,
         location, and imagery of the provided dummy.
 
@@ -994,7 +994,7 @@ class BoardScatterPlane(ScatterPlane):
 class BoardView(StencilView):
     """A view onto a ``Board`` that lets you scroll and zoom.
 
-    Put the ``Board`` object in my ``board`` property."""
+    Put the ``Board`` object in my ``graph`` property."""
     board = ObjectProperty()
     plane = ObjectProperty()
     adding_portal = BooleanProperty(False)

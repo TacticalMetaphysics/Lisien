@@ -260,7 +260,7 @@ eight0s = tuple([0] * 8)
 
 
 class ArrowWidget(Widget):
-    """A widget that points from one :class:`~LiSE.gui.board.Spot` to
+    """A widget that points from one :class:`~LiSE.gui.graph.Spot` to
     another.
 
     :class:`Arrow`s are the graphical representations of

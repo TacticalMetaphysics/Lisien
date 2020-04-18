@@ -8,7 +8,7 @@ from ELiDE.app import ELiDEApp
 from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from ELiDE.statcfg import StatScreen
-from ELiDE.board.board import Board
+from ELiDE.graph.board import Board
 from .util import MockTouch, ListenableDict, MockEngine
 
 

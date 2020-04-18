@@ -27,7 +27,7 @@ setup(
     license="AGPL3+",
     packages=[
         "ELiDE",
-        "ELiDE.board",
+        "ELiDE.graph",
         "ELiDE.kivygarden.texturestack"
     ],
     package_dir={

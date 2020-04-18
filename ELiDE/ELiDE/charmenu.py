@@ -22,7 +22,7 @@ from kivy.properties import (
     ObjectProperty,
     ReferenceListProperty
 )
-from .board.arrow import ArrowWidget
+from .graph.arrow import ArrowWidget
 from .util import try_load, dummynum
 from LiSE.proxy import CharStatProxy
 
@@ -225,7 +225,7 @@ Builder.load_string("""
                 center_y: portaladdbut.center_y
                 size: (0, 0)
             ArrowWidget:
-                board: root.screen.boardview.board if root.screen and root.screen.boardview else None
+                graph: root.screen.boardview.graph if root.screen and root.screen.boardview else None
                 origin: emptyleft
                 destination: emptyright
         Button:

@@ -16,7 +16,7 @@
 
 """The big layout that you view all of ELiDE through.
 
-Handles touch, selection, and time control. Contains a board, a stat
+Handles touch, selection, and time control. Contains a graph, a stat
 grid, the time control panel, and the menu.
 
 """
@@ -45,7 +45,7 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
-from .board.board import BoardView
+from .graph.board import BoardView
 from .calendar import Agenda
 from .util import dummynum, trigger
 
@@ -167,9 +167,9 @@ class TimePanel(BoxLayout):
 
 
 class MainScreen(Screen):
-    """A master layout that contains one board and some menus.
+    """A master layout that contains one graph and some menus.
 
-    This contains three elements: a scrollview (containing the board),
+    This contains three elements: a scrollview (containing the graph),
     a menu, and the time control panel. This class has some support methods
     for handling interactions with the menu and the character sheet,
     but if neither of those happen, the scrollview handles touches on its
@@ -309,7 +309,7 @@ class MainScreen(Screen):
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
         they give a unique name for the resulting new
-        :class:`board.Pawn` or :class:`board.Spot`.
+        :class:`graph.Pawn` or :class:`graph.Spot`.
 
         """
         def renum_dummy(dummy, *args):

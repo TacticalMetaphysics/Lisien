@@ -72,7 +72,7 @@ class Spot(PawnSpot):
         super().finalize(initial)
 
     def push_pos(self, *args):
-        """Set my current position, expressed as proportions of the board's
+        """Set my current position, expressed as proportions of the graph's
         width and height, into the ``_x`` and ``_y`` keys of the
         entity in my ``proxy`` property, such that it will be
         recorded in the database.

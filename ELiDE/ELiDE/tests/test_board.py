@@ -3,8 +3,8 @@ from kivy.tests.common import GraphicUnitTest
 
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
-from ELiDE.board.board import Board, BoardView
-from .util import MockTouch
+from ELiDE.graph.board import Board, BoardView
+from ELiDE.tests.util import MockTouch
 
 
 class BoardTest(GraphicUnitTest):
