@@ -103,13 +103,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
         self.canvas.add(self.group)
         self.canvas.add(self.boxgrp)
 
-    def finalize_children(self, *args):
-        for child in self.children:
-            child.finalize()
-        self.bind(children=self._trigger_finalize_children)
-
-    _trigger_finalize_children = trigger(finalize_children)
-
     def add_widget(self, wid, index=None, canvas=None):
         if index is None:
             for index, child in enumerate(self.children, start=1):

@@ -35,6 +35,13 @@ class ImageStackProxy(ImageStack):
         self._finalized = True
         self.finalize_children()
 
+    def finalize_children(self, *args):
+        for child in self.children:
+            child.finalize()
+        self.bind(children=self._trigger_finalize_children)
+
+    _trigger_finalize_children = trigger(finalize_children)
+
     def unfinalize(self):
         self.unbind(
             paths=self._trigger_push_image_paths,

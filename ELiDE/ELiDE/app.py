@@ -40,10 +40,11 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
-from ELiDE.graph.board import Board
+from ELiDE.graph.board import GraphBoard
 from ELiDE.graph.arrow import GraphArrowWidget
 from ELiDE.graph.spot import GraphSpot
 from ELiDE.graph.pawn import Pawn
+from ELiDE.grid.board import GridBoard
 from .util import trigger
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
@@ -307,10 +308,14 @@ class ELiDEApp(App):
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
-            boards={
-                name: Board(
+            graphboards={
+                name: GraphBoard(
                     character=char
                 ) for name, char in self.engine.character.items()
+            },
+            gridboards={
+                name: GridBoard(character=char)
+                for name, char in self.engine.character.items()
             }
         )
         if self.mainscreen.statlist:
@@ -385,9 +390,11 @@ class ELiDEApp(App):
             Clock.schedule_once(self.on_character, 0)
             return
         if hasattr(self, '_oldchar'):
-            self.mainscreen.boards[self._oldchar.name].unbind(selection=self.setter('selection'))
+            self.mainscreen.graphboards[self._oldchar.name].unbind(selection=self.setter('selection'))
+            self.mainscreen.gridboards[self._oldchar.name].unbind(selection=self.setter('selection'))
         self.selection = None
-        self.mainscreen.boards[self.character.name].bind(selection=self.setter('selection'))
+        self.mainscreen.graphboards[self.character.name].bind(selection=self.setter('selection'))
+        self.mainscreen.gridboards[self.character.name].bind(selection=self.setter('selection'))
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
@@ -433,6 +440,6 @@ class ELiDEApp(App):
     def new_board(self, name):
         """Make a graph for a character name, and switch to it."""
         char = self.engine.character[name]
-        board = Board(character=char)
-        self.mainscreen.boards[name] = board
+        self.mainscreen.graphboards[name] = GraphBoard(character=char)
+        self.mainscreen.gridboards[name] = GridBoard(character=char)
         self.character = char

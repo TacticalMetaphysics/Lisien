@@ -38,6 +38,7 @@ from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points, get_po
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger
+from ..boardview import BoardView
 import numpy as np
 
 
@@ -98,7 +99,7 @@ class FinalLayout(FloatLayout):
     _trigger_finalize_all = trigger(finalize_all)
 
 
-class Board(RelativeLayout):
+class GraphBoard(RelativeLayout):
     """A graphical view onto a :class:`LiSE.Character`, resembling a game
     graph.
 
@@ -991,43 +992,9 @@ class BoardScatterPlane(ScatterPlane):
             self.y = self.parent.top - h
 
 
-class GraphBoardView(StencilView):
-    """A view onto a ``Board`` that lets you scroll and zoom.
-
-    Put the ``Board`` object in my ``graph`` property."""
-    board = ObjectProperty()
-    plane = ObjectProperty()
+class GraphBoardView(BoardView):
     adding_portal = BooleanProperty(False)
     reciprocal_portal = BooleanProperty(True)
-    scale_min = NumericProperty(allownone=True)
-    scale_max = NumericProperty(allownone=True)
-
-    def on_pos(self, *args):
-        if self.board and self.children:
-            self.children[0].pos = self.pos
-        else:
-            Clock.schedule_once(self.on_pos, 0.001)
-
-    def on_size(self, *args):
-        if self.board and self.children:
-            self.children[0].size = self.size
-        else:
-            Clock.schedule_once(self.on_size, 0.001)
-
-    def on_parent(self, *args):
-        if self.board and self.children:
-            self.children[0].pos = self.pos
-            self.children[0].size = self.size
-        else:
-            Clock.schedule_once(self.on_parent, 0.001)
-
-    def spot_from_dummy(self, dummy):
-        self.plane.spot_from_dummy(dummy)
-    spot_from_dummy.__doc__ = BoardScatterPlane.spot_from_dummy.__doc__
-
-    def pawn_from_dummy(self, dummy):
-        self.plane.pawn_from_dummy(dummy)
-    pawn_from_dummy.__doc__ = BoardScatterPlane.pawn_from_dummy.__doc__
 
 
 Builder.load_string("""

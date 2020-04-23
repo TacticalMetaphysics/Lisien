@@ -8,7 +8,7 @@ from ELiDE.app import ELiDEApp
 from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from ELiDE.statcfg import StatScreen
-from ELiDE.graph.board import Board
+from ELiDE.graph.board import GraphBoard
 from .util import MockTouch, ListenableDict, MockEngine
 
 
@@ -29,7 +29,7 @@ class ScreenTest(GraphicUnitTest):
         entity = ListenableDict()
         entity.engine = app.engine
         app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-        screen = MainScreen(app=app, boards={'foo': Board(
+        screen = MainScreen(app=app, boards={'foo': GraphBoard(
             character=char, app=app)})
         EventLoop.ensure_window()
         win = EventLoop.window
