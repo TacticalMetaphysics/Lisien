@@ -31,10 +31,9 @@ from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import ScatterPlane
-from kivy.uix.stencilview import StencilView
 from kivy.graphics.transformation import Matrix
 from .spot import GraphSpot
-from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points, get_points_multi
+from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points_multi
 from .pawn import Pawn
 from ..dummy import Dummy
 from ..util import trigger

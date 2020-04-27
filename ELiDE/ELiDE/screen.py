@@ -29,7 +29,6 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
