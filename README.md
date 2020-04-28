@@ -196,10 +196,10 @@ is an avatar. When called in ``similar_neighbors`` and ``dissimilar_neighbors``,
 'min_sameness' and 'max_sameness' respectively, so let's set those:
 
 ```python
-    sq['min_sameness'] = 0.1
-    sq['max_sameness'] = 0.9
-    tri['min_sameness'] = 0.2
-    tri['max_sameness'] = 0.8
+    sq.stat['min_sameness'] = 0.1
+    sq.stat['max_sameness'] = 0.9
+    tri.stat['min_sameness'] = 0.2
+    tri.stat['max_sameness'] = 0.8
 ```
 
 Here we diverge from the original simulation a bit by setting these values differently for the different shapes,
