@@ -43,7 +43,7 @@ setup(
     install_requires=[
         "allegedb==0.15.1",
         "astunparse>=1.5.0",
-        "msgpack>=0.5.6"
+        "msgpack>=1.0.0"
     ],
     project_urls={
         "Documentation": "https://logicaldash.github.io/LiSE"
