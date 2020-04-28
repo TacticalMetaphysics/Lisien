@@ -125,7 +125,7 @@ class ELiDEApp(App):
         config.setdefaults(
             'LiSE',
             {
-                'world': 'sqlite:///LiSEworld.db',
+                'world': 'sqlite:///world.db',
                 'language': 'eng',
                 'logfile': '',
                 'loglevel': 'info'
