@@ -423,7 +423,8 @@ class AbstractEngine(object):
                              strict_types=True, use_bin_type=True)
 
     def unpack(self, bs):
-        return msgpack.unpackb(bs, ext_hook=self._unpack_handler, raw=False)
+        return msgpack.unpackb(bs, ext_hook=self._unpack_handler,
+                               strict_map_key=False)
 
     def coinflip(self):
         """Return True or False with equal probability."""
