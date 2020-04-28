@@ -100,7 +100,7 @@ Make a new Python script, let's say 'polygons.py', and write the following in it
 ```python
 from LiSE import Engine
 
-with Engine('polygons.db', clear=True) as eng:
+with Engine(clear=True) as eng:
     phys = eng.new_character('physical').grid_2d_graph(20, 20)
     tri = eng.new_character('triangle')
     sq = eng.new_character('square')
