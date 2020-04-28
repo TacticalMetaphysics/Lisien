@@ -4,6 +4,7 @@ from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.properties import (
     DictProperty,
+    ListProperty,
     NumericProperty,
     ObjectProperty,
     ReferenceListProperty
@@ -17,6 +18,7 @@ from ..boardview import BoardView
 
 class GridBoard(RelativeLayout):
     selection = ObjectProperty()
+    selection_candidates = ListProperty()
     character = ObjectProperty()
     tile_width = NumericProperty()
     tile_height = NumericProperty()
@@ -185,9 +187,60 @@ class GridBoard(RelativeLayout):
 
 
     def update_from_delta(self, delta, *args):
-        pass
+        pawnmap = self.pawn
+        spotmap = self.spot
+        add_pawn = self.add_pawn
+        add_spot = self.add_spot
+        selection_candidates = self.selection_candidates
 
-    def _trigger_update_from_delta(self, delta, *args):
+        def rm_pawn(name):
+            pwn = pawnmap.pop(name)
+            if pwn in selection_candidates:
+                selection_candidates.remove(pwn)
+            pwn.parent.remove_widget(pwn)
+
+        remove_widget = self.remove_widget
+        def rm_spot(name):
+            spot = spotmap.pop(name)
+            if spot in selection_candidates:
+                selection_candidates.remove(spot)
+            for pwn in spot.children:
+                del pawnmap[pwn.name]
+            remove_widget(spot)
+        if 'nodes' in delta:
+            for node, extant in delta['nodes'].items():
+                if extant:
+                    if 'node_val' in delta \
+                            and node in delta['node_val'] \
+                            and 'location' in delta['node_val'][node] \
+                            and node not in pawnmap:
+                        add_pawn(node)
+                    elif node not in spotmap:
+                        add_spot(node)
+                else:
+                    if node in pawnmap:
+                        rm_pawn(node)
+                    if node in spotmap:
+                        rm_spot(node)
+        if 'node_val' in delta:
+            for node, stats in delta['node_val'].items():
+                if node in spotmap and '_image_paths' in stats:
+                    spotmap[node].paths = stats['_image_paths'] \
+                                          or GridSpot.default_image_paths
+                elif node in pawnmap:
+                    pawn = pawnmap[node]
+                    if 'location' in stats:
+                        pawn.loc_name = stats['location']
+                    if '_image_paths' in stats:
+                        pawn.paths = stats['_image_paths'] \
+                                     or GridPawn.default_image_paths
+                else:
+                    Logger.warning(
+                        "GridBoard: diff tried to change stats of node {}"
+                        "but I don't have a widget for it".format(node)
+                    )
+
+    def trigger_update_from_delta(self, delta, *args):
         part = partial(self.update_from_delta, delta)
         Clock.unschedule(part)
         Clock.schedule_once(part, 0)

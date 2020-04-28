@@ -1,5 +1,5 @@
+from kivy.clock import Clock
 from kivy.properties import (
-    AliasProperty,
     NumericProperty,
     ObjectProperty
 )
@@ -22,6 +22,10 @@ class PawnBehavior:
         self.register_event_type('on_drop')
 
     def on_parent(self, *args):
+        if not self.parent:
+            Clock.schedule_once(self.on_parent, 0)
+            return
+        self.board = self.parent.board
         self.bind(
             loc_name=self._trigger_relocate
         )
@@ -79,10 +83,6 @@ class PawnBehavior:
 
     def _get_location_wid(self):
         return self.board.spot[self.loc_name]
-
-    def on_parent(self, *args):
-        if self.parent:
-            self.board = self.parent.board
 
     def on_touch_up(self, touch):
         if touch.grab_current is not self:

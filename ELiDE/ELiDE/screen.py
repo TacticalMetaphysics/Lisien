@@ -366,6 +366,7 @@ class MainScreen(Screen):
             if unwanted in chardelta:
                 del chardelta[unwanted]
         self.boardview.board.trigger_update_from_delta(chardelta)
+        self.gridview.board.trigger_update_from_delta(chardelta)
         self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
     def play(self, *args):
