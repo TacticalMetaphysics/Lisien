@@ -168,156 +168,88 @@ class AbstractEngine(object):
         """Context manager for instantiating entities upon unpacking"""
         if getattr(self, '_initialized', False):
             raise ValueError("Already loading")
+        self.unpack = self._make_unpacker(False)
         self._initialized = False
         yield
+        self.unpack = self._make_unpacker(True)
         self._initialized = True
 
     def __getattr__(self, item):
+        if item == 'unpack':
+            self.unpack = self._make_unpacker(
+                getattr(super(), '_initialized', True))
+            return self.unpack
         meth = super().__getattribute__('method').__getattr__(item)
         return MethodType(meth, self)
 
-    def _pack_character(self, char):
-        return msgpack.ExtType(MSGPACK_CHARACTER, msgpack.packb(
-            char.name, default=self._pack_handler,
-            strict_types=True, use_bin_type=True))
+    @reify
+    def pack(self):
+        handlers = {
+            self.char_cls: lambda char: msgpack.ExtType(
+                MSGPACK_CHARACTER, packer(char.name)
+                ),
+            self.place_cls: lambda place: msgpack.ExtType(
+                MSGPACK_PLACE, packer(
+                    (place.character.name, place.name)
+                )),
+            self.thing_cls: lambda thing: msgpack.ExtType(
+                MSGPACK_THING, packer(
+                    (thing.character.name, thing.name)
+                )),
+            self.portal_cls: lambda port: msgpack.ExtType(
+                MSGPACK_PORTAL, packer(
+                    (port.character.name, port.orig, port.dest)
+                )),
+            tuple: lambda tup: msgpack.ExtType(
+                MSGPACK_TUPLE, packer(list(tup))),
+            frozenset: lambda frozs: msgpack.ExtType(
+                MSGPACK_FROZENSET, packer(list(frozs))),
+            set: lambda s: msgpack.ExtType(MSGPACK_SET, packer(
+                list(s))),
+            FinalRule: lambda obj: msgpack.ExtType(
+                MSGPACK_FINAL_RULE, b""
+            ),
+            FunctionType: lambda func: msgpack.ExtType({
+                'method': MSGPACK_METHOD,
+                'function': MSGPACK_FUNCTION,
+                'trigger': MSGPACK_TRIGGER,
+                'prereq': MSGPACK_PREREQ,
+                'action': MSGPACK_ACTION
+            }[func.__module__], packer(func.__name__)),
+            MethodType: lambda meth: msgpack.ExtType(
+                MSGPACK_METHOD, packer(meth.__name__)),
+            Exception: lambda exc: msgpack.ExtType(
+                MSGPACK_EXCEPTION, packer(
+                    [exc.__class__.__name__] + list(exc.args)
+                ))
+        }
 
-    def _pack_place(self, place):
-        return msgpack.ExtType(MSGPACK_PLACE, msgpack.packb(
-            (place.character.name, place.name),
-            default=self._pack_handler, strict_types=True, use_bin_type=True
-        ))
+        def pack_handler(obj):
+            if isinstance(obj, Exception):
+                typ = Exception
+            else:
+                typ = type(obj)
+            if typ in handlers:
+                return handlers[typ](obj)
+            raise TypeError("Can't pack {}".format(typ))
+        packer = partial(
+            msgpack.packb,
+            default=pack_handler, strict_types=True,
+            use_bin_type=True
+        )
+        return packer
 
-    def _pack_thing(self, thing):
-        return msgpack.ExtType(MSGPACK_THING, msgpack.packb(
-            (thing.character.name, thing.name), default=self._pack_handler,
-            strict_types=True, use_bin_type=True
-        ))
-
-    def _pack_portal(self, port):
-        return msgpack.ExtType(MSGPACK_PORTAL, msgpack.packb(
-            (port.character.name, port.orig, port.dest),
-            default=self._pack_handler, strict_types=True, use_bin_type=True
-        ))
-
-    def _pack_tuple(self, tup):
-        return msgpack.ExtType(MSGPACK_TUPLE, msgpack.packb(
-            list(tup), default=self._pack_handler,
-            strict_types=True, use_bin_type=True))
-
-    def _pack_frozenset(self, frozs):
-        return msgpack.ExtType(MSGPACK_FROZENSET, msgpack.packb(
-            list(frozs), default=self._pack_handler,
-            strict_types=True, use_bin_type=True))
-
-    def _pack_set(self, s):
-        return msgpack.ExtType(MSGPACK_SET, msgpack.packb(
-            list(s), default=self._pack_handler,
-            strict_types=True, use_bin_type=True))
-
-    def _pack_exception(self, exc):
-        return msgpack.ExtType(MSGPACK_EXCEPTION, msgpack.packb(
-            [exc.__class__.__name__] + list(exc.args),
-            default=self._pack_handler, strict_types=True, use_bin_type=True
-        ))
-
-    def _pack_func(self, func):
-        return msgpack.ExtType({
-            'method': MSGPACK_METHOD,
-            'function': MSGPACK_FUNCTION,
-            'trigger': MSGPACK_TRIGGER,
-            'prereq': MSGPACK_PREREQ,
-            'action': MSGPACK_ACTION
-        }[func.__module__], msgpack.packb(func.__name__, use_bin_type=True))
-
-    def _pack_meth(self, func):
-        return msgpack.ExtType(MSGPACK_METHOD, msgpack.packb(
-            func.__name__, use_bin_type=True))
-
-    def _unpack_char(self, ext):
-        charn = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
-        try:
-            return self.character[charn]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            return self.char_cls(self, charn)
-
-    def _unpack_place(self, ext):
-        charn, placen = msgpack.unpackb(
-            ext, ext_hook=self._unpack_handler, raw=False)
-        try:
-            char = self.character[charn]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            return self.place_cls(self.char_cls(self, charn), placen)
-        try:
-            return char.place[placen]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            return self.place_cls(char, placen)
-
-    def _unpack_thing(self, ext):
-        charn, thingn = msgpack.unpackb(
-            ext, ext_hook=self._unpack_handler, raw=False)
-        try:
-            char = self.character[charn]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            return self.thing_cls(self.char_cls(self, charn), thingn)
-        try:
-            return char.thing[thingn]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            return self.thing_cls(char, thingn)
-
-    def _unpack_portal(self, ext):
-        charn, orign, destn = msgpack.unpackb(
-            ext, ext_hook=self._unpack_handler, raw=False)
-        try:
-            char = self.character[charn]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            char = self.char_cls(self, charn)
-        try:
-            return char.portal[orign][destn]
-        except KeyError:
-            if getattr(self, '_initialized', True):
-                raise
-            return self.portal_cls(char, orign, destn)
-
-    def _unpack_trigger(self, ext):
-        return getattr(self.trigger, msgpack.unpackb(ext, raw=False))
-
-    def _unpack_prereq(self, ext):
-        return getattr(self.prereq, msgpack.unpackb(ext, raw=False))
-
-    def _unpack_action(self, ext):
-        return getattr(self.action, msgpack.unpackb(ext, raw=False))
-
-    def _unpack_function(self, ext):
-        return getattr(self.function, msgpack.unpackb(ext, raw=False))
-
-    def _unpack_method(self, ext):
-        return getattr(self.method, msgpack.unpackb(ext, raw=False))
-
-    def _unpack_tuple(self, ext):
-        return tuple(msgpack.unpackb(
-            ext, ext_hook=self._unpack_handler, raw=False))
-
-    def _unpack_frozenset(self, ext):
-        return frozenset(msgpack.unpackb(
-            ext, ext_hook=self._unpack_handler, raw=False))
-
-    def _unpack_set(self, ext):
-        return set(msgpack.unpackb(
-            ext, ext_hook=self._unpack_handler, raw=False))
-
-    def _unpack_exception(self, ext):
+    def _make_unpacker(self, initialized):
+        charmap = self.character
+        char_cls = self.char_cls
+        place_cls = self.place_cls
+        thing_cls = self.thing_cls
+        portal_cls = self.portal_cls
+        trigger = self.trigger
+        prereq = self.prereq
+        action = self.action
+        function = self.function
+        method = self.method
         excs = {
             # builtin exceptions
             'AssertionError': AssertionError,
@@ -362,69 +294,96 @@ class AbstractEngine(object):
             'CacheError': exc.CacheError,
             'TravelException': exc.TravelException
         }
-        data = msgpack.unpackb(ext, ext_hook=self._unpack_handler, raw=False)
-        if data[0] not in excs:
-            return Exception(*data)
-        return excs[data[0]](*data[1:])
 
-    @reify
-    def _unpack_handlers(self):
-        return {
-            MSGPACK_CHARACTER: self._unpack_char,
-            MSGPACK_PLACE: self._unpack_place,
-            MSGPACK_THING: self._unpack_thing,
-            MSGPACK_PORTAL: self._unpack_portal,
-            MSGPACK_FINAL_RULE: lambda obj: final_rule,
-            MSGPACK_TUPLE: self._unpack_tuple,
-            MSGPACK_FROZENSET: self._unpack_frozenset,
-            MSGPACK_SET: self._unpack_set,
-            MSGPACK_TRIGGER: self._unpack_trigger,
-            MSGPACK_PREREQ: self._unpack_prereq,
-            MSGPACK_ACTION: self._unpack_action,
-            MSGPACK_FUNCTION: self._unpack_function,
-            MSGPACK_METHOD: self._unpack_method,
-            MSGPACK_EXCEPTION: self._unpack_exception
-        }
+        def unpack_exception(ext):
+            data = unpacker(ext)
+            if data[0] not in excs:
+                return Exception(*data)
+            return excs[data[0]](*data[1:])
 
-    def _unpack_handler(self, code, data):
-        handlers = self._unpack_handlers
-        if code in handlers:
-            return handlers[code](data)
-        return msgpack.ExtType(code, data)
+        if initialized:
+            def unpack_char(ext):
+                return charmap[unpacker(ext)]
 
-    @reify
-    def _pack_handlers(self):
-        return {
-            self.char_cls: self._pack_character,
-            self.place_cls: self._pack_place,
-            self.thing_cls: self._pack_thing,
-            self.portal_cls: self._pack_portal,
-            tuple: self._pack_tuple,
-            frozenset: self._pack_frozenset,
-            set: self._pack_set,
-            FinalRule: lambda obj: msgpack.ExtType(MSGPACK_FINAL_RULE, b""),
-            FunctionType: self._pack_func,
-            MethodType: self._pack_meth,
-            Exception: self._pack_exception
-        }
+            def unpack_place(ext):
+                charn, placen = unpacker(ext)
+                return charmap[charn].place[placen]
 
-    def _pack_handler(self, obj):
-        handlers = self._pack_handlers
-        if isinstance(obj, Exception):
-            typ = Exception
+            def unpack_thing(ext):
+                charn, thingn = unpacker(ext)
+                return charmap[charn].thing[thingn]
+
+            def unpack_portal(ext):
+                charn, orign, destn = unpacker(ext)
+                return charmap[charn].portal[orign][destn]
         else:
-            typ = type(obj)
-        if typ in handlers:
-            return handlers[typ](obj)
-        raise TypeError("Can't pack {}".format(typ))
+            def unpack_char(ext):
+                charn = unpacker(ext)
+                try:
+                    return charmap[charn]
+                except KeyError:
+                    return char_cls(self, charn)
 
-    def pack(self, obj):
-        return msgpack.packb(obj, default=self._pack_handler,
-                             strict_types=True, use_bin_type=True)
+            def unpack_place(ext):
+                charn, placen = unpacker(ext)
+                try:
+                    char = charmap[charn]
+                except KeyError:
+                    return place_cls(char_cls(self, charn), placen)
+                try:
+                    return char.place[placen]
+                except KeyError:
+                    return place_cls(char, placen)
 
-    def unpack(self, bs):
-        return msgpack.unpackb(bs, ext_hook=self._unpack_handler,
-                               strict_map_key=False)
+            def unpack_thing(ext):
+                charn, thingn = unpacker(ext)
+                try:
+                    char = charmap[charn]
+                except KeyError:
+                    return thing_cls(char_cls(self, charn), thingn)
+                try:
+                    return char.thing[thingn]
+                except KeyError:
+                    return thing_cls(char, thingn)
+
+            def unpack_portal(ext):
+                charn, orign, destn = unpacker(ext)
+                try:
+                    char = charmap[charn]
+                except KeyError:
+                    char = char_cls(self, charn)
+                try:
+                    return char.portal[orign][destn]
+                except KeyError:
+                    return portal_cls(char, orign, destn)
+
+        handlers = {
+            MSGPACK_CHARACTER: unpack_char,
+            MSGPACK_PLACE: unpack_place,
+            MSGPACK_THING: unpack_thing,
+            MSGPACK_PORTAL: unpack_portal,
+            MSGPACK_FINAL_RULE: lambda obj: final_rule,
+            MSGPACK_TUPLE: lambda ext: tuple(unpacker(ext)),
+            MSGPACK_FROZENSET: lambda ext: frozenset(unpacker(ext)),
+            MSGPACK_SET: lambda ext: set(unpacker(ext)),
+            MSGPACK_TRIGGER: lambda ext: getattr(trigger, unpacker(ext)),
+            MSGPACK_PREREQ: lambda ext: getattr(prereq, unpacker(ext)),
+            MSGPACK_ACTION: lambda ext: getattr(action, unpacker(ext)),
+            MSGPACK_FUNCTION: lambda ext: getattr(function, unpacker(ext)),
+            MSGPACK_METHOD: lambda ext: getattr(method, unpacker(ext)),
+            MSGPACK_EXCEPTION: unpack_exception
+        }
+
+        def unpack_handler(code, data):
+            if code in handlers:
+                return handlers[code](data)
+            return msgpack.ExtType(code, data)
+        unpacker = partial(
+            msgpack.unpackb,
+            ext_hook=unpack_handler,
+            raw=False, strict_map_key=False
+        )
+        return unpacker
 
     def coinflip(self):
         """Return True or False with equal probability."""
@@ -960,13 +919,11 @@ class Engine(AbstractEngine, gORM):
 
     def _init_caches(self):
         from .xcollections import (
-            StringStore,
             FunctionStore,
             CharacterMapping,
             UniversalMapping
         )
         from .cache import (
-            Cache,
             NodeContentsCache,
             InitializedCache,
             EntitylessCache,
@@ -985,13 +942,10 @@ class Engine(AbstractEngine, gORM):
 
         super()._init_caches()
         self._things_cache = ThingsCache(self)
-        self._things_cache.setdb = self.query.set_thing_loc
         self._node_contents_cache = NodeContentsCache(self)
         self.character = self.graph = CharacterMapping(self)
         self._universal_cache = EntitylessCache(self)
-        self._universal_cache.setdb = self.query.universal_set
         self._rulebooks_cache = InitializedEntitylessCache(self)
-        self._rulebooks_cache.setdb = self.query.rulebook_set
         self._characters_rulebooks_cache = InitializedEntitylessCache(self)
         self._avatars_rulebooks_cache = InitializedEntitylessCache(self)
         self._characters_things_rulebooks_cache = \
@@ -1018,7 +972,6 @@ class Engine(AbstractEngine, gORM):
         self._avatarness_cache = AvatarnessCache(self)
         self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
         """The last turn when the rules engine ran in each branch"""
-        self.eternal = self.query.globl
         self.universal = UniversalMapping(self)
         if hasattr(self, '_action_file'):
             self.action = FunctionStore(self._action_file)
@@ -1032,17 +985,14 @@ class Engine(AbstractEngine, gORM):
             self.method = FunctionStore(self._method_file)
         self.rule = AllRules(self)
         self.rulebook = AllRuleBooks(self)
-        if hasattr(self, '_string_file'):
-            self.string = StringStore(
-                self.query,
-                self._string_file,
-                self.eternal.setdefault('language', 'eng')
-            )
 
     def _load_graphs(self):
         for charn in self.query.characters():
             self._graph_objs[charn] = self.char_cls(
                 self, charn, init_rulebooks=False)
+
+    def _post_init_cache_hook(self):
+        self.unpack = self._make_unpacker(True)
 
     def __init__(
             self,
@@ -1100,6 +1050,7 @@ class Engine(AbstractEngine, gORM):
 
         """
         import os
+        from .xcollections import StringStore
         worlddbpath = worlddb.replace('sqlite:///', '')
         if clear and os.path.exists(worlddbpath):
             os.remove(worlddbpath)
@@ -1146,6 +1097,16 @@ class Engine(AbstractEngine, gORM):
             alchemy=alchemy,
             validate=validate
         )
+        self._things_cache.setdb = self.query.set_thing_loc
+        self._universal_cache.setdb = self.query.universal_set
+        self._rulebooks_cache.setdb = self.query.rulebook_set
+        self.eternal = self.query.globl
+        if hasattr(self, '_string_file'):
+            self.string = StringStore(
+                self.query,
+                self._string_file,
+                self.eternal.setdefault('language', 'eng')
+            )
         self.next_turn = NextTurn(self)
         if logfun is None:
             from logging import getLogger

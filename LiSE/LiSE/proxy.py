@@ -1656,6 +1656,8 @@ class StringStoreProxy(Signal):
     def __init__(self, engine_proxy):
         super().__init__()
         self.engine = engine_proxy
+
+    def load(self):
         self._cache = self.engine.handle('strings_delta')
 
     def __getattr__(self, k):
@@ -1854,7 +1856,9 @@ class FuncStoreProxy(Signal):
         super().__init__()
         self.engine = engine_proxy
         self._store = store
-        self._cache = self.engine.handle('source_delta', store=store)
+
+    def load(self):
+        self._cache = self.engine.handle('source_delta', store=self._store)
 
     def __getattr__(self, k):
         if k in self._cache:
@@ -2047,8 +2051,6 @@ class EngineProxy(AbstractEngine):
         self._handle_lock = Lock()
         self._commit_lock = Lock()
         self.logger = logger
-        self.send(self.pack({'command': 'get_watched_btt'}))
-        self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
 
         for module in install_modules:
             self.handle('install_module',  module=module)  # not silenced
@@ -2083,24 +2085,32 @@ class EngineProxy(AbstractEngine):
         self._character_avatars_cache = PickyDefaultDict(dict)
         self._avatar_characters_cache = PickyDefaultDict(dict)
         self._rule_obj_cache = {}
-        self._rules_cache = self.handle('all_rules_delta')
-        for rule in self._rules_cache:
-            self._rule_obj_cache[rule] = RuleProxy(self, rule)
         self._rulebook_obj_cache = {}
-        self._rulebooks_cache = self.handle('all_rulebooks_delta')
         self._char_cache = {}
-        self.method = FuncStoreProxy(self, 'method')
         self.character = CharacterMapProxy(self)
-        self.string = StringStoreProxy(self)
         self.eternal = EternalVarProxy(self)
         self.universal = GlobalVarProxy(self)
         self.rulebook = AllRuleBooksProxy(self)
         self.rule = AllRulesProxy(self)
+        self.method = FuncStoreProxy(self, 'method')
         self.action = FuncStoreProxy(self, 'action')
         self.prereq = FuncStoreProxy(self, 'prereq')
         self.trigger = FuncStoreProxy(self, 'trigger')
         self.function = FuncStoreProxy(self, 'function')
+        self.string = StringStoreProxy(self)
         self.rando = RandoProxy(self)
+        self.send(self.pack({'command': 'get_watched_btt'}))
+        self._branch, self._turn, self._tick = self.unpack(self.recv()[-1])
+        self.method.load()
+        self.action.load()
+        self.prereq.load()
+        self.trigger.load()
+        self.function.load()
+        self.string.load()
+        self._rules_cache = self.handle('all_rules_delta')
+        for rule in self._rules_cache:
+            self._rule_obj_cache[rule] = RuleProxy(self, rule)
+        self._rulebooks_cache = self.handle('all_rulebooks_delta')
         with self.loading():
             self._eternal_cache = self.handle('eternal_delta')
             self._universal_cache = self.handle('universal_delta')

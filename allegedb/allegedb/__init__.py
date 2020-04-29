@@ -507,18 +507,6 @@ class ORM(object):
         self._get_node_stuff = (node_objs, self._node_exists, self._make_node)
         self._edge_objs = edge_objs = WeakValueDictionary()
         self._get_edge_stuff = (edge_objs, self._edge_exists, self._make_edge)
-        try:
-            self._obranch = self.query.global_get('branch')
-        except KeyError:
-            self._obranch = 'trunk'
-        try:
-            self._oturn = int(self.query.global_get('turn'))
-        except KeyError:
-            self._oturn = 0
-        try:
-            self._otick = int(self.query.global_get('tick'))
-        except KeyError:
-            self._otick = 0
         self._childbranch = defaultdict(set)
         """Immediate children of a branch"""
         self._branches = {}
@@ -537,20 +525,10 @@ class ORM(object):
         self._plans_uncommitted = []
         self._plan_ticks_uncommitted = []
         self._graph_val_cache = Cache(self)
-        self._graph_val_cache.setdb = self.query.graph_val_set
-        self._graph_val_cache.deldb = self.query.graph_val_del_time
         self._nodes_cache = NodesCache(self)
-        self._nodes_cache.setdb = self.query.exist_node
-        self._nodes_cache.deldb = self.query.nodes_del_time
         self._edges_cache = EdgesCache(self)
-        self._edges_cache.setdb = self.query.exist_edge
-        self._edges_cache.deldb = self.query.edges_del_time
         self._node_val_cache = Cache(self)
-        self._node_val_cache.setdb = self.query.node_val_set
-        self._node_val_cache.deldb = self.query.node_val_del_time
         self._edge_val_cache = Cache(self)
-        self._edge_val_cache.setdb = self.query.edge_val_set
-        self._edge_val_cache.deldb = self.query.edge_val_del_time
 
     def _load_graphs(self):
         for (graph, typ) in self.query.graphs_types():
@@ -583,16 +561,28 @@ class ORM(object):
         self._planning = False
         self._forward = False
         self._no_kc = False
+        # in case this is the first startup
+        self._obranch = 'trunk'
+        self._otick = self._oturn = 0
+        self._init_caches()
+        if hasattr(self, '_post_init_cache_hook'):
+            self._post_init_cache_hook()
         if not hasattr(self, 'query'):
             self.query = self.query_engine_cls(
                 dbstring, connect_args, alchemy,
                 getattr(self, 'pack', None), getattr(self, 'unpack', None)
             )
+        self._edge_val_cache.setdb = self.query.edge_val_set
+        self._edge_val_cache.deldb = self.query.edge_val_del_time
+        self._node_val_cache.setdb = self.query.node_val_set
+        self._node_val_cache.deldb = self.query.node_val_del_time
+        self._edges_cache.setdb = self.query.exist_edge
+        self._edges_cache.deldb = self.query.edges_del_time
+        self._nodes_cache.setdb = self.query.exist_node
+        self._nodes_cache.deldb = self.query.nodes_del_time
+        self._graph_val_cache.setdb = self.query.graph_val_set
+        self._graph_val_cache.deldb = self.query.graph_val_del_time
         self.query.initdb()
-        # in case this is the first startup
-        self._obranch = 'trunk'
-        self._otick = self._oturn = 0
-        self._init_caches()
         self._obranch = self.query.get_branch()
         self._oturn = self.query.get_turn()
         self._otick = self.query.get_tick()
