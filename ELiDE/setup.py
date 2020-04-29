@@ -36,9 +36,9 @@ setup(
     },
     install_requires=[
         "LiSE==0.10.2",
-        "numpy>=1.14.5,<1.15",
+        "numpy>=1.14.5,<1.19",
         "kivy>=1.10.0,<2",
-        "pygments>=2.3.1,<2.4"
+        "pygments>=2.3.1,<2.7"
     ],
     package_data={
         "ELiDE": [
