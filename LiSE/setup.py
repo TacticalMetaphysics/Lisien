@@ -25,7 +25,7 @@ from setuptools import setup
 
 setup(
     name="LiSE",
-    version="0.10.1",
+    version="0.10.2",
     description="Rules engine for life simulation games",
     author="Zachary Spector",
     author_email="public@zacharyspector.com",
@@ -41,9 +41,9 @@ setup(
         'LiSE': ['sqlite.json']
     },
     install_requires=[
-        "allegedb==0.15.1",
-        "astunparse>=1.5.0",
-        "msgpack>=1.0.0"
+        "allegedb==0.15.2",
+        "astunparse==1.5.0",
+        "msgpack==1.0.0"
     ],
     project_urls={
         "Documentation": "https://logicaldash.github.io/LiSE"
