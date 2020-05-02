@@ -110,3 +110,13 @@ if __name__ == '__main__':
                     eng.next_turn()
 
         cProfile.run('test()', 'polygons.prof')
+
+    if '--time' in sys.argv:
+        # only report the time it takes to actually simulate,
+        # excluding startup time and such
+        import time
+        with Engine() as eng:
+            start = time.monotonic()
+            for n in range(10):
+                eng.next_turn()
+        print(time.monotonic() - start)
