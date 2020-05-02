@@ -50,14 +50,12 @@ class PawnSpot(ImageStack, Layout):
     unselected_outline_color = ListProperty([0, 0, 0, 0])
     name = ObjectProperty()
     use_boardspace = True
-    positions = DictProperty()
-    _childs = DictProperty()
 
     def __init__(self, **kwargs):
         if 'proxy' in kwargs:
             kwargs['name'] = kwargs['proxy'].name
         super().__init__(**kwargs)
-        self.bind(pos=self._position, positions=self._position)
+        self.bind(pos=self._position)
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
@@ -194,12 +192,9 @@ class PawnSpot(ImageStack, Layout):
                     index = len(self.children) - index
                     break
         super().add_widget(wid, index=index, canvas=canvas)
-        self._childs[wid.uid] = wid
         self._trigger_layout()
 
     def remove_widget(self, widget):
-        del self._childs[widget.uid]
-        del self.positions[widget.uid]
         super().remove_widget(widget)
         self._trigger_layout()
 
@@ -253,22 +248,24 @@ class PawnSpot(ImageStack, Layout):
             offy = self.height
         else:
             offy = self.height / 2 - content_height / 2
-        positions = {}
         for pile, subgroups in sorted(piles.items()):
             for subgroup in subgroups:
                 subw = subh = 0
                 for member in subgroup:
-                    positions[member.uid] = (offx, offy + subh)
+                    rel_y = offy + subh
+                    member.rel_pos = (offx, rel_y)
+                    x, y = self.pos
+                    member.pos = x + offx, y + rel_y
                     subw = max((subw, member.width))
                     subh += member.height
                 offx += subw
             offx += gutter
-        self.positions = positions
 
     def _position(self, *args):
         x, y = self.pos
-        for member_id, (offx, offy) in self.positions.items():
-            self._childs[member_id].pos = x + offx, y + offy
+        for child in self.children:
+            offx, offy = child.rel_pos
+            child.pos = x + offx, y + offy
 
     def on_selected(self, *args):
         if self.selected:

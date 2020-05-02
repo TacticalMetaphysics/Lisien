@@ -17,7 +17,8 @@
 from kivy.properties import (
     AliasProperty,
     ObjectProperty,
-    NumericProperty
+    NumericProperty,
+    ReferenceListProperty
 )
 from .pawnspot import PawnSpot
 from ..util import trigger
@@ -47,6 +48,9 @@ class Pawn(PawnSpot):
     )
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
     priority = NumericProperty()
+    rel_x = NumericProperty(0)
+    rel_y = NumericProperty(0)
+    rel_pos = ReferenceListProperty(rel_x, rel_y)
 
     def __init__(self, **kwargs):
         if 'thing' in kwargs:
@@ -133,7 +137,7 @@ class Pawn(PawnSpot):
             parent.remove_widget(self)
             spot.add_widget(self)
         else:
-            x, y = parent.positions[self.uid]
+            x, y = self.rel_pos
             self.pos = parent.x + x, parent.y + y
 
     def __repr__(self):
