@@ -425,7 +425,7 @@ class WindowDict(MutableMapping):
     even if you don't supply a step. That will get you values in reverse order.
 
     """
-    __slots__ = ('_future', '_past', '_keys', '_beginning')
+    __slots__ = ('_future', '_past', '_keys', 'beginning', 'end', '_last')
 
     def future(self, rev=None):
         """Return a Mapping of items after the given revision.
@@ -452,7 +452,7 @@ class WindowDict(MutableMapping):
         """Arrange the caches to help look up the given revision."""
         # TODO: binary search? Perhaps only when one or the other
         # stack is very large?
-        if not self:
+        if rev == self._last:
             return
         if type(rev) is not int:
             raise TypeError("rev must be int")
@@ -478,9 +478,10 @@ class WindowDict(MutableMapping):
                     past_end = past[-1][0]
                 else:
                     break
+        self._last = rev
 
     def rev_gettable(self, rev: int) -> bool:
-        beg = self._beginning
+        beg = self.beginning
         if beg is None:
             return False
         return rev >= beg
@@ -503,16 +504,7 @@ class WindowDict(MutableMapping):
         self._keys.difference_update(map(get0, self._future))
         self._future = []
         if not self._past:
-            self._beginning = None
-
-    @property
-    def end(self) -> int:
-        if self._future:
-            return self._future[0][0]
-        elif self._past:
-            return self._past[-1][0]
-        else:
-            raise HistoryError("No history yet")
+            self.beginning = None
 
     def keys(self):
         return WindowDictKeysView(self)
@@ -537,7 +529,9 @@ class WindowDict(MutableMapping):
         self._past.sort()
         self._future = []
         self._keys = set(map(get0, self._past))
-        self._beginning = None if not self._past else self._past[0][0]
+        self.beginning = None if not self._past else self._past[0][0]
+        self.end = None if not self._past else self._past[-1][0]
+        self._last = None
 
     def __iter__(self):
         if not self:
@@ -554,8 +548,6 @@ class WindowDict(MutableMapping):
         return len(self._past) + len(self._future)
 
     def __getitem__(self, rev):
-        if not self:
-            raise HistoryError("No history yet")
         if isinstance(rev, slice):
             if None not in (rev.start, rev.stop) and rev.start > rev.stop:
                 return WindowDictReverseSlice(self, rev)
@@ -578,21 +570,18 @@ class WindowDict(MutableMapping):
             past_end = -1 if not past else past[-1][0]
             if not past:
                 past.append((rev, v))
-                self._beginning = rev
+                self.beginning = rev
             elif past_end == rev:
                 past[-1] = (rev, v)
             else:
                 past.append((rev, v))
+            if self.end is None or rev > self.end:
+                self.end = rev
         else:
             past.append((rev, v))
-            self._beginning = rev
+            self.beginning = self.end = rev
+            self._last = rev
         self._keys.add(rev)
-
-    @property
-    def beginning(self):
-        if self._beginning is None:
-            raise HistoryError("No history yet")
-        return self._beginning
 
     @cython.locals(rev=cython.int, past_end=cython.int)
     def __delitem__(self, rev):
@@ -606,15 +595,17 @@ class WindowDict(MutableMapping):
             raise HistoryError("Rev outside of history: {}".format(rev))
         self.seek(rev)
         past = self._past
-        past_end = -1 if not past else past[-1][0]
-        if not past or past_end != rev:
+        future = self._future
+        if not past or past[-1][0] != rev:
             raise HistoryError("Rev not present: {}".format(rev))
         del past[-1]
         if not past:
-            if self._future:
-                self._beginning = self._future[-1][0]
+            if future:
+                self.beginning = future[-1][0]
             else:
-                self._beginning = None
+                self.beginning = None
+        elif not future:
+            self.end = past[-1][0]
         self._keys.remove(rev)
 
     def __repr__(self):
@@ -625,7 +616,7 @@ class WindowDict(MutableMapping):
 
 class FuturistWindowDict(WindowDict):
     """A WindowDict that does not let you rewrite the past."""
-    __slots__ = ('_future', '_past', '_beginning')
+    __slots__ = ('_future', '_past', 'beginning')
 
     def __setitem__(self, rev, v):
         if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
@@ -638,7 +629,7 @@ class FuturistWindowDict(WindowDict):
                 "Already have some history after {}".format(rev)
             )
         if not past:
-            self._beginning = rev
+            self.beginning = rev
             past.append((rev, v))
         elif rev > past[-1][0]:
             past.append((rev, v))
@@ -649,6 +640,8 @@ class FuturistWindowDict(WindowDict):
                 "Already have some history after {} "
                 "(and my seek function is broken?)".format(rev)
             )
+        if self.end is None or rev > self.end:
+            self.end = rev
         self._keys.add(rev)
 
 
