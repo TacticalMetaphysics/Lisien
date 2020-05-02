@@ -100,7 +100,7 @@ class Pawn(PawnSpot):
         if '_priority' in self.proxy:
             self.priority = self.proxy['_priority']
         if relocate:
-            self.relocate()
+            self._trigger_relocate()
 
     def on_priority(self, *args):
         if self.proxy['_priority'] != self.priority:
