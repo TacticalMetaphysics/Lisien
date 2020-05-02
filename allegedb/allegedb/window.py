@@ -504,7 +504,7 @@ class WindowDict(MutableMapping):
         self._keys.difference_update(map(get0, self._future))
         self._future = []
         if not self._past:
-            self.beginning = None
+            self.beginning = self.end = None
 
     def keys(self):
         return WindowDictKeysView(self)
