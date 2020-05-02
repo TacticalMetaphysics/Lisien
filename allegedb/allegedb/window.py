@@ -603,7 +603,7 @@ class WindowDict(MutableMapping):
             if future:
                 self.beginning = future[-1][0]
             else:
-                self.beginning = None
+                self.beginning = self.end = None
         elif not future:
             self.end = past[-1][0]
         self._keys.remove(rev)
