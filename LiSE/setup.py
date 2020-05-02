@@ -42,7 +42,7 @@ setup(
     },
     install_requires=[
         "allegedb==0.15.2",
-        "astunparse==1.5.0",
+        "astunparse==1.6.3",
         "msgpack==1.0.0"
     ],
     project_urls={
