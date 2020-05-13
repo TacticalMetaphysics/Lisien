@@ -38,10 +38,10 @@ and their node in the physical world is an avatar of it.
 from abc import abstractmethod
 from collections import (
     Mapping,
-    MutableMapping,
-    Callable
+    MutableMapping
 )
 from operator import ge, gt, le, lt, eq
+from weakref import WeakValueDictionary
 from blinker import Signal
 
 import networkx as nx
@@ -67,18 +67,24 @@ from .query import StatusAlias
 
 class SpecialMappingDescriptor:
     def __init__(self, mapclsname):
+        self.insts = WeakValueDictionary()
         self.mapps = {}
         self.mapclsname = mapclsname
 
     def __get__(self, instance, owner):
         if id(instance) in self.mapps:
-            return self.mapps[id(instance)]
+            if id(instance) not in self.insts:
+                del self.mapps[id(instance)]
+            else:
+                return self.mapps[id(instance)]
+        self.insts[id(instance)] = instance
         mappcls = getattr(instance, self.mapclsname)
         ret = self.mapps[id(instance)] = mappcls(instance)
         return ret
 
     def __set__(self, instance, value):
         if id(instance) not in self.mapps:
+            self.insts[id(instance)] = instance
             self.mapps[id(instance)] = getattr(instance, self.mapclsname)(instance)
         it = self.mapps[id(instance)]
         it.clear()
