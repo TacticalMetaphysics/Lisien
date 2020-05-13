@@ -72,13 +72,22 @@ class EngineHandle(object):
     It's probably a bad idea to use this class unless you're
     developing your own API.
 
+    This holds a cache of the last observed state of each
+    :class:`LiSE.character.Character`. When updating the view on the
+    simulation from your API, use the method `character_delta`
+    to get a dictionary describing the changes since last you observed
+    the :class:`LiSE.character.Character`.
+
     """
     def __init__(self, args=(), kwargs=None, logq=None, loglevel=None):
         """Instantiate an engine with the positional arguments ``args`` and
         the keyword arguments ``kwargs``.
 
         ``logq`` is a :class:`Queue` into which I'll put tuples of
-        ``(loglevel, message)``.
+        ``(loglevel, message)``. ``loglevel`` is one of
+        `'debug'`, `'info'`, `'warning'`, `'error'`, or `'critical'`
+        (or the constants from the `logging` module, or an integer)
+        and controls what messages will be logged.
 
         """
         if kwargs is None:
@@ -146,13 +155,16 @@ class EngineHandle(object):
         return self._real.pack(o)
 
     def time_locked(self):
+        """Return whether the sim-time has been prevented from advancing"""
         return hasattr(self._real, 'locktime')
 
     @timely
     def advance(self):
+        """Run one rule"""
         self._real.advance()
 
     def get_char_deltas(self, chars, *, store=True):
+        """Return a dict describing changes to characters since last call"""
         ret = {}
         if chars == 'all':
             it = iter(self._real.character.keys())

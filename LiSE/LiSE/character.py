@@ -749,8 +749,7 @@ class AbstractCharacter(MutableMapping):
 
 
 class CharRuleMapping(RuleMapping):
-
-    """Wraps one of a character's rulebooks so you can get its rules by name.
+    """Get rules by name, or make new ones by decorator
 
     You can access the rules in this either dictionary-style or as
     attributes. This is for convenience if you want to get at a rule's
@@ -1274,21 +1273,42 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
-    """A graph that follows game rules and has a containment hierarchy.
+    """A digraph that follows game rules and has a containment hierarchy
 
     Nodes in a Character are subcategorized into Things and
     Places. Things have locations, and those locations may be Places
-    or other Things.
+    or other Things. To get at those, use the `thing` and `place`
+    mappings -- but in situations where the distinction does not matter,
+    you may simply address the Character as a mapping, as in NetworkX.
 
     Characters may have avatars in other Characters. These are just
     nodes. You can apply rules to a Character's avatars, and thus to
     any collection of nodes you want, perhaps in many different
-    Characters. But you may want a Character to have exactly one
-    avatar, representing their location in physical space -- the
-    Character named 'physical'. So when a Character has only one
-    avatar, you can treat the ``avatar`` property as an alias of the
-    avatar.
+    Characters. The `avatar` attribute handles this. It is a mapping,
+    keyed by the other Character's name, then by the name of the node
+    that is this Character's avatar. In the common case where a
+    Character has exactly one avatar, it may be retrieved as
+    `avatar.only`. When it has more than one avatar, but only has
+    any avatars in a single other Character, you can get the mapping
+    of avatars in that Character as `avatar.node`. Add avatars with the
+    `add_avatar` method and remove them with `del_avatar`.
 
+    You can assign rules to Characters with their `rule` attribute,
+    typically using it as a decorator (see the documentation for
+    the `rule` module). You can do the same to some of Character's
+    attributes:
+
+    * `thing.rule` to make a rule run on all Things in this Character
+      every turn
+    * `place.rule` to make a rule run on all Places in this Character
+      every turn
+    * `node.rule` to make a rule run on all Things and Places in this
+      Character every turn
+    * `avatar.rule` to make a rule run on all the avatars this
+      Character has every turn, regardless of what Character the
+      avatar is in
+    * `adj.rule` to make a rule run on all the edges this Character
+      has every turn
 
     """
     _book = "character"
@@ -1744,16 +1764,17 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             )
 
         def __call__(self, av):
-            """Add the avatar. It must be an instance of Place or Thing."""
+            """Add the avatar
+
+            It must be an instance of Place or Thing.
+
+            """
             if av.__class__ not in (Place, Thing):
                 raise TypeError("Only Things and Places may be avatars")
             self._add_av(av.name, av.character.name)
 
         def __iter__(self):
-            """Iterate over every avatar graph that has at least one avatar node
-            in it presently
-
-            """
+            """Iterate over graphs with avatar nodes in them"""
             get_char_graphs, charn, btt = self._iter_stuff
             return iter(get_char_graphs(charn, *btt()))
 
@@ -1778,7 +1799,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         @property
         def node(self):
-            """If I have avatars in only one graph, return a map of them.
+            """If I have avatars in only one graph, return a map of them
 
             Otherwise, raise AttributeError.
 
@@ -1797,7 +1818,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         @property
         def only(self):
-            """If I have only one avatar, return it.
+            """If I have only one avatar, return it
 
             Otherwise, raise AttributeError.
 
@@ -1834,10 +1855,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 self._only_stuff = (get_node, engine.character, graphn)
 
             def __iter__(self):
-                """Iterate over the names of all the presently existing nodes in the
-                graph that are avatars of the character
-
-                """
+                """Iterate over names of avatar nodes"""
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
                 return iter(get_char_graph_avs(
                     name, graphn, *btt()
@@ -1850,8 +1868,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 )
 
             def __len__(self):
-                """Number of presently existing nodes in the graph that are avatars of
-                the character"""
+                """Number of avatars of this character in that graph"""
                 get_char_graph_avs, name, graphn, btt = self._iter_stuff
                 return len(get_char_graph_avs(
                     name, graphn, *btt()
@@ -1998,10 +2015,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.add_portal(orig, dest, **kwargs)
 
     def add_avatar(self, a, b=None):
-        """Start keeping track of a :class:`Thing` or :class:`Place` in a
-        different :class:`Character`.
-
-        """
+        """Start keeping track of an avatar"""
         if self.engine._planning:
             raise NotImplementedError("Currently can't add avatars within a plan")
         if b is None:
@@ -2042,9 +2056,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         self.engine._remember_avatarness(self.name, g, n, branch=branch, turn=turn, tick=tick)
 
     def remove_avatar(self, a, b=None):
-        """This is no longer my avatar, though it still exists on its own."""
+        """This is no longer my avatar, though it still exists"""
         if self.engine._planning:
-            raise NotImplementedError("Currently can't remove avatars within a plan")
+            raise NotImplementedError(
+                "Currently can't remove avatars within a plan")
         if b is None:
             if not isinstance(a, Node):
                 raise TypeError(
@@ -2071,8 +2086,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             yield make_edge(char, o, d)
 
     def avatars(self):
-        """Iterate over all my avatars, regardless of what character they are
-        in.
+        """Iterate over all my avatars
+
+        Regardless of what character they are in.
 
         """
         charname = self.character.name

@@ -26,7 +26,9 @@ class EntityCollisionError(ValueError):
 def getatt(attribute_name):
     """An easy way to make an alias"""
     from operator import attrgetter
-    return property(attrgetter(attribute_name))
+    ret = property(attrgetter(attribute_name))
+    ret.__doc__ = "Alias to `{}`".format(attribute_name)
+    return ret
 
 
 def convert_to_networkx_graph(data, create_using=None, multigraph_input=False):
