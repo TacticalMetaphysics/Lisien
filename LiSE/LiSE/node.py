@@ -459,7 +459,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         for contained in list(self.contents()):
             contained.delete()
         for user in list(self.users.values()):
-            user.del_avatar(self.character.name, self.name)
+            user.remove_avatar(self.character.name, self.name)
         branch, turn, tick = self.engine._nbtt()
         self.engine._nodes_cache.store(
             self.character.name, self.name,

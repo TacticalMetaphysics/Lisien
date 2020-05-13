@@ -1077,8 +1077,8 @@ class EngineHandle(object):
         self._char_av_cache.setdefault(char, {})[graph].add(node)
 
     @timely
-    def del_avatar(self, char, graph, node):
-        self._real.character[char].del_avatar(graph, node)
+    def remove_avatar(self, char, graph, node):
+        self._real.character[char].remove_avatar(graph, node)
         self._char_av_cache.setdefault(char, {})[graph].remove(node)
 
     @timely

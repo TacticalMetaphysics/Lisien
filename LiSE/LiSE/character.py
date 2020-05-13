@@ -211,7 +211,7 @@ class AbstractCharacter(MutableMapping):
     def add_avatar(self, a, b=None): pass
 
     @abstractmethod
-    def del_avatar(self, a, b=None): pass
+    def remove_avatar(self, a, b=None): pass
 
     def __eq__(self, other):
         return isinstance(other, AbstractCharacter) and self.name == other.name
@@ -1134,7 +1134,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
         for it in seq:
             self.add_portal(*it, **attrs)
 
-    def del_avatar(self, a, b=None):
+    def remove_avatar(self, a, b=None):
         raise NotImplementedError("Facades don't have avatars")
 
     def add_place(self, name, **kwargs):

@@ -1567,10 +1567,10 @@ class CharacterProxy(AbstractCharacter):
             branching=True
         )
 
-    def del_avatar(self, graph, node):
+    def remove_avatar(self, graph, node):
         # TODO: cache
         self.engine.handle(
-            command='del_avatar',
+            command='remove_avatar',
             char=self.name,
             graph=graph,
             node=node,
