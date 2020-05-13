@@ -442,7 +442,7 @@ class AbstractCharacter(MutableMapping):
         return self.copy_from(nx.grid_2d_graph(m, n, periodic))
 
     def grid_2d_8graph(self, m, n):
-        """Make a 2d graph that's connected 8 ways, enabling diagonal movement"""
+        """Make a 2d graph that's connected 8 ways, with diagonals"""
         me = nx.Graph()
         nodes = me.nodes
         add_node = me.add_node
@@ -2041,7 +2041,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         branch, turn, tick = self.engine._nbtt()
         self.engine._remember_avatarness(self.name, g, n, branch=branch, turn=turn, tick=tick)
 
-    def del_avatar(self, a, b=None):
+    def remove_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own."""
         if self.engine._planning:
             raise NotImplementedError("Currently can't remove avatars within a plan")
