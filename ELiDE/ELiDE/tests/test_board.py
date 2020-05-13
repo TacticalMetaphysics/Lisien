@@ -85,3 +85,37 @@ class BoardTest(GraphicUnitTest):
         EventLoop.post_dispatch_input("begin", motion)
         EventLoop.post_dispatch_input("end", motion)
         assert app.selection == board.pawn['that']
+
+    @staticmethod
+    def test_pawn_relocate():
+        char = Facade()
+        char.add_place(0, _x=0.1, _y=0.1)
+        char.add_place(1, _x=0.2, _y=0.1)
+        char.add_thing('that', location=0)
+        app = ELiDEApp()
+        board = Board(
+            app=app,
+            character=char
+        )
+        boardview = BoardView(board=board)
+        EventLoop.ensure_window()
+        win = EventLoop.window
+        win.add_widget(boardview)
+        while 0 not in board.spot \
+                or board.spot[0] not in board.spotlayout.children \
+                or 1 not in board.spot \
+                or board.spot[1] not in board.spotlayout.children \
+                or 'that' not in board.pawn \
+                or board.pawn['that'] not in board.spot[0].children:
+            EventLoop.idle()
+        that = board.pawn['that']
+        one = board.spot[1]
+        # In a real ELiDE session, the following would happen as a
+        # result of a Board.update() call
+        char.thing['that']['location'] = that.loc_name = 1
+        for ticked in range(1000):
+            EventLoop.idle()
+            if that in one.children:
+                return
+        else:
+            assert False, "pawn did not relocate within 1000 ticks"
