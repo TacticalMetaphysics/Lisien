@@ -169,9 +169,13 @@ class AbstractEngine(object):
         if getattr(self, '_initialized', False):
             raise ValueError("Already loading")
         self.unpack = self._make_unpacker(False)
+        if hasattr(self, 'query'):
+            self.query.unpack = self.unpack
         self._initialized = False
         yield
         self.unpack = self._make_unpacker(True)
+        if hasattr(self, 'query'):
+            self.query.unpack = self.unpack
         self._initialized = True
 
     def __getattr__(self, item):
@@ -1135,7 +1139,8 @@ class Engine(AbstractEngine, gORM):
         self._things_cache.load(q.things_dump())
         super()._init_load(validate=validate)
         self._avatarness_cache.load(q.avatars_dump())
-        self._universal_cache.load(q.universals_dump())
+        with self.loading():
+            self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())
         self._characters_rulebooks_cache.load(
             q.character_rulebook_dump())
