@@ -180,7 +180,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
     def _position(self, *args):
         x, y = self.pos
         for child in self.children:
-            offx, offy = child.rel_pos
+            offx, offy = getattr(child, 'rel_pos', (0, 0))
             child.pos = x + offx, y + offy
 
     def on_selected(self, *args):
