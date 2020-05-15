@@ -49,6 +49,8 @@ def install(eng):
             poly.engine.universal['unoccupied'] = [place for place in poly.character.place.values() if not place.content]
         unoccupied = poly.engine.universal['unoccupied']
         newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
+        while not newloc:  # the unoccupied location may have been deleted
+            newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
         unoccupied.append(poly.location)
         poly.location = newloc
 
