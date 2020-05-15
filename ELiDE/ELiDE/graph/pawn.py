@@ -69,7 +69,7 @@ class Pawn(GraphPawnSpot, PawnBehavior):
             parent.remove_widget(self)
             spot.add_widget(self)
         else:
-            x, y = self.rel_pos
+            x, y = getattr(self, 'rel_pos', (0, 0))
             self.pos = parent.x + x, parent.y + y
 
     def __repr__(self):
