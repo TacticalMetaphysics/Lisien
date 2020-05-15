@@ -185,6 +185,19 @@ class GridBoard(RelativeLayout):
         for pawn in self.pawn.values():
             pawn.finalize()
 
+    def rm_spot(self, name):
+        spot = self.spot.pop(name)
+        if spot in self.selection_candidates:
+            self.selection_candidates.remove(spot)
+        for pwn in spot.children:
+            del self.pawn[pwn.name]
+        self.remove_widget(spot)
+
+    def rm_pawn(self, name):
+        pwn = self.pawn.pop(name)
+        if pwn in self.selection_candidates:
+            self.selection_candidates.remove(pwn)
+        pwn.parent.remove_widget(pwn)
 
     def update_from_delta(self, delta, *args):
         pawnmap = self.pawn

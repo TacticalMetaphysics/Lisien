@@ -429,11 +429,15 @@ class ELiDEApp(App):
             )
             selection.portal.delete()
         elif isinstance(selection, GraphSpot):
-            self.mainscreen.boardview.board.rm_spot(selection.name)
+            charn = selection.board.character.name
+            self.mainscreen.graphboards[charn].rm_spot(selection.name)
+            self.mainscreen.gridboards[charn].rm_spot(selection.name)
             selection.proxy.delete()
         else:
             assert isinstance(selection, Pawn)
-            self.mainscreen.boardview.board.rm_pawn(selection.name)
+            charn = selection.board.character.name
+            self.mainscreen.graphboards[charn].rm_pawn(selection.name)
+            self.mainscreen.gridboards[charn].rm_pawn(selection.name)
             selection.proxy.delete()
         self.selection = None
 
