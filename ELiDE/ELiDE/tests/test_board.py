@@ -3,8 +3,8 @@ from kivy.tests.common import GraphicUnitTest
 
 from LiSE.character import Facade
 from ELiDE.app import ELiDEApp
-from ELiDE.board.board import Board, BoardView
-from .util import MockTouch
+from ELiDE.graph.board import GraphBoard, GraphBoardView
+from ELiDE.tests.util import MockTouch
 
 
 class BoardTest(GraphicUnitTest):
@@ -15,11 +15,11 @@ class BoardTest(GraphicUnitTest):
         char.add_place(1, _x=0.2, _y=0.1)
         char.add_portal(0, 1)
         app = ELiDEApp()
-        board = Board(
+        board = GraphBoard(
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)
@@ -41,11 +41,11 @@ class BoardTest(GraphicUnitTest):
         char = Facade()
         char.add_place(0, _x=0.1, _y=0.1)
         app = ELiDEApp()
-        board = Board(
+        board = GraphBoard(
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)
@@ -66,11 +66,11 @@ class BoardTest(GraphicUnitTest):
         char.add_place(0, _x=0.1, _y=0.1)
         char.add_thing('that', location=0)
         app = ELiDEApp()
-        board = Board(
+        board = GraphBoard(
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)
@@ -93,11 +93,11 @@ class BoardTest(GraphicUnitTest):
         char.add_place(1, _x=0.2, _y=0.1)
         char.add_thing('that', location=0)
         app = ELiDEApp()
-        board = Board(
+        board = GraphBoard(
             app=app,
             character=char
         )
-        boardview = BoardView(board=board)
+        boardview = GraphBoardView(board=board)
         EventLoop.ensure_window()
         win = EventLoop.window
         win.add_widget(boardview)

@@ -22,7 +22,7 @@ from kivy.properties import (
     ObjectProperty,
     ReferenceListProperty
 )
-from .board.arrow import ArrowWidget
+from .graph.arrow import GraphArrowWidget
 from .util import try_load, dummynum
 from LiSE.proxy import CharStatProxy
 
@@ -58,7 +58,7 @@ class CharMenu(BoxLayout):
         self.screen.boardview.reciprocal_portal = self.reciprocal_portal
         if self.reciprocal_portal:
             assert (self.revarrow is None)
-            self.revarrow = ArrowWidget(
+            self.revarrow = GraphArrowWidget(
                 board=self.screen.boardview.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
@@ -146,7 +146,7 @@ class CharMenu(BoxLayout):
         self.screen.boardview.reciprocal_portal = not self.screen.boardview.reciprocal_portal
         if self.screen.boardview.reciprocal_portal:
             assert(self.revarrow is None)
-            self.revarrow = ArrowWidget(
+            self.revarrow = GraphArrowWidget(
                 board=self.screen.boardview.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
@@ -224,8 +224,8 @@ Builder.load_string("""
                 center_x: portaladdbut.right - portaladdbut.width / 3
                 center_y: portaladdbut.center_y
                 size: (0, 0)
-            ArrowWidget:
-                board: root.screen.boardview.board if root.screen and root.screen.boardview else None
+            GraphArrowWidget:
+                graph: root.screen.boardview.graph if root.screen and root.screen.boardview else None
                 origin: emptyleft
                 destination: emptyright
         Button:

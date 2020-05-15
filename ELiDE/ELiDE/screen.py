@@ -16,7 +16,7 @@
 
 """The big layout that you view all of ELiDE through.
 
-Handles touch, selection, and time control. Contains a board, a stat
+Handles touch, selection, and time control. Contains a graph, a stat
 grid, the time control panel, and the menu.
 
 """
@@ -29,7 +29,6 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
@@ -45,7 +44,8 @@ from kivy.properties import (
     StringProperty
 )
 from .charmenu import CharMenu
-from .board.board import BoardView
+from .graph.board import GraphBoardView
+from .grid.board import GridBoardView
 from .calendar import Agenda
 from .util import dummynum, trigger
 
@@ -73,6 +73,7 @@ class StatListPanel(BoxLayout):
     engine = ObjectProperty()
     proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
+    toggle_gridview = ObjectProperty()
     toggle_calendar = ObjectProperty()
 
     def on_proxy(self, *args):
@@ -167,9 +168,9 @@ class TimePanel(BoxLayout):
 
 
 class MainScreen(Screen):
-    """A master layout that contains one board and some menus.
+    """A master layout that contains one graph and some menus.
 
-    This contains three elements: a scrollview (containing the board),
+    This contains three elements: a scrollview (containing the graph),
     a menu, and the time control panel. This class has some support methods
     for handling interactions with the menu and the character sheet,
     but if neither of those happen, the scrollview handles touches on its
@@ -177,7 +178,8 @@ class MainScreen(Screen):
 
     """
     manager = ObjectProperty()
-    boards = DictProperty()
+    graphboards = DictProperty()
+    gridboards = DictProperty()
     boardview = ObjectProperty()
     mainview = ObjectProperty()
     charmenu = ObjectProperty()
@@ -204,18 +206,18 @@ class MainScreen(Screen):
         if not all((self.statpanel, self.charmenu, self.app)) or not self.charmenu.portaladdbut:
             Clock.schedule_once(self.on_mainview, 0)
             return
-        self.boardview = BoardView(
+        self.boardview = GraphBoardView(
             scale_min=0.2,
             scale_max=4.0,
             size=self.mainview.size,
             pos=self.mainview.pos,
-            board=self.boards[self.app.character_name],
+            board=self.graphboards[self.app.character_name],
             adding_portal=self.charmenu.portaladdbut.state == 'down'
         )
         def update_adding_portal(*args):
             self.boardview.adding_portal = self.charmenu.portaladdbut.state == 'down'
         def update_board(*args):
-            self.boardview.board = self.boards[self.app.character_name]
+            self.boardview.board = self.graphboards[self.app.character_name]
         self.mainview.bind(
             size=self.boardview.setter('size'),
             pos=self.boardview.setter('pos')
@@ -229,9 +231,20 @@ class MainScreen(Screen):
             size=self.mainview.size,
             pos=self.mainview.pos
         )
+        self.gridview = GridBoardView(
+            scale_min=0.2,
+            scale_max=4.0,
+            size=self.mainview.size,
+            pos=self.mainview.pos,
+            board=self.gridboards[self.app.character_name]
+        )
         self.mainview.bind(
             size=self.calendar_view.setter('size'),
-            pos=self.calendar_view.setter('pos')
+            pos=self.calendar_view.setter('pos'),
+        )
+        self.mainview.bind(
+            size=self.gridview.setter('size'),
+            pos=self.gridview.setter('pos')
         )
         self.calendar_view.add_widget(self.calendar)
         self.mainview.add_widget(self.boardview)
@@ -304,12 +317,12 @@ class MainScreen(Screen):
             return self.charmenu.dispatch('on_touch_up', touch)
         elif self.statpanel.collide_point(*touch.pos):
             return self.statpanel.dispatch('on_touch_up', touch)
-        return self.boardview.dispatch('on_touch_up', touch)
+        return self.mainview.dispatch('on_touch_up', touch)
 
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
         they give a unique name for the resulting new
-        :class:`board.Pawn` or :class:`board.Spot`.
+        :class:`graph.Pawn` or :class:`graph.Spot`.
 
         """
         def renum_dummy(dummy, *args):
@@ -353,6 +366,7 @@ class MainScreen(Screen):
             if unwanted in chardelta:
                 del chardelta[unwanted]
         self.boardview.board.trigger_update_from_delta(chardelta)
+        self.gridview.board.trigger_update_from_delta(chardelta)
         self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
     def play(self, *args):
@@ -411,7 +425,15 @@ class MainScreen(Screen):
         self.app.engine.handle('apply_choices', choices=[self.calendar.get_track()])
         self.mainview.add_widget(self.boardview)
 
-    def toggle_mainview(self, *args):
+    def toggle_gridview(self, *args):
+        if self.gridview in self.mainview.children:
+            self.mainview.clear_widgets()
+            self.mainview.add_widget(self.boardview)
+        else:
+            self.mainview.clear_widgets()
+            self.mainview.add_widget(self.gridview)
+
+    def toggle_calendar(self, *args):
         # TODO decide how to handle switching between >2 view types
         if self.boardview in self.mainview.children:
             self.switch_to_calendar()
@@ -434,9 +456,14 @@ Builder.load_string(
         bold: True
     Calendar:
         id: statlist
-        size_hint_y: 0.8
+        size_hint_y: 0.7
         entity: root.proxy
         update_mode: 'present'
+    Button:
+        id: gridviewbut
+        size_hint_y: 0.1
+        text: 'toggle grid'
+        on_release: root.toggle_gridview()
     Button:
         id: cfgstatbut
         size_hint_y: 0.1
@@ -552,7 +579,8 @@ Builder.load_string(
         id: statpanel
         engine: app.engine
         toggle_stat_cfg: app.statcfg.toggle
-        toggle_calendar: root.toggle_mainview
+        toggle_calendar: root.toggle_calendar
+        toggle_gridview: root.toggle_gridview
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
         selection_name: str(app.selected_proxy.name) if app.selected_proxy else ''

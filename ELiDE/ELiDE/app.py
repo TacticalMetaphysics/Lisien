@@ -40,10 +40,11 @@ import ELiDE.statcfg
 import ELiDE.spritebuilder
 import ELiDE.rulesview
 import ELiDE.charsview
-from ELiDE.board.board import Board
-from ELiDE.board.arrow import ArrowWidget
-from ELiDE.board.spot import Spot
-from ELiDE.board.pawn import Pawn
+from ELiDE.graph.board import GraphBoard
+from ELiDE.graph.arrow import GraphArrowWidget
+from ELiDE.graph.spot import GraphSpot
+from ELiDE.graph.pawn import Pawn
+from ELiDE.grid.board import GridBoard
 from .util import trigger
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
@@ -63,6 +64,7 @@ class ELiDEApp(App):
     character = ObjectProperty()
     selection = ObjectProperty(None, allownone=True)
     selected_proxy = ObjectProperty()
+    statcfg = ObjectProperty()
 
     def on_selection(self, *args):
         Logger.debug("App: {} selected".format(self.selection))
@@ -254,6 +256,11 @@ class ELiDEApp(App):
             data=json.loads(config['ELiDE']['place_graphics'])
         )
 
+        self.statcfg = ELiDE.statcfg.StatScreen(
+            toggle=toggler('statcfg'),
+            engine=self.engine
+        )
+
         self.rules = ELiDE.rulesview.RulesScreen(
             engine=self.engine,
             toggle=toggler('rules')
@@ -294,10 +301,6 @@ class ELiDEApp(App):
 
         self.select_character(self.engine.eternal['boardchar'])
 
-        self.statcfg = ELiDE.statcfg.StatScreen(
-            toggle=toggler('statcfg'),
-            engine=self.engine
-        )
         self.bind(
             selected_proxy=self.statcfg.setter('proxy')
         )
@@ -305,10 +308,14 @@ class ELiDEApp(App):
         self.mainscreen = ELiDE.screen.MainScreen(
             use_kv=config['ELiDE']['user_kv'] == 'yes',
             play_speed=int(config['ELiDE']['play_speed']),
-            boards={
-                name: Board(
+            graphboards={
+                name: GraphBoard(
                     character=char
                 ) for name, char in self.engine.character.items()
+            },
+            gridboards={
+                name: GridBoard(character=char)
+                for name, char in self.engine.character.items()
             }
         )
         if self.mainscreen.statlist:
@@ -383,9 +390,11 @@ class ELiDEApp(App):
             Clock.schedule_once(self.on_character, 0)
             return
         if hasattr(self, '_oldchar'):
-            self.mainscreen.boards[self._oldchar.name].unbind(selection=self.setter('selection'))
+            self.mainscreen.graphboards[self._oldchar.name].unbind(selection=self.setter('selection'))
+            self.mainscreen.gridboards[self._oldchar.name].unbind(selection=self.setter('selection'))
         self.selection = None
-        self.mainscreen.boards[self.character.name].bind(selection=self.setter('selection'))
+        self.mainscreen.graphboards[self.character.name].bind(selection=self.setter('selection'))
+        self.mainscreen.gridboards[self.character.name].bind(selection=self.setter('selection'))
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
@@ -407,7 +416,7 @@ class ELiDEApp(App):
         selection = self.selection
         if selection is None:
             return
-        if isinstance(selection, ArrowWidget):
+        if isinstance(selection, GraphArrowWidget):
             if selection.reciprocal and selection.reciprocal.portal.get('is_mirror', False):
                 selection.reciprocal.portal.delete()
                 self.mainscreen.boardview.board.rm_arrow(
@@ -419,7 +428,7 @@ class ELiDEApp(App):
                 selection.destination.name
             )
             selection.portal.delete()
-        elif isinstance(selection, Spot):
+        elif isinstance(selection, GraphSpot):
             self.mainscreen.boardview.board.rm_spot(selection.name)
             selection.proxy.delete()
         else:
@@ -429,8 +438,8 @@ class ELiDEApp(App):
         self.selection = None
 
     def new_board(self, name):
-        """Make a board for a character name, and switch to it."""
+        """Make a graph for a character name, and switch to it."""
         char = self.engine.character[name]
-        board = Board(character=char)
-        self.mainscreen.boards[name] = board
+        self.mainscreen.graphboards[name] = GraphBoard(character=char)
+        self.mainscreen.gridboards[name] = GridBoard(character=char)
         self.character = char

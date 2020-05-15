@@ -28,8 +28,8 @@ from . import menu  # for kv
 
 
 class Dummy(ImageStack):
-    """A widget that looks like the ones on the board, which, when dragged
-    onto the board, creates one of them.
+    """A widget that looks like the ones on the graph, which, when dragged
+    onto the graph, creates one of them.
 
     """
     _touch = ObjectProperty(None, allownone=True)
@@ -57,8 +57,8 @@ class Dummy(ImageStack):
 
     def on_touch_down(self, touch):
         """If hit, record my starting position, that I may return to it in
-        ``on_touch_up`` after creating a real :class:`board.Spot` or
-        :class:`board.Pawn` instance.
+        ``on_touch_up`` after creating a real :class:`graph.Spot` or
+        :class:`graph.Pawn` instance.
 
         """
         if not self.collide_point(*touch.pos):
@@ -85,7 +85,7 @@ class Dummy(ImageStack):
     def on_touch_up(self, touch):
         """Return to ``pos_start``, but first, save my current ``pos`` into
         ``pos_up``, so that the layout knows where to put the real
-        :class:`board.Spot` or :class:`board.Pawn` instance.
+        :class:`graph.Spot` or :class:`graph.Pawn` instance.
 
         """
         if touch is not self._touch:
