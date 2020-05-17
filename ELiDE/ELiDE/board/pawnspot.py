@@ -76,9 +76,17 @@ class PawnSpot(ImageStack, Layout):
             return
         if initial:
             self.name = self.proxy.name
-            self.paths = self.proxy.setdefault(
-                '_image_paths', self.default_image_paths
-            )
+            if '_image_paths' in self.proxy:
+                try:
+                    self.paths = self.proxy['_image_paths']
+                except Exception as ex:
+                    if not ex.args[0].startswith('Unable to load image type'):
+                        raise ex
+                    self.paths = self.default_image_paths
+            else:
+                self.paths = self.proxy.setdefault(
+                    '_image_paths', self.default_image_paths
+                )
             zeroes = [0] * len(self.paths)
             self.offxs = self.proxy.setdefault('_offxs', zeroes)
             self.offys = self.proxy.setdefault('_offys', zeroes)
