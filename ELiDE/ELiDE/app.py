@@ -431,7 +431,9 @@ class ELiDEApp(App):
         elif isinstance(selection, GraphSpot):
             charn = selection.board.character.name
             self.mainscreen.graphboards[charn].rm_spot(selection.name)
-            self.mainscreen.gridboards[charn].rm_spot(selection.name)
+            gridb = self.mainscreen.gridboards[charn]
+            if selection.name in gridb.spot:
+                gridb.rm_spot(selection.name)
             selection.proxy.delete()
         else:
             assert isinstance(selection, Pawn)
