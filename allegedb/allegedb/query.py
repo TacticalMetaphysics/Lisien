@@ -120,9 +120,8 @@ class QueryEngine(object):
         def lite_init(dbstring, connect_args):
             from sqlite3 import connect, Connection
             from json import load
-            self.strings = load(
-                open(os.path.join(self.path, 'sqlite.json'))
-            )
+            with open(os.path.join(self.path, 'sqlite.json')) as strf:
+                self.strings = load(strf)
             if isinstance(dbstring, Connection):
                 self.connection = dbstring
             else:
