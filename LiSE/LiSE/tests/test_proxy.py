@@ -113,3 +113,19 @@ def test_assignment(clean):
     student_initial_copy['room'] = eng.character['physical'].place['dorm0room0']
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
     hand.close()
+
+
+def test_serialize_deleted(clean):
+    from LiSE import Engine
+    eng = Engine(':memory:', random_seed=69105)
+    with eng.advancing():
+        college.install(eng)
+    d0r0s0 = eng.character['dorm0room0student0']
+    roommate = d0r0s0.stat['roommate']
+    del eng.character[roommate.name]
+    assert not roommate
+    with pytest.raises(KeyError):
+        eng.character[roommate.name]
+    assert d0r0s0.stat['roommate'] == roommate
+    assert eng.unpack(eng.pack(d0r0s0.stat['roommate'])) == roommate
+

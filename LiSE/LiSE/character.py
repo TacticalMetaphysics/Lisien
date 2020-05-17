@@ -223,6 +223,9 @@ class AbstractCharacter(MutableMapping):
     def __len__(self):
         return len(self.node)
 
+    def __bool__(self):
+        return self.name in self.db.character
+
     def __contains__(self, k):
         return k in self.node
 
