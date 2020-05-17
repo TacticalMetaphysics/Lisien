@@ -265,6 +265,15 @@ class GraphMapping(AbstractEntityMapping):
     def unwrap(self):
         return {k: v.unwrap() if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap') else v for (k, v) in self.items()}
 
+    def __eq__(self, other):
+        if hasattr(other, 'unwrap'):
+            other = other.unwrap()
+        other = other.copy()
+        me = self.unwrap().copy()
+        if 'name' not in other:
+            del me['name']
+        return me == other
+
 
 class Node(AbstractEntityMapping):
     """Mapping for node attributes"""
@@ -1219,6 +1228,7 @@ class Graph(networkx.Graph):
         self.db = db
         if name not in self.db._graph_objs:
             self.db._graph_objs[name] = self
+        self.clear()
         if data is not None:
             data = data.copy()
             if isinstance(data, dict) and 'name' in data:

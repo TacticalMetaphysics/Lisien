@@ -1549,7 +1549,6 @@ class Engine(AbstractEngine, gORM):
         """
         self._init_graph(name, 'DiGraph')
         self._graph_objs[name] = self.char_cls(self, name, data, **kwargs)
-        self._graph_objs[name].clear()
 
     def del_character(self, name):
         """Remove the Character from the database entirely.
