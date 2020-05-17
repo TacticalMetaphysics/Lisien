@@ -111,7 +111,7 @@ class GridBoard(RelativeLayout):
             thingn not in self.pawn
         ):
             pwn = self.make_pawn(self.character.thing[thingn])
-            whereat = self.spot[pwn.thing['location']]
+            whereat = self.spot[pwn.proxy['location']]
             whereat.add_widget(pwn)
             self.pawn[thingn] = pwn
 
