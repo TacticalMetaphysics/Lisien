@@ -179,8 +179,7 @@ def update_char(char, *, stat=(), node=(), portal=()):
     }
 
 
-# TODO parametrize bunch of characters
-@pytest.fixture(scope="function", params=[
+CHAR_DATA = [
     ('empty', {}, {}, [], [], [], []),
     ('small',
      {0: [1], 1: [0], 'kobold': []},
@@ -191,30 +190,32 @@ def update_char(char, *, stat=(), node=(), portal=()):
      [(2, {'evil': False}), ('kobold', {'evil': False})],
      [(0, 1, None), (0, 2, {'hi': 'hello'})]
      )
-])
-def character_updates(request):
-    tempdir = tempfile.mkdtemp(dir='.')
-    for f in (
-            'trigger.py', 'prereq.py', 'action.py', 'function.py',
-            'method.py', 'strings.json'
-    ):
-        if os.path.exists(f):
-            os.rename(f, os.path.join(tempdir, f))
+]
+
+
+@pytest.mark.parametrize(['name', 'data', 'stat', 'nodestat', 'statup', 'nodeup', 'edgeup'], CHAR_DATA)
+def test_char_creation(name, data, stat, nodestat, statup, nodeup, edgeup):
+    with Engine("sqlite:///:memory:") as eng:
+        char = eng.new_character(name, data, **stat)
+        assert set(char.node) == set(data)
+        es = set()
+        for k, v in data.items():
+            for vv in v:
+                es.add((k, vv))
+        assert set(char.edges) == es
+        assert char.stat == stat
+
+
+
+# TODO parametrize bunch of characters
+@pytest.fixture(scope="function", params=CHAR_DATA)
+def character_updates(request, clean):
     name, data, stat, nodestat, statup, nodeup, edgeup = request.param
     engine = Engine("sqlite:///:memory:")
     char = engine.new_character(name, data, **stat)
     update_char(char, node=nodestat)
     yield char, statup, nodeup, edgeup
     engine.close()
-    for f in (
-        'trigger.py', 'prereq.py', 'action.py', 'function.py',
-        'method.py', 'strings.json'
-    ):
-        if os.path.exists(f):
-            os.remove(f)
-        if os.path.exists(os.path.join(tempdir, f)):
-            os.rename(os.path.join(tempdir, f), f)
-    os.rmdir(tempdir)
 
 
 def test_facade(character_updates):
