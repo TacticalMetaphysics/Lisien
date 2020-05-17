@@ -1042,6 +1042,8 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
         self.send(self, key=k, val=v)
 
     def __delitem__(self, k):
+        if k not in self:
+            raise KeyError("{} not present".format(k))
         self._patch[k] = None
         self.send(self, key=k, val=None)
 
