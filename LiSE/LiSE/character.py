@@ -426,6 +426,11 @@ class AbstractCharacter(MutableMapping):
         self.copy_from(g)
         return self
 
+    def clear(self):
+        self.node.clear()
+        self.portal.clear()
+        self.stat.clear()
+
     def balanced_tree(self, r, h):
         return self.copy_from(nx.balanced_tree(r, h))
 
@@ -554,12 +559,12 @@ class AbstractCharacter(MutableMapping):
     def havel_hakmi_graph(self, deg_sequence):
         return self.copy_from(nx.havel_hakimi_graph(deg_sequence))
 
-    def directed_havel_hakmi_graph(
+    def directed_havel_hakimi_graph(
             self,
             in_degree_sequence,
             out_degree_sequence
     ):
-        return self.copy_from(nx.directed_havel_hakmi_graph(
+        return self.copy_from(nx.directed_havel_hakimi_graph(
             in_degree_sequence,
             out_degree_sequence
         ))
