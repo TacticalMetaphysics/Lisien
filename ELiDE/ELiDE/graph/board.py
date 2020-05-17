@@ -918,7 +918,7 @@ class BoardScatterPlane(ScatterPlane):
         """Make a real thing and its pawn from a dummy pawn.
 
         Create a new :class:`graph.Pawn` instance, along with the
-        underlying :class:`LiSE.Place` instance, and give it the name,
+        underlying :class:`LiSE.Thing` instance, and give it the name,
         location, and imagery of the provided dummy.
 
         """
@@ -933,7 +933,7 @@ class BoardScatterPlane(ScatterPlane):
             self.board.make_pawn(
                 self.board.character.new_thing(
                     dummy.name,
-                    whereat.place.name,
+                    whereat.proxy.name,
                     _image_paths=list(dummy.paths)
                 )
             )
