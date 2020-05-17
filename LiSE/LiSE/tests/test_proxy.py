@@ -113,3 +113,44 @@ def test_assignment(clean):
     student_initial_copy['room'] = eng.character['physical'].place['dorm0room0']
     assert hand.character_copy('dorm0room0student0') == student_initial_copy
     hand.close()
+
+
+def test_serialize_deleted(clean):
+    from LiSE import Engine
+    eng = Engine(':memory:', random_seed=69105)
+    with eng.advancing():
+        college.install(eng)
+    d0r0s0 = eng.character['dorm0room0student0']
+    roommate = d0r0s0.stat['roommate']
+    del eng.character[roommate.name]
+    assert not roommate
+    with pytest.raises(KeyError):
+        eng.character[roommate.name]
+    assert d0r0s0.stat['roommate'] == roommate
+    assert eng.unpack(eng.pack(d0r0s0.stat['roommate'])) == roommate
+
+
+def test_manip_deleted(clean):
+    from LiSE import Engine
+    eng = Engine(':memory:', random_seed=69105)
+    phys = eng.new_character('physical')
+    phys.stat['aoeu'] = True
+    phys.add_node(0)
+    phys.add_node(1)
+    phys.node[1]['aoeu'] = True
+    del phys.node[1]
+    phys.add_node(1)
+    assert 'aoeu' not in phys.node[1]
+    phys.add_edge(0, 1)
+    phys.adj[0][1]['aoeu'] = True
+    del phys.adj[0][1]
+    phys.add_edge(0, 1)
+    assert 'aoeu' not in phys.adj[0][1]
+    del eng.character['physical']
+    assert not phys
+    phys = eng.new_character('physical')
+    assert 'aoeu' not in phys.stat
+    assert 0 not in phys
+    assert 1 not in phys
+    assert 0 not in phys.adj
+    assert 1 not in phys.adj

@@ -168,21 +168,11 @@ class AbstractEngine(object):
         """Context manager for instantiating entities upon unpacking"""
         if getattr(self, '_initialized', False):
             raise ValueError("Already loading")
-        self.unpack = self._make_unpacker(False)
-        if hasattr(self, 'query'):
-            self.query.unpack = self.unpack
         self._initialized = False
         yield
-        self.unpack = self._make_unpacker(True)
-        if hasattr(self, 'query'):
-            self.query.unpack = self.unpack
         self._initialized = True
 
     def __getattr__(self, item):
-        if item == 'unpack':
-            self.unpack = self._make_unpacker(
-                getattr(super(), '_initialized', True))
-            return self.unpack
         meth = super().__getattribute__('method').__getattr__(item)
         return MethodType(meth, self)
 
@@ -243,7 +233,8 @@ class AbstractEngine(object):
         )
         return packer
 
-    def _make_unpacker(self, initialized):
+    @reify
+    def unpack(self):
         charmap = self.character
         char_cls = self.char_cls
         place_cls = self.place_cls
@@ -305,61 +296,46 @@ class AbstractEngine(object):
                 return Exception(*data)
             return excs[data[0]](*data[1:])
 
-        if initialized:
-            def unpack_char(ext):
-                return charmap[unpacker(ext)]
 
-            def unpack_place(ext):
-                charn, placen = unpacker(ext)
-                return charmap[charn].place[placen]
+        def unpack_char(ext):
+            charn = unpacker(ext)
+            try:
+                return charmap[charn]
+            except KeyError:
+                return char_cls(self, charn)
 
-            def unpack_thing(ext):
-                charn, thingn = unpacker(ext)
-                return charmap[charn].thing[thingn]
+        def unpack_place(ext):
+            charn, placen = unpacker(ext)
+            try:
+                char = charmap[charn]
+            except KeyError:
+                return place_cls(char_cls(self, charn), placen)
+            try:
+                return char.place[placen]
+            except KeyError:
+                return place_cls(char, placen)
 
-            def unpack_portal(ext):
-                charn, orign, destn = unpacker(ext)
-                return charmap[charn].portal[orign][destn]
-        else:
-            def unpack_char(ext):
-                charn = unpacker(ext)
-                try:
-                    return charmap[charn]
-                except KeyError:
-                    return char_cls(self, charn)
+        def unpack_thing(ext):
+            charn, thingn = unpacker(ext)
+            try:
+                char = charmap[charn]
+            except KeyError:
+                return thing_cls(char_cls(self, charn), thingn)
+            try:
+                return char.thing[thingn]
+            except KeyError:
+                return thing_cls(char, thingn)
 
-            def unpack_place(ext):
-                charn, placen = unpacker(ext)
-                try:
-                    char = charmap[charn]
-                except KeyError:
-                    return place_cls(char_cls(self, charn), placen)
-                try:
-                    return char.place[placen]
-                except KeyError:
-                    return place_cls(char, placen)
-
-            def unpack_thing(ext):
-                charn, thingn = unpacker(ext)
-                try:
-                    char = charmap[charn]
-                except KeyError:
-                    return thing_cls(char_cls(self, charn), thingn)
-                try:
-                    return char.thing[thingn]
-                except KeyError:
-                    return thing_cls(char, thingn)
-
-            def unpack_portal(ext):
-                charn, orign, destn = unpacker(ext)
-                try:
-                    char = charmap[charn]
-                except KeyError:
-                    char = char_cls(self, charn)
-                try:
-                    return char.portal[orign][destn]
-                except KeyError:
-                    return portal_cls(char, orign, destn)
+        def unpack_portal(ext):
+            charn, orign, destn = unpacker(ext)
+            try:
+                char = charmap[charn]
+            except KeyError:
+                char = char_cls(self, charn)
+            try:
+                return char.portal[orign][destn]
+            except KeyError:
+                return portal_cls(char, orign, destn)
 
         handlers = {
             MSGPACK_CHARACTER: unpack_char,
@@ -995,9 +971,6 @@ class Engine(AbstractEngine, gORM):
             self._graph_objs[charn] = self.char_cls(
                 self, charn, init_rulebooks=False)
 
-    def _post_init_cache_hook(self):
-        self.unpack = self._make_unpacker(True)
-
     def __init__(
             self,
             worlddb='world.db',
@@ -1139,8 +1112,7 @@ class Engine(AbstractEngine, gORM):
         self._things_cache.load(q.things_dump())
         super()._init_load(validate=validate)
         self._avatarness_cache.load(q.avatars_dump())
-        with self.loading():
-            self._universal_cache.load(q.universals_dump())
+        self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())
         self._characters_rulebooks_cache.load(
             q.character_rulebook_dump())
@@ -1577,6 +1549,7 @@ class Engine(AbstractEngine, gORM):
         """
         self._init_graph(name, 'DiGraph')
         self._graph_objs[name] = self.char_cls(self, name, data, **kwargs)
+        self._graph_objs[name].clear()
 
     def del_character(self, name):
         """Remove the Character from the database entirely.
