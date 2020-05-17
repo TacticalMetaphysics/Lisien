@@ -20,13 +20,17 @@ class ImageStackProxy(ImageStack):
             return
         if initial:
             self.name = self.proxy.name
-            self.paths = self.proxy.setdefault(
-                '_image_paths', self.default_image_paths
-            )
-            zeroes = [0] * len(self.paths)
-            self.offxs = self.proxy.setdefault('_offxs', zeroes)
-            self.offys = self.proxy.setdefault('_offys', zeroes)
-            self.proxy.connect(self._trigger_pull_from_proxy)
+            if '_image_paths' in self.proxy:
+                try:
+                    self.paths = self.proxy['_image_paths']
+                except Exception as ex:
+                    if not ex.args[0].startswith('Unable to load image type'):
+                        raise ex
+                    self.paths = self.default_image_paths
+            else:
+                self.paths = self.proxy.setdefault(
+                    '_image_paths', self.default_image_paths
+                )
         self.bind(
             paths=self._trigger_push_image_paths,
             offxs=self._trigger_push_offxs,
