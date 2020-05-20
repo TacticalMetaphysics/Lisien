@@ -2173,47 +2173,6 @@ class EngineProxy(AbstractEngine):
                             )
                 self._char_stat_cache[char] = deltas[char]
 
-    def delistify(self, obj):
-        if not (isinstance(obj, list) or isinstance(obj, tuple)):
-            return obj
-        if obj[0] == 'character':
-            name = self.delistify(obj[1])
-            if name not in self._char_cache:
-                self._char_cache[name] = CharacterProxy(self, name)
-            return self._char_cache[name]
-        elif obj[0] == 'place':
-            charname = self.delistify(obj[1])
-            nodename = self.delistify(obj[2])
-            try:
-                return self._character_places_cache[charname][nodename]
-            except KeyError:
-                return self._character_places_cache.setdefault(charname, {}).setdefault(
-                    nodename, PlaceProxy(self, charname, nodename)
-                )
-        elif obj[0] == 'thing':
-            charname, nodename, loc, nxtloc, arrt, nxtarrt = map(self.delistify, obj[1:])
-            try:
-                return self._things_cache[charname][nodename]
-            except KeyError:
-                return self._things_cache.setdefault(charname, {}).setdefault(
-                    nodename, ThingProxy(self, charname, nodename, loc, nxtloc, arrt, nxtarrt)
-                )
-        elif obj[0] == 'portal':
-            charname = self.delistify(obj[1])
-            origname = self.delistify(obj[2])
-            destname = self.delistify(obj[3])
-            cache = self._character_portals_cache
-            if not (
-                    charname in cache and
-                    origname in cache[charname] and
-                    destname in cache[charname][origname]
-            ):
-                cache[charname][origname][destname] \
-                    = PortalProxy(self, charname, origname, destname)
-            return cache[charname][origname][destname]
-        else:
-            return super().delistify(obj)
-
     def send(self, obj, blocking=True, timeout=-1):
         self._handle_out_lock.acquire(blocking, timeout)
         self._handle_out.send(obj)
