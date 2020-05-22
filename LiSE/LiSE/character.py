@@ -1869,10 +1869,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         class CharacterAvatarMapping(Mapping):
             """Mapping of avatars of one Character in another Character."""
             def __init__(self, outer, graphn):
-                """Store the character and the name of the "graph", ie. the other
-                character.
-
-                """
+                """Store this character and the name of the other one"""
                 self.character = character = outer.character
                 self.engine = engine = outer.engine
                 self.name = name = outer.name
@@ -1916,6 +1913,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
             @property
             def only(self):
+                """If I have only one avatar, return it; else error"""
                 mykey = singleton_get(self.keys())
                 if mykey is None:
                     raise AttributeError("No avatar, or more than one")
@@ -1946,11 +1944,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         raise KeyError("No such thing: {}".format(thing))
 
     def add_thing(self, name, location, **kwargs):
-        """Create a Thing, set its location,
-        and set its initial attributes from the keyword arguments (if
-        any).
-
-        """
+        """Make a new Thing and set its location"""
         if name in self.thing:
             raise WorldIntegrityError(
                 "Already have a Thing named {}".format(name)
@@ -2028,8 +2022,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         return self.engine._get_edge(self, origin, destination, 0)
 
     def add_portals_from(self, seq, symmetrical=False):
-        """Take a sequence of (origin, destination) pairs and make a
-        :class:`Portal` for each.
+        """Make portals for a sequence of (origin, destination) pairs
 
         Actually, triples are acceptable too, in which case the third
         item is a dictionary of stats for the new :class:`Portal`.
