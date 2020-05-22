@@ -252,10 +252,20 @@ class RuleFuncListDescriptor(object):
 
 
 class Rule(object):
-    """A collection of actions, being functions that enact some change on
-    the world, which will be called each tick if and only if all of
-    the prereqs return True, they being boolean functions that do not
-    change the world.
+    """Stuff that might happen in the simulation under some conditions
+
+    Rules are comprised of three lists of functions:
+
+    * actions, which mutate the world state
+    * triggers, which make the actions happen
+    * prereqs, which prevent the actions from happening when triggered
+
+    Each kind of function should be stored in the appropriate module
+    supplied to the LiSE core at startup. This makes it possible to
+    load the functions on later startups. You may instead use the string
+    name of a function already stored in the module, or use the
+    `trigger`, `prereq`, or `action` decorator on a new function to
+    add it to both the module and the rule.
 
     """
 
