@@ -98,7 +98,7 @@ class MutableMappingUnwrapper(MutableMapping):
         if self is other:
             return True
         if not isinstance(other, Mapping):
-            return NotImplemented
+            return False
         if self.keys() != other.keys():
             return False
         for k in self.keys():
