@@ -32,6 +32,8 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import ScatterPlane
 from kivy.graphics.transformation import Matrix
+from kivy.vector import Vector
+
 from .spot import GraphSpot
 from .arrow import GraphArrow, GraphArrowWidget, ArrowLayout, get_points_multi
 from .pawn import Pawn
@@ -923,7 +925,6 @@ class BoardScatterPlane(ScatterPlane):
 
         """
         candidates = []
-        whereat = None
         dummy_center = self.to_local(*dummy.center)
         dummy.pos = self.to_local(*dummy.pos)
         for spot in self.board.spot.values():
@@ -931,15 +932,14 @@ class BoardScatterPlane(ScatterPlane):
                 candidates.append(spot)
         if not candidates:
             return
-        if len(candidates) == 1:
-            whereat = candidates.pop()
-        else:
+        whereat = candidates.pop()
+        if candidates:
+            dist = Vector(*whereat.center).distance(dummy_center)
             while candidates:
-                whereat = candidates.pop()
-                if whereat.collide_point(*dummy_center):
-                    break
-        if whereat is None:  # can't happen
-            return
+                thereat = candidates.pop()
+                thereto = Vector(*thereat.center).distance(dummy_center)
+                if thereto < dist:
+                    whereat, dist = thereat, thereto
         whereat.add_widget(
             self.board.make_pawn(
                 self.board.character.new_thing(
