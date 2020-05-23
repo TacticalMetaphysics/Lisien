@@ -73,8 +73,13 @@ class CharMenu(BoxLayout):
 
     def pawn_from_dummy(self, dummy):
         name = dummy.name
-        self.screen.boardview.pawn_from_dummy(dummy)
-        self.screen.gridboards[self.app.character_name].add_pawn(name)
+        self.screen.mainview.children[0].pawn_from_dummy(dummy)
+        graphboard = self.screen.graphboards[self.app.character_name]
+        if name not in graphboard.pawn:
+            graphboard.add_pawn(name)
+        gridboard = self.screen.gridboards[self.app.character_name]
+        if name not in gridboard.pawn:
+            gridboard.add_pawn(name)
 
     def toggle_chars_screen(self, *args):
         """Display or hide the list you use to switch between characters."""

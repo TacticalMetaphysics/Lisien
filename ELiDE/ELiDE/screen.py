@@ -304,7 +304,8 @@ class MainScreen(Screen):
         ):
             if interceptor.collide_point(*touch.pos):
                 interceptor.dispatch('on_touch_down', touch)
-                self.boardview.keep_selection = True
+                self.boardview.keep_selection = \
+                    self.gridview.keep_selection = True
                 return True
         if self.dialoglayout.dispatch('on_touch_down', touch):
             return True

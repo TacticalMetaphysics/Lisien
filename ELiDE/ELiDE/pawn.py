@@ -11,6 +11,7 @@ class PawnBehavior:
     loc_name = ObjectProperty()
     default_image_paths = ['atlas://rltiles/base.atlas/unseen']
     priority = NumericProperty()
+    board = ObjectProperty()
 
     def __init__(self, **kwargs):
         if 'thing' in kwargs:
@@ -20,6 +21,9 @@ class PawnBehavior:
             kwargs['loc_name'] = kwargs['proxy']['location']
         super().__init__(**kwargs)
         self.register_event_type('on_drop')
+
+    def on_proxy(self, *args):
+        self.loc_name = self.proxy['location']
 
     def on_parent(self, *args):
         if not self.parent:
@@ -105,5 +109,5 @@ class PawnBehavior:
             parent.remove_widget(self)
             spot.add_widget(self)
         else:
-            x, y = parent.positions[self.uid]
+            x, y = getattr(self, 'rel_pos', (0, 0))
             self.pos = parent.x + x, parent.y + y

@@ -685,7 +685,7 @@ class GraphBoard(RelativeLayout):
             thingn not in self.pawn
         ):
             pwn = self.make_pawn(self.character.thing[thingn])
-            whereat = self.spot[pwn.thing['location']]
+            whereat = self.spot[pwn.loc_name]
             whereat.add_widget(pwn)
             self.pawn[thingn] = pwn
 
@@ -922,12 +922,23 @@ class BoardScatterPlane(ScatterPlane):
         location, and imagery of the provided dummy.
 
         """
+        candidates = []
+        whereat = None
+        dummy_center = self.to_local(*dummy.center)
         dummy.pos = self.to_local(*dummy.pos)
-        for spot in self.board.spotlayout.children:
+        for spot in self.board.spot.values():
             if spot.collide_widget(dummy):
-                whereat = spot
-                break
+                candidates.append(spot)
+        if not candidates:
+            return
+        if len(candidates) == 1:
+            whereat = candidates.pop()
         else:
+            while candidates:
+                whereat = candidates.pop()
+                if whereat.collide_point(*dummy_center):
+                    break
+        if whereat is None:  # can't happen
             return
         whereat.add_widget(
             self.board.make_pawn(

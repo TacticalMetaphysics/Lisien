@@ -43,35 +43,6 @@ class Pawn(GraphPawnSpot, PawnBehavior):
     def _get_location_wid(self):
         return self.board.spot[self.loc_name]
 
-    def on_parent(self, *args):
-        super().on_parent(*args)
-        if self.parent:
-            self.board = self.parent.board
-
-    def on_touch_up(self, touch):
-        if touch.grab_current is not self:
-            return False
-        for spot in self.board.spot.values():
-            if self.collide_widget(spot) and spot.name != self.loc_name:
-                new_spot = spot
-                break
-        else:
-            new_spot = None
-
-        self.dispatch('on_drop', new_spot)
-        touch.ungrab(self)
-        return True
-
-    def on_drop(self, spot):
-        parent = self.parent
-        if spot:
-            self.loc_name = self.proxy['location'] = spot.name
-            parent.remove_widget(self)
-            spot.add_widget(self)
-        else:
-            x, y = getattr(self, 'rel_pos', (0, 0))
-            self.pos = parent.x + x, parent.y + y
-
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
         return '<{}-in-{} at {}>'.format(
