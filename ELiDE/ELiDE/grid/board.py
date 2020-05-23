@@ -84,6 +84,8 @@ class GridBoard(RelativeLayout):
         places2add = []
         nodes_patch = {}
         for place_name, place in placemap.items():
+            if not isinstance(place_name, tuple) or len(place_name) != 2:
+                continue
             if place_name not in tilemap:
                 places2add.append(place)
                 patch = {}
