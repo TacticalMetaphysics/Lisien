@@ -69,6 +69,8 @@ class CharMenu(BoxLayout):
         )
 
     def spot_from_dummy(self, dummy):
+        if self.screen.boardview.parent != self.screen.mainview:
+            return
         self.screen.boardview.spot_from_dummy(dummy)
 
     def pawn_from_dummy(self, dummy):
