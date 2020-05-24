@@ -11,7 +11,7 @@ from ..imagestackproxy import ImageStackProxy
 
 
 class GridSpot(ImageStackProxy, Layout):
-    default_image_paths = ['floor-normal.png']
+    default_image_paths = ['atlas://rltiles/floor.atlas/floor-stone']
     board = ObjectProperty()
 
     def do_layout(self, *args):

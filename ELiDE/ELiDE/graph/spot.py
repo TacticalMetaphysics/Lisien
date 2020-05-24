@@ -37,7 +37,7 @@ class GraphSpot(GraphPawnSpot):
     the window the :class:`Board` is in.
 
     """
-    default_image_paths = ['orb.png']
+    default_image_paths = ['atlas://rltiles/floor.atlas/floor-stone']
     default_pos = (0.5, 0.5)
 
     def __init__(self, **kwargs):

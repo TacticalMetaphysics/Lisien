@@ -180,7 +180,7 @@ class CharMenu(BoxLayout):
 
     def on_dummyplace(self, *args):
         if not self.dummyplace.paths:
-            self.dummyplace.paths = ["orb.png"]
+            self.dummyplace.paths = ["atlas://rltiles/floor.atlas/floor-stone"]
 
     def on_dummything(self, *args):
         if not self.dummything.paths:
