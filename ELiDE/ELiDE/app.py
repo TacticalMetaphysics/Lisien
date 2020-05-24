@@ -153,7 +153,8 @@ class ELiDEApp(App):
                     ('RLTiles: Headwear', 'head.atlas')
                 ]),
                 'place_graphics': json.dumps([
-                    ('RLTiles: Dungeon', 'dungeon.atlas')
+                    ('RLTiles: Dungeon', 'dungeon.atlas'),
+                    ('RLTiles: Floor', 'floor.atlas')
                 ])
             }
         )
