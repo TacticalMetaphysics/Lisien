@@ -120,7 +120,11 @@ class CharMenu(BoxLayout):
                 dummyplace.num = dummynum(
                     self.app.character, dummyplace.prefix
                 ) + 1
-            dummyplace.paths = self.app.spotcfg.imgpaths
+            if self.app.spotcfg.imgpaths:
+                dummyplace.paths = self.app.spotcfg.imgpaths
+            else:
+                dummyplace.paths = ['atlas://rltiles/floor/floor-stone']
+            dummyplace.center = self.ids.placetab.center
             self.ids.placetab.add_widget(dummyplace)
         else:
             self.app.spotcfg.prefix = self.ids.dummyplace.prefix
