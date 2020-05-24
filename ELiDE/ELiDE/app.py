@@ -141,7 +141,6 @@ class ELiDEApp(App):
                 'user_kv': 'yes',
                 'play_speed': '1',
                 'thing_graphics': json.dumps([
-                    ("Marsh Davies' Island", 'marsh_davies_island_fg.atlas'),
                     ('RLTiles: Body', 'base.atlas'),
                     ('RLTiles: Basic clothes', 'body.atlas'),
                     ('RLTiles: Armwear', 'arm.atlas'),
@@ -154,8 +153,6 @@ class ELiDEApp(App):
                     ('RLTiles: Headwear', 'head.atlas')
                 ]),
                 'place_graphics': json.dumps([
-                    ("Marsh Davies' Island", 'marsh_davies_island_bg.atlas'),
-                    ("Marsh Davies' Crypt", 'marsh_davies_crypt.atlas'),
                     ('RLTiles: Dungeon', 'dungeon.atlas')
                 ])
             }
