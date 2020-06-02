@@ -29,6 +29,7 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.modalview import ModalView
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
@@ -47,6 +48,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .calendar import Agenda
+from .gen import GeneratorDialog
 from .util import dummynum, trigger
 
 Factory.register('CharMenu', cls=CharMenu)
@@ -74,6 +76,7 @@ class StatListPanel(BoxLayout):
     proxy = ObjectProperty()
     toggle_stat_cfg = ObjectProperty()
     toggle_gridview = ObjectProperty()
+    open_grid_gen_view = ObjectProperty()
     toggle_calendar = ObjectProperty()
 
     def on_proxy(self, *args):
@@ -248,6 +251,10 @@ class MainScreen(Screen):
         )
         self.calendar_view.add_widget(self.calendar)
         self.mainview.add_widget(self.boardview)
+        self.grid_gen_view = ModalView()
+        self.grid_gen = GeneratorDialog()
+        self.grid_gen_view.add_widget(self.grid_gen)
+
 
     def on_statpanel(self, *args):
         if not self.app:
@@ -434,6 +441,9 @@ class MainScreen(Screen):
             self.mainview.clear_widgets()
             self.mainview.add_widget(self.gridview)
 
+    def open_grid_gen_view(self, *args):
+        self.grid_gen_view.open()
+
     def toggle_calendar(self, *args):
         # TODO decide how to handle switching between >2 view types
         if self.boardview in self.mainview.children:
@@ -457,17 +467,22 @@ Builder.load_string(
         bold: True
     Calendar:
         id: statlist
-        size_hint_y: 0.7
+        size_hint_y: 0.8
         entity: root.proxy
         update_mode: 'present'
     Button:
         id: gridviewbut
-        size_hint_y: 0.1
+        size_hint_y: 0.05
         text: 'toggle grid'
         on_release: root.toggle_gridview()
     Button:
+        id: gridgenbut
+        size_hint_y: 0.05
+        text: 'generate grid'
+        on_release: root.open_grid_gen_view()
+    Button:
         id: cfgstatbut
-        size_hint_y: 0.1
+        size_hint_y: 0.05
         text: root.button_text
         on_release: root.toggle_stat_cfg()
 <SimulateButton>:
@@ -582,6 +597,7 @@ Builder.load_string(
         toggle_stat_cfg: app.statcfg.toggle
         toggle_calendar: root.toggle_calendar
         toggle_gridview: root.toggle_gridview
+        open_grid_gen_view: root.open_grid_gen_view
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.25, 0.8)
         selection_name: str(app.selected_proxy.name) if app.selected_proxy else ''
