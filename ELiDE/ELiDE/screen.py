@@ -540,7 +540,7 @@ Builder.load_string(
                 text: 'Branch'
             MenuTextInput:
                 id: branchfield
-                setter: root.set_branch
+                set_value: root.set_branch
                 hint_text: root.screen.app.branch if root.screen else ''
         BoxLayout:
             BoxLayout:
@@ -550,7 +550,7 @@ Builder.load_string(
                     text: 'Turn'
                 MenuIntInput:
                     id: turnfield
-                    setter: root.set_turn
+                    set_value: root.set_turn
                     hint_text: str(root.screen.app.turn) if root.screen else ''
             BoxLayout:
                 orientation: 'vertical'
@@ -559,7 +559,7 @@ Builder.load_string(
                     text: 'Tick'
                 MenuIntInput:
                     id: tickfield
-                    setter: root.set_tick
+                    set_value: root.set_tick
                     hint_text: str(root.screen.app.tick) if root.screen else ''
     BoxLayout:
         size_hint_y: 0.6

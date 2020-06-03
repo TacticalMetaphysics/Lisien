@@ -32,7 +32,7 @@ Builder.load_string("""
             orientation: 'horizontal'
             MenuIntInput:
                 id: input_x
-                setter: root.setter('x')
+                set_value: root.setter('x')
             Label:
                 text: 'x'
                 size_hint_x: None
@@ -40,4 +40,4 @@ Builder.load_string("""
                 texture_size: self.size
             MenuIntInput:
                 id: input_y
-                setter: root.setter('y')""")
+                set_value: root.setter('y')""")

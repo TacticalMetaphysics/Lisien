@@ -19,7 +19,7 @@ from kivy.uix.textinput import TextInput
 
 class MenuTextInput(TextInput):
     """Special text input for setting the branch"""
-    setter = ObjectProperty()
+    set_value = ObjectProperty()
 
     def __init__(self, **kwargs):
         """Disable multiline, and bind ``on_text_validate`` to ``on_enter``"""
@@ -35,7 +35,7 @@ class MenuTextInput(TextInput):
         """
         if self.text == '':
             return
-        self.setter(self.text)
+        self.set_value(self.text)
         self.text = ''
         self.focus = False
 
