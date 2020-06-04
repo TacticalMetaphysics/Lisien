@@ -251,7 +251,7 @@ class MainScreen(Screen):
         )
         self.calendar_view.add_widget(self.calendar)
         self.mainview.add_widget(self.boardview)
-        self.grid_gen_view = ModalView()
+        self.grid_gen_view = ModalView(size_hint_x=0.3, size_hint_y=0.2)
         self.grid_gen = GeneratorDialog()
         self.grid_gen_view.add_widget(self.grid_gen)
 
