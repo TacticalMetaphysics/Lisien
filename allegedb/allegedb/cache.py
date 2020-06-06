@@ -19,17 +19,6 @@ from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, Sett
 from collections import OrderedDict, defaultdict, deque
 from blinker import Signal
 
-
-def _default_args_munger(self, k):
-    """By default, :class:`PickyDefaultDict`'s ``type`` is instantiated with no positional arguments."""
-    return tuple()
-
-
-def _default_kwargs_munger(self, k):
-    """By default, :class:`PickyDefaultDict`'s ``type`` is instantiated with no keyword arguments."""
-    return {}
-
-
 class PickyDefaultDict(dict):
     """A ``defaultdict`` alternative that requires values of a specific type.
 
@@ -42,35 +31,25 @@ class PickyDefaultDict(dict):
     They take arguments ``self`` and the unused key being looked up.
 
     """
-    __slots__ = ['type', 'args_munger', 'kwargs_munger', 'parent', 'key']
+    __slots__ = ['type', 'parent', 'key']
 
     def __init__(
-            self, type=object,
-            args_munger=_default_args_munger,
-            kwargs_munger=_default_kwargs_munger
+            self, type=object
     ):
         self.type = type
-        self.args_munger = args_munger
-        self.kwargs_munger = kwargs_munger
 
     def __getitem__(self, k):
         if k in self:
             return super(PickyDefaultDict, self).__getitem__(k)
         try:
-            ret = self[k] = self.type(
-                *self.args_munger(self, k),
-                **self.kwargs_munger(self, k)
-            )
+            ret = self[k] = self.type()
         except TypeError:
             raise KeyError
         return ret
 
-    def _create(self, v):
-        return self.type(v)
-
     def __setitem__(self, k, v):
         if type(v) is not self.type:
-            v = self._create(v)
+            v = self.type(v)
         super(PickyDefaultDict, self).__setitem__(k, v)
 
 
@@ -78,39 +57,28 @@ class StructuredDefaultDict(dict):
     """A ``defaultdict``-like class that expects values stored at a specific depth.
 
     Requires an integer to tell it how many layers deep to go.
-    The innermost layer will be ``PickyDefaultDict``, which will take the
-    ``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
-    to my constructor.
+    The innermost layer will be ``PickyDefaultDict``
 
     """
-    __slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key', '_stuff')
+    __slots__ = ('layer', 'type', 'parent', 'key', '_stuff')
 
     def __init__(
-            self, layers, type=object,
-            args_munger=_default_args_munger,
-            kwargs_munger=_default_kwargs_munger
+            self, layers, type=object
     ):
         if layers < 1:
             raise ValueError("Not enough layers")
         self.layer = layers
         self.type = type
-        self.args_munger = args_munger
-        self.kwargs_munger = kwargs_munger
-        self._stuff = (layers, type, args_munger, kwargs_munger)
+        self._stuff = (layers, type)
 
     def __getitem__(self, k):
         if k in self:
             return dict.__getitem__(self, k)
-        layer, typ, args_munger, kwargs_munger = self._stuff
+        layer, typ = self._stuff
         if layer < 2:
-            ret = PickyDefaultDict(
-                typ, args_munger, kwargs_munger
-            )
+            ret = PickyDefaultDict(typ)
         else:
-            ret = StructuredDefaultDict(
-                layer-1, typ,
-                args_munger, kwargs_munger
-            )
+            ret = StructuredDefaultDict(layer-1, typ)
         ret.parent = self
         ret.key = k
         dict.__setitem__(self, k, ret)
@@ -118,22 +86,18 @@ class StructuredDefaultDict(dict):
 
     def __setitem__(self, k, v):
         if type(v) is StructuredDefaultDict:
-            layer, typ, args_munger, kwargs_munger = self._stuff
+            layer, typ = self._stuff
             if (
                     v.layer == layer - 1
                     and v.type is typ
-                    and v.args_munger is args_munger
-                    and v.kwargs_munger is kwargs_munger
             ):
                 super().__setitem__(k, v)
                 return
         elif type(v) is PickyDefaultDict:
-            layer, typ, args_munger, kwargs_munger = self._stuff
+            layer, typ = self._stuff
             if (
                 layer < 2
                 and v.type is typ
-                and v.args_munger is args_munger
-                and v.kwargs_munger is kwargs_munger
             ):
                 super().__setitem__(k, v)
                 return
@@ -415,6 +379,7 @@ class Cache(Signal):
         With ``stoptime=None`` (the default), ``added`` will in fact be all keys.
 
         """
+        # TODO: optimize
         added = set()
         deleted = set()
         for key, branches in cache.items():
