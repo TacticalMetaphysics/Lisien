@@ -664,8 +664,8 @@ class Cache(Signal):
             for contra_turn, contra_tick in contras:
                 if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
                     delete_plan(time_plan[branch, contra_turn, contra_tick])
-        if not turns:
-            branches[branch] = turns
+            if not turns:  # turns may be mutated in delete_plan
+                branches[branch] = turns
         if not loading and not planning:
             parbranch, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
             db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
