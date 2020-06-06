@@ -17,7 +17,6 @@
 """
 from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
-from blinker import Signal
 
 
 def _default_args_munger(self, k):
@@ -172,8 +171,15 @@ def lru_append(kc, lru, kckey, maxsize):
     lru[kckey] = True
 
 
-class Cache(Signal):
+class Cache:
     """A data store that's useful for tracking graph revisions."""
+    __slots__ = (
+        'db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
+        'settings', 'presettings', 'time_entity', '_kc_lru',
+        '_store_stuff', '_remove_stuff', '_truncate_stuff',
+        'setdb', 'deldb'
+    )
+
     def __init__(self, db):
         super().__init__()
         self.db = db
@@ -223,11 +229,11 @@ class Cache(Signal):
         )
         self._remove_stuff = (
             self.time_entity, self.parents, self.branches, self.keys,
-            self.settings, self.presettings, self._remove_keycache, self.send
+            self.settings, self.presettings, self._remove_keycache
         )
         self._truncate_stuff = (
             self.parents, self.branches, self.keys, self.settings, self.presettings,
-            self.keycache, self.send
+            self.keycache
         )
 
     def load(self, data):
@@ -470,11 +476,10 @@ class Cache(Signal):
         self._store(*args, planning=planning, loading=loading, contra=contra)
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
-        self.send(self, key=args[-5], branch=args[-4], turn=args[-3], tick=args[-2], value=args[-1], action='store')
 
     def remove(self, branch, turn, tick):
         """Delete all data from a specific tick"""
-        time_entity, parents, branches, keys, settings, presettings, remove_keycache, send = self._remove_stuff
+        time_entity, parents, branches, keys, settings, presettings, remove_keycache = self._remove_stuff
         parent, entity, key = time_entity[branch, turn, tick]
         branchkey = parent + (entity, key)
         keykey = parent + (entity,)
@@ -547,7 +552,6 @@ class Cache(Signal):
             del presettings[branch]
         self.shallowest = OrderedDict()
         remove_keycache(parent + (entity, branch), turn, tick)
-        send(self, branch=branch, turn=turn, tick=tick, action='remove')
 
     def _remove_keycache(self, entity_branch, turn, tick):
         """Remove the future of a given entity from a branch in the keycache"""
@@ -567,7 +571,7 @@ class Cache(Signal):
 
     def truncate(self, branch, turn, tick):
         """Delete all data after (not on) a specific tick"""
-        parents, branches, keys, settings, presettings, keycache, send = self._truncate_stuff
+        parents, branches, keys, settings, presettings, keycache = self._truncate_stuff
         def truncate_branhc(branhc):
             if turn in branhc:
                 trn = branhc[turn]
@@ -598,7 +602,6 @@ class Cache(Signal):
         for entity_branch in keycache:
             if entity_branch[-1] == branch:
                 truncate_branhc(keycache[entity_branch])
-        send(self, branch=branch, turn=turn, tick=tick, action='truncate')
 
     @staticmethod
     def _iter_future_contradictions(entity, key, turns, branch, turn, tick, value):
@@ -824,6 +827,7 @@ class Cache(Signal):
 
 class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
+    __slots__ = ()
 
     def _store(self, graph, node, branch, turn, tick, ex, *, planning, loading=False, contra=True):
         if not ex:
@@ -845,6 +849,11 @@ class NodesCache(Cache):
 
 class EdgesCache(Cache):
     """A cache for remembering whether edges exist at a given time."""
+    __slots__ = (
+        'destcache', 'origcache', 'predecessors',
+        '_origcache_lru', '_destcache_lru', '_get_destcache_stuff',
+        '_get_origcache_stuff'
+    )
     @property
     def successors(self):
         return self.parents

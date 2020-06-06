@@ -25,6 +25,8 @@ from collections import OrderedDict
 
 
 class InitializedCache(Cache):
+    __slots__ = ()
+
     def _store_journal(self, *args):
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
@@ -48,6 +50,8 @@ class InitializedCache(Cache):
 
 
 class EntitylessCache(Cache):
+    __slots__ = ()
+
     def store(self, key, branch, turn, tick, value, *, planning=None):
         super().store(None, key, branch, turn, tick, value, planning=planning)
 
@@ -70,11 +74,15 @@ class EntitylessCache(Cache):
 
 
 class InitializedEntitylessCache(EntitylessCache, InitializedCache):
-    pass
+    __slots__ = ()
 
 
 class AvatarnessCache(Cache):
     """A cache for remembering when a node is an avatar of a character."""
+    __slots__ = (
+        'user_order', 'user_shallow', 'graphs', 'graphavs', 'charavs',
+        'soloav', 'uniqav', 'uniqgraph', 'users'
+    )
     def __init__(self, engine):
         Cache.__init__(self, engine)
         self.user_order = StructuredDefaultDict(3, TurnDict)
@@ -630,7 +638,6 @@ class NodeContentsCache(Cache):
                 if not kc:
                     del self.keycache[entity, brnch]
         self.shallowest = OrderedDict()
-        self.send(self, branch=branch, turn=turn, tick=tick, action='remove')
 
     def truncate_loc(self, character, location, branch, turn, tick):
         """Remove future data about a particular location
