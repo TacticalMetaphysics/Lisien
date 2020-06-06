@@ -560,27 +560,25 @@ class WindowDict(MutableMapping):
             )
         return past[-1][1]
 
-    @cython.locals(past_end=cython.int, rev=cython.int)
+    @cython.locals(rev=cython.int)
     def __setitem__(self, rev, v):
-        if hasattr(v, 'unwrap') and not hasattr(v, 'no_unwrap'):
-            v = v.unwrap()
         past = self._past
         if past or self._future:
             self.seek(rev)
-            past_end = -1 if not past else past[-1][0]
-            if not past:
-                past.append((rev, v))
-                self.beginning = rev
-            elif past_end == rev:
-                past[-1] = (rev, v)
+            if past:
+                if past[-1][0] == rev:
+                    past[-1] = (rev, v)
+                else:
+                    past.append((rev, v))
             else:
                 past.append((rev, v))
-            if self.end is None or rev > self.end:
+                self.beginning = rev
+            end = self.end
+            if end is None or rev > end:
                 self.end = rev
         else:
             past.append((rev, v))
-            self.beginning = self.end = rev
-            self._last = rev
+            self.beginning = self.end = self._last = rev
         self._keys.add(rev)
 
     @cython.locals(rev=cython.int, past_end=cython.int)
