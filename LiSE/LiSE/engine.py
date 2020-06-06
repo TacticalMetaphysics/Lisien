@@ -161,16 +161,6 @@ class AbstractEngine(object):
     block, in which deserialized entities will be created as needed.
 
     """
-    from contextlib import contextmanager
-
-    @contextmanager
-    def loading(self):
-        """Context manager for instantiating entities upon unpacking"""
-        if getattr(self, '_initialized', False):
-            raise ValueError("Already loading")
-        self._initialized = False
-        yield
-        self._initialized = True
 
     def __getattr__(self, item):
         meth = super().__getattribute__('method').__getattr__(item)
