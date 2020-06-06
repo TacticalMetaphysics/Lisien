@@ -672,9 +672,6 @@ class Cache(Signal):
             db_turn_end[branch, turn] = tick
         self_store_journal(*args)
         self.shallowest[parent + (entity, key, branch, turn, tick)] = value
-        shallowest = self.shallowest
-        while len(shallowest) > KEYCACHE_MAXSIZE:
-            shallowest.popitem(False)
         if turn in turns:
             the_turn = turns[turn]
             the_turn.truncate(tick)
