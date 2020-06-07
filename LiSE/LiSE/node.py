@@ -452,6 +452,7 @@ class Node(allegedb.graph.Node, rule.RuleFollower):
         anymore.
 
         """
+        self.clear()
         if self.name in self.character.portal:
             del self.character.portal[self.name]
         if self.name in self.character.preportal:
