@@ -10,6 +10,7 @@ from collections import defaultdict
 from operator import attrgetter
 from types import FunctionType, MethodType
 from abc import ABC, abstractmethod
+from time import monotonic
 
 import msgpack
 from blinker import Signal
@@ -1016,6 +1017,8 @@ class Engine(AbstractEngine, gORM):
         and code. Use with caution!
 
         """
+        self.exist_node_time = 0
+        self.exist_edge_time = 0
         import os
         from .xcollections import StringStore
         worlddbpath = worlddb.replace('sqlite:///', '')
@@ -1696,3 +1699,15 @@ class Engine(AbstractEngine, gORM):
                         entity[key] = value
         self.turn = now
         return acceptances, rejections
+
+    def _exist_node(self, character, node, exist=True):
+        start = monotonic()
+        super()._exist_node(character, node, exist)
+        self.exist_node_time += monotonic() - start
+
+    def _exist_edge(
+            self, character, orig, dest, idx=0, exist=True
+    ):
+        start = monotonic()
+        super()._exist_edge(character, orig, dest, idx, exist)
+        self.exist_edge_time += monotonic() - start

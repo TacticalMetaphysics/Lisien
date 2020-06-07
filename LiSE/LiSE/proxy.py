@@ -1630,6 +1630,12 @@ class CharacterProxy(AbstractCharacter):
     def facade(self):
         return Facade(self)
 
+    def grid_2d_8graph(self, m, n):
+        self.engine.handle('grid_2d_8graph', character=self.name, m=m, n=n, cb=self.engine._upd_caches)
+
+    def grid_2d_graph(self, m, n, periodic=False):
+        self.engine.handle('grid_2d_graph', character=self.name, m=m, n=n, periodic=periodic, cb=self.engine._upd_caches)
+
 
 class CharacterMapProxy(MutableMapping, Signal):
     def __init__(self, engine_proxy):
@@ -1757,7 +1763,7 @@ class EternalVarProxy(MutableMapping):
         self.engine.handle(
             'set_eternal',
             k=k, v=v,
-            block=False
+            block=False, silent=True
         )
 
     def __delitem__(self, k):
@@ -1765,7 +1771,7 @@ class EternalVarProxy(MutableMapping):
         self.engine.handle(
             command='del_eternal',
             k=k,
-            block=False
+            block=False, silent=True
         )
 
     def _update_cache(self, data):

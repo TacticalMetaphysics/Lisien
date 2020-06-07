@@ -40,6 +40,7 @@ from collections import (
     Mapping,
     MutableMapping
 )
+from time import monotonic
 from operator import ge, gt, le, lt, eq
 from weakref import WeakValueDictionary
 from blinker import Signal
@@ -60,7 +61,7 @@ from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
-from .util import getatt, singleton_get
+from .util import getatt, singleton_get, timer
 from .exc import AmbiguousAvatarError, WorldIntegrityError
 from .query import StatusAlias
 
@@ -422,8 +423,14 @@ class AbstractCharacter(MutableMapping):
         Return myself.
 
         """
+        start = monotonic()
         self.clear()
-        self.copy_from(g)
+        print("{:,.3f} seconds spent clearing the character".format(monotonic() - start))
+        start = monotonic()
+        self.place = g.nodes
+        print("{:,.3f} seconds spent copying nodes".format(monotonic() - start))
+        with timer('seconds spent copying edges'):
+            self.adj = g.adj
         return self
 
     def clear(self):
@@ -450,7 +457,7 @@ class AbstractCharacter(MutableMapping):
         return self.copy_from(nx.empty_graph(n))
 
     def grid_2d_graph(self, m, n, periodic=False):
-        return self.copy_from(nx.grid_2d_graph(m, n, periodic))
+        return self.become(nx.grid_2d_graph(m, n, periodic))
 
     def grid_2d_8graph(self, m, n):
         """Make a 2d graph that's connected 8 ways, with diagonals"""
@@ -1459,6 +1466,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def _get_rulebook_cache(self):
             return self.engine._characters_places_rulebooks_cache
 
+        def update(self, __m, **kwargs) -> None:
+            with timer("seconds spent updating PlaceMapping"):
+                super().update(__m, **kwargs)
+
         def __init__(self, character):
             """Store the character."""
             super().__init__()
@@ -1628,6 +1639,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
         character = getatt('graph')
         engine = getatt('graph.engine')
+        upd_succs_time = 0
 
         def __init__(self, graph):
             super().__init__(graph)
@@ -1654,12 +1666,18 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 cache[orig] = Successors(self, orig)
             sucs = cache[orig]
             sucs.clear()
+            start = monotonic()
             sucs.update(val)
+            Character.PortalSuccessorsMapping.upd_succs_time += monotonic() - start
             self.send(self, key=orig, val=sucs)
 
         def __delitem__(self, orig):
             super().__delitem__(orig)
             self.send(self, key=orig, val=None)
+
+        def update(self, other, **kwargs):
+            with timer("seconds spent updating PortalSuccessorsMapping"):
+                super().update(other, **kwargs)
 
         class Successors(DiGraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""

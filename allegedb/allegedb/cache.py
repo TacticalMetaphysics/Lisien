@@ -17,6 +17,7 @@
 """
 from .window import WindowDict, HistoryError, FuturistWindowDict, TurnDict, SettingsTurnDict
 from collections import OrderedDict, defaultdict, deque
+from time import monotonic
 
 
 def _default_args_munger(self, k):
@@ -177,11 +178,12 @@ class Cache:
         'db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
         'settings', 'presettings', 'time_entity', '_kc_lru',
         '_store_stuff', '_remove_stuff', '_truncate_stuff',
-        'setdb', 'deldb'
+        'setdb', 'deldb', 't'
     )
 
     def __init__(self, db):
         super().__init__()
+        self.t = defaultdict(lambda: 0)
         self.db = db
         self.parents = StructuredDefaultDict(3, SettingsTurnDict)
         """Entity data keyed by the entities' parents.
@@ -251,7 +253,7 @@ class Cache:
         childbranch = self.db._childbranch
         branch2do = deque(['trunk'])
 
-        store = self._store
+        store = self.store
         while branch2do:
             branch = branch2do.popleft()
             for row in branches[branch]:
@@ -473,9 +475,93 @@ class Cache:
             planning = db._planning
         if forward is None:
             forward = db._forward
-        self._store(*args, planning=planning, loading=loading, contra=contra)
+        store_start = monotonic()
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
+        (
+            self_parents, self_branches, self_keys, delete_plan,
+            time_plan, self_iter_future_contradictions,
+            db_branches, db_turn_end, self_store_journal,
+            self_time_entity, db_where_cached, keycache
+        ) = self._store_stuff
+        turns_lookup_start = monotonic()
+        if parent:
+            parentity = self_parents[parent][entity]
+            if key in parentity:
+                branches = parentity[key]
+                turns = branches[branch]
+            else:
+                branches = self_branches[parent + (entity, key)] \
+                    = self_keys[parent + (entity,)][key] \
+                    = parentity[key]
+                turns = branches[branch]
+        else:
+            if (entity, key) in self_branches:
+                branches = self_branches[entity, key]
+                turns = branches[branch]
+            else:
+                branches = self_branches[entity, key]
+                self_keys[entity,][key] = branches
+                turns = branches[branch]
+        turns_lookup_end = monotonic()
+        self.t['turns_lookup'] += turns_lookup_end - turns_lookup_start
+        if planning:
+            if turn in turns and tick < turns[turn].end:
+                raise HistoryError(
+                    "Already have some ticks after {} in turn {} of branch {}".format(
+                        tick, turn, branch
+                    )
+                )
+        if contra:
+            contras = list(
+                self_iter_future_contradictions(entity, key, turns, branch,
+                                                turn, tick, value))
+            if contras:
+                self.shallowest = OrderedDict()
+            for contra_turn, contra_tick in contras:
+                if (branch, contra_turn,
+                    contra_tick) in time_plan:  # could've been deleted in this very loop
+                    delete_plan(time_plan[branch, contra_turn, contra_tick])
+            if not turns:  # turns may be mutated in delete_plan
+                branches[branch] = turns
+        if not loading and not planning:
+            parbranch, turn_start, tick_start, turn_end, tick_end = \
+            db_branches[branch]
+            db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
+            db_turn_end[branch, turn] = tick
+        store_journal_start = monotonic()
+        self_store_journal(*args)
+        store_journal_end = monotonic()
+        self.t['store_journal'] += store_journal_end - store_journal_start
+        self.shallowest[parent + (entity, key, branch, turn, tick)] = value
+        if turn in turns:
+            the_turn = turns[turn]
+            the_turn.truncate(tick)
+            the_turn[tick] = value
+        else:
+            new = FuturistWindowDict()
+            new[tick] = value
+            turns[turn] = new
+        turn_set_end = monotonic()
+        self.t['turn_set'] += turn_set_end - store_journal_end
+        self_time_entity[branch, turn, tick] = parent, entity, key
+        where_cached = db_where_cached[args[-4:-1]]
+        if self not in where_cached:
+            where_cached.append(self)
+        # if we're editing the past, have to invalidate the keycache
+        keycache_key = parent + (entity, branch)
+        if keycache_key in keycache:
+            thiskeycache = keycache[keycache_key]
+            if turn in thiskeycache:
+                del thiskeycache[turn]
+            thiskeycache.truncate(turn)
+            if not thiskeycache:
+                del keycache[keycache_key]
         if not db._no_kc:
             self._update_keycache(*args, forward=forward)
+        end = monotonic()
+        self.t['keycachery'] += end - turn_set_end
+        self.t['total'] += end - store_start
 
     def remove(self, branch, turn, tick):
         """Delete all data from a specific tick"""
@@ -626,77 +712,6 @@ class Cache:
                 if newval != value:
                     yield trn, tick
 
-    def _store(self, *args, planning, loading=False, contra=True):
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
-        (
-            self_parents, self_branches, self_keys, delete_plan,
-            time_plan, self_iter_future_contradictions,
-            db_branches, db_turn_end, self_store_journal,
-            self_time_entity, db_where_cached, keycache
-        ) = self._store_stuff
-        if parent:
-            parentity = self_parents[parent][entity]
-            if key in parentity:
-                branches = parentity[key]
-                turns = branches[branch]
-            else:
-                branches = self_branches[parent+(entity, key)] \
-                    = self_keys[parent+(entity,)][key] \
-                    = parentity[key]
-                turns = branches[branch]
-        else:
-            if (entity, key) in self_branches:
-                branches = self_branches[entity, key]
-                turns = branches[branch]
-            else:
-                branches = self_branches[entity, key]
-                self_keys[entity,][key] = branches
-                turns = branches[branch]
-        if planning:
-            if turn in turns and tick < turns[turn].end:
-                raise HistoryError(
-                    "Already have some ticks after {} in turn {} of branch {}".format(
-                        tick, turn, branch
-                    )
-                )
-        if contra:
-            contras = list(self_iter_future_contradictions(entity, key, turns, branch, turn, tick, value))
-            if contras:
-                self.shallowest = OrderedDict()
-            for contra_turn, contra_tick in contras:
-                if (branch, contra_turn, contra_tick) in time_plan:  # could've been deleted in this very loop
-                    delete_plan(time_plan[branch, contra_turn, contra_tick])
-            if not turns:  # turns may be mutated in delete_plan
-                branches[branch] = turns
-        if not loading and not planning:
-            parbranch, turn_start, tick_start, turn_end, tick_end = self.db._branches[branch]
-            db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
-            db_turn_end[branch, turn] = tick
-        self_store_journal(*args)
-        self.shallowest[parent + (entity, key, branch, turn, tick)] = value
-        if turn in turns:
-            the_turn = turns[turn]
-            the_turn.truncate(tick)
-            the_turn[tick] = value
-        else:
-            new = FuturistWindowDict()
-            new[tick] = value
-            turns[turn] = new
-        self_time_entity[branch, turn, tick] = parent, entity, key
-        where_cached = db_where_cached[args[-4:-1]]
-        if self not in where_cached:
-            where_cached.append(self)
-        # if we're editing the past, have to invalidate the keycache
-        keycache_key = parent + (entity, branch)
-        if keycache_key in keycache:
-            thiskeycache = keycache[keycache_key]
-            if turn in thiskeycache:
-                del thiskeycache[turn]
-            thiskeycache.truncate(turn)
-            if not thiskeycache:
-                del keycache[keycache_key]
-
     def _store_journal(self, *args):
         # overridden in LiSE.cache.InitializedCache
         entity, key, branch, turn, tick, value = args[-6:]
@@ -829,10 +844,10 @@ class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
     __slots__ = ()
 
-    def _store(self, graph, node, branch, turn, tick, ex, *, planning, loading=False, contra=True):
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
         if not ex:
             ex = None
-        return super()._store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
+        return super().store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
 
     def _update_keycache(self, *args, forward):
         graph, node, branch, turn, tick, ex = args
@@ -981,12 +996,12 @@ class EdgesCache(Cache):
             forward = self.db._forward
         return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
-    def _store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
+    def store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
         if not ex:
             ex = None
         if planning is None:
-            planning = self.db.planning
-        Cache._store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
+            planning = self.db._planning
+        Cache.store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
         # if ex:

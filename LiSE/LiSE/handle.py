@@ -1274,3 +1274,13 @@ class EngineHandle(object):
         for stat in stats:
             ret[stat] = list(entity.historical(stat).iter_history(beginning, end))
         return ret
+
+    @timely
+    def grid_2d_8graph(self, character, m, n):
+        self._real.character[character].grid_2d_8graph(m, n)
+        return self.get_char_deltas([character])
+
+    @timely
+    def grid_2d_graph(self, character, m, n, periodic):
+        self._real.character[character].grid_2d_graph(m, n, periodic)
+        return self.get_char_deltas([character])

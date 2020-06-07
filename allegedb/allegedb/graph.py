@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """allegedb's special implementations of the NetworkX graph objects"""
+from itertools import chain
 import networkx
 from networkx.exception import NetworkXError
 from collections import defaultdict, MutableMapping
@@ -90,7 +91,6 @@ class AllegedMapping(MutableMappingUnwrapper):
 
     def update(self, other, **kwargs):
         """Version of ``update`` that doesn't clobber the database so much"""
-        from itertools import chain
         if hasattr(other, 'items'):
             other = other.items()
         for (k, v) in chain(other, kwargs.items()):
@@ -360,6 +360,8 @@ class Edge(AbstractEntityMapping):
     __slots__ = ('graph', 'orig', 'dest', 'idx', 'db', '__weakref__',
                  '_iter_stuff', '_cache_contains_stuff', '_len_stuff',
                  '_get_cache_stuff', '_set_db_stuff', '_set_cache_stuff')
+
+    set_db_time = set_cache_time = 0
 
     def __new__(cls, graph, orig, dest, idx=0):
         gnodi = (graph.name, orig, dest, idx)
