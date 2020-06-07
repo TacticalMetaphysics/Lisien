@@ -33,7 +33,7 @@ try:
     from sqlalchemy.exc import IntegrityError as alchemyIntegError
 except ImportError:
     pass
-
+from time import monotonic
 
 IntegrityError = (
     alchemyIntegError, sqliteIntegError
@@ -87,7 +87,7 @@ class QueryEngine(object):
 
     """
     path = os.path.dirname(__file__)
-
+    flush_edges_t = 0
     def __init__(
             self, dbstring, connect_args, alchemy,
             pack=None, unpack=None
@@ -351,16 +351,6 @@ class QueryEngine(object):
     def _flush_nodes(self):
         if not self._nodes2set:
             return
-        # delete history that is to be overwritten due to paradox
-        cleanups = {}
-        for graph, node, branch, turn, tick, extant in self._nodes2set:
-            if (graph, node, branch) in cleanups:
-                cleanups[graph, node, branch] = min((
-                    (turn, tick), cleanups[graph, node, branch]
-                ))
-            else:
-                cleanups[graph, node, branch] = (turn, tick)
-        self.sqlmany('del_nodes_after', *(k + (turn, turn, tick) for k, (turn, tick) in cleanups.items()))
         self.sqlmany('nodes_insert', *self._nodes2set)
         self._nodes2set = []
 
@@ -414,22 +404,6 @@ class QueryEngine(object):
     def _flush_node_val(self):
         if not self._nodevals2set:
             return
-        delafter = {}
-        for graph, node, key, branch, turn, tick, value in self._nodevals2set:
-            if (graph, node, key, branch) in delafter:
-                delafter[graph, node, key, branch] = min((
-                    (turn, tick),
-                    delafter[graph, node, key, branch]
-                ))
-            else:
-                delafter[graph, node, key, branch] = (turn, tick)
-        if delafter:
-            self.sqlmany(
-                'del_node_val_after',
-                *((graph, node, key, branch, turn, turn, tick)
-                  for ((graph, node, key, branch), (turn, tick)) in
-                  delafter.items())
-            )
         self.sqlmany('node_val_insert', *self._nodevals2set)
         self._nodevals2set = []
 
@@ -465,27 +439,12 @@ class QueryEngine(object):
             )
 
     def _flush_edges(self):
+        start = monotonic()
         if not self._edges2set:
             return
-        delafter = {}
-        for graph, orig, dest, idx, branch, turn, tick, extant in self._edges2set:
-            key = graph, orig, dest, idx, branch
-            if key in delafter:
-                delafter[key] = min((
-                    (turn, tick),
-                    delafter[key]
-                ))
-            else:
-                delafter[key] = (turn, tick)
-        if delafter:
-            self.sqlmany(
-                'del_edges_after',
-                *((graph, orig, dest, idx, branch, turn, turn, tick)
-                  for ((graph, orig, dest, idx, branch), (turn, tick)) in
-                  delafter.items())
-            )
         self.sqlmany('edges_insert', *self._edges2set)
         self._edges2set = []
+        QueryEngine.flush_edges_t += monotonic() - start
 
     def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
@@ -522,21 +481,6 @@ class QueryEngine(object):
     def _flush_edge_val(self):
         if not self._edgevals2set:
             return
-        delafter = {}
-        for graph, orig, dest, idx, key, branch, turn, tick, value in self._edgevals2set:
-            dkey = graph, orig, dest, idx, key, branch
-            if dkey in delafter:
-                delafter[dkey] = min((
-                    (turn, tick), delafter[dkey]
-                ))
-            else:
-                delafter[dkey] = (turn, tick)
-        self.sqlmany(
-            'del_edge_val_after',
-            *((graph, orig, dest, idx, key, branch, turn, turn, tick)
-              for ((graph, orig, dest, idx, key, branch), (turn, tick))
-              in delafter.items())
-        )
         self.sqlmany('edge_val_insert', *self._edgevals2set)
         self._edgevals2set = []
 
