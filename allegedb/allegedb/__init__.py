@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM, and some supporting functions and classes"""
 from contextlib import ContextDecorator, contextmanager
+import gc
 from weakref import WeakValueDictionary
 
 from blinker import Signal
@@ -354,7 +355,13 @@ class ORM(object):
         if self._no_kc:
             raise ValueError("Already in a batch")
         self._no_kc = True
+        gc_was_active = gc.isenabled()
+        if gc_was_active:
+            gc.disable()
         yield
+        if gc_was_active:
+            gc.enable()
+            gc.collect()
         self._no_kc = False
 
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
