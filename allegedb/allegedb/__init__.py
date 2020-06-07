@@ -357,15 +357,6 @@ class ORM(object):
         yield
         self._no_kc = False
 
-    @contextmanager
-    def unsafe(self):
-        """A context manager that disables integrity checks"""
-        if self._unsafe:
-            raise ValueError("Already unsafe")
-        self._unsafe = True
-        yield
-        self._unsafe = False
-
     def get_delta(self, branch, turn_from, tick_from, turn_to, tick_to):
         """Get a dictionary describing changes to all graphs.
 
@@ -570,7 +561,6 @@ class ORM(object):
         self._planning = False
         self._forward = False
         self._no_kc = False
-        self._unsafe = False
         # in case this is the first startup
         self._obranch = 'trunk'
         self._otick = self._oturn = 0
@@ -1074,7 +1064,7 @@ class ORM(object):
                 yield child
 
     def _node_exists(self, character, node):
-        return self._unsafe or self._nodes_cache.contains_entity(character, node, *self._btt())
+        return self._nodes_cache.contains_entity(character, node, *self._btt())
 
     def _exist_node(self, character, node, exist=True):
         branch, turn, tick = self._nbtt()
@@ -1089,7 +1079,7 @@ class ORM(object):
         self._nodes_cache.store(character, node, branch, turn, tick, exist)
 
     def _edge_exists(self, character, orig, dest, idx=0):
-        return self._unsafe or self._edges_cache.contains_entity(
+        return self._edges_cache.contains_entity(
             character, orig, dest, idx, *self._btt()
         )
 
