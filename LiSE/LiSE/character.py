@@ -1678,8 +1678,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 engine = graph.engine
                 self._getitem_stuff = (engine._get_edge, graph, orig) 
                 self._setitem_stuff = (
-                    engine._exist_edge, graph.name, orig,
-                    engine._get_edge, graph
+                    engine._edge_exists, engine._exist_edge, graph.name, orig,
+                    engine._get_edge, graph, engine.query.edge_val_set,
+                    engine._edge_val_cache.store, engine._nbtt
                 )
                 
             def __getitem__(self, dest):
@@ -1691,16 +1692,27 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 ))
 
             def __setitem__(self, dest, value):
-                exist_edge, charn, orig, get_edge, graph = self._setitem_stuff
-                exist_edge(
-                    charn,
-                    orig,
-                    dest
-                )
-                p = get_edge(graph, orig, dest, 0)
-                p.clear()
-                p.update(value)
-                self.send(self, key=dest, val=p)
+                (edge_exists, exist_edge, charn, orig, get_edge, graph,
+                 db_edge_val_set, edge_val_cache_store, nbtt
+                 ) = self._setitem_stuff
+                if edge_exists(charn, orig, dest):
+                    p = get_edge(graph, orig, dest, 0)
+                    p.clear()
+                    p.update(value)
+                    self.send(self, key=dest, val=p)
+                else:
+                    exist_edge(
+                        charn,
+                        orig,
+                        dest
+                    )
+                    for k, v in value.items():
+                        branch, turn, tick = nbtt()
+                        db_edge_val_set(charn, orig, dest, 0, k,
+                                        branch, turn, tick, v)
+                        edge_val_cache_store(charn, orig, dest, 0, k,
+                                             branch, turn, tick, v)
+                    self.send(self, key=dest, val=value)
 
             def __delitem__(self, dest):
                 if dest not in self:
