@@ -89,17 +89,6 @@ class AllegedMapping(MutableMappingUnwrapper):
         for k in list(self.keys()):
             del self[k]
 
-    def update(self, other, **kwargs):
-        """Version of ``update`` that doesn't clobber the database so much"""
-        if hasattr(other, 'items'):
-            other = other.items()
-        for (k, v) in chain(other, kwargs.items()):
-            if (
-                    k not in self or
-                    self[k] != v
-            ):
-                self[k] = v
-
 
 class AbstractEntityMapping(AllegedMapping):
     __slots__ = ()
