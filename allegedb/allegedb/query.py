@@ -150,6 +150,8 @@ class QueryEngine(object):
             from ast import literal_eval as unpack
         self.pack = pack or repr
         self.unpack = unpack
+        self._exist_edge_stuff = (self._btts, self._edges2set)
+        self._edge_val_set_stuff = (self._btts, self._edgevals2set)
 
     def sql(self, stringname, *args, **kwargs):
         """Wrapper for the various prewritten or compiled SQL calls.
@@ -438,21 +440,26 @@ class QueryEngine(object):
                 bool(extant)
             )
 
+    def _pack_edge2set(self, tup):
+        graph, orig, dest, idx, branch, turn, tick, extant = tup
+        pack = self.pack
+        return pack(graph), pack(orig), pack(dest), idx, branch, turn, tick, extant
+
     def _flush_edges(self):
         start = monotonic()
         if not self._edges2set:
             return
-        self.sqlmany('edges_insert', *self._edges2set)
+        self.sqlmany('edges_insert', *map(self._pack_edge2set, self._edges2set))
         self._edges2set = []
         QueryEngine.flush_edges_t += monotonic() - start
 
     def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
         """Declare whether or not this edge exists."""
-        if (branch, turn, tick) in self._btts:
+        btts, edges2set = self._exist_edge_stuff
+        if (branch, turn, tick) in btts:
             raise TimeError
-        self._btts.add((branch, turn, tick))
-        graph, orig, dest = map(self.pack, (graph, orig, dest))
-        self._edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
+        btts.add((branch, turn, tick))
+        edges2set.append((graph, orig, dest, idx, branch, turn, tick, extant))
 
     def edges_del_time(self, branch, turn, tick):
         self._flush_edges()
@@ -478,10 +485,15 @@ class QueryEngine(object):
                 unpack(value)
             )
 
+    def _pack_edgeval2set(self, tup):
+        graph, orig, dest, idx, key, branch, turn, tick, value = tup
+        pack = self.pack
+        return pack(graph), pack(orig), pack(dest), idx, pack(key), branch, turn, tick, pack(value)
+
     def _flush_edge_val(self):
         if not self._edgevals2set:
             return
-        self.sqlmany('edge_val_insert', *self._edgevals2set)
+        self.sqlmany('edge_val_insert', *map(self._pack_edgeval2set, self._edgevals2set))
         self._edgevals2set = []
 
     def edge_val_set(self, graph, orig, dest, idx, key, branch, turn, tick, value):
@@ -489,7 +501,6 @@ class QueryEngine(object):
         if (branch, turn, tick) in self._btts:
             raise TimeError
         self._btts.add((branch, turn, tick))
-        graph, orig, dest, key, value = map(self.pack, (graph, orig, dest, key, value))
         self._edgevals2set.append(
             (graph, orig, dest, idx, key, branch, turn, tick, value)
         )
