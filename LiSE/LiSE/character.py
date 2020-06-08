@@ -1718,21 +1718,13 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     orig,
                     dest
                 )
-                if not value:
-                    return
-                if edge_exists(charn, orig, dest):
-                    p = get_edge(graph, orig, dest, 0)
-                    p.clear()
-                    p.update(value)
-                    self.send(self, key=dest, val=p)
-                else:
-                    for k, v in value.items():
-                        branch, turn, tick = nbtt()
-                        db_edge_val_set(charn, orig, dest, 0, k,
-                                        branch, turn, tick, v)
-                        edge_val_cache_store(charn, orig, dest, 0, k,
-                                             branch, turn, tick, v)
-                    self.send(self, key=dest, val=value)
+                for k, v in value.items():
+                    branch, turn, tick = nbtt()
+                    db_edge_val_set(charn, orig, dest, 0, k,
+                                    branch, turn, tick, v)
+                    edge_val_cache_store(charn, orig, dest, 0, k,
+                                         branch, turn, tick, v)
+                self.send(self, key=dest, val=value)
 
             def __delitem__(self, dest):
                 if dest not in self:
