@@ -1565,12 +1565,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         def __setitem__(self, place, v):
             node_exists, exist_node, get_node, charn, character \
                 = self._set_stuff
-            if not node_exists(charn, place):
-                exist_node(charn, place, True)
+            exist_node(charn, place, True)
             pl = get_node(character, place)
             if not isinstance(pl, Place):
                 raise KeyError("{} is not a place".format(place))
-            pl.clear()
             pl.update(v)
             self.send(self, key=place, val=v)
 
