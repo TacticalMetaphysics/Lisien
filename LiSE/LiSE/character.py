@@ -1710,6 +1710,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 ))
 
             def __setitem__(self, dest, value):
+                if value is None:
+                    del self[dest]
+                    return
                 (edge_exists, exist_edge, charn, orig, get_edge, graph,
                  db_edge_val_set, edge_val_cache_store, nbtt
                  ) = self._setitem_stuff
