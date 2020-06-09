@@ -910,6 +910,7 @@ class ORM(object):
             plan_ticks_uncommitted.append((last_plan, turn, tick))
             time_plan[branch, turn, tick] = last_plan
         turn_end_plan[branch_turn] = tick
+        branches[branch] = parent, turn_start, tick_start, turn_end, tick
         self._otick = tick
         return branch, turn, tick
 
