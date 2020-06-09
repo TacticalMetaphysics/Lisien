@@ -484,7 +484,7 @@ class Cache:
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
         entikey = (entity, key)
-        parentikey = parent + entikey
+        parentikey = parent + (entity, key)
         if parent:
             parentity = self_parents[parent][entity]
             if key in parentity:
@@ -492,7 +492,7 @@ class Cache:
                 turns = branches[branch]
             else:
                 branches = self_branches[parentikey] \
-                    = self_keys[parentikey][key] \
+                    = self_keys[parent + (entity,)][key] \
                     = parentity[key]
                 turns = branches[branch]
         else:
