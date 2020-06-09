@@ -883,12 +883,9 @@ class ORM(object):
         branch, turn, tick = btt()
         branch_turn = (branch, turn)
         tick += 1
-        if (branch, turn) in turn_end_plan:
-            if tick > turn_end_plan[branch, turn]:
-                turn_end_plan[branch, turn] = tick
-            else:
-                tick = turn_end_plan[branch, turn] + 1
-        turn_end_plan[branch, turn] = tick
+        if (branch, turn) in turn_end_plan and \
+                tick <= turn_end_plan[branch, turn]:
+            tick = turn_end_plan[branch, turn] + 1
         if turn_end[branch, turn] > tick:
             raise HistoryError(
                 "You're not at the end of turn {}. Go to tick {} to change things".format(
@@ -911,6 +908,7 @@ class ORM(object):
             plan_ticks[last_plan][turn].append(tick)
             plan_ticks_uncommitted.append((last_plan, turn, tick))
             time_plan[branch, turn, tick] = last_plan
+        turn_end_plan[branch, turn] = tick
         self._otick = tick
         return branch, turn, tick
 
