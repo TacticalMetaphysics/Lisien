@@ -178,12 +178,11 @@ class Cache:
         'db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
         'settings', 'presettings', 'time_entity', '_kc_lru',
         '_store_stuff', '_remove_stuff', '_truncate_stuff',
-        'setdb', 'deldb', 't'
+        'setdb', 'deldb'
     )
 
     def __init__(self, db):
         super().__init__()
-        self.t = defaultdict(lambda: 0)
         self.db = db
         self.parents = StructuredDefaultDict(3, SettingsTurnDict)
         """Entity data keyed by the entities' parents.
@@ -227,7 +226,8 @@ class Cache:
             self.parents, self.branches, self.keys, db.delete_plan,
             db._time_plan, self._iter_future_contradictions,
             db._branches, db._turn_end, self._store_journal,
-            self.time_entity, db._where_cached, self.keycache
+            self.time_entity, db._where_cached, self.keycache,
+            db, self._update_keycache
         )
         self._remove_stuff = (
             self.time_entity, self.parents, self.branches, self.keys,
@@ -470,21 +470,19 @@ class Cache:
         of the ends of branches and turns.
 
         """
-        db = self.db
-        if planning is None:
-            planning = db._planning
-        if forward is None:
-            forward = db._forward
-        store_start = monotonic()
-        entity, key, branch, turn, tick, value = args[-6:]
-        parent = args[:-6]
         (
             self_parents, self_branches, self_keys, delete_plan,
             time_plan, self_iter_future_contradictions,
             db_branches, db_turn_end, self_store_journal,
-            self_time_entity, db_where_cached, keycache
+            self_time_entity, db_where_cached, keycache, db,
+            update_keycache
         ) = self._store_stuff
-        turns_lookup_start = monotonic()
+        if planning is None:
+            planning = db._planning
+        if forward is None:
+            forward = db._forward
+        entity, key, branch, turn, tick, value = args[-6:]
+        parent = args[:-6]
         if parent:
             parentity = self_parents[parent][entity]
             if key in parentity:
@@ -503,8 +501,6 @@ class Cache:
                 branches = self_branches[entity, key]
                 self_keys[entity,][key] = branches
                 turns = branches[branch]
-        turns_lookup_end = monotonic()
-        self.t['turns_lookup'] += turns_lookup_end - turns_lookup_start
         if planning:
             if turn in turns and tick < turns[turn].end:
                 raise HistoryError(
@@ -529,10 +525,7 @@ class Cache:
             db_branches[branch]
             db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
             db_turn_end[branch, turn] = tick
-        store_journal_start = monotonic()
         self_store_journal(*args)
-        store_journal_end = monotonic()
-        self.t['store_journal'] += store_journal_end - store_journal_start
         self.shallowest[parent + (entity, key, branch, turn, tick)] = value
         if turn in turns:
             the_turn = turns[turn]
@@ -542,8 +535,6 @@ class Cache:
             new = FuturistWindowDict()
             new[tick] = value
             turns[turn] = new
-        turn_set_end = monotonic()
-        self.t['turn_set'] += turn_set_end - store_journal_end
         self_time_entity[branch, turn, tick] = parent, entity, key
         where_cached = db_where_cached[args[-4:-1]]
         if self not in where_cached:
@@ -558,10 +549,7 @@ class Cache:
             if not thiskeycache:
                 del keycache[keycache_key]
         if not db._no_kc:
-            self._update_keycache(*args, forward=forward)
-        end = monotonic()
-        self.t['keycachery'] += end - turn_set_end
-        self.t['total'] += end - store_start
+            update_keycache(*args, forward=forward)
 
     def remove(self, branch, turn, tick):
         """Delete all data from a specific tick"""
@@ -996,12 +984,12 @@ class EdgesCache(Cache):
             forward = self.db._forward
         return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
-    def store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
+    def store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, forward=None, loading=False, contra=True):
         if not ex:
             ex = None
         if planning is None:
             planning = self.db._planning
-        Cache.store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
+        Cache.store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, forward=forward, loading=loading, contra=contra)
         self.predecessors[(graph, dest)][orig][idx][branch][turn] \
             = self.successors[graph, orig][dest][idx][branch][turn]
         # if ex:
