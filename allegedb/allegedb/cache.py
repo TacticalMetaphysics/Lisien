@@ -483,22 +483,24 @@ class Cache:
             forward = db._forward
         entity, key, branch, turn, tick, value = args[-6:]
         parent = args[:-6]
+        entikey = (entity, key)
+        parentikey = parent + entikey
         if parent:
             parentity = self_parents[parent][entity]
             if key in parentity:
                 branches = parentity[key]
                 turns = branches[branch]
             else:
-                branches = self_branches[parent + (entity, key)] \
-                    = self_keys[parent + (entity,)][key] \
+                branches = self_branches[parentikey] \
+                    = self_keys[parentikey][key] \
                     = parentity[key]
                 turns = branches[branch]
         else:
-            if (entity, key) in self_branches:
-                branches = self_branches[entity, key]
+            if entikey in self_branches:
+                branches = self_branches[entikey]
                 turns = branches[branch]
             else:
-                branches = self_branches[entity, key]
+                branches = self_branches[entikey]
                 self_keys[entity,][key] = branches
                 turns = branches[branch]
         if planning:
