@@ -21,6 +21,7 @@ from weakref import WeakValueDictionary
 from blinker import Signal
 
 from allegedb.window import update_window, update_backward_window
+from .cache import HistoryError
 from .graph import (
     Graph,
     DiGraph,
@@ -603,6 +604,22 @@ class ORM(object):
             self._branches['trunk'] = None, 0, 0, 0, 0
         self._load_graphs()
         self._init_load(validate=validate)
+        self._nbtt_stuff = (
+            self._btt, self._turn_end_plan, self._turn_end,
+            self._plan_ticks, self._plan_ticks_uncommitted,
+            self._time_plan, self._branches
+        )
+        self._node_exists_stuff = (
+            self._nodes_cache.contains_entity, self._btt
+        )
+        self._exist_node_stuff = (
+            self._nbtt, self.query.exist_node, self._nodes_cache.store
+        )
+        self._edge_exists_stuff = (
+            self._edges_cache.contains_entity, self._btt
+        )
+        self._exist_edge_stuff = (
+            self._nbtt, self.query.exist_edge, self._edges_cache.store)
 
     def _upd_branch_parentage(self, parent, child):
         self._childbranch[parent].add(child)
@@ -861,22 +878,24 @@ class ORM(object):
         can only do once per branch, turn, tick.
 
         """
-        from .cache import HistoryError
-        branch, turn, tick = self._btt()
+        (btt, turn_end_plan, turn_end, plan_ticks, plan_ticks_uncommitted,
+         time_plan, branches) = self._nbtt_stuff
+        branch, turn, tick = btt()
+        branch_turn = (branch, turn)
         tick += 1
-        if (branch, turn) in self._turn_end_plan:
-            if tick > self._turn_end_plan[branch, turn]:
-                self._turn_end_plan[branch, turn] = tick
+        if (branch, turn) in turn_end_plan:
+            if tick > turn_end_plan[branch, turn]:
+                turn_end_plan[branch, turn] = tick
             else:
-                tick = self._turn_end_plan[branch, turn] + 1
-        self._turn_end_plan[branch, turn] = tick
-        if self._turn_end[branch, turn] > tick:
+                tick = turn_end_plan[branch, turn] + 1
+        turn_end_plan[branch, turn] = tick
+        if turn_end[branch, turn] > tick:
             raise HistoryError(
                 "You're not at the end of turn {}. Go to tick {} to change things".format(
-                    turn, self._turn_end[branch, turn]
+                    turn, turn_end[branch_turn]
                 )
             )
-        parent, turn_start, tick_start, turn_end, tick_end = self._branches[branch]
+        parent, turn_start, tick_start, turn_end, tick_end = branches[branch]
         if turn < turn_end or (
             turn == turn_end and tick < tick_end
         ):
@@ -884,13 +903,14 @@ class ORM(object):
                 "You're in the past. Go to turn {}, tick {} to change things".format(turn_end, tick_end)
             )
         if self._planning:
-            if (turn, tick) in self._plan_ticks[self._last_plan]:
+            last_plan = self._last_plan
+            if (turn, tick) in plan_ticks[last_plan]:
                 raise HistoryError(
                     "Trying to make a plan at {}, but that time already happened".format((branch, turn, tick))
                 )
-            self._plan_ticks[self._last_plan][turn].append(tick)
-            self._plan_ticks_uncommitted.append((self._last_plan, turn, tick))
-            self._time_plan[branch, turn, tick] = self._last_plan
+            plan_ticks[last_plan][turn].append(tick)
+            plan_ticks_uncommitted.append((last_plan, turn, tick))
+            time_plan[branch, turn, tick] = last_plan
         self._otick = tick
         return branch, turn, tick
 
@@ -1071,11 +1091,13 @@ class ORM(object):
                 yield child
 
     def _node_exists(self, character, node):
-        return self._nodes_cache.contains_entity(character, node, *self._btt())
+        contains_entity, btt = self._node_exists_stuff
+        return contains_entity(character, node, *btt())
 
     def _exist_node(self, character, node, exist=True):
-        branch, turn, tick = self._nbtt()
-        self.query.exist_node(
+        nbtt, exist_node, store = self._exist_node_stuff
+        branch, turn, tick = nbtt()
+        exist_node(
             character,
             node,
             branch,
@@ -1083,18 +1105,20 @@ class ORM(object):
             tick,
             True
         )
-        self._nodes_cache.store(character, node, branch, turn, tick, exist)
+        store(character, node, branch, turn, tick, exist)
 
     def _edge_exists(self, character, orig, dest, idx=0):
-        return self._edges_cache.contains_entity(
-            character, orig, dest, idx, *self._btt()
+        contains_entity, btt = self._edge_exists_stuff
+        return contains_entity(
+            character, orig, dest, idx, *btt()
         )
 
     def _exist_edge(
             self, character, orig, dest, idx=0, exist=True
     ):
-        branch, turn, tick = self._nbtt()
-        self.query.exist_edge(
+        nbtt, exist_edge, store = self._exist_edge_stuff
+        branch, turn, tick = nbtt()
+        exist_edge(
             character,
             orig,
             dest,
@@ -1104,6 +1128,6 @@ class ORM(object):
             tick,
             exist
         )
-        self._edges_cache.store(
+        store(
             character, orig, dest, idx, branch, turn, tick, exist
         )
