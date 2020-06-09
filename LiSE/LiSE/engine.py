@@ -1699,15 +1699,3 @@ class Engine(AbstractEngine, gORM):
                         entity[key] = value
         self.turn = now
         return acceptances, rejections
-
-    def _exist_node(self, character, node, exist=True):
-        start = monotonic()
-        super()._exist_node(character, node, exist)
-        self.exist_node_time += monotonic() - start
-
-    def _exist_edge(
-            self, character, orig, dest, idx=0, exist=True
-    ):
-        start = monotonic()
-        super()._exist_edge(character, orig, dest, idx, exist)
-        self.exist_edge_time += monotonic() - start
