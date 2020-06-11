@@ -227,7 +227,7 @@ class Cache:
             db._time_plan, self._iter_future_contradictions,
             db._branches, db._turn_end, self._store_journal,
             self.time_entity, db._where_cached, self.keycache,
-            db, self._update_keycache
+            db, self._update_keycache, self.shallowest
         )
         self._remove_stuff = (
             self.time_entity, self.parents, self.branches, self.keys,
@@ -475,7 +475,7 @@ class Cache:
             time_plan, self_iter_future_contradictions,
             db_branches, db_turn_end, self_store_journal,
             self_time_entity, db_where_cached, keycache, db,
-            update_keycache
+            update_keycache, shallowest
         ) = self._store_stuff
         if planning is None:
             planning = db._planning
@@ -515,7 +515,7 @@ class Cache:
                 self_iter_future_contradictions(entity, key, turns, branch,
                                                 turn, tick, value))
             if contras:
-                self.shallowest = OrderedDict()
+                self.shallowest = shallowest = OrderedDict()
             for contra_turn, contra_tick in contras:
                 if (branch, contra_turn,
                     contra_tick) in time_plan:  # could've been deleted in this very loop
@@ -528,7 +528,7 @@ class Cache:
             db_branches[branch] = parbranch, turn_start, tick_start, turn, tick
             db_turn_end[branch, turn] = tick
         self_store_journal(*args)
-        self.shallowest[parent + (entity, key, branch, turn, tick)] = value
+        shallowest[parent + (entity, key, branch, turn, tick)] = value
         if turn in turns:
             the_turn = turns[turn]
             the_turn.truncate(tick)
