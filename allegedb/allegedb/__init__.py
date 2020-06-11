@@ -610,13 +610,13 @@ class ORM(object):
             self._time_plan, self._branches
         )
         self._node_exists_stuff = (
-            self._nodes_cache.contains_entity, self._btt
+            self._nodes_cache.retrieve, self._btt
         )
         self._exist_node_stuff = (
             self._nbtt, self.query.exist_node, self._nodes_cache.store
         )
         self._edge_exists_stuff = (
-            self._edges_cache.contains_entity, self._btt
+            self._edges_cache.retrieve, self._btt
         )
         self._exist_edge_stuff = (
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
@@ -1091,8 +1091,11 @@ class ORM(object):
                 yield child
 
     def _node_exists(self, character, node):
-        contains_entity, btt = self._node_exists_stuff
-        return contains_entity(character, node, *btt())
+        retrieve, btt = self._node_exists_stuff
+        try:
+            return retrieve(character, node, *btt()) is not None
+        except KeyError:
+            return False
 
     def _exist_node(self, character, node, exist=True):
         nbtt, exist_node, store = self._exist_node_stuff
@@ -1108,10 +1111,13 @@ class ORM(object):
         store(character, node, branch, turn, tick, exist)
 
     def _edge_exists(self, character, orig, dest, idx=0):
-        contains_entity, btt = self._edge_exists_stuff
-        return contains_entity(
-            character, orig, dest, idx, *btt()
-        )
+        retrieve, btt = self._edge_exists_stuff
+        try:
+            return retrieve(
+                character, orig, dest, idx, *btt()
+            ) is not None
+        except KeyError:
+            return False
 
     def _exist_edge(
             self, character, orig, dest, idx=0, exist=True
