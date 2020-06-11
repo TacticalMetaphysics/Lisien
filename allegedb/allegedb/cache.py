@@ -522,6 +522,8 @@ class Cache:
                     delete_plan(time_plan[branch, contra_turn, contra_tick])
             if not turns:  # turns may be mutated in delete_plan
                 branches[branch] = turns
+            if entikey not in self_branches:
+                self_branches[entikey] = branches
         if not loading and not planning:
             parbranch, turn_start, tick_start, turn_end, tick_end = \
             db_branches[branch]
