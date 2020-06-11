@@ -40,6 +40,7 @@ from collections import (
     Mapping,
     MutableMapping
 )
+from itertools import chain
 from time import monotonic
 from operator import ge, gt, le, lt, eq
 from weakref import WeakValueDictionary
@@ -1674,8 +1675,64 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.send(self, key=orig, val=None)
 
         def update(self, other, **kwargs):
+            engine = self.engine
+            planning = engine._planning
+            forward = engine._forward
+            branch, turn, start_tick = engine._btt()
+            exist_edge = engine.query.exist_edge
+            edge_val_set = engine.query.edge_val_set
+            store_edge = engine._edges_cache.store
+            store_edge_val = engine._edge_val_cache.store
+            iter_edge_keys = engine._edge_val_cache.iter_entity_keys
+            charn = self.character.name
+            tick = start_tick + 1
             with timer("seconds spent updating PortalSuccessorsMapping"):
-                super().update(other, **kwargs)
+                for orig, dests in chain(other.items(), kwargs.items()):
+                    for dest, kvs in dests.items():
+                        if kvs is None:
+                            for k in iter_edge_keys(
+                                charn, orig, dest, 0, branch, turn, start_tick
+                            ):
+                                store_edge_val(
+                                    charn, orig, dest, 0, k,
+                                    branch, turn, tick, None,
+                                    planning=planning, forward=forward
+                                )
+                                edge_val_set(
+                                    charn, orig, dest, 0, k,
+                                    branch, turn, tick, None
+                                )
+                                tick += 1
+                            store_edge(
+                                charn, orig, dest, 0,
+                                branch, turn, tick, False,
+                                planning=planning, forward=forward
+                            )
+                            exist_edge(
+                                charn, orig, dest, 0, branch, turn, tick, False
+                            )
+                            tick += 1
+                        else:
+                            store_edge(
+                                charn, orig, dest, 0, branch, turn, tick, True,
+                                planning=planning, forward=forward
+                            )
+                            exist_edge(
+                                charn, orig, dest, 0, branch, turn, tick, True
+                            )
+                            tick += 1
+                            for k, v in kvs.items():
+                                store_edge_val(
+                                    charn, orig, dest, 0,
+                                    k, branch, turn, tick, v,
+                                    planning=planning, forward=forward
+                                )
+                                edge_val_set(
+                                    charn, orig, dest, 0,
+                                    k, branch, turn, tick, v
+                                )
+                                tick += 1
+            engine.tick = tick
 
         class Successors(DiGraphSuccessorsMapping.Successors):
             """Mapping for possible destinations from some node."""
