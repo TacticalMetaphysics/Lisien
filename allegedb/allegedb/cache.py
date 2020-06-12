@@ -836,10 +836,10 @@ class NodesCache(Cache):
     """A cache for remembering whether nodes exist at a given time."""
     __slots__ = ()
 
-    def store(self, graph, node, branch, turn, tick, ex, *, planning=None, loading=False, contra=True):
+    def store(self, graph, node, branch, turn, tick, ex, *, planning=None, forward=None, loading=False, contra=True):
         if not ex:
             ex = None
-        return super().store(graph, node, branch, turn, tick, ex, planning=planning, loading=loading, contra=contra)
+        return super().store(graph, node, branch, turn, tick, ex, planning=planning, forward=forward, loading=loading, contra=contra)
 
     def _update_keycache(self, *args, forward):
         graph, node, branch, turn, tick, ex = args
