@@ -1675,6 +1675,18 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self.send(self, key=orig, val=None)
 
         def update(self, other, **kwargs):
+            """Recursively update the stats of all portals
+
+            Input should be a dictionary of dictionaries of dictionaries
+            --just like networkx ``DiGraph._edge``.
+
+            This will create portals as needed, but will only delete
+            them if you set their value to ``None``. Likewise, stats
+            not specified in the input will be left untouched, if they
+            are already present, but you can set them to ``None`` to
+            delete them.
+
+            """
             engine = self.engine
             planning = engine._planning
             forward = engine._forward
