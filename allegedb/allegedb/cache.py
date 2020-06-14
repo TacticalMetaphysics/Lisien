@@ -248,18 +248,20 @@ class Cache:
         branches = defaultdict(list)
         for row in data:
             branches[row[-4]].append(row)
+        db = self.db
         # Make keycaches and valcaches. Must be done chronologically
         # to make forwarding work.
-        childbranch = self.db._childbranch
+        childbranch = db._childbranch
         branch2do = deque(['trunk'])
 
         store = self.store
-        while branch2do:
-            branch = branch2do.popleft()
-            for row in branches[branch]:
-                store(*row, planning=False, loading=True)
-            if branch in childbranch:
-                branch2do.extend(childbranch[branch])
+        with db.batch():
+            while branch2do:
+                branch = branch2do.popleft()
+                for row in branches[branch]:
+                    store(*row, planning=False, loading=True)
+                if branch in childbranch:
+                    branch2do.extend(childbranch[branch])
 
     def _valcache_lookup(self, cache, branch, turn, tick):
         """Return the value at the given time in ``cache``"""
