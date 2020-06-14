@@ -1468,8 +1468,63 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             return self.engine._characters_places_rulebooks_cache
 
         def update(self, __m, **kwargs) -> None:
+            engine = self.engine
+            store_node = engine._nodes_cache.store
+            store_node_val = engine._node_val_cache.store
+            iter_node_keys = engine._node_val_cache.iter_keys
+            exist_node = engine.query.exist_node
+            node_val_set = engine.query.node_val_set
+            branch, turn, start_tick = engine._btt()
+            tick = start_tick + 1
+            charn = self.character.name
+            planning = engine._planning
+            forward = engine._forward
             with timer("seconds spent updating PlaceMapping"):
-                super().update(__m, **kwargs)
+                for node, val in chain(__m.items(), kwargs.items()):
+                    if val is None:
+                        for key in iter_node_keys(
+                            charn, node, branch, turn, start_tick,
+                            forward=forward
+                        ):
+                            store_node_val(
+                                charn, node, key, branch, turn, tick, None,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            node_val_set(
+                                charn, node, key, branch, turn, tick, None
+                            )
+                            tick += 1
+                        store_node(
+                            charn, node, branch, turn, tick, False,
+                            planning=planning, forward=forward,
+                            loading=True
+                        )
+                        exist_node(
+                            charn, node, branch, turn, tick, False
+                        )
+                        tick += 1
+                    else:
+                        store_node(
+                            charn, node, branch, turn, tick, True,
+                            planning=planning, forward=forward,
+                            loading=True
+                        )
+                        exist_node(
+                            charn, node, branch, turn, tick, True
+                        )
+                        tick += 1
+                        for k, v in val.items():
+                            store_node_val(
+                                charn, node, k, branch, turn, tick, v,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            exist_node(
+                                charn, node, k, branch, turn, tick, v
+                            )
+                            tick += 1
+            engine.tick = tick
 
         def __init__(self, character):
             """Store the character."""
@@ -1805,6 +1860,47 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                 if dest not in self:
                     raise KeyError("No portal to {}".format(dest))
                 self[dest].delete()
+
+            def update(self, other, **kwargs):
+                charn = self.graph.name
+                orig = self.orig
+                engine = self.engine
+                store_edge = engine._edges_cache.store
+                exist_edge = engine.query.exist_edge
+                store_edge_val = engine._edge_val_cache.store
+                set_edge_val = engine.query.edge_val_set
+                iter_edge_keys = engine._edge_val_cache.iter_entity_keys
+                planning = engine._planning
+                forward = engine._forward
+                branch, turn, start_tick = engine._btt()
+                tick = start_tick + 1
+                for dest, val in chain(other.items(), kwargs.items()):
+                    if val is None:
+                        for k in iter_edge_keys(
+                            charn, orig, dest, 0, branch, turn, start_tick
+                        ):
+                            store_edge_val(
+                                charn, orig, dest, 0,
+                                k, branch, turn, tick, None,
+                                planning=planning, forward=forward,
+                                loading=True
+                            )
+                            set_edge_val(
+                                charn, orig, dest, 0,
+                                k, branch, turn, tick, None
+                            )
+                            tick += 1
+                        store_edge(
+                            charn, orig, dest, 0, branch, turn, tick, None,
+                            planning=planning, forward=forward,
+                            loading=True
+                        )
+                        exist_edge(
+                            charn, orig, dest, 0, branch, turn, tick, None
+                        )
+                        tick += 1
+
+
     adj_cls = PortalSuccessorsMapping
 
     class PortalPredecessorsMapping(
