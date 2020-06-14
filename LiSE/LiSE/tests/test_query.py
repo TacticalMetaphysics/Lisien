@@ -42,7 +42,7 @@ def roommate_collisions(engine):
     for chara in engine.character.values():
         if chara.name in done:
             continue
-        match = re.match('dorm(\d)room(\d)student(\d)', chara.name)
+        match = re.match(r'dorm(\d)room(\d)student(\d)', chara.name)
         if not match:
             continue
         dorm, room, student = match.groups()
@@ -112,7 +112,7 @@ def noncollision(engine):
     """Make sure students *not* from the same room never go there together"""
     dorm = defaultdict(lambda: defaultdict(dict))
     for character in engine.character.values():
-        match = re.match('dorm(\d)room(\d)student(\d)', character.name)
+        match = re.match(r'dorm(\d)room(\d)student(\d)', character.name)
         if not match:
             continue
         d, r, s = match.groups()

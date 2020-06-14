@@ -413,7 +413,7 @@ class StringsEdBox(EdBox):
         return name and name[0] != '+'
 
 
-sig_ex = re.compile('^ *def .+?\((.+)\):$')
+sig_ex = re.compile(r'^ *def .+?\((.+)\):$')
 
 
 class FunctionNameInput(TextInput):
