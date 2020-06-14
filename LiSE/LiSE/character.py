@@ -1691,12 +1691,14 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     for dest, kvs in dests.items():
                         if kvs is None:
                             for k in iter_edge_keys(
-                                charn, orig, dest, 0, branch, turn, start_tick
+                                charn, orig, dest, 0, branch, turn, start_tick,
+                                forward=forward
                             ):
                                 store_edge_val(
                                     charn, orig, dest, 0, k,
                                     branch, turn, tick, None,
-                                    planning=planning, forward=forward
+                                    planning=planning, forward=forward,
+                                    loading=True
                                 )
                                 edge_val_set(
                                     charn, orig, dest, 0, k,
@@ -1706,7 +1708,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                             store_edge(
                                 charn, orig, dest, 0,
                                 branch, turn, tick, False,
-                                planning=planning, forward=forward
+                                planning=planning, forward=forward,
+                                loading=True
                             )
                             exist_edge(
                                 charn, orig, dest, 0, branch, turn, tick, False
@@ -1715,7 +1718,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                         else:
                             store_edge(
                                 charn, orig, dest, 0, branch, turn, tick, True,
-                                planning=planning, forward=forward
+                                planning=planning, forward=forward,
+                                loading=True
                             )
                             exist_edge(
                                 charn, orig, dest, 0, branch, turn, tick, True
@@ -1725,7 +1729,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                                 store_edge_val(
                                     charn, orig, dest, 0,
                                     k, branch, turn, tick, v,
-                                    planning=planning, forward=forward
+                                    planning=planning, forward=forward,
+                                    loading=True
                                 )
                                 edge_val_set(
                                     charn, orig, dest, 0,
