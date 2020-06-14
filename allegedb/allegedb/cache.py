@@ -859,7 +859,7 @@ class EdgesCache(Cache):
     __slots__ = (
         'destcache', 'origcache', 'predecessors',
         '_origcache_lru', '_destcache_lru', '_get_destcache_stuff',
-        '_get_origcache_stuff'
+        '_get_origcache_stuff', '_additional_store_stuff'
     )
     @property
     def successors(self):
@@ -879,6 +879,9 @@ class EdgesCache(Cache):
         self._get_origcache_stuff = (
             self.origcache, self._origcache_lru, self._get_keycachelike,
             self.predecessors, self._adds_dels_sucpred
+        )
+        self._additional_store_stuff = (
+            self.db, self.predecessors, self.successors
         )
 
     def _slow_iter_node_contradicted_times(self, branch, turn, tick, graph, node):
@@ -989,13 +992,14 @@ class EdgesCache(Cache):
         return orig in self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
 
     def store(self, graph, orig, dest, idx, branch, turn, tick, ex, *, planning=None, forward=None, loading=False, contra=True):
+        db, predecessors, successors = self._additional_store_stuff
         if not ex:
             ex = None
         if planning is None:
-            planning = self.db._planning
+            planning = db._planning
         Cache.store(self, graph, orig, dest, idx, branch, turn, tick, ex, planning=planning, forward=forward, loading=loading, contra=contra)
-        self.predecessors[(graph, dest)][orig][idx][branch][turn] \
-            = self.successors[graph, orig][dest][idx][branch][turn]
+        predecessors[graph, dest][orig][idx][branch][turn] \
+            = successors[graph, orig][dest][idx][branch][turn]
         # if ex:
         #     assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
         #     assert self.has_successor(graph, orig, dest, branch, turn, tick)
