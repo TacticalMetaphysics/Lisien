@@ -104,7 +104,7 @@ with Engine(clear=True) as eng:
     sq = eng.new_character('square')
 ```
 
-This starts a new game with its world state stored in 'polygons.db'. Because of ``clear`` being
+This starts a new game with its world state stored in the file 'world.db'. Because of ``clear`` being
 ``True``, it will delete any existing world state and game code each time it's run, which is often useful when you're
 getting started. It creates three characters, one of which, named 'physical', has a 20x20 grid in it.
 The others are empty, and in fact we don't intend to put any graph in them; they're just for keeping track of things
@@ -129,7 +129,7 @@ they have locations -- each square and triangle is located in a place in the gra
 
 The new_thing method of a place object creates a new thing and puts it there. You have to give the thing a name as its
 first argument. You can supply further keyword arguments to customize the thing's stats; in this case, I've given
-the things graphics representing what shape they are. If you wanted, you could set the _image_paths to a list of paths
+the things graphics representing what shape they are. If you wanted, you could set the `_image_paths` to a list of paths
 to whatever graphics. The 'atlas://' in the front is only necessary if you're using graphics packed in the way that the default ones are;
 [read about atlases](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like, or just use some .png files you have lying around.
 
