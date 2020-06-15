@@ -1198,8 +1198,6 @@ class Graph(networkx.Graph):
     database.
 
     """
-    _succs = {}
-    _statmaps = {}
     graph_map_cls = GraphMapping
     node_map_cls = GraphNodeMapping
     adj_cls = GraphSuccessorsMapping
@@ -1231,9 +1229,9 @@ class Graph(networkx.Graph):
 
     @property
     def graph(self):
-        if id(self) not in self._statmaps:
-            self._statmaps[id(self)] = self.graph_map_cls(self)
-        return self._statmaps[id(self)]
+        if not hasattr(self, '_statmap'):
+            self._statmap = self.graph_map_cls(self)
+        return self._statmap
 
     @graph.setter
     def graph(self, v):
