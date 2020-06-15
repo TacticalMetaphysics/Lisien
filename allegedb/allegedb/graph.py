@@ -1217,7 +1217,6 @@ class Graph(networkx.Graph):
         self.db = db
         if name not in self.db._graph_objs:
             self.db._graph_objs[name] = self
-        self.clear()
         if data is not None:
             data = data.copy()
             if isinstance(data, dict) and 'name' in data:
