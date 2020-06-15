@@ -92,9 +92,9 @@ class AvatarnessCache(Cache):
         self.uniqgraph = StructuredDefaultDict(1, TurnDict)
         self.users = StructuredDefaultDict(1, TurnDict)
 
-    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning=None, loading=False, contra=True):
+    def store(self, character, graph, node, branch, turn, tick, is_avatar, *, planning=None, forward=None, loading=False, contra=True):
         is_avatar = True if is_avatar else None
-        super().store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, loading=loading, contra=contra)
+        super().store(character, graph, node, branch, turn, tick, is_avatar, planning=planning, forward=forward, loading=loading, contra=contra)
         userturns = self.user_order[graph][node][character][branch]
         if turn in userturns:
             userturns[turn][tick] = is_avatar
