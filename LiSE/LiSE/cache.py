@@ -52,11 +52,8 @@ class InitializedCache(Cache):
 class EntitylessCache(Cache):
     __slots__ = ()
 
-    def store(self, key, branch, turn, tick, value, *, planning=None):
-        super().store(None, key, branch, turn, tick, value, planning=planning)
-
-    def load(self, data):
-        return super().load(((None,) + row for row in data))
+    def store(self, key, branch, turn, tick, value, *, planning=None, forward=None, loading=False, contra=True):
+        super().store(None, key, branch, turn, tick, value, planning=planning, forward=forward, loading=loading, contra=contra)
 
     def retrieve(self, key, branch, turn, tick):
         return super().retrieve(None, key, branch, turn, tick)
