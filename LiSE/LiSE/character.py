@@ -93,7 +93,7 @@ class SpecialMappingDescriptor:
         it.update(value)
 
 
-class AbstractCharacter(MutableMapping):
+class AbstractCharacter(Mapping):
 
     """The Character API, with all requisite mappings and graph generators.
 
@@ -232,17 +232,11 @@ class AbstractCharacter(MutableMapping):
         return k in self.node
 
     def __getitem__(self, k):
-        return self.node[k]
-
-    def __setitem__(self, k, v):
-        self.node[k] = v
-
-    def __delitem__(self, k):
-        del self.node[k]
+        return self.adj[k]
 
     thing = SpecialMappingDescriptor('ThingMapping')
     place = SpecialMappingDescriptor('PlaceMapping')
-    node = _node = SpecialMappingDescriptor('ThingPlaceMapping')
+    node = nodes = _node = SpecialMappingDescriptor('ThingPlaceMapping')
     portal = adj = succ = edge = _adj = _succ = SpecialMappingDescriptor(
         'PortalSuccessorsMapping')
     preportal = pred = _pred = SpecialMappingDescriptor(
@@ -428,10 +422,10 @@ class AbstractCharacter(MutableMapping):
         self.clear()
         print("{:,.3f} seconds spent clearing the character".format(monotonic() - start))
         start = monotonic()
-        self.place = g.nodes
+        self.place.update(g.nodes)
         print("{:,.3f} seconds spent copying nodes".format(monotonic() - start))
         with timer('seconds spent copying edges'):
-            self.adj = g.adj
+            self.adj.update(g.adj)
         return self
 
     def clear(self):
@@ -1110,14 +1104,6 @@ class FacadePortalMapping(FacadeEntityMapping):
             ret = nuret
         return ret
 
-    def __setitem__(self, node, value):
-        v = self.cls(self.facade, node)
-        v.update(value)
-        self._patch[node] = v
-
-    def __delitem__(self, node):
-        self._patch[node] = None
-
 
 class Facade(AbstractCharacter, nx.DiGraph):
     engine = getatt('character.engine')
@@ -1713,17 +1699,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
                     cache[orig] = self.Successors(self, orig)
                 return cache[orig]
             raise KeyError("No such node")
-
-        def __setitem__(self, orig, val):
-            cache, Successors = self._setitem_stuff
-            if orig not in cache:
-                cache[orig] = Successors(self, orig)
-            sucs = cache[orig]
-            sucs.clear()
-            start = monotonic()
-            sucs.update(val)
-            Character.PortalSuccessorsMapping.upd_succs_time += monotonic() - start
-            self.send(self, key=orig, val=sucs)
 
         def __delitem__(self, orig):
             super().__delitem__(orig)
