@@ -1417,12 +1417,14 @@ class CharacterProxy(AbstractCharacter):
             command='set_place',
             char=self.name,
             place=name,
+            statdict=kwargs,
             block=False,
             branching=True
         )
         self.place._cache[name] = PlaceProxy(
             self, name
         )
+        self.engine._node_stat_cache[self.name][name] = kwargs
 
     def add_places_from(self, seq):
         self.engine.handle(
@@ -1433,11 +1435,14 @@ class CharacterProxy(AbstractCharacter):
             branching=True
         )
         placecache = self.place._cache
+        nodestatcache = self.engine._node_stat_cache[self.name]
         for pln in seq:
             if isinstance(pln, tuple):
                 placecache[pln[0]] = PlaceProxy(
                     self, *pln
                 )
+                if len(pln) > 1:
+                    nodestatcache[pln[0]] = pln[1]
             else:
                 placecache[pln] = PlaceProxy(
                     self, pln
