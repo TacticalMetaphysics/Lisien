@@ -1413,7 +1413,16 @@ class CharacterProxy(AbstractCharacter):
         self.stat._apply_delta(delta)
 
     def add_place(self, name, **kwargs):
-        self[name] = kwargs
+        self.engine.handle(
+            command='set_place',
+            char=self.name,
+            place=name,
+            block=False,
+            branching=True
+        )
+        self.place._cache[name] = PlaceProxy(
+            self, name
+        )
 
     def add_places_from(self, seq):
         self.engine.handle(
@@ -1423,10 +1432,16 @@ class CharacterProxy(AbstractCharacter):
             block=False,
             branching=True
         )
+        placecache = self.place._cache
         for pln in seq:
-            self.place._cache[pln] = PlaceProxy(
-                self.engine, self.name, pln
-            )
+            if isinstance(pln, tuple):
+                placecache[pln[0]] = PlaceProxy(
+                    self, *pln
+                )
+            else:
+                placecache[pln] = PlaceProxy(
+                    self, pln
+                )
 
     def add_nodes_from(self, seq):
         self.add_places_from(seq)
@@ -1453,9 +1468,9 @@ class CharacterProxy(AbstractCharacter):
             block=False,
             branching=True
         )
-        for thn in seq:
-            self.thing._cache[thn] = ThingProxy(
-                self.engine, self.name, thn
+        for name, location in seq:
+            self.thing._cache[name] = ThingProxy(
+                self, name, location
             )
 
     def new_place(self, name, **kwargs):
