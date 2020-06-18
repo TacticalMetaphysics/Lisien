@@ -1347,7 +1347,7 @@ class CharacterProxy(AbstractCharacter):
                         self.thing.send(self.thing, key=node, value=prox)
                     else:
                         self.place._cache[node] = prox = PlaceProxy(
-                            self.engine, self.name, node
+                            self, node
                         )
                         self.place.send(self.place, key=node, value=prox)
                     self.node.send(self.node, key=node, value=prox)
