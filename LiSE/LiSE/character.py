@@ -1340,8 +1340,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             nodes_contains, things_contains, charn, btt, cache, character \
                 = self._get_stuff
             branch, turn, tick = btt()
-            if not nodes_contains(
-                charn, place, branch, turn, tick
+            if not (
+                nodes_contains(charn, place, branch, turn, tick)
+                or (character.base and place in character.base)
             ) or things_contains(
                 charn, place, branch, turn, tick
             ):
@@ -1385,7 +1386,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             engine = character.engine
             charn = character.name
             self._contains_stuff = contains_stuff = (
-                engine._node_exists, charn)
+                engine._node_exists, charn, self.graph.base)
             self._getitem_stuff = contains_stuff + (
                 engine._get_node, character
             )
@@ -1395,12 +1396,12 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self._placemap = character.place
 
         def __contains__(self, k):
-            node_exists, charn = self._contains_stuff
+            node_exists, charn, base = self._contains_stuff
             return node_exists(charn, k)
 
         def __getitem__(self, k):
-            node_exists, charn, get_node, character = self._getitem_stuff
-            if not node_exists(charn, k):
+            node_exists, charn, base, get_node, character = self._getitem_stuff
+            if not (node_exists(charn, k) or (base and k in base.nodes)):
                 raise KeyError
             return get_node(character, k)
 
@@ -1408,7 +1409,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             self._placemap[k] = v
 
         def __delitem__(self, k):
-            node_exists, charn, is_thing, thingmap, placemap = self._delitem_stuff
+            node_exists, charn, base, is_thing, thingmap, placemap = self._delitem_stuff
             if not node_exists(charn, k):
                 raise KeyError
             if is_thing(charn, k):
@@ -1435,15 +1436,15 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
             engine = graph.engine
             charn = graph.name
             self._cporh = engine._characters_portals_rulebooks_cache
-            self._getitem_stuff = (engine._node_exists, charn, self._cache)
+            self._getitem_stuff = (engine._node_exists, charn, graph.base, self._cache)
             self._setitem_stuff = (self._cache, self.Successors)
 
         def _get_rulebook_cache(self):
             return self._cporh
 
         def __getitem__(self, orig):
-            node_exists, charn, cache = self._getitem_stuff
-            if node_exists(charn, orig):
+            node_exists, charn, base, cache = self._getitem_stuff
+            if (node_exists(charn, orig) or (base and orig in base.nodes)):
                 if orig not in cache:
                     cache[orig] = self.Successors(self, orig)
                 return cache[orig]

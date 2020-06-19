@@ -461,9 +461,11 @@ class GraphNodeMapping(AllegedMapping):
 
     def __iter__(self):
         """Iterate over the names of the nodes"""
-        return self.db._nodes_cache.iter_entities(
+        yield from self.db._nodes_cache.iter_entities(
             self.graph.name, *self.db._btt()
         )
+        if self.graph.base:
+            yield from self.graph.base.nodes.keys()
 
     def __eq__(self, other):
         from collections import Mapping
@@ -485,15 +487,24 @@ class GraphNodeMapping(AllegedMapping):
 
     def __contains__(self, node):
         """Return whether the node exists presently"""
-        return self.db._nodes_cache.contains_entity(
-            self.graph.name, node, *self.db._btt()
-        )
+        db = self.db
+        graph = self.graph
+        try:
+            db._nodes_cache.retrieve(graph.name, node, *db._btt())
+            return True
+        except KeyError as ex:
+            return not getattr(ex, 'deleted', False) \
+                and graph.base and node in graph.base
 
     def __len__(self):
         """How many nodes exist right now?"""
+        baselen = 0
+        base = self.graph.base
+        if base:
+            baselen = len(base.node)
         return self.db._nodes_cache.count_entities(
             self.graph.name, *self.db._btt()
-        )
+        ) + baselen
 
     def __getitem__(self, node):
         """If the node exists at present, return it, else throw KeyError"""
@@ -511,7 +522,7 @@ class GraphNodeMapping(AllegedMapping):
         db = self.db
         graph = self.graph
         gname = graph.name
-        if not db._node_exists(gname, node):
+        if node not in self:
             created = True
             db._exist_node(gname, node, True)
         n = db._get_node(graph, node)
@@ -524,6 +535,8 @@ class GraphNodeMapping(AllegedMapping):
         """Indicate that the given node no longer exists"""
         if node not in self:
             raise KeyError("No such node")
+        if self.graph.base and node in self.graph.base.node:
+            raise ValueError("Node is in the base graph, and can't be deleted")
         branch, turn, tick = self.db._nbtt()
         self.db.query.exist_node(
             self.graph.name,
@@ -628,17 +641,27 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __iter__(self):
         """Iterate over node IDs that have an edge with my orig"""
-        return self.db._edges_cache.iter_successors(
-            self.graph.name,
-            self.orig,
-            *self.db._btt()
+        graph = self.graph
+        graphn = graph.name
+        base = graph.base
+        orig = self.orig
+        db = self.db
+        branch, turn, tick = db._btt()
+        yield from db._edges_cache.iter_successors(
+            graphn, orig, branch, turn, tick
         )
+        if not base or orig not in base.adj:
+            return
+        yield from base.adj[orig]
 
     def __contains__(self, dest):
         """Is there an edge leading to ``dest`` at the moment?"""
         orig, dest = self._order_nodes(dest)
-        return self.db._edges_cache.has_successor(
-            self.graph.name,
+        graph = self.graph
+        base = graph.base
+        return (base and orig in base.adj and dest in base.adj[orig]
+                ) or self.db._edges_cache.has_successor(
+            graph.name,
             orig,
             dest,
             *self.db._btt()
@@ -646,11 +669,18 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __len__(self):
         """How many nodes touch an edge shared with my orig?"""
-        return self.db._edges_cache.count_successors(
-            self.graph.name,
-            self.orig,
-            *self.db._btt()
-        )
+        graph = self.graph
+        base = graph.base
+        orig = self.orig
+        db = self.db
+        baselen = 0
+        if base:
+            baselen = len(base[orig])
+        return db._edges_cache.count_successors(
+            graph.name,
+            orig,
+            *db._btt()
+        ) + baselen
 
     def _make_edge(self, dest):
         return Edge(self.graph, *self._order_nodes(dest))
@@ -699,6 +729,12 @@ class AbstractSuccessors(GraphEdgeMapping):
 
     def __delitem__(self, dest):
         """Remove the edge between my orig and the given dest"""
+        base = self.graph.base
+        if base:
+            adj = base.adj
+            orig = self.orig
+            if orig in adj and dest in adj[orig]:
+                raise ValueError("Can't delete a base edge")
         branch, turn, tick = self.db._nbtt()
         orig, dest = self._order_nodes(dest)
         self.db.query.exist_edge(
@@ -1215,15 +1251,35 @@ class Graph(networkx.Graph):
     def __init__(self, db, name, data=None, **attr):
         self._name = name
         self.db = db
-        if name not in self.db._graph_objs:
-            self.db._graph_objs[name] = self
+        graph_objs = db._graph_objs
+        node_val_set = db.query.node_val_set
+        edge_val_set = db.query.edge_val_set
+        store_node_val = db._node_val_cache.store
+        store_edge_val = db._edge_val_cache.store
+        if name not in graph_objs:
+            graph_objs[name] = self
         if data is not None:
-            data = data.copy()
-            if isinstance(data, dict) and 'name' in data:
-                del data['name']
-            if hasattr(data, 'graph') and 'name' in data.graph:
-                del data.graph['name']
-            convert_to_networkx_graph(data, create_using=self)
+            if not isinstance(data, networkx.Graph):
+                data = convert_to_networkx_graph(
+                    data, multigraph_input=self.is_multigraph())
+            g = self.graph
+            for k, v in data.graph.items():
+                if k != 'name':
+                    g[k] = v
+            branch, turn, tick = db._btt()
+            for node, d in data.nodes.items():
+                for k, v in d.items():
+                    node_val_set(name, node, k, branch, turn, tick, v)
+                    store_node_val(name, node, k, branch, turn, tick, v)
+                    tick += 1
+            for orig, dests in data.adj.items():
+                for dest, d in dests.items():
+                    for k, v in d.items():
+                        edge_val_set(name, orig, dest, 0, k, branch, turn, tick, v)
+                        store_edge_val(name, orig, dest, 0, k, branch, turn, tick, v)
+                        tick += 1
+            db.tick = tick
+        self.base = data
         self.graph.update(attr)
 
     @property
