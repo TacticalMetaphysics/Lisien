@@ -1293,48 +1293,28 @@ class Graph(networkx.Graph):
         self.graph.clear()
         self.graph.update(v)
 
-    _nodemaps = {}
-
     @property
     def node(self):
-        if id(self) not in self._nodemaps:
-            self._nodemaps[id(self)] = self.node_map_cls(self)
-        return self._nodemaps[id(self)]
-
-    @node.setter
-    def node(self, v):
-        self.node.clear()
-        self.node.update(v)
+        if not hasattr(self, '_nodemap'):
+            self._nodemap = self.node_map_cls(self)
+        return self._nodemap
     _node = node
-
-    _succmaps = {}
 
     @property
     def adj(self):
-        if self._name not in self._succmaps:
-            self._succmaps[id(self)] = self.adj_cls(self)
-        return self._succmaps[id(self)]
-
-    @adj.setter
-    def adj(self, v):
-        self.adj.clear()
-        self.adj.update(v)
+        if not hasattr(self, '_adjmap'):
+            self._adjmap = self.adj_cls(self)
+        return self._adjmap
     edge = succ = _succ = _adj = adj
-
-    _predmaps = {}
 
     @property
     def pred(self):
         if not hasattr(self, 'pred_cls'):
             raise TypeError("Undirected graph")
-        if self._name not in self._predmaps:
-            self._predmaps[id(self)] = self.pred_cls(self)
-        return self._predmaps[id(self)]
+        if not hasattr(self, '_predmap'):
+            self._predmap = self.pred_cls(self)
+        return self._predmap
 
-    @pred.setter
-    def pred(self, v):
-        self.pred.clear()
-        self.pred.update(v)
     _pred = pred
 
     @property
