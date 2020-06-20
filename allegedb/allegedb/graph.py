@@ -581,13 +581,7 @@ class GraphEdgeMapping(AllegedMapping):
     for a graph.
 
     """
-    __slots__ = ('graph',)
-
-    _metacache = defaultdict(dict)
-
-    @property
-    def _cache(self):
-        return self._metacache[id(self)]
+    __slots__ = ('graph', '_cache')
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
@@ -595,6 +589,7 @@ class GraphEdgeMapping(AllegedMapping):
     def __init__(self, graph):
         super().__init__()
         self.graph = graph
+        self._cache = {}
 
     def __eq__(self, other):
         """Compare dictified versions of the edge mappings within me.
@@ -620,18 +615,13 @@ class GraphEdgeMapping(AllegedMapping):
 
 
 class AbstractSuccessors(GraphEdgeMapping):
-    __slots__ = ('graph', 'container', 'orig')
+    __slots__ = ('graph', 'container', 'orig', '_cache')
 
     db = getatt('graph.db')
     """Alias to ``self.graph.db``"""
-    _metacache = defaultdict(dict)
 
     def _order_nodes(self, node):
         raise NotImplemented
-
-    @property
-    def _cache(self):
-        return self._metacache[id(self)]
 
     def __init__(self, container, orig):
         """Store container and node"""
@@ -770,7 +760,7 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
     __slots__ = ('graph',)
 
     class Successors(AbstractSuccessors):
-        __slots__ = ('graph', 'container', 'orig')
+        __slots__ = ('graph', 'container', 'orig', '_cache')
 
         def _order_nodes(self, dest):
             if dest < self.orig:
@@ -828,7 +818,7 @@ class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
     __slots__ = ('graph',)
 
     class Successors(AbstractSuccessors):
-        __slots__ = ('graph', 'container', 'orig')
+        __slots__ = ('graph', 'container', 'orig', '_cache')
 
         def _order_nodes(self, dest):
             return (self.orig, dest)
@@ -1134,7 +1124,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
     class Successors(AbstractSuccessors):
         """Edges succeeding a given node in a multigraph"""
-        __slots__ = ('graph', 'container', 'orig', '_multedge')
+        __slots__ = ('graph', 'container', 'orig', '_multedge', '_cache')
 
         class MultiEdges(AbstractMultiEdges):
             def _order_nodes(self):
