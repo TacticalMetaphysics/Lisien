@@ -501,7 +501,7 @@ class GraphNodeMapping(AllegedMapping):
         baselen = 0
         base = self.graph.base
         if base:
-            baselen = len(base.node)
+            baselen = len(base.nodes)
         return self.db._nodes_cache.count_entities(
             self.graph.name, *self.db._btt()
         ) + baselen
@@ -665,7 +665,7 @@ class AbstractSuccessors(GraphEdgeMapping):
         db = self.db
         baselen = 0
         if base:
-            baselen = len(base[orig])
+            baselen = len(base.nodes[orig])
         return db._edges_cache.count_successors(
             graph.name,
             orig,
@@ -1006,10 +1006,20 @@ class AbstractMultiEdges(GraphEdgeMapping):
 
     def __iter__(self):
         orig, dest = self._order_nodes()
-        return self.db._edges_cache.iter_keys(
+        yield from self.db._edges_cache.iter_keys(
             self.graph.name, orig, dest,
             *self.db._btt()
         )
+        graph = self.graph
+        if graph.base:
+            base = graph.base
+            try:
+                if hasattr(base, 'adj'):
+                    yield from base.adj[orig][dest]
+                else:
+                    yield from base.succ[orig][dest]
+            except KeyError:
+                return
 
     def __len__(self):
         """How many edges currently connect my two nodes?"""
@@ -1096,7 +1106,7 @@ class MultiGraphSuccessorsMapping(GraphSuccessorsMapping):
 
     def __getitem__(self, orig):
         """If the node exists, return its Successors"""
-        if orig not in self.graph.node:
+        if orig not in self.graph.nodes:
             raise KeyError("No such node")
         return self._getsucc(orig)
 
