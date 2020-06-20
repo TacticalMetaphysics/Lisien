@@ -537,21 +537,24 @@ class ORM(object):
 
     def _load_graphs(self):
         for (graph, typ, base) in self.query.graphs_dump():
+            grobj = {
+                'Graph': Graph,
+                'DiGraph': DiGraph,
+                'MultiGraph': MultiGraph,
+                'MultiDiGraph': MultiDiGraph
+            }[typ](self, graph)
             if base:
+                node, adj, graphm = base
                 b = {
                     'Graph': nx.Graph,
                     'DiGraph': nx.DiGraph,
                     'MultiGraph': nx.MultiGraph,
                     'MultiDiGraph': nx.MultiDiGraph
-                }[typ]()
-                b._node, b._adj, b.graph = base
-                base = b
-            self._graph_objs[graph] = {
-                'Graph': Graph,
-                'DiGraph': DiGraph,
-                'MultiGraph': MultiGraph,
-                'MultiDiGraph': MultiDiGraph
-            }[typ](self, graph, base)
+                }[typ](adj)
+                b._node = node
+                b.graph = graphm
+                grobj.base = b
+            self._graph_objs[graph] = grobj
 
     def __init__(
             self,
@@ -608,8 +611,6 @@ class ORM(object):
             self._turn_end_plan[branch, turn] = plan_end_tick
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
-        self._load_graphs()
-        self._init_load(validate=validate)
         self._nbtt_stuff = (
             self._btt, self._turn_end_plan, self._turn_end,
             self._plan_ticks, self._plan_ticks_uncommitted,
@@ -626,6 +627,8 @@ class ORM(object):
         )
         self._exist_edge_stuff = (
             self._nbtt, self.query.exist_edge, self._edges_cache.store)
+        self._load_graphs()
+        self._init_load(validate=validate)
 
     def _upd_branch_parentage(self, parent, child):
         self._childbranch[parent].add(child)
