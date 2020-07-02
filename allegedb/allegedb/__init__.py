@@ -19,7 +19,6 @@ import gc
 from weakref import WeakValueDictionary
 
 from blinker import Signal
-import networkx as nx
 
 from allegedb.window import update_window, update_backward_window
 from .cache import HistoryError
@@ -302,6 +301,8 @@ class ORM(object):
         key = (graphn, node)
         if key in node_objs:
             return node_objs[key]
+        if not node_exists(graphn, node):
+            raise KeyError("No such node: {} in {}".format(node, graphn))
         ret = make_node(graph, node)
         node_objs[key] = ret
         return ret
@@ -319,6 +320,8 @@ class ORM(object):
         key = (graphn, orig, dest, idx)
         if key in edge_objs:
             return edge_objs[key]
+        if not edge_exists(graphn, orig, dest, idx):
+            raise KeyError("No such edge: {}->{}[{}] in {}".format(orig, dest, idx, graphn))
         ret = make_edge(graph, orig, dest, idx)
         edge_objs[key] = ret
         return ret
@@ -536,25 +539,13 @@ class ORM(object):
         self._edge_val_cache = Cache(self)
 
     def _load_graphs(self):
-        for (graph, typ, base) in self.query.graphs_dump():
-            grobj = {
+        for (graph, typ) in self.query.graphs_types():
+            self._graph_objs[graph] = {
                 'Graph': Graph,
                 'DiGraph': DiGraph,
                 'MultiGraph': MultiGraph,
                 'MultiDiGraph': MultiDiGraph
             }[typ](self, graph)
-            if base:
-                node, adj, graphm = base
-                b = {
-                    'Graph': nx.Graph,
-                    'DiGraph': nx.DiGraph,
-                    'MultiGraph': nx.MultiGraph,
-                    'MultiDiGraph': nx.MultiDiGraph
-                }[typ](adj)
-                b._node = node
-                b.graph = graphm
-                grobj.base = b
-            self._graph_objs[graph] = grobj
 
     def __init__(
             self,
@@ -952,12 +943,12 @@ class ORM(object):
         self.commit()
         self.query.close()
 
-    def _init_graph(self, name, type_s='Graph', base=None):
+    def _init_graph(self, name, type_s='Graph'):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
         if name in self.illegal_graph_names:
             raise GraphNameError("Illegal name")
-        self.query.new_graph(name, type_s, base)
+        self.query.new_graph(name, type_s)
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
@@ -967,8 +958,8 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
+        self._init_graph(name, 'Graph')
         g = Graph(self, name, data, **attr)
-        self._init_graph(name, 'Graph', g.base)
         self._graph_objs[name] = g
         return g
 
@@ -980,8 +971,8 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
+        self._init_graph(name, 'DiGraph')
         dg = DiGraph(self, name, data, **attr)
-        self._init_graph(name, 'DiGraph', dg.base)
         self._graph_objs[name] = dg
         return dg
 
@@ -993,8 +984,8 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
+        self._init_graph(name, 'MultiGraph')
         mg = MultiGraph(self, name, data, **attr)
-        self._init_graph(name, 'MultiGraph', mg.base)
         self._graph_objs[name] = mg
         return mg
 
@@ -1006,8 +997,8 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
+        self._init_graph(name, 'MultiDiGraph')
         mdg = MultiDiGraph(self, name, data, **attr)
-        self._init_graph(name, 'MultiDiGraph', mdg.base)
         self._graph_objs[name] = mdg
         return mdg
 

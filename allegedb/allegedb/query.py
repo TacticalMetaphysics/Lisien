@@ -189,17 +189,10 @@ class QueryEngine(object):
         graph = self.pack(graph)
         return bool(self.sql('graphs_named', graph).fetchone()[0])
 
-    def new_graph(self, graph, typ, base=None):
+    def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
-        if base is not None:
-            base_reduced = base.__reduce__()[2]
-
-            graph, base = map(self.pack, (
-                graph, (base_reduced['_node'], base_reduced['_adj'],
-                        base_reduced['graph'])))
-        else:
-            graph, base = map(self.pack, (graph, base))
-        return self.sql('graphs_insert', graph, typ, base)
+        graph = self.pack(graph)
+        return self.sql('new_graph', graph, typ)
 
     def del_graph(self, graph):
         """Delete all records to do with the graph"""
@@ -356,11 +349,6 @@ class QueryEngine(object):
     def graphs_types(self):
         for (graph, typ) in self.sql('graphs_types'):
             yield (self.unpack(graph), typ)
-
-    def graphs_dump(self):
-        unpack = self.unpack
-        for graph, typ, base in self.sql('graphs_dump'):
-            yield unpack(graph), typ, unpack(base)
 
     def _flush_nodes(self):
         if not self._nodes2set:

@@ -78,7 +78,6 @@ def tables_for_meta(meta):
         'graphs', meta,
         Column('graph', TEXT, primary_key=True),
         Column('type', TEXT, default='Graph'),
-        Column('base', TEXT, nullable=True),
         CheckConstraint(
             "type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"
         )
@@ -189,6 +188,10 @@ def queries_for_table_dict(table):
         'global_update': table['global'].update().values(
             value=bindparam('value')
         ).where(table['global'].c.key == bindparam('key')),
+        'new_graph': table['graphs'].insert().values(
+            graph=bindparam('graph'),
+            type=bindparam('type')
+        ),
         'graph_type': select(
             [table['graphs'].c.type]
         ).where(

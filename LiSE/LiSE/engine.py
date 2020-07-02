@@ -1540,9 +1540,8 @@ class Engine(AbstractEngine, gORM):
         Any keyword arguments will be set as stats of the new character.
 
         """
-        char = self.char_cls(self, name, data, **kwargs)
-        self._init_graph(name, 'DiGraph', char.base)
-        self._graph_objs[name] = char
+        self._init_graph(name, 'DiGraph')
+        self._graph_objs[name] = self.char_cls(self, name, data, **kwargs)
 
     def del_character(self, name):
         """Remove the Character from the database entirely.

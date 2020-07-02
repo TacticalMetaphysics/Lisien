@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import networkx as nx
+from LiSE import Engine
 import pytest
 
 
@@ -60,7 +60,7 @@ def test_future_contents(something):
 
 def test_travel(engy):
     phys = engy.new_character('physical')
-    phys.copy_from(nx.grid_2d_graph(8, 8))
+    phys.grid_2d_graph(8, 8)
     del phys.place[1, 1]
     del phys.place[6, 1]
     thing1 = phys.place[0, 0].new_thing(1)
