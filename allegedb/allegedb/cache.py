@@ -178,7 +178,7 @@ class Cache:
         'db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
         'settings', 'presettings', 'time_entity', '_kc_lru',
         '_store_stuff', '_remove_stuff', '_truncate_stuff',
-        'setdb', 'deldb'
+        'setdb', 'deldb', 'keyframe'
     )
 
     def __init__(self, db):
@@ -214,6 +214,8 @@ class Cache:
         but still need to iterate through history to find the value.
 
         """
+        self.keyframe = PickyDefaultDict(SettingsTurnDict)
+        """Key-value dictionaries representing my state at a given time"""
         self.shallowest = OrderedDict()
         """A dictionary for plain, unstructured hinting."""
         self.settings = PickyDefaultDict(SettingsTurnDict)
@@ -735,41 +737,132 @@ class Cache:
             return shallowest[args]
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
+        keyframes = self.keyframe
         branches = self.branches
-        if entity+(key,) not in branches:
-            return KeyError
-        branchentk = branches[entity+(key,)]
-        brancs = branchentk.get(branch)
-        if brancs is not None and brancs.rev_gettable(turn):
-            if turn in brancs:
-                if brancs[turn].rev_gettable(tick):
-                    ret = brancs[turn][tick]
-                    shallowest[args] = ret
-                    return ret
-                elif brancs.rev_gettable(turn-1):
-                    b1 = brancs[turn-1]
-                    ret = b1[b1.end]
-                    shallowest[args] = ret
-                    return ret
-            else:
-                ret = brancs[turn]
-                ret = ret[ret.end]
-                shallowest[args] = ret
-                return ret
-        for (b, r, t) in self.db._iter_parent_btt(branch):
-            brancs = branchentk.get(b)
-            if brancs is not None and brancs.rev_gettable(r):
-                if r in brancs and brancs[r].rev_gettable(t):
-                    ret = brancs[r][t]
-                elif brancs.rev_gettable(r-1):
-                    ret = brancs[r-1]
-                    ret = ret[ret.end]
+        entikey = entity + (key,)
+        if entikey in branches:
+            branchentk = branches[entikey]
+            brancs = branchentk.get(branch)
+            if brancs is not None and brancs.rev_gettable(turn):
+                if turn in brancs:
+                    if brancs[turn].rev_gettable(tick):
+                        ret = brancs[turn][tick]
+                        shallowest[args] = ret
+                        return ret
+                    elif brancs.rev_gettable(turn-1):
+                        b1 = brancs[turn-1]
+                        ret = b1[b1.end]
+                        shallowest[args] = ret
+                        return ret
                 else:
-                    continue
-                shallowest[args] = ret
-                return ret
+                    ret = brancs[turn].final()
+                    shallowest[args] = ret
+                    return ret
+            for (b, r, t) in self.db._iter_parent_btt(branch):
+                brancs = branchentk.get(b)
+                if brancs is not None and brancs.rev_gettable(r):
+                    if r in brancs and brancs[r].rev_gettable(t):
+                        # if there's a keyframe *later* than in brancs,
+                        # but *earlier* than (b, r, t), use the
+                        # keyframe instead
+                        if b in keyframes and r in keyframes[b]:
+                            kfbr = keyframes[b][r]
+                            if brancs[r].rev_before(t) < kfbr.rev_before(t) < t:
+                                kf = kfbr[t]
+                                if key in kf:
+                                    ret = kf[key]
+                                    shallowest[args] = ret
+                                    return ret
+                        ret = brancs[r][t]
+                        shallowest[args] = ret
+                        return ret
+                    elif brancs.rev_gettable(r - 1):
+                        if b in keyframes and keyframes[b].rev_gettable(r - 1):
+                            kfb = keyframes[b]
+                            if brancs.rev_before(r - 1) < kfb.rev_before(r - 1):
+                                kfbr = kfb[r - 1]
+                                kf = kfbr[kfbr.end]
+                                if key in kf:
+                                    ret = kf[key]
+                                    shallowest[args] = ret
+                                    return ret
+                            elif brancs.rev_before(r - 1) == kfb.rev_before(r - 1):
+                                kfbr = kfb[r - 1]
+                                trns = brancs[r - 1]
+                                if trns.end < kfbr.end:
+                                    kf = kfbr.final()
+                                    if key in kf:
+                                        ret = kf[key]
+                                        shallowest[args] = ret
+                                        return ret
+                        ret = brancs[r - 1].final()
+                        shallowest[args] = ret
+                        return ret
+                    elif b in keyframes and r in keyframes[b] \
+                            and keyframes[b][r].rev_gettable(t) \
+                            and key in keyframes[b][r][t]:
+                        ret = keyframes[b][r][t][key]
+                        shallowest[args] = ret
+                        return ret
+                    elif b in keyframes and keyframes[b].rev_gettable(r - 1) \
+                            and key in keyframes[b][r - 1].final():
+                        ret = keyframes[b][r - 1].final()[key]
+                        shallowest[args] = ret
+                        return ret
+                elif b in keyframes:
+                    kfb = keyframes[branch]
+                    if r in kfb:
+                        kfbr = kfb[turn]
+                        if kfbr.rev_gettable(tick):
+                            kf = kfbr[tick]
+                            if key in kf:
+                                ret = kf[key]
+                                shallowest[args] = ret
+                                return ret
+                    if kfb.rev_gettable(r - 1):
+                        kfbr = kfb[r]
+                        kf = kfbr.final()
+                        if key in kf:
+                            ret = kf[key]
+                            shallowest[args] = ret
+                            return ret
         else:
-            return KeyError
+            if branch in keyframes:
+                kfb = keyframes[branch]
+                if turn in kfb:
+                    kfbr = kfb[turn]
+                    if kfbr.rev_gettable(tick):
+                        kf = kfbr[tick]
+                        if key in kf:
+                            ret = kf[key]
+                            shallowest[args] = ret
+                            return ret
+                if kfb.rev_gettable(turn-1):
+                    kfbr = kfb[turn]
+                    kf = kfbr.final()
+                    if key in kf:
+                        ret = kf[key]
+                        shallowest[args] = ret
+                        return ret
+            for (b, r, t) in self.db._iter_parent_btt(branch):
+                if b in keyframes:
+                    kfb = keyframes[branch]
+                    if r in kfb:
+                        kfbr = kfb[turn]
+                        if kfbr.rev_gettable(tick):
+                            kf = kfbr[tick]
+                            if key in kf:
+                                ret = kf[key]
+                                shallowest[args] = ret
+                                return ret
+                    if kfb.rev_gettable(r-1):
+                        kfbr = kfb[r]
+                        kf = kfbr[kfbr.end]
+                        if key in kf:
+                            ret = kf[key]
+                            shallowest[args] = ret
+                            return ret
+        return KeyError
 
     def retrieve(self, *args):
         """Get a value previously .store(...)'d.

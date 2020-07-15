@@ -25,7 +25,7 @@ python3 alchemy.py >sqlite.json
 from functools import partial
 from sqlalchemy import (
     Table,
-    Index,
+    ForeignKey,
     Column,
     CheckConstraint,
     ForeignKeyConstraint,
@@ -81,6 +81,17 @@ def tables_for_meta(meta):
         CheckConstraint(
             "type IN ('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph')"
         )
+    )
+    Table(
+        'keyframes', meta,
+        Column('graph', TEXT, ForeignKey('graphs.graph'), primary_key=True),
+        Column('branch', TEXT, ForeignKey('branches.branch'), primary_key=True,
+               default='trunk'),
+        Column('turn', INT, primary_key=True, default=0),
+        Column('tick', INT, primary_key=True, default=0),
+        Column('nodes', TEXT),
+        Column('edges', TEXT),
+        Column('graph_val', TEXT)
     )
     Table(
         'graph_val', meta,
@@ -188,10 +199,6 @@ def queries_for_table_dict(table):
         'global_update': table['global'].update().values(
             value=bindparam('value')
         ).where(table['global'].c.key == bindparam('key')),
-        'new_graph': table['graphs'].insert().values(
-            graph=bindparam('graph'),
-            type=bindparam('type')
-        ),
         'graph_type': select(
             [table['graphs'].c.type]
         ).where(

@@ -192,7 +192,16 @@ class QueryEngine(object):
     def new_graph(self, graph, typ):
         """Declare a new graph by this name of this type."""
         graph = self.pack(graph)
-        return self.sql('new_graph', graph, typ)
+        return self.sql('graphs_insert', graph, typ)
+
+    def keyframes_insert(self, graph, branch, turn, tick, nodes, edges, graph_val):
+        graph, nodes, edges, graph_val = map(self.pack, (graph, nodes, edges, graph_val))
+        return self.sql('keyframes_insert', graph, branch, turn, tick, nodes, edges, graph_val)
+
+    def keyframes_dump(self):
+        unpack = self.unpack
+        for (graph, branch, turn, tick, nodes, edges, graph_val) in self.sql('keyframes_dump'):
+            yield unpack(graph), branch, turn, tick, unpack(nodes), unpack(edges), unpack(graph_val)
 
     def del_graph(self, graph):
         """Delete all records to do with the graph"""

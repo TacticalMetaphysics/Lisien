@@ -498,6 +498,22 @@ class WindowDict(MutableMapping):
         if self._future:
             return self._future[-1][0]
 
+    def initial(self):
+        """Return the earliest value we have"""
+        if self._past:
+            return self._past[0][1]
+        if self._future:
+            return self._future[-1][1]
+        raise KeyError("No data")
+
+    def final(self):
+        """Return the latest value we have"""
+        if self._future:
+            return self._future[0][1]
+        if self._past:
+            return self._past[-1][1]
+        raise KeyError("No data")
+
     def truncate(self, rev: int) -> None:
         """Delete everything after the given revision."""
         self.seek(rev)

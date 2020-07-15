@@ -19,6 +19,7 @@ import gc
 from weakref import WeakValueDictionary
 
 from blinker import Signal
+import networkx as nx
 
 from allegedb.window import update_window, update_backward_window
 from .cache import HistoryError
@@ -631,6 +632,8 @@ class ORM(object):
     def _init_load(self, validate=False):
         if not hasattr(self, 'graph'):
             self.graph = GraphsMapping(self)
+        for (graph, branch, turn, tick, nodes, edges, graph_val) in self.query.keyframes_dump():
+            pass  # TODO load keyframes
         noderows = [
             (graph, node, branch, turn, tick, ex if ex else None)
             for (graph, node, branch, turn, tick, ex)
@@ -943,12 +946,12 @@ class ORM(object):
         self.commit()
         self.query.close()
 
-    def _init_graph(self, name, type_s='Graph'):
+    def _init_graph(self, name, type_s='Graph', data=None):
         if self.query.have_graph(name):
             raise GraphNameError("Already have a graph by that name")
         if name in self.illegal_graph_names:
             raise GraphNameError("Illegal name")
-        self.query.new_graph(name, type_s)
+        self.query.new_graph(name, type_s, data)
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
@@ -958,7 +961,14 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
-        self._init_graph(name, 'Graph')
+        if data and isinstance(data, nx.Graph):
+            if hasattr(data, '_succ'):
+                adj = data._succ
+            else:
+                adj = data._adj
+            self._init_graph(name, 'Graph', [adj, data._node, data.graph])
+        else:
+            self._init_graph(name, 'Graph', data)
         g = Graph(self, name, data, **attr)
         self._graph_objs[name] = g
         return g
@@ -971,7 +981,11 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
-        self._init_graph(name, 'DiGraph')
+        if data and isinstance(data, nx.DiGraph):
+            self._init_graph(
+                name, 'DiGraph', [data._succ, data._node, data.graph])
+        else:
+            self._init_graph(name, 'DiGraph', data)
         dg = DiGraph(self, name, data, **attr)
         self._graph_objs[name] = dg
         return dg
@@ -984,7 +998,12 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
-        self._init_graph(name, 'MultiGraph')
+        if data and isinstance(data, nx.MultiGraph):
+            self._init_graph(
+                name, 'MultiGraph', [data._adj, data._node, data.graph]
+            )
+        else:
+            self._init_graph(name, 'MultiGraph', data)
         mg = MultiGraph(self, name, data, **attr)
         self._graph_objs[name] = mg
         return mg
@@ -997,7 +1016,11 @@ class ORM(object):
         :arg data: dictionary or NetworkX graph object providing initial state
 
         """
-        self._init_graph(name, 'MultiDiGraph')
+        if data and isinstance(data, nx.MultiDiGraph):
+            self._init_graph(
+                name, 'MultiDiGraph', [data._succ, data._node, data.graph])
+        else:
+            self._init_graph(name, 'MultiDiGraph', data)
         mdg = MultiDiGraph(self, name, data, **attr)
         self._graph_objs[name] = mdg
         return mdg
@@ -1010,22 +1033,7 @@ class ORM(object):
         :arg name: name of an existing graph
 
         """
-        if name in self._graph_objs:
-            return self._graph_objs[name]
-        graphtypes = {
-            'Graph': Graph,
-            'DiGraph': DiGraph,
-            'MultiGraph': MultiGraph,
-            'MultiDiGraph': MultiDiGraph
-        }
-        type_s = self.query.graph_type(name)
-        if type_s not in graphtypes:
-            raise GraphNameError(
-                "I don't know of a graph named {}".format(name)
-            )
-        g = graphtypes[type_s](self, name)
-        self._graph_objs[name] = g
-        return g
+        return self._graph_objs[name]
 
     def del_graph(self, name):
         """Remove all traces of a graph's existence from the database
