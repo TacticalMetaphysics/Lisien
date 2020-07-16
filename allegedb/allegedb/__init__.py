@@ -951,7 +951,10 @@ class ORM(object):
             raise GraphNameError("Already have a graph by that name")
         if name in self.illegal_graph_names:
             raise GraphNameError("Illegal name")
-        self.query.new_graph(name, type_s, data)
+        self.query.new_graph(name, type_s)
+        if data:
+            branch, turn, tick = self._btt()
+            self.query.keyframes_insert(name, branch, turn, tick, *data)
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
