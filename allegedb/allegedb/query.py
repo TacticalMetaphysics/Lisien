@@ -569,7 +569,8 @@ class QueryEngine(object):
             'edges',
             'edge_val',
             'plans',
-            'plan_ticks'
+            'plan_ticks',
+            'keyframes'
         ):
             try:
                 cursor.execute('SELECT * FROM ' + table + ';')
