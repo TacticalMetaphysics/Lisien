@@ -743,7 +743,11 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal):
 
     """
     def _make(self, k, v):
-        return self.facadecls(self, k, **v)
+        kwargs = dict(v)
+        for badkey in ('character', 'engine', 'name'):
+            if badkey in kwargs:
+                del kwargs[badkey]
+        return self.facadecls(self, k, **kwargs)
 
     engine = getatt('facade.engine')
 
