@@ -48,7 +48,7 @@ def test_future_contents(something):
     assert somebody not in somewhere.contents()
     assert someone in somewhere.contents()
     engine.turn = 1
-    assert len(somewhere.contents()) == 1
+    assert len(somewhere.contents()) == 0
     assert something not in somewhere.contents()
     assert someone in somewhere.contents()
     assert somebody not in somewhere.contents()
