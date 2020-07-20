@@ -487,7 +487,8 @@ class ThingsCache(Cache):
             future_location_data = node_contents_cache.settings[branch].future(turn)
             for trn in future_location_data:
                 for tck in future_location_data[trn]:
-                    if future_location_data[trn][tck][1] == oldloc:
+                    char, loca, contents = future_location_data[trn][tck]
+                    if char ==  character and loca == oldloc:
                         node_contents_cache.store(
                             character, oldloc, branch, trn, tck,
                             node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
@@ -503,7 +504,8 @@ class ThingsCache(Cache):
             future_location_data = node_contents_cache.settings[branch].future(turn)
             for trn in future_location_data:
                 for tck in future_location_data[trn]:
-                    if future_location_data[trn][tck][1] == location:
+                    char, loca, contents = future_location_data[trn][tck]
+                    if char == character and loca == location:
                         node_contents_cache.store(
                             character, location, branch, trn, tck,
                             node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
