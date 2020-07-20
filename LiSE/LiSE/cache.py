@@ -478,17 +478,16 @@ class ThingsCache(Cache):
             oldloc = None
         super().store(*args, planning=planning, loading=loading, contra=contra)
         node_contents_cache = self.db._node_contents_cache
-        setsbranch = self.settings[branch]
-        future_location_data = setsbranch.future(turn) or (turn in setsbranch and setsbranch[turn].future(tick))
         # Cache the contents of nodes
         if oldloc is not None:
             oldconts_orig = node_contents_cache.retrieve(character, oldloc, branch, turn, tick)
             newconts_orig = oldconts_orig.difference({thing})
             node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig, contra=False,
                                       loading=True)
+            future_location_data = node_contents_cache.settings[branch].future(turn)
             for trn in future_location_data:
                 for tck in future_location_data[trn]:
-                    if future_location_data[trn][tck][2] == oldloc:
+                    if future_location_data[trn][tck][1] == oldloc:
                         node_contents_cache.store(
                             character, oldloc, branch, trn, tck,
                             node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
@@ -501,9 +500,10 @@ class ThingsCache(Cache):
                 oldconts_dest = frozenset()
             newconts_dest = oldconts_dest.union({thing})
             node_contents_cache.store(character, location, branch, turn, tick, newconts_dest, contra=False, loading=True)
+            future_location_data = node_contents_cache.settings[branch].future(turn)
             for trn in future_location_data:
                 for tck in future_location_data[trn]:
-                    if future_location_data[trn][tck][2] == location:
+                    if future_location_data[trn][tck][1] == location:
                         node_contents_cache.store(
                             character, location, branch, trn, tck,
                             node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
