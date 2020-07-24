@@ -485,15 +485,18 @@ class ThingsCache(Cache):
             node_contents_cache.store(character, oldloc, branch, turn, tick, newconts_orig, contra=False,
                                       loading=True)
             future_location_data = node_contents_cache.settings[branch].future(turn)
+            todo = []
             for trn in future_location_data:
                 for tck in future_location_data[trn]:
                     char, loca, contents = future_location_data[trn][tck]
-                    if char ==  character and loca == oldloc:
-                        node_contents_cache.store(
-                            character, oldloc, branch, trn, tck,
-                            node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
-                            planning=False, contra=False, loading=True
-                        )
+                    if char == character and loca == oldloc:
+                        todo.append((trn, tck))
+            for trn, tck in todo:
+                node_contents_cache.store(
+                    character, oldloc, branch, trn, tck,
+                    node_contents_cache.retrieve(character, oldloc, branch, trn, tck).difference({thing}),
+                    planning=False, contra=False, loading=True
+                )
         if location is not None:
             try:
                 oldconts_dest = node_contents_cache.retrieve(character, location, branch, turn, tick)
@@ -502,15 +505,18 @@ class ThingsCache(Cache):
             newconts_dest = oldconts_dest.union({thing})
             node_contents_cache.store(character, location, branch, turn, tick, newconts_dest, contra=False, loading=True)
             future_location_data = node_contents_cache.settings[branch].future(turn)
+            todo = []
             for trn in future_location_data:
-                for tck in future_location_data[trn]:
+                for tck in sorted(future_location_data[trn]):
                     char, loca, contents = future_location_data[trn][tck]
                     if char == character and loca == location:
-                        node_contents_cache.store(
-                            character, location, branch, trn, tck,
-                            node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
-                            planning=False, contra=False, loading=True
-                        )
+                        todo.append((trn, tck))
+            for trn, tck in todo:
+                node_contents_cache.store(
+                    character, location, branch, trn, tck,
+                    node_contents_cache.retrieve(character, location, branch, trn, tck).union({thing}),
+                    planning=False, contra=False, loading=True
+                )
 
     def turn_before(self, character, thing, branch, turn):
         try:
