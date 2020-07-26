@@ -214,7 +214,7 @@ class Cache:
         but still need to iterate through history to find the value.
 
         """
-        self.keyframe = PickyDefaultDict(SettingsTurnDict)
+        self.keyframe = StructuredDefaultDict(1, SettingsTurnDict)
         """Key-value dictionaries representing my state at a given time"""
         self.shallowest = OrderedDict()
         """A dictionary for plain, unstructured hinting."""
@@ -737,7 +737,7 @@ class Cache:
             return shallowest[args]
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        keyframes = self.keyframe
+        keyframes = self.keyframe[entity]
         branches = self.branches
         entikey = entity + (key,)
         if entikey in branches:

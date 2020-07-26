@@ -50,3 +50,17 @@ def test_basic_load(db):
             graph.name
         )
         assert set(graph.edges) == set(alleged.edges), "{}'s edges are not the same after load".format(graph.name)
+
+
+def test_keyframe_load(db):
+    for graph in testgraphs:
+        assert db._nodes_cache.keyframe[graph.name,]['trunk'][0][0] == {
+            node: True for node in graph.nodes.keys()
+        }
+        assert db._edges_cache.keyframe[graph.name,]['trunk'][0][0] == {
+            edge: True for edge in graph.edges
+        }
+        for node, vals in graph.nodes.items():
+            assert db._node_val_cache.keyframe[graph.name, node]['trunk'][0][0] == vals
+        for edge in graph.edges:
+            assert db._edge_val_cache.keyframe[graph.name, + edge]['trunk'][0][0] == graph.edges[edge]
