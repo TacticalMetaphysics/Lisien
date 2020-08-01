@@ -17,7 +17,8 @@
 from itertools import chain
 import networkx
 from networkx.exception import NetworkXError
-from collections import defaultdict, MutableMapping
+from collections import defaultdict
+from collections.abc import MutableMapping
 from .wrap import MutableMappingUnwrapper
 
 class EntityCollisionError(ValueError):
