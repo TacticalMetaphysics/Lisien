@@ -57,10 +57,21 @@ def test_keyframe_load(db):
         assert db._nodes_cache.keyframe[graph.name,]['trunk'][0][0] == {
             node: True for node in graph.nodes.keys()
         }
-        assert db._edges_cache.keyframe[graph.name,]['trunk'][0][0] == {
-            edge: True for edge in graph.edges
-        }
+        if graph.is_multigraph():
+            for orig in graph.adj:
+                for dest in graph.adj[orig]:
+                    assert db._edges_cache.keyframe[graph.name, orig, dest][
+                        'trunk'][0][0] == {
+                        idx: True for idx in graph.adj[orig][dest]}
+        else:
+            for orig in graph.adj:
+                for dest in graph.adj[orig]:
+                    assert db._edges_cache.keyframe[graph.name, orig, dest][
+                        'trunk'][0][0] == {0: True}
         for node, vals in graph.nodes.items():
             assert db._node_val_cache.keyframe[graph.name, node]['trunk'][0][0] == vals
         for edge in graph.edges:
-            assert db._edge_val_cache.keyframe[graph.name, + edge]['trunk'][0][0] == graph.edges[edge]
+            if graph.is_multigraph():
+                assert db._edge_val_cache.keyframe[(graph.name,) + edge]['trunk'][0][0] == graph.edges[edge]
+            else:
+                assert db._edge_val_cache.keyframe[(graph.name,) + edge + (0,)]['trunk'][0][0] == graph.edges[edge]
