@@ -19,7 +19,7 @@ doesn't pollute the other files so much.
 
 """
 import os
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from sqlite3 import IntegrityError as sqliteIntegError
 try:
     # python 2
