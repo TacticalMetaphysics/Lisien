@@ -323,9 +323,9 @@ class Cache:
                     old_turn = keycache2.rev_before(turn)
                     old_turn_kc = keycache2[turn]
                     added, deleted = get_adds_dels(
-                        keys[parentity], branch, turn, tick, stoptime=(
+                        parentity, branch, turn, tick, stoptime=(
                             branch, old_turn, old_turn_kc.end
-                        )
+                        ), cache=keys
                     )
                     ret = old_turn_kc[old_turn_kc.end].union(added).difference(deleted)
                     # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
@@ -338,9 +338,9 @@ class Cache:
                 if tick not in keycache3:
                     if keycache3.rev_gettable(tick):
                         added, deleted = get_adds_dels(
-                            keys[parentity], branch, turn, tick, stoptime=(
+                            parentity, branch, turn, tick, stoptime=(
                                 branch, turn, keycache3.rev_before(tick)
-                            )
+                            ), cache=keys
                         )
                         ret = keycache3[tick].union(added).difference(deleted)
                         # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
@@ -351,9 +351,9 @@ class Cache:
                         tick_before = keycache2[turn_before].end
                         keys_before = keycache2[turn_before][tick_before]
                         added, deleted = get_adds_dels(
-                            keys[parentity], branch, turn, tick, stoptime=(
+                            parentity, branch, turn, tick, stoptime=(
                                 branch, turn_before, tick_before
-                            )
+                            ), cache=keys
                         )
                         ret = keycache3[tick] = keys_before.union(added).difference(deleted)
                         # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
@@ -376,16 +376,16 @@ class Cache:
                     parkeys = frozenset()
                 keycache2 = SettingsTurnDict()
                 added, deleted = get_adds_dels(
-                    keys[parentity], branch, turn, tick, stoptime=(
+                    parentity, branch, turn, tick, stoptime=(
                         parbranch, parturn, partick
-                    )
+                    ), cache=keys
                 )
                 ret = parkeys.union(added).difference(deleted)
                 keycache2[turn] = {tick: ret}
                 keycache[keycache_key] = keycache2
-                # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
+                # assert ret == get_adds_dels(parentity, branch, turn, tick)[0]  # slow
                 return ret
-        ret = frozenset(get_adds_dels(keys[parentity], branch, turn, tick)[0])
+        ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
         if keycache2:
             if keycache3:
                 keycache3[tick] = ret
@@ -404,7 +404,7 @@ class Cache:
         forward and updates them.
 
         """
-        lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
+        #lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
@@ -421,18 +421,40 @@ class Cache:
             kc = kc.union((key,))
         self.keycache[parent+(entity, branch)][turn][tick] = kc
 
-    def _get_adds_dels(self, cache, branch, turn, tick, *, stoptime=None):
-        """Return a pair of ``(added, deleted)`` sets describing changes since ``stoptime``.
+    def _get_adds_dels(self, entity, branch, turn, tick, *, stoptime=None, cache=None):
+        """Return a pair of sets describing changes to the entity's keys
 
-        With ``stoptime=None`` (the default), ``added`` will in fact be all keys.
+        Returns a pair of sets: ``(added, deleted)``. These are the changes
+        to the key set that occurred since ``stoptime``, which, if present,
+        should be a triple ``(branch, turn, tick)``.
+
+        With ``stoptime=None`` (the default), ``added`` will in fact be all
+        keys, and ``deleted`` will be empty.
 
         """
+        # Not using the journal because that doesn't distinguish entities
+        cache = cache or self.keys[entity]
+        kf = self.keyframe[entity]
         added = set()
         deleted = set()
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick, stoptime=stoptime):
-                if branc not in branches or not branches[branc].rev_gettable(trn):
-                    continue
+                if stoptime:
+                    if branc not in branches \
+                            or not branches[branc].rev_gettable(trn):
+                        continue
+                else:
+                    if branc not in kf \
+                            or not kf[branc].rev_gettable(trn):
+                        continue
+                    kfb = kf[branc]
+                    if trn in kfb:
+                        kfbr = kfb[trn]
+                        if kfbr.rev_gettable(tck):
+                            added.update(set(kfbr[tck]) - deleted)
+                    elif kfb.rev_gettable(trn):
+                        added.update(set(kfb[trn].final()) - deleted)
+                    return added, set()
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
@@ -451,6 +473,20 @@ class Cache:
                 else:
                     added.add(key)
                 break
+        else:
+            if stoptime:
+                return added, deleted
+            for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn,
+                                                              tick):
+                if branc not in kf or not kf[branc].rev_gettable(trn):
+                    continue
+                kfb = kf[branc]
+                if trn in kfb:
+                    kfbr = kfb[trn]
+                    if kfbr.rev_gettable(tck):
+                        return set(kfbr[tck]), deleted
+                elif kfb.rev_gettable(trn):
+                    return set(kfb[trn].final()), deleted
         return added, deleted
 
     def store(self, *args, planning=None, forward=None, loading=False, contra=True):
@@ -893,7 +929,7 @@ class Cache:
         entity = args[:-3]
         branch, turn, tick = args[-3:]
         if self.db._no_kc:
-            yield from self._get_adds_dels(self.keys[entity], branch, turn, tick)[0]
+            yield from self._get_adds_dels(entity, branch, turn, tick)[0]
             return
         yield from self._get_keycache(entity, branch, turn, tick, forward=forward)
     iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
@@ -909,7 +945,7 @@ class Cache:
         entity = args[:-3]
         branch, turn, tick = args[-3:]
         if self.db._no_kc:
-            return len(self._get_adds_dels(self.keys[entity], branch, turn, tick)[0])
+            return len(self._get_adds_dels(entity, branch, turn, tick)[0])
         return len(self._get_keycache(entity, branch, turn, tick, forward=forward))
     count_entities = count_keys = count_entity_keys = count_entities_or_keys
 
@@ -969,11 +1005,11 @@ class EdgesCache(Cache):
         self._destcache_lru = OrderedDict()
         self._get_destcache_stuff = (
             self.destcache, self._destcache_lru, self._get_keycachelike,
-            self.successors, self._adds_dels_sucpred
+            self.successors, self._adds_dels_successors
         )
         self._get_origcache_stuff = (
             self.origcache, self._origcache_lru, self._get_keycachelike,
-            self.predecessors, self._adds_dels_sucpred
+            self.predecessors, self._adds_dels_predecessors
         )
         self._additional_store_stuff = (
             self.db, self.predecessors, self.successors
@@ -996,20 +1032,74 @@ class EdgesCache(Cache):
                             if present is not retrieve((graph, node, dest, idx, branch, turn, tick)):
                                 yield trn, tck
 
-    def _adds_dels_sucpred(self, cache, branch, turn, tick, *, stoptime=None):
-        """Take the successors or predecessors cache and get nodes added or deleted from it
-
-        Operates like ``_get_adds_dels``.
-
-        """
+    def _adds_dels_successors(self, parentity, branch, turn, tick, *,
+                              stoptime=None):
+        graph, orig = parentity
         added = set()
         deleted = set()
-        for node, nodes in cache.items():
-            addidx, delidx = self._get_adds_dels(nodes, branch, turn, tick, stoptime=stoptime)
+        for dest in self.successors[graph][orig]:
+            addidx, delidx = self._get_adds_dels(dest, branch, turn, tick,
+                                                 stoptime=stoptime)
             if addidx and not delidx:
-                added.add(node)
+                added.add(dest)
             elif delidx and not addidx:
-                deleted.add(node)
+                deleted.add(dest)
+        else:
+            if stoptime:
+                return added, deleted
+            kf = self.keyframe
+            itparbtt = self.db._iter_parent_btt
+            for (grap, org, dest), kfg in kf.items():  # too much iteration!
+                if (grap, org) != (graph, orig):
+                    continue
+                for branc, trn, tck in itparbtt(branch, turn, tick):
+                    if branc not in kfg:
+                        continue
+                    kfgb = kfg[branc]
+                    if trn in kfgb:
+                        kfgbr = kfgb[trn]
+                        if kfgbr.rev_gettable(tck):
+                            if kfgbr[tick][0]:
+                                added.add(dest)
+                            continue
+                    if kfgb.rev_gettable(trn):
+                        if kfgb[trn].final[0]:
+                            added.add(dest)
+        return added, deleted
+
+    def _adds_dels_predecessors(self, parentity, branch, turn, tick, *,
+                                stoptime=None):
+        graph, dest = parentity
+        added = set()
+        deleted = set()
+        for dest in self.predecessors[graph][dest]:
+            addidx, delidx = self._get_adds_dels(dest, branch, turn, tick,
+                                                 stoptime=stoptime)
+            if addidx and not delidx:
+                added.add(dest)
+            elif delidx and not addidx:
+                deleted.add(dest)
+        else:
+            if stoptime:
+                return added, deleted
+            kf = self.keyframe
+            itparbtt = self.db._iter_parent_btt
+            for (grap, orig, dst), kfg in kf.items():  # too much iteration!
+                if (grap, dst) != (graph, dest):
+                    continue
+                for branc, trn, tck in itparbtt(branch, turn, tick):
+                    if branc not in kfg:
+                        continue
+                    kfgb = kfg[branc]
+                    if trn in kfgb:
+                        kfgbr = kfgb[trn]
+                        if kfgbr.rev_gettable(tck):
+                            if kfgbr[tick][0]:
+                                added.add(orig)
+                            continue
+                    if kfgb.rev_gettable(trn):
+                        if kfgb[trn].final[0]:
+                            added.add(orig)
         return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
@@ -1033,7 +1123,7 @@ class EdgesCache(Cache):
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Iterate over successors of a given origin node at a given time."""
         if self.db._no_kc:
-            yield from self._adds_dels_sucpred(self.successors[graph, orig], branch, turn, tick)[0]
+            yield from self._adds_dels_successors(graph, orig, branch, turn, tick)[0]
             return
         if forward is None:
             forward = self.db._forward
@@ -1042,7 +1132,8 @@ class EdgesCache(Cache):
     def iter_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
         """Iterate over predecessors to a given destination node at a given time."""
         if self.db._no_kc:
-            yield from self._adds_dels_sucpred(self.predecessors[graph, dest], branch, turn, tick)[0]
+            yield from self._adds_dels_predecessors(
+                (graph, dest), branch, turn, tick)[0]
             return
         if forward is None:
             forward = self.db._forward
@@ -1051,7 +1142,8 @@ class EdgesCache(Cache):
     def count_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Return the number of successors to a given origin node at a given time."""
         if self.db._no_kc:
-            return len(self._adds_dels_sucpred(self.successors[graph, orig], branch, turn, tick)[0])
+            return len(self._adds_dels_successors(
+                (graph, orig), branch, turn, tick)[0])
         if forward is None:
             forward = self.db._forward
         return len(self._get_destcache(graph, orig, branch, turn, tick, forward=forward))
@@ -1059,7 +1151,7 @@ class EdgesCache(Cache):
     def count_predecessors(self, graph, dest, branch, turn, tick, *, forward=None):
         """Return the number of predecessors from a given destination node at a given time."""
         if self.db._no_kc:
-            return len(self._adds_dels_sucpred(self.predecessors[graph, dest], branch, turn, tick)[0])
+            return len(self._adds_dels_predecessors(graph, dest, branch, turn, tick)[0])
         if forward is None:
             forward = self.db._forward
         return len(self._get_origcache(graph, dest, branch, turn, tick, forward=forward))

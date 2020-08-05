@@ -540,6 +540,7 @@ class ORM(object):
         self._edge_val_cache = Cache(self)
 
     def _load_graphs(self):
+        self.graph = GraphsMapping(self)
         for (graph, typ) in self.query.graphs_types():
             self._graph_objs[graph] = {
                 'Graph': Graph,
@@ -629,11 +630,78 @@ class ORM(object):
             parent, _, _, _, _ = self._branches[parent]
             self._branch_parents[child].add(parent)
 
+    def _snap_keyframe(self, graph, branch, turn, tick, nodes, edges, graph_val):
+        nodes_keyframes_branch_d = self._nodes_cache.keyframe[
+            graph,][branch]
+        if turn in nodes_keyframes_branch_d:
+            nodes_keyframes_branch_d[turn][tick] = {
+                node: True for node in nodes}
+        else:
+            nodes_keyframes_branch_d[turn] = {
+                tick: {node: True for node in nodes}}
+        nvck = self._node_val_cache.keyframe
+        for node, vals in nodes.items():
+            node_val_keyframe_branch_d = nvck[graph, node][branch]
+            if turn in node_val_keyframe_branch_d:
+                node_val_keyframe_branch_d[turn][tick] = vals
+            else:
+                node_val_keyframe_branch_d[turn] = {
+                    tick: vals
+                }
+        eck = self._edges_cache.keyframe
+        evck = self._edge_val_cache.keyframe
+        if self.graph[graph].is_multigraph():
+            for orig, dests in edges.items():
+                for dest, idxs in dests.items():
+                    edges_keyframe_branch_d = eck[graph, orig, dest][branch]
+                    if turn in edges_keyframe_branch_d:
+                        edges_keyframe_branch_d[turn][tick] = {}
+                    else:
+                        edges_keyframe_branch_d[turn] = {tick: {}}
+                    assert turn in edges_keyframe_branch_d
+                    assert tick in edges_keyframe_branch_d[turn]
+                    ekbdrt = edges_keyframe_branch_d[turn][tick]
+                    for idx, vals in idxs.items():
+                        ekbdrt[idx] = True
+                        assert idx in edges_keyframe_branch_d[turn][tick]
+                        assert edges_keyframe_branch_d[turn][tick][idx]
+                        edge_val_keyframe_branch_d = evck[
+                            graph, orig, dest, idx][branch]
+                        if turn in edge_val_keyframe_branch_d:
+                            edge_val_keyframe_branch_d[turn][tick] = vals
+                        else:
+                            edge_val_keyframe_branch_d[turn] = {
+                                tick: vals
+                            }
+        else:
+            for orig, dests in edges.items():
+                for dest, vals in dests.items():
+                    edge_val_keyframe_branch_d = evck[
+                        graph, orig, dest, 0][branch]
+                    edges_keyframe_branch_d = eck[graph, orig, dest][branch]
+                    if turn in edges_keyframe_branch_d:
+                        edges_keyframe_branch_d[turn][tick] = {}
+                    else:
+                        edges_keyframe_branch_d[turn] = {tick: {}}
+                    ekbdrt = edges_keyframe_branch_d[turn][tick]
+                    ekbdrt[0] = True
+                    assert edges_keyframe_branch_d[turn][tick][0]
+                    if turn in edge_val_keyframe_branch_d:
+                        edge_val_keyframe_branch_d[turn][tick] = vals
+                    else:
+                        edge_val_keyframe_branch_d[turn] = {tick: vals}
+        gvkb = self._graph_val_cache.keyframe[graph,][branch]
+        if turn in gvkb:
+            gvkb[turn][tick] = graph_val
+        else:
+            gvkb[turn] = {tick: graph_val}
+
     def _init_load(self, validate=False):
-        if not hasattr(self, 'graph'):
-            self.graph = GraphsMapping(self)
-        for (graph, branch, turn, tick, nodes, edges, graph_val) in self.query.keyframes_dump():
-            pass  # TODO load keyframes
+        assert hasattr(self, 'graph')
+        snap_keyframe = self._snap_keyframe
+        for (graph, branch, turn, tick, nodes, edges, graph_val) in \
+                self.query.keyframes_dump():
+            snap_keyframe(graph, branch, turn, tick, nodes, edges, graph_val)
         noderows = [
             (graph, node, branch, turn, tick, ex if ex else None)
             for (graph, node, branch, turn, tick, ex)
@@ -969,7 +1037,7 @@ class ORM(object):
                 adj = data._succ
             else:
                 adj = data._adj
-            self._init_graph(name, 'Graph', [adj, data._node, data.graph])
+            self._init_graph(name, 'Graph', [data._node, adj, data.graph])
         else:
             self._init_graph(name, 'Graph', data)
         g = Graph(self, name, data, **attr)
@@ -986,7 +1054,7 @@ class ORM(object):
         """
         if data and isinstance(data, nx.DiGraph):
             self._init_graph(
-                name, 'DiGraph', [data._succ, data._node, data.graph])
+                name, 'DiGraph', [data._node, data._succ, data.graph])
         else:
             self._init_graph(name, 'DiGraph', data)
         dg = DiGraph(self, name, data, **attr)
@@ -1003,7 +1071,7 @@ class ORM(object):
         """
         if data and isinstance(data, nx.MultiGraph):
             self._init_graph(
-                name, 'MultiGraph', [data._adj, data._node, data.graph]
+                name, 'MultiGraph', [data._node, data._adj, data.graph]
             )
         else:
             self._init_graph(name, 'MultiGraph', data)
@@ -1021,7 +1089,7 @@ class ORM(object):
         """
         if data and isinstance(data, nx.MultiDiGraph):
             self._init_graph(
-                name, 'MultiDiGraph', [data._succ, data._node, data.graph])
+                name, 'MultiDiGraph', [data._node, data._succ, data.graph])
         else:
             self._init_graph(name, 'MultiDiGraph', data)
         mdg = MultiDiGraph(self, name, data, **attr)

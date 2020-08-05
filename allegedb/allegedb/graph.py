@@ -1209,13 +1209,18 @@ class Graph(networkx.Graph):
         if name not in self.db._graph_objs:
             self.db._graph_objs[name] = self
         if data is not None:
-            data = data.copy()
-            if isinstance(data, dict) and 'name' in data:
-                del data['name']
+            if isinstance(data, dict):
+                data = convert_to_networkx_graph(data)
+            else:
+                data = data.copy()
             if hasattr(data, 'graph') and 'name' in data.graph:
                 del data.graph['name']
-            convert_to_networkx_graph(data, create_using=self)
-        self.graph.update(attr)
+            data.graph.update(attr)
+            branch, turn, tick = self.db._btt()
+            self.db._snap_keyframe(
+                name, branch, turn, tick, data._node, data._adj, data.graph)
+        else:
+            self.graph.update(attr)  # shouldn't it be a keyframe too?
 
     @property
     def graph(self):
