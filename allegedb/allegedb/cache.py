@@ -444,17 +444,16 @@ class Cache:
                             or not branches[branc].rev_gettable(trn):
                         continue
                 else:
-                    if branc not in kf \
-                            or not kf[branc].rev_gettable(trn):
-                        continue
-                    kfb = kf[branc]
-                    if trn in kfb:
-                        kfbr = kfb[trn]
-                        if kfbr.rev_gettable(tck):
-                            added.update(set(kfbr[tck]) - deleted)
-                    elif kfb.rev_gettable(trn):
-                        added.update(set(kfb[trn].final()) - deleted)
-                    return added, set()
+                    if branc in kf \
+                            and kf[branc].rev_gettable(trn):
+                        kfb = kf[branc]
+                        if trn in kfb:
+                            kfbr = kfb[trn]
+                            if kfbr.rev_gettable(tck):
+                                added.update(set(kfbr[tck]) - deleted)
+                        elif kfb.rev_gettable(trn):
+                            added.update(set(kfb[trn].final()) - deleted)
+                        return added, set()
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
@@ -1037,8 +1036,8 @@ class EdgesCache(Cache):
         graph, orig = parentity
         added = set()
         deleted = set()
-        for dest in self.successors[graph][orig]:
-            addidx, delidx = self._get_adds_dels(dest, branch, turn, tick,
+        for dest in self.successors[graph, orig]:
+            addidx, delidx = self._get_adds_dels((graph, orig, dest), branch, turn, tick,
                                                  stoptime=stoptime)
             if addidx and not delidx:
                 added.add(dest)
@@ -1072,8 +1071,8 @@ class EdgesCache(Cache):
         graph, dest = parentity
         added = set()
         deleted = set()
-        for dest in self.predecessors[graph][dest]:
-            addidx, delidx = self._get_adds_dels(dest, branch, turn, tick,
+        for orig in self.predecessors[graph, dest]:
+            addidx, delidx = self._get_adds_dels((graph, orig, dest), branch, turn, tick,
                                                  stoptime=stoptime)
             if addidx and not delidx:
                 added.add(dest)

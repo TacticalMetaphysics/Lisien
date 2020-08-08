@@ -751,8 +751,9 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
         else:
             sucs = self._cache[key] = self.Successors(self, key)
             created = True
-        sucs.clear()
-        sucs.update(val)
+            sucs.clear()
+        if val:
+            sucs.update(val)
         if created:
             self.send(self, key=key, val=val)
 
