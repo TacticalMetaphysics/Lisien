@@ -1043,6 +1043,27 @@ class EdgesCache(Cache):
                 added.add(dest)
             elif delidx and not addidx:
                 deleted.add(dest)
+        else:
+            if stoptime:
+                return added, deleted
+            kf = self.keyframe
+            itparbtt = self.db._iter_parent_btt
+            for (grap, org, dest), kfg in kf.items():  # too much iteration!
+                if (grap, org) != (graph, orig):
+                    continue
+                for branc, trn, tck in itparbtt(branch, turn, tick):
+                    if branc not in kfg:
+                        continue
+                    kfgb = kfg[branc]
+                    if trn in kfgb:
+                        kfgbr = kfgb[trn]
+                        if kfgbr.rev_gettable(tck):
+                            if kfgbr[tick][0]:
+                                added.add(dest)
+                            continue
+                    if kfgb.rev_gettable(trn):
+                        if kfgb[trn].final[0]:
+                            added.add(dest)
         return added, deleted
 
     def _adds_dels_predecessors(self, parentity, branch, turn, tick, *,
@@ -1057,6 +1078,27 @@ class EdgesCache(Cache):
                 added.add(dest)
             elif delidx and not addidx:
                 deleted.add(dest)
+        else:
+            if stoptime:
+                return added, deleted
+            kf = self.keyframe
+            itparbtt = self.db._iter_parent_btt
+            for (grap, orig, dst), kfg in kf.items():  # too much iteration!
+                if (grap, dst) != (graph, dest):
+                    continue
+                for branc, trn, tck in itparbtt(branch, turn, tick):
+                    if branc not in kfg:
+                        continue
+                    kfgb = kfg[branc]
+                    if trn in kfgb:
+                        kfgbr = kfgb[trn]
+                        if kfgbr.rev_gettable(tck):
+                            if kfgbr[tick][0]:
+                                added.add(orig)
+                            continue
+                    if kfgb.rev_gettable(trn):
+                        if kfgb[trn].final[0]:
+                            added.add(orig)
         return added, deleted
 
     def _get_destcache(self, graph, orig, branch, turn, tick, *, forward):
