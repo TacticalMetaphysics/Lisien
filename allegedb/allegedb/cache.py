@@ -83,12 +83,14 @@ class StructuredDefaultDict(dict):
     to my constructor.
 
     """
-    __slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key', '_stuff')
+    __slots__ = ('layer', 'type', 'args_munger', 'kwargs_munger', 'parent', 'key', '_stuff', 'gettest', 'settest')
 
     def __init__(
             self, layers, type=object,
             args_munger=_default_args_munger,
-            kwargs_munger=_default_kwargs_munger
+            kwargs_munger=_default_kwargs_munger,
+            gettest=lambda k: None,
+            settest=lambda k, v: None
     ):
         if layers < 1:
             raise ValueError("Not enough layers")
@@ -97,8 +99,11 @@ class StructuredDefaultDict(dict):
         self.args_munger = args_munger
         self.kwargs_munger = kwargs_munger
         self._stuff = (layers, type, args_munger, kwargs_munger)
+        self.gettest = gettest
+        self.settest = settest
 
     def __getitem__(self, k):
+        self.gettest(k)
         if k in self:
             return dict.__getitem__(self, k)
         layer, typ, args_munger, kwargs_munger = self._stuff
@@ -117,6 +122,7 @@ class StructuredDefaultDict(dict):
         return ret
 
     def __setitem__(self, k, v):
+        self.settest(k, v)
         if type(v) is StructuredDefaultDict:
             layer, typ, args_munger, kwargs_munger = self._stuff
             if (
@@ -181,7 +187,7 @@ class Cache:
         'setdb', 'deldb', 'keyframe'
     )
 
-    def __init__(self, db):
+    def __init__(self, db, kfkvs=None):
         super().__init__()
         self.db = db
         self.parents = StructuredDefaultDict(3, SettingsTurnDict)
@@ -214,7 +220,7 @@ class Cache:
         but still need to iterate through history to find the value.
 
         """
-        self.keyframe = StructuredDefaultDict(1, SettingsTurnDict)
+        self.keyframe = StructuredDefaultDict(1, SettingsTurnDict, **(kfkvs or {}))
         """Key-value dictionaries representing my state at a given time"""
         self.shallowest = OrderedDict()
         """A dictionary for plain, unstructured hinting."""
@@ -434,18 +440,18 @@ class Cache:
         """
         # Not using the journal because that doesn't distinguish entities
         cache = cache or self.keys[entity]
-        kf = self.keyframe[entity]
         added = set()
         deleted = set()
+        kf = self.keyframe.get(entity, None)
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick, stoptime=stoptime):
                 if stoptime:
                     if branc not in branches \
                             or not branches[branc].rev_gettable(trn):
                         continue
-                else:
+                elif kf is not None:
                     if branc in kf \
-                            and kf[branc].rev_gettable(trn):
+                          and kf[branc].rev_gettable(trn):
                         kfb = kf[branc]
                         if trn in kfb:
                             kfbr = kfb[trn]
@@ -473,7 +479,7 @@ class Cache:
                     added.add(key)
                 break
         else:
-            if stoptime:
+            if stoptime or kf is None:
                 return added, deleted
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn,
                                                               tick):
@@ -996,7 +1002,12 @@ class EdgesCache(Cache):
         return self.parents
 
     def __init__(self, db):
-        Cache.__init__(self, db)
+        def gettest(k):
+            assert len(k) == 3, "Bad key: " + repr(k)
+
+        def settest(k, v):
+            assert len(k) == 3, "Bad key: {}, to be set to {}".format(k, v)
+        Cache.__init__(self, db, kfkvs={'gettest': gettest, 'settest': settest})
         self.destcache = PickyDefaultDict(SettingsTurnDict)
         self.origcache = PickyDefaultDict(SettingsTurnDict)
         self.predecessors = StructuredDefaultDict(3, TurnDict)
@@ -1051,7 +1062,10 @@ class EdgesCache(Cache):
                 return added, deleted
             kf = self.keyframe
             itparbtt = self.db._iter_parent_btt
-            for (grap, org, dest), kfg in kf.items():  # too much iteration!
+            its = list(kf.items())
+            for ks, v in its:
+                assert len(ks) == 3, "Bad key in keyframe: " + repr(ks)
+            for (grap, org, dest), kfg in its:  # too much iteration!
                 if (grap, org) != (graph, orig):
                     continue
                 for branc, trn, tck in itparbtt(branch, turn, tick):
@@ -1067,6 +1081,8 @@ class EdgesCache(Cache):
                     if kfgb.rev_gettable(trn):
                         if kfgb[trn].final[0]:
                             added.add(dest)
+            for ks in kf.keys():
+                assert len(ks) == 3, "BBadd key in keyframe: " + repr(ks)
         return added, deleted
 
     def _adds_dels_predecessors(self, parentity, branch, turn, tick, *,
