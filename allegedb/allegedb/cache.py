@@ -1032,12 +1032,13 @@ class EdgesCache(Cache):
                                 yield trn, tck
 
     def _adds_dels_successors(self, parentity, branch, turn, tick, *,
-                              stoptime=None):
+                              stoptime=None, cache=None):
         graph, orig = parentity
         added = set()
         deleted = set()
-        if self.successors[graph, orig]:
-            for dest in self.successors[graph, orig]:
+        cache = cache or self.successors
+        if cache[graph, orig]:
+            for dest in cache[graph, orig]:
                 addidx, delidx = self._get_adds_dels(
                     (graph, orig, dest), branch, turn, tick,
                     stoptime=stoptime)
@@ -1069,12 +1070,13 @@ class EdgesCache(Cache):
         return added, deleted
 
     def _adds_dels_predecessors(self, parentity, branch, turn, tick, *,
-                                stoptime=None):
+                                stoptime=None, cache=None):
         graph, dest = parentity
         added = set()
         deleted = set()
-        if self.predecessors[graph, dest]:
-            for orig in self.predecessors[graph, dest]:
+        cache = cache or self.predecessors
+        if cache[graph, dest]:
+            for orig in cache[graph, dest]:
                 addidx, delidx = self._get_adds_dels(
                     (graph, orig, dest), branch, turn, tick,
                     stoptime=stoptime)
