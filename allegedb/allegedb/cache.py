@@ -457,9 +457,10 @@ class Cache:
                             kfbr = kfb[trn]
                             if kfbr.rev_gettable(tck):
                                 added.update(set(kfbr[tck]) - deleted)
+                            return added, deleted - added
                         elif kfb.rev_gettable(trn):
                             added.update(set(kfb[trn].final()) - deleted)
-                        return added, set()
+                            return added, deleted - added
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
