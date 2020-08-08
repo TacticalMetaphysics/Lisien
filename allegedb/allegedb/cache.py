@@ -1036,13 +1036,15 @@ class EdgesCache(Cache):
         graph, orig = parentity
         added = set()
         deleted = set()
-        for dest in self.successors[graph, orig]:
-            addidx, delidx = self._get_adds_dels((graph, orig, dest), branch, turn, tick,
-                                                 stoptime=stoptime)
-            if addidx and not delidx:
-                added.add(dest)
-            elif delidx and not addidx:
-                deleted.add(dest)
+        if self.successors[graph, orig]:
+            for dest in self.successors[graph, orig]:
+                addidx, delidx = self._get_adds_dels(
+                    (graph, orig, dest), branch, turn, tick,
+                    stoptime=stoptime)
+                if addidx and not delidx:
+                    added.add(dest)
+                elif delidx and not addidx:
+                    deleted.add(dest)
         else:
             if stoptime:
                 return added, deleted
@@ -1071,13 +1073,15 @@ class EdgesCache(Cache):
         graph, dest = parentity
         added = set()
         deleted = set()
-        for orig in self.predecessors[graph, dest]:
-            addidx, delidx = self._get_adds_dels((graph, orig, dest), branch, turn, tick,
-                                                 stoptime=stoptime)
-            if addidx and not delidx:
-                added.add(dest)
-            elif delidx and not addidx:
-                deleted.add(dest)
+        if self.predecessors[graph, dest]:
+            for orig in self.predecessors[graph, dest]:
+                addidx, delidx = self._get_adds_dels(
+                    (graph, orig, dest), branch, turn, tick,
+                    stoptime=stoptime)
+                if addidx and not delidx:
+                    added.add(dest)
+                elif delidx and not addidx:
+                    deleted.add(dest)
         else:
             if stoptime:
                 return added, deleted
