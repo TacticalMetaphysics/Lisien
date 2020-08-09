@@ -449,18 +449,18 @@ class Cache:
                     if branc not in branches \
                             or not branches[branc].rev_gettable(trn):
                         continue
-                elif kf is not None:
-                    if branc in kf \
-                          and kf[branc].rev_gettable(trn):
-                        kfb = kf[branc]
-                        if trn in kfb:
-                            kfbr = kfb[trn]
-                            if kfbr.rev_gettable(tck):
-                                added.update(set(kfbr[tck]) - deleted)
-                            return added, deleted - added
-                        elif kfb.rev_gettable(trn):
-                            added.update(set(kfb[trn].final()) - deleted)
-                            return added, deleted - added
+                elif kf is not None \
+                        and branc in kf \
+                        and kf[branc].rev_gettable(trn):
+                    kfb = kf[branc]
+                    if trn in kfb:
+                        kfbr = kfb[trn]
+                        if kfbr.rev_gettable(tck):
+                            added.update(set(kfbr[tck]) - deleted)
+                        return added, deleted - added
+                    else:
+                        added.update(set(kfb[trn].final()) - deleted)
+                        return added, deleted - added
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
