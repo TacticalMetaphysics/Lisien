@@ -382,9 +382,7 @@ class Cache:
                     parkeys = frozenset()
                 keycache2 = SettingsTurnDict()
                 added, deleted = get_adds_dels(
-                    parentity, branch, turn, tick, stoptime=(
-                        parbranch, parturn, partick
-                    ), cache=keys
+                    parentity, branch, turn, tick, cache=keys[parentity]
                 )
                 ret = parkeys.union(added).difference(deleted)
                 keycache2[turn] = {tick: ret}
