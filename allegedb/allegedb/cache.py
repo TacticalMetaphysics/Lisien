@@ -436,7 +436,9 @@ class Cache:
         keys, and ``deleted`` will be empty.
 
         """
-        # Not using the journal because that doesn't distinguish entities
+        # Not using the journal because that doesn't distinguish entities.
+        # I think I might not want to use ``stoptime`` at all, now that
+        # there is such a thing as keyframes...
         cache = cache or self.keys[entity]
         added = set()
         deleted = set()
