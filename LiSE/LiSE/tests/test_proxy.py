@@ -68,8 +68,8 @@ class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
 
 
 @pytest.fixture(scope='function', params=[
-    # lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
-    college.install,
+    lambda eng: kobold.inittest(eng, shrubberies=20, kobold_sprint_chance=.9),
+    # college.install,
     # sickle.install
 ])
 def hand(request, clean):

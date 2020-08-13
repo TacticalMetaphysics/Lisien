@@ -534,10 +534,15 @@ class ORM(object):
         self._plans_uncommitted = []
         self._plan_ticks_uncommitted = []
         self._graph_val_cache = Cache(self)
+        self._graph_val_cache.name = 'graph_val_cache'
         self._nodes_cache = NodesCache(self)
+        self._nodes_cache.name = 'nodes_cache'
         self._edges_cache = EdgesCache(self)
+        self._edges_cache.name = 'edges_cache'
         self._node_val_cache = Cache(self)
+        self._node_val_cache.name = 'node_val_cache'
         self._edge_val_cache = Cache(self)
+        self._edge_val_cache.name = 'edge_val_cache'
 
     def _load_graphs(self):
         self.graph = GraphsMapping(self)

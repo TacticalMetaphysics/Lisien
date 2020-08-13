@@ -184,7 +184,7 @@ class Cache:
         'db', 'parents', 'keys', 'keycache', 'branches', 'shallowest',
         'settings', 'presettings', 'time_entity', '_kc_lru',
         '_store_stuff', '_remove_stuff', '_truncate_stuff',
-        'setdb', 'deldb', 'keyframe'
+        'setdb', 'deldb', 'keyframe', 'name'
     )
 
     def __init__(self, db, kfkvs=None):
