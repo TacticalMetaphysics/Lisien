@@ -1080,7 +1080,7 @@ class EdgesCache(Cache):
                                 added.add(dest)
                             continue
                     if kfgb.rev_gettable(trn):
-                        if kfgb[trn].final[0]:
+                        if kfgb[trn].final()[0]:
                             added.add(dest)
             for ks in kf.keys():
                 assert len(ks) == 3, "BBadd key in keyframe: " + repr(ks)
