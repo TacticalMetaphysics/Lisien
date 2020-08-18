@@ -467,7 +467,7 @@ class Cache:
                     added.add(key)
                 break
         else:
-            if stoptime or kf is None:
+            if stoptime or not kf:
                 return added, deleted
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn,
                                                               tick):
