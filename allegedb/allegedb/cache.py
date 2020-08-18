@@ -445,22 +445,9 @@ class Cache:
         kf = self.keyframe.get(entity, None)
         for key, branches in cache.items():
             for (branc, trn, tck) in self.db._iter_parent_btt(branch, turn, tick, stoptime=stoptime):
-                if stoptime:
-                    if branc not in branches \
-                            or not branches[branc].rev_gettable(trn):
-                        continue
-                elif kf is not None \
-                        and branc in kf \
-                        and kf[branc].rev_gettable(trn):
-                    kfb = kf[branc]
-                    if trn in kfb:
-                        kfbr = kfb[trn]
-                        if kfbr.rev_gettable(tck):
-                            added.update(set(kfbr[tck]) - deleted)
-                        return added, deleted - added
-                    else:
-                        added.update(set(kfb[trn].final()) - deleted)
-                        return added, deleted - added
+                if branc not in branches \
+                        or not branches[branc].rev_gettable(trn):
+                    continue
                 turnd = branches[branc]
                 if trn in turnd:
                     if turnd[trn].rev_gettable(tck):
@@ -490,9 +477,9 @@ class Cache:
                 if trn in kfb:
                     kfbr = kfb[trn]
                     if kfbr.rev_gettable(tck):
-                        return set(kfbr[tck]), deleted
+                        added.update(set(kfbr[tck]).difference(deleted))
                 elif kfb.rev_gettable(trn):
-                    return set(kfb[trn].final()), deleted
+                    added.update(set(kfb[trn].final()))
         return added, deleted
 
     def store(self, *args, planning=None, forward=None, loading=False, contra=True):
