@@ -734,8 +734,6 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
                 return (self.orig, dest)
 
     def __getitem__(self, orig):
-        if orig not in self:
-            raise KeyError("No edges from {}".format(orig))
         if orig not in self._cache:
             self._cache[orig] = self.Successors(self, orig)
         return self._cache[orig]
