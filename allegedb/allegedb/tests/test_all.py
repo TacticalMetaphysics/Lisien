@@ -85,7 +85,7 @@ class AbstractGraphTest:
             g.add_edge(3, 0)
             self.assertIn(3, g.adj[2])
             self.assertIn(0, g.adj[3])
-            if hasattr(g, 'pred'):
+            if g.is_directed():
                 self.assertIn(2, g.pred[3])
                 self.assertIn(3, g.pred[0])
             self.engine.branch = graphmaker.__name__ + '_de_edge'
@@ -93,7 +93,7 @@ class AbstractGraphTest:
             self.assertNotIn(3, g.node)
             self.assertNotIn(3, g.adj)
             self.assertNotIn(3, g.adj[2])
-            if hasattr(g, 'pred'):
+            if g.is_directed():
                 self.assertNotIn(3, g.pred)
                 self.assertNotIn(3, g.pred[0])
             self.engine.branch = graphmaker.__name__ + '_square'
