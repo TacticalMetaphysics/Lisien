@@ -1135,7 +1135,7 @@ class EdgesCache(Cache):
                                 added.add(orig)
                             continue
                     if kfgb.rev_gettable(trn):
-                        if kfgb[trn].final[0]:
+                        if kfgb[trn].final()[0]:
                             added.add(orig)
         return added, deleted
 
