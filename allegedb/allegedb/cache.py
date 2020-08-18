@@ -1026,6 +1026,22 @@ class EdgesCache(Cache):
             self.db, self.predecessors, self.successors
         )
 
+    def _update_keycache(self, *args, forward):
+        super()._update_keycache(*args, forward=forward)
+        dest, key, branch, turn, tick, value = args[-6:]
+        graph, orig = args[:-6]
+        # it's possible either of these might cause unnecessary iteration
+        dests = self._get_destcache(graph, orig, branch, turn, tick, forward=forward)
+        origs = self._get_origcache(graph, dest, branch, turn, tick, forward=forward)
+        if value is None:
+            dests = dests.difference((dest,))
+            origs = origs.difference((orig,))
+        else:
+            dests = dests.union((dest,))
+            origs = origs.union((orig,))
+        self.destcache[graph, orig, branch][turn][tick] = dests
+        self.origcache[graph, dest, branch][turn][tick] = origs
+
     def _slow_iter_node_contradicted_times(self, branch, turn, tick, graph, node):
         # slow and bad.
         retrieve = self._base_retrieve
