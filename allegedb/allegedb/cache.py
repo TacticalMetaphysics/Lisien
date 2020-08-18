@@ -1058,32 +1058,31 @@ class EdgesCache(Cache):
                     added.add(dest)
                 elif delidx and not addidx:
                     deleted.add(dest)
-        else:
-            if stoptime:
-                return added, deleted
-            kf = self.keyframe
-            itparbtt = self.db._iter_parent_btt
-            its = list(kf.items())
-            for ks, v in its:
-                assert len(ks) == 3, "Bad key in keyframe: " + repr(ks)
-            for (grap, org, dest), kfg in its:  # too much iteration!
-                if (grap, org) != (graph, orig):
+        if stoptime:
+            return added, deleted
+        kf = self.keyframe
+        itparbtt = self.db._iter_parent_btt
+        its = list(kf.items())
+        for ks, v in its:
+            assert len(ks) == 3, "Bad key in keyframe: " + repr(ks)
+        for (grap, org, dest), kfg in its:  # too much iteration!
+            if (grap, org) != (graph, orig):
+                continue
+            for branc, trn, tck in itparbtt(branch, turn, tick):
+                if branc not in kfg:
                     continue
-                for branc, trn, tck in itparbtt(branch, turn, tick):
-                    if branc not in kfg:
-                        continue
-                    kfgb = kfg[branc]
-                    if trn in kfgb:
-                        kfgbr = kfgb[trn]
-                        if kfgbr.rev_gettable(tck):
-                            if kfgbr[tick][0]:
-                                added.add(dest)
-                            continue
-                    if kfgb.rev_gettable(trn):
-                        if kfgb[trn].final()[0]:
+                kfgb = kfg[branc]
+                if trn in kfgb:
+                    kfgbr = kfgb[trn]
+                    if kfgbr.rev_gettable(tck):
+                        if kfgbr[tick][0] and dest not in deleted:
                             added.add(dest)
-            for ks in kf.keys():
-                assert len(ks) == 3, "BBadd key in keyframe: " + repr(ks)
+                        continue
+                if kfgb.rev_gettable(trn):
+                    if kfgb[trn].final()[0] and dest not in deleted:
+                        added.add(dest)
+        for ks in kf.keys():
+            assert len(ks) == 3, "BBadd key in keyframe: " + repr(ks)
         return added, deleted
 
     def _adds_dels_predecessors(self, parentity, branch, turn, tick, *,
