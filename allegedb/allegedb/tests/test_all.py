@@ -83,6 +83,20 @@ class AbstractGraphTest:
             g.add_node(3)
             g.add_edge(2, 3)
             g.add_edge(3, 0)
+            self.assertIn(3, g.adj[2])
+            self.assertIn(0, g.adj[3])
+            if hasattr(g, 'pred'):
+                self.assertIn(2, g.pred[3])
+                self.assertIn(3, g.pred[0])
+            self.engine.branch = graphmaker.__name__ + '_de_edge'
+            g.remove_node(3)
+            self.assertNotIn(3, g.node)
+            self.assertNotIn(3, g.adj)
+            self.assertNotIn(3, g.adj[2])
+            if hasattr(g, 'pred'):
+                self.assertNotIn(3, g.pred)
+                self.assertNotIn(3, g.pred[0])
+            self.engine.branch = graphmaker.__name__ + '_square'
             self.engine.branch = graphmaker.__name__ + '_nothing'
             g.remove_nodes_from((0, 1, 2, 3))
             for n in (0, 1, 2, 3):
