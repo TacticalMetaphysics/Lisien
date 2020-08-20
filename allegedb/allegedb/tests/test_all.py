@@ -85,6 +85,7 @@ class AbstractGraphTest:
             g.add_edge(3, 0)
             self.assertIn(3, g.adj[2])
             self.assertIn(0, g.adj[3])
+            self.assertIn(0, list(g.adj[3]))
             if g.is_directed():
                 self.assertIn(2, g.pred[3])
                 self.assertIn(3, g.pred[0])
