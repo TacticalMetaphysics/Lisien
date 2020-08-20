@@ -1147,7 +1147,8 @@ class EdgesCache(Cache):
     def iter_successors(self, graph, orig, branch, turn, tick, *, forward=None):
         """Iterate over successors of a given origin node at a given time."""
         if self.db._no_kc:
-            yield from self._adds_dels_successors(graph, orig, branch, turn, tick)[0]
+            yield from self._adds_dels_successors(
+                (graph, orig), branch, turn, tick)[0]
             return
         if forward is None:
             forward = self.db._forward
