@@ -107,10 +107,12 @@ class StructuredDefaultDict(dict):
         if k in self:
             return dict.__getitem__(self, k)
         layer, typ, args_munger, kwargs_munger = self._stuff
-        if layer < 2:
+        if layer == 1:
             ret = PickyDefaultDict(
                 typ, args_munger, kwargs_munger
             )
+        elif layer < 1:
+            raise ValueError("Invalid layer")
         else:
             ret = StructuredDefaultDict(
                 layer-1, typ,
@@ -136,7 +138,7 @@ class StructuredDefaultDict(dict):
         elif type(v) is PickyDefaultDict:
             layer, typ, args_munger, kwargs_munger = self._stuff
             if (
-                layer < 2
+                layer == 1
                 and v.type is typ
                 and v.args_munger is args_munger
                 and v.kwargs_munger is kwargs_munger
