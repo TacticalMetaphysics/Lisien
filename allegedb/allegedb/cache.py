@@ -768,7 +768,7 @@ class Cache:
             return shallowest[args]
         entity = args[:-4]
         key, branch, turn, tick = args[-4:]
-        keyframes = self.keyframe[entity]
+        keyframes = self.keyframe.get(entity, {})
         branches = self.branches
         entikey = entity + (key,)
         if entikey in branches:
