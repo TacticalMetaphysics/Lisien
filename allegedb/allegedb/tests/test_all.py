@@ -19,7 +19,12 @@ testdata.append(('lol', deepcopy(testdata)))
 class AllegedTest(unittest.TestCase):
     def setUp(self):
         self.engine = allegedb.ORM('sqlite:///:memory:')
-        self.graphmakers = (self.engine.new_graph, self.engine.new_digraph, self.engine.new_multigraph, self.engine.new_multidigraph)
+        self.graphmakers = (
+            self.engine.new_digraph,
+            self.engine.new_graph,
+            self.engine.new_multigraph,
+            self.engine.new_multidigraph
+        )
 
 
 class AbstractGraphTest:
