@@ -1054,7 +1054,7 @@ class EdgesCache(Cache):
         added = set()
         deleted = set()
         cache = cache or self.successors
-        if cache[graph, orig]:
+        if (graph, orig) in cache and cache[graph, orig]:
             for dest in cache[graph, orig]:
                 addidx, delidx = self._get_adds_dels(
                     (graph, orig, dest), branch, turn, tick,
