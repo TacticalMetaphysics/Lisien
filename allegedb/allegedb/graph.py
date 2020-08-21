@@ -1307,6 +1307,19 @@ class DiGraph(Graph, networkx.DiGraph):
     adj_cls = DiGraphSuccessorsMapping
     pred_cls = DiGraphPredecessorsMapping
 
+    def remove_node(self, n):
+        __doc__ = networkx.DiGraph.remove_node.__doc__
+        if n not in self._node:
+            raise NetworkXError("The node %s is not in the digraph." % (n,))
+        nbrs = self._succ[n]
+        for u in nbrs:
+            del self._pred[u][n]   # remove all edges n-u in digraph
+        del self._succ[n]          # remove node from succ
+        for u in self._pred[n]:
+            del self._succ[u][n]   # remove all edges n-u in digraph
+        del self._pred[n]          # remove node from pred
+        del self._node[n]
+
     def remove_edge(self, u, v):
         """Version of remove_edge that's much like normal networkx but only
         deletes once, since the database doesn't keep separate adj and
