@@ -85,7 +85,6 @@ class AbstractGraphTest:
             self.assertNotIn(1, g.adj[0])
             self.assertNotIn(1, list(g.adj[0]))
             self.engine.branch = graphmaker.__name__ + '_triangle'
-            g.add_node(2)
             self.assertIn(2, g)
             g.add_edge(0, 1)
             g.add_edge(1, 0)
@@ -104,7 +103,6 @@ class AbstractGraphTest:
             g.remove_edge(2, 0)
             self.assertNotIn(0, g.adj[2])
             self.assertNotIn(0, list(g.adj[2]))
-            g.add_node(3)
             g.add_edge(2, 3)
             g.add_edge(3, 0)
             self.assertIn(3, g.adj[2])
