@@ -103,7 +103,6 @@ class AbstractGraphTest:
             g.remove_edge(2, 0)
             self.assertNotIn(0, g.adj[2])
             self.assertNotIn(0, list(g.adj[2]))
-            g.add_edge(2, 3)
             g.add_edge(3, 0)
             self.assertIn(3, g.adj[2])
             self.assertIn(0, g.adj[3])
