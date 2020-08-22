@@ -92,9 +92,6 @@ class AbstractGraphTest:
             if g.is_directed():
                 g.add_edge(1, 0)
             self.assertIn(0, g.adj[1])
-            # Next line: heisenbug. Passes if you step over it in the debugger.
-            # Fails otherwise. I think this means the cache is generated
-            # correctly when making a repr
             self.assertIn(0, list(g.adj[1]))
             g.add_edge(1, 2)
             g.add_edge(2, 1)
