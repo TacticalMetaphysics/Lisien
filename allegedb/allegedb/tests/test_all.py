@@ -103,6 +103,7 @@ class AbstractGraphTest:
             self.assertIn(2, g.adj[0])
             self.assertIn(2, list(g.adj[0]))
             self.engine.branch = graphmaker.__name__ + '_square'
+            self.assertIn(2, list(g.adj[0]))
             self.engine.turn = 2
             self.assertIn(2, g)
             self.assertIn(2, list(g.node.keys()))
@@ -112,7 +113,6 @@ class AbstractGraphTest:
             self.assertNotIn(0, g.adj[2])
             self.assertNotIn(0, list(g.adj[2]))
             g.add_edge(3, 0)
-            self.assertIn(3, g.adj[2])
             self.assertIn(0, g.adj[3])
             self.assertIn(0, list(g.adj[3]))
             if g.is_directed():
