@@ -1972,12 +1972,10 @@ class PortalObjCache(object):
         self.predecessors = StructuredDefaultDict(2, PortalProxy)
 
     def store(self, char, u, v, obj):
-        print('storing {}->{}'.format(u, v))
         self.successors[char][u][v] = obj
         self.predecessors[char][v][u] = obj
 
     def delete(self, char, u, v):
-        print('deleting {}->{}'.format(u, v))
         del self.successors[char][u][v]
         del self.predecessors[char][v][u]
 
