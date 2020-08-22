@@ -129,6 +129,10 @@ class AbstractCharacter(Mapping):
     engine = getatt('db')
     no_unwrap = True
 
+    @staticmethod
+    def is_directed():
+        return True
+
     @abstractmethod
     def add_place(self, name, **kwargs): pass
 
