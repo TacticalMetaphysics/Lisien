@@ -152,7 +152,7 @@ KEYCACHE_MAXSIZE = 1024
 
 
 def lru_append(kc, lru, kckey, maxsize):
-    """Delete old data from ``kc``, then add the new ``kckey``.
+    """Delete old data from ``kc``, then add the new ``kckey`` to the LRU
 
     :param kc: a three-layer keycache
     :param lru: an :class:`OrderedDict` with a key for each triple that should fill out ``kc``'s three layers
