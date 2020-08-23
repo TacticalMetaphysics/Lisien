@@ -959,10 +959,6 @@ class CharPredecessorsMappingProxy(MutableMapping):
             self.engine._character_portals_cache.predecessors[self.name])
 
     def __getitem__(self, k):
-        if k not in self:
-            raise KeyError(
-                "No predecessors to {} (if it even exists)".format(k)
-            )
         if k not in self._cache:
             self._cache[k] = PredecessorsProxy(self.engine, self.name, k)
         return self._cache[k]
@@ -1499,8 +1495,14 @@ class CharacterProxy(AbstractCharacter):
         else:
             del thingcache[node]
         portscache = self.engine._character_portals_cache
-        del portscache.successors[name][node]
-        del portscache.predecessors[name][node]
+        to_del = {(node, dest) for dest in portscache.successors[name][node]}
+        to_del.update((orig, node) for orig in portscache.predecessors[name][node])
+        for u, v in to_del:
+            portscache.delete(name, u, v)
+        if node in portscache.successors[name]:
+            del portscache.successors[name][node]
+        if node in portscache.predecessors[name]:
+            del portscache.predecessors[name][node]
 
     def remove_place(self, place):
         placemap = self.place
@@ -1976,18 +1978,34 @@ class PortalObjCache(object):
         self.predecessors[char][v][u] = obj
 
     def delete(self, char, u, v):
-        del self.successors[char][u][v]
-        del self.predecessors[char][v][u]
+        succs = self.successors
+        if char not in succs:
+            raise KeyError(char)
+        succmap = succs[char]
+        if u not in succmap:
+            raise KeyError((char, u))
+        succu = succmap[u]
+        if v not in succu:
+            raise KeyError((char, u, v))
+        del succu[v]
+        if not succu:
+            del succmap[u]
+        preds = self.predecessors
+        if char not in preds:
+            raise KeyError(char)
+        predmap = preds[char]
+        if v not in predmap:
+            raise KeyError((char, v))
+        predv = predmap[v]
+        if u not in predv:
+            raise KeyError((char, v, u))
+        del predv[u]
+        if not predv:
+            del predmap[v]
 
     def delete_char(self, char):
-        charsucs = self.successors[char]
-        charpreds = self.predecessors[char]
-        us = list(charsucs)
-        vs = list(charpreds)
-        for u in us:
-            del charsucs[u]
-        for v in vs:
-            del charpreds[v]
+        del self.successors[char]
+        del self.predecessors[char]
 
 
 class TimeSignal(Signal):
