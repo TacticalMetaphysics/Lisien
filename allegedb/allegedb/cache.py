@@ -387,7 +387,7 @@ class Cache:
         forward and updates them.
 
         """
-        #lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
+        lru_append(self.keycache, self._kc_lru, (parentity+(branch,), turn, tick), KEYCACHE_MAXSIZE)
         return self._get_keycachelike(
             self.keycache, self.keys, self._get_adds_dels,
             parentity, branch, turn, tick, forward=forward
