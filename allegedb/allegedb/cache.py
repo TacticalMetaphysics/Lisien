@@ -282,7 +282,7 @@ class Cache:
                     return branc[turn][tick]
                 elif branc.rev_gettable(turn-1):
                     turnd = branc[turn-1]
-                    return turnd[turnd.end]
+                    return turnd.final()
             except HistoryError as ex:
                 # probably shouldn't ever happen, empty branches shouldn't be kept in the cache at all...
                 # but it's easy to handle
@@ -299,7 +299,7 @@ class Cache:
                 elif cache[b].rev_gettable(r-1):
                     cbr = cache[b][r-1]
                     try:
-                        return cbr[cbr.end]
+                        return cbr.final()
                     except HistoryError as ex:
                         if ex.deleted:
                             raise
@@ -335,7 +335,7 @@ class Cache:
                             branch, old_turn, old_turn_kc.end
                         ), cache=keys
                     )
-                    ret = old_turn_kc[old_turn_kc.end].union(added).difference(deleted)
+                    ret = old_turn_kc.final().union(added).difference(deleted)
                     # assert ret == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                     new_turn_kc = WindowDict()
                     new_turn_kc[tick] = ret
@@ -440,7 +440,7 @@ class Cache:
                 if not turnd.rev_gettable(trn):
                     break
                 tickd = turnd[trn]
-                if tickd[tickd.end] is None:
+                if tickd.final() is None:
                     deleted.add(key)
                 else:
                     added.add(key)
@@ -759,7 +759,7 @@ class Cache:
                         return ret
                     elif brancs.rev_gettable(turn-1):
                         b1 = brancs[turn-1]
-                        ret = b1[b1.end]
+                        ret = b1.final()
                         shallowest[args] = ret
                         return ret
                 else:
@@ -789,7 +789,7 @@ class Cache:
                             kfb = keyframes[b]
                             if brancs.rev_before(r - 1) < kfb.rev_before(r - 1):
                                 kfbr = kfb[r - 1]
-                                kf = kfbr[kfbr.end]
+                                kf = kfbr.final()
                                 if key in kf:
                                     ret = kf[key]
                                     shallowest[args] = ret
@@ -865,7 +865,7 @@ class Cache:
                                 return ret
                     if kfb.rev_gettable(r-1):
                         kfbr = kfb[r]
-                        kf = kfbr[kfbr.end]
+                        kf = kfbr.final()
                         if key in kf:
                             ret = kf[key]
                             shallowest[args] = ret
