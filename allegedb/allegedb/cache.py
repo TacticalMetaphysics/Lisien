@@ -368,29 +368,6 @@ class Cache:
                         return ret
                 # assert kcturn[tick] == get_adds_dels(keys[parentity], branch, turn, tick)[0]  # slow
                 return keycache3[tick]
-            else:
-                for (parbranch, parturn, partick) in self.db._iter_parent_btt(branch, turn, tick):
-                    par_kc_key = parentity + (parbranch,)
-                    if par_kc_key in keycache:
-                        kcpkc = keycache[par_kc_key]
-                        if parturn in kcpkc and kcpkc[parturn].rev_gettable(partick):
-                            parkeys = kcpkc[parturn][partick]
-                            break
-                        elif kcpkc.rev_gettable(parturn-1):
-                            partkeys = kcpkc[parturn-1]
-                            parkeys = partkeys[partkeys.end]
-                            break
-                else:
-                    parkeys = frozenset()
-                keycache2 = SettingsTurnDict()
-                added, deleted = get_adds_dels(
-                    parentity, branch, turn, tick, cache=keys[parentity]
-                )
-                ret = parkeys.union(added).difference(deleted)
-                keycache2[turn] = {tick: ret}
-                keycache[keycache_key] = keycache2
-                # assert ret == get_adds_dels(parentity, branch, turn, tick)[0]  # slow
-                return ret
         ret = frozenset(get_adds_dels(parentity, branch, turn, tick)[0])
         if keycache2:
             if keycache3:
