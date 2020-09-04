@@ -45,6 +45,10 @@ class CharacterTest(allegedb.tests.test_all.AllegedTest):
         os.rmdir(self.tempdir)
 
 
+class CharacterBranchLineageTest(CharacterTest, allegedb.tests.test_all.AbstractBranchLineageTest):
+    pass
+
+
 class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):
     pass
 
