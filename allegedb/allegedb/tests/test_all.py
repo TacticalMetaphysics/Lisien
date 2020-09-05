@@ -133,6 +133,8 @@ class AbstractGraphTest:
 
 
 class AbstractBranchLineageTest(AbstractGraphTest):
+    # TODO: an analogue of this test for when you're looking up keyframes
+    #       in parent branches
     def runTest(self):
         """Create some branches of history and check that allegedb remembers where
         each came from and what happened in each.
