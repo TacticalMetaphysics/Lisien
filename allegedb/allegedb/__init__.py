@@ -705,7 +705,7 @@ class ORM(object):
         branch, turn, tick = self._btt()
         snapp = self._snap_keyframe
         for graphn, graph in self.graph.items():
-            snapp(graph, branch, turn, tick,
+            snapp(graphn, branch, turn, tick,
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
 
