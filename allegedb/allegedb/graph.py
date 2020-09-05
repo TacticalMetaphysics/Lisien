@@ -1192,6 +1192,21 @@ class Graph(networkx.Graph):
     node_map_cls = GraphNodeMapping
     adj_cls = GraphSuccessorsMapping
 
+    def _nodes_state(self):
+        return dict(self._node.items())
+
+    def _edges_state(self):
+        ret = {}
+        for orig, dests in self.adj.items():
+            if orig not in ret:
+                ret[orig] = {}
+            origd = ret[orig]
+            for dest, edge in dests.items():
+                origd[dest] = {0: dict(edge.items())}
+
+    def _val_state(self):
+        return dict(self.graph.items())
+
     def __new__(cls, db, name, data=None, **attr):
         if name in db._graph_objs:
             ret = db._graph_objs[name]
