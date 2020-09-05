@@ -1203,6 +1203,7 @@ class Graph(networkx.Graph):
             origd = ret[orig]
             for dest, edge in dests.items():
                 origd[dest] = {0: dict(edge.items())}
+        return ret
 
     def _val_state(self):
         return dict(self.graph.items())
