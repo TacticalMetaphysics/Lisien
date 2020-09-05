@@ -854,7 +854,7 @@ class Cache:
                         return ret
             for (b, r, t) in self.db._iter_parent_btt(branch):
                 if b in keyframes:
-                    kfb = keyframes[branch]
+                    kfb = keyframes[b]
                     if r in kfb:
                         kfbr = kfb[turn]
                         if kfbr.rev_gettable(tick):
