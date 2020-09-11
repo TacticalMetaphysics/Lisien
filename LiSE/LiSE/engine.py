@@ -10,12 +10,12 @@ from collections import defaultdict
 from operator import attrgetter
 from types import FunctionType, MethodType
 from abc import ABC, abstractmethod
-from time import monotonic
 
 import msgpack
 from blinker import Signal
 from allegedb import ORM as gORM
 from allegedb.cache import HistoryError
+from allegedb.window import SettingsTurnDict, WindowDict
 from .reify import reify
 from .util import sort_set
 
@@ -1131,6 +1131,24 @@ class Engine(AbstractEngine, gORM):
         q = self.query
         self._things_cache.load(q.things_dump())
         super()._init_load(validate=validate)
+        things_kf = self._things_cache.keyframe
+        nv_kf = self._node_val_cache.keyframe
+        for node, branches in nv_kf.items():
+            for branch, turns in branches.items():
+                for turn, ticks in turns.items():
+                    for tick, vals in ticks.items():
+                        if 'location' in vals:
+                            if node not in things_kf or branch not in \
+                                    things_kf[node]:
+                                things_kf[node][branch] = SettingsTurnDict({
+                                    turn: WindowDict({tick: vals})
+                                })
+                            elif turn not in things_kf[node][branch]:
+                                things_kf[node][branch][turn] = WindowDict({
+                                    tick: vals
+                                })
+                            else:
+                                things_kf[node][branch][turn][tick] = vals
         self._avatarness_cache.load(q.avatars_dump())
         self._universal_cache.load(q.universals_dump())
         self._rulebooks_cache.load(q.rulebooks_dump())

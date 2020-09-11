@@ -1183,6 +1183,11 @@ class MultiDiGraphSuccessorsMapping(MultiGraphSuccessorsMapping):
             return self.orig, dest
 
 
+def unwrapped_dict(d):
+    return {k: v.unwrap() if hasattr(v, 'unwrap') else v
+            for k, v in d.items()}
+
+
 class Graph(networkx.Graph):
     """A version of the networkx.Graph class that stores its state in a
     database.
@@ -1193,20 +1198,30 @@ class Graph(networkx.Graph):
     adj_cls = GraphSuccessorsMapping
 
     def _nodes_state(self):
-        return dict(self._node.items())
+        return {noden: unwrapped_dict(node)
+                for noden, node in self._node.items()}
 
     def _edges_state(self):
         ret = {}
+        ismul = self.is_multigraph()
         for orig, dests in self.adj.items():
             if orig not in ret:
                 ret[orig] = {}
             origd = ret[orig]
             for dest, edge in dests.items():
-                origd[dest] = {0: dict(edge.items())}
+                if ismul:
+                    if dest not in origd:
+                        origd[dest] = edges = {}
+                    else:
+                        edges = origd[dest]
+                    for i, val in edge.items():
+                        edges[i] = unwrapped_dict(val)
+                else:
+                    origd[dest] = {0: unwrapped_dict(edge)}
         return ret
 
     def _val_state(self):
-        return dict(self.graph.items())
+        return unwrapped_dict(self.graph)
 
     def __new__(cls, db, name, data=None, **attr):
         if name in db._graph_objs:

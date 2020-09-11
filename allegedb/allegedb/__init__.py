@@ -609,6 +609,7 @@ class ORM(object):
             self._turn_end_plan[branch, turn] = plan_end_tick
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
+        self._new_keyframes = []
         self._nbtt_stuff = (
             self._btt, self._turn_end_plan, self._turn_end,
             self._plan_ticks, self._plan_ticks_uncommitted,
@@ -708,6 +709,7 @@ class ORM(object):
             snapp(graphn, branch, turn, tick,
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
+        self._new_keyframes.append((branch, turn, tick))
 
     def _init_load(self, validate=False):
         assert hasattr(self, 'graph')
@@ -1018,6 +1020,13 @@ class ORM(object):
             self.query.plans_insert_many(self._plans_uncommitted)
         if self._plan_ticks_uncommitted:
             self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
+        kf_ins = self.query.keyframes_insert
+        for branch, turn, tick in self._new_keyframes:
+            for graphn, graph in self.graph.items():
+                kf_ins(graphn, branch, turn, tick,
+                       graph._nodes_state(), graph._edges_state(),
+                       graph._val_state())
+        self._new_keyframes = []
         self.query.commit()
         self._plans_uncommitted = []
         self._plan_ticks_uncommitted = []
