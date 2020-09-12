@@ -22,3 +22,4 @@ def test_keyframe_load_init(cleanup_test_keyframe_load_init):
     eng = Engine('test_keyframe_load_init.db')
     assert eng._things_cache.keyframe['physical', 'kobold'][
         eng.branch][eng.turn][eng.tick]
+    assert 'kobold' in eng.character['physical'].thing
