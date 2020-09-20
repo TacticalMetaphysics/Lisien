@@ -27,7 +27,7 @@ contained by Places, or possibly other Things.
 import networkx as nx
 from .node import Node
 from .exc import TravelException
-from allegedb.cache import HistoryError
+from .allegedb import HistoryError
 
 
 def roerror(*args, **kwargs):

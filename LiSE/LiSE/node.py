@@ -19,12 +19,11 @@ Every actual node that you're meant to use will be a place or
 thing. This module is for what they have in common.
 
 """
-from collections import Mapping, ValuesView
+from collections.abc import Mapping, ValuesView
 
 from networkx import shortest_path, shortest_path_length
 
-import allegedb.graph
-from allegedb.cache import HistoryError
+from .allegedb import graph, HistoryError
 
 from .util import getatt
 from .query import StatusAlias
@@ -279,7 +278,7 @@ class UserDescriptor:
             raise
 
 
-class Node(allegedb.graph.Node, rule.RuleFollower):
+class Node(graph.Node, rule.RuleFollower):
     """The fundamental graph component, which edges (in LiSE, "portals")
     go between.
 

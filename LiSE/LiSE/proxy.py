@@ -37,10 +37,9 @@ from queue import Empty
 
 from blinker import Signal
 
-from allegedb.cache import (
-    HistoryError, PickyDefaultDict, StructuredDefaultDict
-)
-from allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
+from .allegedb import HistoryError
+from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
+from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from .engine import AbstractEngine
 from .character import Facade, AbstractCharacter
 from .reify import reify

@@ -14,17 +14,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from LiSE.proxy import EngineProcessManager
-import allegedb.tests.test_all
+import LiSE.allegedb.tests.test_all
 import pytest
 import LiSE.examples.kobold as kobold
 import LiSE.examples.college as college
-import LiSE.examples.sickle as sickle
 import os
 import tempfile
 from . import data
 
 
-class ProxyTest(allegedb.tests.test_all.AllegedTest):
+class ProxyTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.manager = EngineProcessManager()
         self.engine = self.manager.start('sqlite:///:memory:')
@@ -51,19 +50,19 @@ class ProxyTest(allegedb.tests.test_all.AllegedTest):
         os.rmdir(self.tempdir)
 
 
-class ProxyGraphTest(allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
+class ProxyGraphTest(LiSE.allegedb.tests.test_all.AbstractGraphTest, ProxyTest):
     pass
 
 
-class DictStorageTest(ProxyTest, allegedb.tests.test_all.DictStorageTest):
+class DictStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class ListStorageTest(ProxyTest, allegedb.tests.test_all.ListStorageTest):
+class ListStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.ListStorageTest):
     pass
 
 
-class SetStorageTest(ProxyTest, allegedb.tests.test_all.SetStorageTest):
+class SetStorageTest(ProxyTest, LiSE.allegedb.tests.test_all.SetStorageTest):
     pass
 
 

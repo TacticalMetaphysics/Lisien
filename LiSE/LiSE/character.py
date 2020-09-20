@@ -47,13 +47,14 @@ from weakref import WeakValueDictionary
 from blinker import Signal
 
 import networkx as nx
-from allegedb.graph import (
+from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
+from .allegedb.graph import (
     DiGraph,
     GraphNodeMapping,
     DiGraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from allegedb.wrap import MutableMappingUnwrapper
+from .allegedb.wrap import MutableMappingUnwrapper
 
 from .xcollections import CompositeDict
 from .rule import RuleMapping
@@ -63,7 +64,7 @@ from .thing import Thing
 from .place import Place
 from .portal import Portal
 from .util import getatt, singleton_get, timer
-from .exc import AmbiguousAvatarError, WorldIntegrityError
+from .exc import WorldIntegrityError
 from .query import StatusAlias
 
 
@@ -1101,7 +1102,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
     def __init__(self, engine, name, data=None,
                  *, init_rulebooks=True, **attr):
-        from allegedb.cache import FuturistWindowDict, PickyDefaultDict
         super().__init__(engine, name, data, **attr)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
         if not init_rulebooks:

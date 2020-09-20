@@ -26,7 +26,7 @@ from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
 from time import monotonic
 
-import allegedb.query
+from .allegedb import query
 
 from .exc import (
     IntegrityError,
@@ -341,7 +341,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
                 yield branch, turn
 
 
-class QueryEngine(allegedb.query.QueryEngine):
+class QueryEngine(query.QueryEngine):
     exist_edge_t = 0
     path = LiSE.__path__[0]
     IntegrityError = IntegrityError

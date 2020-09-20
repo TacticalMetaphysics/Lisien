@@ -13,9 +13,9 @@ from abc import ABC, abstractmethod
 
 import msgpack
 from blinker import Signal
-from allegedb import ORM as gORM
-from allegedb.cache import HistoryError
-from allegedb.window import SettingsTurnDict, WindowDict
+from .allegedb import ORM as gORM
+from .allegedb import HistoryError
+from .allegedb.window import SettingsTurnDict, WindowDict
 from .reify import reify
 from .util import sort_set
 
@@ -564,7 +564,7 @@ class Engine(AbstractEngine, gORM):
         containing any of the lists 'triggers', 'prereqs', and 'actions'
 
         """
-        from allegedb.window import update_window, update_backward_window
+        from LiSE.allegedb.window import update_window, update_backward_window
         if turn_from == turn_to:
             return self.get_turn_delta(
                 branch, turn_to, tick_to,start_tick=tick_from)

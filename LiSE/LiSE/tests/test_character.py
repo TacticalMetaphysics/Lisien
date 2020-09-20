@@ -16,11 +16,11 @@
 import os
 import tempfile
 import pytest
-import allegedb.tests.test_all
+import LiSE.allegedb.tests.test_all
 from LiSE.engine import Engine
 
 
-class CharacterTest(allegedb.tests.test_all.AllegedTest):
+class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
     def setUp(self):
         self.engine = Engine("sqlite:///:memory:")
         self.graphmakers = (self.engine.new_character,)
@@ -45,19 +45,19 @@ class CharacterTest(allegedb.tests.test_all.AllegedTest):
         os.rmdir(self.tempdir)
 
 
-class CharacterBranchLineageTest(CharacterTest, allegedb.tests.test_all.AbstractBranchLineageTest):
+class CharacterBranchLineageTest(CharacterTest, LiSE.allegedb.tests.test_all.AbstractBranchLineageTest):
     pass
 
 
-class CharacterDictStorageTest(CharacterTest, allegedb.tests.test_all.DictStorageTest):
+class CharacterDictStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.DictStorageTest):
     pass
 
 
-class CharacterListStorageTest(CharacterTest, allegedb.tests.test_all.ListStorageTest):
+class CharacterListStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.ListStorageTest):
     pass
 
 
-class CharacterSetStorageTest(CharacterTest, allegedb.tests.test_all.SetStorageTest):
+class CharacterSetStorageTest(CharacterTest, LiSE.allegedb.tests.test_all.SetStorageTest):
     pass
 
 
