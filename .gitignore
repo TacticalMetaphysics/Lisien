@@ -33,5 +33,7 @@ ELiDE.ini
 breakage.diff
 ELiDE/ELiDE/kivygarden/texturestack
 .venv
+venv
 flame.svg
 test.py
+_build
