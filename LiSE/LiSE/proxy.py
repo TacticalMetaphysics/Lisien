@@ -859,8 +859,6 @@ class CharSuccessorsMappingProxy(CachingProxy):
         for o, ds in delta.items():
             for d, ex in ds.items():
                 if ex:
-                    if o not in self._cache:
-                        self._cache[o] = {}
                     if d not in self._cache[o]:
                         self._cache[o][d] = PortalProxy(
                             self.character,
@@ -2200,65 +2198,10 @@ class EngineProxy(AbstractEngine):
         self._eternal_cache = self.handle('eternal_delta')
         self._universal_cache = self.handle('universal_delta')
         deltas = self.handle('get_char_deltas', chars='all')
-        for char in deltas:
-            self._char_cache[char] = character = CharacterProxy(self, char)
-            for origin, destinations in deltas[
-                    char].pop('edge_val', {}).items():
-                for destination,  stats in destinations.items():
-                    self._portal_stat_cache[char][origin][
-                        destination] = stats
-            for node,  stats in deltas[char].pop('node_val', {}).items():
-                self._node_stat_cache[char][node] = stats
-            avatars = self._character_avatars_cache[char] = deltas[
-                char].pop('avatars', {})
-            for av, node in avatars.items():
-                self._avatar_characters_cache[av].setdefault(char, node)
-            for rbtype, rb in deltas[char].pop('rulebooks', {}).items():
-                if rb in self._rulebook_obj_cache:
-                    self._character_rulebooks_cache[char][rbtype] \
-                        = self._rulebook_obj_cache[rb]
-                else:
-                    self._character_rulebooks_cache[char][rbtype] \
-                        = self._rulebook_obj_cache[rb] \
-                        = RuleBookProxy(self, rb)
-            for node, rb in deltas[char].pop('node_rulebooks', {}).items():
-                if rb in self._rulebook_obj_cache:
-                    self._char_node_rulebooks_cache[char][node] \
-                        = self._rulebook_obj_cache[rb]
-                else:
-                    self._char_node_rulebooks_cache[char][node] \
-                        = self._rulebook_obj_cache[rb] \
-                        = RuleBookProxy(self, rb)
-            for origin, destinations in deltas[
-                    char].pop('portal_rulebooks', {}).items():
-                for destination, rulebook in destinations.items():
-                    if rulebook in self._rulebook_obj_cache:
-                        self._char_port_rulebooks_cache[
-                            char][origin][destination
-                        ] = self._rulebook_obj_cache[rulebook]
-                    else:
-                        self._char_port_rulebooks_cache[
-                            char][origin][destination] \
-                            = self._rulebook_obj_cache[rulebook] \
-                            = RuleBookProxy(self, rulebook)
-            for node, ex in deltas[char].pop('nodes', {}).items():
-                if ex:
-                    noded = self._node_stat_cache[char].get(node)
-                    if noded and 'location' in noded:
-                        self._things_cache[char][node] = ThingProxy(
-                            character, node, noded['location']
-                        )
-                    else:
-                        self._character_places_cache[char][node] = \
-                            PlaceProxy(character, node)
-            for orig, dests in deltas[char].pop('edges', {}).items():
-                for dest, ex in dests.items():
-                    if ex:
-                        self._character_portals_cache.store(
-                            char, orig, dest, PortalProxy(
-                                character, orig, dest)
-                        )
-            self._char_stat_cache[char] = deltas[char]
+        for char, delta in deltas.items():
+            if char not in self.character:
+                self._char_cache[char] = CharacterProxy(self, char)
+            self.character[char]._apply_delta(delta)
 
     def send(self, obj, blocking=True, timeout=-1):
         self._handle_out_lock.acquire(blocking, timeout)
