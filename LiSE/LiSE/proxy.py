@@ -24,7 +24,7 @@ import sys
 import logging
 from abc import abstractmethod
 from random import Random
-from collections import (
+from collections.abc import (
     Mapping,
     MutableMapping,
     MutableSequence
