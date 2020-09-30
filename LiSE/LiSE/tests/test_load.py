@@ -23,3 +23,4 @@ def test_keyframe_load_init(cleanup_test_keyframe_load_init):
     assert eng._things_cache.keyframe['physical', 'kobold'][
         eng.branch][eng.turn][eng.tick]
     assert 'kobold' in eng.character['physical'].thing
+    assert (0, 0) in eng.character['physical'].place
