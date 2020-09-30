@@ -24,3 +24,4 @@ def test_keyframe_load_init(cleanup_test_keyframe_load_init):
         eng.branch][eng.turn][eng.tick]
     assert 'kobold' in eng.character['physical'].thing
     assert (0, 0) in eng.character['physical'].place
+    assert (0, 1) in eng.character['physical'].portal[0, 0]
