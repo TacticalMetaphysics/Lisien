@@ -579,7 +579,7 @@ class AbstractSuccessors(GraphEdgeMapping):
     """Alias to ``self.graph.db``"""
 
     def _order_nodes(self, node):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __init__(self, container, orig):
         """Store container and node"""
@@ -995,7 +995,7 @@ class DiGraph(networkx.DiGraph):
             branch, turn, tick = self.db._btt()
             self.db._snap_keyframe(
                 name, branch, turn, tick, data._node, data._adj, data.graph)
-            self.db._new_keyframes.append((branch, turn, tick))
+            self.db._new_keyframes.append((name, branch, turn, tick))
         else:
             self.graph.update(attr)  # shouldn't it be a keyframe too?
 
