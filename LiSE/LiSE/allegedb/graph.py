@@ -979,25 +979,11 @@ class DiGraph(networkx.DiGraph):
             return ret
         return super(DiGraph, cls).__new__(cls)
 
-    def __init__(self, db, name, data=None, **attr):
+    def __init__(self, db, name):  # user shouldn't instantiate directly
         self._name = name
         self.db = db
         if name not in self.db._graph_objs:
             self.db._graph_objs[name] = self
-        if data is not None:
-            if isinstance(data, dict):
-                data = convert_to_networkx_graph(data)
-            else:
-                data = data.copy()
-            if hasattr(data, 'graph') and 'name' in data.graph:
-                del data.graph['name']
-            data.graph.update(attr)
-            branch, turn, tick = self.db._btt()
-            self.db._snap_keyframe(
-                name, branch, turn, tick, data._node, data._adj, data.graph)
-            self.db._new_keyframes.append((name, branch, turn, tick))
-        else:
-            self.graph.update(attr)  # shouldn't it be a keyframe too?
 
     @property
     def graph(self):

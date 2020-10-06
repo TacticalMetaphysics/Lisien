@@ -1100,9 +1100,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
     def __repr__(self):
         return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
-    def __init__(self, engine, name, data=None,
-                 *, init_rulebooks=True, **attr):
-        super().__init__(engine, name, data, **attr)
+    def __init__(self, engine, name,
+                 *, init_rulebooks=True):
+        super().__init__(engine, name)
         self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
         if not init_rulebooks:
             return
@@ -1115,8 +1115,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
         }
         for rulebook, cache in cachemap.items():
             branch, turn, tick = engine._nbtt()
-            rulebook_or_name = attr.get(rulebook, (name, rulebook))
-            rulebook_name = getattr(rulebook_or_name, 'name', rulebook_or_name)
+            rulebook_name = (name, rulebook)
             engine.query._set_rulebook_on_character(
                 rulebook, name, branch, turn, tick, rulebook_name)
             cache.store((name, rulebook), branch, turn, tick, rulebook_name)

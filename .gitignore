@@ -40,3 +40,4 @@ _build
 .vscode/launch.json
 .vscode/settings.json
 ELiDE/ELiDE/kivygarden/texturestack
+*/.idea

@@ -603,7 +603,7 @@ class ORM(object):
             self._turn_end_plan[branch, turn] = plan_end_tick
         if 'trunk' not in self._branches:
             self._branches['trunk'] = None, 0, 0, 0, 0
-        self._new_keyframes = []
+        self._new_keyframes = set()
         self._nbtt_stuff = (
             self._btt, self._turn_end_plan, self._turn_end,
             self._plan_ticks, self._plan_ticks_uncommitted,
@@ -679,7 +679,7 @@ class ORM(object):
             snapp(graphn, branch, turn, tick,
                   graph._nodes_state(), graph._edges_state(),
                   graph._val_state())
-        self._new_keyframes.append((branch, turn, tick))
+            self._new_keyframes.add((graphn, branch, turn, tick))
 
     def _init_load(self, validate=False):
         assert hasattr(self, 'graph')
@@ -991,11 +991,12 @@ class ORM(object):
         if self._plan_ticks_uncommitted:
             self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
         kf_ins = self.query.keyframes_insert
-        for branch, turn, tick in self._new_keyframes:
-            for graphn, graph in self.graph.items():
-                kf_ins(graphn, branch, turn, tick,
-                       graph._nodes_state(), graph._edges_state(),
-                       graph._val_state())
+        graphmap = self.graph
+        for graphn, branch, turn, tick in self._new_keyframes:
+            graph = graphmap[graphn]
+            kf_ins(graphn, branch, turn, tick,
+                    graph._nodes_state(), graph._edges_state(),
+                    graph._val_state())
         self._new_keyframes = []
         self.query.commit()
         self._plans_uncommitted = []
@@ -1014,7 +1015,19 @@ class ORM(object):
         self.query.new_graph(name, type_s)
         if data:
             branch, turn, tick = self._btt()
-            self.query.keyframes_insert(name, branch, turn, tick, *data)
+            if isinstance(data, DiGraph):
+                self._snap_keyframe(name, branch, turn, tick, data._node_state(), data._edges_state(), data._val_state())
+            elif isinstance(data, nx.Graph):
+                self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
+            elif isinstance(data, dict):
+                try:
+                    data = nx.from_dict_of_dicts(data)
+                except AttributeError:
+                    data = nx.from_dict_of_lists(data)
+                self._snap_keyframe(name, branch, turn, tick, data._node, data._adj, data.graph)
+            else:
+                self._snap_keyframe(name, branch, turn, tick, *data)
+            self._new_keyframes.add((name, branch, turn, tick))
 
     def new_graph(self, name, data=None, **attr):
         """Return a new instance of type Graph, initialized with the given
@@ -1041,9 +1054,7 @@ class ORM(object):
                 name, 'DiGraph', [data._node, data._succ, data.graph])
         else:
             self._init_graph(name, 'DiGraph', data)
-        dg = DiGraph(self, name, data, **attr)
-        self._graph_objs[name] = dg
-        return dg
+        return DiGraph(self, name)
 
     def new_multigraph(self, name, data=None, **attr):
         """Return a new instance of type MultiGraph, initialized with the given
