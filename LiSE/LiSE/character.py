@@ -36,7 +36,7 @@ and their node in the physical world is an avatar of it.
 """
 
 from abc import abstractmethod
-from collections import (
+from collections.abc import (
     Mapping,
     MutableMapping
 )
