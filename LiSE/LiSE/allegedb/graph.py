@@ -457,7 +457,7 @@ class GraphNodeMapping(AllegedMapping):
         )
 
     def __eq__(self, other):
-        from collections import Mapping
+        from collections.abc import Mapping
         if not isinstance(other, Mapping):
             return NotImplemented
         if self.keys() != other.keys():
