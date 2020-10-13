@@ -70,15 +70,3 @@ def test_travel(engy):
     engy.turn = 14
     assert thing1.location == phys.place[7, 7]
     assert thing2.location == phys.place[0, 7]
-
-
-def test_travel_deletion_prior(engy):
-    phys = engy.new_character('physical', data=nx.grid_2d_graph(8, 8))
-    del phys.place[5, 5]
-    assert (5, 5) not in phys.place
-    assert (5, 5) not in list(phys.place)
-    thing1 = phys.place[0, 0].new_thing(1)
-    thing1.travel_to(phys.place[7, 7])
-    engy.turn = 20
-    assert (5, 5) not in phys.place
-    assert (5, 5) not in list(phys.place)
