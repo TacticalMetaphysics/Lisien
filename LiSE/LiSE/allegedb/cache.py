@@ -458,7 +458,7 @@ class Cache:
                     if kfbr.rev_gettable(tck):
                         added.update(set(kfbr[tck]).difference(deleted))
                 elif kfb.rev_gettable(trn):
-                    added.update(set(kfb[trn].final()))
+                    added.update(set(kfb[trn].final()).difference(deleted))
         return added, deleted
 
     def store(self, *args, planning=None, forward=None, loading=False, contra=True):
