@@ -963,7 +963,7 @@ class DiGraph(networkx.DiGraph):
                     for i, val in edge.items():
                         edges[i] = unwrapped_dict(val)
                 else:
-                    origd[dest] = {0: unwrapped_dict(edge)}
+                    origd[dest] = unwrapped_dict(edge)
         return ret
 
     def _val_state(self):
